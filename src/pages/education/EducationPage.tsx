@@ -1,23 +1,22 @@
 import EducationCard from './components/EducationCard'
+import PageLayout from '../../components/PageLayout'
+import PageHeader from '../../components/PageHeader'
 import styles from './EducationPage.module.css'
 import { education } from '../../data/data'
 
 function EducationPage() {
   return (
-    <main className={styles.main}>
-      <div className={styles.header}>
-        <h1 className={styles.title}>Education & Learning</h1>
-        <p className={styles.subtitle}>
-          Formal training and ongoing self-directed learning that shapes my approach to
-          problem-solving and engineering.
-        </p>
-      </div>
+    <PageLayout>
+      <PageHeader
+        title="Education & Learning"
+        subtitle="Formal training and ongoing self-directed learning that shapes my approach to problem-solving and engineering."
+      />
       <div className={styles.list}>
         {education.map((item) => (
           <EducationCard key={`${item.institution}-${item.degree}`} item={item} />
         ))}
       </div>
-    </main>
+    </PageLayout>
   )
 }
 

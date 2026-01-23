@@ -1,22 +1,22 @@
 import ExperienceCard from './components/ExperienceCard'
+import PageLayout from '../../components/PageLayout'
+import PageHeader from '../../components/PageHeader'
 import styles from './ExperiencePage.module.css'
 import { experience } from '../../data/data'
 
 function ExperiencePage() {
   return (
-    <main className={styles.main}>
-      <div className={styles.header}>
-        <h1 className={styles.title}>Professional Experience</h1>
-        <p className={styles.subtitle}>
-          A journey through roles, teams, and the technologies that drive meaningful products.
-        </p>
-      </div>
+    <PageLayout>
+      <PageHeader
+        title="Professional Experience"
+        subtitle="A journey through roles, teams, and the technologies that drive meaningful products."
+      />
       <div className={styles.list}>
-        {experience.map((item) => (
-          <ExperienceCard key={item.role} item={item} />
+        {experience.map((item, index) => (
+          <ExperienceCard key={`${item.role}-${index}`} item={item} />
         ))}
       </div>
-    </main>
+    </PageLayout>
   )
 }
 
