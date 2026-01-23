@@ -3,6 +3,9 @@ import { SpeedInsights } from '@vercel/speed-insights/react'
 import './App.css'
 
 function App() {
+  const enableVercelAnalytics = true
+  const enableVercelSpeedInsights = true
+
   return (
     <div className="page">
       <div className="card">
@@ -10,8 +13,8 @@ function App() {
         <h1>Hello, I am Brent Butkow</h1>
         <p className="subtitle">Building things on the web one project at a time.</p>
       </div>
-      <Analytics />
-      <SpeedInsights />
+      {enableVercelAnalytics && <Analytics />}
+      {enableVercelSpeedInsights && <SpeedInsights />}
     </div>
   )
 }
