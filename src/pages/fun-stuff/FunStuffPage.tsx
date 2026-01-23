@@ -12,8 +12,8 @@ function FunStuffPage() {
         </p>
       </div>
       <div className={styles.grid}>
-        {funStuff.map((item, index) => (
-          <FunCard key={index} item={item} />
+        {funStuff.map((item) => (
+          <FunCard key={item.title} item={item} />
         ))}
       </div>
     </main>
