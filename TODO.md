@@ -2,3 +2,5 @@
 - [ ] Update all the data to be real
 - [ ] Update experience to have an employment type, date, description, company
 - [ ] extract all env variables into its own util file
+- [ ] add lazy loading to routes to speed up initial load
+- [ ] in the navbar, add feedback when on a tab, using useLocation
