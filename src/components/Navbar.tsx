@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { routePaths, routes } from '../routes/routes.config'
 import styles from './Navbar.module.css'
+import { NavLink } from 'react-router-dom'
 
 function Navbar() {
   const navRoutes = routes.filter((route) => !route.dontShowInNavbar)
@@ -15,9 +16,9 @@ function Navbar() {
         <ul className={styles.links}>
           {navRoutes.map((route) => (
             <li key={route.path}>
-              <Link className={styles.link} to={route.path}>
+              <NavLink className={styles.link} to={route.path}>
                 {route.label}
-              </Link>
+              </NavLink>
             </li>
           ))}
         </ul>

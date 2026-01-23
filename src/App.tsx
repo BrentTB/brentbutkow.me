@@ -4,11 +4,10 @@ import Router from './routes/Router'
 import styles from './App.module.css'
 import Navbar from './components/Navbar'
 import { BrowserRouter } from 'react-router-dom'
+const enableVercelAnalytics = import.meta.env.ENABLE_VERCEL_ANALYTICS === 'true'
+const enableVercelSpeedInsights = import.meta.env.ENABLE_VERCEL_SPEED_INSIGHTS === 'true'
 
 function App() {
-  const enableVercelAnalytics = true
-  const enableVercelSpeedInsights = true
-
   return (
     <>
       <div className={styles.shell}>
