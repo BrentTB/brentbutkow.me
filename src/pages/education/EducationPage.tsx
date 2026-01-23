@@ -13,8 +13,8 @@ function EducationPage() {
         </p>
       </div>
       <div className={styles.list}>
-        {education.map((item, index) => (
-          <EducationCard key={index} item={item} />
+        {education.map((item) => (
+          <EducationCard key={`${item.institution}-${item.degree}`} item={item} />
         ))}
       </div>
     </main>
