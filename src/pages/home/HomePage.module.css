@@ -1,0 +1,15 @@
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 80px;
+}
+
+.section {
+  scroll-margin-top: 96px;
+}
+
+@media (max-width: 768px) {
+  .main {
+    gap: 64px;
+  }
+}

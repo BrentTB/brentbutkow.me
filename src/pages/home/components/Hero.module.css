@@ -1,0 +1,70 @@
+.hero {
+  padding: clamp(24px, 5vw, 36px) clamp(24px, 6vw, 48px);
+  border: 1px solid var(--border);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01));
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+}
+
+.eyebrow {
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  color: var(--accent);
+  margin: 0 0 8px;
+}
+
+.title {
+  margin: 0 0 12px;
+  font-size: clamp(2.4rem, 6vw, 3.4rem);
+}
+
+.subtitle {
+  margin: 0 0 24px;
+  color: var(--muted);
+  max-width: 640px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-weight: 700;
+  border: 1px solid transparent;
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease,
+    border-color 150ms ease;
+}
+
+.primary {
+  background: linear-gradient(120deg, var(--accent), rgba(127, 240, 201, 0.6));
+  color: var(--bg);
+  box-shadow: 0 10px 30px rgba(127, 240, 201, 0.3);
+}
+
+.primary:hover,
+.primary:focus-visible {
+  transform: translateY(-1px);
+}
+
+.ghost {
+  border-color: var(--border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+}
+
+.ghost:hover,
+.ghost:focus-visible {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}

@@ -1,0 +1,6 @@
+- [ ] make the 404 not found page funny. Include some kind of css 404 made of many little arts (eg: many small balls that spell out 404, but move away from the users mouse)
+- [ ] Update all the data to be real
+- [ ] Update experience to have an employment type, date, description, company
+- [ ] extract all env variables into its own util file
+- [ ] add lazy loading to routes to speed up initial load
+- [ ] in the navbar, add feedback when on a tab, using useLocation

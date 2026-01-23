@@ -1,12 +1,20 @@
 :root {
-  font-family: 'Space Grotesk', 'Inter', system-ui, -apple-system, sans-serif;
+  --bg: #0b1222;
+  --surface: rgba(255, 255, 255, 0.05);
+  --border: rgba(255, 255, 255, 0.12);
+  --accent: #7ff0c9;
+  --muted: #c5cee0;
+  --text: #f5f7fb;
+  --shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  font-family:
+    'Space Grotesk',
+    'Inter',
+    system-ui,
+    -apple-system,
+    sans-serif;
   line-height: 1.6;
   font-weight: 400;
-  color: #f5f7fb;
-  background: radial-gradient(circle at 10% 20%, rgba(120, 196, 255, 0.35), transparent 25%),
-    radial-gradient(circle at 90% 10%, rgba(255, 140, 196, 0.3), transparent 20%),
-    radial-gradient(circle at 50% 80%, rgba(116, 255, 198, 0.25), transparent 30%),
-    #0b1222;
+  color: var(--text);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -20,11 +28,14 @@
 body {
   margin: 0;
   min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  background:
+    radial-gradient(circle at 10% 20%, rgba(120, 196, 255, 0.35), transparent 25%),
+    radial-gradient(circle at 90% 10%, rgba(255, 140, 196, 0.3), transparent 20%),
+    radial-gradient(circle at 50% 80%, rgba(116, 255, 198, 0.25), transparent 30%), var(--bg);
+  color: var(--text);
 }
 
 a {
   color: inherit;
+  text-decoration: none;
 }

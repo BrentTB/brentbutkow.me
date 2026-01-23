@@ -1,18 +1,24 @@
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/react'
-import './App.css'
+import Router from './routes/Router'
+import styles from './App.module.css'
+import Navbar from './components/Navbar'
+import { BrowserRouter } from 'react-router-dom'
+const enableVercelAnalytics = import.meta.env.ENABLE_VERCEL_ANALYTICS === 'true'
+const enableVercelSpeedInsights = import.meta.env.ENABLE_VERCEL_SPEED_INSIGHTS === 'true'
 
 function App() {
   return (
-    <div className="page">
-      <div className="card">
-        <p className="eyebrow">Welcome all...</p>
-        <h1>Hello, I am Brent Butkow</h1>
-        <p className="subtitle">Building things on the web one project at a time.</p>
+    <>
+      <div className={styles.shell}>
+        <BrowserRouter>
+          <Navbar />
+          <Router />
+        </BrowserRouter>
       </div>
-      <Analytics />
-      <SpeedInsights />
-    </div>
+      {enableVercelAnalytics && <Analytics />}
+      {enableVercelSpeedInsights && <SpeedInsights />}
+    </>
   )
 }
 
