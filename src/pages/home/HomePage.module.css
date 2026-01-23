@@ -1,0 +1,22 @@
+.shell {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 32px clamp(20px, 4vw, 48px) 64px;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 80px;
+  margin-top: 40px;
+}
+
+.section {
+  scroll-margin-top: 96px;
+}
+
+@media (max-width: 768px) {
+  .main {
+    gap: 64px;
+  }
+}

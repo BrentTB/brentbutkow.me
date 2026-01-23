@@ -4,6 +4,8 @@
 
 - Types: Strict TypeScript—no any. Define domain types and props interfaces near components or in dedicated types modules. Prefer discriminated unions over any/unknown.
 
+- structure: Use folders to keep order. Components with tsx and css files should be kept in a folder with the same name
+
 - Styling: Use CSS modules or scoped styles; keep tokens (colors, spacing, typography) centralized. Responsive-first layout; ensure good contrast and accessible focus states. Use css instead of typescript for dynamic motion where possible.
 
 - Content structure: Sections for intro/hero, projects with clear metadata (role, stack, outcome), experience/skills, and contact/CTA. Provide concise, personable copy.

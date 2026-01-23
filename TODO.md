@@ -1,0 +1,1 @@
+- make the 404 not found page funny. Include some kind of css 404 mad eof many little arts (eg: many small balls that spell out 404, but move away from the users mouse)
