@@ -1,5 +1,5 @@
 import { ContactInfo } from '../../../data/data.types'
-import { SafeLink } from '../../../utils/safelink'
+import { SafeLink } from '../../../utils/SafeLink'
 import styles from './ContactCard.module.css'
 
 type ContactCardProps = {

@@ -1,5 +1,5 @@
 import { FunItem } from '../../../data/data.types'
-import { SafeLink } from '../../../utils/safelink'
+import { SafeLink } from '../../../utils/SafeLink'
 import styles from './FunCard.module.css'
 
 type FunCardProps = {

@@ -1,5 +1,5 @@
 import { Project } from '../../../data/data.types'
-import { SafeLink } from '../../../utils/safelink'
+import { SafeLink } from '../../../utils/SafeLink'
 import styles from './ProjectsSection.module.css'
 
 type ProjectsSectionProps = {
