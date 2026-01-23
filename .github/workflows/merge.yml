@@ -8,19 +8,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Merge dev into main
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git fetch origin main
+          git fetch origin main dev
           git checkout main
-          git merge origin dev --allow-unrelated-histories
+          git merge origin/dev --allow-unrelated-histories
           git push origin main
 
       - name: Merge main into dev
         run: |
           git checkout dev
-          git merge main
+          git merge origin/main
           git push origin dev
