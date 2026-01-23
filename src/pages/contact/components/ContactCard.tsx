@@ -1,4 +1,5 @@
 import { ContactInfo } from '../../../data/data.types'
+import { SafeLink } from '../../../utils/safelink'
 import styles from './ContactCard.module.css'
 
 type ContactCardProps = {
@@ -14,9 +15,9 @@ function ContactCard({ info }: ContactCardProps) {
         <p className={styles.copy}>{info.availability}</p>
         <p className={styles.copy}>{info.location}</p>
       </div>
-      <a className={styles.cta} href={`mailto:${info.email}`}>
+      <SafeLink className={styles.cta} href={`mailto:${info.email}`}>
         {info.email}
-      </a>
+      </SafeLink>
     </div>
   )
 }

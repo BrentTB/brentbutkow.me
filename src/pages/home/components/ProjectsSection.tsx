@@ -1,4 +1,5 @@
 import { Project } from '../../../data/data.types'
+import { SafeLink } from '../../../utils/safelink'
 import styles from './ProjectsSection.module.css'
 
 type ProjectsSectionProps = {
@@ -32,9 +33,9 @@ function ProjectsSection({ projects }: ProjectsSectionProps) {
                 ))}
               </ul>
               {project.link && (
-                <a className={styles.link} href={project.link}>
+                <SafeLink className={styles.link} href={project.link}>
                   View details ↗
-                </a>
+                </SafeLink>
               )}
             </div>
           </article>

@@ -1,4 +1,5 @@
 import { FunItem } from '../../../data/data.types'
+import { SafeLink } from '../../../utils/safelink'
 import styles from './FunCard.module.css'
 
 type FunCardProps = {
@@ -16,9 +17,9 @@ function FunCard({ item }: FunCardProps) {
 
   if (item.link) {
     return (
-      <a href={item.link} className={styles.card} target="_blank" rel="noopener noreferrer">
+      <SafeLink href={item.link} className={styles.card}>
         {content}
-      </a>
+      </SafeLink>
     )
   }
 
