@@ -48,7 +48,7 @@
 
 .primary {
   background: linear-gradient(120deg, var(--accent), rgba(127, 240, 201, 0.6));
-  color: #0b1222;
+  color: var(--bg);
   box-shadow: 0 10px 30px rgba(127, 240, 201, 0.3);
 }
 
