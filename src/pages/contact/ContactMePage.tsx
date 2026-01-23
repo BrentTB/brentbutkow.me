@@ -1,19 +1,17 @@
 import ContactCard from './components/ContactCard'
-import styles from './ContactMePage.module.css'
+import PageLayout from '../../components/PageLayout'
+import PageHeader from '../../components/PageHeader'
 import { contactInfo } from '../../data/data'
 
 function ContactMePage() {
   return (
-    <main className={styles.main}>
-      <div className={styles.header}>
-        <h1 className={styles.title}>Get in Touch</h1>
-        <p className={styles.subtitle}>
-          Open to collaborations, consulting engagements, and interesting conversations about
-          building great software.
-        </p>
-      </div>
+    <PageLayout>
+      <PageHeader
+        title="Get in Touch"
+        subtitle="Open to collaborations, consulting engagements, and interesting conversations about building great software."
+      />
       <ContactCard info={contactInfo} />
-    </main>
+    </PageLayout>
   )
 }
 
