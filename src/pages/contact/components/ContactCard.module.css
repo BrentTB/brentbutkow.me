@@ -35,9 +35,7 @@
   border-radius: 12px;
   font-weight: 700;
   letter-spacing: 0.2px;
-  transition:
-    border-color 150ms ease,
-    transform 150ms ease;
+  transition: border-color 150ms ease, transform 150ms ease;
 }
 
 .cta:hover,

@@ -18,3 +18,9 @@
   color: var(--muted);
   font-size: 1.1rem;
 }
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}

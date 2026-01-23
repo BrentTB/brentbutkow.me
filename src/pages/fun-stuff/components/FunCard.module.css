@@ -8,9 +8,7 @@
   flex-direction: column;
   gap: 10px;
   position: relative;
-  transition:
-    transform 150ms ease,
-    border-color 150ms ease;
+  transition: transform 150ms ease, border-color 150ms ease;
 }
 
 a.card:hover,

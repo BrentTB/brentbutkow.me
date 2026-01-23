@@ -1,8 +1,8 @@
-import EducationCard from './EducationCard'
-import styles from './Education.module.css'
+import EducationCard from './components/EducationCard'
+import styles from './EducationPage.module.css'
 import { education } from '../../data/data'
 
-function Education() {
+function EducationPage() {
   return (
     <main className={styles.main}>
       <div className={styles.header}>
@@ -21,4 +21,4 @@ function Education() {
   )
 }
 
-export default Education
+export default EducationPage

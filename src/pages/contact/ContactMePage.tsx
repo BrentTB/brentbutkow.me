@@ -1,8 +1,8 @@
-import ContactSection from '../home/components/ContactSection'
-import styles from './ContactMe.module.css'
+import ContactCard from './components/ContactCard'
+import styles from './ContactMePage.module.css'
 import { contactInfo } from '../../data/data'
 
-function ContactMe() {
+function ContactMePage() {
   return (
     <main className={styles.main}>
       <div className={styles.header}>
@@ -12,9 +12,9 @@ function ContactMe() {
           building great software.
         </p>
       </div>
-      <ContactSection info={contactInfo} />
+      <ContactCard info={contactInfo} />
     </main>
   )
 }
 
-export default ContactMe
+export default ContactMePage

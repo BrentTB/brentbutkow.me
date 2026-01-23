@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
-import styles from './NotFound.module.css'
+import styles from './NotFoundPage.module.css'
 
-function NotFound() {
+function NotFoundPage() {
   return (
     <main className={styles.main}>
       <div className={styles.content}>
@@ -18,4 +18,4 @@ function NotFound() {
   )
 }
 
-export default NotFound
+export default NotFoundPage

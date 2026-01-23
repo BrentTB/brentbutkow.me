@@ -1,11 +1,11 @@
 import { ContactInfo } from '../../../data/data.types'
-import styles from './ContactSection.module.css'
+import styles from './ContactCard.module.css'
 
-type ContactSectionProps = {
+type ContactCardProps = {
   info: ContactInfo
 }
 
-function ContactSection({ info }: ContactSectionProps) {
+function ContactCard({ info }: ContactCardProps) {
   return (
     <div className={styles.card}>
       <div>
@@ -21,4 +21,4 @@ function ContactSection({ info }: ContactSectionProps) {
   )
 }
 
-export default ContactSection
+export default ContactCard

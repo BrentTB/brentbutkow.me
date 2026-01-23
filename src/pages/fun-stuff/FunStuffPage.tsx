@@ -1,8 +1,8 @@
-import FunCard from './FunCard'
-import styles from './FunStuff.module.css'
+import FunCard from './components/FunCard'
+import styles from './FunStuffPage.module.css'
 import { funStuff } from '../../data/data'
 
-function FunStuff() {
+function FunStuffPage() {
   return (
     <main className={styles.main}>
       <div className={styles.header}>
@@ -20,4 +20,4 @@ function FunStuff() {
   )
 }
 
-export default FunStuff
+export default FunStuffPage

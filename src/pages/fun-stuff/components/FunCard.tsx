@@ -1,4 +1,4 @@
-import { FunItem } from '../../data/data.types'
+import { FunItem } from '../../../data/data.types'
 import styles from './FunCard.module.css'
 
 type FunCardProps = {

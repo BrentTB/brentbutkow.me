@@ -1,8 +1,8 @@
-import ExperienceSection from '../home/components/ExperienceSection'
-import styles from './Experience.module.css'
+import ExperienceCard from './components/ExperienceCard'
+import styles from './ExperiencePage.module.css'
 import { experience } from '../../data/data'
 
-function Experience() {
+function ExperiencePage() {
   return (
     <main className={styles.main}>
       <div className={styles.header}>
@@ -11,9 +11,13 @@ function Experience() {
           A journey through roles, teams, and the technologies that drive meaningful products.
         </p>
       </div>
-      <ExperienceSection entries={experience} />
+      <div className={styles.list}>
+        {experience.map((item) => (
+          <ExperienceCard key={item.role} item={item} />
+        ))}
+      </div>
     </main>
   )
 }
 
-export default Experience
+export default ExperiencePage
