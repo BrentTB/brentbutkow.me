@@ -6,14 +6,5 @@
   "trailingComma": "es5",
   "printWidth": 100,
   "arrowParens": "always",
-  "endOfLine": "lf",
-  "overrides": [
-    {
-      "files": "*.tsx",
-      "options": {
-        "useTabs": false,
-        "tabWidth": 2
-      }
-    }
-  ]
+  "endOfLine": "lf"
 }
