@@ -10,9 +10,6 @@ function App() {
         <h1>Hello, I am Brent Butkow</h1>
         <p className="subtitle">Building things on the web one project at a time.</p>
       </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
       <Analytics />
       <SpeedInsights />
     </div>
