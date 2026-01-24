@@ -1,4 +1,4 @@
-import ContactMePage from '../pages/contact/ContactMePage'
+import ContactMePage from '../pages/contact-me/ContactMePage'
 import EducationPage from '../pages/education/EducationPage'
 import ExperiencePage from '../pages/experience/ExperiencePage'
 import FunStuffPage from '../pages/fun-stuff/FunStuffPage'

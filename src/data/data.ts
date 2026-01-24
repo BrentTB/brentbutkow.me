@@ -1,4 +1,12 @@
-import { ContactInfo, Education, Experience, FunItem, HeroContent, Project } from './data.types'
+import {
+  ContactInfo,
+  ContactPlatform,
+  Education,
+  Experience,
+  FunItem,
+  HeroContent,
+  Project,
+} from './data.types'
 
 export const heroContent: HeroContent = {
   eyebrow: 'Full-stack engineer',
@@ -54,6 +62,27 @@ export const contactInfo: ContactInfo = {
   location: 'Based in South Africa · Remote friendly',
   availability: 'Open to select collaborations and consulting engagements.',
 }
+
+export const contactPlatforms: ContactPlatform[] = [
+  {
+    platform: 'Email',
+    shownName: 'btbutkow@gmail.com',
+    url: 'mailto:btbutkow@gmail.com',
+    logoPath: '/logos/email.png',
+  },
+  {
+    platform: 'LinkedIn',
+    shownName: '@brentbutkow',
+    url: 'https://www.linkedin.com/in/brentbutkow/',
+    logoPath: '/logos/linkedin.png',
+  },
+  {
+    platform: 'GitHub',
+    shownName: '@BrentTB',
+    url: 'https://github.com/BrentTB',
+    logoPath: '/logos/github.png',
+  },
+]
 
 export const education: Education[] = [
   {

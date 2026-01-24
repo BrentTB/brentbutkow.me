@@ -4,3 +4,6 @@
 - [ ] extract all env variables into its own util file
 - [ ] add lazy loading to routes to speed up initial load
 - [ ] in the navbar, add feedback when on a tab, using useLocation
+- [ ] when the screen is thin (eg: phone), the navbar should not show by default (only show the name) and when an arrow button is clicked, then can you see the other options
+- [ ] Home should have an "about me" section, with my likes, dislikes
+- [ ] There should also be a random bad joke on the home page

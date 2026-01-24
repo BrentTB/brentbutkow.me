@@ -33,6 +33,13 @@ export type ContactInfo = {
   availability: string
 }
 
+export type ContactPlatform = {
+  platform: string
+  shownName: string
+  url: string
+  logoPath: string
+}
+
 export type Education = {
   institution: string
   degree: string
