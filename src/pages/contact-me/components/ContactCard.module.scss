@@ -41,29 +41,29 @@
   letter-spacing: 0.2px;
   transition: transform 150ms ease;
   color: var(--text);
+
+  &:hover,
+  &:focus-visible {
+    transform: translateY(-2px) scale(1.05);
+  }
 }
 
-.cta:hover,
-.cta:focus-visible {
-  transform: translateY(-2px) scale(1.05);
-
-  /* use scss instead */
-  html.fun-mode {
-    background: linear-gradient(
-      270deg,
-      var(--text) 0%,
-      red 10%,
-      yellow 20%,
-      blue 30%,
-      var(--text) 50%,
-      var(--text) 100%
-    );
-    background-size: 200% 100%;
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    animation: shimmer 3s linear infinite;
-  }
+:global(html.fun-mode) .cta:hover,
+:global(html.fun-mode) .cta:focus-visible {
+  background: linear-gradient(
+    270deg,
+    var(--text) 0%,
+    red 10%,
+    yellow 20%,
+    blue 30%,
+    var(--text) 50%,
+    var(--text) 100%
+  );
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 3s linear infinite;
 }
 
 @keyframes shimmer {
@@ -82,11 +82,4 @@
 .logo {
   max-width: 50px;
   vertical-align: middle;
-}
-
-@media (max-width: 640px) {
-  .card {
-    flex-direction: column;
-    align-items: flex-start;
-  }
 }

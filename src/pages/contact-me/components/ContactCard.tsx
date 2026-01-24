@@ -1,5 +1,5 @@
 import { ContactPlatform } from '../../../data/data.types'
-import { SafeLink } from '../../../utils/SafeLink'
+import { SafeLink } from '../../../components/SafeLink'
 import styles from './ContactCard.module.scss'
 
 type ContactCardProps = {
@@ -7,7 +7,6 @@ type ContactCardProps = {
 }
 
 function ContactCard({ contactPlatform }: ContactCardProps) {
-  document.documentElement.classList.add('fun-mode')
   return (
     <div className={styles.card}>
       <div>
