@@ -3,7 +3,7 @@
 .navbar {
   @include card-base;
   position: sticky;
-  top: 0;
+  top: 20px;
   z-index: 10;
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -34,7 +34,7 @@
 }
 
 .end {
-  margin-right: 20px
+  margin-right: 20px;
 }
 
 .nav {
