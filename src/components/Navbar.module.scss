@@ -1,12 +1,15 @@
+@use '../styles/shared' as *;
+
 .navbar {
+  @include card-base;
   position: sticky;
-  top: 0;
+  top: 20px;
   z-index: 10;
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 16px;
   padding: 16px 0;
+  margin-bottom: 32px;
   background: linear-gradient(180deg, rgba(11, 18, 34, 0.9), rgba(11, 18, 34, 0.65));
   backdrop-filter: blur(12px);
 }
@@ -17,14 +20,25 @@
   gap: 8px;
   font-weight: 700;
   letter-spacing: 0.4px;
+  position: relative;
+  z-index: 20;
 }
 
 .dot {
+  margin-left: 20px;
   width: 10px;
   height: 10px;
   border-radius: 50%;
   background: var(--accent);
   box-shadow: 0 0 0 6px rgba(127, 240, 201, 0.2);
+}
+
+.end {
+  margin-right: 20px;
+}
+
+.nav {
+  grid-column: 3;
 }
 
 .links {
@@ -64,14 +78,181 @@
   transform: scaleX(1);
 }
 
-@media (max-width: 720px) {
+.mobileMenuToggle {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  width: 40px;
+  height: 40px;
+  position: relative;
+  z-index: 20;
+  grid-column: 3;
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+.menuIcon {
+  display: block;
+  width: 24px;
+  height: 2px;
+  background: var(--text);
+  position: relative;
+  transition: transform 600ms ease;
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    width: 24px;
+    height: 2px;
+    background: var(--text);
+    transition: transform 600ms ease;
+  }
+
+  &::before {
+    top: -6px;
+  }
+
+  &::after {
+    top: 6px;
+  }
+}
+
+.mobileMenuToggle.open .menuIcon {
+  transform: translateX(-200px);
+  animation: hideBackground 600ms ease forwards;
+
+  &::before {
+    transform: translateX(200px) rotate(45deg) translateY(8px);
+  }
+
+  &::after {
+    transform: translateX(200px) rotate(-45deg) translateY(-8px);
+  }
+}
+
+@keyframes hideBackground {
+  to {
+    background: transparent;
+  }
+}
+
+@media (max-width: 900px) {
   .navbar {
-    grid-template-columns: auto 1fr;
-    grid-template-rows: auto auto;
-    row-gap: 12px;
+    grid-template-columns: auto 1fr auto;
+    grid-template-rows: auto 0fr;
+    transition: grid-template-rows 1000ms ease;
+
+    &.open {
+      grid-template-rows: auto 1fr;
+    }
+  }
+
+  .brand,
+  .mobileMenuToggle {
+    align-self: start;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .mobileMenuToggle {
+    display: block;
+  }
+
+  .nav {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 300ms ease 750ms;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &.open {
+      opacity: 1;
+      pointer-events: all;
+      transition-delay: 0ms;
+    }
   }
 
   .links {
-    justify-content: flex-start;
+    flex-direction: column;
+    gap: 32px;
+    font-size: 1.5rem;
+    width: 100%;
+    align-items: center;
+  }
+
+  /* Staggered fly-in for each nav item on open */
+  .links > * {
+    opacity: 0;
+    transform: translateX(-200px);
+    transition-property: transform, opacity;
+    transition-duration: 500ms;
+  }
+
+  .nav.open .links > * {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  /* Sequential delays: top item first */
+  .nav.open .links > *:nth-child(1) {
+    transition-delay: 0ms;
+  }
+  .nav.open .links > *:nth-child(2) {
+    transition-delay: 100ms;
+  }
+  .nav.open .links > *:nth-child(3) {
+    transition-delay: 200ms;
+  }
+  .nav.open .links > *:nth-child(4) {
+    transition-delay: 300ms;
+  }
+  .nav.open .links > *:nth-child(5) {
+    transition-delay: 400ms;
+  }
+  .nav.open .links > *:nth-child(6) {
+    transition-delay: 500ms;
+  }
+  .nav.open .links > *:nth-child(7) {
+    transition-delay: 600ms;
+  }
+
+  /* Reverse stagger on close (last item exits first) */
+  .nav:not(.open) .links > *:nth-child(1) {
+    transition-delay: 360ms;
+  }
+  .nav:not(.open) .links > *:nth-child(2) {
+    transition-delay: 300ms;
+  }
+  .nav:not(.open) .links > *:nth-child(3) {
+    transition-delay: 240ms;
+  }
+  .nav:not(.open) .links > *:nth-child(4) {
+    transition-delay: 180ms;
+  }
+  .nav:not(.open) .links > *:nth-child(5) {
+    transition-delay: 120ms;
+  }
+  .nav:not(.open) .links > *:nth-child(6) {
+    transition-delay: 60ms;
+  }
+  .nav:not(.open) .links > *:nth-child(7) {
+    transition-delay: 0ms;
+  }
+
+  .link {
+    padding: 12px 0;
   }
 }
