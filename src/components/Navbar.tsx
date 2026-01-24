@@ -1,9 +1,11 @@
-import { Link } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 import { routePaths, routes } from '../routes/routes.config'
-import styles from './Navbar.module.css'
-import { NavLink } from 'react-router-dom'
+import styles from './Navbar.module.scss'
+import ModeToggle from './ModeToggle'
+import { useFunMode } from '../contexts/FunModeContext'
 
 function Navbar() {
+  const { isFunMode, setIsFunMode } = useFunMode()
   const navRoutes = routes.filter((route) => !route.dontShowInNavbar)
 
   return (
@@ -21,6 +23,12 @@ function Navbar() {
               </NavLink>
             </li>
           ))}
+          <ModeToggle
+            isEnabled={isFunMode}
+            onToggle={setIsFunMode}
+            label1="Professional"
+            label2="Fun"
+          />
         </ul>
       </nav>
     </header>

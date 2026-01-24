@@ -1,5 +1,5 @@
 import { HeroContent } from '../../../data/data.types'
-import styles from './Hero.module.css'
+import styles from './Hero.module.scss'
 
 type HeroProps = {
   content: HeroContent

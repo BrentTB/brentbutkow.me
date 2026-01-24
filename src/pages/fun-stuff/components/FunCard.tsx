@@ -1,6 +1,6 @@
 import { FunItem } from '../../../data/data.types'
-import { SafeLink } from '../../../utils/SafeLink'
-import styles from './FunCard.module.css'
+import { SafeLink } from '../../../components/SafeLink'
+import styles from './FunCard.module.scss'
 
 type FunCardProps = {
   item: FunItem

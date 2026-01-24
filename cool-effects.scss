@@ -1,0 +1,30 @@
+
+// spin around with a rainbow gradient background
+:global(html.fun-mode) .class1 {
+  background: conic-gradient(
+    from 0deg,
+    var(--accent),
+    #ff6b6b,
+    #ffd93d,
+    #6bcf7f,
+    #4d9de0,
+    var(--accent)
+  );
+  animation: spin 3s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+// glitch effect
+:global(html.fun-mode) .class2 {
+  animation: glitch 4s infinite;
+}
+
+@keyframes glitch {
+  0%, 90%, 100% { transform: translate(0); filter: none; }
+  92% { transform: translate(-2px, 2px); filter: hue-rotate(90deg); }
+  94% { transform: translate(2px, -2px); filter: hue-rotate(-90deg); }
+  96% { transform: translate(-2px, -2px); filter: hue-rotate(180deg); }
+}

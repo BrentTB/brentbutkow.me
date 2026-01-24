@@ -1,7 +1,7 @@
 import EducationCard from './components/EducationCard'
 import PageLayout from '../../components/PageLayout'
 import PageHeader from '../../components/PageHeader'
-import styles from './EducationPage.module.css'
+import styles from './EducationPage.module.scss'
 import { education } from '../../data/data'
 
 function EducationPage() {

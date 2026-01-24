@@ -1,7 +1,7 @@
 import FunCard from './components/FunCard'
 import PageLayout from '../../components/PageLayout'
 import PageHeader from '../../components/PageHeader'
-import styles from './FunStuffPage.module.css'
+import styles from './FunStuffPage.module.scss'
 import { funStuff } from '../../data/data'
 
 function FunStuffPage() {
