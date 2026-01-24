@@ -8,8 +8,8 @@
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 16px;
   padding: 16px 0;
+  margin-bottom: 32px;
   background: linear-gradient(180deg, rgba(11, 18, 34, 0.9), rgba(11, 18, 34, 0.65));
   backdrop-filter: blur(12px);
 }
@@ -144,9 +144,23 @@
   }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 900px) {
   .navbar {
     grid-template-columns: auto 1fr auto;
+    grid-template-rows: auto 0fr;
+    transition: grid-template-rows 1000ms ease;
+    
+    &.open {
+      grid-template-rows: auto 1fr;
+    }
+  }
+
+  .brand,
+  .mobileMenuToggle {
+    align-self: start;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
   }
 
   .mobileMenuToggle {
@@ -154,22 +168,20 @@
   }
 
   .nav {
-    position: fixed;
-    top: 0;
-    background: rgb(11, 18, 34);
+    grid-column: 1 / -1;
+    grid-row: 2;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 300ms ease 750ms;
     display: flex;
     align-items: center;
     justify-content: center;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 250ms ease;
-    z-index: 15;
-    grid-column: 2;
-    padding: 50px;
 
     &.open {
       opacity: 1;
       pointer-events: all;
+      transition-delay: 0ms;
     }
   }
 
@@ -180,6 +192,37 @@
     width: 100%;
     align-items: center;
   }
+
+  /* Staggered fly-in for each nav item on open */
+  .links > * {
+    opacity: 0;
+    transform: translateX(-200px);
+    transition-property: transform, opacity;
+    transition-duration: 300ms;
+  }
+
+  .nav.open .links > * {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  /* Sequential delays: top item first */
+  .nav.open .links > *:nth-child(1) { transition-delay: 0ms; }
+  .nav.open .links > *:nth-child(2) { transition-delay: 100ms; }
+  .nav.open .links > *:nth-child(3) { transition-delay: 200ms; }
+  .nav.open .links > *:nth-child(4) { transition-delay: 300ms; }
+  .nav.open .links > *:nth-child(5) { transition-delay: 400ms; }
+  .nav.open .links > *:nth-child(6) { transition-delay: 500ms; }
+  .nav.open .links > *:nth-child(7) { transition-delay: 600ms; }
+
+  /* Reverse stagger on close (last item exits first) */
+  .nav:not(.open) .links > *:nth-child(1) { transition-delay: 360ms; }
+  .nav:not(.open) .links > *:nth-child(2) { transition-delay: 300ms; }
+  .nav:not(.open) .links > *:nth-child(3) { transition-delay: 240ms; }
+  .nav:not(.open) .links > *:nth-child(4) { transition-delay: 180ms; }
+  .nav:not(.open) .links > *:nth-child(5) { transition-delay: 120ms; }
+  .nav:not(.open) .links > *:nth-child(6) { transition-delay: 60ms; }
+  .nav:not(.open) .links > *:nth-child(7) { transition-delay: 0ms; }
 
   .link {
     padding: 12px 0;

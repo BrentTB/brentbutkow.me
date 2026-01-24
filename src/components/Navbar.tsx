@@ -12,21 +12,23 @@ function Navbar() {
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false)
 
+  const openStyle = isMobileMenuOpen ? styles.open : ''
+
   return (
-    <header className={styles.navbar}>
+    <header className={`${styles.navbar} ${openStyle}`}>
       <Link to={routePaths.home} className={styles.brand} onClick={closeMobileMenu}>
         <span className={styles.dot} aria-hidden="true" />
         <span>Brent Butkow</span>
       </Link>
       <button
-        className={`${styles.mobileMenuToggle} ${isMobileMenuOpen ? styles.open : ''}`}
+        className={`${styles.mobileMenuToggle} ${openStyle}`}
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
         aria-expanded={isMobileMenuOpen}
       >
         <span className={styles.menuIcon}></span>
       </button>
-      <nav aria-label="Primary" className={`${styles.nav} ${isMobileMenuOpen ? styles.open : ''}`}>
+      <nav aria-label="Primary" className={`${styles.nav} ${openStyle}`}>
         <ul className={styles.links}>
           {navRoutes.map((route) => (
             <li key={route.path}>
