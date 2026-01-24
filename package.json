@@ -10,8 +10,8 @@
     "preview": "vite preview",
     "check": "tsc -b && eslint .",
     "prepare": "husky",
-    "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\""
+    "format": "prettier --write \"src/**/*.{ts,tsx,css,scss}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css,scss}\""
   },
   "dependencies": {
     "@vercel/analytics": "^1.6.1",

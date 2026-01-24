@@ -1,3 +1,5 @@
+@use '../../../styles/shared' as *;
+
 .card {
   border: 1px solid var(--border);
   background: linear-gradient(130deg, rgba(255, 255, 255, 0.05), rgba(127, 240, 201, 0.06));
