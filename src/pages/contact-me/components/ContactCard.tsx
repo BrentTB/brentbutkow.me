@@ -17,7 +17,7 @@ function ContactCard({ contactPlatform, index }: ContactCardProps) {
           <SafeLink href={contactPlatform.url}>
             <span
               className={styles.logoWrapper}
-              style={{ '--offset': `${index / 2}s` } as React.CSSProperties}
+              style={{ '--offset': `-${index / 2}s` } as React.CSSProperties}
             >
               <img
                 src={contactPlatform.logoPath}
