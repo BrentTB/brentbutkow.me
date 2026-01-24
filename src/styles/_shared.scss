@@ -1,0 +1,7 @@
+// Shared card base styles mixin
+@mixin card-base {
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+}
