@@ -1,5 +1,5 @@
 import { Education } from '../../../data/data.types'
-import styles from './EducationCard.module.css'
+import styles from './EducationCard.module.scss'
 
 type EducationCardProps = {
   item: Education

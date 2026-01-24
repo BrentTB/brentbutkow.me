@@ -1,6 +1,6 @@
 import Hero from './components/Hero'
 import ProjectsSection from './components/ProjectsSection'
-import styles from './HomePage.module.css'
+import styles from './HomePage.module.scss'
 import { heroContent, projects } from '../../data/data'
 
 function HomePage() {

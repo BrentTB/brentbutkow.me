@@ -1,5 +1,5 @@
 import { Experience } from '../../../data/data.types'
-import styles from './ExperienceCard.module.css'
+import styles from './ExperienceCard.module.scss'
 
 type ExperienceCardProps = {
   item: Experience

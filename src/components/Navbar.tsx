@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { routePaths, routes } from '../routes/routes.config'
-import styles from './Navbar.module.css'
+import styles from './Navbar.module.scss'
 import { NavLink } from 'react-router-dom'
 
 function Navbar() {

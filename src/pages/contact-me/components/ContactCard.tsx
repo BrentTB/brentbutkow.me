@@ -1,6 +1,6 @@
 import { ContactPlatform } from '../../../data/data.types'
 import { SafeLink } from '../../../utils/SafeLink'
-import styles from './ContactCard.module.css'
+import styles from './ContactCard.module.scss'
 
 type ContactCardProps = {
   contactPlatform: ContactPlatform

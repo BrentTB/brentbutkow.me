@@ -1,7 +1,7 @@
 import ExperienceCard from './components/ExperienceCard'
 import PageLayout from '../../components/PageLayout'
 import PageHeader from '../../components/PageHeader'
-import styles from './ExperiencePage.module.css'
+import styles from './ExperiencePage.module.scss'
 import { experience } from '../../data/data'
 
 function ExperiencePage() {
