@@ -4,4 +4,6 @@
   background: rgba(255, 255, 255, 0.04);
   border-radius: 16px;
   box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
 }

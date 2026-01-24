@@ -28,3 +28,35 @@
   94% { transform: translate(2px, -2px); filter: hue-rotate(-90deg); }
   96% { transform: translate(-2px, -2px); filter: hue-rotate(180deg); }
 }
+
+// glowing pulsing effect
+@keyframes glow {
+  50% {
+    box-shadow: 0 0 40px hsl(12, 100%, 60%);
+  }
+}
+:global(html.fun-mode) .class3 {
+  animation: glow var(--ease-elastic-in-1) 600ms infinite alternate;
+}
+
+// filling effect
+@keyframes fill {
+  50% {
+    transform: translateX(-5%);
+  }
+}
+
+:global(html.fun-mode) .class4 {
+  content: "";
+  color: var(--black);
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 0.75rem;
+  height: 100%;
+  width: 200%;
+  inset: 0;
+  transform: translateX(-400px);
+  background-color: hsl(12, 90%, 63%);
+}

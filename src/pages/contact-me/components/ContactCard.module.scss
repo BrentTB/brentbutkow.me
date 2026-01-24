@@ -1,13 +1,9 @@
+@use '../../../styles/shared' as *;
+
 .card {
-  border: 1px solid var(--border);
-  background: linear-gradient(130deg, rgba(255, 255, 255, 0.05), rgba(127, 240, 201, 0.06));
-  border-radius: 18px;
+  @include card-base;
   padding: clamp(20px, 4vw, 28px);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   gap: 16px;
-  box-shadow: var(--shadow);
 }
 
 .eyebrow {

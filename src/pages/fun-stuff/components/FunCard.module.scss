@@ -3,8 +3,6 @@
 .card {
   @include card-base;
   padding: 24px;
-  display: flex;
-  flex-direction: column;
   gap: 10px;
   position: relative;
   transition:
