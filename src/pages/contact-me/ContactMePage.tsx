@@ -10,8 +10,8 @@ function ContactMePage() {
         title="Get in Touch"
         subtitle="Open to collaborations, consulting engagements, and interesting conversations about building great software."
       />
-      {contactPlatforms.map((platform) => (
-        <ContactCard key={platform.platform} contactPlatform={platform} />
+      {contactPlatforms.map((platform, index) => (
+        <ContactCard key={platform.platform} contactPlatform={platform} index={index} />
       ))}
     </PageLayout>
   )

@@ -4,9 +4,10 @@ import styles from './ContactCard.module.scss'
 
 type ContactCardProps = {
   contactPlatform: ContactPlatform
+  index: number
 }
 
-function ContactCard({ contactPlatform }: ContactCardProps) {
+function ContactCard({ contactPlatform, index }: ContactCardProps) {
   return (
     <div className={styles.card}>
       <div>
@@ -14,7 +15,10 @@ function ContactCard({ contactPlatform }: ContactCardProps) {
         <p className={styles.copy}>Find me on {contactPlatform.platform}:</p>
         <div className={styles.contact}>
           <SafeLink href={contactPlatform.url}>
-            <span className={styles.logoWrapper}>
+            <span
+              className={styles.logoWrapper}
+              style={{ '--offset': `${index / 2}s` } as React.CSSProperties}
+            >
               <img
                 src={contactPlatform.logoPath}
                 alt={`${contactPlatform.platform} logo`}
