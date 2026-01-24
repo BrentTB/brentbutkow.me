@@ -21,8 +21,8 @@ function ContactCard({ contactPlatform }: ContactCardProps) {
                 className={styles.logo}
               />
             </span>
-            <p className={styles.inbetween}> - </p>
-            <p className={styles.cta}>{contactPlatform.shownName}</p>
+            <span className={styles.inbetween}> - </span>
+            <span className={styles.cta}>{contactPlatform.shownName}</span>
           </SafeLink>
         </div>
       </div>

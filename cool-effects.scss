@@ -1,6 +1,6 @@
 
 // spin around with a rainbow gradient background
-:global(html.fun-mode) .logoWrapper {
+:global(html.fun-mode) .class1 {
   background: conic-gradient(
     from 0deg,
     var(--accent),
@@ -18,7 +18,7 @@
 }
 
 // glitch effect
-:global(html.fun-mode) .logoWrapper {
+:global(html.fun-mode) .class2 {
   animation: glitch 4s infinite;
 }
 

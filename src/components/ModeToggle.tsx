@@ -14,8 +14,6 @@ function ModeToggle({ isEnabled, onToggle, label1, label2 }: ModeToggleProps) {
         className={styles.modeToggle}
         onClick={() => onToggle(false)}
         aria-label={`Switch to ${label1} mode`}
-        role="switch"
-        aria-checked={!isEnabled}
       >
         <p className={styles.modeLabel}>{label1}</p>
       </button>
@@ -34,8 +32,6 @@ function ModeToggle({ isEnabled, onToggle, label1, label2 }: ModeToggleProps) {
         className={styles.modeToggle}
         onClick={() => onToggle(true)}
         aria-label={`Switch to ${label2} mode`}
-        role="switch"
-        aria-checked={isEnabled}
       >
         <p className={styles.modeLabel}>{label2}</p>
       </button>
