@@ -13,14 +13,16 @@ function ContactCard({ contactPlatform }: ContactCardProps) {
         <p className={styles.eyebrow}>Contact</p>
         <p className={styles.copy}>Find me on {contactPlatform.platform}:</p>
         <div className={styles.contact}>
-          <img
-            src={contactPlatform.logoPath}
-            alt={`${contactPlatform.platform} logo`}
-            className={styles.logo}
-          />
-          <p className={styles.inbetween}> - </p>
-          <SafeLink className={styles.cta} href={contactPlatform.url}>
-            {contactPlatform.shownName}
+          <SafeLink href={contactPlatform.url}>
+            <span className={styles.logoWrapper}>
+              <img
+                src={contactPlatform.logoPath}
+                alt={`${contactPlatform.platform} logo`}
+                className={styles.logo}
+              />
+            </span>
+            <p className={styles.inbetween}> - </p>
+            <p className={styles.cta}>{contactPlatform.shownName}</p>
           </SafeLink>
         </div>
       </div>

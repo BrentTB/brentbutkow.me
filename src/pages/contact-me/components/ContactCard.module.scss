@@ -79,7 +79,26 @@
   margin-top: 20px;
 }
 
-.logo {
-  max-width: 50px;
+.logoWrapper {
+  display: inline-block;
   vertical-align: middle;
+  padding: 4px;
+  border-radius: 15%;
+  background: white;
+}
+
+:global(html.fun-mode) .logoWrapper {
+  animation: float 3s ease-in-out infinite;
+  box-shadow: 0 0 20px var(--accent), 0 0 40px rgba(127, 240, 201, 0.4);
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+.logo {
+  max-width: 40px;
+  display: block;
+  border-radius: 12%;
 }

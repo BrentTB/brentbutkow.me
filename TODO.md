@@ -7,3 +7,4 @@
 - [ ] when the screen is thin (eg: phone), the navbar should not show by default (only show the name) and when an arrow button is clicked, then can you see the other options
 - [ ] Home should have an "about me" section, with my likes, dislikes
 - [ ] There should also be a random bad joke on the home page
+- [ ] update all css to use proper scss variables and styling

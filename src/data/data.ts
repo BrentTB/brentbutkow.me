@@ -68,19 +68,19 @@ export const contactPlatforms: ContactPlatform[] = [
     platform: 'Email',
     shownName: 'btbutkow@gmail.com',
     url: 'mailto:btbutkow@gmail.com',
-    logoPath: '/logos/email.png',
+    logoPath: '/logos/email-no-bg.png',
   },
   {
     platform: 'LinkedIn',
     shownName: '@brentbutkow',
     url: 'https://www.linkedin.com/in/brentbutkow/',
-    logoPath: '/logos/linkedin.png',
+    logoPath: '/logos/linkedin-no-bg.png',
   },
   {
     platform: 'GitHub',
     shownName: '@BrentTB',
     url: 'https://github.com/BrentTB',
-    logoPath: '/logos/github.png',
+    logoPath: '/logos/github-no-bg.svg',
   },
 ]
 
