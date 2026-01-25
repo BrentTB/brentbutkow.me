@@ -31,6 +31,7 @@ function ExperienceCard({
             className={styles.toggleButton}
             onClick={() => setShowProjects(!showProjects)}
             aria-expanded={showProjects}
+            aria-controls="experience-projects"
           >
             {showProjects ? '▼' : '▶'} {experienceProjects.length}{' '}
             {experienceProjects.length === 1 ? 'Project' : 'Projects'}

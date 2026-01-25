@@ -17,7 +17,6 @@
     &::after {
       content: '';
       position: absolute;
-      inset: -0px;
       border-radius: inherit;
       z-index: -1;
       pointer-events: none;

@@ -6,7 +6,7 @@ export const experience: Experience[] = [
     company: 'Entelect',
     period: 'Jan 2025 - Present',
     description: [
-      'Joining Entelect as a Junior Software Developer through their Graduate Program, and have been workiong on Cloud infrastructure and web development since then',
+      'Joining Entelect as a Junior Software Developer through their Graduate Program, and have been working on Cloud infrastructure and web development since then',
     ],
 
     experienceProjects: [
