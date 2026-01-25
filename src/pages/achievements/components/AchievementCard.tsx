@@ -1,4 +1,4 @@
-import { ArticleOrLink } from '../../../components/ArticleOrLink'
+import { ArticleOrLink } from '../../../components/utils/ArticleOrLink'
 import { Achievement } from '../../../data/data.types'
 import styles from './AchievementCard.module.scss'
 

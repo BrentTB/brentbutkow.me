@@ -1,6 +1,6 @@
 import EducationCard from './components/EducationCard'
-import PageLayout from '../../components/PageLayout'
-import PageHeader from '../../components/PageHeader'
+import PageLayout from '../../components/PageFormatting/PageLayout'
+import PageHeader from '../../components/PageFormatting/PageHeader'
 import styles from './EducationPage.module.scss'
 import { education } from './data'
 

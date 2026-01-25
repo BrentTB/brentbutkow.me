@@ -1,5 +1,5 @@
 import { ContactPlatform } from '../../../data/data.types'
-import { SafeLink } from '../../../components/SafeLink'
+import { SafeLink } from '../../../components/utils/SafeLink'
 import styles from './ContactCard.module.scss'
 
 type ContactCardProps = {

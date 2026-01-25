@@ -1,8 +1,8 @@
 import { Link, NavLink } from 'react-router-dom'
-import { routePaths, routes } from '../routes/routes.config'
+import { routePaths, routes } from '../../routes/routes.config'
 import styles from './Navbar.module.scss'
-import ModeToggle from './ModeToggle'
-import { useFunMode } from '../contexts/FunMode'
+import ModeToggle from '../ModeToggle'
+import { useFunMode } from '../../contexts/FunMode'
 import { useState } from 'react'
 
 function Navbar() {

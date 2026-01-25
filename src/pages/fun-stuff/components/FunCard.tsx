@@ -1,6 +1,6 @@
 import { FunItem } from '../../../data/data.types'
 import styles from './FunCard.module.scss'
-import { ArticleOrLink } from '../../../components/ArticleOrLink'
+import { ArticleOrLink } from '../../../components/utils/ArticleOrLink'
 
 type FunCardProps = {
   item: FunItem

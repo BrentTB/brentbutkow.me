@@ -1,6 +1,6 @@
 import AchievementCard from './components/AchievementCard'
-import PageLayout from '../../components/PageLayout'
-import PageHeader from '../../components/PageHeader'
+import PageLayout from '../../components/PageFormatting/PageLayout'
+import PageHeader from '../../components/PageFormatting/PageHeader'
 import styles from './AchievementsPage.module.scss'
 import { achievements } from './data'
 

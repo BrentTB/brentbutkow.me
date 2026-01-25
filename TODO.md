@@ -12,3 +12,4 @@
   - including this website, ascii video creator
 - [ ] use the link on the education section somehow to link to the course/degree
 - [ ] add a footer
+- [ ] add a toggle for dark mode
