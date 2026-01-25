@@ -144,7 +144,7 @@ function NotFoundPage() {
   return (
     <main className={styles.main}>
       <div className={styles.content}>
-        <h1 className={styles.subtitle}>Page not found</h1>
+        <h1>Page not found</h1>
         <p className={styles.description}>
           The page you're looking for doesn't exist or has been moved.
         </p>
