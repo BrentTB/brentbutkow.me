@@ -13,7 +13,7 @@ function ExperienceCard({
   skills,
   experienceProjects,
 }: Experience) {
-  const [showProjects, setShowProjects] = useState(true)
+  const [showProjects, setShowProjects] = useState(false)
   const hasProjects = experienceProjects && experienceProjects.length > 0
 
   return (
