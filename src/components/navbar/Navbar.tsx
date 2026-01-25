@@ -53,12 +53,14 @@ function Navbar() {
           </ul>
         </nav>
       </header>
-      <button
-        type="button"
-        className={`${styles.backdrop} ${openStyle}`}
-        aria-label="Close navbar menu"
-        onClick={closeMobileMenu}
-      />
+      {isMobileMenuOpen && (
+        <button
+          type="button"
+          className={`${styles.backdrop} ${openStyle}`}
+          aria-label="Close navbar menu"
+          onClick={closeMobileMenu}
+        />
+      )}
     </>
   )
 }
