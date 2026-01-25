@@ -32,8 +32,10 @@ function EducationCard({ item }: EducationCardProps) {
         <span className={styles.period}>{item.period}</span>
       </header>
 
-      {item.description.map((description) => (
-        <p className={styles.description}>{description}</p>
+      {item.description.map((description, index) => (
+        <p key={`${item.degree}-description-${index}`} className={styles.description}>
+          {description}
+        </p>
       ))}
       {achievements && achievements.length > 0 && (
         <ul className={styles.achievements}>
