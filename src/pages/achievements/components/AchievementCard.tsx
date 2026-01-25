@@ -1,5 +1,5 @@
 import { ArticleOrLink } from '../../../components/ArticleOrLink'
-import { Achievement } from '.././data.types'
+import { Achievement } from '../../../data/data.types'
 import styles from './AchievementCard.module.scss'
 
 type AchievementCardProps = {
