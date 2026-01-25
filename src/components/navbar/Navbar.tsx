@@ -1,4 +1,4 @@
-import { Link, NavLink, useLocation } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 import { routePaths, routes } from '../../routes/routes.config'
 import styles from './Navbar.module.scss'
 import ModeToggle from '../ModeToggle'
@@ -7,7 +7,6 @@ import { useState } from 'react'
 
 function Navbar() {
   const { isFunMode, setIsFunMode } = useFunMode()
-  const location = useLocation()
   const navRoutes = routes.filter((route) => !route.dontShowInNavbar)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
@@ -35,7 +34,7 @@ function Navbar() {
             {navRoutes.map((route) => (
               <li key={route.path}>
                 <NavLink
-                  className={`${styles.link} ${location.pathname === route.path ? styles.active : ''}`}
+                  className={({ isActive }) => `${styles.link} ${isActive ? styles.active : ''}`}
                   to={route.path}
                   onClick={closeMobileMenu}
                 >
