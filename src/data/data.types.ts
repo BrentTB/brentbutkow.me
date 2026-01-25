@@ -19,7 +19,7 @@ export type Project = {
   status?: string
 }
 
-export type ClientExperience = {
+export type ExperienceProject = {
   company: string
   period: string
   description: string[]
@@ -32,7 +32,7 @@ export type Experience = {
   period: string
   description?: string[]
   skills?: string[]
-  clientExperience?: ClientExperience[]
+  experienceProjects?: ExperienceProject[]
 }
 
 export type ContactInfo = {

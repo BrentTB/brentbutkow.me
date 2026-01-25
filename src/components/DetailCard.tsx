@@ -50,7 +50,7 @@ function DetailCard({
       <header className={styles.header}>
         <div>
           <h3 className={styles.title}>{title}</h3>
-          <p className={styles.subtitle}>{subtitle}</p>
+          {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
         </div>
         <span className={styles.period}>{period}</span>
       </header>

@@ -2,6 +2,37 @@ import { Experience } from '../../data/data.types'
 
 export const experience: Experience[] = [
   {
+    role: 'Junior Software Developer',
+    company: 'Entelect',
+    period: 'Jan 2025 - Present',
+    description: [
+      'Contributing to the development of a large-scale e-commerce platform used by thousands of customers daily.',
+      'Collaborating with cross-functional teams to design, develop, and deploy new features and enhancements.',
+      'Participating in code reviews and ensuring adherence to best practices and coding standards.',
+    ],
+    skills: ['TypeScript', 'React', 'Node.js', 'PostgreSQL', 'Docker', 'Kubernetes'],
+    experienceProjects: [
+      {
+        company: 'Major Retail Client',
+        period: 'Mar 2025 - Present',
+        description: [
+          'Worked on optimizing the checkout process, resulting in a 15% increase in conversion rates.',
+          'Implemented a recommendation engine that personalized product suggestions based on user behavior.',
+        ],
+        skills: ['TypeScript', 'React', 'Node.js', 'Machine Learning'],
+      },
+      {
+        company: 'Major Retail Client',
+        period: 'Mar 2025 - Present',
+        description: [
+          'Worked on optimizing the checkout process, resulting in a 15% increase in conversion rates.',
+          'Implemented a recommendation engine that personalized product suggestions based on user behavior.',
+        ],
+        skills: ['TypeScript', 'React', 'Node.js', 'Machine Learning'],
+      },
+    ],
+  },
+  {
     role: 'Software Engineering Intern',
     company: 'Entelect, Amsterdam Office',
     period: 'Jan 2024 - Feb 2024 (7 weeks)',
