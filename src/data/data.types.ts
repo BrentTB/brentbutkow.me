@@ -2,6 +2,7 @@ export type HeroContent = {
   eyebrow: string
   title: string
   subtitle: string
+  subtitleFun: string
   actions: HeroAction[]
 }
 
@@ -9,6 +10,7 @@ export type HeroAction = {
   label: string
   href: string
   variant?: 'primary' | 'ghost'
+  onlyShowInFunMode?: boolean
 }
 
 export type Project = {
