@@ -4,12 +4,14 @@ import ExperiencePage from '../pages/experience/ExperiencePage'
 import FunStuffPage from '../pages/fun-stuff/FunStuffPage'
 import HomePage from '../pages/home/HomePage'
 import NotFoundPage from '../pages/not-found/NotFoundPage'
+import AchievementsPage from '../pages/achievements/AchievementsPage'
 import { AppRoute } from './routes.types'
 
 export const routePaths = {
   home: '/',
   experience: '/experience',
   education: '/education',
+  achievements: '/achievements',
   funStuff: '/fun-stuff',
   contact: '/contact',
   notFound: '*',
@@ -30,6 +32,11 @@ export const routes: AppRoute[] = [
     path: routePaths.education,
     element: <EducationPage />,
     label: 'Education',
+  },
+  {
+    path: routePaths.achievements,
+    element: <AchievementsPage />,
+    label: 'Achievements',
   },
   {
     path: routePaths.funStuff,

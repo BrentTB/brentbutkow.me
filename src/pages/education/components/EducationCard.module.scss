@@ -4,6 +4,23 @@
   @include card-base;
   padding: 24px;
   gap: 14px;
+  transition:
+    transform 150ms ease,
+    border-color 150ms ease;
+}
+
+a.card:hover,
+a.card:focus-visible {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.linkIcon {
+  // position: absolute;
+  top: 20px;
+  right: 20px;
+  color: var(--accent);
+  font-size: 1.5rem;
 }
 
 .header {
@@ -18,15 +35,10 @@
   font-size: 1.3rem;
 }
 
-.field {
+.institution {
   margin: 0 0 6px;
   color: var(--accent);
   font-weight: 600;
-}
-
-.institution {
-  margin: 0;
-  color: var(--muted);
 }
 
 .period {
@@ -46,6 +58,11 @@
   list-style: none;
   padding: 0;
   margin: 0;
+
+  &:has(.achievement.clickable:hover) .achievement {
+    background: rgba(127, 240, 201, 0.25);
+    border-color: rgba(127, 240, 201, 1);
+  }
 }
 
 .achievement {
@@ -55,6 +72,13 @@
   border: 1px solid var(--accent);
   color: var(--accent);
   font-size: 0.9rem;
+
+  &.clickable {
+    cursor: pointer;
+    transition:
+      background-color 150ms ease,
+      border-color 150ms ease;
+  }
 }
 
 @media (max-width: 640px) {
