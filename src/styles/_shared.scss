@@ -12,7 +12,8 @@
   :global(html.fun-mode) & {
     animation: float 4s ease infinite;
 
-    // Animated rainbow glow using layered box-shadows
+    animation: glow 5s 600ms infinite alternate;
+
     &::after {
       content: '';
       position: absolute;
@@ -25,7 +26,12 @@
   }
 }
 
-// Rainbow glow shadow animation
+@keyframes glow {
+  50% {
+    box-shadow: 0 0 20px hsl(12, 100%, 60%);
+  }
+}
+
 @keyframes rainbow-shadow {
   0%,
   100% {
