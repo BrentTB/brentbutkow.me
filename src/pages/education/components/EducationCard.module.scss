@@ -74,9 +74,11 @@ a.card:focus-visible {
   font-size: 0.9rem;
 
   &.clickable {
-  cursor: pointer;
-  transition: background-color 150ms ease, border-color 150ms ease;
-}
+    cursor: pointer;
+    transition:
+      background-color 150ms ease,
+      border-color 150ms ease;
+  }
 }
 
 @media (max-width: 640px) {
