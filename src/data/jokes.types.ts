@@ -2,6 +2,7 @@ export enum JokeTypes {
   dad = 'dad',
   cheesy = 'cheesy',
   long = 'long',
+  chuckNorris = 'chuckNorris',
 }
 
 export interface Joke {
@@ -13,4 +14,5 @@ export const jokeTypeLabels: Record<JokeTypes, string> = {
   [JokeTypes.dad]: 'Dad jokes',
   [JokeTypes.cheesy]: 'Cheesy jokes',
   [JokeTypes.long]: 'Long jokes',
+  [JokeTypes.chuckNorris]: 'Chuck Norris jokes',
 }
