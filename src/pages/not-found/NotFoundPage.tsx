@@ -139,7 +139,7 @@ function NotFoundPage() {
       canvas.removeEventListener('pointermove', handlePointerMove)
       canvas.removeEventListener('pointerleave', handlePointerLeave)
     }
-  }, [spring, damping])
+  }, [spring, damping, influenceRadius, particleGapFactor])
 
   return (
     <main className={styles.main}>
