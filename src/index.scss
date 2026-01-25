@@ -21,6 +21,14 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+// :global(html.fun-mode) {
+//   --accent: #ff6ffb;
+//   --text: #ffb3ff;
+//   --muted: #ff99ff;
+//   --border: rgba(255, 111, 251, 0.2);
+//   --shadow: 0 4px 12px rgba(255, 111, 251, 0.1);
+// }
+
 * {
   box-sizing: border-box;
 }

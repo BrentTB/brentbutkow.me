@@ -5,6 +5,10 @@ export const experience: Experience[] = [
     role: 'Junior Software Developer',
     company: 'Entelect',
     period: 'Jan 2025 - Present',
+    description: [
+      'Joining Entelect as a Junior Software Developer through their Graduate Program, and have been workiong on Cloud infrastructure and web development since then',
+    ],
+
     experienceProjects: [
       {
         company: 'Entelect Graduate Program / Bootcamp',
