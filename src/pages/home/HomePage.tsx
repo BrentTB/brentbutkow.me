@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import jokes from '../../data/jokes'
 import { JokeTypes, jokeTypeLabels } from '../../data/jokes.types'
 import Hero from './components/Hero'
@@ -30,13 +30,16 @@ export const getJoke = (category: JokeCategory, filteredJokes: Record<string, ty
 
 function HomePage() {
   const { isFunMode } = useFunMode()
-  const filteredJokes = getFilteredJokes()
+  const filteredJokes = useMemo(() => getFilteredJokes(), [])
   const [currentJoke, setCurrentJoke] = useState(getJoke(ALL_CATEGORY, filteredJokes))
 
-  const handleCategoryClick = useCallback((category: JokeCategory) => {
-    const newJoke = getJoke(category, filteredJokes)
-    setCurrentJoke(newJoke)
-  }, [])
+  const handleCategoryClick = useCallback(
+    (category: JokeCategory) => {
+      const newJoke = getJoke(category, filteredJokes)
+      setCurrentJoke(newJoke)
+    },
+    [filteredJokes]
+  )
 
   return (
     <main className={styles.main}>
