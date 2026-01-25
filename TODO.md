@@ -1,4 +1,3 @@
-- [ ] When in fun mode, add a joke ot the home page, that is randomly chosen. The user should also be able to choose a joke category, from the JokeTypes
 - [ ] make the 404 not found page funny. Include some kind of css 404 made of many little arts (eg: many small balls that spell out 404, but move away from the users mouse)
 - [ ] Update all the data to be real
 - [ ] Update experience to have an employment type, date, description, company

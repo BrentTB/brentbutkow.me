@@ -10,7 +10,9 @@
 
   // Fun mode: animated rainbow glow shadow + gentle float
   :global(html.fun-mode) & {
-    animation: float 4s ease infinite, glow 5s 600ms infinite alternate;
+    animation:
+      float 4s ease infinite,
+      glow 5s 600ms infinite alternate;
 
     &::after {
       content: '';

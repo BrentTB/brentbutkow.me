@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useState } from 'react'
 import jokes from '../../data/jokes'
 import { JokeTypes, jokeTypeLabels } from '../../data/jokes.types'
 import Hero from './components/Hero'
@@ -7,21 +7,36 @@ import { heroContent } from './data'
 import { useFunMode } from '../../contexts/FunMode'
 
 const jokeCategories = Object.values(JokeTypes)
+export const ALL_CATEGORY = 'all'
+export type JokeCategory = JokeTypes | typeof ALL_CATEGORY
+
+export const getFilteredJokes = () => {
+  const initialFilteredJokes: Record<string, typeof jokes> = {}
+  jokeCategories.forEach((type) => {
+    initialFilteredJokes[type] = jokes.filter((joke) => joke.jokeType === type)
+  })
+  initialFilteredJokes[ALL_CATEGORY] = jokes
+  return initialFilteredJokes
+}
+
+export const getJoke = (category: JokeCategory, filteredJokes: Record<string, typeof jokes>) => {
+  const jokesInCategory = filteredJokes[category]
+  if (jokesInCategory && jokesInCategory.length > 0) {
+    const randomIndex = Math.floor(Math.random() * jokesInCategory.length)
+    return jokesInCategory[randomIndex]
+  }
+  return null
+}
 
 function HomePage() {
-  const [selectedType, setSelectedType] = useState<JokeTypes | 'all'>('all')
   const { isFunMode } = useFunMode()
+  const filteredJokes = getFilteredJokes()
+  const [currentJoke, setCurrentJoke] = useState(getJoke(ALL_CATEGORY, filteredJokes))
 
-  const jokesForType = useMemo(
-    () => (selectedType === 'all' ? jokes : jokes.filter((joke) => joke.jokeType === selectedType)),
-    [selectedType, jokes]
-  )
-
-  const jokeOfTheMoment = useMemo(() => {
-    if (!jokesForType.length) return null
-    const randomIndex = Math.floor(Math.random() * jokesForType.length)
-    return jokesForType[randomIndex]
-  }, [jokesForType, isFunMode])
+  const handleCategoryClick = useCallback((category: JokeCategory) => {
+    const newJoke = getJoke(category, filteredJokes)
+    setCurrentJoke(newJoke)
+  }, [])
 
   return (
     <main className={styles.main}>
@@ -33,25 +48,23 @@ function HomePage() {
           <div className={styles.jokesHeader}>
             <h2 className={styles.jokesTitle}>A Joke Before You Go</h2>
             <div className={styles.jokesControls}>
-              <label htmlFor="joke-category">Category</label>
-              <select
-                id="joke-category"
-                className={styles.jokesSelect}
-                value={selectedType}
-                onChange={(event) => setSelectedType(event.target.value as JokeTypes | 'all')}
-              >
-                <option value="all">All categories</option>
-                {jokeCategories.map((type) => (
-                  <option key={type} value={type}>
-                    {jokeTypeLabels[type]}
-                  </option>
-                ))}
-              </select>
+              <button className={styles.categoryButton} onClick={() => handleCategoryClick('all')}>
+                All
+              </button>
+              {jokeCategories.map((type) => (
+                <button
+                  key={type}
+                  className={styles.categoryButton}
+                  onClick={() => handleCategoryClick(type)}
+                >
+                  {jokeTypeLabels[type]}
+                </button>
+              ))}
             </div>
           </div>
           <div className={styles.jokeCard}>
             <p className={styles.jokeText}>
-              {jokeOfTheMoment?.joke ?? 'No jokes yet, but the punchline is loading...'}
+              {currentJoke?.joke ?? 'No jokes yet, but the punchline is loading...'}
             </p>
           </div>
         </section>
