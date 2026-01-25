@@ -33,10 +33,13 @@ function HomePage() {
   const filteredJokes = useMemo(() => getFilteredJokes(), [])
   const [currentJoke, setCurrentJoke] = useState(getJoke(ALL_CATEGORY, filteredJokes))
 
-  const handleCategoryClick = useCallback((category: JokeCategory) => {
-    const newJoke = getJoke(category, filteredJokes)
-    setCurrentJoke(newJoke)
-  }, [filteredJokes])
+  const handleCategoryClick = useCallback(
+    (category: JokeCategory) => {
+      const newJoke = getJoke(category, filteredJokes)
+      setCurrentJoke(newJoke)
+    },
+    [filteredJokes]
+  )
 
   return (
     <main className={styles.main}>
