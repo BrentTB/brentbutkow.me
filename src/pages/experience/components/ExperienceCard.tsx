@@ -15,13 +15,19 @@ function ExperienceCard({ item }: ExperienceCardProps) {
         </div>
         <span className={styles.period}>{item.period}</span>
       </header>
-      <p className={styles.summary}>{item.summary}</p>
-      <ul className={styles.skills}>
-        {item.skills.map((skill) => (
-          <li key={skill} className={styles.pill}>
-            {skill}
-          </li>
+      {item.description &&
+        item.description.map((paragraph, index) => (
+          <p key={`${item.role}-description-${index}`} className={styles.description}>
+            - {paragraph}
+          </p>
         ))}
+      <ul className={styles.skills}>
+        {item.skills &&
+          item.skills.map((skill) => (
+            <li key={skill} className={styles.pill}>
+              {skill}
+            </li>
+          ))}
       </ul>
     </article>
   )

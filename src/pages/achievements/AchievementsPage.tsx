@@ -2,7 +2,7 @@ import AchievementCard from './components/AchievementCard'
 import PageLayout from '../../components/PageLayout'
 import PageHeader from '../../components/PageHeader'
 import styles from './AchievementsPage.module.scss'
-import { achievements } from '../../data/data'
+import { achievements } from './data'
 
 function AchievementsPage() {
   // Group achievements by year and sort by year descending

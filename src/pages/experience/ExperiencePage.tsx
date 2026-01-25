@@ -2,7 +2,7 @@ import ExperienceCard from './components/ExperienceCard'
 import PageLayout from '../../components/PageLayout'
 import PageHeader from '../../components/PageHeader'
 import styles from './ExperiencePage.module.scss'
-import { experience } from '../../data/data'
+import { experience } from './data'
 
 function ExperiencePage() {
   return (
