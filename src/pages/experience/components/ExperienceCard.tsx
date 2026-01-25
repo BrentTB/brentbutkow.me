@@ -1,29 +1,63 @@
+import { useState } from 'react'
 import { Experience } from '../../../data/data.types'
+import DetailCard from '../../../components/DetailCard'
 import styles from './ExperienceCard.module.scss'
 
-type ExperienceCardProps = {
-  item: Experience
-}
+const PILLS_TO_SHOW = 6
 
-function ExperienceCard({ item }: ExperienceCardProps) {
+function ExperienceCard({
+  role,
+  company,
+  period,
+  description,
+  skills,
+  experienceProjects,
+}: Experience) {
+  const [showProjects, setShowProjects] = useState(true)
+  const hasProjects = experienceProjects && experienceProjects.length > 0
+
   return (
-    <article className={styles.card}>
-      <header className={styles.cardHeader}>
-        <div>
-          <h3 className={styles.role}>{item.role}</h3>
-          <p className={styles.company}>{item.company}</p>
+    <div className={styles.experienceWrapper}>
+      <DetailCard
+        title={role}
+        subtitle={company}
+        period={period}
+        descriptions={description ?? []}
+        pills={skills}
+        pillsLimit={PILLS_TO_SHOW}
+      >
+        {hasProjects && (
+          <button
+            className={styles.toggleButton}
+            onClick={() => setShowProjects(!showProjects)}
+            aria-expanded={showProjects}
+            aria-controls="experience-projects"
+          >
+            {showProjects ? '▼' : '▶'} {experienceProjects.length}{' '}
+            {experienceProjects.length === 1 ? 'Project' : 'Projects'}
+          </button>
+        )}
+      </DetailCard>
+
+      {hasProjects && (
+        <div
+          className={`${styles.projectsContainer} ${showProjects ? styles.expanded : styles.collapsed}`}
+        >
+          {experienceProjects.map((project, index) => (
+            <div key={`${project.company}-${index}`} className={styles.projectCard}>
+              <DetailCard
+                title={project.company}
+                subtitle=""
+                period={project.period}
+                descriptions={project.description}
+                pills={project.skills}
+                pillsLimit={PILLS_TO_SHOW}
+              />
+            </div>
+          ))}
         </div>
-        <span className={styles.period}>{item.period}</span>
-      </header>
-      <p className={styles.summary}>{item.summary}</p>
-      <ul className={styles.skills}>
-        {item.skills.map((skill) => (
-          <li key={skill} className={styles.pill}>
-            {skill}
-          </li>
-        ))}
-      </ul>
-    </article>
+      )}
+    </div>
   )
 }
 

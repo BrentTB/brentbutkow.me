@@ -11,6 +11,5 @@
 - [ ] replace fun stuff with projects?
   - including this website, ascii video creator
 - [ ] use the link on the education section somehow to link to the course/degree
-- [ ] new tab for achievements
-      year, + achievement
-      IoI, Entelect challenge, etc
+- [ ] add a footer
+- [ ] add a toggle for dark mode

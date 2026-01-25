@@ -1,4 +1,4 @@
-@use '../styles/shared' as *;
+@use '../../styles/shared' as *;
 
 .navbar {
   @include card-base;
@@ -144,7 +144,7 @@
   }
 }
 
-@media (max-width: 1000px) {
+@media (max-width: 950px) {
   .navbar {
     grid-template-columns: auto 1fr auto;
     grid-template-rows: auto 0fr;

@@ -1,8 +1,8 @@
 import EducationCard from './components/EducationCard'
-import PageLayout from '../../components/PageLayout'
-import PageHeader from '../../components/PageHeader'
+import PageLayout from '../../components/PageFormatting/PageLayout'
+import PageHeader from '../../components/PageFormatting/PageHeader'
 import styles from './EducationPage.module.scss'
-import { education } from '../../data/data'
+import { education } from './data'
 
 function EducationPage() {
   return (
@@ -13,7 +13,7 @@ function EducationPage() {
       />
       <div className={styles.list}>
         {education.map((item) => (
-          <EducationCard key={`${item.institution}-${item.degree}`} item={item} />
+          <EducationCard key={`${item.institution}-${item.degree}`} {...item} />
         ))}
       </div>
     </PageLayout>

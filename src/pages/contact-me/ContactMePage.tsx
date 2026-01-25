@@ -1,7 +1,7 @@
 import ContactCard from './components/ContactCard'
-import PageLayout from '../../components/PageLayout'
-import PageHeader from '../../components/PageHeader'
-import { contactPlatforms } from '../../data/data'
+import PageLayout from '../../components/PageFormatting/PageLayout'
+import PageHeader from '../../components/PageFormatting/PageHeader'
+import { contactPlatforms } from './data'
 
 function ContactMePage() {
   return (

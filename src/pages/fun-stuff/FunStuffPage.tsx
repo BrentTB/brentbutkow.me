@@ -1,8 +1,8 @@
 import FunCard from './components/FunCard'
-import PageLayout from '../../components/PageLayout'
-import PageHeader from '../../components/PageHeader'
+import PageLayout from '../../components/PageFormatting/PageLayout'
+import PageHeader from '../../components/PageFormatting/PageHeader'
 import styles from './FunStuffPage.module.scss'
-import { funStuff } from '../../data/data'
+import { funStuff } from './data'
 
 function FunStuffPage() {
   return (

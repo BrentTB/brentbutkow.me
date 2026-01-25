@@ -1,8 +1,8 @@
 import ExperienceCard from './components/ExperienceCard'
-import PageLayout from '../../components/PageLayout'
-import PageHeader from '../../components/PageHeader'
+import PageLayout from '../../components/PageFormatting/PageLayout'
+import PageHeader from '../../components/PageFormatting/PageHeader'
 import styles from './ExperiencePage.module.scss'
-import { experience } from '../../data/data'
+import { experience } from './data'
 
 function ExperiencePage() {
   return (
@@ -13,7 +13,7 @@ function ExperiencePage() {
       />
       <div className={styles.list}>
         {experience.map((item, index) => (
-          <ExperienceCard key={`${item.role}-${index}`} item={item} />
+          <ExperienceCard key={`${item.role}-${index}`} {...item} />
         ))}
       </div>
     </PageLayout>
