@@ -1,35 +1,17 @@
 import { Experience } from '../../../data/data.types'
-import styles from './ExperienceCard.module.scss'
+import DetailCard from '../../../components/DetailCard'
 
-type ExperienceCardProps = {
-  item: Experience
-}
-
-function ExperienceCard({ item }: ExperienceCardProps) {
+const PILLS_TO_SHOW = 6
+function ExperienceCard({ role, company, period, description, skills }: Experience) {
   return (
-    <article className={styles.card}>
-      <header className={styles.cardHeader}>
-        <div>
-          <h3 className={styles.role}>{item.role}</h3>
-          <p className={styles.company}>{item.company}</p>
-        </div>
-        <span className={styles.period}>{item.period}</span>
-      </header>
-      {item.description &&
-        item.description.map((paragraph, index) => (
-          <p key={`${item.role}-description-${index}`} className={styles.description}>
-            - {paragraph}
-          </p>
-        ))}
-      <ul className={styles.skills}>
-        {item.skills &&
-          item.skills.map((skill) => (
-            <li key={skill} className={styles.pill}>
-              {skill}
-            </li>
-          ))}
-      </ul>
-    </article>
+    <DetailCard
+      title={role}
+      subtitle={company}
+      period={period}
+      descriptions={description ?? []}
+      pills={skills}
+      pillsLimit={PILLS_TO_SHOW}
+    />
   )
 }
 

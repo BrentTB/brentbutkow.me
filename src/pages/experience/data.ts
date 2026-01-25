@@ -3,7 +3,7 @@ import { Experience } from '../../data/data.types'
 export const experience: Experience[] = [
   {
     role: 'Software Engineering Intern',
-    company: 'Stream (VATIT division)',
+    company: 'Entelect, Amsterdam Office',
     period: 'Jan 2024 - Feb 2024 (7 weeks)',
     description: [
       'Built a virtual doorbell web app to manage office access and track who is inside when keys are limited.',
@@ -14,7 +14,7 @@ export const experience: Experience[] = [
   },
   {
     role: 'Data Engineering Intern',
-    company: 'Business Science Corporation',
+    company: 'Stream (VATIT division)',
     period: 'Jan 2023 - Feb 2023 (6 weeks)',
     description: [
       'Built an automated data pipeline for sales, revenue, and profit metrics to improve reporting cadence.',

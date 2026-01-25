@@ -13,7 +13,7 @@ function EducationPage() {
       />
       <div className={styles.list}>
         {education.map((item) => (
-          <EducationCard key={`${item.institution}-${item.degree}`} item={item} />
+          <EducationCard key={`${item.institution}-${item.degree}`} {...item} />
         ))}
       </div>
     </PageLayout>

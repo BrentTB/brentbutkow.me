@@ -21,6 +21,7 @@ export const routes: AppRoute[] = [
   {
     path: routePaths.home,
     element: <HomePage />,
+    dontShowInNavbar: true,
     label: 'Home',
   },
   {
