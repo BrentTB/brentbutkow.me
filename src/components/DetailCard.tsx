@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, ReactNode } from 'react'
 import styles from './DetailCard.module.scss'
 
 type DetailCardProps = {
@@ -10,6 +10,7 @@ type DetailCardProps = {
   /** How many pills to show before collapsing; if undefined, all pills are shown. */
   pillsLimit?: number
   className?: string
+  children?: ReactNode
 }
 
 function DetailCard({
@@ -20,6 +21,7 @@ function DetailCard({
   pills,
   pillsLimit,
   className = '',
+  children,
 }: DetailCardProps) {
   const [expanded, setExpanded] = useState(false)
 
@@ -71,6 +73,7 @@ function DetailCard({
           ))}
         </ul>
       )}
+      {children}
     </article>
   )
 }

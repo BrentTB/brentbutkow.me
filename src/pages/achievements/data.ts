@@ -2,6 +2,11 @@ import { Achievement } from '../../data/data.types'
 
 export const achievements: Achievement[] = [
   {
+    year: 2025,
+    title: 'Entelect Company Cup Winner',
+    description: '1st place in the Entelect Company Cup Hackathon',
+  },
+  {
     year: 2024,
     title: 'Graduated with Distinction',
     description:

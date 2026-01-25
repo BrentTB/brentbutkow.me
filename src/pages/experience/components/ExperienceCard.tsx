@@ -18,15 +18,14 @@ function ExperienceCard({
 
   return (
     <div className={styles.experienceWrapper}>
-      <div className={styles.mainCard}>
-        <DetailCard
-          title={role}
-          subtitle={company}
-          period={period}
-          descriptions={description ?? []}
-          pills={skills}
-          pillsLimit={PILLS_TO_SHOW}
-        />
+      <DetailCard
+        title={role}
+        subtitle={company}
+        period={period}
+        descriptions={description ?? []}
+        pills={skills}
+        pillsLimit={PILLS_TO_SHOW}
+      >
         {hasProjects && (
           <button
             className={styles.toggleButton}
@@ -37,10 +36,12 @@ function ExperienceCard({
             {experienceProjects.length === 1 ? 'Project' : 'Projects'}
           </button>
         )}
-      </div>
+      </DetailCard>
 
-      {hasProjects && showProjects && (
-        <div className={styles.projectsContainer}>
+      {hasProjects && (
+        <div
+          className={`${styles.projectsContainer} ${showProjects ? styles.expanded : styles.collapsed}`}
+        >
           {experienceProjects.map((project, index) => (
             <div key={`${project.company}-${index}`} className={styles.projectCard}>
               <DetailCard

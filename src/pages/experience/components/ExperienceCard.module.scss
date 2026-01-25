@@ -6,24 +6,20 @@
   gap: 12px;
 }
 
-.mainCard {
-  position: relative;
-}
-
 .toggleButton {
-  position: absolute;
-  bottom: 12px;
-  right: 20px;
+  margin-top: 4px;
+  margin-left: auto;
   background: transparent;
   border: 1px solid var(--border);
   color: var(--accent);
-  padding: 6px 12px;
+  padding: 8px 12px;
   border-radius: 6px;
   font-size: 0.9rem;
   cursor: pointer;
   transition: all 150ms ease;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
 
   &:hover {
@@ -43,6 +39,21 @@
   gap: 12px;
   margin-left: 32px;
   padding-left: 16px;
+  overflow: hidden;
+  transition: max-height 0.5s ease, opacity 0.5s ease, transform 0.5s ease;
+
+  &.collapsed {
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(-100px);
+    pointer-events: none;
+  }
+
+  &.expanded {
+    max-height: 2000px;
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .projectCard {
@@ -51,22 +62,15 @@
   &::before {
     content: '';
     position: absolute;
-    left: -16px;
-    top: 24px;
-    width: 12px;
+    left: -20px;
+    top: 50%;
+    width: 18px;
     height: 2px;
     background: var(--accent);
   }
 }
 
 @media (max-width: 640px) {
-  .toggleButton {
-    position: static;
-    margin-top: 12px;
-    width: 100%;
-    justify-content: center;
-  }
-
   .projectsContainer {
     margin-left: 16px;
     padding-left: 12px;
