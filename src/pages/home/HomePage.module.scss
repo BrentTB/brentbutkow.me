@@ -61,6 +61,7 @@
 .jokeText {
   margin: 0;
   font-size: clamp(16px, 3vw, 18px);
+  white-space: pre-wrap;
 }
 
 @media (max-width: 768px) {
