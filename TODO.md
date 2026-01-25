@@ -10,3 +10,5 @@
 - [ ] add a toggle for dark mode
 - [ ] experiment with having the experience projects side by side (in an offscreen carousel)
 - [ ] make the whole contact me tabs clikable and make them take me to the link
+- [ ] in fun mode, add my interest on the home page - 3d printing, gaminf, coding, AI
+- [ ] Add "main skills" on the home page - Terraform, Typescript, React
