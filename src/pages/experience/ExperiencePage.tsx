@@ -9,7 +9,7 @@ function ExperiencePage() {
     <PageLayout>
       <PageHeader
         title="Professional Experience"
-        subtitle="A journey through roles, teams, and the technologies that drive meaningful products."
+        subtitle="The places I have worked, the things I've done, and the skills I've built along the way."
       />
       <div className={styles.list}>
         {experience.map((item, index) => (

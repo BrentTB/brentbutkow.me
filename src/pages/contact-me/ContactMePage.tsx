@@ -8,7 +8,7 @@ function ContactMePage() {
     <PageLayout>
       <PageHeader
         title="Get in Touch"
-        subtitle="Open to collaborations, consulting engagements, and interesting conversations about building great software."
+        subtitle="If you want to see more about me, or just say hi, here are some ways to reach me."
       />
       {contactPlatforms.map((platform, index) => (
         <ContactCard key={platform.platform} contactPlatform={platform} index={index} />

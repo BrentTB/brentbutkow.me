@@ -26,7 +26,7 @@ function AchievementsPage() {
     <PageLayout>
       <PageHeader
         title="Achievements & Awards"
-        subtitle="Milestones and recognition that mark my journey as an engineer and professional."
+        subtitle="Work-related and personal achievements and awards."
       />
       <div className={styles.container}>
         {sortedYears.map((year) => (

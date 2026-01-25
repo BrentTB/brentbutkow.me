@@ -9,7 +9,7 @@ function EducationPage() {
     <PageLayout>
       <PageHeader
         title="Education & Learning"
-        subtitle="Formal training and ongoing self-directed learning that shapes my approach to problem-solving and engineering."
+        subtitle="Formal education and self-learning that I have completed, and am currently pursuing."
       />
       <div className={styles.list}>
         {education.map((item) => (

@@ -9,3 +9,4 @@
 - [ ] add a footer
 - [ ] add a toggle for dark mode
 - [ ] experiment with having the experience projects side by side (in an offscreen carousel)
+- [ ] make the whole contact me tabs clikable and make them take me to the link

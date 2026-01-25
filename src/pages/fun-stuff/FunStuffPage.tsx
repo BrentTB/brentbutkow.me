@@ -9,7 +9,7 @@ function FunStuffPage() {
     <PageLayout>
       <PageHeader
         title="Fun Stuff"
-        subtitle="Side projects, hobbies, and explorations outside of client work—where curiosity leads."
+        subtitle="Projects and passions that I have worked on for fun outside of work."
       />
       {/* <div className={styles.grid}>
         {funStuff.map((item) => (
