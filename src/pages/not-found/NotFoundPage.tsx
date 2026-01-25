@@ -9,14 +9,15 @@ type Particle = {
   baseY: number
   vx: number
   vy: number
-  color: string
+  colour: string
 }
 
 const particleColours = ['#ff0000', '#00ff00', '#0000ff']
-const backgroundColors = ['#000000', '#000000', '#000000']
+const backgroundcolours = ['#000000', '#000000', '#000000']
 
 const getParticles = (canvas: HTMLCanvasElement, particleGapFactor: number) => {
-  const { width } = canvas.getBoundingClientRect()
+  const { width: rectWidth } = canvas.getBoundingClientRect()
+  const width = Math.round(rectWidth)
   const height = Math.max(240, Math.min(320, Math.floor((width / 3) * 1.2)))
   canvas.width = width
   canvas.height = height
@@ -44,7 +45,7 @@ const getParticles = (canvas: HTMLCanvasElement, particleGapFactor: number) => {
       const index = (y * width + x) * 4 + 3
       const alpha = data[index]
       const region = x < width / 3 ? 0 : x > (width * 2) / 3 ? 2 : 1
-      const color = alpha <= 200 ? backgroundColors[region] : particleColours[region]
+      const colour = alpha <= 200 ? backgroundcolours[region] : particleColours[region]
       particles.push({
         x,
         y,
@@ -52,7 +53,7 @@ const getParticles = (canvas: HTMLCanvasElement, particleGapFactor: number) => {
         baseY: y,
         vx: 0,
         vy: 0,
-        color,
+        colour,
       })
     }
   }
@@ -117,7 +118,7 @@ function NotFoundPage() {
         p.y += p.vy
 
         ctx.beginPath()
-        ctx.fillStyle = p.color
+        ctx.fillStyle = p.colour
         ctx.arc(p.x, p.y, 3.2, 0, Math.PI * 2)
         ctx.fill()
       })
@@ -149,7 +150,12 @@ function NotFoundPage() {
           The page you're looking for doesn't exist or has been moved.
         </p>
         <div className={styles.canvasShell}>
-          <canvas ref={canvasRef} className={styles.canvas} />
+          <canvas
+            ref={canvasRef}
+            className={styles.canvas}
+            role="img"
+            aria-label="404 Error - Animated particle background"
+          />
         </div>
         <div className={styles.controlsPanel}>
           <div className={styles.controlGroup}>

@@ -34,7 +34,7 @@
 }
 
 .canvasShell {
-  width: min(760px, 90vw);
+  width: min(760px, 100%);
   aspect-ratio: 3 / 1.2;
   margin: 0 auto 32px;
   border: 1px solid var(--border);
@@ -42,6 +42,22 @@
   background: rgba(255, 255, 255, 0.04);
   overflow: hidden;
   box-shadow: var(--shadow);
+}
+
+@media (max-width: 600px) {
+  .canvasShell {
+    aspect-ratio: 3 / 1.5;
+  }
+}
+@media (max-width: 450px) {
+  .canvasShell {
+    aspect-ratio: 3 / 2;
+  }
+}
+@media (max-width: 350px) {
+  .canvasShell {
+    aspect-ratio: 3 / 2.5;
+  }
 }
 
 .canvas {
@@ -70,17 +86,15 @@
 }
 
 .controlsPanel {
-  width: min(760px, 90vw);
+  width: min(760px, 100%);
   display: flex;
   flex-direction: column;
   gap: 16px;
-  margin: 24px 0;
+  margin: 24px auto;
   padding: 16px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--border);
   border-radius: 12px;
-  margin-left: auto;
-  margin-right: auto;
 }
 
 .controlGroup {
