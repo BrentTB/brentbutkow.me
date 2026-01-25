@@ -65,7 +65,7 @@ function NotFoundPage() {
   const [spring, setSpring] = useState(0.1)
   const [damping, setDamping] = useState(0.9)
   const influenceRadius = 100
-  const particleGapFactor = 35
+  const particleGapFactor = 28
 
   useEffect(() => {
     const canvas = canvasRef.current

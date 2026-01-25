@@ -15,38 +15,52 @@ function Navbar() {
   const openStyle = isMobileMenuOpen ? styles.open : ''
 
   return (
-    <header className={`${styles.navbar} ${openStyle}`}>
-      <Link to={routePaths.home} className={styles.brand} onClick={closeMobileMenu}>
-        <span className={styles.dot} aria-hidden="true" />
-        <span>Brent Butkow</span>
-      </Link>
-      <button
-        className={`${styles.mobileMenuToggle} ${openStyle}`}
-        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
-        aria-expanded={isMobileMenuOpen}
-      >
-        <span className={styles.menuIcon}></span>
-      </button>
-      <nav aria-label="Primary" className={`${styles.nav} ${openStyle}`}>
-        <ul className={styles.links}>
-          {navRoutes.map((route) => (
-            <li key={route.path}>
-              <NavLink className={styles.link} to={route.path} onClick={closeMobileMenu}>
-                {route.label}
-              </NavLink>
-            </li>
-          ))}
-          <ModeToggle
-            isEnabled={isFunMode}
-            onToggle={setIsFunMode}
-            label1="Professional"
-            label2="Fun"
-            className={styles.end}
-          />
-        </ul>
-      </nav>
-    </header>
+    <>
+      <header className={`${styles.navbar} ${openStyle}`}>
+        <Link to={routePaths.home} className={styles.brand} onClick={closeMobileMenu}>
+          <span className={styles.dot} aria-hidden="true" />
+          <span>Brent Butkow</span>
+        </Link>
+        <button
+          className={`${styles.mobileMenuToggle} ${openStyle}`}
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={isMobileMenuOpen}
+        >
+          <span className={styles.menuIcon}></span>
+        </button>
+        <nav aria-label="Primary" className={`${styles.nav} ${openStyle}`}>
+          <ul className={styles.links}>
+            {navRoutes.map((route) => (
+              <li key={route.path}>
+                <NavLink
+                  className={({ isActive }) => `${styles.link} ${isActive ? styles.active : ''}`}
+                  to={route.path}
+                  onClick={closeMobileMenu}
+                >
+                  {route.label}
+                </NavLink>
+              </li>
+            ))}
+            <ModeToggle
+              isEnabled={isFunMode}
+              onToggle={setIsFunMode}
+              label1="Professional"
+              label2="Fun"
+              className={styles.end}
+            />
+          </ul>
+        </nav>
+      </header>
+      {isMobileMenuOpen && (
+        <button
+          type="button"
+          className={`${styles.backdrop} ${openStyle}`}
+          aria-label="Close navbar menu"
+          onClick={closeMobileMenu}
+        />
+      )}
+    </>
   )
 }
 
