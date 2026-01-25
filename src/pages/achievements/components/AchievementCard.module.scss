@@ -1,0 +1,44 @@
+@use '../../../styles/shared' as *;
+
+.card {
+  @include card-base;
+  padding: 20px;
+  gap: 8px;
+  display: flex;
+  flex-direction: column;
+  transition:
+    transform 150ms ease,
+    border-color 150ms ease;
+
+  &.link {
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+  }
+}
+
+.title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.description {
+  font-size: 0.95rem;
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.linkIcon {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  color: var(--accent);
+  font-size: 1.5rem;
+}

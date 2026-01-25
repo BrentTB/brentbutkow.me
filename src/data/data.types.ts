@@ -43,9 +43,9 @@ export type ContactPlatform = {
 export type Education = {
   institution: string
   degree: string
-  field: string
   period: string
-  description: string
+  description: string[]
+  link?: string
   achievements?: string[]
 }
 
@@ -54,4 +54,11 @@ export type FunItem = {
   description: string
   link?: string
   image?: string
+}
+
+export type Achievement = {
+  year: number
+  title: string
+  description?: string
+  link?: string
 }

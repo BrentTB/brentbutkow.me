@@ -1,4 +1,5 @@
 import {
+  Achievement,
   ContactInfo,
   ContactPlatform,
   Education,
@@ -66,8 +67,8 @@ export const contactInfo: ContactInfo = {
 export const contactPlatforms: ContactPlatform[] = [
   {
     platform: 'Email',
-    shownName: 'btbutkow@gmail.com',
-    url: 'mailto:btbutkow@gmail.com',
+    shownName: 'brent@butkow.com',
+    url: 'mailto:brent@butkow.com',
     logoPath: '/logos/email-no-bg.png',
   },
   {
@@ -86,20 +87,32 @@ export const contactPlatforms: ContactPlatform[] = [
 
 export const education: Education[] = [
   {
-    institution: 'University of Cape Town',
-    degree: 'Bachelor of Science',
-    field: 'Computer Science',
-    period: '2015 - 2018',
-    description: 'Focused on software engineering, algorithms, and web technologies.',
-    achievements: ["Dean's List", 'Top 10% of class', 'Honors in CS'],
+    institution: 'University of the Witwatersrand',
+    degree: 'Bachelor of Science in Information Engineering - BSc (Eng)',
+    period: '2021 - 2024',
+    description: [
+      'Bachelor and Honours in Information Engineering with a focus on Computer Science.',
+      'Includes modules on Data Structures and Algorithms, Machine Learning, Software Engineering, Cybersecurity, Signals and Systems, and more.',
+    ],
+    link: 'https://www.wits.ac.za/course-finder/undergraduate/ebe/information-engineering/',
+    achievements: [
+      'Graduated with Distinction',
+      'Top 5 in Information Engineering',
+      'Entrostat Prize winner for the best Software Development III project',
+      'Isazi Award for the top 5 Information Engineers',
+      'Entelect Award for the top Software Development III student',
+    ],
   },
   {
-    institution: 'Online Learning',
-    degree: 'Continuous Education',
-    field: 'Full-stack Development',
-    period: '2018 - Present',
-    description:
-      'Self-directed learning across modern frameworks, design systems, and cloud architecture.',
+    institution: 'Online Learning - Coursera',
+    degree: 'IBM AI Engineering Professional Certificate',
+    period: 'Jan 2026 - Present',
+    link: 'https://www.coursera.org/professional-certificates/ai-engineer',
+    description: [
+      'A course about modern AI and ML models, and their uses. Including their fundamentals, the theory behind different ML models, and hands on experience using models to solve real-world problems.',
+      'Includes topics such as Neural Networks, CNN, RAG, GANs, Generative AI, Transformers, and more.',
+      'Taught using Python, TensorFlow, PyTorch, Keras, and other popular AI/ML tools and libraries.',
+    ],
   },
 ]
 
@@ -122,5 +135,46 @@ export const funStuff: FunItem[] = [
   {
     title: 'Vinyl Collection Tracker',
     description: 'A personal catalog of records with listening notes and discovery tracking.',
+  },
+]
+
+export const achievements: Achievement[] = [
+  {
+    year: 2024,
+    title: 'Graduated with Distinction',
+    description:
+      'Bachelor of Science in Information Engineering from University of the Witwatersrand',
+    link: 'https://www.wits.ac.za/',
+  },
+  {
+    year: 2024,
+    title: 'Top 5 in Information Engineering',
+    description: 'Ranked among the top 5 students in the Information Engineering program',
+  },
+  {
+    year: 2024,
+    title: 'Entrostat Prize Winner',
+    description: 'Best Software Development III project',
+  },
+  {
+    year: 2024,
+    title: 'Isazi Award',
+    description: 'Awarded to the top 5 Information Engineers',
+  },
+  {
+    year: 2024,
+    title: 'Entelect Award',
+    description: 'Top Software Development III student',
+  },
+  {
+    year: 2022,
+    title: 'Launched Product Studio',
+    description:
+      'Founded an agency to build and launch client projects across fintech, analytics, and SaaS',
+  },
+  {
+    year: 2020,
+    title: 'First Client Project',
+    description: 'Successfully delivered and launched first freelance web application project',
   },
 ]

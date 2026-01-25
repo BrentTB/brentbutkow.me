@@ -1,6 +1,6 @@
 import { FunItem } from '../../../data/data.types'
-import { SafeLink } from '../../../components/SafeLink'
 import styles from './FunCard.module.scss'
+import { ArticleOrLink } from '../../../components/ArticleOrLink'
 
 type FunCardProps = {
   item: FunItem
@@ -15,15 +15,11 @@ function FunCard({ item }: FunCardProps) {
     </>
   )
 
-  if (item.link) {
-    return (
-      <SafeLink href={item.link} className={styles.card}>
-        {content}
-      </SafeLink>
-    )
-  }
-
-  return <article className={styles.card}>{content}</article>
+  return (
+    <ArticleOrLink href={item.link} className={styles.card}>
+      {content}
+    </ArticleOrLink>
+  )
 }
 
 export default FunCard

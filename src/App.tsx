@@ -4,7 +4,7 @@ import Router from './routes/Router'
 import styles from './App.module.scss'
 import Navbar from './components/Navbar'
 import { BrowserRouter } from 'react-router-dom'
-import { FunModeProvider } from './contexts/FunModeContext'
+import { FunModeProvider } from './contexts/FunModeProvider'
 
 const enableVercelAnalytics = import.meta.env.ENABLE_VERCEL_ANALYTICS === 'true'
 const enableVercelSpeedInsights = import.meta.env.ENABLE_VERCEL_SPEED_INSIGHTS === 'true'
