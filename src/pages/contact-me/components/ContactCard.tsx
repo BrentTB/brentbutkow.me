@@ -11,8 +11,7 @@ function ContactCard({ contactPlatform, index }: ContactCardProps) {
   return (
     <ArticleOrLink className={styles.card} href={contactPlatform.url}>
       <div>
-        <p className={styles.eyebrow}>Contact</p>
-        <p className={styles.copy}>Find me on {contactPlatform.platform}:</p>
+        <p className={styles.eyebrow}>Find me on {contactPlatform.platform}:</p>
         <div className={styles.contact}>
           <span
             className={styles.logoWrapper}
