@@ -1,3 +1,5 @@
+@use '../../styles/shared' as *;
+
 .main {
   display: flex;
   flex-direction: column;
@@ -50,6 +52,7 @@
 }
 
 .jokeCard {
+  @include card-base;
   margin-top: 12px;
   padding: 20px;
   border: 1px solid var(--border);

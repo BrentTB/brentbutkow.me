@@ -1,7 +1,6 @@
 - [ ] extract all env variables into its own util file
 - [ ] add lazy loading to routes to speed up initial load if needed
 - [ ] Home should have an "about me" section, with my likes, dislikes
-- [ ] There should also be a random bad joke on the home page when fun mode is active
 - [ ] Add a way to download my normal CV
 - [ ] replace fun stuff with projects?
   - including this website, ascii video creator
