@@ -1,0 +1,28 @@
+@use '../../styles/shared' as *;
+
+.card {
+  @include card-base;
+  padding: clamp(20px, 4vw, 28px);
+  gap: 16px;
+  transition:
+    transform 150ms ease,
+    border-color 150ms ease;
+
+  &.link {
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+  }
+}
+
+.linkIcon {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  color: var(--accent);
+  font-size: 1.5rem;
+}
