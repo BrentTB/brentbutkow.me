@@ -11,3 +11,5 @@
 - [ ] make the whole contact me tabs clikable and make them take me to the link
 - [ ] in fun mode, add my interest on the home page - 3d printing, gaminf, coding, AI
 - [ ] Add "main skills" on the home page - Terraform, Typescript, React
+- [ ] add a timeline? You can see all things together, and then filter by experience, education, awards, etc
+- [ ] possibly add in "fun" achievements - first time breaking prod, first allnighter, things like that

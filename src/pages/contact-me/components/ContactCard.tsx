@@ -1,6 +1,6 @@
 import { ContactPlatform } from '../../../data/data.types'
-import { SafeLink } from '../../../components/utils/SafeLink'
 import styles from './ContactCard.module.scss'
+import { ArticleOrLink } from '../../../components/utils/ArticleOrLink'
 
 type ContactCardProps = {
   contactPlatform: ContactPlatform
@@ -9,28 +9,26 @@ type ContactCardProps = {
 
 function ContactCard({ contactPlatform, index }: ContactCardProps) {
   return (
-    <div className={styles.card}>
+    <ArticleOrLink className={styles.card} href={contactPlatform.url}>
       <div>
         <p className={styles.eyebrow}>Contact</p>
         <p className={styles.copy}>Find me on {contactPlatform.platform}:</p>
         <div className={styles.contact}>
-          <SafeLink href={contactPlatform.url}>
-            <span
-              className={styles.logoWrapper}
-              style={{ '--offset': `-${index / 2}s` } as React.CSSProperties}
-            >
-              <img
-                src={contactPlatform.logoPath}
-                alt={`${contactPlatform.platform} logo`}
-                className={styles.logo}
-              />
-            </span>
-            <span className={styles.inbetween}> - </span>
-            <span className={styles.cta}>{contactPlatform.shownName}</span>
-          </SafeLink>
+          <span
+            className={styles.logoWrapper}
+            style={{ '--offset': `-${index / 2}s` } as React.CSSProperties}
+          >
+            <img
+              src={contactPlatform.logoPath}
+              alt={`${contactPlatform.platform} logo`}
+              className={styles.logo}
+            />
+          </span>
+          <span className={styles.inbetween}> - </span>
+          <span className={styles.cta}>{contactPlatform.shownName}</span>
         </div>
       </div>
-    </div>
+    </ArticleOrLink>
   )
 }
 

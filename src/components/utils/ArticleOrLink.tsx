@@ -1,8 +1,9 @@
 import { ReactNode } from 'react'
 import { SafeLink } from './SafeLink'
+import styles from './ArticleOrLink.module.scss'
 
 interface ArticleOrLinkProps {
-  className: string
+  className?: string
   href?: string
   children?: ReactNode
   target?: string
@@ -10,8 +11,20 @@ interface ArticleOrLinkProps {
 }
 
 export const ArticleOrLink = (articleOrLinkProps: ArticleOrLinkProps) => {
-  if (articleOrLinkProps.href) {
-    return <SafeLink {...articleOrLinkProps}>{articleOrLinkProps.children}</SafeLink>
+  const isLink = !!articleOrLinkProps.href
+  const articleOrLinkClass =
+    styles.card +
+    (articleOrLinkProps.className ? ` ${articleOrLinkProps.className}` : '') +
+    (isLink ? ` ${styles.link}` : '')
+
+  console.log(articleOrLinkClass)
+  if (isLink) {
+    return (
+      <SafeLink {...articleOrLinkProps} className={articleOrLinkClass}>
+        <span className={styles.linkIcon}>↗</span>
+        {articleOrLinkProps.children}
+      </SafeLink>
+    )
   }
-  return <article className={articleOrLinkProps.className}>{articleOrLinkProps.children}</article>
+  return <article className={articleOrLinkClass}>{articleOrLinkProps.children}</article>
 }
