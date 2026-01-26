@@ -1,6 +1,6 @@
 import { ContactPlatform } from '../../../data/data.types'
 import styles from './ContactCard.module.scss'
-import { ArticleOrLink } from '../../../components/utils/ArticleOrLink'
+import { ArticleOrLinkCard } from '../../../components/cards/ArticleOrLinkCard'
 
 type ContactCardProps = {
   contactPlatform: ContactPlatform
@@ -9,7 +9,7 @@ type ContactCardProps = {
 
 function ContactCard({ contactPlatform, index }: ContactCardProps) {
   return (
-    <ArticleOrLink className={styles.card} href={contactPlatform.url}>
+    <ArticleOrLinkCard className={styles.card} href={contactPlatform.url}>
       <div>
         <p className={styles.eyebrow}>Find me on {contactPlatform.platform}:</p>
         <div className={styles.contact}>
@@ -27,7 +27,7 @@ function ContactCard({ contactPlatform, index }: ContactCardProps) {
           <span className={styles.cta}>{contactPlatform.shownName}</span>
         </div>
       </div>
-    </ArticleOrLink>
+    </ArticleOrLinkCard>
   )
 }
 

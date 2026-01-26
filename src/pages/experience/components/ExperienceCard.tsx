@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Experience } from '../../../data/data.types'
-import DetailCard from '../../../components/DetailCard'
+import DetailCard from '../../../components/cards/DetailCard'
 import styles from './ExperienceCard.module.scss'
 
 const PILLS_TO_SHOW = 6

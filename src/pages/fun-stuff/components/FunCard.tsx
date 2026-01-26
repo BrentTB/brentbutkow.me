@@ -1,6 +1,6 @@
 import { FunItem } from '../../../data/data.types'
 import styles from './FunCard.module.scss'
-import { ArticleOrLink } from '../../../components/utils/ArticleOrLink'
+import { ArticleOrLinkCard } from '../../../components/cards/ArticleOrLinkCard'
 
 type FunCardProps = {
   item: FunItem
@@ -16,9 +16,9 @@ function FunCard({ item }: FunCardProps) {
   )
 
   return (
-    <ArticleOrLink href={item.link} className={styles.card}>
+    <ArticleOrLinkCard href={item.link} className={styles.card}>
       {content}
-    </ArticleOrLink>
+    </ArticleOrLinkCard>
   )
 }
 

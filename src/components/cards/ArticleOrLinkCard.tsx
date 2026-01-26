@@ -1,8 +1,8 @@
 import { ReactNode } from 'react'
-import { SafeLink } from './SafeLink'
-import styles from './ArticleOrLink.module.scss'
+import { SafeLink } from '../utils/SafeLink'
+import styles from './ArticleOrLinkCard.module.scss'
 
-interface ArticleOrLinkProps {
+interface ArticleOrLinkCardProps {
   className?: string
   href?: string
   children?: ReactNode
@@ -10,7 +10,7 @@ interface ArticleOrLinkProps {
   rel?: string
 }
 
-export const ArticleOrLink = (articleOrLinkProps: ArticleOrLinkProps) => {
+export const ArticleOrLinkCard = (articleOrLinkProps: ArticleOrLinkCardProps) => {
   const isLink = !!articleOrLinkProps.href
   const articleOrLinkClass =
     styles.card +
