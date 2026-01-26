@@ -10,21 +10,24 @@ interface ArticleOrLinkCardProps {
   rel?: string
 }
 
-export const ArticleOrLinkCard = (articleOrLinkProps: ArticleOrLinkCardProps) => {
-  const isLink = !!articleOrLinkProps.href
+export const ArticleOrLinkCard = ({
+  children,
+  href,
+  className,
+  target,
+  rel,
+}: ArticleOrLinkCardProps) => {
+  const isLink = !!href
   const articleOrLinkClass =
-    styles.card +
-    (articleOrLinkProps.className ? ` ${articleOrLinkProps.className}` : '') +
-    (isLink ? ` ${styles.link}` : '')
+    styles.card + (className ? ` ${className}` : '') + (isLink ? ` ${styles.link}` : '')
 
-  console.log(articleOrLinkClass)
   if (isLink) {
     return (
-      <SafeLink {...articleOrLinkProps} className={articleOrLinkClass}>
+      <SafeLink href={href} target={target} rel={rel} className={articleOrLinkClass}>
         <span className={styles.linkIcon}>↗</span>
-        {articleOrLinkProps.children}
+        {children}
       </SafeLink>
     )
   }
-  return <article className={articleOrLinkClass}>{articleOrLinkProps.children}</article>
+  return <article className={articleOrLinkClass}>{children}</article>
 }
