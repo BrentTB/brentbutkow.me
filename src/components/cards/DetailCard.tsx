@@ -30,7 +30,7 @@ function DetailCard({
       return { visiblePills: undefined, isCollapsible: false }
     }
 
-    if (pillsLimit === undefined || pills.length <= pillsLimit) {
+    if (pillsLimit === undefined || pills.length <= pillsLimit + 1) {
       return { visiblePills: pills, isCollapsible: false }
     }
 

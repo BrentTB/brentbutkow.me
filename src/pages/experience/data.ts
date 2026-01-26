@@ -38,7 +38,7 @@ export const experience: Experience[] = [
           'Cut cloud costs by up to 50% for multiple products',
           'Worked on developing a website used by insurance agencies to request reinsurance quotes from RGA',
         ],
-        skills: ['IaC', 'AWS', 'Terraform', 'Jenkins', 'React', 'TypeScript', 'Groovy'],
+        skills: ['AWS', 'Terraform', 'Jenkins', 'React', 'TypeScript', 'IaC', 'Groovy'],
       },
       {
         company: 'Entelect Tech Accelerator',
