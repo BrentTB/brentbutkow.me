@@ -24,39 +24,57 @@ uniform int u_rippleCount;
 uniform vec2 u_centers[${MAX_RIPPLES}];
 uniform float u_startTimes[${MAX_RIPPLES}];
 
-// expanding ripple: propagates outward with age and fades
+// water-like ripple with multiple frequencies
 float ripple(vec2 uv, vec2 center, float age) {
   if (age < 0.0) return 0.0;
   float dist = distance(uv, center);
-  float speed = 0.1;          // wave speed
-  float thickness = 0.02;      // band thickness
+  float speed = 0.2;
   float radius = age * speed;
-
-  // only render near the advancing ring
-  float ring = 1.0 - smoothstep(radius, radius + thickness, dist);
-
-  float wave = sin(180.0 * (dist - radius));
-  float decay = exp(-0.5 * age);
-  return wave * ring * decay;
+  
+  // multiple wave frequencies for realistic water
+  float wave1 = sin(100.0 * (dist - radius)) * 0.4;
+  float wave2 = sin(140.0 * (dist - radius) + age * 3.0) * 0.5;
+  float wave3 = sin(180.0 * (dist - radius) - age * 2.0) * 0.3;
+  float ring1 = 1.0 - smoothstep(radius, radius+0.02, dist);
+    wave1 *= ring1;
+    float ring2 = 1.0 - smoothstep(radius - 0.015, radius, dist);
+    wave2 *= ring2;
+    float ring3 = 1.0 - smoothstep(radius - 0.01, radius, dist);
+    wave3 *= ring3;
+  float wave = wave1 + wave2 + wave3;
+  
+  // softer falloff for water-like spread
+  float falloff = exp(-2.0 * dist);
+  float ageFade = exp(-0.9 * age);
+  
+  return wave * falloff * ageFade;
 }
 
 void main() {
-  float intensity = 0.0;
+  float displacement = 0.0;
   for (int i = 0; i < ${MAX_RIPPLES}; i++) {
     if (i >= u_rippleCount) break;
     float age = u_time - u_startTimes[i];
-    intensity += ripple(v_uv, u_centers[i], age);
+    displacement += ripple(v_uv, u_centers[i], age);
   }
 
-  // base background gradient
-  vec3 base = mix(vec3(0.08, 0.1, 0.16), vec3(0.12, 0.16, 0.22), v_uv.y);
-  // color shift based on intensity
-  vec3 accentA = vec3(0.3, 0.9, 0.95);
-  vec3 accentB = vec3(0.9, 0.4, 0.9);
-  float glow = clamp(0.5 + intensity * 0.6, 0.0, 1.0);
-  vec3 color = mix(base, mix(accentA, accentB, v_uv.x), glow);
+  // water colors: deep blue base with lighter blue highlights
+  vec3 deepWater = vec3(0.02, 0.15, 0.28);
+  vec3 shallowWater = vec3(0.08, 0.35, 0.52);
+  vec3 waterHighlight = vec3(0.35, 0.65, 0.85);
+  
+  // base gradient from deep to shallow
+  vec3 baseColor = mix(deepWater, shallowWater, v_uv.y * 0.6 + 0.4);
+  
+  // add wave highlights with subtle refraction effect
+  float highlight = clamp(displacement * 0.4, -0.3, 0.5);
+  vec3 color = mix(baseColor, waterHighlight, highlight);
+  
+  // add subtle shimmer
+  float shimmer = sin(v_uv.x * 40.0 + u_time * 2.0) * sin(v_uv.y * 40.0 + u_time * 1.5) * 0.01;
+  color += shimmer;
 
-  gl_FragColor = vec4(color, 0.9);
+  gl_FragColor = vec4(color, 0.95);
 }
 `
 

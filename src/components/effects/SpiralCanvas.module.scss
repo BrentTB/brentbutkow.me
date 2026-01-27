@@ -4,7 +4,8 @@
   width: 100%;
   height: clamp(260px, 40vw, 420px);
   border-radius: 18px;
-  background: radial-gradient(circle at 20% 20%, rgba(127, 240, 201, 0.12), transparent 40%),
+  background:
+    radial-gradient(circle at 20% 20%, rgba(127, 240, 201, 0.12), transparent 40%),
     radial-gradient(circle at 80% 30%, rgba(114, 137, 255, 0.12), transparent 40%),
     linear-gradient(135deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0));
   border: 1px solid var(--border);
