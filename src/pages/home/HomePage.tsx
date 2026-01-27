@@ -5,13 +5,12 @@ import Hero from './components/Hero'
 import styles from './HomePage.module.scss'
 import { heroContent } from './data'
 import { useFunMode } from '../../contexts/FunMode'
-import SpiralCanvas from '../../components/effects/SpiralCanvas'
 
 const jokeCategories = Object.values(JokeTypes)
-export const ALL_CATEGORY = 'all'
-export type JokeCategory = JokeTypes | typeof ALL_CATEGORY
+const ALL_CATEGORY = 'all'
+type JokeCategory = JokeTypes | typeof ALL_CATEGORY
 
-export const getFilteredJokes = () => {
+const getFilteredJokes = () => {
   const initialFilteredJokes: Record<string, typeof jokes> = {}
   jokeCategories.forEach((type) => {
     initialFilteredJokes[type] = jokes.filter((joke) => joke.jokeType === type)
@@ -20,7 +19,7 @@ export const getFilteredJokes = () => {
   return initialFilteredJokes
 }
 
-export const getJoke = (category: JokeCategory, filteredJokes: Record<string, typeof jokes>) => {
+const getJoke = (category: JokeCategory, filteredJokes: Record<string, typeof jokes>) => {
   const jokesInCategory = filteredJokes[category]
   if (jokesInCategory && jokesInCategory.length > 0) {
     const randomIndex = Math.floor(Math.random() * jokesInCategory.length)
@@ -46,13 +45,6 @@ function HomePage() {
     <main className={styles.main}>
       <section id="hero" className={styles.section}>
         <Hero content={heroContent} isFunMode={isFunMode} />
-      </section>
-      <section
-        id="spiral"
-        className={`${styles.section} ${styles.spiralSection}`}
-        aria-label="Spiral animation"
-      >
-        <SpiralCanvas />
       </section>
       {isFunMode && (
         <section id="jokes" className={styles.section}>

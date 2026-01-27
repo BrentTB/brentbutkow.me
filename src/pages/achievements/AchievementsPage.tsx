@@ -31,7 +31,7 @@ function AchievementsPage() {
       .sort((a, b) => b - a)
 
     return { sortedYears, groupedByYear }
-  }, [achievements, isFunMode])
+  }, [isFunMode])
 
   return (
     <PageLayout>

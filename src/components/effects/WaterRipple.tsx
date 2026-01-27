@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import styles from './SpiralCanvas.module.scss'
+import styles from './WaterRipple.module.scss'
 
 const MAX_RIPPLES = 20
 
@@ -108,7 +108,7 @@ const buildProgram = (gl: WebGLRenderingContext, vsSource: string, fsSource: str
   return program
 }
 
-function SpiralCanvas() {
+function WaterRipple() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
 
   useEffect(() => {
@@ -147,9 +147,8 @@ function SpiralCanvas() {
     }
 
     const addRipple = (clientX: number, clientY: number, now: number) => {
-      const rect = canvas.getBoundingClientRect()
-      const x = (clientX - rect.left) / rect.width
-      const y = 1 - (clientY - rect.top) / rect.height
+      const x = clientX / window.innerWidth
+      const y = 1 - clientY / window.innerHeight
       ripples.unshift({ x, y, start: now })
       if (ripples.length > MAX_RIPPLES) ripples.pop()
     }
@@ -215,7 +214,9 @@ function SpiralCanvas() {
     }
   }, [])
 
-  return <canvas ref={canvasRef} className={styles.canvas} aria-label="Spiral webgl animation" />
+  return (
+    <canvas ref={canvasRef} className={styles.canvas} aria-label="water ripple webgl animation" />
+  )
 }
 
-export default SpiralCanvas
+export default WaterRipple
