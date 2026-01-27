@@ -9,7 +9,7 @@ export const contactPlatforms: ContactPlatform[] = [
   },
   {
     platform: 'LinkedIn',
-    shownName: '@brentbutkow',
+    shownName: '@brent-butkow',
     url: 'https://za.linkedin.com/in/brent-butkow',
     logoPath: '/logos/linkedin-no-bg.png',
   },
