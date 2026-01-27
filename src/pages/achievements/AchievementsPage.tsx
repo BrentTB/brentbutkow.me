@@ -10,8 +10,8 @@ function AchievementsPage() {
   const { isFunMode } = useFunMode()
 
   const { sortedYears, groupedByYear } = useMemo(() => {
-    const filteredAchievements = achievements.filter((action) =>
-      isFunMode ? true : !action.onlyShowInFunMode
+    const filteredAchievements = achievements.filter((achievement) =>
+      isFunMode ? true : !achievement.onlyShowInFunMode
     )
 
     const groupedByYear = filteredAchievements.reduce(
