@@ -5,6 +5,7 @@ import Hero from './components/Hero'
 import styles from './HomePage.module.scss'
 import { heroContent } from './data'
 import { useFunMode } from '../../contexts/FunMode'
+import SpiralCanvas from '../../components/effects/SpiralCanvas'
 
 const jokeCategories = Object.values(JokeTypes)
 export const ALL_CATEGORY = 'all'
@@ -45,6 +46,13 @@ function HomePage() {
     <main className={styles.main}>
       <section id="hero" className={styles.section}>
         <Hero content={heroContent} isFunMode={isFunMode} />
+      </section>
+      <section
+        id="spiral"
+        className={`${styles.section} ${styles.spiralSection}`}
+        aria-label="Spiral animation"
+      >
+        <SpiralCanvas />
       </section>
       {isFunMode && (
         <section id="jokes" className={styles.section}>

@@ -5,12 +5,9 @@
 - [ ] replace fun stuff with projects?
   - including this website, ascii video creator
 - [ ] use the link on the education section somehow to link to the course/degree
-- [ ] add a footer
 - [ ] add a toggle for dark mode
 - [ ] experiment with having the experience projects side by side (in an offscreen carousel)
-- [ ] make the whole contact me tabs clikable and make them take me to the link
-- [ ] in fun mode, add my interest on the home page - 3d printing, gaminf, coding, AI
+- [ ] in fun mode, add my interest on the home page - 3d printing, gaming, coding, AI
 - [ ] Add "main skills" on the home page - Terraform, Typescript, React
 - [ ] add a timeline? You can see all things together, and then filter by experience, education, awards, etc
-- [ ] possibly add in "fun" achievements - first time breaking prod, first proper all-nighter, things like that
 - [ ] more potential things for the home page: my skills, languages
