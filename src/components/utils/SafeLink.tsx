@@ -12,9 +12,5 @@ export const SafeLink = (safeLinkProps: SafeLinkProps) => {
   const props = { ...safeLinkProps }
   props.target = props.target || '_blank'
   props.rel = props.rel || 'noopener noreferrer'
-  return (
-    <a {...props}>
-      {props.children}
-    </a>
-  )
+  return <a {...props}></a>
 }
