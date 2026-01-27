@@ -3,6 +3,7 @@ import { SpeedInsights } from '@vercel/speed-insights/react'
 import Router from './routes/Router'
 import styles from './App.module.scss'
 import Navbar from './components/navbar/Navbar'
+import Footer from './components/footer/Footer'
 import { BrowserRouter } from 'react-router-dom'
 import { FunModeProvider } from './contexts/FunModeProvider'
 
@@ -20,6 +21,7 @@ function App() {
           </FunModeProvider>
         </BrowserRouter>
       </div>
+      <Footer />
       {enableVercelAnalytics && <Analytics />}
       {enableVercelSpeedInsights && <SpeedInsights />}
     </>
