@@ -71,4 +71,5 @@ export type Achievement = {
   title: string
   description?: string
   link?: string
+  onlyShowInFunMode?: boolean
 }

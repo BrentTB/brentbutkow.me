@@ -69,6 +69,12 @@ export const achievements: Achievement[] = [
     link: 'https://wmc.ms.wits.ac.za/2021-winners',
   },
   {
+    year: 2021,
+    title: 'Entelect University Challenge',
+    description: '7th place in the Entelect University Challenge',
+    link: 'https://challenge.entelect.co.za/university',
+  },
+  {
     year: 2020,
     title: 'Programming Olympiad',
     description: 'Top 3 nationally in the South African Programming Olympiad',

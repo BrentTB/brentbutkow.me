@@ -3,14 +3,14 @@ import { Achievement } from '../../../data/data.types'
 import styles from './AchievementCard.module.scss'
 
 type AchievementCardProps = {
-  item: Achievement
+  achievement: Achievement
 }
 
-function AchievementCard({ item }: AchievementCardProps) {
+function AchievementCard({ achievement }: AchievementCardProps) {
   return (
-    <ArticleOrLinkCard href={item.link}>
-      <h4 className={styles.title}>{item.title}</h4>
-      {item.description && <p className={styles.description}>{item.description}</p>}
+    <ArticleOrLinkCard href={achievement.link}>
+      <h4 className={styles.title}>{achievement.title}</h4>
+      {achievement.description && <p className={styles.description}>{achievement.description}</p>}
     </ArticleOrLinkCard>
   )
 }
