@@ -9,9 +9,12 @@ interface SafeLinkProps {
 }
 
 export const SafeLink = (safeLinkProps: SafeLinkProps) => {
+  const props = { ...safeLinkProps }
+  props.target = props.target || '_blank'
+  props.rel = props.rel || 'noopener noreferrer'
   return (
-    <a target="_blank" rel="noopener noreferrer" {...safeLinkProps}>
-      {safeLinkProps.children}
+    <a target="_blank" rel="noopener noreferrer" {...props}>
+      {props.children}
     </a>
   )
 }
