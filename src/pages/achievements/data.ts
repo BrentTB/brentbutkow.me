@@ -6,6 +6,11 @@ export const achievements: Achievement[] = [
     title: 'Entelect Company Cup Winner',
     description: '1st place in the Entelect Company Cup Hackathon',
   },
+  // {
+  //   year: 2025,
+  //   title: 'Broke a (pre) production system for the first time',
+  //   description: 'A broken pipeline caused a deployment to fail, luckily fixed before it was noticed',
+  // },
   {
     year: 2024,
     title: 'Graduated with Distinction',
@@ -44,6 +49,13 @@ export const achievements: Achievement[] = [
     title: 'Syft Hackathon',
     description: 'Top 30 in the Syft Analytics Hackathon',
   },
+  // {
+  //   year: 2024,
+  //   title: 'First full all-nighter',
+  //   description:
+  //     'I had my first full all-nighter, finishing a measurements, and MECN project, and almost crashed driving to Wits',
+  //   onlyShowInFunMode: true,
+  // },
   {
     year: 2023,
     title: 'Entelect University Challenge',
