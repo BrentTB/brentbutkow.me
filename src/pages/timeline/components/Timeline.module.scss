@@ -144,3 +144,35 @@
     margin: 0;
   }
 }
+
+@media (max-width: 768px) {
+  .timelineTrack {
+    padding-left: 2rem;
+  }
+
+  .timelineLine {
+    left: 2rem;
+  }
+
+  .timelineItem {
+    justify-content: flex-start !important;
+    text-align: left !important;
+  }
+
+  .timelineItemLeft,
+  .timelineItemRight {
+    justify-content: flex-start;
+    text-align: left;
+  }
+
+  .timelineItemLeft .timelineContent,
+  .timelineItemRight .timelineContent {
+    margin-left: 2rem;
+    margin-right: 0;
+    max-width: calc(100% - 3rem);
+  }
+
+  .timelineMarker {
+    left: 2rem;
+  }
+}

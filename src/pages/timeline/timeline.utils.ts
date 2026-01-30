@@ -59,9 +59,21 @@ export function filterTimelineItems(
   return items.filter((item) => {
     if (!filters[item.type]) return false
 
-    const itemDate = item.endDate || item.date
-    if (startDate && itemDate < startDate) return false
-    if (endDate && item.date > endDate) return false
+    // For date range filtering, check if the item's date range overlaps with the filter range
+    const itemStart = item.date
+    const itemEnd = item.endDate || item.date
+    
+    // If both filter dates are set, check for overlap
+    if (startDate && endDate) {
+      // Item overlaps if: item starts before filter ends AND item ends after filter starts
+      return itemStart <= endDate && itemEnd >= startDate
+    }
+    
+    // If only start date is set, include items that end on or after the start date
+    if (startDate && itemEnd < startDate) return false
+    
+    // If only end date is set, include items that start on or before the end date
+    if (endDate && itemStart > endDate) return false
 
     return true
   })

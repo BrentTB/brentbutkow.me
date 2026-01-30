@@ -28,6 +28,8 @@ function TimelineControls({
           <button
             className={`${styles.filterButton} ${styles.filterExperience} ${filters.experience ? styles.active : ''}`}
             onClick={() => onFilterChange('experience')}
+            aria-pressed={filters.experience}
+            aria-label="Filter by experience"
           >
             <span className={`${styles.colorIndicator} ${styles.indicatorExperience}`} />
             Experience
@@ -35,6 +37,8 @@ function TimelineControls({
           <button
             className={`${styles.filterButton} ${styles.filterEducation} ${filters.education ? styles.active : ''}`}
             onClick={() => onFilterChange('education')}
+            aria-pressed={filters.education}
+            aria-label="Filter by education"
           >
             <span className={`${styles.colorIndicator} ${styles.indicatorEducation}`} />
             Education
@@ -42,6 +46,8 @@ function TimelineControls({
           <button
             className={`${styles.filterButton} ${styles.filterAchievement} ${filters.achievement ? styles.active : ''}`}
             onClick={() => onFilterChange('achievement')}
+            aria-pressed={filters.achievement}
+            aria-label="Filter by achievements"
           >
             <span className={`${styles.colorIndicator} ${styles.indicatorAchievement}`} />
             Achievements

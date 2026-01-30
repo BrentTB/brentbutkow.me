@@ -19,21 +19,38 @@ function Timeline({ items }: TimelineProps) {
 
   const calculateDuration = (start: Date, end: Date | null): string => {
     const endDate = end || new Date()
-    const months = (endDate.getFullYear() - start.getFullYear()) * 12 + 
-                   (endDate.getMonth() - start.getMonth())
     
+    // Ensure start date is before end date
+    if (endDate < start) {
+      return 'Invalid duration'
+    }
+    
+    const months =
+      (endDate.getFullYear() - start.getFullYear()) * 12 + (endDate.getMonth() - start.getMonth())
+
     if (months < 12) {
       return `${months} month${months !== 1 ? 's' : ''}`
     }
-    
+
     const years = Math.floor(months / 12)
     const remainingMonths = months % 12
-    
+
     if (remainingMonths === 0) {
       return `${years} year${years !== 1 ? 's' : ''}`
     }
-    
+
     return `${years} year${years !== 1 ? 's' : ''} ${remainingMonths} month${remainingMonths !== 1 ? 's' : ''}`
+  }
+
+  const calculateDurationWidth = (start: Date, end: Date | null): number => {
+    const endDate = end || new Date()
+    const months = Math.max(
+      0,
+      (endDate.getFullYear() - start.getFullYear()) * 12 +
+        (endDate.getMonth() - start.getMonth())
+    )
+    // Scale: 1 month = 3px, capped at 100px for very long durations
+    return Math.min(months * 3, 100)
   }
 
   if (items.length === 0) {
@@ -58,9 +75,7 @@ function Timeline({ items }: TimelineProps) {
                 : styles.markerAchievement
 
           const durationClass =
-            item.type === 'experience'
-              ? styles.durationExperience
-              : styles.durationEducation
+            item.type === 'experience' ? styles.durationExperience : styles.durationEducation
 
           return (
             <div
@@ -80,7 +95,7 @@ function Timeline({ items }: TimelineProps) {
                       <div
                         className={`${styles.durationBar} ${durationClass}`}
                         style={{
-                          width: `${Math.min(calculateDuration(item.date, item.endDate).length * 3, 100)}px`,
+                          width: `${calculateDurationWidth(item.date, item.endDate)}px`,
                         }}
                       />
                       <span className={styles.durationText}>
