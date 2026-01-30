@@ -5,20 +5,26 @@ import styles from './ExperienceCard.module.scss'
 
 const PILLS_TO_SHOW = 4
 
+type ExperienceCardProps = Experience & {
+  id?: string
+}
+
 function ExperienceCard({
+  id,
   role,
   company,
   period,
   description,
   skills,
   experienceProjects,
-}: Experience) {
+}: ExperienceCardProps) {
   const [showProjects, setShowProjects] = useState(false)
   const hasProjects = experienceProjects && experienceProjects.length > 0
 
   return (
     <div className={styles.experienceWrapper}>
       <DetailCard
+        id={id}
         title={role}
         subtitle={company}
         period={period}
