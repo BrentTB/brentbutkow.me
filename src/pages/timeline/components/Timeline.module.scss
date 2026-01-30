@@ -8,21 +8,21 @@
   overflow-x: auto;
   overflow-y: visible;
   padding: 2rem 0;
-  
+
   /* Custom scrollbar styling */
   &::-webkit-scrollbar {
     height: 10px;
   }
-  
+
   &::-webkit-scrollbar-track {
     background: var(--color-bg);
     border-radius: 5px;
   }
-  
+
   &::-webkit-scrollbar-thumb {
     background: var(--color-border);
     border-radius: 5px;
-    
+
     &:hover {
       background: var(--color-primary);
     }
@@ -110,7 +110,7 @@
   position: absolute;
   cursor: pointer;
   transition: all 0.2s ease;
-  
+
   &:hover {
     transform: translateY(-4px);
     z-index: 10;
@@ -125,12 +125,12 @@
     border-radius: 8px;
     padding: 0.75rem 1rem;
     box-shadow: 0 2px 8px rgba(74, 158, 255, 0.2);
-    
+
     &:hover {
       box-shadow: 0 4px 16px rgba(74, 158, 255, 0.4);
     }
   }
-  
+
   .itemBar {
     position: absolute;
     bottom: -8px;
@@ -150,12 +150,12 @@
     border-radius: 8px;
     padding: 0.75rem 1rem;
     box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
-    
+
     &:hover {
       box-shadow: 0 4px 16px rgba(245, 158, 11, 0.4);
     }
   }
-  
+
   .itemBar {
     position: absolute;
     bottom: -8px;
@@ -170,7 +170,7 @@
 /* Achievement items */
 .achievementItem {
   transform: translateX(-50%);
-  
+
   .achievementMarker {
     width: 16px;
     height: 16px;
@@ -184,7 +184,7 @@
     z-index: 2;
     box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
   }
-  
+
   .itemContent {
     background: var(--color-card-bg);
     border: 2px solid #10b981;
@@ -193,7 +193,7 @@
     min-width: 200px;
     max-width: 300px;
     box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
-    
+
     &:hover {
       box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4);
     }
@@ -239,19 +239,19 @@
   .timeline {
     padding: 2rem 2rem;
   }
-  
+
   .itemTitle {
     font-size: 0.85rem;
   }
-  
+
   .itemSubtitle {
     font-size: 0.75rem;
   }
-  
+
   .itemDate {
     font-size: 0.7rem;
   }
-  
+
   .achievementItem .itemContent {
     min-width: 150px;
     max-width: 200px;

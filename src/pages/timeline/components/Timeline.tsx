@@ -72,8 +72,7 @@ function Timeline({ items }: TimelineProps) {
     const calculateWidth = (start: Date, end: Date | null): number => {
       const endDate = end || new Date()
       const months =
-        (endDate.getFullYear() - start.getFullYear()) * 12 +
-        (endDate.getMonth() - start.getMonth())
+        (endDate.getFullYear() - start.getFullYear()) * 12 + (endDate.getMonth() - start.getMonth())
       return Math.max(months * pixelsPerMonth, pixelsPerMonth * 0.5) // Minimum width of half a month
     }
 
@@ -184,7 +183,11 @@ function Timeline({ items }: TimelineProps) {
           <div className={styles.timelineAxis}>
             <div className={styles.timelineLine} />
             {yearMarkers.map((marker) => (
-              <div key={marker.year} className={styles.yearMarker} style={{ left: `${marker.position}px` }}>
+              <div
+                key={marker.year}
+                className={styles.yearMarker}
+                style={{ left: `${marker.position}px` }}
+              >
                 <div className={styles.yearTick} />
                 <div className={styles.yearLabel}>{marker.year}</div>
               </div>
