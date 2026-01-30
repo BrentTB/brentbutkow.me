@@ -2,11 +2,11 @@ import { Experience } from '../../data/data.types'
 
 export const experience: Experience[] = [
   {
-    role: 'Junior Software Developer',
+    role: 'Software Engineer',
     company: 'Entelect',
     period: 'Jan 2025 - Present',
     description: [
-      'Joining Entelect as a Junior Software Developer through their Graduate Program, and have been working on Cloud infrastructure and web development since then',
+      'Joining Entelect as a Software Engineer through their Graduate Program, and have been working on Cloud infrastructure and web development since then',
     ],
 
     experienceProjects: [
