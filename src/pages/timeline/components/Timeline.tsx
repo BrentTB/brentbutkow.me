@@ -19,12 +19,12 @@ function Timeline({ items }: TimelineProps) {
 
   const calculateDuration = (start: Date, end: Date | null): string => {
     const endDate = end || new Date()
-    
+
     // Ensure start date is before end date
     if (endDate < start) {
       return 'Invalid duration'
     }
-    
+
     const months =
       (endDate.getFullYear() - start.getFullYear()) * 12 + (endDate.getMonth() - start.getMonth())
 
@@ -46,8 +46,7 @@ function Timeline({ items }: TimelineProps) {
     const endDate = end || new Date()
     const months = Math.max(
       0,
-      (endDate.getFullYear() - start.getFullYear()) * 12 +
-        (endDate.getMonth() - start.getMonth())
+      (endDate.getFullYear() - start.getFullYear()) * 12 + (endDate.getMonth() - start.getMonth())
     )
     // Scale: 1 month = 3px, capped at 100px for very long durations
     return Math.min(months * 3, 100)
