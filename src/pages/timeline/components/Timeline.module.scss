@@ -1,139 +1,228 @@
-.timeline {
+.timelineContainer {
+  width: 100%;
   position: relative;
-  padding: 2rem 0;
 }
 
-.timelineTrack {
+.timelineScroll {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  padding: 2rem 0;
+  
+  /* Custom scrollbar styling */
+  &::-webkit-scrollbar {
+    height: 10px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: var(--color-bg);
+    border-radius: 5px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 5px;
+    
+    &:hover {
+      background: var(--color-primary);
+    }
+  }
+}
+
+.timeline {
   position: relative;
-  margin: 0 auto;
-  max-width: 800px;
+  min-height: 600px;
+  padding: 2rem 4rem;
+}
+
+/* Above timeline section - for experience and education */
+.aboveTimeline {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 250px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Timeline axis */
+.timelineAxis {
+  position: absolute;
+  top: 250px;
+  left: 0;
+  right: 0;
+  height: 60px;
 }
 
 .timelineLine {
   position: absolute;
-  left: 50%;
-  top: 0;
-  bottom: 0;
-  width: 3px;
+  top: 30px;
+  left: 0;
+  right: 0;
+  height: 3px;
   background: var(--color-border);
-  transform: translateX(-50%);
 }
 
-.timelineItem {
-  position: relative;
-  margin: 2rem 0;
-  display: flex;
-  align-items: center;
-  gap: 2rem;
-  cursor: pointer;
-  transition: transform 0.2s ease;
-
-  &:hover {
-    transform: scale(1.02);
-  }
-}
-
-.timelineItemLeft {
-  justify-content: flex-end;
-  text-align: right;
-
-  .timelineContent {
-    margin-right: 2rem;
-  }
-}
-
-.timelineItemRight {
-  justify-content: flex-start;
-  text-align: left;
-
-  .timelineContent {
-    margin-left: 2rem;
-  }
-}
-
-.timelineContent {
-  flex: 1;
-  max-width: calc(50% - 3rem);
-  padding: 1rem 1.5rem;
-  border-radius: 8px;
-  background: var(--color-card-bg);
-  border: 1px solid var(--color-border);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: all 0.2s ease;
-
-  &:hover {
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-    border-color: var(--color-primary);
-  }
-}
-
-.timelineMarker {
+/* Year markers */
+.yearMarker {
   position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: 3px solid var(--color-bg);
-  z-index: 2;
-  transition: all 0.2s ease;
+  top: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
 
+.yearTick {
+  width: 2px;
+  height: 20px;
+  background: var(--color-text-tertiary);
+  margin-bottom: 0.5rem;
+}
+
+.yearLabel {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+/* Below timeline section - for achievements */
+.belowTimeline {
+  position: absolute;
+  top: 310px;
+  left: 0;
+  right: 0;
+  min-height: 200px;
+}
+
+/* Items layer for stacking */
+.itemsLayer {
+  position: relative;
+  height: 120px;
+  margin-bottom: 0.5rem;
+}
+
+/* Timeline item base styles */
+.timelineItem {
+  position: absolute;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
   &:hover {
-    transform: translateX(-50%) scale(1.3);
+    transform: translateY(-4px);
+    z-index: 10;
   }
 }
 
-.markerExperience {
-  background: #4a9eff;
+/* Experience items */
+.experienceItem {
+  .itemContent {
+    background: var(--color-card-bg);
+    border: 2px solid #4a9eff;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    box-shadow: 0 2px 8px rgba(74, 158, 255, 0.2);
+    
+    &:hover {
+      box-shadow: 0 4px 16px rgba(74, 158, 255, 0.4);
+    }
+  }
+  
+  .itemBar {
+    position: absolute;
+    bottom: -8px;
+    left: 0;
+    right: 0;
+    height: 8px;
+    background: #4a9eff;
+    border-radius: 4px;
+  }
 }
 
-.markerEducation {
-  background: #f59e0b;
+/* Education items */
+.educationItem {
+  .itemContent {
+    background: var(--color-card-bg);
+    border: 2px solid #f59e0b;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
+    
+    &:hover {
+      box-shadow: 0 4px 16px rgba(245, 158, 11, 0.4);
+    }
+  }
+  
+  .itemBar {
+    position: absolute;
+    bottom: -8px;
+    left: 0;
+    right: 0;
+    height: 8px;
+    background: #f59e0b;
+    border-radius: 4px;
+  }
 }
 
-.markerAchievement {
-  background: #10b981;
+/* Achievement items */
+.achievementItem {
+  transform: translateX(-50%);
+  
+  .achievementMarker {
+    width: 16px;
+    height: 16px;
+    background: #10b981;
+    border-radius: 50%;
+    border: 3px solid var(--color-bg);
+    position: absolute;
+    left: 50%;
+    top: -38px;
+    transform: translateX(-50%);
+    z-index: 2;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+  }
+  
+  .itemContent {
+    background: var(--color-card-bg);
+    border: 2px solid #10b981;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    min-width: 200px;
+    max-width: 300px;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+    
+    &:hover {
+      box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4);
+    }
+  }
 }
 
-.timelineTitle {
-  font-size: 1.1rem;
+/* Item content text styles */
+.itemTitle {
+  font-size: 0.95rem;
   font-weight: 600;
-  margin: 0 0 0.25rem 0;
   color: var(--color-text);
+  margin-bottom: 0.25rem;
+  line-height: 1.3;
 }
 
-.timelineSubtitle {
-  font-size: 0.9rem;
-  margin: 0 0 0.5rem 0;
-  color: var(--color-text-secondary);
-}
-
-.timelineDate {
+.itemSubtitle {
   font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 0.25rem;
+  line-height: 1.3;
+}
+
+.itemDate {
+  font-size: 0.75rem;
   color: var(--color-text-tertiary);
   font-weight: 500;
 }
 
-.timelineDuration {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.durationBar {
-  height: 4px;
-  border-radius: 2px;
-  min-width: 30px;
-}
-
-.durationExperience {
-  background: #4a9eff;
-}
-
-.durationEducation {
-  background: #f59e0b;
-}
-
+/* Empty state */
 .emptyState {
   text-align: center;
   padding: 4rem 2rem;
@@ -145,34 +234,26 @@
   }
 }
 
+/* Mobile responsive */
 @media (max-width: 768px) {
-  .timelineTrack {
-    padding-left: 2rem;
+  .timeline {
+    padding: 2rem 2rem;
   }
-
-  .timelineLine {
-    left: 2rem;
+  
+  .itemTitle {
+    font-size: 0.85rem;
   }
-
-  .timelineItem {
-    justify-content: flex-start !important;
-    text-align: left !important;
+  
+  .itemSubtitle {
+    font-size: 0.75rem;
   }
-
-  .timelineItemLeft,
-  .timelineItemRight {
-    justify-content: flex-start;
-    text-align: left;
+  
+  .itemDate {
+    font-size: 0.7rem;
   }
-
-  .timelineItemLeft .timelineContent,
-  .timelineItemRight .timelineContent {
-    margin-left: 2rem;
-    margin-right: 0;
-    max-width: calc(100% - 3rem);
-  }
-
-  .timelineMarker {
-    left: 2rem;
+  
+  .achievementItem .itemContent {
+    min-width: 150px;
+    max-width: 200px;
   }
 }
