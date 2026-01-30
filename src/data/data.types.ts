@@ -23,7 +23,9 @@ export type Project = {
 
 export type ExperienceProject = {
   company: string
-  period: string
+  period: string // Keep for display compatibility
+  startDate: Date
+  endDate: Date | null // null means "Present"
   description: string[]
   skills: string[]
 }
@@ -31,7 +33,9 @@ export type ExperienceProject = {
 export type Experience = {
   role: string
   company: string
-  period: string
+  period: string // Keep for display compatibility
+  startDate: Date
+  endDate: Date | null // null means "Present"
   description?: string[]
   skills?: string[]
   experienceProjects?: ExperienceProject[]
@@ -53,7 +57,9 @@ export type ContactPlatform = {
 export type Education = {
   institution: string
   degree: string
-  period: string
+  period: string // Keep for display compatibility
+  startDate: Date
+  endDate: Date | null // null means "Present"
   description: string[]
   link?: string
   achievements?: string[]
