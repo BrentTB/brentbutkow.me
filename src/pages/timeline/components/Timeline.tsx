@@ -31,7 +31,7 @@ function Timeline({ items }: TimelineProps) {
 
     // Group items by year
     const itemsByYear = new Map<number, TimelineItem[]>()
-    
+
     items.forEach((item) => {
       const year = item.date.getFullYear()
       if (!itemsByYear.has(year)) {
@@ -42,13 +42,13 @@ function Timeline({ items }: TimelineProps) {
 
     // Sort years in descending order (newest first)
     const sortedYears = Array.from(itemsByYear.keys()).sort((a, b) => b - a)
-    
-    return sortedYears.map(year => ({
+
+    return sortedYears.map((year) => ({
       year,
-      achievements: itemsByYear.get(year)!.filter(item => item.type === 'achievement'),
-      experienceAndEducation: itemsByYear.get(year)!.filter(
-        item => item.type === 'experience' || item.type === 'education'
-      ),
+      achievements: itemsByYear.get(year)!.filter((item) => item.type === 'achievement'),
+      experienceAndEducation: itemsByYear
+        .get(year)!
+        .filter((item) => item.type === 'experience' || item.type === 'education'),
     }))
   }, [items])
 
