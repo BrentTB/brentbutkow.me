@@ -43,8 +43,8 @@ function Timeline({ items }: TimelineProps) {
       (paddedMaxDate.getFullYear() - paddedMinDate.getFullYear()) * 12 +
       (paddedMaxDate.getMonth() - paddedMinDate.getMonth())
 
-    // Scale: 80px per month for good visibility
-    const pixelsPerMonth = 80
+    // Scale: 30px per month for more compact timeline
+    const pixelsPerMonth = 30
     const timelineWidth = totalMonths * pixelsPerMonth
 
     // Generate year markers
@@ -101,12 +101,38 @@ function Timeline({ items }: TimelineProps) {
         width: 0,
       }))
 
+    // Calculate vertical positions for achievements to prevent overlap
+    const achievementsWithPosition: (typeof achievementItems[0] & { row: number })[] = []
+    achievementItems.forEach((item) => {
+      // Check for overlaps with previous achievements
+      let row = 0
+      let hasOverlap = true
+
+      while (hasOverlap) {
+        hasOverlap = false
+        for (let i = 0; i < achievementsWithPosition.length; i++) {
+          const other = achievementsWithPosition[i]
+          if (other.row === row) {
+            // Check if they overlap horizontally (within 220px of each other)
+            const distance = Math.abs(item.left - other.left)
+            if (distance < 220) {
+              hasOverlap = true
+              break
+            }
+          }
+        }
+        if (hasOverlap) row++
+      }
+
+      achievementsWithPosition.push({ ...item, row })
+    })
+
     return {
       timelineWidth,
       yearMarkers,
       experienceItems,
       educationItems,
-      achievementItems,
+      achievementItems: achievementsWithPosition,
     }
   }, [items])
 
@@ -196,25 +222,24 @@ function Timeline({ items }: TimelineProps) {
 
           {/* Achievement items - below timeline */}
           <div className={styles.belowTimeline}>
-            <div className={styles.itemsLayer}>
-              {achievementItems.map((item) => (
-                <div
-                  key={item.id}
-                  className={`${styles.timelineItem} ${styles.achievementItem}`}
-                  style={{
-                    left: `${item.left}px`,
-                  }}
-                  onClick={() => handleItemClick(item)}
-                >
-                  <div className={styles.achievementMarker} />
-                  <div className={styles.itemContent}>
-                    <div className={styles.itemTitle}>{item.title}</div>
-                    <div className={styles.itemSubtitle}>{item.subtitle}</div>
-                    <div className={styles.itemDate}>{formatDate(item.date)}</div>
-                  </div>
+            {achievementItems.map((item) => (
+              <div
+                key={item.id}
+                className={`${styles.timelineItem} ${styles.achievementItem}`}
+                style={{
+                  left: `${item.left}px`,
+                  top: `${item.row * 130}px`,
+                }}
+                onClick={() => handleItemClick(item)}
+              >
+                <div className={styles.achievementMarker} />
+                <div className={styles.itemContent}>
+                  <div className={styles.itemTitle}>{item.title}</div>
+                  <div className={styles.itemSubtitle}>{item.subtitle}</div>
+                  <div className={styles.itemDate}>{formatDate(item.date)}</div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

@@ -59,25 +59,31 @@ function TimelineControls({
         <label className={styles.filterLabel}>Date Range</label>
         <div className={styles.dateRangeSection}>
           <div className={styles.dateInputGroup}>
-            <label className={styles.dateLabel} htmlFor="start-date">
+            <label className={styles.dateLabel} htmlFor="start-year">
               From
             </label>
             <input
-              id="start-date"
-              type="date"
+              id="start-year"
+              type="number"
               className={styles.dateInput}
+              placeholder="Year"
+              min="2000"
+              max="2030"
               value={startDate}
               onChange={(e) => onStartDateChange(e.target.value)}
             />
           </div>
           <div className={styles.dateInputGroup}>
-            <label className={styles.dateLabel} htmlFor="end-date">
+            <label className={styles.dateLabel} htmlFor="end-year">
               To
             </label>
             <input
-              id="end-date"
-              type="date"
+              id="end-year"
+              type="number"
               className={styles.dateInput}
+              placeholder="Year"
+              min="2000"
+              max="2030"
               value={endDate}
               onChange={(e) => onEndDateChange(e.target.value)}
             />

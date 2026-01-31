@@ -1,4 +1,4 @@
-import { Achievement, Education, Experience } from '../../data/data.types'
+import { Achievement, Education, Experience, ExperienceProject } from '../../data/data.types'
 import { TimelineItem } from './timeline.types'
 
 export function experienceToTimelineItem(exp: Experience, index: number): TimelineItem {
@@ -11,6 +11,23 @@ export function experienceToTimelineItem(exp: Experience, index: number): Timeli
     endDate: exp.endDate,
     targetPage: '/experience',
     anchor: `experience-${index}`,
+  }
+}
+
+export function experienceProjectToTimelineItem(
+  project: ExperienceProject,
+  parentIndex: number,
+  projectIndex: number
+): TimelineItem {
+  return {
+    id: `experience-${parentIndex}-project-${projectIndex}`,
+    type: 'experience',
+    title: project.company,
+    subtitle: 'Project',
+    date: project.startDate,
+    endDate: project.endDate,
+    targetPage: '/experience',
+    anchor: `experience-${parentIndex}`,
   }
 }
 

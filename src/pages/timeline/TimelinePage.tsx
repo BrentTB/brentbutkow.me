@@ -9,6 +9,7 @@ import { experience } from '../experience/data'
 import {
   achievementToTimelineItem,
   educationToTimelineItem,
+  experienceProjectToTimelineItem,
   experienceToTimelineItem,
   filterTimelineItems,
   sortTimelineItems,
@@ -27,7 +28,13 @@ function TimelinePage() {
   const [endDateStr, setEndDateStr] = useState('')
 
   const allTimelineItems = useMemo(() => {
-    const experienceItems = experience.map((exp, idx) => experienceToTimelineItem(exp, idx))
+    const experienceItems = experience.flatMap((exp, idx) => {
+      const mainItem = experienceToTimelineItem(exp, idx)
+      const projectItems = (exp.experienceProjects || []).map((project, projectIdx) =>
+        experienceProjectToTimelineItem(project, idx, projectIdx)
+      )
+      return [mainItem, ...projectItems]
+    })
     const educationItems = education.map((edu, idx) => educationToTimelineItem(edu, idx))
     const achievementItems = achievements.map((ach, idx) => achievementToTimelineItem(ach, idx))
 
@@ -35,8 +42,8 @@ function TimelinePage() {
   }, [])
 
   const filteredItems = useMemo(() => {
-    const startDate = startDateStr ? new Date(startDateStr) : null
-    const endDate = endDateStr ? new Date(endDateStr) : null
+    const startDate = startDateStr ? new Date(`${startDateStr}-01-01`) : null
+    const endDate = endDateStr ? new Date(`${endDateStr}-12-31`) : null
 
     return filterTimelineItems(allTimelineItems, filters, startDate, endDate)
   }, [allTimelineItems, filters, startDateStr, endDateStr])
