@@ -102,7 +102,7 @@ function Timeline({ items }: TimelineProps) {
       }))
 
     // Calculate vertical positions for achievements to prevent overlap
-    const achievementsWithPosition: (typeof achievementItems[0] & { row: number })[] = []
+    const achievementsWithPosition: ((typeof achievementItems)[0] & { row: number })[] = []
     achievementItems.forEach((item) => {
       // Check for overlaps with previous achievements
       let row = 0
