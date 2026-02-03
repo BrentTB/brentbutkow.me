@@ -65,8 +65,7 @@ function Timeline({ items }: TimelineProps) {
     const calculateHeight = (start: Date, end: Date | null): number => {
       const endDate = end || new Date()
       const months =
-        (endDate.getFullYear() - start.getFullYear()) * 12 +
-        (endDate.getMonth() - start.getMonth())
+        (endDate.getFullYear() - start.getFullYear()) * 12 + (endDate.getMonth() - start.getMonth())
       return Math.max(months * pixelsPerMonth, pixelsPerMonth * 0.5) // Minimum half a month
     }
 
