@@ -4,7 +4,6 @@ import styles from './GaulagSortVisualizer.module.scss'
 interface GaulagBlock {
   value: number
   id: string
-  gaulagIndex: number
   removed?: boolean
   exitDirection?: 'down' | 'up'
 }
@@ -69,7 +68,6 @@ const moveBlockBetweenGaulags = (gaulags: GaulagBlock[][], frame: AnimationFrame
   fromGaulag[movedBlockIndex].removed = true
   fromGaulag[movedBlockIndex].exitDirection = frame.isMerging ? 'up' : 'down'
 
-  newBlock.gaulagIndex = frame.toGaulagIndex
   newBlock.exitDirection = !frame.isMerging ? 'up' : 'down'
   toGaulag.push(newBlock)
 
@@ -106,7 +104,6 @@ function GaulagSortVisualizer() {
     const newBlocks: GaulagBlock[] = nums.map((value, i) => ({
       value,
       id: `${Date.now()}-${i}`,
-      gaulagIndex: 0,
     }))
 
     const initialGaulags = [[...newBlocks]]
@@ -138,12 +135,10 @@ function GaulagSortVisualizer() {
     setIsAnimating(false)
   }
 
-  const performGaulagSort = (gaulagList: GaulagBlock[][]): AnimationFrame[] => {
+  const splitIntoGaulags = (gaulagList: GaulagBlock[][]) => {
     const frames: AnimationFrame[] = []
-
     let gaulagNum = 0
 
-    // Separate into gaulags
     while (!isSorted(gaulagList[gaulagList.length - 1])) {
       const currentGaulag = gaulagList[gaulagList.length - 1]
       gaulagNum++
@@ -157,7 +152,7 @@ function GaulagSortVisualizer() {
 
       for (let i = 1; i < currentGaulag.length; i++) {
         if (currentGaulag[i].value < currentValue) {
-          unsorted.push({ ...currentGaulag[i], gaulagIndex: gaulagNum })
+          unsorted.push({ ...currentGaulag[i] })
         } else {
           sorted.push(currentGaulag[i])
           currentValue = currentGaulag[i].value
@@ -168,69 +163,68 @@ function GaulagSortVisualizer() {
         frames.push({
           moveBlockId: unsorted[i].id,
           fromGaulagIndex: gaulagNum - 1,
-          toGaulagIndex: unsorted[i].gaulagIndex,
+          toGaulagIndex: gaulagNum,
         })
       }
 
-      const newGaulagBlocks = unsorted.map((b) => ({
-        ...b,
-        gaulagIndex: gaulagNum,
-      }))
-
       gaulagList[gaulagList.length - 1] = sorted
-      gaulagList.push(newGaulagBlocks)
+      gaulagList.push(unsorted)
     }
+    return { frames: frames, gaulagList: gaulagList }
+  }
 
-    // Merge gaulags from bottom up
+  const mergeGaulags = (gaulagList: GaulagBlock[][]) => {
+    const frames: AnimationFrame[] = []
     while (gaulagList.length > 1) {
       const lastGaulag = gaulagList.pop()!
       const secondLast = gaulagList.pop()!
 
-      const merged = mergeGaulagsSorted(secondLast, lastGaulag, gaulagNum - 1)
+      const merged = mergeGaulagsSorted(secondLast, lastGaulag)
       gaulagList.push(merged)
 
       for (let i = 0; i < lastGaulag.length; i++) {
         frames.push({
           moveBlockId: lastGaulag[i].id,
-          fromGaulagIndex: gaulagNum,
-          toGaulagIndex: gaulagNum - 1,
+          fromGaulagIndex: gaulagList.length,
+          toGaulagIndex: gaulagList.length - 1,
           isMerging: true,
         })
       }
-
-      gaulagNum--
     }
 
     return frames
   }
 
-  const mergeGaulagsSorted = (
-    gaulag1: GaulagBlock[],
-    gaulag2: GaulagBlock[],
-    targetGaulag: number
-  ): GaulagBlock[] => {
+  const performGaulagSort = (gaulagList: GaulagBlock[][]): AnimationFrame[] => {
+    // Separate into gaulags
+    const { frames, gaulagList: updatedGaulagList } = splitIntoGaulags(gaulagList)
+
+    // Merge gaulags from bottom up
+    const mergeFrames = mergeGaulags(updatedGaulagList)
+    frames.push(...mergeFrames)
+
+    return frames
+  }
+
+  const mergeGaulagsSorted = (gaulag1: GaulagBlock[], gaulag2: GaulagBlock[]): GaulagBlock[] => {
     const result: GaulagBlock[] = []
     let i = 0,
       j = 0
 
-    while (i < gaulag1.length && j < gaulag2.length) {
-      if (gaulag1[i].value <= gaulag2[j].value) {
-        result.push({ ...gaulag1[i], gaulagIndex: targetGaulag })
+    while (i < gaulag1.length || j < gaulag2.length) {
+      if (i >= gaulag1.length) {
+        result.push({ ...gaulag2[j] })
+        j++
+      } else if (j >= gaulag2.length) {
+        result.push({ ...gaulag1[i] })
+        i++
+      } else if (gaulag1[i].value <= gaulag2[j].value) {
+        result.push({ ...gaulag1[i] })
         i++
       } else {
-        result.push({ ...gaulag2[j], gaulagIndex: targetGaulag })
+        result.push({ ...gaulag2[j] })
         j++
       }
-    }
-
-    while (i < gaulag1.length) {
-      result.push({ ...gaulag1[i], gaulagIndex: targetGaulag })
-      i++
-    }
-
-    while (j < gaulag2.length) {
-      result.push({ ...gaulag2[j], gaulagIndex: targetGaulag })
-      j++
     }
 
     return result
