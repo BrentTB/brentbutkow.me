@@ -34,7 +34,7 @@ function GaulagSort() {
         </p>
         <p>
           I came up with this algorithm when learning about sorting algorithms for IOI. I do not
-          suggest using this algoithm in production code, as there are strictly better alternatives,
+          suggest using this algorithm in production code, as there are strictly better alternatives,
           but it is fun for personal projects or personal learning.
         </p>
       </div>

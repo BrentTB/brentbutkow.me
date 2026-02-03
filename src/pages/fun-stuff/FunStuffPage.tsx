@@ -12,7 +12,7 @@ function FunStuffPage() {
         subtitle="Projects and fun things that I have worked on outside of work."
       />
       {funStuff.map((item) => (
-        <FunCard key={item.link} item={item} />
+        <FunCard key={`${item.title}-${item.link ?? ''}`} item={item} />
       ))}
     </PageLayout>
   )
