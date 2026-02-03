@@ -5,13 +5,14 @@ interface GaulagBlock {
   value: number
   id: string
   gulagIndex?: number
-  positionInGulag?: number
+  removed?: boolean
 }
 
 interface AnimationFrame {
   blocks: GaulagBlock[]
   gulags: GaulagBlock[][]
-  blockPositions: Map<string, { gulagIdx: number; posInGulag: number }>
+  blockPositions: Map<string, { gulagIdx: number }>
+  isMerging: boolean
 }
 
 function GulagSortVisualizer() {
@@ -19,12 +20,11 @@ function GulagSortVisualizer() {
   const [blocks, setBlocks] = useState<GaulagBlock[]>([])
   const [gulags, setGulags] = useState<GaulagBlock[][]>([])
   const [isAnimating, setIsAnimating] = useState(false)
-  const [blockPositions, setBlockPositions] = useState<
-    Map<string, { gulagIdx: number; posInGulag: number }>
-  >(new Map())
+  const [isGoingIntoGulag, setIsGoingIntoGulag] = useState<boolean>(true)
+  const [blockPositions, setBlockPositions] = useState<Map<string, { gulagIdx: number }>>(new Map())
 
   const generateRandomNumbers = useCallback(() => {
-    const count = Math.floor(Math.random() * 8) + 3
+    const count = Math.floor(Math.random() * 8) + 6
     const nums = Array.from({ length: count }, () => Math.floor(Math.random() * 100))
     setInput(nums.join(', '))
   }, [])
@@ -48,7 +48,6 @@ function GulagSortVisualizer() {
       value,
       id: `${Date.now()}-${i}`,
       gulagIndex: 0,
-      positionInGulag: i,
     }))
 
     setBlocks(newBlocks)
@@ -62,10 +61,12 @@ function GulagSortVisualizer() {
 
     for (let i = 0; i < frames.length; i++) {
       await new Promise((resolve) => setTimeout(resolve, 1200))
+      setIsGoingIntoGulag(!frames[i].isMerging)
       setBlocks(frames[i].blocks)
       setGulags(frames[i].gulags)
       // TODO: do this setting one block at a time, from left to right
       setBlockPositions(frames[i].blockPositions)
+      console.log(frames[i].blockPositions)
     }
 
     setIsAnimating(false)
@@ -86,21 +87,15 @@ function GulagSortVisualizer() {
 
   const performGulagSort = (initialBlocks: GaulagBlock[]): AnimationFrame[] => {
     const frames: AnimationFrame[] = []
-    const gulagList: GaulagBlock[][] = [
-      initialBlocks.map((b) => ({ ...b, gulagIndex: 0, positionInGulag: 0 })),
-    ]
+    const gulagList: GaulagBlock[][] = [initialBlocks.map((b) => ({ ...b, gulagIndex: 0 }))]
 
     // Initial setup
-    gulagList[0].forEach((b, i) => {
-      b.positionInGulag = i
-    })
-    const initialPos = new Map(
-      gulagList[0].map((b) => [b.id, { gulagIdx: 0, posInGulag: b.positionInGulag! }])
-    )
+    const initialPos = new Map(gulagList[0].map((b) => [b.id, { gulagIdx: 0 }]))
     frames.push({
       blocks: initialBlocks,
       gulags: gulagList.map((g) => [...g]),
       blockPositions: initialPos,
+      isMerging: false,
     })
 
     let gulagNum = 0
@@ -116,24 +111,22 @@ function GulagSortVisualizer() {
       // Find sorted and unsorted pairs
       let currentValue = currentGulag[0].value
       for (let i = 1; i < currentGulag.length; i++) {
-        if (currentGulag[i].value <= currentValue) {
-          unsorted.push(currentGulag[i])
+        if (currentGulag[i].value < currentValue) {
+          unsorted.push(structuredClone(currentGulag[i]))
+          currentGulag[i].removed = true
         } else {
           sorted.push(currentGulag[i])
           currentValue = currentGulag[i].value
         }
       }
-      sorted.push(currentGulag[currentGulag.length - 1])
 
-      const newGulagBlocks = unsorted.map((b, idx) => ({
+      const newGulagBlocks = unsorted.map((b) => ({
         ...b,
         gulagIndex: gulagNum,
-        positionInGulag: idx,
       }))
 
-      sorted.forEach((b, idx) => {
+      sorted.forEach((b) => {
         b.gulagIndex = gulagNum - 1
-        b.positionInGulag = idx
       })
 
       gulagList.push(newGulagBlocks)
@@ -149,6 +142,7 @@ function GulagSortVisualizer() {
         blocks: initialBlocks,
         gulags: gulagList.map((g) => [...g]),
         blockPositions: posMap,
+        isMerging: false,
       })
     }
 
@@ -171,6 +165,7 @@ function GulagSortVisualizer() {
         blocks: initialBlocks,
         gulags: gulagList.map((g) => [...g]),
         blockPositions: posMap,
+        isMerging: true,
       })
 
       gulagNum--
@@ -190,22 +185,28 @@ function GulagSortVisualizer() {
 
     while (i < gulag1.length && j < gulag2.length) {
       if (gulag1[i].value <= gulag2[j].value) {
-        result.push({ ...gulag1[i], gulagIndex: targetGulag, positionInGulag: result.length })
+        result.push({ ...gulag1[i], gulagIndex: targetGulag })
         i++
       } else {
-        result.push({ ...gulag2[j], gulagIndex: targetGulag, positionInGulag: result.length })
+        result.push({ ...gulag2[j], gulagIndex: targetGulag })
         j++
       }
     }
 
     while (i < gulag1.length) {
-      result.push({ ...gulag1[i], gulagIndex: targetGulag, positionInGulag: result.length })
+      result.push({ ...gulag1[i], gulagIndex: targetGulag })
       i++
     }
 
     while (j < gulag2.length) {
-      result.push({ ...gulag2[j], gulagIndex: targetGulag, positionInGulag: result.length })
+      result.push({ ...gulag2[j], gulagIndex: targetGulag })
       j++
+    }
+
+    for (let k = result.length - 1; k >= 0; k--) {
+      if (result[k].removed) {
+        result.splice(k, 1)
+      }
     }
 
     return result
@@ -264,14 +265,7 @@ function GulagSortVisualizer() {
                       return (
                         <div
                           key={block.id}
-                          className={styles.animatedBlock}
-                          style={{
-                            opacity: isInThisGulag ? 1 : 0,
-                            transform: isInThisGulag
-                              ? 'translateY(0) scale(1)'
-                              : 'translateY(-100px) scale(0.8)',
-                            visibility: isInThisGulag ? 'visible' : 'hidden',
-                          }}
+                          className={`${styles.animatedBlock} ${isInThisGulag ? styles.inGulag : ''} ${isGoingIntoGulag ? styles.downward : styles.upward}`}
                         >
                           {block.value}
                         </div>

@@ -151,4 +151,16 @@
     transform: translateY(-4px) scale(1.05);
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
   }
+
+  .inGulag {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+  }
+
+  &:not(.inGulag) {
+    opacity: 0.4;
+    visibility: hidden;
+    transform: translateY(50px) scale(0.5)
+  }
 }
