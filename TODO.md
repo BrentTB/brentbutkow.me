@@ -12,6 +12,4 @@
 - [ ] add a timeline? You can see all things together, and then filter by experience, education, awards, etc
 - [ ] more potential things for the home page: my skills, languages
 - Gaulag sort:
-  - [ ] Add example code above the visualiser, but it should be toggleable, so it doesnt show by default
   - [ ] Add settings for speed?
-  - [ ] Add details like O(n)
