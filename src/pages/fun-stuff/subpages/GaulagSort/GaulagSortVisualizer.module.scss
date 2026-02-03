@@ -3,7 +3,7 @@
   flex-direction: column;
   gap: 24px;
   padding: 20px;
-  background: var(--background-secondary, #f5f5f5);
+  border: 2px solid var(--accent);
   border-radius: 8px;
   margin-top: 20px;
 }
@@ -26,14 +26,16 @@
 
   input {
     padding: 8px 12px;
-    border: 2px solid var(--accent, #007bff);
+    border: 2px solid var(--accent);
     border-radius: 4px;
     font-size: 14px;
     font-family: monospace;
+    background-color: var(--surface);
+    color: var(--text);
 
     &:focus {
       outline: none;
-      border-color: var(--accent, #007bff);
+      border-color: var(--accent);
       box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
     }
 
@@ -51,8 +53,8 @@
 
   button {
     padding: 8px 16px;
-    background-color: var(--accent, #007bff);
-    color: white;
+    background-color: var(--accent);
+    color: black;
     border: none;
     border-radius: 4px;
     font-weight: 500;
@@ -78,14 +80,13 @@
 }
 
 .visualization {
-  min-height: 300px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .placeholder {
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary);
   font-size: 16px;
   text-align: center;
 }
@@ -114,7 +115,7 @@
   font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: var(--text-secondary, #666);
+  color: #666;
 }
 
 .blocksContainer {
@@ -124,9 +125,8 @@
   min-height: 60px;
   align-items: flex-start;
   padding: 16px;
-  background: var(--background, #fff);
   border-radius: 6px;
-  border: 2px solid var(--accent, #007bff);
+  border: 2px solid var(--accent);
   position: relative;
 }
 
@@ -136,21 +136,15 @@
   justify-content: center;
   width: 48px;
   height: 48px;
-  background: linear-gradient(135deg, var(--accent, #007bff), var(--accent-light, #0056b3));
-  color: white;
+  background: linear-gradient(135deg, var(--accent),  #0056b3);
+  color: var(--text);
   border-radius: 6px;
   font-weight: 600;
   font-size: 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   transition: all 1s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  cursor: default;
   user-select: none;
   flex-shrink: 0;
-
-  &:hover {
-    transform: translateY(-4px) scale(1.05);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-  }
 }
 
 .exitDown {

@@ -233,7 +233,6 @@ function GaulagSortVisualizer() {
   const handleReset = () => {
     setGaulags([])
     gaulagsRef.current = []
-    setInput('')
     setIsAnimating(false)
   }
 
@@ -259,7 +258,9 @@ function GaulagSortVisualizer() {
           <button onClick={generateRandomNumbersForInput} disabled={isAnimating}>
             Random
           </button>
-          <button onClick={handleReset}>Reset</button>
+          <button onClick={handleReset} disabled={gaulags.length === 0}>
+            Reset
+          </button>
         </div>
       </div>
 
