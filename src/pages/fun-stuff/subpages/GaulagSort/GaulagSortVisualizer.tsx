@@ -16,7 +16,6 @@ interface AnimationFrame {
   isMerging?: boolean
 }
 
-// split a csv string into an array of numbers
 const parseInput = (input: string): number[] => {
   return input
     .split(',')
@@ -27,6 +26,66 @@ const parseInput = (input: string): number[] => {
 const generateRandomNumbers = (minCount: number, maxCount: number, maxValue: number): number[] => {
   const count = Math.floor(Math.random() * (maxCount - minCount + 1)) + minCount
   return Array.from({ length: count }, () => Math.floor(Math.random() * maxValue))
+}
+
+const getBlockAnimationClass = (block: GaulagBlock): string => {
+  const goingUp = block.exitDirection === 'up'
+  const exiting = block.removed
+  const animationClass = goingUp
+    ? exiting
+      ? styles.exitUp
+      : styles.enterUp
+    : exiting
+      ? styles.exitDown
+      : styles.enterDown
+  return animationClass
+}
+
+const removeRemovedFromGaulags = (gaulags: GaulagBlock[][]) => {
+  for (let j = gaulags.length - 2; j >= 0; j--) {
+    for (let k = gaulags[j].length - 1; k >= 0; k--) {
+      if (gaulags[j][k].removed) {
+        gaulags[j].splice(k, 1)
+      }
+    }
+  }
+}
+
+const removeEmptyFinalGaulag = (gaulags: GaulagBlock[][]) => {
+  const finalIndex = gaulags.length - 1
+  const allRemoved = gaulags[finalIndex]?.every((b) => b.removed)
+  if (allRemoved) {
+    gaulags.splice(finalIndex, 1)
+  }
+}
+
+const moveBlockBetweenGaulags = (gaulags: GaulagBlock[][], frame: AnimationFrame): void => {
+  const fromGaulag = gaulags[frame.fromGaulagIndex]
+  const toGaulag = gaulags[frame.toGaulagIndex]
+  const movedBlockIndex = fromGaulag.findIndex((b) => b.id === frame.moveBlockId)
+  const newBlock = structuredClone(fromGaulag[movedBlockIndex])
+
+  fromGaulag[movedBlockIndex].id = newBlock.id + '-removed'
+  fromGaulag[movedBlockIndex].removed = true
+  fromGaulag[movedBlockIndex].exitDirection = frame.isMerging ? 'up' : 'down'
+
+  newBlock.gaulagIndex = frame.toGaulagIndex
+  newBlock.exitDirection = !frame.isMerging ? 'up' : 'down'
+  toGaulag.push(newBlock)
+
+  if (frame.isMerging) toGaulag.sort((a, b) => a.value - b.value)
+
+  gaulags[frame.fromGaulagIndex] = fromGaulag
+  gaulags[frame.toGaulagIndex] = toGaulag
+}
+
+const isSorted = (arr: GaulagBlock[]): boolean => {
+  for (let i = 1; i < arr.length; i++) {
+    if (arr[i].value < arr[i - 1].value) {
+      return false
+    }
+  }
+  return true
 }
 
 function GaulagSortVisualizer() {
@@ -55,83 +114,32 @@ function GaulagSortVisualizer() {
     gaulagsRef.current = initialGaulags
     setIsAnimating(true)
 
-    const frames = performGaulagSort(newBlocks.map((b) => ({ ...b })))
+    const frames = performGaulagSort(structuredClone(initialGaulags))
 
     for (let i = 0; i < frames.length; i++) {
       await new Promise((resolve) => setTimeout(resolve, 900))
       const updatedGaulags = structuredClone(gaulagsRef.current)
 
       if (frames[i].isMerging) {
-        // remove old removed blocks from all but the final gaulag
-        for (let j = updatedGaulags.length - 2; j >= 0; j--) {
-          for (let k = updatedGaulags[j].length - 1; k >= 0; k--) {
-            if (updatedGaulags[j][k].removed) {
-              updatedGaulags[j].splice(k, 1)
-            }
-          }
-        }
-        // remove a gaulag if all blocks inside are removed
-        const finalIndex = updatedGaulags.length - 1
-        const allRemoved = updatedGaulags[finalIndex].every((b) => b.removed)
-        if (allRemoved) {
-          updatedGaulags.splice(finalIndex, 1)
-        }
+        removeRemovedFromGaulags(updatedGaulags)
+        removeEmptyFinalGaulag(updatedGaulags)
       }
 
       if (frames[i].toGaulagIndex === updatedGaulags.length) {
         updatedGaulags.push([])
       }
+      moveBlockBetweenGaulags(updatedGaulags, frames[i])
 
-      // add a copy of the moving block with updated gaulag index
-      const fromGaulag = updatedGaulags[frames[i].fromGaulagIndex]
-      const toGaulag = updatedGaulags[frames[i].toGaulagIndex]
-      const movedBlockindex = fromGaulag.findIndex((b) => b.id === frames[i].moveBlockId)
-      console.log('Moving block:', movedBlockindex)
-      const newBlock = structuredClone(fromGaulag[movedBlockindex])
-      fromGaulag[movedBlockindex].id = newBlock.id + '-removed'
-      fromGaulag[movedBlockindex].removed = true
-      fromGaulag[movedBlockindex].exitDirection = frames[i].isMerging ? 'up' : 'down'
-
-      newBlock.gaulagIndex = frames[i].toGaulagIndex
-      newBlock.exitDirection = !frames[i].isMerging ? 'up' : 'down'
-      toGaulag.push(newBlock)
-      if (frames[i].isMerging) toGaulag.sort((a, b) => a.value - b.value)
-
-      updatedGaulags[frames[i].fromGaulagIndex] = fromGaulag
-      updatedGaulags[frames[i].toGaulagIndex] = toGaulag
       setGaulags(updatedGaulags)
       gaulagsRef.current = updatedGaulags
     }
-    // remove old blocks
-    const finalBlocks = structuredClone(gaulagsRef.current.flat())
-    for (let j = finalBlocks.length - 1; j >= 0; j--) {
-      if (finalBlocks[j].removed) {
-        finalBlocks.splice(j, 1)
-      }
-    }
-    const numGaulags = finalBlocks.reduce((max, b) => Math.max(max, b.gaulagIndex || 0), 0) + 1
-    const newGaulags: GaulagBlock[][] = []
-    for (let g = 0; g < numGaulags; g++) {
-      newGaulags[g] = finalBlocks.filter((b) => b.gaulagIndex === g)
-    }
-    setGaulags(newGaulags)
-    gaulagsRef.current = newGaulags
 
+    removeEmptyFinalGaulag(gaulagsRef.current)
     setIsAnimating(false)
   }
 
-  const isSorted = (arr: GaulagBlock[]): boolean => {
-    for (let i = 1; i < arr.length; i++) {
-      if (arr[i].value < arr[i - 1].value) {
-        return false
-      }
-    }
-    return true
-  }
-
-  const performGaulagSort = (initialBlocks: GaulagBlock[]): AnimationFrame[] => {
+  const performGaulagSort = (gaulagList: GaulagBlock[][]): AnimationFrame[] => {
     const frames: AnimationFrame[] = []
-    const gaulagList: GaulagBlock[][] = [initialBlocks.map((b) => ({ ...b, gaulagIndex: 0 }))]
 
     let gaulagNum = 0
 
@@ -146,10 +154,10 @@ function GaulagSortVisualizer() {
       // Find sorted and unsorted pairs
       let currentValue = currentGaulag[0].value
       sorted.push(currentGaulag[0])
+
       for (let i = 1; i < currentGaulag.length; i++) {
         if (currentGaulag[i].value < currentValue) {
-          unsorted.push(structuredClone(currentGaulag[i]))
-          unsorted[unsorted.length - 1].gaulagIndex = gaulagNum
+          unsorted.push({ ...currentGaulag[i], gaulagIndex: gaulagNum })
         } else {
           sorted.push(currentGaulag[i])
           currentValue = currentGaulag[i].value
@@ -270,19 +278,11 @@ function GaulagSortVisualizer() {
               {gaulags.map((gaulag, gaulagIdx) => (
                 <div key={gaulagIdx} className={styles.gaulagRow}>
                   <div className={styles.gaulagLabel}>
-                    {gaulagIdx === 0 ? 'Original' : `Gaulag ${gaulagIdx}`}
+                    {gaulagIdx === 0 ? 'Main List' : `Gaulag ${gaulagIdx}`}
                   </div>
                   <div className={styles.blocksContainer}>
                     {gaulag.map((block) => {
-                      const goingUp = block.exitDirection === 'up'
-                      const exiting = block.removed
-                      const animationClass = goingUp
-                        ? exiting
-                          ? styles.exitUp
-                          : styles.enterUp
-                        : exiting
-                          ? styles.exitDown
-                          : styles.enterDown
+                      const animationClass = getBlockAnimationClass(block)
                       return (
                         <div key={block.id} className={`${styles.animatedBlock} ${animationClass}`}>
                           {block.value}
