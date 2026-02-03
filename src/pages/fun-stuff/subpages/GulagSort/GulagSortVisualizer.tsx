@@ -86,7 +86,7 @@ function GulagSortVisualizer() {
 
   const performGulagSort = (initialBlocks: GaulagBlock[]): AnimationFrame[] => {
     const frames: AnimationFrame[] = []
-    let gulagList: GaulagBlock[][] = [
+    const gulagList: GaulagBlock[][] = [
       initialBlocks.map((b) => ({ ...b, gulagIndex: 0, positionInGulag: 0 })),
     ]
 
