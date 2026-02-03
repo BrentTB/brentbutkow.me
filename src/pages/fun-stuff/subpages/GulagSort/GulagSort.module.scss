@@ -1,0 +1,18 @@
+.link {
+    color: var(--accent);
+    text-decoration: underline;
+    white-space: nowrap;
+}
+
+.linkRow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.intro {
+    display: flex;
+    flex-direction: column;
+    gap: 0px;
+}

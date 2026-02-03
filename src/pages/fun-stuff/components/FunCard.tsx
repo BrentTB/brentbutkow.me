@@ -1,3 +1,4 @@
+import { useLocation } from 'react-router-dom'
 import { FunItem } from '../../../data/data.types'
 import styles from './FunCard.module.scss'
 import { ArticleOrLinkCard } from '../../../components/cards/ArticleOrLinkCard'
@@ -7,6 +8,8 @@ type FunCardProps = {
 }
 
 function FunCard({ item }: FunCardProps) {
+  const location = useLocation()
+
   const content = (
     <>
       <h3 className={styles.title}>{item.title}</h3>
@@ -15,8 +18,10 @@ function FunCard({ item }: FunCardProps) {
     </>
   )
 
+  const href = item.link ? `${location.pathname}${item.link}` : undefined
+
   return (
-    <ArticleOrLinkCard href={item.link} className={styles.card}>
+    <ArticleOrLinkCard href={href} className={styles.card} internal={true}>
       {content}
     </ArticleOrLinkCard>
   )
