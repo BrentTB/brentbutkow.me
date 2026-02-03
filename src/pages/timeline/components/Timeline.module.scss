@@ -3,82 +3,79 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 2rem 1rem;
+  overflow-x: hidden;
 }
 
 .timeline {
   position: relative;
-}
-
-.yearSection {
-  margin-bottom: 3rem;
-}
-
-.yearRow {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   gap: 2rem;
-  align-items: start;
+  min-height: 600px;
 }
 
 /* Left side - Achievements */
 .leftSide {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  align-items: flex-end;
+  position: relative;
+  height: 100%;
 }
 
-/* Center line with year marker */
+/* Center line with year markers */
 .centerLine {
+  position: relative;
+  width: 100px;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 100px;
+  justify-content: center;
+}
+
+.verticalLine {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 3px;
+  background: var(--color-border);
 }
 
 .yearMarker {
-  font-size: 1.5rem;
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.2rem;
   font-weight: 700;
   color: var(--color-text);
   background: var(--color-card-bg);
   border: 3px solid var(--color-primary);
   border-radius: 50%;
-  width: 80px;
-  height: 80px;
+  width: 70px;
+  height: 70px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 1rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   z-index: 10;
 }
 
-.verticalLine {
-  width: 3px;
-  background: var(--color-border);
-  flex-grow: 1;
-  min-height: 100px;
-}
-
 /* Right side - Experience and Education */
 .rightSide {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  align-items: flex-start;
+  position: relative;
+  height: 100%;
 }
 
 /* Timeline items */
 .timelineItem {
+  position: absolute;
+  width: 100%;
+  max-width: 450px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 1rem;
   cursor: pointer;
   transition: all 0.2s ease;
-  max-width: 450px;
 
   &:hover {
-    transform: scale(1.02);
+    transform: translateY(-2px);
+    z-index: 5;
 
     .itemContent {
       box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
@@ -95,64 +92,72 @@
   flex: 1;
 }
 
-.curlyBracket {
-  font-size: 3rem;
-  font-weight: 300;
-  line-height: 1;
-  transition: all 0.2s ease;
-}
-
 /* Achievement styling */
 .achievementItem {
-  justify-content: flex-end;
+  right: 0;
+  transform: translateX(-1rem);
 
   .itemContent {
     border: 2px solid #10b981;
     text-align: right;
   }
 
-  .curlyBracket {
-    color: #10b981;
+  .achievementLine {
+    width: 40px;
+    height: 2px;
+    background: #10b981;
+    align-self: center;
     order: 2;
+    transition: all 0.2s ease;
   }
 
-  &:hover .curlyBracket {
-    color: #059669;
-    transform: scale(1.1);
+  &:hover .achievementLine {
+    background: #059669;
+    width: 45px;
   }
 }
 
-/* Experience styling */
+/* Experience and Education styling */
+.experienceItem,
+.educationItem {
+  left: 0;
+  transform: translateX(1rem);
+}
+
+.scalingBracket {
+  width: 30px;
+  min-height: 40px;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
 .experienceItem {
   .itemContent {
     border: 2px solid #4a9eff;
   }
 
-  .curlyBracket {
-    color: #4a9eff;
-    order: -1;
+  .scalingBracket {
+    stroke: #4a9eff;
   }
 
-  &:hover .curlyBracket {
-    color: #2563eb;
-    transform: scale(1.1);
+  &:hover .scalingBracket {
+    stroke: #2563eb;
+    transform: scale(1.05);
   }
 }
 
-/* Education styling */
 .educationItem {
   .itemContent {
     border: 2px solid #f59e0b;
   }
 
-  .curlyBracket {
-    color: #f59e0b;
-    order: -1;
+  .scalingBracket {
+    stroke: #f59e0b;
   }
 
-  &:hover .curlyBracket {
-    color: #d97706;
-    transform: scale(1.1);
+  &:hover .scalingBracket {
+    stroke: #d97706;
+    transform: scale(1.05);
   }
 }
 
@@ -193,44 +198,41 @@
 
 /* Mobile responsive */
 @media (max-width: 968px) {
-  .yearRow {
+  .timeline {
     grid-template-columns: 1fr;
     gap: 1.5rem;
   }
 
   .leftSide,
   .rightSide {
-    align-items: stretch;
+    position: static;
+    max-width: 100%;
   }
 
   .centerLine {
-    flex-direction: row;
-    justify-content: center;
-    min-width: auto;
-  }
-
-  .yearMarker {
-    margin-bottom: 0;
-    margin-right: 1rem;
-  }
-
-  .verticalLine {
     display: none;
   }
 
   .timelineItem {
+    position: static;
     max-width: 100%;
+    transform: none !important;
+
+    &:hover {
+      transform: translateY(-2px) !important;
+    }
   }
 
   .achievementItem {
-    justify-content: flex-start;
+    flex-direction: row-reverse;
 
     .itemContent {
       text-align: left;
     }
+  }
 
-    .curlyBracket {
-      order: -1;
-    }
+  .experienceItem,
+  .educationItem {
+    margin-bottom: 1rem;
   }
 }
