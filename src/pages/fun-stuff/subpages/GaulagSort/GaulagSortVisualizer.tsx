@@ -11,7 +11,8 @@ interface GaulagBlock {
 
 interface AnimationFrame {
   moveBlockId: string
-  newGaulagIndex: number
+  fromGaulagIndex: number
+  toGaulagIndex: number
   isMerging?: boolean
 }
 
@@ -30,10 +31,8 @@ const generateRandomNumbers = (minCount: number, maxCount: number, maxValue: num
 
 function GaulagSortVisualizer() {
   const [input, setInput] = useState('')
-  const [blocks, setBlocks] = useState<GaulagBlock[]>([])
   const [gaulags, setGaulags] = useState<GaulagBlock[][]>([])
   const [isAnimating, setIsAnimating] = useState(false)
-  const blocksRef = useRef<GaulagBlock[]>([])
   const gaulagsRef = useRef<GaulagBlock[][]>([])
 
   const generateRandomNumbersForInput = useCallback(() => {
@@ -51,8 +50,6 @@ function GaulagSortVisualizer() {
       gaulagIndex: 0,
     }))
 
-    setBlocks(newBlocks)
-    blocksRef.current = newBlocks
     const initialGaulags = [[...newBlocks]]
     setGaulags(initialGaulags)
     gaulagsRef.current = initialGaulags
@@ -62,53 +59,56 @@ function GaulagSortVisualizer() {
 
     for (let i = 0; i < frames.length; i++) {
       await new Promise((resolve) => setTimeout(resolve, 900))
-      let updatedBlocks = structuredClone(blocksRef.current)
+      const updatedGaulags = structuredClone(gaulagsRef.current)
 
-      // remove old blocks
       if (frames[i].isMerging) {
-        for (let j = updatedBlocks.length - 1; j >= 0; j--) {
-          if (updatedBlocks[j].removed) {
-            updatedBlocks.splice(j, 1)
+        // remove old removed blocks from all but the final gaulag
+        for (let j = updatedGaulags.length - 2; j >= 0; j--) {
+          for (let k = updatedGaulags[j].length - 1; k >= 0; k--) {
+            if (updatedGaulags[j][k].removed) {
+              updatedGaulags[j].splice(k, 1)
+            }
           }
+        }
+        // remove a gaulag if all blocks inside are removed
+        const finalIndex = updatedGaulags.length - 1
+        const allRemoved = updatedGaulags[finalIndex].every((b) => b.removed)
+        if (allRemoved) {
+          updatedGaulags.splice(finalIndex, 1)
         }
       }
 
-      // add a copy of the moving block with updated gaulag index
-      const movedBlockindex = updatedBlocks.findIndex((b) => b.id === frames[i].moveBlockId)
-      const newBlock = structuredClone(updatedBlocks[movedBlockindex])
-      newBlock.id = newBlock.id + '-removed'
-      newBlock.removed = true
-      newBlock.exitDirection = frames[i].isMerging ? 'up' : 'down'
-      updatedBlocks[movedBlockindex].gaulagIndex = frames[i].newGaulagIndex
-      updatedBlocks[movedBlockindex].exitDirection = !frames[i].isMerging ? 'up' : 'down'
-      updatedBlocks = updatedBlocks
-        .slice(0, movedBlockindex + 1)
-        .concat([newBlock])
-        .concat(updatedBlocks.slice(movedBlockindex + 1))
-
-      //TODO: update the new block to be in the correct position
-
-      setBlocks(updatedBlocks)
-
-      const numGaulags = updatedBlocks.reduce((max, b) => Math.max(max, b.gaulagIndex || 0), 0) + 1
-
-      const newGaulags: GaulagBlock[][] = []
-      for (let g = 0; g < numGaulags; g++) {
-        newGaulags[g] = updatedBlocks.filter((b) => b.gaulagIndex === g)
+      if (frames[i].toGaulagIndex === updatedGaulags.length) {
+        updatedGaulags.push([])
       }
-      setGaulags(newGaulags)
-      gaulagsRef.current = newGaulags
-      blocksRef.current = updatedBlocks
+
+      // add a copy of the moving block with updated gaulag index
+      const fromGaulag = updatedGaulags[frames[i].fromGaulagIndex]
+      const toGaulag = updatedGaulags[frames[i].toGaulagIndex]
+      const movedBlockindex = fromGaulag.findIndex((b) => b.id === frames[i].moveBlockId)
+      console.log('Moving block:', movedBlockindex)
+      const newBlock = structuredClone(fromGaulag[movedBlockindex])
+      fromGaulag[movedBlockindex].id = newBlock.id + '-removed'
+      fromGaulag[movedBlockindex].removed = true
+      fromGaulag[movedBlockindex].exitDirection = frames[i].isMerging ? 'up' : 'down'
+
+      newBlock.gaulagIndex = frames[i].toGaulagIndex
+      newBlock.exitDirection = !frames[i].isMerging ? 'up' : 'down'
+      toGaulag.push(newBlock)
+      if (frames[i].isMerging) toGaulag.sort((a, b) => a.value - b.value)
+
+      updatedGaulags[frames[i].fromGaulagIndex] = fromGaulag
+      updatedGaulags[frames[i].toGaulagIndex] = toGaulag
+      setGaulags(updatedGaulags)
+      gaulagsRef.current = updatedGaulags
     }
     // remove old blocks
-    const finalBlocks = structuredClone(blocksRef.current)
+    const finalBlocks = structuredClone(gaulagsRef.current.flat())
     for (let j = finalBlocks.length - 1; j >= 0; j--) {
       if (finalBlocks[j].removed) {
         finalBlocks.splice(j, 1)
       }
     }
-    setBlocks(finalBlocks)
-    blocksRef.current = finalBlocks
     const numGaulags = finalBlocks.reduce((max, b) => Math.max(max, b.gaulagIndex || 0), 0) + 1
     const newGaulags: GaulagBlock[][] = []
     for (let g = 0; g < numGaulags; g++) {
@@ -159,7 +159,8 @@ function GaulagSortVisualizer() {
       for (let i = 0; i < unsorted.length; i++) {
         frames.push({
           moveBlockId: unsorted[i].id,
-          newGaulagIndex: unsorted[i].gaulagIndex,
+          fromGaulagIndex: gaulagNum - 1,
+          toGaulagIndex: unsorted[i].gaulagIndex,
         })
       }
 
@@ -183,7 +184,8 @@ function GaulagSortVisualizer() {
       for (let i = 0; i < lastGaulag.length; i++) {
         frames.push({
           moveBlockId: lastGaulag[i].id,
-          newGaulagIndex: gaulagNum - 1,
+          fromGaulagIndex: gaulagNum,
+          toGaulagIndex: gaulagNum - 1,
           isMerging: true,
         })
       }
@@ -227,9 +229,7 @@ function GaulagSortVisualizer() {
   }
 
   const handleReset = () => {
-    setBlocks([])
     setGaulags([])
-    blocksRef.current = []
     gaulagsRef.current = []
     setInput('')
     setIsAnimating(false)
@@ -262,7 +262,7 @@ function GaulagSortVisualizer() {
       </div>
 
       <div className={styles.visualization}>
-        {blocks.length === 0 ? (
+        {gaulags.length === 0 ? (
           <div className={styles.placeholder}>Enter numbers and click "Start" to begin</div>
         ) : (
           <div className={styles.display}>
