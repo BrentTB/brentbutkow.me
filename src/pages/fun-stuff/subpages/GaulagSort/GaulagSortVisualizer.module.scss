@@ -103,13 +103,13 @@
   gap: 32px;
 }
 
-.gulagRow {
+.gaulagRow {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.gulagLabel {
+.gaulagLabel {
   font-weight: 600;
   font-size: 13px;
   text-transform: uppercase;
@@ -151,16 +151,64 @@
     transform: translateY(-4px) scale(1.05);
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
   }
+}
 
-  .inGulag {
+.exitDown {
+  animation: exitDown 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.enterDown {
+  animation: enterDown 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.exitUp {
+  animation: exitUp 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.enterUp {
+  animation: enterUp 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes exitDown {
+  from {
     opacity: 1;
-    visibility: visible;
     transform: translateY(0) scale(1);
   }
+  to {
+    opacity: 0;
+    transform: translateY(50px) scale(0.5);
+  }
+}
 
-  &:not(.inGulag) {
-    opacity: 0.4;
-    visibility: hidden;
-    transform: translateY(50px) scale(0.5)
+@keyframes enterDown {
+  from {
+    opacity: 0;
+    transform: translateY(50px) scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes exitUp {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-50px) scale(0.5);
+  }
+}
+
+@keyframes enterUp {
+  from {
+    opacity: 0;
+    transform: translateY(-50px) scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }

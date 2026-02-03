@@ -6,7 +6,7 @@ import HomePage from '../pages/home/HomePage'
 import NotFoundPage from '../pages/not-found/NotFoundPage'
 import AchievementsPage from '../pages/achievements/AchievementsPage'
 import { AppRoute } from './routes.types'
-import GulagSort from '../pages/fun-stuff/subpages/GulagSort/GulagSort'
+import GaulagSort from '../pages/fun-stuff/subpages/GaulagSort/GaulagSort'
 import { funStuffSubRoutes } from '../pages/fun-stuff/data'
 
 export const routePaths = {
@@ -21,8 +21,8 @@ export const routePaths = {
 
 export const funStuffRoutes: AppRoute[] = [
   {
-    path: `${routePaths.funStuff}${funStuffSubRoutes.gulagSort}`,
-    element: <GulagSort />,
+    path: `${routePaths.funStuff}${funStuffSubRoutes.gaulagSort}`,
+    element: <GaulagSort />,
   },
 ]
 

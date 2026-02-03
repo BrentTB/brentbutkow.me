@@ -1,13 +1,13 @@
 import PageLayout from '../../../../components/PageFormatting/PageLayout'
 import PageHeader from '../../../../components/PageFormatting/PageHeader'
 import { SafeLink } from '../../../../components/utils/SafeLink'
-import GulagSortVisualizer from './GulagSortVisualizer'
-import styles from './GulagSort.module.scss'
+import GaulagSortVisualizer from './GaulagSortVisualizer'
+import styles from './GaulagSort.module.scss'
 
-function GulagSort() {
+function GaulagSort() {
   return (
     <PageLayout>
-      <PageHeader title="Gulag Sort" />
+      <PageHeader title="Gaulag Sort" />
       <div className={styles.intro}>
         <div className={styles.linkRow}>
           <span>Based on the joke</span>
@@ -20,19 +20,19 @@ function GulagSort() {
         </div>
         <p>
           Stalin sort is a sorting algorithm inspired by Joseph Stalin, in which elements not in the
-          correct order are "removed" (i.e., sent to a Gulag) until the remaining elements are all
+          correct order are "removed" (i.e., sent to a Gaulag) until the remaining elements are all
           sorted.
         </p>
         <p>
-          Gulag Sort is an algorithm based on this concept, in which the elements in the gulag are
+          Gaulag Sort is an algorithm based on this concept, in which the elements in the gaulag are
           stored. The stored elements then go through the same sorting process, creating a second
-          gulag. This continues until all gulags only contain sorted elements, at which point the
-          gulags are merged back together to form a fully sorted array.
+          gaulag. This continues until all gaulags only contain sorted elements, at which point the
+          gaulags are merged back together to form a fully sorted array.
         </p>
       </div>
-      <GulagSortVisualizer />
+      <GaulagSortVisualizer />
     </PageLayout>
   )
 }
 
-export default GulagSort
+export default GaulagSort
