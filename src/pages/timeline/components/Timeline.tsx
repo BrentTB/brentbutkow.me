@@ -69,23 +69,48 @@ function Timeline({ items }: TimelineProps) {
       return Math.max(months * pixelsPerMonth, pixelsPerMonth * 0.5) // Minimum half a month
     }
 
-    // Generate year markers
+    // Generate year markers in descending order (newest first)
     const yearMarkers: { year: number; position: number }[] = []
     const startYear = paddedMinDate.getFullYear()
     const endYear = paddedMaxDate.getFullYear()
 
-    for (let year = startYear; year <= endYear; year++) {
+    for (let year = endYear; year >= startYear; year--) {
       const yearDate = new Date(year, 0, 1)
       const position = calculatePosition(yearDate)
       yearMarkers.push({ year, position })
     }
 
     // Process items with positions
-    const processedItems = items.map((item) => ({
+    type ProcessedItem = TimelineItem & { top: number; height: number; horizontalOffset?: number }
+    
+    const processedItems: ProcessedItem[] = items.map((item) => ({
       ...item,
       top: calculatePosition(item.date),
-      height: item.endDate ? calculateHeight(item.date, item.endDate) : 0,
+      height: item.endDate ? calculateHeight(item.date, item.endDate) : calculateHeight(item.date, null),
     }))
+
+    // Stack achievements that are close to each other vertically
+    const achievements = processedItems.filter((item) => item.type === 'achievement')
+    const stackedAchievements: ProcessedItem[] = achievements.map((item, index) => {
+      // Check if this achievement overlaps with any previous ones
+      let horizontalOffset = 0
+      for (let i = 0; i < index; i++) {
+        const prevItem = achievements[i]
+        const verticalDistance = Math.abs(item.top - prevItem.top)
+        const prevOffset = prevItem.horizontalOffset || 0
+        
+        // If items are within 80px vertically (close enough to potentially overlap)
+        if (verticalDistance < 80) {
+          // Offset this item horizontally
+          horizontalOffset = Math.max(horizontalOffset, prevOffset + 1)
+        }
+      }
+      
+      return {
+        ...item,
+        horizontalOffset,
+      }
+    })
 
     const timelineHeight = totalMonths * pixelsPerMonth
 
@@ -93,7 +118,7 @@ function Timeline({ items }: TimelineProps) {
       processedItems,
       yearMarkers,
       timelineHeight,
-      achievements: processedItems.filter((item) => item.type === 'achievement'),
+      achievements: stackedAchievements,
       experienceAndEducation: processedItems.filter(
         (item) => item.type === 'experience' || item.type === 'education'
       ),
@@ -123,6 +148,7 @@ function Timeline({ items }: TimelineProps) {
               className={`${styles.timelineItem} ${styles.achievementItem}`}
               style={{
                 top: `${item.top}px`,
+                right: `${(item.horizontalOffset || 0) * 480}px`,
               }}
               onClick={() => handleItemClick(item)}
             >
