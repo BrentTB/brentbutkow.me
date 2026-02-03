@@ -6,6 +6,7 @@ import HomePage from '../pages/home/HomePage'
 import NotFoundPage from '../pages/not-found/NotFoundPage'
 import AchievementsPage from '../pages/achievements/AchievementsPage'
 import { AppRoute } from './routes.types'
+import GulagSort from '../pages/fun-stuff/subpages/GulagSort/GulagSort'
 
 export const routePaths = {
   home: '/',
@@ -16,6 +17,17 @@ export const routePaths = {
   contact: '/contact',
   notFound: '*',
 }
+
+export const funStuffSubRoutes = {
+  gulagSort: '/gulag-sort',
+}
+
+export const funStuffRoutes: AppRoute[] = [
+  {
+    path: `${routePaths.funStuff}${funStuffSubRoutes.gulagSort}`,
+    element: <GulagSort />,
+  },
+]
 
 export const routes: AppRoute[] = [
   {
@@ -54,4 +66,5 @@ export const routes: AppRoute[] = [
     element: <NotFoundPage />,
     dontShowInNavbar: true,
   },
+  ...funStuffRoutes,
 ]
