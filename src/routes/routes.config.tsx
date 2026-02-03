@@ -5,10 +5,12 @@ import FunStuffPage from '../pages/fun-stuff/FunStuffPage'
 import HomePage from '../pages/home/HomePage'
 import NotFoundPage from '../pages/not-found/NotFoundPage'
 import AchievementsPage from '../pages/achievements/AchievementsPage'
+import TimelinePage from '../pages/timeline/TimelinePage'
 import { AppRoute } from './routes.types'
 
 export const routePaths = {
   home: '/',
+  timeline: '/timeline',
   experience: '/experience',
   education: '/education',
   achievements: '/achievements',
@@ -23,6 +25,12 @@ export const routes: AppRoute[] = [
     element: <HomePage />,
     dontShowInNavbar: true,
     label: 'Home',
+  },
+  {
+    path: routePaths.timeline,
+    element: <TimelinePage />,
+    dontShowInNavbar: true,
+    label: 'Timeline',
   },
   {
     path: routePaths.experience,

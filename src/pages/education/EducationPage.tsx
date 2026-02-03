@@ -12,8 +12,12 @@ function EducationPage() {
         subtitle="Formal education and self-learning that I have completed, and am currently pursuing."
       />
       <div className={styles.list}>
-        {education.map((item) => (
-          <EducationCard key={`${item.institution}-${item.degree}`} {...item} />
+        {education.map((item, index) => (
+          <EducationCard
+            key={`${item.institution}-${item.degree}`}
+            {...item}
+            id={`education-${index}`}
+          />
         ))}
       </div>
     </PageLayout>

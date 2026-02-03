@@ -5,6 +5,8 @@ export const education: Education[] = [
     institution: 'Online Learning - Coursera',
     degree: 'IBM AI Engineering Professional Certificate',
     period: 'Jan 2026 - Present',
+    startDate: new Date('2026-01-01'),
+    endDate: null,
     link: 'https://www.coursera.org/professional-certificates/ai-engineer',
     description: [
       'A course about modern AI and ML models, and their uses. Including their fundamentals, the theory behind different ML models, and hands on experience using models to solve real-world problems',
@@ -16,6 +18,8 @@ export const education: Education[] = [
     institution: 'University of the Witwatersrand',
     degree: 'Bachelor of Science in Information Engineering - BSc (Eng)',
     period: '2021 - 2024',
+    startDate: new Date('2021-01-01'),
+    endDate: new Date('2024-12-31'),
     description: [
       'Bachelor and Honours in Information Engineering with a focus on Computer Science',
       'Includes modules on Data Structures and Algorithms, Machine Learning, Software Engineering, Cybersecurity, Signals and Systems, and more',
@@ -33,6 +37,8 @@ export const education: Education[] = [
     institution: 'King David Victory Park High School',
     degree: 'IEB National Senior Certificate (NSC)',
     period: '2016 - 2020',
+    startDate: new Date('2016-01-01'),
+    endDate: new Date('2020-12-31'),
     description: [
       'Completed high school, taking AP Mathematics as an additional subject, and Information Technology (IT), Geography, and Afrikaans as electives',
       'Achieved distinctions in all of my subjects',

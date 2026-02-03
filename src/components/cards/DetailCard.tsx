@@ -2,6 +2,7 @@ import { useMemo, useState, ReactNode } from 'react'
 import styles from './DetailCard.module.scss'
 
 type DetailCardProps = {
+  id?: string
   title: string
   subtitle: string
   period: string
@@ -14,6 +15,7 @@ type DetailCardProps = {
 }
 
 function DetailCard({
+  id,
   title,
   subtitle,
   period,
@@ -48,7 +50,7 @@ function DetailCard({
   const pillClass = isCollapsible ? `${styles.pill} ${styles.clickable}` : styles.pill
 
   return (
-    <article className={cardClass}>
+    <article id={id} className={cardClass}>
       <header className={styles.header}>
         <div>
           <h3 className={styles.title}>{title}</h3>

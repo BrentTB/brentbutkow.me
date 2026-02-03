@@ -1,6 +1,7 @@
 import { ReactNode } from 'react'
 
 interface SafeLinkProps {
+  id?: string
   className?: string
   target?: string
   rel?: string

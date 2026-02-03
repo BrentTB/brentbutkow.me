@@ -3,6 +3,7 @@ import { SafeLink } from '../utils/SafeLink'
 import styles from './ArticleOrLinkCard.module.scss'
 
 interface ArticleOrLinkCardProps {
+  id?: string
   className?: string
   href?: string
   children?: ReactNode
@@ -11,6 +12,7 @@ interface ArticleOrLinkCardProps {
 }
 
 export const ArticleOrLinkCard = ({
+  id,
   children,
   href,
   className,
@@ -23,11 +25,15 @@ export const ArticleOrLinkCard = ({
 
   if (isLink) {
     return (
-      <SafeLink href={href} target={target} rel={rel} className={articleOrLinkClass}>
+      <SafeLink id={id} href={href} target={target} rel={rel} className={articleOrLinkClass}>
         <span className={styles.linkIcon}>↗</span>
         {children}
       </SafeLink>
     )
   }
-  return <article className={articleOrLinkClass}>{children}</article>
+  return (
+    <article id={id} className={articleOrLinkClass}>
+      {children}
+    </article>
+  )
 }

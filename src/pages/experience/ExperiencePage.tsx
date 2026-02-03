@@ -13,7 +13,7 @@ function ExperiencePage() {
       />
       <div className={styles.list}>
         {experience.map((item, index) => (
-          <ExperienceCard key={`${item.role}-${index}`} {...item} />
+          <ExperienceCard key={`${item.role}-${index}`} {...item} id={`experience-${index}`} />
         ))}
       </div>
     </PageLayout>
