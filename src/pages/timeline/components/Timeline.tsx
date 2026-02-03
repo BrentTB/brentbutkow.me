@@ -82,11 +82,13 @@ function Timeline({ items }: TimelineProps) {
 
     // Process items with positions
     type ProcessedItem = TimelineItem & { top: number; height: number; horizontalOffset?: number }
-    
+
     const processedItems: ProcessedItem[] = items.map((item) => ({
       ...item,
       top: calculatePosition(item.date),
-      height: item.endDate ? calculateHeight(item.date, item.endDate) : calculateHeight(item.date, null),
+      height: item.endDate
+        ? calculateHeight(item.date, item.endDate)
+        : calculateHeight(item.date, null),
     }))
 
     // Stack achievements that are close to each other vertically
@@ -98,14 +100,14 @@ function Timeline({ items }: TimelineProps) {
         const prevItem = achievements[i]
         const verticalDistance = Math.abs(item.top - prevItem.top)
         const prevOffset = prevItem.horizontalOffset || 0
-        
+
         // If items are within 80px vertically (close enough to potentially overlap)
         if (verticalDistance < 80) {
           // Offset this item horizontally
           horizontalOffset = Math.max(horizontalOffset, prevOffset + 1)
         }
       }
-      
+
       return {
         ...item,
         horizontalOffset,
