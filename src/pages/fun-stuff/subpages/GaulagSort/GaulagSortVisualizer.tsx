@@ -5,7 +5,7 @@ interface GaulagBlock {
   value: number
   id: string
   removed?: boolean
-  exitDirection?: 'down' | 'up'
+  movingUp?: boolean
 }
 
 interface AnimationFrame {
@@ -30,13 +30,11 @@ const generateRandomNumbers = (minCount: number, maxCount: number, maxValue: num
 }
 
 const getBlockAnimationClass = (block: GaulagBlock): string => {
-  const goingUp = block.exitDirection === 'up'
-  const exiting = block.removed
-  const animationClass = goingUp
-    ? exiting
+  const animationClass = block.movingUp
+    ? block.removed
       ? styles.exitUp
       : styles.enterUp
-    : exiting
+    : block.removed
       ? styles.exitDown
       : styles.enterDown
   return animationClass
@@ -68,9 +66,9 @@ const moveBlockBetweenGaulags = (gaulags: GaulagBlock[][], frame: AnimationFrame
 
   fromGaulag[movedBlockIndex].id = newBlock.id + '-removed'
   fromGaulag[movedBlockIndex].removed = true
-  fromGaulag[movedBlockIndex].exitDirection = frame.isMerging ? 'up' : 'down'
+  fromGaulag[movedBlockIndex].movingUp = frame.isMerging
 
-  newBlock.exitDirection = !frame.isMerging ? 'up' : 'down'
+  newBlock.movingUp = !frame.isMerging
   toGaulag.push(newBlock)
 
   if (frame.isMerging) toGaulag.sort((a, b) => a.value - b.value)
