@@ -61,7 +61,19 @@ const removeEmptyFinalGaulag = (gaulags: GaulagBlock[][]) => {
 const moveBlockBetweenGaulags = (gaulags: GaulagBlock[][], frame: AnimationFrame): void => {
   const fromGaulag = gaulags[frame.fromGaulagIndex]
   const toGaulag = gaulags[frame.toGaulagIndex]
+
+  if (!fromGaulag || !toGaulag) {
+    throw new Error(
+      `Invalid gaulag indices in animation frame: from=${frame.fromGaulagIndex}, to=${frame.toGaulagIndex}`
+    )
+  }
+
   const movedBlockIndex = fromGaulag.findIndex((b) => b.id === frame.moveBlockId)
+  if (movedBlockIndex === -1) {
+    throw new Error(
+      `Block with id "${frame.moveBlockId}" not found in gaulag index ${frame.fromGaulagIndex}`
+    )
+  }
   const newBlock = structuredClone(fromGaulag[movedBlockIndex])
 
   fromGaulag[movedBlockIndex].id = newBlock.id + '-removed'
@@ -98,6 +110,7 @@ function GaulagSortVisualizer() {
   }, [])
 
   const handleStart = async () => {
+    if (isAnimating) return
     const nums = parseInput(input)
     if (nums.length === 0) return
 
@@ -147,6 +160,9 @@ function GaulagSortVisualizer() {
       const unsorted: GaulagBlock[] = []
 
       // Find sorted and unsorted pairs
+      if (currentGaulag.length === 0) {
+        break
+      }
       let currentValue = currentGaulag[0].value
       sorted.push(currentGaulag[0])
 
