@@ -32,7 +32,7 @@ export const ArticleOrLinkCard = ({
         className={articleOrLinkClass}
         internal={internal}
       >
-        <span className={styles.linkIcon}>↗</span>
+        <span className={styles.linkIcon}>{internal ? '↓' : '↗'}</span>
         {children}
       </SafeLink>
     )

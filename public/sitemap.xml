@@ -26,6 +26,11 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://brentbutkow.me/fun-stuff/gaulag-sort</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
     <loc>https://brentbutkow.me/contact</loc>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>

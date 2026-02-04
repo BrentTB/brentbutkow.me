@@ -14,7 +14,6 @@ function FunCard({ item }: FunCardProps) {
     <>
       <h3 className={styles.title}>{item.title}</h3>
       <p className={styles.description}>{item.description}</p>
-      {item.link && <span className={styles.linkIcon}>↗</span>}
     </>
   )
 
