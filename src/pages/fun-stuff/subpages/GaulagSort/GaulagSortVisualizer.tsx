@@ -15,6 +15,8 @@ interface AnimationFrame {
   isMerging?: boolean
 }
 
+const ANIMATION_FRAME_DURATION_S = 0.7
+
 const parseInput = (input: string): number[] => {
   return input
     .split(',')
@@ -114,7 +116,7 @@ function GaulagSortVisualizer() {
     const frames = performGaulagSort(structuredClone(initialGaulags))
 
     for (let i = 0; i < frames.length; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 900))
+      await new Promise((resolve) => setTimeout(resolve, ANIMATION_FRAME_DURATION_S * 1000))
       const updatedGaulags = structuredClone(gaulagsRef.current)
 
       if (frames[i].isMerging) {

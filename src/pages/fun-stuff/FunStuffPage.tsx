@@ -14,6 +14,7 @@ function FunStuffPage() {
       {funStuff.map((item) => (
         <FunCard key={item.link} item={item} />
       ))}
+      <h3>More Coming soon!</h3>
     </PageLayout>
   )
 }

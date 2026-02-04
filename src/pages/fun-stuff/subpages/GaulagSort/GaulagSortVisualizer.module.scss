@@ -148,19 +148,19 @@
 }
 
 .exitDown {
-  animation: exitDown 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  animation: exitDown 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
 .enterDown {
-  animation: enterDown 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  animation: enterDown 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
 .exitUp {
-  animation: exitUp 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  animation: exitUp 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
 .enterUp {
-  animation: enterUp 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  animation: enterUp 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
 @keyframes exitDown {
@@ -170,14 +170,14 @@
   }
   to {
     opacity: 0;
-    transform: translateY(50px) scale(0.5);
+    transform: translateY(70px) scale(0.4);
   }
 }
 
 @keyframes enterDown {
   from {
     opacity: 0;
-    transform: translateY(50px) scale(0.5);
+    transform: translateY(70px) scale(0.4);
   }
   to {
     opacity: 1;
@@ -192,14 +192,14 @@
   }
   to {
     opacity: 0;
-    transform: translateY(-50px) scale(0.5);
+    transform: translateY(-70px) scale(0.4);
   }
 }
 
 @keyframes enterUp {
   from {
     opacity: 0;
-    transform: translateY(-50px) scale(0.5);
+    transform: translateY(-70px) scale(0.4);
   }
   to {
     opacity: 1;
