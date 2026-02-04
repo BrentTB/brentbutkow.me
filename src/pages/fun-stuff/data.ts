@@ -1,13 +1,13 @@
 import { FunItem } from '../../data/data.types'
 
 export const funStuffSubRoutes = {
-  gaulagSort: '/gaulag-sort',
+  gulagSort: '/gulag-sort',
 }
 
 export const funStuff: FunItem[] = [
   {
-    title: 'Gaulag Sort',
+    title: 'Gulag Sort',
     description: 'My first self-developed sorting algorithm, based on the (joke) Stalin sort',
-    link: funStuffSubRoutes.gaulagSort,
+    link: funStuffSubRoutes.gulagSort,
   },
 ]

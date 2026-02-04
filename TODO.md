@@ -11,5 +11,5 @@
 - [ ] Add "main skills" on the home page - Terraform, Typescript, React
 - [ ] add a timeline? You can see all things together, and then filter by experience, education, awards, etc
 - [ ] more potential things for the home page: my skills, languages
-- Gaulag sort:
+- Gulag sort:
   - [ ] Add settings for speed?

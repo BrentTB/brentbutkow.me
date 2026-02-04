@@ -1,16 +1,16 @@
 import { CodeBlock } from '../../../../components/CodeSection/CodeSection'
 
-export const gaulagSortCode: CodeBlock[] = [
+export const gulagSortCode: CodeBlock[] = [
   {
     title: 'TypeScript',
-    code: `function gaulagSort(arr: number[]): number[] {
+    code: `function gulagSort(arr: number[]): number[] {
   if (arr.length <= 1) return arr;
   
-  const gaulags: number[][] = [arr];
+  const gulags: number[][] = [arr];
   
-  // Separate unsorted elements into gaulags
-  while (!isSorted(gaulags[gaulags.length - 1])) {
-    const current = gaulags[gaulags.length - 1];
+  // Separate unsorted elements into gulags
+  while (!isSorted(gulags[gulags.length - 1])) {
+    const current = gulags[gulags.length - 1];
     const sorted: number[] = [];
     const unsorted: number[] = [];
     
@@ -26,18 +26,18 @@ export const gaulagSortCode: CodeBlock[] = [
       }
     }
     
-    gaulags[gaulags.length - 1] = sorted;
-    gaulags.push(unsorted);
+    gulags[gulags.length - 1] = sorted;
+    gulags.push(unsorted);
   }
   
-  // Merge gaulags back together
-  while (gaulags.length > 1) {
-    const last = gaulags.pop()!;
-    const second = gaulags.pop()!;
-    gaulags.push(merge(second, last));
+  // Merge gulags back together
+  while (gulags.length > 1) {
+    const last = gulags.pop()!;
+    const second = gulags.pop()!;
+    gulags.push(merge(second, last));
   }
   
-  return gaulags[0];
+  return gulags[0];
 }
 
 function isSorted(arr: number[]): boolean {
@@ -64,14 +64,14 @@ function merge(a: number[], b: number[]): number[] {
   },
   {
     title: 'JavaScript',
-    code: `function gaulagSort(arr) {
+    code: `function gulagSort(arr) {
   if (arr.length <= 1) return arr;
   
-  const gaulags = [arr];
+  const gulags = [arr];
   
-  // Separate unsorted elements into gaulags
-  while (!isSorted(gaulags[gaulags.length - 1])) {
-    const current = gaulags[gaulags.length - 1];
+  // Separate unsorted elements into gulags
+  while (!isSorted(gulags[gulags.length - 1])) {
+    const current = gulags[gulags.length - 1];
     const sorted = [];
     const unsorted = [];
     
@@ -87,18 +87,18 @@ function merge(a: number[], b: number[]): number[] {
       }
     }
     
-    gaulags[gaulags.length - 1] = sorted;
-    gaulags.push(unsorted);
+    gulags[gulags.length - 1] = sorted;
+    gulags.push(unsorted);
   }
   
-  // Merge gaulags back together
-  while (gaulags.length > 1) {
-    const last = gaulags.pop();
-    const second = gaulags.pop();
-    gaulags.push(merge(second, last));
+  // Merge gulags back together
+  while (gulags.length > 1) {
+    const last = gulags.pop();
+    const second = gulags.pop();
+    gulags.push(merge(second, last));
   }
   
-  return gaulags[0];
+  return gulags[0];
 }
 
 function isSorted(arr) {
@@ -125,15 +125,15 @@ function merge(a, b) {
   },
   {
     title: 'Python',
-    code: `def gaulag_sort(arr):
+    code: `def gulag_sort(arr):
     if len(arr) <= 1:
         return arr
     
-    gaulags = [arr]
+    gulags = [arr]
     
-    # Separate unsorted elements into gaulags
-    while not is_sorted(gaulags[-1]):
-        current = gaulags[-1]
+    # Separate unsorted elements into gulags
+    while not is_sorted(gulags[-1]):
+        current = gulags[-1]
         sorted_arr = []
         unsorted = []
         
@@ -147,16 +147,16 @@ function merge(a, b) {
                 sorted_arr.append(current[i])
                 prev = current[i]
         
-        gaulags[-1] = sorted_arr
-        gaulags.append(unsorted)
+        gulags[-1] = sorted_arr
+        gulags.append(unsorted)
     
-    # Merge gaulags back together
-    while len(gaulags) > 1:
-        last = gaulags.pop()
-        second = gaulags.pop()
-        gaulags.append(merge(second, last))
+    # Merge gulags back together
+    while len(gulags) > 1:
+        last = gulags.pop()
+        second = gulags.pop()
+        gulags.append(merge(second, last))
     
-    return gaulags[0]
+    return gulags[0]
 
 def is_sorted(arr):
     for i in range(1, len(arr)):
