@@ -8,6 +8,7 @@ interface ArticleOrLinkCardProps {
   children?: ReactNode
   target?: string
   rel?: string
+  internal?: boolean
 }
 
 export const ArticleOrLinkCard = ({
@@ -16,6 +17,7 @@ export const ArticleOrLinkCard = ({
   className,
   target,
   rel,
+  internal,
 }: ArticleOrLinkCardProps) => {
   const isLink = !!href
   const articleOrLinkClass =
@@ -23,8 +25,14 @@ export const ArticleOrLinkCard = ({
 
   if (isLink) {
     return (
-      <SafeLink href={href} target={target} rel={rel} className={articleOrLinkClass}>
-        <span className={styles.linkIcon}>↗</span>
+      <SafeLink
+        href={href}
+        target={target}
+        rel={rel}
+        className={articleOrLinkClass}
+        internal={internal}
+      >
+        <span className={styles.linkIcon}>{internal ? '↓' : '↗'}</span>
         {children}
       </SafeLink>
     )

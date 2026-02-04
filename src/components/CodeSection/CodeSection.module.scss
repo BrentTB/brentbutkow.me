@@ -1,0 +1,79 @@
+@import '../../styles/shared';
+
+.codeSection {
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.tabs {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+}
+
+.tab {
+  padding: 12px 24px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+
+  &.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+}
+
+.codeContent {
+  position: relative;
+  padding: 0;
+  overflow-x: auto;
+
+  .copyButton {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    padding: 6px 12px;
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 1;
+
+    &:active {
+      transform: scale(0.95);
+    }
+  }
+
+  pre {
+    margin: 0;
+    padding: 20px;
+    background: transparent;
+    overflow-x: auto;
+
+    code {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+  }
+}
+
+@media (max-width: 600px) {
+  .codeContent {
+    .copyButton {
+      display: none;
+    }
+  }
+}

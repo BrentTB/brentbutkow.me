@@ -1,0 +1,208 @@
+.visualizer {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 20px;
+  border: 2px solid var(--accent);
+  border-radius: 8px;
+  margin-top: 20px;
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  label {
+    font-weight: 500;
+    font-size: 14px;
+  }
+
+  input {
+    padding: 8px 12px;
+    border: 2px solid var(--accent);
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: monospace;
+    background-color: var(--surface);
+    color: var(--text);
+
+    &:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+}
+
+.buttonGroup {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+
+  button {
+    padding: 8px 16px;
+    background-color: var(--accent);
+    color: black;
+    border: none;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+    transition:
+      opacity 0.2s,
+      transform 0.1s;
+
+    &:hover:not(:disabled) {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    &:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+}
+
+.visualization {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.placeholder {
+  color: var(--text-secondary);
+  font-size: 16px;
+  text-align: center;
+}
+
+.display {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.animationContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.gulagRow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gulagLabel {
+  font-weight: 600;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: gray;
+}
+
+.blocksContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  min-height: 60px;
+  align-items: flex-start;
+  padding: 16px;
+  border-radius: 6px;
+  border: 2px solid var(--accent);
+  position: relative;
+}
+
+.animatedBlock {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, var(--accent), #0056b3);
+  color: var(--text);
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 1s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.exitDown {
+  animation: exitDown 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.enterDown {
+  animation: enterDown 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.exitUp {
+  animation: exitUp 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.enterUp {
+  animation: enterUp 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes exitDown {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(70px) scale(0.4);
+  }
+}
+
+@keyframes enterDown {
+  from {
+    opacity: 0;
+    transform: translateY(70px) scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes exitUp {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-70px) scale(0.4);
+  }
+}
+
+@keyframes enterUp {
+  from {
+    opacity: 0;
+    transform: translateY(-70px) scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
