@@ -14,6 +14,7 @@ function ToggleableSection({ title, children }: ToggleableSectionProps) {
       <button
         className={`${styles.header} ${isOpen ? styles.open : ''}`}
         onClick={() => setIsOpen(!isOpen)}
+        aria-expanded={isOpen}
       >
         <span className={styles.title}>{title}</span>
         <span className={styles.icon}>▶</span>

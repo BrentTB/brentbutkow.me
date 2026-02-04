@@ -27,6 +27,7 @@ export const funStuffRoutes: AppRoute[] = [
 ]
 
 export const routes: AppRoute[] = [
+  ...funStuffRoutes,
   {
     path: routePaths.home,
     element: <HomePage />,
@@ -63,5 +64,4 @@ export const routes: AppRoute[] = [
     element: <NotFoundPage />,
     dontShowInNavbar: true,
   },
-  ...funStuffRoutes,
 ]
