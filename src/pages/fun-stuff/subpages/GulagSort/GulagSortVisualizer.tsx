@@ -268,13 +268,25 @@ function GulagSortVisualizer() {
         </div>
 
         <div className={styles.buttonGroup}>
-          <button onClick={handleStart} disabled={isAnimating}>
+          <button
+            onClick={handleStart}
+            disabled={isAnimating}
+            aria-label="Start sorting the entered numbers"
+          >
             Start
           </button>
-          <button onClick={generateRandomNumbersForInput} disabled={isAnimating}>
+          <button
+            onClick={generateRandomNumbersForInput}
+            disabled={isAnimating}
+            aria-label="Generate random numbers for the input"
+          >
             Random
           </button>
-          <button onClick={handleReset} disabled={gulags.length === 0}>
+          <button
+            onClick={handleReset}
+            disabled={gulags.length === 0}
+            aria-label="Reset the visualization and clear the numbers"
+          >
             Reset
           </button>
         </div>
