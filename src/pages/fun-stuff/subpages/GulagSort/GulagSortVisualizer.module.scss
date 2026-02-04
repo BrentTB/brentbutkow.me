@@ -76,7 +76,24 @@
       opacity: 0.5;
       cursor: not-allowed;
     }
+
+    &.active {
+      background-color: var(--accent-dark);
+      color: white;
+    }
   }
+}
+
+.buttonRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.buttonGroupRight {
+  margin-left: auto;
 }
 
 .visualization {

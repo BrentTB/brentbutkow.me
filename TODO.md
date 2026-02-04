@@ -13,3 +13,7 @@
 - [ ] more potential things for the home page: my skills, languages
 - Gulag sort:
   - [ ] Add settings for speed?
+- New Projects to add:
+  - Encrypt Images - https://github.com/BrentTB/encryptImage/blob/main/imageencryption.py
+  - School/University projects
+  - 4x4x4 Tic Tac Toe

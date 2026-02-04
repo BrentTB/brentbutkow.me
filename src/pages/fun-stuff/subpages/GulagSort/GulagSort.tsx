@@ -12,16 +12,14 @@ function GulagSort() {
     <PageLayout>
       <PageHeader title="Gulag Sort" />
       <div className={styles.intro}>
-        <div className={styles.linkRow}>
-          <span>Based on the joke</span>
+        <p>
+          Based on the joke{' '}
           <SafeLink
             href="https://medium.com/@kaweendra/the-ultimate-sorting-algorithm-6513d6968420"
             className={styles.link}
           >
             Stalin sort.
-          </SafeLink>
-        </div>
-        <p>
+          </SafeLink>{' '}
           Stalin sort is a sorting algorithm inspired by Joseph Stalin, in which elements not in the
           correct order are "removed" (i.e., sent to a Gulag) until the remaining elements are all
           sorted.
@@ -35,7 +33,11 @@ function GulagSort() {
         <p>
           I came up with this algorithm when learning about sorting algorithms for IOI. I do not
           suggest using this algorithm in production code, as there are strictly better
-          alternatives, but it is fun for personal projects or personal learning.
+          alternatives, but it is fun for personal projects or personal learning. My original Java
+          implementation can be found in my GitHub -{' '}
+          <SafeLink href="https://github.com/BrentTB/gulag_sort" className={styles.link}>
+            github.com/BrentTB/gulag_sort
+          </SafeLink>
         </p>
       </div>
       <GulagSortVisualizer />
