@@ -10,4 +10,9 @@ export const funStuff: FunItem[] = [
     description: 'My first self-developed sorting algorithm, based on the (joke) Stalin sort',
     link: funStuffSubRoutes.gulagSort,
   },
+  {
+    title: 'brentbutkow.me / butkow.com',
+    description:
+      'My first website, a personal project built using React and TypeScript (Hint: you are already here!)',
+  },
 ]

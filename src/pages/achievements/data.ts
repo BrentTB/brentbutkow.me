@@ -16,7 +16,7 @@ export const achievements: Achievement[] = [
     title: 'Graduated with Distinction',
     description:
       'Bachelor of Science in Information Engineering from the University of the Witwatersrand',
-    link: 'https://www.wits.ac.za/',
+    link: 'https://issuu.com/witsmarketing/docs/graduations_-_02_april_2025_-_17_00',
   },
   {
     year: 2024,
