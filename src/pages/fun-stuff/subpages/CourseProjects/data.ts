@@ -14,7 +14,7 @@ export const courseProjects: CourseProject[] = [
   {
     title: '3rd Year - Defender SA',
     description:
-      'A group project for Software Development II, where we created a game based on Defender, using c++ and SFML for gameplay and rendering. The game was a 2d shooter, where the user had to destroy enemies and save people to earn points. Multiple different enemies with different AIs were used for gameplay, and environmental factors (such as limited fule and meteors that could damage the player) were added for additional functionality and difficulty',
+      'A group project for Software Development II, where we created a game based on Defender, using c++ and SFML for gameplay and rendering. The game was a 2d shooter, where the user had to destroy enemies and save people to earn points. Multiple different enemies with different AIs were used for gameplay, and environmental factors (such as limited fuel and meteors that could damage the player) were added for additional functionality and difficulty',
     link: 'https://github.com/BrentTB/DefenderSA',
   },
   {
