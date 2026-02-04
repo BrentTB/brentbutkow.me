@@ -29,14 +29,17 @@ export default function CodeSection({ codeBlocks }: CodeSectionProps) {
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(codeBlocks[activeTab].code)
-      setCopied(true)
-
       if (timeoutRef.current !== null) {
         clearTimeout(timeoutRef.current)
       }
 
-      timeoutRef.current = setTimeout(() => setCopied(false), 2000)
+      await navigator.clipboard.writeText(codeBlocks[activeTab].code)
+      setCopied(true)
+
+      timeoutRef.current = setTimeout(() => {
+        setCopied(false)
+        timeoutRef.current = null
+      }, 2000)
     } catch (err) {
       console.error('Failed to copy code:', err)
     }
