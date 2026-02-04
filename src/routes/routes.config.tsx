@@ -8,6 +8,7 @@ import AchievementsPage from '../pages/achievements/AchievementsPage'
 import { AppRoute } from './routes.types'
 import GulagSort from '../pages/fun-stuff/subpages/GulagSort/GulagSort'
 import { funStuffSubRoutes } from '../pages/fun-stuff/data'
+import CourseProjects from '../pages/fun-stuff/subpages/CourseProjects/CourseProjects'
 
 export const routePaths = {
   home: '/',
@@ -23,6 +24,14 @@ export const funStuffRoutes: AppRoute[] = [
   {
     path: `${routePaths.funStuff}${funStuffSubRoutes.gulagSort}`,
     element: <GulagSort />,
+  },
+  {
+    path: `${routePaths.funStuff}${funStuffSubRoutes.gulagSort}`,
+    element: <GulagSort />,
+  },
+  {
+    path: `${routePaths.funStuff}${funStuffSubRoutes.courseProjects}`,
+    element: <CourseProjects />,
   },
 ]
 
