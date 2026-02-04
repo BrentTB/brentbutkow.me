@@ -28,14 +28,14 @@ function GulagSort() {
         </p>
         <p>
           Gulag Sort is an algorithm created based on this concept, in which the elements in the
-          gulag are stored. The stored elements then go through the same sorting process, creating
-          a second gulag. This continues until all gulags only contain sorted elements, at which
-          point the gulags are merged back together to form a fully sorted array.
+          gulag are stored. The stored elements then go through the same sorting process, creating a
+          second gulag. This continues until all gulags only contain sorted elements, at which point
+          the gulags are merged back together to form a fully sorted array.
         </p>
         <p>
           I came up with this algorithm when learning about sorting algorithms for IOI. I do not
-          suggest using this algorithm in production code, as there are strictly better alternatives,
-          but it is fun for personal projects or personal learning.
+          suggest using this algorithm in production code, as there are strictly better
+          alternatives, but it is fun for personal projects or personal learning.
         </p>
       </div>
       <GulagSortVisualizer />
@@ -51,8 +51,8 @@ function GulagSort() {
         </p>
         <p>
           <strong> - Worst Case:</strong> O(n²) – when the array is in reverse-sorted order, all
-          elements are moved to their own gulag. This creates n gulags with 1 element each,
-          leading to O(n) merges of O(n) elements.
+          elements are moved to their own gulag. This creates n gulags with 1 element each, leading
+          to O(n) merges of O(n) elements.
         </p>
         <p>
           Note: This algorithm is objectively worse in performance than merge sort, but subjectively
