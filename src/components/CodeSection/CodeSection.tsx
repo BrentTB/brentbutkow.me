@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import styles from './CodeSection.module.scss'
 
 export interface CodeBlock {
@@ -13,6 +13,15 @@ interface CodeSectionProps {
 export default function CodeSection({ codeBlocks }: CodeSectionProps) {
   const [activeTab, setActiveTab] = useState(0)
   const [copied, setCopied] = useState(false)
+  const timeoutRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current !== null) {
+        clearTimeout(timeoutRef.current)
+      }
+    }
+  }, [])
 
   if (!codeBlocks || codeBlocks.length === 0) {
     return null
@@ -22,7 +31,12 @@ export default function CodeSection({ codeBlocks }: CodeSectionProps) {
     try {
       await navigator.clipboard.writeText(codeBlocks[activeTab].code)
       setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      
+      if (timeoutRef.current !== null) {
+        clearTimeout(timeoutRef.current)
+      }
+      
+      timeoutRef.current = window.setTimeout(() => setCopied(false), 2000)
     } catch (err) {
       console.error('Failed to copy code:', err)
     }
