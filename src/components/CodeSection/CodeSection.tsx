@@ -59,7 +59,11 @@ export default function CodeSection({ codeBlocks }: CodeSectionProps) {
         ))}
       </div>
       <div className={styles.codeContent}>
-        <button className={styles.copyButton} onClick={handleCopy}>
+        <button
+          className={styles.copyButton}
+          onClick={handleCopy}
+          aria-label={copied ? 'Code copied to clipboard' : 'Copy code to clipboard'}
+        >
           {copied ? '✓ Copied!' : 'Copy'}
         </button>
         <pre>
