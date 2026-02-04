@@ -13,7 +13,7 @@ interface CodeSectionProps {
 export default function CodeSection({ codeBlocks }: CodeSectionProps) {
   const [activeTab, setActiveTab] = useState(0)
   const [copied, setCopied] = useState(false)
-  const timeoutRef = useRef<number | null>(null)
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     return () => {
@@ -31,12 +31,12 @@ export default function CodeSection({ codeBlocks }: CodeSectionProps) {
     try {
       await navigator.clipboard.writeText(codeBlocks[activeTab].code)
       setCopied(true)
-      
+
       if (timeoutRef.current !== null) {
         clearTimeout(timeoutRef.current)
       }
-      
-      timeoutRef.current = window.setTimeout(() => setCopied(false), 2000)
+
+      timeoutRef.current = setTimeout(() => setCopied(false), 2000)
     } catch (err) {
       console.error('Failed to copy code:', err)
     }
