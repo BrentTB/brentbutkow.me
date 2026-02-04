@@ -8,7 +8,7 @@ export const courseProjects: CourseProject[] = [
   {
     title: '4th Year - Art Among Us',
     description:
-      'A group project for Software Development III, where we created an online web game based on Gartic Phone, and inspired by Among Us. Players would get a prompt and have to draw it, and then other players would have to guess what the prompt was based on the drawing. However, the imposter tried to break the flow by guessing badly, while not exposing that there are the imposter. Players could then vote for the imposter to earn points',
+      'A group project for Software Development III, where we created an online web game based on Gartic Phone, and inspired by Among Us. Players would get a prompt and have to draw it, and then other players would have to guess what the prompt was based on the drawing. However, the imposter tried to break the flow by guessing badly, while not exposing that they are the imposter. Players could then vote for the imposter to earn points',
     link: 'https://github.com/BrentTB/ArtAmongUs',
   },
   {

@@ -26,10 +26,6 @@ export const funStuffRoutes: AppRoute[] = [
     element: <GulagSort />,
   },
   {
-    path: `${routePaths.funStuff}${funStuffSubRoutes.gulagSort}`,
-    element: <GulagSort />,
-  },
-  {
     path: `${routePaths.funStuff}${funStuffSubRoutes.courseProjects}`,
     element: <CourseProjects />,
   },
