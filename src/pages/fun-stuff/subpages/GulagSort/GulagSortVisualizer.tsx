@@ -98,23 +98,31 @@ const isSorted = (arr: GulagBlock[]): boolean => {
   return true
 }
 
+const ANIMATION_SPEED = {
+  SLOW: 1.5,
+  MEDIUM: 1,
+  FAST: 0.5,
+} as const
+
 function GulagSortVisualizer() {
   const [input, setInput] = useState('')
   const [gulags, setGulags] = useState<GulagBlock[][]>([])
-  const [animationSpeedMultiplier, setAnimationSpeedMultiplier] = useState(1)
+  const [animationSpeedMultiplier, setAnimationSpeedMultiplier] = useState<number>(
+    ANIMATION_SPEED.MEDIUM
+  )
   const [isAnimating, setIsAnimating] = useState(false)
   const gulagsRef = useRef<GulagBlock[][]>([])
 
   const setSpeedSlow = () => {
-    setAnimationSpeedMultiplier(1.5)
+    setAnimationSpeedMultiplier(ANIMATION_SPEED.SLOW)
   }
 
   const setSpeedMedium = () => {
-    setAnimationSpeedMultiplier(1)
+    setAnimationSpeedMultiplier(ANIMATION_SPEED.MEDIUM)
   }
 
   const setSpeedFast = () => {
-    setAnimationSpeedMultiplier(0.5)
+    setAnimationSpeedMultiplier(ANIMATION_SPEED.FAST)
   }
 
   const generateRandomNumbersForInput = useCallback(() => {
@@ -310,21 +318,21 @@ function GulagSortVisualizer() {
             <button
               onClick={setSpeedSlow}
               disabled={isAnimating}
-              className={animationSpeedMultiplier === 1.5 ? styles.active : ''}
+              className={animationSpeedMultiplier === ANIMATION_SPEED.SLOW ? styles.active : ''}
             >
               Slow
             </button>
             <button
               onClick={setSpeedMedium}
               disabled={isAnimating}
-              className={animationSpeedMultiplier === 1 ? styles.active : ''}
+              className={animationSpeedMultiplier === ANIMATION_SPEED.MEDIUM ? styles.active : ''}
             >
               Medium
             </button>
             <button
               onClick={setSpeedFast}
               disabled={isAnimating}
-              className={animationSpeedMultiplier === 0.5 ? styles.active : ''}
+              className={animationSpeedMultiplier === ANIMATION_SPEED.FAST ? styles.active : ''}
             >
               Fast
             </button>
