@@ -101,8 +101,21 @@ const isSorted = (arr: GulagBlock[]): boolean => {
 function GulagSortVisualizer() {
   const [input, setInput] = useState('')
   const [gulags, setGulags] = useState<GulagBlock[][]>([])
+  const [animationSpeedMultiplier, setAnimationSpeedMultiplier] = useState(1)
   const [isAnimating, setIsAnimating] = useState(false)
   const gulagsRef = useRef<GulagBlock[][]>([])
+
+  const setSpeedSlow = () => {
+    setAnimationSpeedMultiplier(1.5)
+  }
+
+  const setSpeedMedium = () => {
+    setAnimationSpeedMultiplier(1)
+  }
+
+  const setSpeedFast = () => {
+    setAnimationSpeedMultiplier(0.5)
+  }
 
   const generateRandomNumbersForInput = useCallback(() => {
     const nums = generateRandomNumbers(6, 13, 200)
@@ -127,7 +140,9 @@ function GulagSortVisualizer() {
     const frames = performGulagSort(structuredClone(initialGulags))
 
     for (let i = 0; i < frames.length; i++) {
-      await new Promise((resolve) => setTimeout(resolve, ANIMATION_FRAME_DURATION_S * 1000))
+      await new Promise((resolve) =>
+        setTimeout(resolve, ANIMATION_FRAME_DURATION_S * animationSpeedMultiplier * 1000)
+      )
       const updatedGulags = structuredClone(gulagsRef.current)
 
       if (frames[i].isMerging) {
@@ -267,28 +282,53 @@ function GulagSortVisualizer() {
           />
         </div>
 
-        <div className={styles.buttonGroup}>
-          <button
-            onClick={handleStart}
-            disabled={isAnimating}
-            aria-label="Start sorting the entered numbers"
-          >
-            Start
-          </button>
-          <button
-            onClick={generateRandomNumbersForInput}
-            disabled={isAnimating}
-            aria-label="Generate random numbers for the input"
-          >
-            Random
-          </button>
-          <button
-            onClick={handleReset}
-            disabled={gulags.length === 0}
-            aria-label="Reset the visualization and clear the numbers"
-          >
-            Reset
-          </button>
+        <div className={styles.buttonRow}>
+          <div className={styles.buttonGroup}>
+            <button
+              onClick={handleStart}
+              disabled={isAnimating}
+              aria-label="Start sorting the entered numbers"
+            >
+              Start
+            </button>
+            <button
+              onClick={generateRandomNumbersForInput}
+              disabled={isAnimating}
+              aria-label="Generate random numbers for the input"
+            >
+              Random
+            </button>
+            <button
+              onClick={handleReset}
+              disabled={gulags.length === 0}
+              aria-label="Reset the visualization and clear the numbers"
+            >
+              Reset
+            </button>
+          </div>
+          <div className={`${styles.buttonGroup} ${styles.buttonGroupRight}`}>
+            <button
+              onClick={setSpeedSlow}
+              disabled={isAnimating}
+              className={animationSpeedMultiplier === 1.5 ? styles.active : ''}
+            >
+              Slow
+            </button>
+            <button
+              onClick={setSpeedMedium}
+              disabled={isAnimating}
+              className={animationSpeedMultiplier === 1 ? styles.active : ''}
+            >
+              Medium
+            </button>
+            <button
+              onClick={setSpeedFast}
+              disabled={isAnimating}
+              className={animationSpeedMultiplier === 0.5 ? styles.active : ''}
+            >
+              Fast
+            </button>
+          </div>
         </div>
       </div>
 
