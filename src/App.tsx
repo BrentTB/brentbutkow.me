@@ -10,6 +10,7 @@ import { FunModeProvider } from './contexts/FunModeProvider'
 import { useFunMode } from './contexts/FunMode'
 import { useEffect } from 'react'
 import { preloadImages } from './utils/preloadImages'
+import { contactPlatforms } from './pages/contact-me/data'
 
 const enableVercelAnalytics = import.meta.env.ENABLE_VERCEL_ANALYTICS === 'true'
 const enableVercelSpeedInsights = import.meta.env.ENABLE_VERCEL_SPEED_INSIGHTS === 'true'
@@ -21,11 +22,8 @@ const WaterRippleLayer = () => {
 
 function App() {
   useEffect(() => {
-    preloadImages([
-      '/logos/email-no-bg.png',
-      '/logos/linkedin-no-bg.png',
-      '/logos/github-no-bg.svg',
-    ])
+    const logoPaths = contactPlatforms.map((platform) => platform.logoPath)
+    preloadImages(logoPaths)
   }, [])
 
   return (
