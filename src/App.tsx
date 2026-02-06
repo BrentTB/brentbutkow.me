@@ -22,8 +22,8 @@ const WaterRippleLayer = () => {
 
 function App() {
   useEffect(() => {
-    const logosPaths = contactPlatforms.map((platform) => platform.logoPath)
-    preloadImages(logosPaths)
+    const logoPaths = contactPlatforms.map((platform) => platform.logoPath)
+    preloadImages(logoPaths)
   }, [])
 
   return (
