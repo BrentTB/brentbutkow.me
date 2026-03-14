@@ -3,11 +3,17 @@ import { Experience } from '../../data/data.types'
 export const experience: Experience[] = [
   {
     role: 'Software Engineer',
+    company: 'Foodcomply',
+    period: 'Apr 2026 - Present',
+  },
+  {
+    role: 'Software Engineer',
     company: 'Entelect',
-    period: 'Jan 2025 - Present',
+    period: 'Jan 2025 - Mar 2026',
     description: [
       'Joining Entelect as a Software Engineer through their Graduate Program, and have been working on Cloud infrastructure and web development since then',
     ],
+    skills: ['AWS', 'Terraform', 'Jenkins', 'React', 'TypeScript', 'IaC'],
 
     experienceProjects: [
       {
@@ -15,7 +21,7 @@ export const experience: Experience[] = [
         period: 'Jan 2025 - Mar 2025',
         description: [
           'An intensive 10-week program focused on full-stack development, software engineering principles, and industry best practices',
-          'Consulted with mock clients, designed databases, and developed client and admin websites for a mock e-commerce platform',
+          'Consulted with mock clients, designed databases, and developed client and admin websites for a mock e-commerce (comic book) platform',
         ],
         skills: [
           'TypeScript',
@@ -30,15 +36,15 @@ export const experience: Experience[] = [
         ],
       },
       {
-        company: 'Working for Reinsurance Group of America (RGA)',
-        period: 'Mar 2025 - Present',
+        company: 'Working/Consulting for Reinsurance Group of America (RGA)',
+        period: 'Mar 2025 - Mar 2026',
         description: [
           'Responsible for maintaining and improving cloud infrastructure. Responsible for production deployments and CI/CD pipelines',
           'Created, deployed and monitored new environments and services',
           'Cut cloud costs by up to 50% for multiple products',
-          'Worked on developing a website used by insurance agencies to request reinsurance quotes from RGA',
+          'Worked on developing a website used by insurance agencies to request reinsurance quotes from RGA, in React, TS and Node.js',
         ],
-        skills: ['AWS', 'Terraform', 'Jenkins', 'React', 'TypeScript', 'IaC', 'Groovy'],
+        skills: ['AWS', 'Terraform', 'Jenkins', 'React', 'TypeScript', 'Node.js', 'IaC', 'Groovy'],
       },
       {
         company: 'Entelect Tech Accelerator',
