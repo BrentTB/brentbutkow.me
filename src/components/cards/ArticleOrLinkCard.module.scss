@@ -1,28 +1,64 @@
 @use '../../styles/shared' as *;
 
 .card {
-  @include card-base;
-  padding: clamp(20px, 4vw, 28px);
-  gap: 16px;
-  transition:
-    transform 150ms ease,
-    border-color 150ms ease;
+  display: block;
+  position: relative;
+  // Right padding reserves space for the arrow and keeps text off the edge —
+  // applied to every row (link or not) for consistency.
+  padding: 26px 44px 26px 0;
+  border-top: 1px solid var(--border);
+  transition: padding-left 200ms ease;
+}
 
-  &.link {
-    cursor: pointer;
+/* Every row gets the same left-bar hover feedback for consistency.
+   Colour signals interactivity: grey = info only, gold = a real link. */
+.card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 18px;
+  bottom: 18px;
+  width: 2px;
+  background: var(--border-strong);
+  transform: scaleY(0);
+  transform-origin: center;
+  transition: transform 220ms ease;
+}
 
-    &:hover,
-    &:focus-visible {
-      border-color: var(--accent);
-      transform: translateY(-2px);
-    }
-  }
+.card:hover,
+.card:focus-visible {
+  padding-left: 20px;
+}
+
+.card:hover::before,
+.card:focus-visible::before {
+  transform: scaleY(1);
+}
+
+/* Link variant: clickable → gold bar, pointer cursor, animated arrow. */
+a.card {
+  cursor: pointer;
+}
+
+a.card::before {
+  background: var(--accent);
 }
 
 .linkIcon {
   position: absolute;
-  top: 20px;
-  right: 20px;
+  top: 50%;
+  right: 2px;
+  transform: translateY(-50%);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  transition:
+    color 180ms ease,
+    transform 180ms ease;
+}
+
+a.card:hover .linkIcon,
+a.card:focus-visible .linkIcon {
   color: var(--accent);
-  font-size: 1.5rem;
+  transform: translateY(-50%) translateX(4px);
 }

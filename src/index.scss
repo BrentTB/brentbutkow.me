@@ -1,19 +1,41 @@
 :root {
-  --bg: #0b1222;
-  --surface: rgba(255, 255, 255, 0.05);
-  --border: rgba(255, 255, 255, 0.12);
-  --accent: #7ff0c9;
-  --accent-dark: #44b392;
-  --muted: #c5cee0;
-  --text: #f5f7fb;
-  --text-secondary: #dfefff;
-  --shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  font-family:
-    'Space Grotesk',
-    'Inter',
-    system-ui,
-    -apple-system,
-    sans-serif;
+  /* ── Ink palette ─────────────────────────────────────────── */
+  --bg: #0b0c0f;
+  --bg-elevated: #101218;
+  --surface: rgba(255, 255, 255, 0.025);
+  --surface-strong: rgba(255, 255, 255, 0.05);
+  --border: rgba(255, 255, 255, 0.09);
+  --border-strong: rgba(255, 255, 255, 0.18);
+  /* Translucent navy glass for panels over the Fun-mode water (navbar, footer, etc.) —
+     lighter & bluer than the ink surfaces, but dark enough to keep text readable. */
+  --fun-surface: rgba(8, 26, 50, 0.55);
+
+  /* ── Warm editorial accent (used sparingly) ──────────────── */
+  --accent: #e9b872;
+  --accent-rgb: 233, 184, 114;
+  --accent-strong: #f3c98c;
+  /* Dark ink for text/icons sitting on an --accent fill. */
+  --on-accent: #1a1407;
+
+  /* ── Text ────────────────────────────────────────────────── */
+  --text: #f3efe7;
+  --text-secondary: #cdc9c0;
+  --muted: #8d8a82;
+
+  /* ── Elevation ───────────────────────────────────────────── */
+  --shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.75);
+  --shadow-sm: 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+
+  /* ── Radius ──────────────────────────────────────────────── */
+  --radius: 12px;
+  --radius-lg: 18px;
+
+  /* ── Type ────────────────────────────────────────────────── */
+  --font-display: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  --font-body: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', monospace;
+
+  font-family: var(--font-body);
   line-height: 1.6;
   font-weight: 400;
   color: var(--text);
@@ -23,14 +45,6 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-// :global(html.fun-mode) {
-//   --accent: #ff6ffb;
-//   --text: #ffb3ff;
-//   --muted: #ff99ff;
-//   --border: rgba(255, 111, 251, 0.2);
-//   --shadow: 0 4px 12px rgba(255, 111, 251, 0.1);
-// }
-
 * {
   box-sizing: border-box;
 }
@@ -38,14 +52,64 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background:
-    radial-gradient(circle at 10% 20%, rgba(120, 196, 255, 0.35), transparent 25%),
-    radial-gradient(circle at 90% 10%, rgba(255, 140, 196, 0.3), transparent 20%),
-    radial-gradient(circle at 50% 80%, rgba(116, 255, 198, 0.25), transparent 30%), var(--bg);
+  color: var(--text);
+  background-color: var(--bg);
+  /* One restrained directional glow — atmosphere, not a rainbow. */
+  background-image: radial-gradient(
+    120% 80% at 78% -10%,
+    rgba(var(--accent-rgb), 0.1),
+    transparent 55%
+  );
+  background-attachment: fixed;
+}
+
+/* Fine film grain overlay for depth — fixed, non-interactive. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ── Headings: optical serif, tight tracking ───────────────── */
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  font-optical-sizing: auto;
   color: var(--text);
 }
 
 a {
   color: inherit;
   text-decoration: none;
+}
+
+::selection {
+  background: rgba(var(--accent-rgb), 0.28);
+  color: var(--text);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }

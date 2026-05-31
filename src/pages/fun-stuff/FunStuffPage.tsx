@@ -8,10 +8,7 @@ import styles from './FunStuffPage.module.scss'
 function FunStuffPage() {
   return (
     <PageLayout>
-      <PageHeader
-        title="Fun Stuff"
-        subtitle="Projects and fun things that I have worked on outside of work."
-      />
+      <PageHeader title="Fun Stuff" />
       <div className={styles.container}>
         {funStuff.map((item) => (
           <FunCard key={`${item.title}-${item.link ?? ''}`} item={item} />

@@ -11,6 +11,8 @@ export type HeroAction = {
   href: string
   variant?: 'primary' | 'ghost'
   onlyShowInFunMode?: boolean
+  /** Render as a plain anchor (opens in a new tab) instead of a router link — for files/external URLs. */
+  external?: boolean
 }
 
 export type Project = {
@@ -31,6 +33,7 @@ export type ExperienceProject = {
 export type Experience = {
   role: string
   company: string
+  companyLink: string
   period: string
   description?: string[]
   skills?: string[]

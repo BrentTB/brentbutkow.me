@@ -12,21 +12,6 @@
   padding: 0 16px;
 }
 
-.title {
-  margin: 0 0 12px;
-  font-size: clamp(4rem, 10vw, 6rem);
-  background: linear-gradient(120deg, var(--accent), rgba(127, 240, 201, 0.6));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.subtitle {
-  margin: 0 0 16px;
-  font-size: 1.8rem;
-  font-weight: 700;
-}
-
 .description {
   margin: 0 0 32px;
   color: var(--muted);
@@ -75,9 +60,9 @@
   padding: 12px 20px;
   border-radius: 12px;
   font-weight: 700;
-  background: linear-gradient(120deg, var(--accent), rgba(127, 240, 201, 0.6));
+  background: linear-gradient(120deg, var(--accent), rgba(var(--accent-rgb), 0.6));
   color: var(--bg);
-  box-shadow: 0 10px 30px rgba(127, 240, 201, 0.3);
+  box-shadow: 0 10px 30px rgba(var(--accent-rgb), 0.3);
   transition: transform 150ms ease;
 }
 
@@ -96,6 +81,41 @@
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--border);
   border-radius: 12px;
+}
+
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.presetButton {
+  flex: 1 1 auto;
+  white-space: nowrap;
+  padding: 9px 14px;
+  background: var(--surface-strong);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition:
+    border-color 150ms ease,
+    color 150ms ease;
+
+  &:hover,
+  &:focus-visible {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  // Active = the live spring/damping values match this preset.
+  &[aria-pressed='true'] {
+    background: rgba(var(--accent-rgb), 0.15);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
 }
 
 .controlGroup {

@@ -4,7 +4,7 @@ import PageHeader from '../../components/PageFormatting/PageHeader'
 import styles from './AchievementsPage.module.scss'
 import { achievements } from './data'
 import { useMemo } from 'react'
-import { useFunMode } from '../../contexts/FunMode'
+import { useFunMode } from '../../contexts/useFunMode'
 
 function AchievementsPage() {
   const { isFunMode } = useFunMode()
@@ -35,10 +35,7 @@ function AchievementsPage() {
 
   return (
     <PageLayout>
-      <PageHeader
-        title="Achievements & Awards"
-        subtitle="Work-related and personal achievements and awards."
-      />
+      <PageHeader title="Achievements & Awards" />
       <div className={styles.container}>
         {sortedYears.map((year) => (
           <section key={year} className={styles.yearGroup}>

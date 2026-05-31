@@ -2,11 +2,19 @@ import { Education } from '../../../data/data.types'
 import DetailCard from '../../../components/cards/DetailCard'
 
 const PILLS_TO_SHOW = 2
-function EducationCard({ degree, institution, period, description, achievements }: Education) {
+function EducationCard({
+  degree,
+  institution,
+  link,
+  period,
+  description,
+  achievements,
+}: Education) {
   return (
     <DetailCard
       title={degree}
       subtitle={institution}
+      subtitleLink={link}
       period={period}
       descriptions={description}
       pills={achievements}

@@ -15,6 +15,7 @@ export const funStuff: FunItem[] = [
     title: 'brentbutkow.me / butkow.com',
     description:
       'My first website, a personal project built using React and TypeScript (Surprise: you are already here!)',
+    link: 'https://github.com/BrentTB/brentbutkow.me',
   },
   {
     title: 'Course Projects - GitHub',

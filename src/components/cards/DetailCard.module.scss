@@ -1,41 +1,72 @@
 @use '../../styles/shared' as *;
 
 .card {
-  @include card-base;
-  padding: 24px;
-  gap: 14px;
-  transition:
-    transform 150ms ease,
-    border-color 150ms ease;
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 32px;
+  padding: 32px 0;
+  border-top: 1px solid var(--border);
+}
+
+/* Nested sub-item (e.g. projects under a role): no divider, tighter rhythm. */
+.nested {
+  border-top: none;
+  padding: 16px 0;
+}
+
+.period {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  padding-top: 6px;
+}
+
+.body {
+  min-width: 0;
 }
 
 .header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
+  margin-bottom: 14px;
 }
 
 .title {
   margin: 0 0 4px;
   font-size: 1.3rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .subtitle {
-  margin: 0 0 6px;
+  margin: 0;
   color: var(--accent);
-  font-weight: 600;
+  font-weight: 500;
+  font-size: 0.95rem;
 }
 
-.period {
-  color: var(--muted);
-  font-size: 0.9rem;
-  font-weight: 700;
+.subtitleArrow {
+  margin-left: 4px;
+}
+
+/* The whole subtitle link (text + arrow) nudges right on hover, matching the rest of the site. */
+.subtitle a {
+  display: inline-block;
+  transition: transform 180ms ease;
+}
+
+.subtitle a:hover,
+.subtitle a:focus-visible {
+  transform: translateX(4px);
 }
 
 .description {
-  margin: 0;
-  color: var(--muted);
+  margin: 0 0 8px;
+  color: var(--text-secondary);
+  max-width: 68ch;
+
+  &:last-of-type {
+    margin-bottom: 0;
+  }
 }
 
 .pills {
@@ -44,33 +75,48 @@
   gap: 8px;
   list-style: none;
   padding: 0;
-  margin: 0;
-
-  &:has(.pill.clickable:hover) .pill {
-    background: rgba(127, 240, 201, 0.25);
-    border-color: rgba(127, 240, 201, 1);
-  }
+  margin: 16px 0 0;
 }
 
 .pill {
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: rgba(127, 240, 201, 0.12);
-  border: 1px solid var(--accent);
-  color: var(--accent);
-  font-size: 0.9rem;
+  padding: 4px 11px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+}
 
-  &.clickable {
-    cursor: pointer;
-    transition:
-      background-color 150ms ease,
-      border-color 150ms ease;
+/* Only this control is interactive — the real skill tags stay static. */
+.pillToggle {
+  padding: 4px 11px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  cursor: pointer;
+  transition:
+    border-color 150ms ease,
+    color 150ms ease;
+
+  &:hover,
+  &:focus-visible {
+    border-color: var(--accent);
+    color: var(--accent);
   }
 }
 
-@media (max-width: 640px) {
-  .header {
-    flex-direction: column;
-    align-items: flex-start;
+@media (max-width: 720px) {
+  .card {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 26px 0;
+  }
+
+  .period {
+    padding-top: 0;
   }
 }

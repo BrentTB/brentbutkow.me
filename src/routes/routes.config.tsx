@@ -5,10 +5,15 @@ import FunStuffPage from '../pages/fun-stuff/FunStuffPage'
 import HomePage from '../pages/home/HomePage'
 import NotFoundPage from '../pages/not-found/NotFoundPage'
 import AchievementsPage from '../pages/achievements/AchievementsPage'
+import { lazy } from 'react'
 import { AppRoute } from './routes.types'
-import GulagSort from '../pages/fun-stuff/subpages/GulagSort/GulagSort'
 import { funStuffSubRoutes } from '../pages/fun-stuff/data'
-import CourseProjects from '../pages/fun-stuff/subpages/CourseProjects/CourseProjects'
+
+// Heavy / rarely-visited subpages are code-split out of the initial bundle.
+const GulagSort = lazy(() => import('../pages/fun-stuff/subpages/GulagSort/GulagSort'))
+const CourseProjects = lazy(
+  () => import('../pages/fun-stuff/subpages/CourseProjects/CourseProjects')
+)
 
 export const routePaths = {
   home: '/',
@@ -24,10 +29,14 @@ export const funStuffRoutes: AppRoute[] = [
   {
     path: `${routePaths.funStuff}${funStuffSubRoutes.gulagSort}`,
     element: <GulagSort />,
+    dontShowInNavbar: true,
+    title: 'Gulag Sort — Brent Butkow',
   },
   {
     path: `${routePaths.funStuff}${funStuffSubRoutes.courseProjects}`,
     element: <CourseProjects />,
+    dontShowInNavbar: true,
+    title: 'Course Projects — Brent Butkow',
   },
 ]
 
@@ -38,35 +47,42 @@ export const routes: AppRoute[] = [
     element: <HomePage />,
     dontShowInNavbar: true,
     label: 'Home',
+    title: 'Brent Butkow — Full-stack engineer',
   },
   {
     path: routePaths.experience,
     element: <ExperiencePage />,
     label: 'Experience',
+    title: 'Experience — Brent Butkow',
   },
   {
     path: routePaths.education,
     element: <EducationPage />,
     label: 'Education',
+    title: 'Education — Brent Butkow',
   },
   {
     path: routePaths.achievements,
     element: <AchievementsPage />,
     label: 'Achievements',
+    title: 'Achievements — Brent Butkow',
   },
   {
     path: routePaths.funStuff,
     element: <FunStuffPage />,
     label: 'Fun Stuff',
+    title: 'Fun Stuff — Brent Butkow',
   },
   {
     path: routePaths.contact,
     element: <ContactMePage />,
     label: 'Contact Me',
+    title: 'Contact — Brent Butkow',
   },
   {
     path: routePaths.notFound,
     element: <NotFoundPage />,
     dontShowInNavbar: true,
+    title: 'Page not found — Brent Butkow',
   },
 ]

@@ -8,6 +8,7 @@ const PILLS_TO_SHOW = 4
 function ExperienceCard({
   role,
   company,
+  companyLink,
   period,
   description,
   skills,
@@ -21,6 +22,7 @@ function ExperienceCard({
       <DetailCard
         title={role}
         subtitle={company}
+        subtitleLink={companyLink}
         period={period}
         descriptions={description ?? []}
         pills={skills}
@@ -44,7 +46,7 @@ function ExperienceCard({
           className={`${styles.projectsContainer} ${showProjects ? styles.expanded : styles.collapsed}`}
         >
           {experienceProjects.map((project, index) => (
-            <div key={`${project.company}-${index}`} className={styles.projectCard}>
+            <div key={`${project.company}-${index}`}>
               <DetailCard
                 title={project.company}
                 subtitle=""
@@ -52,6 +54,7 @@ function ExperienceCard({
                 descriptions={project.description}
                 pills={project.skills}
                 pillsLimit={PILLS_TO_SHOW}
+                nested
               />
             </div>
           ))}

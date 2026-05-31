@@ -16,11 +16,11 @@ export const education: Education[] = [
     institution: 'University of the Witwatersrand',
     degree: 'Bachelor of Science in Information Engineering - BSc (Eng)',
     period: '2021 - 2024',
+    link: 'https://www.wits.ac.za/course-finder/undergraduate/ebe/information-engineering/',
     description: [
       'Bachelor and Honours in Information Engineering with a focus on Computer Science',
       'Includes modules on Data Structures and Algorithms, Machine Learning, Software Engineering, Cybersecurity, Signals and Systems, and more',
     ],
-    link: 'https://www.wits.ac.za/course-finder/undergraduate/ebe/information-engineering/',
     achievements: [
       'Graduated with Distinction',
       'Top 5 in Information Engineering',
@@ -33,6 +33,7 @@ export const education: Education[] = [
     institution: 'King David Victory Park High School',
     degree: 'IEB National Senior Certificate (NSC)',
     period: '2016 - 2020',
+    link: 'https://kingdavid.org.za/high-school-victory-park/',
     description: [
       'Completed high school, taking AP Mathematics as an additional subject, and Information Technology (IT), Geography, and Afrikaans as electives',
       'Achieved distinctions in all of my subjects',
