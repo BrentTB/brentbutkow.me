@@ -62,3 +62,15 @@
     transform: translateY(4px);
   }
 }
+
+// Staggered entrance for the hero and the elements that join its load moment.
+@keyframes riseIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

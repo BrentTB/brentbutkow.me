@@ -108,12 +108,12 @@
   // Primary action.
   button.startButton {
     background: var(--accent);
-    color: #1a1407;
+    color: var(--on-accent);
     border-color: transparent;
 
     &:hover:not(:disabled) {
       background: var(--accent-strong);
-      color: #1a1407;
+      color: var(--on-accent);
     }
   }
 }

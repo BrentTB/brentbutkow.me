@@ -1,5 +1,6 @@
 import { ReactNode } from 'react'
 import { SafeLink } from '../utils/SafeLink'
+import { getLinkArrow } from '../utils/link-arrow'
 import styles from './ArticleOrLinkCard.module.scss'
 
 interface ArticleOrLinkCardProps {
@@ -34,7 +35,7 @@ export const ArticleOrLinkCard = ({
       >
         {children}
         <span className={styles.linkIcon} aria-hidden="true">
-          {internal ? '→' : '↗'}
+          {getLinkArrow(internal)}
         </span>
       </SafeLink>
     )

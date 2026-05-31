@@ -10,17 +10,22 @@ interface SafeLinkProps {
   children?: ReactNode
 }
 
-export const SafeLink = (safeLinkProps: SafeLinkProps) => {
-  const props = { ...safeLinkProps }
-  if (!props.internal) {
-    props.target = props.target || '_blank'
-    props.rel = props.rel || 'noopener noreferrer'
-    return <a {...props}></a>
-  } else {
+export const SafeLink = ({ className, target, rel, href, internal, children }: SafeLinkProps) => {
+  if (internal) {
     return (
-      <Link to={props.href || ''} className={props.className}>
-        {props.children}
+      <Link to={href || ''} className={className}>
+        {children}
       </Link>
     )
   }
+  return (
+    <a
+      className={className}
+      href={href}
+      target={target || '_blank'}
+      rel={rel || 'noopener noreferrer'}
+    >
+      {children}
+    </a>
+  )
 }

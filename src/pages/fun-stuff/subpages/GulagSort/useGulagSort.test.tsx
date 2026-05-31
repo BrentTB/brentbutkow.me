@@ -28,4 +28,26 @@ describe('useGulagSort', () => {
     const values = result.current.gulags[0].filter((b) => !b.removed).map((b) => b.value)
     expect(values).toEqual([1, 2, 3, 4, 5])
   })
+
+  it('reset mid-animation cancels cleanly without throwing', async () => {
+    const { result } = renderHook(() => useGulagSort())
+    let startPromise!: Promise<void>
+    act(() => {
+      startPromise = result.current.start([5, 2, 4, 1, 3], 0)
+    })
+    act(() => result.current.reset())
+    await expect(startPromise).resolves.toBeUndefined()
+    expect(result.current.gulags).toEqual([])
+    expect(result.current.isAnimating).toBe(false)
+  })
+
+  it('unmounting mid-animation cancels without throwing', async () => {
+    const { result, unmount } = renderHook(() => useGulagSort())
+    let startPromise!: Promise<void>
+    act(() => {
+      startPromise = result.current.start([5, 2, 4, 1, 3], 0)
+    })
+    unmount()
+    await expect(startPromise).resolves.toBeUndefined()
+  })
 })

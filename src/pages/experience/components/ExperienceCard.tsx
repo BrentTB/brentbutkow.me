@@ -8,6 +8,7 @@ const PILLS_TO_SHOW = 4
 function ExperienceCard({
   role,
   company,
+  companyLink,
   period,
   description,
   skills,
@@ -21,6 +22,7 @@ function ExperienceCard({
       <DetailCard
         title={role}
         subtitle={company}
+        subtitleLink={companyLink}
         period={period}
         descriptions={description ?? []}
         pills={skills}

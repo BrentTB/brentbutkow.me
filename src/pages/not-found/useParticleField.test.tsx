@@ -8,4 +8,10 @@ describe('useParticleField', () => {
   it('no-ops when the canvas ref is empty', () => {
     expect(() => renderHook(() => useParticleField({ current: null }, 0.1, 0.9))).not.toThrow()
   })
+
+  it('no-ops and cleans up without throwing when the 2D context is unavailable', () => {
+    const canvas = document.createElement('canvas')
+    const { unmount } = renderHook(() => useParticleField({ current: canvas }, 0.1, 0.9))
+    expect(() => unmount()).not.toThrow()
+  })
 })

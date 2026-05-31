@@ -1,9 +1,12 @@
 import { useState, ReactNode } from 'react'
 import styles from './DetailCard.module.scss'
+import { SafeLink } from '../utils/SafeLink'
+import { getLinkArrow } from '../utils/link-arrow'
 
 type DetailCardProps = {
   title: string
   subtitle: string
+  subtitleLink?: string
   period: string
   descriptions: string[]
   pills?: string[]
@@ -18,6 +21,7 @@ type DetailCardProps = {
 function DetailCard({
   title,
   subtitle,
+  subtitleLink,
   period,
   descriptions,
   pills,
@@ -42,7 +46,20 @@ function DetailCard({
       <div className={styles.body}>
         <header className={styles.header}>
           <h3 className={styles.title}>{title}</h3>
-          {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
+          {subtitle && (
+            <p className={styles.subtitle}>
+              {subtitleLink ? (
+                <SafeLink href={subtitleLink}>
+                  {subtitle}
+                  <span className={styles.subtitleArrow} aria-hidden="true">
+                    {getLinkArrow(false)}
+                  </span>
+                </SafeLink>
+              ) : (
+                subtitle
+              )}
+            </p>
+          )}
         </header>
 
         {descriptions &&

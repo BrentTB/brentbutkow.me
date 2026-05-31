@@ -44,6 +44,21 @@
   font-size: 0.95rem;
 }
 
+.subtitleArrow {
+  margin-left: 4px;
+}
+
+/* The whole subtitle link (text + arrow) nudges right on hover, matching the rest of the site. */
+.subtitle a {
+  display: inline-block;
+  transition: transform 180ms ease;
+}
+
+.subtitle a:hover,
+.subtitle a:focus-visible {
+  transform: translateX(4px);
+}
+
 .description {
   margin: 0 0 8px;
   color: var(--text-secondary);

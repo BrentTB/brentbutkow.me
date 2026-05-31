@@ -13,4 +13,10 @@ describe('useWaterRipple', () => {
     const canvas = document.createElement('canvas')
     expect(() => renderHook(() => useWaterRipple({ current: canvas }))).not.toThrow()
   })
+
+  it('cleans up without throwing on unmount', () => {
+    const canvas = document.createElement('canvas')
+    const { unmount } = renderHook(() => useWaterRipple({ current: canvas }))
+    expect(() => unmount()).not.toThrow()
+  })
 })

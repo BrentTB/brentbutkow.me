@@ -1,8 +1,9 @@
 ---
 name: diff-review
 description: >-
-  Review the current git diff for this portfolio site — uncommitted working-tree
-  changes by default, or a whole branch when given a base ref (e.g. "diff-review dev").
+  Review the current git diff for this portfolio site — the current branch plus any
+  uncommitted working-tree changes compared against "dev" by default, or against another
+  base ref when one is given (e.g. "diff-review main").
   Goes beyond what `npm run check` catches: hunts for dead code the change introduced,
   incomplete propagations (a rename, signature, prop, type, route, or copy-string updated
   in one place but left stale elsewhere), and duplication that should become a shared
@@ -30,24 +31,28 @@ wants to be a shared abstraction.
 Figure out exactly which lines are under review before forming any opinion. A finding about
 code the user didn't touch is noise.
 
-**Default (no argument): uncommitted work.** Review the working tree against `HEAD`.
+**Default base is `dev`.** Review the current branch *and* any uncommitted working-tree
+changes against `dev` — everything that differs from `dev` is in scope. Diff the working tree
+against the merge-base so `dev`'s own later commits don't show up as noise; this is what a PR
+into `dev` would show, plus your not-yet-committed work.
 
 ```bash
-git status --short                 # see modified + untracked at a glance
-git diff HEAD                      # staged + unstaged changes to tracked files
-git ls-files --others --exclude-standard   # untracked files — read these in full
+git status --short                          # modified + untracked at a glance
+BASE=$(git merge-base dev HEAD)             # fork point from dev
+git diff "$BASE" --stat                     # files + churn (branch commits + working tree)
+git diff "$BASE"                            # the full diff under review
+git ls-files --others --exclude-standard    # untracked files — read these in full
 ```
 
-Untracked files won't appear in `git diff` — list them and read each with the Read tool,
-since the entire file is "new" and in scope.
+`git diff "$BASE"` already covers both committed branch work and uncommitted tracked changes
+(staged and unstaged). Untracked files won't appear there — list them with the command above
+and read each with the Read tool, since the entire file is "new" and in scope.
 
-**Branch review (argument given, e.g. `diff-review dev`):** review the branch against the
-base ref's merge-base, which is what a PR would show.
-
-```bash
-git diff <base>...HEAD --stat      # files + churn overview
-git diff <base>...HEAD             # the full branch diff
-```
+**Different base ref given (e.g. `diff-review main`):** use that ref in place of `dev` —
+`BASE=$(git merge-base main HEAD)` — and review against it the same way. If you're currently
+*on* the base branch, the merge-base is the current commit, so the review naturally narrows
+to just the uncommitted work. If the base ref doesn't resolve (e.g. no local `dev`), say so
+and confirm the intended base rather than silently reviewing against the wrong thing.
 
 Read enough surrounding context (the whole function, the whole module, the other files that
 import it) to judge each change — a diff hunk in isolation lies. Use Grep/Glob to follow
@@ -185,7 +190,7 @@ by severity, highest first. Keep each finding tight: what, where, why it matters
 fix.
 
 ```
-## Diff review — <scope, e.g. "uncommitted changes" or "claude-refactor vs dev">
+## Diff review — <scope, e.g. "claude-refactor + working tree vs dev">
 
 `npm run check`: <pass / the failing output>
 `npm test`: <pass / the failing output>
