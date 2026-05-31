@@ -145,6 +145,19 @@ This repo is a showcase — the code itself should look as polished as the UI.
 
 - **Strict TypeScript, no `any`.** Model data with explicit types in `*.types.ts`; reuse the shared
   domain types in [data/data.types.ts](src/data/data.types.ts).
+- **No magic-string union types.** Don't write `type Foo = 'a' | 'b'` — define a `const` object and
+  derive the type from it so the values are also usable as runtime identifiers:
+  ```ts
+  // Good — values are accessible as ProjectileOwner.ship
+  export const ProjectileOwner = { ship: 'ship', player: 'player' } as const
+  export type ProjectileOwner = (typeof ProjectileOwner)[keyof typeof ProjectileOwner]
+
+  // Bad — 'ship' is a magic string everywhere it's used
+  export type ProjectileOwner = 'ship' | 'player'
+  ```
+  This pattern applies to any string-union used as a discriminator, enum-like set, or lookup key (game
+  phases, enemy kinds, ability kinds, etc.). The object name and type name share the same identifier
+  (TypeScript can distinguish value vs type position).
 - **Validate untrusted/JSON data** rather than casting — see the `isJokeType` type guard in
   [data/jokes.ts](src/data/jokes.ts).
 - **Clean up effects**: cancel `requestAnimationFrame`, remove listeners, clear timeouts on unmount
