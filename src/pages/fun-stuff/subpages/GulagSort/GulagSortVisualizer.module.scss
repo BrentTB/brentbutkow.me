@@ -2,10 +2,10 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
-  padding: 20px;
-  border: 2px solid var(--accent);
-  border-radius: 8px;
-  margin-top: 20px;
+  padding: clamp(16px, 3vw, 24px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
 }
 
 .controls {
@@ -20,66 +20,37 @@
   gap: 8px;
 
   label {
-    font-weight: 500;
-    font-size: 14px;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    color: var(--muted);
   }
 
   input {
-    padding: 8px 12px;
-    border: 2px solid var(--accent);
-    border-radius: 4px;
-    font-size: 14px;
-    font-family: monospace;
-    background-color: var(--surface);
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+    font-family: var(--font-mono);
+    background-color: var(--bg-elevated);
     color: var(--text);
+    transition:
+      border-color 150ms ease,
+      box-shadow 150ms ease;
+
+    &::placeholder {
+      color: var(--muted);
+    }
 
     &:focus {
       outline: none;
       border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+      box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.18);
     }
 
     &:disabled {
       opacity: 0.6;
       cursor: not-allowed;
-    }
-  }
-}
-
-.buttonGroup {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-
-  button {
-    padding: 8px 16px;
-    background-color: var(--accent);
-    color: black;
-    border: none;
-    border-radius: 4px;
-    font-weight: 500;
-    cursor: pointer;
-    transition:
-      opacity 0.2s,
-      transform 0.1s;
-
-    &:hover:not(:disabled) {
-      opacity: 0.9;
-      transform: translateY(-1px);
-    }
-
-    &:active:not(:disabled) {
-      transform: translateY(0);
-    }
-
-    &:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    &.active {
-      background-color: var(--accent-dark);
-      color: white;
     }
   }
 }
@@ -92,8 +63,84 @@
   flex-wrap: wrap;
 }
 
+.buttonGroup {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+
+  button {
+    padding: 9px 16px;
+    background: var(--surface-strong);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition:
+      border-color 150ms ease,
+      color 150ms ease,
+      background 150ms ease,
+      transform 0.1s;
+
+    &:hover:not(:disabled) {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    &:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    &:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    // Active speed selection.
+    &.active {
+      background: rgba(var(--accent-rgb), 0.15);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+  }
+
+  // Primary action.
+  button.startButton {
+    background: var(--accent);
+    color: var(--on-accent);
+    border-color: transparent;
+
+    &:hover:not(:disabled) {
+      background: var(--accent-strong);
+      color: var(--on-accent);
+    }
+  }
+}
+
 .buttonGroupRight {
   margin-left: auto;
+}
+
+// On mobile each group fills the row, with its buttons sharing the width evenly.
+@media (max-width: 600px) {
+  .buttonRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .buttonGroup {
+    width: 100%;
+    flex-wrap: nowrap;
+  }
+
+  .buttonGroup button {
+    flex: 1;
+  }
+
+  .buttonGroupRight {
+    margin-left: 0;
+  }
 }
 
 .visualization {
@@ -103,9 +150,11 @@
 }
 
 .placeholder {
-  color: var(--text-secondary);
-  font-size: 16px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
   text-align: center;
+  padding: 24px 0;
 }
 
 .display {
@@ -118,7 +167,7 @@
 .animationContainer {
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 24px;
 }
 
 .gulagRow {
@@ -128,11 +177,11 @@
 }
 
 .gulagLabel {
-  font-weight: 600;
-  font-size: 13px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: gray;
+  letter-spacing: 0.12em;
+  color: var(--muted);
 }
 
 .blocksContainer {
@@ -142,8 +191,9 @@
   min-height: 60px;
   align-items: flex-start;
   padding: 16px;
-  border-radius: 6px;
-  border: 2px solid var(--accent);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
   position: relative;
 }
 
@@ -153,15 +203,23 @@
   justify-content: center;
   width: 48px;
   height: 48px;
-  background: linear-gradient(135deg, var(--accent), #0056b3);
-  color: var(--text);
-  border-radius: 6px;
-  font-weight: 600;
-  font-size: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: var(--surface-strong);
+  border: 1px solid rgba(var(--accent-rgb), 0.45);
+  color: var(--accent-strong);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 15px;
   transition: all 1s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   user-select: none;
   flex-shrink: 0;
+}
+
+// Fun mode: the input and gulag containers use the dark ink surface, which reads
+// as stark near-black boxes over the light-blue water — swap to the glass panel.
+:global(html.fun-mode) .inputGroup input,
+:global(html.fun-mode) .blocksContainer {
+  background: var(--fun-surface);
 }
 
 .exitDown {

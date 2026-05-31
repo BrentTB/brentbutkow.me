@@ -1,5 +1,5 @@
-import { Link } from 'react-router-dom'
 import { HeroContent } from '../../../data/data.types'
+import { SafeLink } from '../../../components/utils/SafeLink'
 import styles from './Hero.module.scss'
 import { useMemo } from 'react'
 
@@ -21,13 +21,14 @@ function Hero({ content, isFunMode }: HeroProps) {
       <p className={styles.subtitle}>{isFunMode ? content.subtitleFun : content.subtitle}</p>
       <div className={styles.actions}>
         {filteredActions.map((action) => (
-          <Link
+          <SafeLink
             key={action.href}
             className={`${styles.button} ${action.variant === 'ghost' ? styles.ghost : styles.primary}`}
-            to={action.href}
+            href={action.href}
+            internal={!action.external}
           >
             {action.label}
-          </Link>
+          </SafeLink>
         ))}
       </div>
     </div>

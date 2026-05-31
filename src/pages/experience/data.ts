@@ -4,14 +4,21 @@ export const experience: Experience[] = [
   {
     role: 'Software Engineer',
     company: 'Foodcomply',
+    companyLink: 'https://foodcomply.com/',
     period: 'Apr 2026 - Present',
+    description: [
+      'Joined Foodcomply as a Software Engineer, working across full-stack development, security, DevOps, and infrastructure',
+      'Combine technical delivery with customer-facing responsibilities, including sales meetings, product demonstrations, requirements gathering, and solution design',
+    ],
+    skills: ['Supabase', 'React', 'TypeScript', 'CI/CD', 'Security', 'Vercel'],
   },
   {
     role: 'Software Engineer',
     company: 'Entelect',
+    companyLink: 'https://entelect.co.za/',
     period: 'Jan 2025 - Mar 2026',
     description: [
-      'Joining Entelect as a Software Engineer through their Graduate Program, and have been working on Cloud infrastructure and web development since then',
+      'Joined Entelect as a Software Engineer through their Graduate Program, and have been working on Cloud infrastructure and web development since then',
     ],
     skills: ['AWS', 'Terraform', 'Jenkins', 'React', 'TypeScript', 'IaC'],
 
@@ -60,6 +67,7 @@ export const experience: Experience[] = [
   {
     role: 'Software Engineering Intern',
     company: 'Entelect, Amsterdam Office',
+    companyLink: 'https://entelect.co.za/',
     period: 'Jan 2024 - Feb 2024 (7 weeks)',
     description: [
       'Built a virtual doorbell web app to manage office access and track who is inside when keys are limited',
@@ -71,6 +79,7 @@ export const experience: Experience[] = [
   {
     role: 'Data Engineering Intern',
     company: 'Stream (VATIT division)',
+    companyLink: 'https://www.vatitstream.com/',
     period: 'Jan 2023 - Feb 2023 (6 weeks)',
     description: [
       'Built an automated data pipeline for sales, revenue, and profit metrics to improve reporting cadence',
@@ -81,6 +90,7 @@ export const experience: Experience[] = [
   {
     role: 'Software Engineering Intern',
     company: 'Business Science Corporation',
+    companyLink: 'https://bscglobal.com/',
     period: 'Feb 2021 - Apr 2021 (13 weeks)',
     description: [
       'Designed and implemented an AI chatbot in Microsoft Teams for internal employee use',

@@ -1,26 +1,38 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: 48px;
+  gap: clamp(40px, 5vw, 60px);
 }
 
 .yearGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 32px;
+  align-items: start;
 }
 
 .yearTitle {
-  font-size: 1.75rem;
-  font-weight: 700;
   margin: 0;
-  color: var(--text-primary);
-  padding-bottom: 12px;
-  border-bottom: 2px solid var(--border-color);
+  padding-top: 26px;
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--muted);
 }
 
 .achievementsList {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 720px) {
+  .yearGroup {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .yearTitle {
+    padding-top: 0;
+  }
 }

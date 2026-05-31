@@ -6,6 +6,9 @@
   left: 0;
   width: 100vw;
   height: 100vh;
+  // Dynamic viewport unit so the canvas fills the whole mobile screen, including the
+  // home-indicator / address-bar safe area (paired with viewport-fit=cover in index.html).
+  height: 100dvh;
   z-index: -1;
   pointer-events: none;
   display: block;

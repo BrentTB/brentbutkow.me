@@ -1,0 +1,76 @@
+@use '../../../styles/shared' as *;
+
+.current {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 28px;
+  border-top: 1px solid var(--border);
+  /* Joins the hero's staggered entrance, just after the actions. */
+  opacity: 0;
+  animation: riseIn 700ms cubic-bezier(0.2, 0.7, 0.2, 1) 320ms forwards;
+}
+
+.label {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: livePulse 2.4s ease-out infinite;
+}
+
+.detail {
+  font-size: clamp(1.05rem, 2.4vw, 1.3rem);
+  color: var(--text-secondary);
+}
+
+.detail::after {
+  content: '→';
+  display: inline-block;
+  margin-left: 10px;
+  font-family: var(--font-mono);
+  color: var(--accent);
+  opacity: 0;
+  transform: translateX(-6px);
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+.current:hover .detail::after,
+.current:focus-visible .detail::after {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.at {
+  color: var(--muted);
+}
+
+.company {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+@keyframes livePulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 9px rgba(var(--accent-rgb), 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0);
+  }
+}

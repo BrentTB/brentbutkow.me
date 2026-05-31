@@ -7,10 +7,7 @@ import { experience } from './data'
 function ExperiencePage() {
   return (
     <PageLayout>
-      <PageHeader
-        title="Professional Experience"
-        subtitle="The places I have worked, the things I've done, and the skills I've built along the way."
-      />
+      <PageHeader title="Professional Experience" />
       <div className={styles.list}>
         {experience.map((item, index) => (
           <ExperienceCard key={`${item.role}-${index}`} {...item} />

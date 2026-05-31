@@ -1,34 +1,12 @@
-@use '../../../styles/shared' as *;
-
-.card {
-  @include card-base;
-  padding: 24px;
-  gap: 10px;
-  transition:
-    transform 150ms ease,
-    border-color 150ms ease;
-}
-
-a.card:hover,
-a.card:focus-visible {
-  border-color: var(--accent);
-  transform: translateY(-2px);
-}
-
 .title {
-  margin: 0;
-  font-size: 1.2rem;
+  margin: 0 0 6px;
+  font-size: 1.3rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .description {
   margin: 0;
-  color: var(--muted);
-}
-
-.linkIcon {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  color: var(--accent);
-  font-size: 1.5rem;
+  color: var(--text-secondary);
+  max-width: 70ch;
 }

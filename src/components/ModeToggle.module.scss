@@ -53,7 +53,7 @@
 }
 
 .modeToggle[aria-checked='true'] .toggleTrack {
-  background: rgba(127, 240, 201, 0.2);
+  background: rgba(var(--accent-rgb), 0.2);
   border-color: var(--accent);
 }
 

@@ -4,28 +4,14 @@ import { ArticleOrLinkCard } from '../../../components/cards/ArticleOrLinkCard'
 
 type ContactCardProps = {
   contactPlatform: ContactPlatform
-  index: number
 }
 
-function ContactCard({ contactPlatform, index }: ContactCardProps) {
+function ContactCard({ contactPlatform }: ContactCardProps) {
   return (
     <ArticleOrLinkCard className={styles.card} href={contactPlatform.url}>
-      <div>
-        <p className={styles.eyebrow}>Find me on {contactPlatform.platform}:</p>
-        <div className={styles.contact}>
-          <span
-            className={styles.logoWrapper}
-            style={{ '--offset': `-${index / 2}s` } as React.CSSProperties}
-          >
-            <img
-              src={contactPlatform.logoPath}
-              alt={`${contactPlatform.platform} logo`}
-              className={styles.logo}
-            />
-          </span>
-          <span className={styles.inbetween}> - </span>
-          <span className={styles.cta}>{contactPlatform.shownName}</span>
-        </div>
+      <div className={styles.row}>
+        <span className={styles.platform}>{contactPlatform.platform}</span>
+        <span className={styles.value}>{contactPlatform.shownName}</span>
       </div>
     </ArticleOrLinkCard>
   )

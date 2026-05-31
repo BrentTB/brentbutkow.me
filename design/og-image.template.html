@@ -1,0 +1,146 @@
+<!doctype html>
+<!--
+  OG image template — 1200×630, matches the site's hero/branding.
+  Export to public/og-image.png any of these ways:
+    • DevTools → Elements → right-click the <div class="card"> → "Capture node screenshot"
+    • CLI:  npx capture-website-cli design/og-image.template.html --element=".card" --output=public/og-image.png
+    • Or set the browser/device viewport to exactly 1200×630 and screenshot the page.
+  Tweak the copy/colours below freely — values mirror src/index.scss tokens.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #15171c;
+      }
+
+      .card {
+        position: relative;
+        width: 1200px;
+        height: 630px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 76px 84px;
+        background-color: #0b0c0f;
+        /* One restrained warm glow, top-right — same idea as the site background. */
+        background-image: radial-gradient(
+          110% 90% at 88% -18%,
+          rgba(233, 184, 114, 0.16),
+          transparent 55%
+        );
+        font-family: 'IBM Plex Sans', system-ui, sans-serif;
+        color: #f3efe7;
+      }
+
+      /* Fine film grain for depth (same SVG noise as index.scss). */
+      .card::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0.04;
+        mix-blend-mode: overlay;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      }
+
+      .top {
+        position: relative;
+        z-index: 1;
+      }
+
+      .eyebrow {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 23px;
+        font-weight: 500;
+        letter-spacing: 0.26em;
+        text-transform: uppercase;
+        color: #e9b872;
+      }
+
+      .eyebrow::before {
+        content: '';
+        width: 48px;
+        height: 2px;
+        background: currentColor;
+        opacity: 0.6;
+      }
+
+      .name {
+        margin-top: 30px;
+        font-size: 122px;
+        font-weight: 700;
+        line-height: 1;
+        letter-spacing: -0.035em;
+      }
+
+      .subtitle {
+        margin-top: 30px;
+        max-width: 760px;
+        font-size: 28px;
+        line-height: 1.45;
+        color: #cdc9c0;
+      }
+
+      .foot {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .dot {
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        background: #e9b872;
+        box-shadow: 0 0 0 6px rgba(233, 184, 114, 0.16);
+      }
+
+      .domain {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 25px;
+        letter-spacing: 0.02em;
+        color: #cdc9c0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="top">
+        <div class="eyebrow">Full-stack engineer</div>
+        <div class="name">Brent Butkow</div>
+        <div class="subtitle">
+          All-round developer who loves to code, and a dad joke aficionado.
+        </div>
+      </div>
+      <div class="foot">
+        <span class="dot"></span>
+        <span class="domain">brentbutkow.me</span>
+      </div>
+    </div>
+  </body>
+</html>

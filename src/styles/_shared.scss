@@ -1,9 +1,12 @@
 // Shared card base styles mixin
 @mixin card-base {
   border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 16px;
-  box-shadow: var(--shadow);
+  background: var(--surface);
+  border-radius: var(--radius);
+  // Soft elevation + a hairline top highlight for crisp, intentional depth.
+  box-shadow:
+    var(--shadow-sm),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
   display: flex;
   flex-direction: column;
   position: relative;
@@ -57,5 +60,17 @@
   }
   50% {
     transform: translateY(4px);
+  }
+}
+
+// Staggered entrance for the hero and the elements that join its load moment.
+@keyframes riseIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

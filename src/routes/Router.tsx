@@ -1,13 +1,19 @@
 import { Route, Routes } from 'react-router-dom'
+import { Suspense } from 'react'
 import { routes } from './routes.config'
+import { useDocumentTitle } from './useDocumentTitle'
 
 function Router() {
+  useDocumentTitle()
+
   return (
-    <Routes>
-      {routes.map((route) => (
-        <Route key={route.path} path={route.path} element={route.element} />
-      ))}
-    </Routes>
+    <Suspense fallback={null}>
+      <Routes>
+        {routes.map((route) => (
+          <Route key={route.path} path={route.path} element={route.element} />
+        ))}
+      </Routes>
+    </Suspense>
   )
 }
 
