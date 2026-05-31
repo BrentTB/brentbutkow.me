@@ -6,7 +6,12 @@ export const cvPath = '/brent-butkow-cv.pdf'
 // Feature flag — set to `true` once the CV PDF is in place at public/brent-butkow-cv.pdf.
 export const cvDownloadEnabled = false
 
-const cvAction: HeroAction = { label: 'Download CV', href: cvPath, variant: 'ghost', external: true }
+const cvAction: HeroAction = {
+  label: 'Download CV',
+  href: cvPath,
+  variant: 'ghost',
+  external: true,
+}
 
 export const heroContent: HeroContent = {
   eyebrow: 'Full-stack engineer',
