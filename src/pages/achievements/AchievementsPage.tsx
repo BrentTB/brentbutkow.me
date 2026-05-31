@@ -4,7 +4,7 @@ import PageHeader from '../../components/PageFormatting/PageHeader'
 import styles from './AchievementsPage.module.scss'
 import { achievements } from './data'
 import { useMemo } from 'react'
-import { useFunMode } from '../../contexts/FunMode'
+import { useFunMode } from '../../contexts/useFunMode'
 
 function AchievementsPage() {
   const { isFunMode } = useFunMode()

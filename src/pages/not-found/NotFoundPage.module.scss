@@ -109,6 +109,13 @@
     border-color: var(--accent);
     color: var(--accent);
   }
+
+  // Active = the live spring/damping values match this preset.
+  &[aria-pressed='true'] {
+    background: rgba(var(--accent-rgb), 0.15);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
 }
 
 .controlGroup {

@@ -6,7 +6,7 @@ import CurrentWork from './components/CurrentWork'
 import About from './components/About'
 import styles from './HomePage.module.scss'
 import { heroContent, aboutSectionEnabled, aboutParagraphs } from './data'
-import { useFunMode } from '../../contexts/FunMode'
+import { useFunMode } from '../../contexts/useFunMode'
 import { experience } from '../experience/data'
 
 const currentRole = experience.find((role) => role.period.toLowerCase().includes('present'))

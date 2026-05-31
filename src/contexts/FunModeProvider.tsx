@@ -1,5 +1,5 @@
 import { ReactNode, useState, useEffect } from 'react'
-import { FunModeContext } from './FunMode'
+import { FunModeContext } from './useFunMode'
 import { disableFunMode, enableFunMode, isFunModeEnabled } from '../modes/fun-mode'
 
 type FunModeProviderProps = {

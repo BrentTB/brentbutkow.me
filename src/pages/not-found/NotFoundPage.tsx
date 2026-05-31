@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import styles from './NotFoundPage.module.scss'
-import { useFunMode } from '../../contexts/FunMode'
+import { useFunMode } from '../../contexts/useFunMode'
 
 type Particle = {
   x: number
@@ -164,6 +164,11 @@ function NotFoundPage() {
     }
   }, [spring, damping, influenceRadius, particleGapFactor])
 
+  // A preset is "active" when the live values match it — so it also highlights
+  // when the sliders are dragged to a preset's exact values.
+  const isPresetActive = (preset: (typeof PRESETS)[number]) =>
+    Math.abs(spring - preset.spring) < 1e-6 && Math.abs(damping - preset.damping) < 1e-6
+
   return (
     <main className={styles.main}>
       <div className={styles.content}>
@@ -186,6 +191,7 @@ function NotFoundPage() {
                 key={preset.label}
                 type="button"
                 className={styles.presetButton}
+                aria-pressed={isPresetActive(preset)}
                 onClick={() => {
                   setSpring(preset.spring)
                   setDamping(preset.damping)
