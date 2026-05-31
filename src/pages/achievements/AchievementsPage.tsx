@@ -35,10 +35,7 @@ function AchievementsPage() {
 
   return (
     <PageLayout>
-      <PageHeader
-        title="Achievements & Awards"
-        subtitle="Work-related and personal achievements and awards."
-      />
+      <PageHeader title="Achievements & Awards" />
       <div className={styles.container}>
         {sortedYears.map((year) => (
           <section key={year} className={styles.yearGroup}>

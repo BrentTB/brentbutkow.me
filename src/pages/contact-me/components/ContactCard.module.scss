@@ -1,43 +1,32 @@
-.eyebrow {
-  letter-spacing: 0.16em;
+.card {
+  padding-right: 40px;
+}
+
+.row {
+  display: flex;
+  align-items: baseline;
+  gap: 28px;
+}
+
+.platform {
+  flex: 0 0 auto;
+  min-width: 110px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  font-size: 0.82rem;
-  color: var(--accent);
-  margin: 0 0 8px;
-}
-
-.title {
-  margin: 0 0 8px;
-}
-
-.copy {
-  margin: 0;
   color: var(--muted);
 }
 
-.inbetween {
-  margin: 0;
-  color: var(--muted);
-  display: inline-block;
-  padding: 12px 14px;
-}
-
-.cta {
-  display: inline-block;
-  border-radius: 12px;
-  font-weight: 700;
-  letter-spacing: 0.2px;
-  transition: transform 150ms ease;
+.value {
+  font-size: clamp(1.2rem, 3vw, 1.6rem);
+  font-weight: 500;
   color: var(--text);
 }
 
-.card:hover .cta,
-.card:focus-visible .cta {
-  transform: translateY(-2px) scale(1.05);
-}
-
-:global(html.fun-mode) .card:hover .cta,
-:global(html.fun-mode) .card:focus-visible .cta {
+/* Fun mode keeps a playful animated shimmer on the value. */
+:global(html.fun-mode) .card:hover .value,
+:global(html.fun-mode) .card:focus-visible .value {
   background: linear-gradient(
     270deg,
     var(--text) 0%,
@@ -63,38 +52,9 @@
   }
 }
 
-.contact {
-  margin-top: 20px;
-}
-
-.logoWrapper {
-  display: inline-block;
-  vertical-align: middle;
-  padding: 4px;
-  border-radius: 15%;
-  background: white;
-}
-
-:global(html.fun-mode) .logoWrapper {
-  animation: float 3s ease-in-out infinite;
-  animation-delay: var(--offset, 0s);
-  box-shadow:
-    0 0 20px var(--accent),
-    0 0 40px rgba(var(--accent-rgb), 0.4);
-}
-
-@keyframes float {
-  0%,
-  100% {
-    transform: translateY(6px);
+@media (max-width: 600px) {
+  .card {
+    flex-direction: column;
+    gap: 6px;
   }
-  50% {
-    transform: translateY(-6px);
-  }
-}
-
-.logo {
-  max-width: 40px;
-  display: block;
-  border-radius: 12%;
 }

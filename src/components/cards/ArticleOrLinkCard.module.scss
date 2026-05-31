@@ -1,28 +1,56 @@
 @use '../../styles/shared' as *;
 
 .card {
-  @include card-base;
-  padding: clamp(20px, 4vw, 28px);
-  gap: 16px;
-  transition:
-    transform 150ms ease,
-    border-color 150ms ease;
+  display: block;
+  position: relative;
+  padding: 26px 0;
+  border-top: 1px solid var(--border);
+}
 
-  &.link {
-    cursor: pointer;
+/* Link variant: a left accent bar + arrow that respond on hover. */
+a.card {
+  cursor: pointer;
+  transition: padding-left 200ms ease;
+}
 
-    &:hover,
-    &:focus-visible {
-      border-color: var(--accent);
-      transform: translateY(-2px);
-    }
-  }
+a.card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 18px;
+  bottom: 18px;
+  width: 2px;
+  background: var(--accent);
+  transform: scaleY(0);
+  transform-origin: center;
+  transition: transform 220ms ease;
+}
+
+a.card:hover,
+a.card:focus-visible {
+  padding-left: 20px;
+}
+
+a.card:hover::before,
+a.card:focus-visible::before {
+  transform: scaleY(1);
 }
 
 .linkIcon {
   position: absolute;
-  top: 20px;
-  right: 20px;
+  top: 50%;
+  right: 2px;
+  transform: translateY(-50%);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  transition:
+    color 180ms ease,
+    transform 180ms ease;
+}
+
+a.card:hover .linkIcon,
+a.card:focus-visible .linkIcon {
   color: var(--accent);
-  font-size: 1.5rem;
+  transform: translateY(-50%) translateX(4px);
 }

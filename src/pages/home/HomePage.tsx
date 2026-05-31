@@ -2,9 +2,13 @@ import { useCallback, useMemo, useState } from 'react'
 import jokes from '../../data/jokes'
 import { JokeTypes, jokeTypeLabels } from '../../data/jokes.types'
 import Hero from './components/Hero'
+import CurrentWork from './components/CurrentWork'
 import styles from './HomePage.module.scss'
 import { heroContent } from './data'
 import { useFunMode } from '../../contexts/FunMode'
+import { experience } from '../experience/data'
+
+const currentRole = experience.find((role) => role.period.toLowerCase().includes('present'))
 
 const jokeCategories = Object.values(JokeTypes)
 const ALL_CATEGORY = 'all'
@@ -45,6 +49,7 @@ function HomePage() {
     <main className={styles.main}>
       <section id="hero" className={styles.section}>
         <Hero content={heroContent} isFunMode={isFunMode} />
+        {currentRole && <CurrentWork role={currentRole.role} company={currentRole.company} />}
       </section>
       {isFunMode && (
         <section id="jokes" className={styles.section}>

@@ -49,31 +49,31 @@ function DetailCard({
 
   return (
     <article className={cardClass}>
-      <header className={styles.header}>
-        <div>
+      <span className={styles.period}>{period}</span>
+      <div className={styles.body}>
+        <header className={styles.header}>
           <h3 className={styles.title}>{title}</h3>
           {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
-        </div>
-        <span className={styles.period}>{period}</span>
-      </header>
+        </header>
 
-      {descriptions &&
-        descriptions.map((description, index) => (
-          <p key={`${title}-description-${index}`} className={styles.description}>
-            {description}
-          </p>
-        ))}
-
-      {visiblePills && visiblePills.length > 0 && (
-        <ul className={styles.pills}>
-          {visiblePills.map((pill) => (
-            <li key={pill} className={pillClass} onClick={handleToggle}>
-              {pill}
-            </li>
+        {descriptions &&
+          descriptions.map((description, index) => (
+            <p key={`${title}-description-${index}`} className={styles.description}>
+              {description}
+            </p>
           ))}
-        </ul>
-      )}
-      {children}
+
+        {visiblePills && visiblePills.length > 0 && (
+          <ul className={styles.pills}>
+            {visiblePills.map((pill) => (
+              <li key={pill} className={pillClass} onClick={handleToggle}>
+                {pill}
+              </li>
+            ))}
+          </ul>
+        )}
+        {children}
+      </div>
     </article>
   )
 }
