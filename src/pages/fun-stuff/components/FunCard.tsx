@@ -17,10 +17,13 @@ function FunCard({ item }: FunCardProps) {
     </>
   )
 
-  const href = item.link ? `${location.pathname}${item.link}` : undefined
+  const external = item.link ? /^https?:\/\//.test(item.link) : false
+  const prefix = external ? '' : location.pathname
+
+  const href = item.link ? `${prefix}${item.link}` : undefined
 
   return (
-    <ArticleOrLinkCard href={href} internal={true}>
+    <ArticleOrLinkCard href={href} internal={!external}>
       {content}
     </ArticleOrLinkCard>
   )

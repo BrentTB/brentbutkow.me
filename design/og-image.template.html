@@ -3,7 +3,7 @@
   OG image template — 1200×630, matches the site's hero/branding.
   Export to public/og-image.png any of these ways:
     • DevTools → Elements → right-click the <div class="card"> → "Capture node screenshot"
-    • CLI:  npx capture-website-cli og-image.template.html --element=".card" --output=public/og-image.png
+    • CLI:  npx capture-website-cli design/og-image.template.html --element=".card" --output=public/og-image.png
     • Or set the browser/device viewport to exactly 1200×630 and screenshot the page.
   Tweak the copy/colours below freely — values mirror src/index.scss tokens.
 -->
@@ -133,7 +133,9 @@
       <div class="top">
         <div class="eyebrow">Full-stack engineer</div>
         <div class="name">Brent Butkow</div>
-        <div class="subtitle">All-round developer who loves to code, and a dad joke aficionado.</div>
+        <div class="subtitle">
+          All-round developer who loves to code, and a dad joke aficionado.
+        </div>
       </div>
       <div class="foot">
         <span class="dot"></span>
