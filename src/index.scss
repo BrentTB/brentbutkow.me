@@ -49,9 +49,25 @@
   box-sizing: border-box;
 }
 
+#root {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+html,
+body {
+  /* No rubber-band overscroll, so the sticky header and the footer stay pinned to the
+     viewport edges and the fixed water canvas can't peek past them. */
+  overscroll-behavior: none;
+}
+
 body {
   margin: 0;
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
+  min-height: 100dvh;
   color: var(--text);
   background-color: var(--bg);
   /* One restrained directional glow — atmosphere, not a rainbow. */
