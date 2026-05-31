@@ -11,27 +11,46 @@ uniform vec2 u_centers[${maxRipples}];
 uniform float u_startTimes[${maxRipples}];
 
 // ── value noise + fbm ──────────────────────────────────────────────
+// Bounded hash with no sin(): sin's large-argument precision varies by GPU/driver
+// and tiles the noise into hard squares on some browsers — this form stays stable.
 float hash(vec2 p) {
-  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+  vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+  p3 += dot(p3, p3.yzx + 33.33);
+  return fract((p3.x + p3.y) * p3.z);
 }
 
+// Pseudo-random unit gradient at a lattice point. hash()*2π is a bounded angle, so
+// cos/sin stay portable.
+vec2 grad(vec2 ip) {
+  float a = hash(ip) * 6.2831853;
+  return vec2(cos(a), sin(a));
+}
+
+// Gradient (Perlin-style) noise: zero at the lattice points with randomly-oriented
+// features between them, so it has no axis-aligned grid to show through the lighting.
+// Quintic fade keeps it C2-continuous for smooth finite-difference normals.
 float noise(vec2 p) {
   vec2 i = floor(p);
   vec2 f = fract(p);
-  vec2 u = f * f * (3.0 - 2.0 * f);
-  float a = hash(i);
-  float b = hash(i + vec2(1.0, 0.0));
-  float c = hash(i + vec2(0.0, 1.0));
-  float d = hash(i + vec2(1.0, 1.0));
-  return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+  vec2 u = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);
+  float a = dot(grad(i), f);
+  float b = dot(grad(i + vec2(1.0, 0.0)), f - vec2(1.0, 0.0));
+  float c = dot(grad(i + vec2(0.0, 1.0)), f - vec2(0.0, 1.0));
+  float d = dot(grad(i + vec2(1.0, 1.0)), f - vec2(1.0, 1.0));
+  float n = mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+  return n * 0.7 + 0.5;
 }
+
+// Rotate the frame each octave so the value-noise lattices don't share an axis and
+// reinforce into a horizontal/vertical grid.
+const mat2 FBM_ROT = mat2(0.80, 0.60, -0.60, 0.80);
 
 float fbm(vec2 p) {
   float v = 0.0;
   float a = 0.5;
   for (int i = 0; i < 4; i++) {
     v += a * noise(p);
-    p = p * 2.02 + 17.0;
+    p = FBM_ROT * p * 2.02 + 17.0;
     a *= 0.5;
   }
   return v;

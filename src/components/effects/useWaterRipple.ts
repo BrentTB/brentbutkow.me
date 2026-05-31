@@ -78,6 +78,11 @@ export function useWaterRipple(canvasRef: RefObject<HTMLCanvasElement | null>) {
     gl.bufferData(gl.ARRAY_BUFFER, quad, gl.STATIC_DRAW)
 
     let animationId = 0
+    let elapsed = 0
+    let lastFrameMs = 0
+    // Cap per-frame time advance so a backgrounded tab (where rAF pauses but the wall
+    // clock keeps running) can't lurch the animated noise into low-precision coordinates.
+    const MAX_FRAME_STEP = 0.1
     const ripples: Array<{ x: number; y: number; start: number }> = []
 
     const resize = () => {
@@ -96,14 +101,16 @@ export function useWaterRipple(canvasRef: RefObject<HTMLCanvasElement | null>) {
       if (ripples.length > MAX_RIPPLES) ripples.pop()
     }
 
-    // One ripple per press — covers mouse and touch. Dragging a finger no longer
-    // spams a stream of ripples (which looked bad against the MAX_RIPPLES cap).
+    // One ripple per press — covers mouse and touch.
     const handlePointerDown = (event: PointerEvent) => {
-      addRipple(event.clientX, event.clientY, performance.now() * 0.001)
+      addRipple(event.clientX, event.clientY, elapsed)
     }
 
     const render = (timeMs: number) => {
-      const time = timeMs * 0.001
+      const dt = lastFrameMs === 0 ? 0 : Math.min((timeMs - lastFrameMs) * 0.001, MAX_FRAME_STEP)
+      lastFrameMs = timeMs
+      elapsed += dt
+      const time = elapsed
 
       // drop old ripples (age > 6s)
       for (let i = ripples.length - 1; i >= 0; i--) {
