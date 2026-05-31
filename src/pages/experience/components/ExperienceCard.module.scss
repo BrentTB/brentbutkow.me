@@ -3,7 +3,6 @@
 .experienceWrapper {
   display: flex;
   flex-direction: column;
-  gap: 12px;
 }
 
 .toggleButton {
@@ -34,20 +33,35 @@
 }
 
 .projectsContainer {
+  position: relative;
   display: flex;
   flex-direction: column;
-  // Indented with a single vertical hairline → reads as a sub-tree of the role.
   margin-left: 24px;
-  padding-left: 28px;
-  border-left: 1px solid var(--border);
+  // Bottom padding keeps the sub-tree clear of the next role's full-width divider.
+  padding: 4px 0 28px 28px;
   overflow: hidden;
   transition:
     max-height 0.5s ease,
+    padding 0.5s ease,
     opacity 0.5s ease,
     transform 0.5s ease;
 
+  // Inset vertical spine groups the sub-projects without touching any of the
+  // horizontal dividers above or below it.
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 10px;
+    bottom: 28px;
+    width: 1px;
+    background: var(--border);
+  }
+
   &.collapsed {
     max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
     opacity: 0;
     transform: translateY(-100px);
     pointer-events: none;

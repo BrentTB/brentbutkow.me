@@ -3,7 +3,9 @@
 .card {
   display: block;
   position: relative;
-  padding: 26px 0;
+  // Right padding reserves space for the arrow and keeps text off the edge —
+  // applied to every row (link or not) for consistency.
+  padding: 26px 44px 26px 0;
   border-top: 1px solid var(--border);
   transition: padding-left 200ms ease;
 }

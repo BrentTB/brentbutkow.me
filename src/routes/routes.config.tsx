@@ -24,10 +24,12 @@ export const funStuffRoutes: AppRoute[] = [
   {
     path: `${routePaths.funStuff}${funStuffSubRoutes.gulagSort}`,
     element: <GulagSort />,
+    dontShowInNavbar: true,
   },
   {
     path: `${routePaths.funStuff}${funStuffSubRoutes.courseProjects}`,
     element: <CourseProjects />,
+    dontShowInNavbar: true,
   },
 ]
 

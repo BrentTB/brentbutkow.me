@@ -29,23 +29,34 @@ const getParticles = (canvas: HTMLCanvasElement, particleGapFactor: number) => {
   if (!octx) return []
 
   const fontSize = Math.min(width * 0.45, 500)
-  octx.clearRect(0, 0, width, height)
-  octx.fillStyle = '#ffffff'
-  octx.font = `700 ${fontSize}px "IBM Plex Sans", system-ui, sans-serif`
-  octx.textAlign = 'center'
-  octx.textBaseline = 'middle'
-  octx.fillText('404', width / 2, height / 2 + fontSize * 0.05)
+  const text = '404'
+  const chars = [...text]
 
-  const data = octx.getImageData(0, 0, width, height).data
+  octx.font = `700 ${fontSize}px "IBM Plex Sans", system-ui, sans-serif`
+  octx.textAlign = 'left'
+  octx.textBaseline = 'middle'
+
+  const baselineY = height / 2 + fontSize * 0.05
+  const startX = (width - octx.measureText(text).width) / 2
+
+  // Render each digit on its own and capture its alpha map. A particle's colour
+  // is then decided by which digit it belongs to, so colours can't bleed across
+  // digit boundaries (the previous "split the canvas into thirds" approach did).
+  const charAlphas = chars.map((char, i) => {
+    octx.clearRect(0, 0, width, height)
+    octx.fillStyle = '#ffffff'
+    octx.fillText(char, startX + octx.measureText(text.slice(0, i)).width, baselineY)
+    return octx.getImageData(0, 0, width, height).data
+  })
+
   const particles: Particle[] = []
   const gap = Math.max(10, Math.floor(fontSize / particleGapFactor))
 
   for (let y = 0; y < height; y += gap) {
     for (let x = 0; x < width; x += gap) {
       const index = (y * width + x) * 4 + 3
-      const alpha = data[index]
-      const region = x < width / 3 ? 0 : x > (width * 2) / 3 ? 2 : 1
-      const colour = alpha <= 200 ? backgroundcolours[region] : particleColours[region]
+      const charIndex = charAlphas.findIndex((alphas) => alphas[index] > 200)
+      const colour = charIndex === -1 ? backgroundcolours[0] : particleColours[charIndex]
       particles.push({
         x,
         y,
@@ -158,6 +169,28 @@ function NotFoundPage() {
           />
         </div>
         <div className={styles.controlsPanel}>
+          <div className={styles.presets}>
+            <button
+              type="button"
+              className={styles.presetButton}
+              onClick={() => {
+                setSpring(0)
+                setDamping(0.99)
+              }}
+            >
+              Fly away
+            </button>
+            <button
+              type="button"
+              className={styles.presetButton}
+              onClick={() => {
+                setSpring(0.5)
+                setDamping(1)
+              }}
+            >
+              Bounce forever
+            </button>
+          </div>
           <div className={styles.controlGroup}>
             <label htmlFor="spring">Spring</label>
             <input

@@ -17,6 +17,10 @@ interface AnimationFrame {
 
 const ANIMATION_FRAME_DURATION_S = 0.7
 
+// Used as the input placeholder and as the fallback values when Start is pressed
+// with no valid input. Change here to update both.
+const PLACEHOLDER_NUMBERS = '50, 3, 18, 1, 9, 6, 3'
+
 const parseInput = (input: string): number[] => {
   return input
     .split(',')
@@ -132,7 +136,9 @@ function GulagSortVisualizer() {
 
   const handleStart = async () => {
     if (isAnimating) return
-    const nums = parseInput(input)
+    const parsed = parseInput(input)
+    // Fall back to the placeholder values when nothing valid was entered.
+    const nums = parsed.length > 0 ? parsed : parseInput(PLACEHOLDER_NUMBERS)
     if (nums.length === 0) return
 
     const newBlocks: GulagBlock[] = nums.map((value, i) => ({
@@ -285,7 +291,7 @@ function GulagSortVisualizer() {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="e.g.: 50, 3, 18, 1, 9, 6, 3"
+            placeholder={`e.g.: ${PLACEHOLDER_NUMBERS}`}
             disabled={isAnimating}
           />
         </div>
@@ -295,6 +301,7 @@ function GulagSortVisualizer() {
             <button
               onClick={handleStart}
               disabled={isAnimating}
+              className={styles.startButton}
               aria-label="Start sorting the entered numbers"
             >
               Start

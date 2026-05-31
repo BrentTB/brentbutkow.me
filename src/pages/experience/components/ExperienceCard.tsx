@@ -52,6 +52,7 @@ function ExperienceCard({
                 descriptions={project.description}
                 pills={project.skills}
                 pillsLimit={PILLS_TO_SHOW}
+                nested
               />
             </div>
           ))}

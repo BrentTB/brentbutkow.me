@@ -8,6 +8,12 @@
   border-top: 1px solid var(--border);
 }
 
+/* Nested sub-item (e.g. projects under a role): no divider, tighter rhythm. */
+.nested {
+  border-top: none;
+  padding: 16px 0;
+}
+
 .period {
   font-family: var(--font-mono);
   font-size: 0.8rem;
@@ -55,11 +61,6 @@
   list-style: none;
   padding: 0;
   margin: 16px 0 0;
-
-  &:has(.pill.clickable:hover) .pill {
-    border-color: var(--accent);
-    color: var(--accent);
-  }
 }
 
 .pill {
@@ -70,12 +71,26 @@
   color: var(--text-secondary);
   font-family: var(--font-mono);
   font-size: 0.76rem;
+}
 
-  &.clickable {
-    cursor: pointer;
-    transition:
-      border-color 150ms ease,
-      color 150ms ease;
+/* Only this control is interactive — the real skill tags stay static. */
+.pillToggle {
+  padding: 4px 11px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  cursor: pointer;
+  transition:
+    border-color 150ms ease,
+    color 150ms ease;
+
+  &:hover,
+  &:focus-visible {
+    border-color: var(--accent);
+    color: var(--accent);
   }
 }
 

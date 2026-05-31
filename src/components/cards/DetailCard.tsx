@@ -1,4 +1,4 @@
-import { useMemo, useState, ReactNode } from 'react'
+import { useState, ReactNode } from 'react'
 import styles from './DetailCard.module.scss'
 
 type DetailCardProps = {
@@ -10,6 +10,8 @@ type DetailCardProps = {
   /** How many pills to show before collapsing; if undefined, all pills are shown. */
   pillsLimit?: number
   className?: string
+  /** Renders as a sub-item (no top divider, tighter spacing) — used for nested projects. */
+  nested?: boolean
   children?: ReactNode
 }
 
@@ -21,31 +23,18 @@ function DetailCard({
   pills,
   pillsLimit,
   className = '',
+  nested = false,
   children,
 }: DetailCardProps) {
   const [expanded, setExpanded] = useState(false)
 
-  const { visiblePills, isCollapsible } = useMemo(() => {
-    if (!pills || pills.length === 0) {
-      return { visiblePills: undefined, isCollapsible: false }
-    }
+  const isCollapsible = !!pills && pillsLimit !== undefined && pills.length > pillsLimit + 1
+  const visiblePills =
+    pills && isCollapsible && !expanded ? pills.slice(0, pillsLimit) : (pills ?? [])
 
-    if (pillsLimit === undefined || pills.length <= pillsLimit + 1) {
-      return { visiblePills: pills, isCollapsible: false }
-    }
+  const toggle = () => setExpanded((prev) => !prev)
 
-    const visible = expanded ? pills : pills.slice(0, pillsLimit).concat('...')
-    return { visiblePills: visible, isCollapsible: true }
-  }, [expanded, pills, pillsLimit])
-
-  const handleToggle = () => {
-    if (isCollapsible) {
-      setExpanded((prev) => !prev)
-    }
-  }
-
-  const cardClass = `${styles.card} ${className}`.trim()
-  const pillClass = isCollapsible ? `${styles.pill} ${styles.clickable}` : styles.pill
+  const cardClass = [styles.card, nested ? styles.nested : '', className].filter(Boolean).join(' ')
 
   return (
     <article className={cardClass}>
@@ -63,13 +52,30 @@ function DetailCard({
             </p>
           ))}
 
-        {visiblePills && visiblePills.length > 0 && (
+        {pills && pills.length > 0 && (
           <ul className={styles.pills}>
             {visiblePills.map((pill) => (
-              <li key={pill} className={pillClass} onClick={handleToggle}>
+              <li key={pill} className={styles.pill}>
                 {pill}
               </li>
             ))}
+            {isCollapsible && (
+              <li
+                className={styles.pillToggle}
+                role="button"
+                tabIndex={0}
+                aria-expanded={expanded}
+                onClick={toggle}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    toggle()
+                  }
+                }}
+              >
+                {expanded ? 'Show less' : `+${pills.length - (pillsLimit ?? 0)}`}
+              </li>
+            )}
           </ul>
         )}
         {children}

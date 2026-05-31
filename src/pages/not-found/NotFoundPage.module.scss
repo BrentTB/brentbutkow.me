@@ -98,6 +98,32 @@
   border-radius: 12px;
 }
 
+.presets {
+  display: flex;
+  gap: 8px;
+}
+
+.presetButton {
+  flex: 1;
+  padding: 9px 14px;
+  background: var(--surface-strong);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition:
+    border-color 150ms ease,
+    color 150ms ease;
+
+  &:hover,
+  &:focus-visible {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+}
+
 .controlGroup {
   display: flex;
   flex-direction: column;

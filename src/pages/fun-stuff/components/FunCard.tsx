@@ -20,7 +20,7 @@ function FunCard({ item }: FunCardProps) {
   const href = item.link ? `${location.pathname}${item.link}` : undefined
 
   return (
-    <ArticleOrLinkCard href={href} className={styles.card} internal={true}>
+    <ArticleOrLinkCard href={href} internal={true}>
       {content}
     </ArticleOrLinkCard>
   )
