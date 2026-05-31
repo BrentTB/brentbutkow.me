@@ -143,6 +143,11 @@ Apply the usual lens too, weighted toward this repo's documented bar (see CLAUDE
 - **Type safety**: no `any`, no casting untrusted/JSON data instead of validating it (the
   repo uses type guards like `isJokeType` — follow that pattern). Prefer precise types over
   widening.
+- **No magic-string union types**: flag any new `type Foo = 'a' | 'b'` pattern. This repo
+  requires a `const` object + derived type so the values are usable at runtime without magic
+  strings (e.g. `const Foo = { a: 'a', b: 'b' } as const; type Foo = (typeof Foo)[keyof typeof Foo]`).
+  See CLAUDE.md "No magic-string union types" for the full pattern. Existing violations in
+  unchanged code are out of scope, but any **new** string-union type in the diff is a 🟡 flag.
 - **Effect hygiene**: every `useEffect`/`requestAnimationFrame`/listener/timeout/observer
   added must clean up on unmount. A missing cleanup is a real bug here, not a nit.
 - **Hook test coverage**: **every custom hook (`useX`) must have a colocated `*.test.ts`.** If the

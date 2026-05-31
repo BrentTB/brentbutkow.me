@@ -1,0 +1,39 @@
+.wrapper {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 0;
+
+  @media (max-width: 768px) {
+    padding: 0;
+    margin: 0 -20px -32px;
+    width: calc(100% + 40px);
+    overflow: hidden;
+  }
+}
+
+.gameContainer {
+  position: relative;
+  width: 100%;
+  max-width: 1000px;
+  aspect-ratio: 16 / 10;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: #06080e;
+
+  @media (max-width: 768px) {
+    max-width: none;
+    aspect-ratio: auto;
+    height: calc(100dvh - 440px);
+    border: none;
+    border-radius: 0;
+  }
+}
+
+.canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}

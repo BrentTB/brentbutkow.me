@@ -8,12 +8,15 @@ import AchievementsPage from '../pages/achievements/AchievementsPage'
 import { lazy } from 'react'
 import { AppRoute } from './routes.types'
 import { funStuffSubRoutes } from '../pages/fun-stuff/data'
+import { gamesSubRoutes } from '../pages/fun-stuff/subpages/Games/data'
 
 // Heavy / rarely-visited subpages are code-split out of the initial bundle.
 const GulagSort = lazy(() => import('../pages/fun-stuff/subpages/GulagSort/GulagSort'))
 const CourseProjects = lazy(
   () => import('../pages/fun-stuff/subpages/CourseProjects/CourseProjects')
 )
+const GamesPage = lazy(() => import('../pages/fun-stuff/subpages/Games/GamesPage'))
+const EventHorizon = lazy(() => import('../pages/fun-stuff/subpages/EventHorizon/EventHorizon'))
 
 export const routePaths = {
   home: '/',
@@ -25,7 +28,21 @@ export const routePaths = {
   notFound: '*',
 }
 
+const gamesPath = `${routePaths.funStuff}${funStuffSubRoutes.games}`
+
 export const funStuffRoutes: AppRoute[] = [
+  {
+    path: gamesPath,
+    element: <GamesPage />,
+    dontShowInNavbar: true,
+    title: 'Games — Brent Butkow',
+  },
+  {
+    path: `${gamesPath}${gamesSubRoutes.eventHorizon}`,
+    element: <EventHorizon />,
+    dontShowInNavbar: true,
+    title: 'Event Horizon — Brent Butkow',
+  },
   {
     path: `${routePaths.funStuff}${funStuffSubRoutes.gulagSort}`,
     element: <GulagSort />,

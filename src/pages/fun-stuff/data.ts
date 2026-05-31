@@ -3,9 +3,15 @@ import { FunItem } from '../../data/data.types'
 export const funStuffSubRoutes = {
   gulagSort: '/gulag-sort',
   courseProjects: '/course-projects',
+  games: '/games',
 }
 
 export const funStuff: FunItem[] = [
+  {
+    title: 'Games',
+    description: 'Space games and other interactive experiments — playable right in your browser',
+    link: funStuffSubRoutes.games,
+  },
   {
     title: 'Gulag Sort',
     description: 'My first self-developed sorting algorithm, based on the (joke) Stalin sort',
