@@ -10,7 +10,7 @@ uniform int u_rippleCount;
 uniform vec2 u_centers[${maxRipples}];
 uniform float u_startTimes[${maxRipples}];
 
-// ── value noise + fbm ──────────────────────────────────────────────
+// ── gradient noise + fbm ───────────────────────────────────────────
 // Bounded hash with no sin(): sin's large-argument precision varies by GPU/driver
 // and tiles the noise into hard squares on some browsers — this form stays stable.
 float hash(vec2 p) {

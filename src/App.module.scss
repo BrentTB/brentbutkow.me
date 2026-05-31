@@ -1,6 +1,7 @@
 .shell {
   position: relative;
   z-index: 1;
+  flex: 1;
   max-width: 1180px;
   margin: 0 auto;
   // No top padding: the sticky navbar sits flush with the viewport top on load
