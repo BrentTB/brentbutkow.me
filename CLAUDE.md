@@ -151,6 +151,17 @@ This repo is a showcase — the code itself should look as polished as the UI.
   (see [WaterRipple.tsx](src/components/effects/WaterRipple.tsx), [CodeSection.tsx](src/components/CodeSection/CodeSection.tsx)).
 - **External links go through [SafeLink](src/components/utils/SafeLink.tsx)** (auto `target="_blank"`
   + `rel="noopener noreferrer"`); internal links use React Router `Link`.
+- **Comments are lean and present-tense.** Explain what the code does now and why — never how it
+  used to work, and never narrate a change ("no longer…", "previously…", "the old approach"). If the
+  code is self-explanatory, write no comment. Prefer one tight line over a paragraph.
+  - Bad: `// One ripple per press — covers mouse and touch. Dragging a finger no longer spams a stream of ripples (which looked bad against the MAX_RIPPLES cap).`
+  - Good: `// One ripple per press — covers mouse and touch.`
+  - Bad: `// Fun mode: lighter bar so it sits in the water rather than reading as a near-black slab against the light-blue background.`
+  - Good: _(no comment — the code speaks for itself)_
+- **Named exports only — no `default` exports.** New files use named exports
+  (`export function Hero() {}`, `export const routePaths = …`). Existing default exports are migrated
+  opportunistically as files are touched, not in a big-bang pass — so don't churn unrelated files
+  just to convert them.
 - Match the surrounding style: 2-space indent, single quotes, no semicolons, ~100 col width
   (enforced by Prettier — see [.prettierrc](.prettierrc)). Let Prettier format; don't fight it.
 

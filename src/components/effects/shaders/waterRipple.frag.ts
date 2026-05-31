@@ -56,12 +56,11 @@ float rippleField(vec2 p, float t) {
       float behind = max(-fd, 0.0);
       float env = exp(-ahead * ahead * 250.0) * exp(-behind * 7.0); // ring + trailing tail
       float wave = sin(fd * 50.0);              // a crest + a trailing ring, not a dense stack
-      float onset = smoothstep(0.0, 0.6, age);  // grow out of the point — no pop-in
       float decay = exp(-0.9 * age);            // settle as it spreads
-      sum += wave * env * onset * decay;
+      sum += wave * env * decay;
     }
   }
-  return sum * 0.2;
+  return sum * 0.1;
 }
 
 // ── idle flowing surface (animated on its own) ─────────────────────

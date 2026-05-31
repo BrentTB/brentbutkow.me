@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 import styles from './CodeSection.module.scss'
+import { useCopyToClipboard } from './useCopyToClipboard'
 
 export interface CodeBlock {
   title: string
@@ -12,37 +13,10 @@ interface CodeSectionProps {
 
 export default function CodeSection({ codeBlocks }: CodeSectionProps) {
   const [activeTab, setActiveTab] = useState(0)
-  const [copied, setCopied] = useState(false)
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current !== null) {
-        clearTimeout(timeoutRef.current)
-      }
-    }
-  }, [])
+  const { copied, copy } = useCopyToClipboard()
 
   if (!codeBlocks || codeBlocks.length === 0) {
     return null
-  }
-
-  const handleCopy = async () => {
-    try {
-      if (timeoutRef.current !== null) {
-        clearTimeout(timeoutRef.current)
-      }
-
-      await navigator.clipboard.writeText(codeBlocks[activeTab].code)
-      setCopied(true)
-
-      timeoutRef.current = setTimeout(() => {
-        setCopied(false)
-        timeoutRef.current = null
-      }, 2000)
-    } catch (err) {
-      console.error('Failed to copy code:', err)
-    }
   }
 
   return (
@@ -61,7 +35,7 @@ export default function CodeSection({ codeBlocks }: CodeSectionProps) {
       <div className={styles.codeContent}>
         <button
           className={styles.copyButton}
-          onClick={handleCopy}
+          onClick={() => copy(codeBlocks[activeTab].code)}
           aria-label={copied ? 'Code copied to clipboard' : 'Copy code to clipboard'}
         >
           {copied ? '✓ Copied!' : 'Copy'}

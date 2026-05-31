@@ -3,7 +3,8 @@ import { routePaths, routes } from '../../routes/routes.config'
 import styles from './Navbar.module.scss'
 import ModeToggle from '../ModeToggle'
 import { useFunMode } from '../../contexts/useFunMode'
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
+import { useFocusTrap } from './useFocusTrap'
 
 function Navbar() {
   const { isFunMode, setIsFunMode } = useFunMode()
@@ -14,40 +15,12 @@ function Navbar() {
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false)
 
-  // While the mobile menu is open: Escape closes it (and returns focus to the
-  // toggle), and Tab is trapped within the navbar.
-  useEffect(() => {
-    if (!isMobileMenuOpen) return
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setIsMobileMenuOpen(false)
-        toggleRef.current?.focus()
-        return
-      }
-      if (event.key !== 'Tab' || !navbarRef.current) return
-
-      const focusable = Array.from(
-        navbarRef.current.querySelectorAll<HTMLElement>(
-          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
-        )
-      ).filter((el) => el.offsetParent !== null)
-      if (focusable.length === 0) return
-
-      const first = focusable[0]
-      const last = focusable[focusable.length - 1]
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault()
-        last.focus()
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault()
-        first.focus()
-      }
-    }
-
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [isMobileMenuOpen])
+  // While the mobile menu is open, trap Tab focus within the navbar and let
+  // Escape close it (returning focus to the toggle that opened it).
+  useFocusTrap(navbarRef, isMobileMenuOpen, () => {
+    setIsMobileMenuOpen(false)
+    toggleRef.current?.focus()
+  })
 
   const openStyle = isMobileMenuOpen ? styles.open : ''
 
