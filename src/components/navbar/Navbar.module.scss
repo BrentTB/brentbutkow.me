@@ -8,18 +8,20 @@
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  padding: 16px 0;
-  margin-bottom: 32px;
-  background: linear-gradient(180deg, rgba(11, 18, 34, 0.9), rgba(11, 18, 34, 0.65));
-  backdrop-filter: blur(12px);
+  padding: 14px 0;
+  margin-bottom: 40px;
+  background: rgba(11, 12, 15, 0.72);
+  backdrop-filter: blur(14px) saturate(140%);
 }
 
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-weight: 700;
-  letter-spacing: 0.4px;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
   position: relative;
   z-index: 20;
 }
@@ -30,7 +32,7 @@
   height: 10px;
   border-radius: 50%;
   background: var(--accent);
-  box-shadow: 0 0 0 6px rgba(127, 240, 201, 0.2);
+  box-shadow: 0 0 0 5px rgba(var(--accent-rgb), 0.18);
 }
 
 .end {
@@ -54,7 +56,17 @@
 .link {
   position: relative;
   padding: 8px 0;
-  font-weight: 500;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  color: var(--text-secondary);
+  transition: color 150ms ease;
+}
+
+.link:hover,
+.link:focus-visible {
+  color: var(--text);
 }
 
 .link::after {
@@ -130,8 +142,12 @@
   }
 }
 
+.active {
+  color: var(--text);
+}
+
 .active::after {
-  opacity: 0.5;
+  opacity: 0.7;
   transform: scaleX(1);
 }
 

@@ -15,7 +15,7 @@
 .title {
   margin: 0 0 12px;
   font-size: clamp(4rem, 10vw, 6rem);
-  background: linear-gradient(120deg, var(--accent), rgba(127, 240, 201, 0.6));
+  background: linear-gradient(120deg, var(--accent), rgba(var(--accent-rgb), 0.6));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -75,9 +75,9 @@
   padding: 12px 20px;
   border-radius: 12px;
   font-weight: 700;
-  background: linear-gradient(120deg, var(--accent), rgba(127, 240, 201, 0.6));
+  background: linear-gradient(120deg, var(--accent), rgba(var(--accent-rgb), 0.6));
   color: var(--bg);
-  box-shadow: 0 10px 30px rgba(127, 240, 201, 0.3);
+  box-shadow: 0 10px 30px rgba(var(--accent-rgb), 0.3);
   transition: transform 150ms ease;
 }
 

@@ -31,7 +31,7 @@ const getParticles = (canvas: HTMLCanvasElement, particleGapFactor: number) => {
   const fontSize = Math.min(width * 0.45, 500)
   octx.clearRect(0, 0, width, height)
   octx.fillStyle = '#ffffff'
-  octx.font = `800 ${fontSize}px "Space Grotesk", "Inter", system-ui, sans-serif`
+  octx.font = `700 ${fontSize}px "IBM Plex Sans", system-ui, sans-serif`
   octx.textAlign = 'center'
   octx.textBaseline = 'middle'
   octx.fillText('404', width / 2, height / 2 + fontSize * 0.05)
