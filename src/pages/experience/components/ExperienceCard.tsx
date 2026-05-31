@@ -44,7 +44,7 @@ function ExperienceCard({
           className={`${styles.projectsContainer} ${showProjects ? styles.expanded : styles.collapsed}`}
         >
           {experienceProjects.map((project, index) => (
-            <div key={`${project.company}-${index}`} className={styles.projectCard}>
+            <div key={`${project.company}-${index}`}>
               <DetailCard
                 title={project.company}
                 subtitle=""

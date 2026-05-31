@@ -10,9 +10,22 @@
   gap: 24px;
   padding: 22px 0 18px;
   margin-bottom: clamp(44px, 6vw, 80px);
-  background: rgba(11, 12, 15, 0.72);
-  backdrop-filter: blur(14px) saturate(140%);
-  border-bottom: 1px solid var(--border);
+
+  // Full-bleed bar: the visual background spans the whole viewport so there are
+  // no sharp side edges, while the grid content stays aligned to the page width.
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(50% - 50vw);
+    width: 100vw;
+    background: rgba(11, 12, 15, 0.72);
+    backdrop-filter: blur(14px) saturate(140%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    z-index: -1;
+    pointer-events: none;
+  }
 }
 
 .brand {

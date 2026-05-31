@@ -36,10 +36,10 @@
 .projectsContainer {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-left: 32px;
-  padding-left: 16px;
-  padding-right: 15px;
+  // Indented with a single vertical hairline → reads as a sub-tree of the role.
+  margin-left: 24px;
+  padding-left: 28px;
+  border-left: 1px solid var(--border);
   overflow: hidden;
   transition:
     max-height 0.5s ease,
@@ -58,37 +58,11 @@
     opacity: 1;
     transform: translateY(0);
   }
-
-  > .projectCard:first-child {
-    margin-top: 15px;
-  }
-  > .projectCard:last-child {
-    margin-bottom: 15px;
-  }
-}
-
-.projectCard {
-  position: relative;
-
-  &::before {
-    content: '';
-    position: absolute;
-    left: -20px;
-    top: 50%;
-    width: 18px;
-    height: 2px;
-    background: var(--accent);
-  }
 }
 
 @media (max-width: 640px) {
   .projectsContainer {
-    margin-left: 16px;
-    padding-left: 12px;
-  }
-
-  .projectCard::before {
-    width: 8px;
-    left: -12px;
+    margin-left: 12px;
+    padding-left: 18px;
   }
 }

@@ -5,35 +5,41 @@
   position: relative;
   padding: 26px 0;
   border-top: 1px solid var(--border);
-}
-
-/* Link variant: a left accent bar + arrow that respond on hover. */
-a.card {
-  cursor: pointer;
   transition: padding-left 200ms ease;
 }
 
-a.card::before {
+/* Every row gets the same left-bar hover feedback for consistency.
+   Colour signals interactivity: grey = info only, gold = a real link. */
+.card::before {
   content: '';
   position: absolute;
   left: 0;
   top: 18px;
   bottom: 18px;
   width: 2px;
-  background: var(--accent);
+  background: rgba(255, 255, 255, 0.28);
   transform: scaleY(0);
   transform-origin: center;
   transition: transform 220ms ease;
 }
 
-a.card:hover,
-a.card:focus-visible {
+.card:hover,
+.card:focus-visible {
   padding-left: 20px;
 }
 
-a.card:hover::before,
-a.card:focus-visible::before {
+.card:hover::before,
+.card:focus-visible::before {
   transform: scaleY(1);
+}
+
+/* Link variant: clickable → gold bar, pointer cursor, animated arrow. */
+a.card {
+  cursor: pointer;
+}
+
+a.card::before {
+  background: var(--accent);
 }
 
 .linkIcon {
