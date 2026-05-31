@@ -93,7 +93,7 @@ float surface(vec2 p, float t) {
 }
 
 float height(vec2 p, float t) {
-  return surface(p, t) * 0.5 + rippleField(p, t);
+  return surface(p, t) * 0.6 + rippleField(p, t);
 }
 
 void main() {
