@@ -42,7 +42,7 @@ const buildProgram = (gl: WebGLRenderingContext, vsSource: string, fsSource: str
 // Drives the full-screen WebGL water surface: builds the shader program, runs
 // the render loop, and spawns a ripple on each pointer press. No-ops gracefully
 // when the canvas is missing or WebGL is unavailable, and on unmount tears down
-// the rAF loop and listeners and releases the GL program, buffer, and context.
+// the rAF loop and listeners and releases the GL program and buffer.
 export function useWaterRipple(canvasRef: RefObject<HTMLCanvasElement | null>) {
   useEffect(() => {
     const canvas = canvasRef.current
@@ -151,7 +151,6 @@ export function useWaterRipple(canvasRef: RefObject<HTMLCanvasElement | null>) {
       window.removeEventListener('pointerdown', handlePointerDown)
       gl.deleteBuffer(buffer)
       gl.deleteProgram(program)
-      gl.getExtension('WEBGL_lose_context')?.loseContext()
     }
   }, [canvasRef])
 }
