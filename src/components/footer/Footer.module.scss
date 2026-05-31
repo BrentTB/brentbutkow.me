@@ -4,6 +4,16 @@
   padding: 36px clamp(20px, 4vw, 48px);
 }
 
+// Fun mode: the fixed water canvas lives inside the higher-stacked `.shell`, so it
+// paints over the footer (which sits outside `.shell`). Lift the footer above that
+// layer AND give it a glass panel, or its text washes out under the water.
+:global(html.fun-mode) .footer {
+  position: relative;
+  z-index: 2;
+  background: var(--fun-surface);
+  backdrop-filter: blur(10px);
+}
+
 .content {
   max-width: 1180px;
   margin: 0 auto;

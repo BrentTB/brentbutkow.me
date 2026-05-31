@@ -1,82 +1,11 @@
 import { useEffect, useRef } from 'react'
 import styles from './WaterRipple.module.scss'
+import { vertexShaderSource } from './shaders/waterRipple.vert'
+import { createFragmentShaderSource } from './shaders/waterRipple.frag'
 
 const MAX_RIPPLES = 20
 
-const vertexShaderSource = `
-precision highp float;
-
-attribute vec2 a_position;
-varying vec2 v_uv;
-
-void main() {
-  v_uv = (a_position + 1.0) * 0.5; // map clip space to 0..1
-  gl_Position = vec4(a_position, 0.0, 1.0);
-}
-`
-
-const fragmentShaderSource = `
-precision highp float;
-
-varying vec2 v_uv;
-uniform float u_time;
-uniform int u_rippleCount;
-uniform vec2 u_centers[${MAX_RIPPLES}];
-uniform float u_startTimes[${MAX_RIPPLES}];
-
-// water-like ripple with multiple frequencies
-float ripple(vec2 uv, vec2 center, float age) {
-  if (age < 0.0) return 0.0;
-  float dist = distance(uv, center);
-  float speed = 0.2;
-  float radius = age * speed;
-  
-  // multiple wave frequencies for realistic water
-  float wave1 = sin(100.0 * (dist - radius)) * 0.4;
-  float wave2 = sin(140.0 * (dist - radius) + age * 3.0) * 0.5;
-  float wave3 = sin(180.0 * (dist - radius) - age * 2.0) * 0.3;
-  float ring1 = 1.0 - smoothstep(radius, radius+0.02, dist);
-    wave1 *= ring1;
-    float ring2 = 1.0 - smoothstep(radius - 0.015, radius, dist);
-    wave2 *= ring2;
-    float ring3 = 1.0 - smoothstep(radius - 0.01, radius, dist);
-    wave3 *= ring3;
-  float wave = wave1 + wave2 + wave3;
-  
-  // softer falloff for water-like spread
-  float falloff = exp(-2.0 * dist);
-  float ageFade = exp(-0.9 * age);
-  
-  return wave * falloff * ageFade;
-}
-
-void main() {
-  float displacement = 0.0;
-  for (int i = 0; i < ${MAX_RIPPLES}; i++) {
-    if (i >= u_rippleCount) break;
-    float age = u_time - u_startTimes[i];
-    displacement += ripple(v_uv, u_centers[i], age);
-  }
-
-  // water colors: deep blue base with lighter blue highlights
-  vec3 deepWater = vec3(0.02, 0.15, 0.28);
-  vec3 shallowWater = vec3(0.08, 0.35, 0.52);
-  vec3 waterHighlight = vec3(0.35, 0.65, 0.85);
-  
-  // base gradient from deep to shallow
-  vec3 baseColor = mix(deepWater, shallowWater, v_uv.y * 0.6 + 0.4);
-  
-  // add wave highlights with subtle refraction effect
-  float highlight = clamp(displacement * 0.4, -0.3, 0.5);
-  vec3 color = mix(baseColor, waterHighlight, highlight);
-  
-  // add subtle shimmer
-  float shimmer = sin(v_uv.x * 40.0 + u_time * 2.0) * sin(v_uv.y * 40.0 + u_time * 1.5) * 0.01;
-  color += shimmer;
-
-  gl_FragColor = vec4(color, 0.95);
-}
-`
+const fragmentShaderSource = createFragmentShaderSource(MAX_RIPPLES)
 
 const buildShader = (gl: WebGLRenderingContext, type: number, source: string) => {
   const shader = gl.createShader(type)
@@ -123,10 +52,19 @@ function WaterRipple() {
 
     const positionLoc = gl.getAttribLocation(program, 'a_position')
     const timeLoc = gl.getUniformLocation(program, 'u_time')
+    const aspectLoc = gl.getUniformLocation(program, 'u_aspect')
     const rippleCountLoc = gl.getUniformLocation(program, 'u_rippleCount')
     const centersLoc = gl.getUniformLocation(program, 'u_centers')
     const startTimesLoc = gl.getUniformLocation(program, 'u_startTimes')
-    if (positionLoc === -1 || !timeLoc || !rippleCountLoc || !centersLoc || !startTimesLoc) return
+    if (
+      positionLoc === -1 ||
+      !timeLoc ||
+      !aspectLoc ||
+      !rippleCountLoc ||
+      !centersLoc ||
+      !startTimesLoc
+    )
+      return
 
     // full-screen quad
     const quad = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1])
@@ -139,7 +77,8 @@ function WaterRipple() {
     const ripples: Array<{ x: number; y: number; start: number }> = []
 
     const resize = () => {
-      const dpr = window.devicePixelRatio || 1
+      // Cap DPR — this shader is fairly heavy, and the soft water hides the lower res.
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.5)
       const { clientWidth, clientHeight } = canvas
       canvas.width = clientWidth * dpr
       canvas.height = clientHeight * dpr
@@ -153,14 +92,10 @@ function WaterRipple() {
       if (ripples.length > MAX_RIPPLES) ripples.pop()
     }
 
+    // One ripple per press — covers mouse and touch. Dragging a finger no longer
+    // spams a stream of ripples (which looked bad against the MAX_RIPPLES cap).
     const handlePointerDown = (event: PointerEvent) => {
       addRipple(event.clientX, event.clientY, performance.now() * 0.001)
-    }
-
-    const handleTouchMove = (event: TouchEvent) => {
-      if (event.touches.length === 0) return
-      const touch = event.touches[0]
-      addRipple(touch.clientX, touch.clientY, performance.now() * 0.001)
     }
 
     const render = (timeMs: number) => {
@@ -182,6 +117,7 @@ function WaterRipple() {
       gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0)
 
       gl.uniform1f(timeLoc, time)
+      gl.uniform1f(aspectLoc, canvas.width / canvas.height)
       gl.uniform1i(rippleCountLoc, ripples.length)
 
       // pack ripple data into flat arrays
@@ -203,14 +139,12 @@ function WaterRipple() {
     resize()
     window.addEventListener('resize', resize)
     window.addEventListener('pointerdown', handlePointerDown)
-    window.addEventListener('touchmove', handleTouchMove, { passive: true })
     animationId = requestAnimationFrame(render)
 
     return () => {
       cancelAnimationFrame(animationId)
       window.removeEventListener('resize', resize)
       window.removeEventListener('pointerdown', handlePointerDown)
-      window.removeEventListener('touchmove', handleTouchMove)
     }
   }, [])
 

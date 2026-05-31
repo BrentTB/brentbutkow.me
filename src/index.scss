@@ -6,6 +6,9 @@
   --surface-strong: rgba(255, 255, 255, 0.05);
   --border: rgba(255, 255, 255, 0.09);
   --border-strong: rgba(255, 255, 255, 0.18);
+  /* Translucent navy glass for panels over the Fun-mode water (navbar, footer, etc.) —
+     lighter & bluer than the ink surfaces, but dark enough to keep text readable. */
+  --fun-surface: rgba(8, 26, 50, 0.55);
 
   /* ── Warm editorial accent (used sparingly) ──────────────── */
   --accent: #e9b872;

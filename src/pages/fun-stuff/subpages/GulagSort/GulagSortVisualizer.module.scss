@@ -215,6 +215,13 @@
   flex-shrink: 0;
 }
 
+// Fun mode: the input and gulag containers use the dark ink surface, which reads
+// as stark near-black boxes over the light-blue water — swap to the glass panel.
+:global(html.fun-mode) .inputGroup input,
+:global(html.fun-mode) .blocksContainer {
+  background: var(--fun-surface);
+}
+
 .exitDown {
   animation: exitDown 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }

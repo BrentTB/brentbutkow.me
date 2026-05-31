@@ -28,6 +28,12 @@
   }
 }
 
+// Fun mode: lighter, blue-tinted bar so it sits in the water rather than reading
+// as a near-black slab against the light-blue background.
+:global(html.fun-mode) .navbar::before {
+  background: var(--fun-surface);
+}
+
 .brand {
   display: inline-flex;
   align-items: center;
