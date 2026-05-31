@@ -49,17 +49,17 @@
   box-sizing: border-box;
 }
 
+/* In fun mode the fixed water canvas sits behind the page — disable overscroll bounce
+   so it can't peek past the header/footer. Professional mode keeps the normal iOS feel. */
+html.fun-mode,
+html.fun-mode body {
+  overscroll-behavior: none;
+}
+
 #root {
   display: flex;
   flex-direction: column;
   flex: 1;
-}
-
-html,
-body {
-  /* No rubber-band overscroll, so the sticky header and the footer stay pinned to the
-     viewport edges and the fixed water canvas can't peek past them. */
-  overscroll-behavior: none;
 }
 
 body {
