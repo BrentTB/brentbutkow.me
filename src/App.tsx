@@ -4,17 +4,24 @@ import Router from './routes/Router'
 import styles from './App.module.scss'
 import Navbar from './components/navbar/Navbar'
 import Footer from './components/footer/Footer'
-import WaterRipple from './components/effects/WaterRipple'
 import { BrowserRouter } from 'react-router-dom'
 import { FunModeProvider } from './contexts/FunModeProvider'
 import { useFunMode } from './contexts/FunMode'
+import { lazy, Suspense } from 'react'
+
+// WebGL effect is Fun-mode-only and heavy — code-split it out of the initial bundle.
+const WaterRipple = lazy(() => import('./components/effects/WaterRipple'))
 
 const enableVercelAnalytics = import.meta.env.ENABLE_VERCEL_ANALYTICS === 'true'
 const enableVercelSpeedInsights = import.meta.env.ENABLE_VERCEL_SPEED_INSIGHTS === 'true'
 
 const WaterRippleLayer = () => {
   const { isFunMode } = useFunMode()
-  return isFunMode ? <WaterRipple /> : null
+  return isFunMode ? (
+    <Suspense fallback={null}>
+      <WaterRipple />
+    </Suspense>
+  ) : null
 }
 
 function App() {

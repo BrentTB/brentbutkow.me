@@ -20,15 +20,24 @@ function Hero({ content, isFunMode }: HeroProps) {
       <h1 className={styles.title}>{content.title}</h1>
       <p className={styles.subtitle}>{isFunMode ? content.subtitleFun : content.subtitle}</p>
       <div className={styles.actions}>
-        {filteredActions.map((action) => (
-          <Link
-            key={action.href}
-            className={`${styles.button} ${action.variant === 'ghost' ? styles.ghost : styles.primary}`}
-            to={action.href}
-          >
-            {action.label}
-          </Link>
-        ))}
+        {filteredActions.map((action) => {
+          const className = `${styles.button} ${action.variant === 'ghost' ? styles.ghost : styles.primary}`
+          return action.external ? (
+            <a
+              key={action.href}
+              className={className}
+              href={action.href}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {action.label}
+            </a>
+          ) : (
+            <Link key={action.href} className={className} to={action.href}>
+              {action.label}
+            </Link>
+          )
+        })}
       </div>
     </div>
   )

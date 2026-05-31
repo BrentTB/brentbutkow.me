@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import styles from './NotFoundPage.module.scss'
+import { useFunMode } from '../../contexts/FunMode'
 
 type Particle = {
   x: number
@@ -13,7 +14,16 @@ type Particle = {
 }
 
 const particleColours = ['#ff0000', '#00ff00', '#0000ff']
-const backgroundcolours = ['#000000', '#000000', '#000000']
+const backgroundColour = '#000000'
+
+const DEFAULT_SPRING = 0.1
+const DEFAULT_DAMPING = 0.9
+
+const PRESETS = [
+  { label: 'Normal', spring: DEFAULT_SPRING, damping: DEFAULT_DAMPING },
+  { label: 'Fly away', spring: 0, damping: 0.99 },
+  { label: 'Bounce forever', spring: 0.5, damping: 1 },
+]
 
 const getParticles = (canvas: HTMLCanvasElement, particleGapFactor: number) => {
   const { width: rectWidth } = canvas.getBoundingClientRect()
@@ -56,7 +66,7 @@ const getParticles = (canvas: HTMLCanvasElement, particleGapFactor: number) => {
     for (let x = 0; x < width; x += gap) {
       const index = (y * width + x) * 4 + 3
       const charIndex = charAlphas.findIndex((alphas) => alphas[index] > 200)
-      const colour = charIndex === -1 ? backgroundcolours[0] : particleColours[charIndex]
+      const colour = charIndex === -1 ? backgroundColour : particleColours[charIndex]
       particles.push({
         x,
         y,
@@ -72,9 +82,10 @@ const getParticles = (canvas: HTMLCanvasElement, particleGapFactor: number) => {
 }
 
 function NotFoundPage() {
+  const { isFunMode } = useFunMode()
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
-  const [spring, setSpring] = useState(0.1)
-  const [damping, setDamping] = useState(0.9)
+  const [spring, setSpring] = useState(DEFAULT_SPRING)
+  const [damping, setDamping] = useState(DEFAULT_DAMPING)
   const influenceRadius = 100
   const particleGapFactor = 28
 
@@ -170,53 +181,51 @@ function NotFoundPage() {
         </div>
         <div className={styles.controlsPanel}>
           <div className={styles.presets}>
-            <button
-              type="button"
-              className={styles.presetButton}
-              onClick={() => {
-                setSpring(0)
-                setDamping(0.99)
-              }}
-            >
-              Fly away
-            </button>
-            <button
-              type="button"
-              className={styles.presetButton}
-              onClick={() => {
-                setSpring(0.5)
-                setDamping(1)
-              }}
-            >
-              Bounce forever
-            </button>
+            {PRESETS.map((preset) => (
+              <button
+                key={preset.label}
+                type="button"
+                className={styles.presetButton}
+                onClick={() => {
+                  setSpring(preset.spring)
+                  setDamping(preset.damping)
+                }}
+              >
+                {preset.label}
+              </button>
+            ))}
           </div>
-          <div className={styles.controlGroup}>
-            <label htmlFor="spring">Spring</label>
-            <input
-              id="spring"
-              type="range"
-              min="0"
-              max="1"
-              step="0.01"
-              value={spring}
-              onChange={(e) => setSpring(Number(e.target.value))}
-              className={styles.slider}
-            />
-          </div>
-          <div className={styles.controlGroup}>
-            <label htmlFor="damping">Damping</label>
-            <input
-              id="damping"
-              type="range"
-              min="0.8"
-              max="1"
-              step="0.002"
-              value={damping}
-              onChange={(e) => setDamping(Number(e.target.value))}
-              className={styles.slider}
-            />
-          </div>
+          {/* Raw physics sliders are a Fun-mode-only toy; Professional mode keeps just the presets. */}
+          {isFunMode && (
+            <>
+              <div className={styles.controlGroup}>
+                <label htmlFor="spring">Spring</label>
+                <input
+                  id="spring"
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={spring}
+                  onChange={(e) => setSpring(Number(e.target.value))}
+                  className={styles.slider}
+                />
+              </div>
+              <div className={styles.controlGroup}>
+                <label htmlFor="damping">Damping</label>
+                <input
+                  id="damping"
+                  type="range"
+                  min="0.8"
+                  max="1"
+                  step="0.002"
+                  value={damping}
+                  onChange={(e) => setDamping(Number(e.target.value))}
+                  className={styles.slider}
+                />
+              </div>
+            </>
+          )}
         </div>
         <Link to="/" className={styles.button}>
           Back to home

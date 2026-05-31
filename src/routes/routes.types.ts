@@ -5,4 +5,6 @@ export type AppRoute = {
   element: ReactNode
   dontShowInNavbar?: boolean
   label?: string
+  /** Full document title for this route (drives the browser tab / SEO). */
+  title?: string
 }

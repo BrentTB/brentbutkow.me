@@ -3,8 +3,9 @@ import jokes from '../../data/jokes'
 import { JokeTypes, jokeTypeLabels } from '../../data/jokes.types'
 import Hero from './components/Hero'
 import CurrentWork from './components/CurrentWork'
+import About from './components/About'
 import styles from './HomePage.module.scss'
-import { heroContent } from './data'
+import { heroContent, aboutSectionEnabled, aboutParagraphs } from './data'
 import { useFunMode } from '../../contexts/FunMode'
 import { experience } from '../experience/data'
 
@@ -51,6 +52,7 @@ function HomePage() {
         <Hero content={heroContent} isFunMode={isFunMode} />
         {currentRole && <CurrentWork role={currentRole.role} company={currentRole.company} />}
       </section>
+      {aboutSectionEnabled && <About paragraphs={aboutParagraphs} />}
       {isFunMode && (
         <section id="jokes" className={styles.section}>
           <div className={styles.jokesHeader}>
