@@ -91,13 +91,51 @@ export const METEORITE_SPRITE: SpriteData = [
   [_, _, F, _, _],
 ]
 
-export type SpriteKey = 'ship' | 'drone' | 'tank' | 'projectile' | 'meteor' | 'meteorite'
+const P = '#8855cc' // purple
+const p = '#663399' // dark purple
+
+export const SHOOTER_SPRITE: SpriteData = [
+  [_, _, _, _, _, P, P, _, _, _, _, _, _, _, _, _],
+  [_, _, _, _, P, p, p, P, _, _, _, _, _, _, _, _],
+  [_, _, _, P, p, P, P, p, P, _, _, _, _, _, _, _],
+  [_, _, P, p, P, _, _, P, p, P, _, _, _, _, _, _],
+  [_, P, p, P, _, _, _, _, P, p, P, _, _, _, _, _],
+  [_, P, p, R, _, _, _, _, R, p, P, _, _, _, _, _],
+  [_, _, P, p, P, _, _, P, p, P, _, _, _, _, _, _],
+  [_, _, _, P, p, P, P, p, P, _, _, _, _, _, _, _],
+  [_, _, _, _, P, p, p, P, _, _, _, _, _, _, _, _],
+  [_, _, _, _, _, P, P, _, _, _, P, P, P, P, _, _],
+  [_, _, _, _, _, _, _, _, _, P, p, p, p, p, P, _],
+  [_, _, _, _, _, _, _, _, P, p, p, p, p, p, p, P],
+  [_, _, _, _, _, _, _, _, P, p, p, p, p, p, p, P],
+  [_, _, _, _, _, _, _, _, _, P, p, p, p, p, P, _],
+  [_, _, _, _, _, _, _, _, _, _, P, P, P, P, _, _],
+  [_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _],
+]
+
+export const ENEMY_PROJECTILE_SPRITE: SpriteData = [
+  [_, R, _],
+  [R, F, R],
+  [_, R, _],
+]
+
+export type SpriteKey =
+  | 'ship'
+  | 'drone'
+  | 'tank'
+  | 'shooter'
+  | 'projectile'
+  | 'enemyProjectile'
+  | 'meteor'
+  | 'meteorite'
 
 export const SPRITE_MAP: Record<SpriteKey, SpriteData> = {
   ship: SHIP_SPRITE,
   drone: DRONE_SPRITE,
   tank: TANK_SPRITE,
+  shooter: SHOOTER_SPRITE,
   projectile: PROJECTILE_SPRITE,
+  enemyProjectile: ENEMY_PROJECTILE_SPRITE,
   meteor: METEOR_SPRITE,
   meteorite: METEORITE_SPRITE,
 }

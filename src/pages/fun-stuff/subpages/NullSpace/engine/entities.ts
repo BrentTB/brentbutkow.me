@@ -5,6 +5,7 @@ import {
   PROJECTILE_RADIUS,
   METEORITE_STRIKE,
   METEOR_STRIKE,
+  BLACK_HOLE,
 } from '../data'
 import { AbilityKind, EnemyKind } from './types'
 import type { Ship, Enemy, Projectile, Vec2, Ability, Particle } from './types'
@@ -36,19 +37,48 @@ export function createShip(worldSize: Vec2): Ship {
   }
 }
 
-const ENEMY_CONFIGS: Record<
-  string,
-  {
-    hp: number
-    speed: number
-    damage: number
-    radius: number
-    scoreValue: number
-    powerReward: number
-  }
-> = {
-  [EnemyKind.drone]: { hp: 20, speed: 100, damage: 8, radius: 10, scoreValue: 10, powerReward: 5 },
-  [EnemyKind.tank]: { hp: 80, speed: 40, damage: 15, radius: 18, scoreValue: 30, powerReward: 15 },
+type EnemyConfig = {
+  hp: number
+  speed: number
+  damage: number
+  radius: number
+  scoreValue: number
+  powerReward: number
+  fireRate: number
+  attackRange: number
+}
+
+const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
+  [EnemyKind.drone]: {
+    hp: 20,
+    speed: 100,
+    damage: 8,
+    radius: 10,
+    scoreValue: 10,
+    powerReward: 5,
+    fireRate: 0,
+    attackRange: 0,
+  },
+  [EnemyKind.tank]: {
+    hp: 80,
+    speed: 40,
+    damage: 15,
+    radius: 18,
+    scoreValue: 30,
+    powerReward: 15,
+    fireRate: 0,
+    attackRange: 0,
+  },
+  [EnemyKind.shooter]: {
+    hp: 30,
+    speed: 50,
+    damage: 6,
+    radius: 12,
+    scoreValue: 20,
+    powerReward: 8,
+    fireRate: 0.8,
+    attackRange: 350,
+  },
 }
 
 export function createEnemy(kind: Enemy['kind'], pos: Vec2): Enemy {
@@ -65,6 +95,9 @@ export function createEnemy(kind: Enemy['kind'], pos: Vec2): Enemy {
     damage: config.damage,
     scoreValue: config.scoreValue,
     powerReward: config.powerReward,
+    fireRate: config.fireRate,
+    fireCooldown: 0,
+    attackRange: config.attackRange,
   }
 }
 
@@ -103,6 +136,15 @@ export function createAbilities(): Ability[] {
       damage: METEORITE_STRIKE.damage,
       aoeRadius: METEORITE_STRIKE.aoeRadius,
       unlocked: true,
+    },
+    {
+      kind: AbilityKind.blackHole,
+      cooldown: BLACK_HOLE.cooldown,
+      cooldownRemaining: 0,
+      powerCost: BLACK_HOLE.powerCost,
+      damage: BLACK_HOLE.damage,
+      aoeRadius: BLACK_HOLE.radius,
+      unlocked: false,
     },
     {
       kind: AbilityKind.meteor,
@@ -145,8 +187,8 @@ export function spawnExplosionParticles(pos: Vec2, count: number, color: string)
         { x: Math.cos(angle) * speed, y: Math.sin(angle) * speed },
         color,
         0.4 + rng.next() * 0.4,
-        2 + rng.next() * 3,
-      ),
+        2 + rng.next() * 3
+      )
     )
   }
   return particles

@@ -37,3 +37,57 @@
   width: 100%;
   height: 100%;
 }
+
+.changelog {
+  width: 100%;
+  max-width: 1000px;
+  margin-top: 16px;
+
+  @media (max-width: 768px) {
+    display: none;
+  }
+}
+
+.version {
+  margin-bottom: 16px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.versionTitle {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 6px;
+}
+
+.versionDate {
+  font-weight: 400;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.changeGroup {
+  margin-bottom: 8px;
+}
+
+.changeLabel {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+}
+
+.changeList {
+  margin: 2px 0 0;
+  padding-left: 18px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}

@@ -161,13 +161,16 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (gameStateRef.current.phase !== GamePhase.playing) return
-      if (e.key === '1') {
-        selectedAbilityRef.current = AbilityKind.meteorite
-        syncUI(gameStateRef.current)
-      } else if (e.key === '2') {
-        const meteor = gameStateRef.current.abilities.find((a) => a.kind === AbilityKind.meteor)
-        if (meteor?.unlocked) {
-          selectedAbilityRef.current = AbilityKind.meteor
+      const abilityByKey: Record<string, AbilityKind> = {
+        '1': AbilityKind.meteorite,
+        '2': AbilityKind.blackHole,
+        '3': AbilityKind.meteor,
+      }
+      const kind = abilityByKey[e.key]
+      if (kind) {
+        const ability = gameStateRef.current.abilities.find((a) => a.kind === kind)
+        if (ability?.unlocked) {
+          selectedAbilityRef.current = kind
           syncUI(gameStateRef.current)
         }
       }

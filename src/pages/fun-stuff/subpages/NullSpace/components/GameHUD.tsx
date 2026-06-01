@@ -10,7 +10,8 @@ type GameHUDProps = {
 
 const ABILITY_LABELS: Record<string, { icon: string; label: string; hotkey: string }> = {
   meteorite: { icon: '☄', label: 'Meteorite', hotkey: '1' },
-  meteor: { icon: '🌑', label: 'Meteor', hotkey: '2' },
+  blackHole: { icon: '🕳', label: 'Black Hole', hotkey: '2' },
+  meteor: { icon: '🌑', label: 'Meteor', hotkey: '3' },
 }
 
 export function GameHUD({ uiState, onAbilitySelect }: GameHUDProps) {

@@ -57,9 +57,9 @@ describe('createProjectile', () => {
 })
 
 describe('createAbilities', () => {
-  it('creates two abilities — meteorite unlocked, meteor locked', () => {
+  it('creates three abilities — meteorite unlocked, others locked', () => {
     const abilities = createAbilities()
-    expect(abilities).toHaveLength(2)
+    expect(abilities).toHaveLength(3)
 
     const meteorite = abilities.find((a) => a.kind === AbilityKind.meteorite)
     expect(meteorite).toBeDefined()

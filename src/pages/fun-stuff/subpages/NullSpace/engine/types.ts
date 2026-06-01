@@ -18,7 +18,7 @@ export type Ship = Entity & {
   patrolAngle: number
 }
 
-export const EnemyKind = { drone: 'drone', tank: 'tank' } as const
+export const EnemyKind = { drone: 'drone', tank: 'tank', shooter: 'shooter' } as const
 export type EnemyKind = (typeof EnemyKind)[keyof typeof EnemyKind]
 
 export type Enemy = Entity & {
@@ -27,9 +27,12 @@ export type Enemy = Entity & {
   damage: number
   scoreValue: number
   powerReward: number
+  fireRate: number
+  fireCooldown: number
+  attackRange: number
 }
 
-export const ProjectileOwner = { ship: 'ship', player: 'player' } as const
+export const ProjectileOwner = { ship: 'ship', player: 'player', enemy: 'enemy' } as const
 export type ProjectileOwner = (typeof ProjectileOwner)[keyof typeof ProjectileOwner]
 
 export type Projectile = Entity & {
@@ -38,7 +41,11 @@ export type Projectile = Entity & {
   lifetime: number
 }
 
-export const AbilityKind = { meteorite: 'meteorite', meteor: 'meteor' } as const
+export const AbilityKind = {
+  meteorite: 'meteorite',
+  meteor: 'meteor',
+  blackHole: 'blackHole',
+} as const
 export type AbilityKind = (typeof AbilityKind)[keyof typeof AbilityKind]
 
 export type Ability = {
@@ -59,6 +66,16 @@ export type MeteorStrike = {
   elapsed: number
   damage: number
   aoeRadius: number
+}
+
+export type BlackHole = {
+  id: string
+  pos: Vec2
+  radius: number
+  pullStrength: number
+  damage: number
+  duration: number
+  elapsed: number
 }
 
 export type Particle = {
@@ -93,6 +110,9 @@ export const UpgradeId = {
   meteoriteCostReduction: 'meteoriteCostReduction',
   meteorDamage: 'meteorDamage',
   meteorCostReduction: 'meteorCostReduction',
+  unlockBlackHole: 'unlockBlackHole',
+  blackHoleDamage: 'blackHoleDamage',
+  blackHoleDuration: 'blackHoleDuration',
   shipMaxHp: 'shipMaxHp',
   shipDamage: 'shipDamage',
   powerRegen: 'powerRegen',
@@ -123,6 +143,7 @@ export type GameState = {
   projectiles: Projectile[]
   abilities: Ability[]
   meteorStrikes: MeteorStrike[]
+  blackHoles: BlackHole[]
   particles: Particle[]
   wave: number
   level: number

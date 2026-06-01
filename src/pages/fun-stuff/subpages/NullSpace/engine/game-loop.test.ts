@@ -8,6 +8,7 @@ import {
 } from './game-loop'
 import { resetUid } from './entities'
 import { AbilityKind, GamePhase, UpgradeId } from './types'
+import { isUpgradeWave } from './upgrades'
 import { WAVES_PER_LEVEL } from '../data'
 
 beforeEach(() => {
@@ -117,12 +118,15 @@ describe('updateGameState', () => {
     expect(state.phase).toBe(GamePhase.upgradeScreen)
   })
 
-  it('shows waveComplete after non-upgrade waves', () => {
+  it('shows correct phase after wave completion', () => {
     let state = startGame(createInitialState())
     state = startNextWave(state)
-    state = { ...state, enemies: [], enemiesRemainingInWave: 1 }
+    state = { ...state, enemies: [], enemiesRemainingInWave: 1, waveTimer: 0 }
     state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
-    expect(state.phase).toBe(GamePhase.waveComplete)
+    const expected = isUpgradeWave(state.wave)
+      ? GamePhase.upgradeScreen
+      : GamePhase.waveComplete
+    expect(state.phase).toBe(expected)
   })
 })
 

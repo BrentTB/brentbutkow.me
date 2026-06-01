@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { WAVES_PER_LEVEL } from '../data'
 import {
   createInitialUpgrades,
   canPurchaseUpgrade,
@@ -94,14 +95,14 @@ describe('getLevel', () => {
     expect(getLevel(0)).toBe(0)
   })
 
-  it('returns 1 for waves 1-3', () => {
+  it('returns correct level for first wave group', () => {
     expect(getLevel(1)).toBe(1)
-    expect(getLevel(3)).toBe(1)
+    expect(getLevel(WAVES_PER_LEVEL)).toBe(1)
   })
 
-  it('returns 2 for waves 4-6', () => {
-    expect(getLevel(4)).toBe(2)
-    expect(getLevel(6)).toBe(2)
+  it('returns correct level for second wave group', () => {
+    expect(getLevel(WAVES_PER_LEVEL + 1)).toBe(2)
+    expect(getLevel(WAVES_PER_LEVEL * 2)).toBe(2)
   })
 })
 
@@ -110,14 +111,9 @@ describe('isUpgradeWave', () => {
     expect(isUpgradeWave(0)).toBe(false)
   })
 
-  it('returns false for non-multiple waves', () => {
-    expect(isUpgradeWave(1)).toBe(false)
-    expect(isUpgradeWave(2)).toBe(false)
-  })
-
-  it('returns true for multiples of 3', () => {
-    expect(isUpgradeWave(3)).toBe(true)
-    expect(isUpgradeWave(6)).toBe(true)
-    expect(isUpgradeWave(9)).toBe(true)
+  it('returns true for multiples of WAVES_PER_LEVEL', () => {
+    expect(isUpgradeWave(WAVES_PER_LEVEL)).toBe(true)
+    expect(isUpgradeWave(WAVES_PER_LEVEL * 2)).toBe(true)
+    expect(isUpgradeWave(WAVES_PER_LEVEL * 3)).toBe(true)
   })
 })

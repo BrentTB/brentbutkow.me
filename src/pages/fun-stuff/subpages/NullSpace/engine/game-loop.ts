@@ -1,4 +1,4 @@
-import { WORLD_SIZE, PARTICLE_DEFAULTS, POWER_DEFAULTS, CURRENCY_DROPS } from '../data'
+import { WORLD_SIZE, PARTICLE_DEFAULTS, POWER_DEFAULTS, CURRENCY_DROPS, ENEMY_STATS } from '../data'
 import { checkCollision, distance } from './collision'
 import {
   createShip,
@@ -8,7 +8,12 @@ import {
   spawnExplosionParticles,
   resetUid,
 } from './entities'
-import { updateAbilityCooldowns, updateMeteorStrikes, resolveAbilityInput } from './abilities'
+import {
+  updateAbilityCooldowns,
+  updateMeteorStrikes,
+  updateBlackHoles,
+  resolveAbilityInput,
+} from './abilities'
 import {
   createInitialUpgrades,
   isUpgradeWave,
@@ -22,7 +27,7 @@ import {
 import { getWave, getWaveDelay } from './waves'
 import { loadHighScore, saveHighScore } from './persistence'
 import { rng } from './random'
-import { GamePhase } from './types'
+import { EnemyKind, GamePhase, ProjectileOwner } from './types'
 import type { GameState, PlayerInput, Enemy, Projectile, Particle, UpgradeId } from './types'
 
 export function createInitialState(): GameState {
@@ -35,6 +40,7 @@ export function createInitialState(): GameState {
     projectiles: [],
     abilities: createAbilities(),
     meteorStrikes: [],
+    blackHoles: [],
     particles: [],
     wave: 0,
     level: 0,
@@ -64,6 +70,7 @@ export function startGame(state: GameState): GameState {
     projectiles: [],
     abilities: createAbilities(),
     meteorStrikes: [],
+    blackHoles: [],
     particles: [],
     wave: 0,
     level: 0,
@@ -122,8 +129,18 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
 
   dt = Math.min(dt, 0.1)
 
-  let { ship, enemies, projectiles, abilities, meteorStrikes, particles, score, power, currency } =
-    state
+  let {
+    ship,
+    enemies,
+    projectiles,
+    abilities,
+    meteorStrikes,
+    blackHoles,
+    particles,
+    score,
+    power,
+    currency,
+  } = state
   let { waveTimer } = state
   const { enemiesRemainingInWave, maxPower, powerRegen } = state
 
@@ -145,6 +162,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   )
   abilities = abilityResult.abilities
   meteorStrikes = [...meteorStrikes, ...abilityResult.newStrikes]
+  blackHoles = [...blackHoles, ...abilityResult.newBlackHoles]
   power -= abilityResult.powerSpent
 
   // --- Meteor strikes ---
@@ -156,6 +174,15 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   power += meteorResult.powerGained
   currency += computeCurrencyFromKills(meteorResult.killedEnemies)
 
+  // --- Black holes ---
+  const bhResult = updateBlackHoles(blackHoles, enemies, dt)
+  blackHoles = bhResult.blackHoles
+  enemies = bhResult.enemies
+  particles = [...particles, ...bhResult.particles]
+  score += bhResult.scoreGained
+  power += bhResult.powerGained
+  currency += computeCurrencyFromKills(bhResult.killedEnemies)
+
   // --- Ship movement ---
   ship = updateShipPatrol(ship, dt, state.worldSize)
 
@@ -164,13 +191,18 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   ship = attackResult.ship
   projectiles = attackResult.projectiles
 
+  // --- Enemy shooting ---
+  const enemyFireResult = updateEnemyShooting(enemies, ship, projectiles, dt)
+  enemies = enemyFireResult.enemies
+  projectiles = enemyFireResult.projectiles
+
   // --- Enemy movement ---
   enemies = updateEnemyMovement(enemies, ship, dt)
 
   // --- Projectile movement ---
   projectiles = updateProjectiles(projectiles, dt)
 
-  // --- Collision: projectiles vs enemies ---
+  // --- Collision: ship projectiles vs enemies ---
   const projCollision = resolveProjectileEnemyCollisions(projectiles, enemies)
   projectiles = projCollision.projectiles
   enemies = projCollision.enemies
@@ -178,6 +210,12 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   power += projCollision.powerGained
   currency += computeCurrencyFromKills(projCollision.killedEnemies)
   particles = [...particles, ...projCollision.particles]
+
+  // --- Collision: enemy projectiles vs ship ---
+  const enemyProjResult = resolveEnemyProjectileShipCollisions(projectiles, ship)
+  projectiles = enemyProjResult.projectiles
+  ship = enemyProjResult.ship
+  particles = [...particles, ...enemyProjResult.particles]
 
   // --- Collision: enemies vs ship ---
   const shipCollision = resolveEnemyShipCollisions(enemies, ship)
@@ -197,7 +235,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     particles = particles.slice(particles.length - PARTICLE_DEFAULTS.maxParticles)
   }
 
-  // --- Check game over (before wave complete — dying on the last enemy is still a loss) ---
+  // --- Check game over ---
   if (ship.hp <= 0) {
     saveHighScore(score)
     return {
@@ -208,6 +246,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       projectiles,
       abilities,
       meteorStrikes,
+      blackHoles,
       particles,
       score,
       power,
@@ -229,6 +268,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       projectiles,
       abilities,
       meteorStrikes,
+      blackHoles,
       particles,
       score,
       power,
@@ -245,6 +285,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     projectiles,
     abilities,
     meteorStrikes,
+    blackHoles,
     particles,
     score,
     power,
@@ -317,7 +358,7 @@ function updateShipAttack(
     }
 
     if (nearest) {
-      const proj = createProjectile(ship.pos, nearest.pos, 'ship', ship.damage)
+      const proj = createProjectile(ship.pos, nearest.pos, ProjectileOwner.ship, ship.damage)
       projectiles = [...projectiles, proj]
       cooldown = 1 / ship.fireRate
     }
@@ -329,6 +370,37 @@ function updateShipAttack(
   }
 }
 
+function updateEnemyShooting(
+  enemies: Enemy[],
+  ship: Ship,
+  projectiles: Projectile[],
+  dt: number
+): { enemies: Enemy[]; projectiles: Projectile[] } {
+  const updatedEnemies: Enemy[] = []
+  let newProjectiles = projectiles
+
+  for (const enemy of enemies) {
+    if (enemy.fireRate <= 0) {
+      updatedEnemies.push(enemy)
+      continue
+    }
+
+    let cooldown = enemy.fireCooldown - dt
+    if (cooldown <= 0) {
+      const dist = distance(enemy.pos, ship.pos)
+      if (dist < enemy.attackRange) {
+        const projDamage = ENEMY_STATS.shooter.projectileDamage
+        const proj = createProjectile(enemy.pos, ship.pos, ProjectileOwner.enemy, projDamage)
+        newProjectiles = [...newProjectiles, proj]
+        cooldown = 1 / enemy.fireRate
+      }
+    }
+    updatedEnemies.push({ ...enemy, fireCooldown: Math.max(0, cooldown) })
+  }
+
+  return { enemies: updatedEnemies, projectiles: newProjectiles }
+}
+
 function updateEnemyMovement(enemies: Enemy[], ship: Ship, dt: number): Enemy[] {
   return enemies.map((enemy) => {
     const dx = ship.pos.x - enemy.pos.x
@@ -338,6 +410,11 @@ function updateEnemyMovement(enemies: Enemy[], ship: Ship, dt: number): Enemy[] 
 
     const nx = dx / dist
     const ny = dy / dist
+
+    // Shooters keep distance — stop approaching when in attack range
+    if (enemy.kind === EnemyKind.shooter && dist < enemy.attackRange * 0.7) {
+      return { ...enemy, vel: { x: 0, y: 0 } }
+    }
 
     return {
       ...enemy,
@@ -381,7 +458,7 @@ function resolveProjectileEnemyCollisions(
   const updatedEnemies = enemies.map((e) => ({ ...e }))
 
   for (const proj of projectiles) {
-    if (proj.owner !== 'ship') continue
+    if (proj.owner !== ProjectileOwner.ship) continue
     for (let i = 0; i < updatedEnemies.length; i++) {
       const enemy = updatedEnemies[i]
       if (checkCollision(proj, enemy)) {
@@ -409,6 +486,30 @@ function resolveProjectileEnemyCollisions(
     scoreGained,
     powerGained,
     killedEnemies,
+    particles: allParticles,
+  }
+}
+
+function resolveEnemyProjectileShipCollisions(
+  projectiles: Projectile[],
+  ship: Ship
+): { projectiles: Projectile[]; ship: Ship; particles: Particle[] } {
+  const allParticles: Particle[] = []
+  let totalDamage = 0
+  const surviving: Projectile[] = []
+
+  for (const proj of projectiles) {
+    if (proj.owner === ProjectileOwner.enemy && checkCollision(proj, ship)) {
+      totalDamage += proj.damage
+      allParticles.push(...spawnExplosionParticles(proj.pos, 4, '#ff6666'))
+    } else {
+      surviving.push(proj)
+    }
+  }
+
+  return {
+    projectiles: surviving,
+    ship: totalDamage > 0 ? { ...ship, hp: ship.hp - totalDamage } : ship,
     particles: allParticles,
   }
 }

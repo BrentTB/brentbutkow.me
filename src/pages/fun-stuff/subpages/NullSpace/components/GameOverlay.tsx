@@ -97,6 +97,7 @@ const CATEGORY_ORDER: UpgradeCategory[] = [
 
 const WEAPON_LABELS: Record<string, string> = {
   [AbilityKind.meteorite]: 'Meteorite',
+  [AbilityKind.blackHole]: 'Black Hole',
   [AbilityKind.meteor]: 'Meteor',
 }
 
@@ -182,17 +183,26 @@ function WeaponsList({
   onSelect: (weapon: string) => void
   onPurchase: (upgradeId: UpgradeId) => void
 }) {
-  const weapons = [AbilityKind.meteorite, AbilityKind.meteor]
+  const weapons = [AbilityKind.meteorite, AbilityKind.blackHole, AbilityKind.meteor]
+
+  const unlockIds: Partial<Record<AbilityKind, UpgradeId>> = {
+    [AbilityKind.blackHole]: UpgradeId.unlockBlackHole,
+    [AbilityKind.meteor]: UpgradeId.unlockMeteor,
+  }
 
   return (
     <>
       {weapons.map((weapon) => {
         const ability = uiState.abilities.find((a) => a.kind === weapon)
         const isUnlocked = ability?.unlocked ?? false
-        const unlockDef = UPGRADE_DEFINITIONS[UpgradeId.unlockMeteor]
-        const needsUnlock = weapon === AbilityKind.meteor && !isUnlocked
-        const unlockCost = needsUnlock ? unlockDef.tiers[0].cost : 0
-        const canUnlock = needsUnlock && canPurchaseUpgrade(uiState.upgrades, UpgradeId.unlockMeteor, uiState.currency)
+        const unlockId = unlockIds[weapon]
+        const needsUnlock = !!unlockId && !isUnlocked
+        const unlockDef = unlockId ? UPGRADE_DEFINITIONS[unlockId] : null
+        const unlockCost = needsUnlock && unlockDef ? unlockDef.tiers[0].cost : 0
+        const canUnlock =
+          needsUnlock && unlockId
+            ? canPurchaseUpgrade(uiState.upgrades, unlockId, uiState.currency)
+            : false
 
         return (
           <div key={weapon} className={styles.weaponCard}>
@@ -204,11 +214,11 @@ function WeaponsList({
               <span className={styles.weaponName}>{WEAPON_LABELS[weapon]}</span>
               {!needsUnlock && <span className={styles.weaponArrow}>→</span>}
             </button>
-            {needsUnlock && (
+            {needsUnlock && unlockId && (
               <button
                 className={styles.buyBtn}
                 disabled={!canUnlock}
-                onClick={() => onPurchase(UpgradeId.unlockMeteor)}
+                onClick={() => onPurchase(unlockId)}
               >
                 Unlock {unlockCost} ✦
               </button>
@@ -233,7 +243,11 @@ function WeaponDetail({
   onPurchase: (upgradeId: UpgradeId) => void
 }) {
   const subUpgrades = Object.values(UPGRADE_DEFINITIONS).filter(
-    (d) => d.category === UpgradeCategory.weapons && d.weapon === weapon && d.id !== UpgradeId.unlockMeteor,
+    (d) =>
+      d.category === UpgradeCategory.weapons &&
+      d.weapon === weapon &&
+      d.id !== UpgradeId.unlockMeteor &&
+      d.id !== UpgradeId.unlockBlackHole
   )
 
   return (

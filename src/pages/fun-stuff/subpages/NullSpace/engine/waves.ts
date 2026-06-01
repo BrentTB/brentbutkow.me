@@ -11,10 +11,14 @@ export function getWave(waveNumber: number, worldSize: Vec2): EnemySpawn[] {
   const spawns: EnemySpawn[] = []
   const droneCount = 3 + waveNumber * 2
   const tankCount = Math.max(0, Math.floor((waveNumber - 1) / 2))
-  const total = droneCount + tankCount
+  const shooterCount = Math.max(0, Math.floor((waveNumber - 2) / 2))
+  const total = droneCount + tankCount + shooterCount
 
   for (let i = 0; i < total; i++) {
-    const kind = i < droneCount ? EnemyKind.drone : EnemyKind.tank
+    let kind: EnemyKind
+    if (i < droneCount) kind = EnemyKind.drone
+    else if (i < droneCount + tankCount) kind = EnemyKind.tank
+    else kind = EnemyKind.shooter
     spawns.push({ kind, pos: randomEdgePosition(worldSize, i, total) })
   }
 

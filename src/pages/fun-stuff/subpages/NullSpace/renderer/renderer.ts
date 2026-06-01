@@ -1,4 +1,5 @@
-import type { GameState, MeteorStrike, Particle } from '../engine/types'
+import { ProjectileOwner } from '../engine/types'
+import type { BlackHole, GameState, MeteorStrike, Particle } from '../engine/types'
 import type { Camera } from './camera'
 import { worldToScreen } from './camera'
 import type { SpriteCache } from './sprite-cache'
@@ -21,6 +22,7 @@ export function renderFrame(
   ctx.fillRect(0, 0, camera.width, camera.height)
 
   renderStarfield(ctx, stars, camera)
+  renderBlackHoles(ctx, state.blackHoles, camera)
   renderMeteorWarnings(ctx, state.meteorStrikes, camera)
   renderParticles(ctx, state.particles, camera)
   renderEnemies(ctx, state, camera, sprites)
@@ -100,7 +102,6 @@ function renderProjectiles(
   camera: Camera,
   sprites: SpriteCache
 ): void {
-  const size = getSpriteSize('projectile')
   for (const proj of state.projectiles) {
     const screen = worldToScreen(proj.pos, camera)
     if (
@@ -111,7 +112,10 @@ function renderProjectiles(
     )
       continue
 
-    ctx.drawImage(sprites.projectile, screen.x - size.w / 2, screen.y - size.h / 2)
+    const spriteKey =
+      proj.owner === ProjectileOwner.enemy ? ('enemyProjectile' as const) : ('projectile' as const)
+    const size = getSpriteSize(spriteKey)
+    ctx.drawImage(sprites[spriteKey], screen.x - size.w / 2, screen.y - size.h / 2)
   }
 }
 
@@ -218,4 +222,55 @@ function renderShipHealthBar(
   const hpColor = hpRatio > 0.5 ? '#44bb44' : hpRatio > 0.25 ? '#ccaa22' : '#cc3333'
   ctx.fillStyle = hpColor
   ctx.fillRect(x, y, barWidth * hpRatio, barHeight)
+}
+
+function renderBlackHoles(ctx: CanvasRenderingContext2D, holes: BlackHole[], camera: Camera): void {
+  for (const hole of holes) {
+    const screen = worldToScreen(hole.pos, camera)
+    const fadeIn = Math.min(3, hole.duration * 0.3)
+    const fadeOut = Math.min(8, hole.duration * 0.6)
+    const fadeOutStart = hole.duration - fadeOut
+    let alpha: number
+    if (hole.elapsed < fadeIn) {
+      alpha = hole.elapsed / fadeIn
+    } else if (hole.elapsed > fadeOutStart) {
+      alpha = Math.max(0, (hole.duration - hole.elapsed) / fadeOut)
+    } else {
+      alpha = 1
+    }
+
+    ctx.save()
+    ctx.globalAlpha = alpha
+
+    // Dark core
+    const gradient = ctx.createRadialGradient(
+      screen.x,
+      screen.y,
+      0,
+      screen.x,
+      screen.y,
+      hole.radius
+    )
+    gradient.addColorStop(0, 'rgba(20, 0, 40, 0.9)')
+    gradient.addColorStop(0.3, 'rgba(40, 10, 80, 0.6)')
+    gradient.addColorStop(0.7, 'rgba(80, 30, 160, 0.2)')
+    gradient.addColorStop(1, 'rgba(100, 50, 200, 0)')
+    ctx.fillStyle = gradient
+    ctx.beginPath()
+    ctx.arc(screen.x, screen.y, hole.radius, 0, Math.PI * 2)
+    ctx.fill()
+
+    // Swirl rings
+    ctx.strokeStyle = 'rgba(130, 80, 200, 0.4)'
+    ctx.lineWidth = 1.5
+    for (let ring = 0; ring < 3; ring++) {
+      const ringRadius = hole.radius * (0.3 + ring * 0.25)
+      const rotAngle = hole.elapsed * (2 + ring) + ring * 2
+      ctx.beginPath()
+      ctx.arc(screen.x, screen.y, ringRadius, rotAngle, rotAngle + Math.PI * 1.2)
+      ctx.stroke()
+    }
+
+    ctx.restore()
+  }
 }

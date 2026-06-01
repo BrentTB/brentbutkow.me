@@ -1,4 +1,10 @@
-import { WAVES_PER_LEVEL, METEORITE_STRIKE, METEOR_STRIKE, SHIP_DEFAULTS } from '../data'
+import {
+  WAVES_PER_LEVEL,
+  METEORITE_STRIKE,
+  METEOR_STRIKE,
+  BLACK_HOLE,
+  SHIP_DEFAULTS,
+} from '../data'
 import { AbilityKind, UpgradeCategory, UpgradeId } from './types'
 import type { Ability, PlayerUpgrades, Ship, UpgradeDefinition } from './types'
 
@@ -55,6 +61,37 @@ export const UPGRADE_DEFINITIONS: Record<UpgradeId, UpgradeDefinition> = {
     tiers: [
       { cost: 12, value: 5 },
       { cost: 24, value: 5 },
+    ],
+  },
+  [UpgradeId.unlockBlackHole]: {
+    id: UpgradeId.unlockBlackHole,
+    category: UpgradeCategory.weapons,
+    weapon: AbilityKind.blackHole,
+    label: 'Unlock Black Hole',
+    description: 'Unlock the gravity-warping Black Hole',
+    tiers: [{ cost: 20, value: 1 }],
+  },
+  [UpgradeId.blackHoleDamage]: {
+    id: UpgradeId.blackHoleDamage,
+    category: UpgradeCategory.weapons,
+    weapon: AbilityKind.blackHole,
+    label: 'Damage',
+    description: 'Increase black hole damage over time',
+    tiers: [
+      { cost: 10, value: 1 },
+      { cost: 20, value: 2 },
+      { cost: 35, value: 3 },
+    ],
+  },
+  [UpgradeId.blackHoleDuration]: {
+    id: UpgradeId.blackHoleDuration,
+    category: UpgradeCategory.weapons,
+    weapon: AbilityKind.blackHole,
+    label: 'Duration',
+    description: 'Increase black hole duration',
+    tiers: [
+      { cost: 12, value: 1 },
+      { cost: 24, value: 1.5 },
     ],
   },
   [UpgradeId.shipMaxHp]: {
@@ -172,6 +209,18 @@ export function applyUpgradesToAbilities(
       }
 
       return { ...ability, unlocked, damage, powerCost: Math.max(1, powerCost) }
+    }
+
+    if (ability.kind === AbilityKind.blackHole) {
+      const unlocked = upgrades[UpgradeId.unlockBlackHole].currentTier > 0
+      let damage = BLACK_HOLE.damage
+
+      const dmgTier = upgrades[UpgradeId.blackHoleDamage].currentTier
+      for (let i = 0; i < dmgTier; i++) {
+        damage += UPGRADE_DEFINITIONS[UpgradeId.blackHoleDamage].tiers[i].value
+      }
+
+      return { ...ability, unlocked, damage }
     }
 
     return ability
