@@ -1,4 +1,5 @@
 import type { Camera } from './camera'
+import { SeededRandom } from '../engine/random'
 
 export type Star = {
   x: number
@@ -8,16 +9,20 @@ export type Star = {
   depth: number
 }
 
-export function generateStarfield(worldWidth: number, worldHeight: number, count: number): Star[] {
+export function generateStarfield(
+  worldWidth: number,
+  worldHeight: number,
+  count: number,
+  rng: SeededRandom
+): Star[] {
   const stars: Star[] = []
   for (let i = 0; i < count; i++) {
-    const seed = hashSeed(i)
     stars.push({
-      x: seededRandom(seed) * worldWidth,
-      y: seededRandom(seed + 1) * worldHeight,
-      size: 1 + Math.floor(seededRandom(seed + 2) * 2.5),
-      brightness: 0.3 + seededRandom(seed + 3) * 0.7,
-      depth: 0.3 + seededRandom(seed + 4) * 0.7,
+      x: rng.next() * worldWidth,
+      y: rng.next() * worldHeight,
+      size: 1 + Math.floor(rng.next() * 2.5),
+      brightness: 0.3 + rng.next() * 0.7,
+      depth: 0.3 + rng.next() * 0.7,
     })
   }
   return stars
@@ -40,13 +45,4 @@ export function renderStarfield(
     ctx.fillRect(Math.floor(sx), Math.floor(sy), star.size, star.size)
   }
   ctx.globalAlpha = 1
-}
-
-function hashSeed(i: number): number {
-  return ((i * 2654435761) >>> 0) % 2147483647
-}
-
-function seededRandom(seed: number): number {
-  const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453
-  return x - Math.floor(x)
 }

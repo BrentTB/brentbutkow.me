@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'event-horizon-high-score'
+const STORAGE_KEY = 'null-space-high-score'
 
 export function loadHighScore(): number {
   try {

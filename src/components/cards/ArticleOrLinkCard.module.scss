@@ -5,9 +5,11 @@
   position: relative;
   // Right padding reserves space for the arrow and keeps text off the edge —
   // applied to every row (link or not) for consistency.
-  padding: 26px 44px 26px 0;
+  padding: 26px 64px 26px 0;
   border-top: 1px solid var(--border);
-  transition: padding-left 200ms ease;
+  transition:
+    padding-left 200ms ease,
+    padding-right 200ms ease;
 }
 
 /* Every row gets the same left-bar hover feedback for consistency.
@@ -28,6 +30,7 @@
 .card:hover,
 .card:focus-visible {
   padding-left: 20px;
+  padding-right: 44px;
 }
 
 .card:hover::before,

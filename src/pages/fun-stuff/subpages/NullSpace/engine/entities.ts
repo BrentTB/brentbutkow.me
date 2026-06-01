@@ -3,9 +3,11 @@ import {
   PROJECTILE_SPEED,
   PROJECTILE_LIFETIME,
   PROJECTILE_RADIUS,
+  METEORITE_STRIKE,
   METEOR_STRIKE,
 } from '../data'
-import type { Ship, Enemy, EnemyKind, Projectile, Vec2, Ability, Particle } from './types'
+import { AbilityKind, EnemyKind } from './types'
+import type { Ship, Enemy, Projectile, Vec2, Ability, Particle } from './types'
 
 let nextId = 0
 export function uid(): string {
@@ -34,7 +36,7 @@ export function createShip(worldSize: Vec2): Ship {
 }
 
 const ENEMY_CONFIGS: Record<
-  EnemyKind,
+  string,
   {
     hp: number
     speed: number
@@ -44,11 +46,11 @@ const ENEMY_CONFIGS: Record<
     powerReward: number
   }
 > = {
-  drone: { hp: 20, speed: 100, damage: 8, radius: 10, scoreValue: 10, powerReward: 5 },
-  tank: { hp: 80, speed: 40, damage: 15, radius: 18, scoreValue: 30, powerReward: 15 },
+  [EnemyKind.drone]: { hp: 20, speed: 100, damage: 8, radius: 10, scoreValue: 10, powerReward: 5 },
+  [EnemyKind.tank]: { hp: 80, speed: 40, damage: 15, radius: 18, scoreValue: 30, powerReward: 15 },
 }
 
-export function createEnemy(kind: EnemyKind, pos: Vec2): Enemy {
+export function createEnemy(kind: Enemy['kind'], pos: Vec2): Enemy {
   const config = ENEMY_CONFIGS[kind]
   return {
     id: uid(),
@@ -68,7 +70,7 @@ export function createEnemy(kind: EnemyKind, pos: Vec2): Enemy {
 export function createProjectile(
   pos: Vec2,
   targetPos: Vec2,
-  owner: 'ship' | 'player',
+  owner: Projectile['owner'],
   damage: number
 ): Projectile {
   const dx = targetPos.x - pos.x
@@ -93,10 +95,22 @@ export function createProjectile(
 export function createAbilities(): Ability[] {
   return [
     {
-      kind: 'meteorStrike',
+      kind: AbilityKind.meteorite,
+      cooldown: METEORITE_STRIKE.cooldown,
+      cooldownRemaining: 0,
+      powerCost: METEORITE_STRIKE.powerCost,
+      damage: METEORITE_STRIKE.damage,
+      aoeRadius: METEORITE_STRIKE.aoeRadius,
+      unlocked: true,
+    },
+    {
+      kind: AbilityKind.meteor,
       cooldown: METEOR_STRIKE.cooldown,
       cooldownRemaining: 0,
       powerCost: METEOR_STRIKE.powerCost,
+      damage: METEOR_STRIKE.damage,
+      aoeRadius: METEOR_STRIKE.aoeRadius,
+      unlocked: false,
     },
   ]
 }

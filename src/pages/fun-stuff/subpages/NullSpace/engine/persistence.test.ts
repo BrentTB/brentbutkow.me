@@ -11,17 +11,17 @@ describe('loadHighScore', () => {
   })
 
   it('returns the saved score', () => {
-    localStorage.setItem('event-horizon-high-score', '42')
+    localStorage.setItem('null-space-high-score', '42')
     expect(loadHighScore()).toBe(42)
   })
 
   it('returns 0 for invalid data', () => {
-    localStorage.setItem('event-horizon-high-score', 'not-a-number')
+    localStorage.setItem('null-space-high-score', 'not-a-number')
     expect(loadHighScore()).toBe(0)
   })
 
   it('returns 0 for negative scores', () => {
-    localStorage.setItem('event-horizon-high-score', '-10')
+    localStorage.setItem('null-space-high-score', '-10')
     expect(loadHighScore()).toBe(0)
   })
 })

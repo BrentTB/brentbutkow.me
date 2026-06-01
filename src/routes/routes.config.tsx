@@ -16,7 +16,7 @@ const CourseProjects = lazy(
   () => import('../pages/fun-stuff/subpages/CourseProjects/CourseProjects')
 )
 const GamesPage = lazy(() => import('../pages/fun-stuff/subpages/Games/GamesPage'))
-const EventHorizon = lazy(() => import('../pages/fun-stuff/subpages/EventHorizon/EventHorizon'))
+const NullSpace = lazy(() => import('../pages/fun-stuff/subpages/NullSpace/NullSpace'))
 
 export const routePaths = {
   home: '/',
@@ -38,10 +38,10 @@ export const funStuffRoutes: AppRoute[] = [
     title: 'Games — Brent Butkow',
   },
   {
-    path: `${gamesPath}${gamesSubRoutes.eventHorizon}`,
-    element: <EventHorizon />,
+    path: `${gamesPath}${gamesSubRoutes.nullSpace}`,
+    element: <NullSpace />,
     dontShowInNavbar: true,
-    title: 'Event Horizon — Brent Butkow',
+    title: 'Null Space — Brent Butkow',
   },
   {
     path: `${routePaths.funStuff}${funStuffSubRoutes.gulagSort}`,

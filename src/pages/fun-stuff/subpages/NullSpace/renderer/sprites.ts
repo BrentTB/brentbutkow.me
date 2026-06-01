@@ -83,7 +83,15 @@ export const METEOR_SPRITE: SpriteData = [
   [_, _, _, F, F, _, _, _],
 ]
 
-export type SpriteKey = 'ship' | 'drone' | 'tank' | 'projectile' | 'meteor'
+export const METEORITE_SPRITE: SpriteData = [
+  [_, _, F, _, _],
+  [_, F, r, F, _],
+  [F, r, r, r, F],
+  [_, F, r, F, _],
+  [_, _, F, _, _],
+]
+
+export type SpriteKey = 'ship' | 'drone' | 'tank' | 'projectile' | 'meteor' | 'meteorite'
 
 export const SPRITE_MAP: Record<SpriteKey, SpriteData> = {
   ship: SHIP_SPRITE,
@@ -91,4 +99,5 @@ export const SPRITE_MAP: Record<SpriteKey, SpriteData> = {
   tank: TANK_SPRITE,
   projectile: PROJECTILE_SPRITE,
   meteor: METEOR_SPRITE,
+  meteorite: METEORITE_SPRITE,
 }

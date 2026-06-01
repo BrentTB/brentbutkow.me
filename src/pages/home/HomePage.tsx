@@ -24,7 +24,7 @@ function HomePage() {
       </section>
       {aboutSectionEnabled && <About paragraphs={aboutParagraphs} />}
       {isFunMode && (
-        <section id="jokes" className={styles.section}>
+        <section id="jokes" className={`${styles.section} ${styles.jokes}`}>
           <div className={styles.jokesHeader}>
             <h2 className={styles.jokesTitle}>A Joke Before You Go</h2>
             <div className={styles.jokesControls}>

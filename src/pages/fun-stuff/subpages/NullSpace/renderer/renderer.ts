@@ -154,17 +154,18 @@ function renderMeteorProjectiles(
   camera: Camera,
   sprites: SpriteCache
 ): void {
-  const size = getSpriteSize('meteor')
   for (const strike of strikes) {
     if (strike.elapsed >= strike.delay) continue
     const screen = worldToScreen(strike.targetPos, camera)
     const progress = strike.elapsed / strike.delay
 
+    const spriteKey = strike.kind === 'meteorite' ? ('meteorite' as const) : ('meteor' as const)
+    const size = getSpriteSize(spriteKey)
     const meteorY = screen.y - 400 * (1 - progress)
 
     ctx.save()
     ctx.globalAlpha = 0.5 + progress * 0.5
-    ctx.drawImage(sprites.meteor, screen.x - size.w / 2, meteorY - size.h / 2)
+    ctx.drawImage(sprites[spriteKey], screen.x - size.w / 2, meteorY - size.h / 2)
     ctx.restore()
   }
 }

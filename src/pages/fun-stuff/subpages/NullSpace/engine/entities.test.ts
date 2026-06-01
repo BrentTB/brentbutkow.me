@@ -8,6 +8,7 @@ import {
   spawnExplosionParticles,
   resetUid,
 } from './entities'
+import { AbilityKind, EnemyKind } from './types'
 import { WORLD_SIZE } from '../data'
 
 beforeEach(() => {
@@ -30,16 +31,16 @@ describe('createShip', () => {
 
 describe('createEnemy', () => {
   it('creates a drone with correct stats', () => {
-    const enemy = createEnemy('drone', { x: 100, y: 200 })
-    expect(enemy.kind).toBe('drone')
+    const enemy = createEnemy(EnemyKind.drone, { x: 100, y: 200 })
+    expect(enemy.kind).toBe(EnemyKind.drone)
     expect(enemy.pos).toEqual({ x: 100, y: 200 })
     expect(enemy.hp).toBe(20)
     expect(enemy.speed).toBe(100)
   })
 
   it('creates a tank with correct stats', () => {
-    const enemy = createEnemy('tank', { x: 50, y: 50 })
-    expect(enemy.kind).toBe('tank')
+    const enemy = createEnemy(EnemyKind.tank, { x: 50, y: 50 })
+    expect(enemy.kind).toBe(EnemyKind.tank)
     expect(enemy.hp).toBe(80)
     expect(enemy.speed).toBe(40)
   })
@@ -56,11 +57,18 @@ describe('createProjectile', () => {
 })
 
 describe('createAbilities', () => {
-  it('creates meteor strike ability with zero initial cooldown', () => {
+  it('creates two abilities — meteorite unlocked, meteor locked', () => {
     const abilities = createAbilities()
-    expect(abilities).toHaveLength(1)
-    expect(abilities[0].kind).toBe('meteorStrike')
-    expect(abilities[0].cooldownRemaining).toBe(0)
+    expect(abilities).toHaveLength(2)
+
+    const meteorite = abilities.find((a) => a.kind === AbilityKind.meteorite)
+    expect(meteorite).toBeDefined()
+    expect(meteorite!.unlocked).toBe(true)
+    expect(meteorite!.cooldownRemaining).toBe(0)
+
+    const meteor = abilities.find((a) => a.kind === AbilityKind.meteor)
+    expect(meteor).toBeDefined()
+    expect(meteor!.unlocked).toBe(false)
   })
 })
 

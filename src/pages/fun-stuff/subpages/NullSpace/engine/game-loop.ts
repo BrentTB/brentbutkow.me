@@ -1,4 +1,4 @@
-import { WORLD_SIZE, PARTICLE_DEFAULTS, POWER_DEFAULTS } from '../data'
+import { WORLD_SIZE, PARTICLE_DEFAULTS, POWER_DEFAULTS, CURRENCY_DROPS } from '../data'
 import { checkCollision, distance } from './collision'
 import {
   createShip,
@@ -9,14 +9,30 @@ import {
   resetUid,
 } from './entities'
 import { updateAbilityCooldowns, updateMeteorStrikes, resolveAbilityInput } from './abilities'
+import {
+  createInitialUpgrades,
+  isUpgradeWave,
+  getLevel,
+  canPurchaseUpgrade,
+  purchaseUpgrade,
+  applyUpgradesToAbilities,
+  applyUpgradesToShip,
+  applyUpgradesToPowerRegen,
+} from './upgrades'
 import { getWave, getWaveDelay } from './waves'
 import { loadHighScore, saveHighScore } from './persistence'
-import type { GameState, PlayerInput, Enemy, Projectile, Particle } from './types'
+import { SeededRandom } from './random'
+import { GamePhase } from './types'
+import type { GameState, PlayerInput, Enemy, Projectile, Particle, UpgradeId } from './types'
+
+let gameRng = new SeededRandom(Date.now())
 
 export function createInitialState(): GameState {
   resetUid()
+  const seed = Date.now()
+  gameRng = new SeededRandom(seed)
   return {
-    phase: 'menu',
+    phase: GamePhase.menu,
     ship: createShip(WORLD_SIZE),
     enemies: [],
     projectiles: [],
@@ -24,23 +40,30 @@ export function createInitialState(): GameState {
     meteorStrikes: [],
     particles: [],
     wave: 0,
+    level: 0,
     score: 0,
     highScore: loadHighScore(),
+    currency: 0,
     power: POWER_DEFAULTS.startingPower,
     maxPower: POWER_DEFAULTS.max,
     powerRegen: POWER_DEFAULTS.regenRate,
+    upgrades: createInitialUpgrades(),
     worldSize: WORLD_SIZE,
     waveTimer: 0,
     enemiesRemainingInWave: 0,
+    rngSeed: seed,
   }
 }
 
 export function startGame(state: GameState): GameState {
   resetUid()
+  const seed = Date.now()
+  gameRng = new SeededRandom(seed)
   const ship = createShip(state.worldSize)
+  const upgrades = createInitialUpgrades()
   return {
     ...state,
-    phase: 'playing',
+    phase: GamePhase.playing,
     ship,
     enemies: [],
     projectiles: [],
@@ -48,38 +71,65 @@ export function startGame(state: GameState): GameState {
     meteorStrikes: [],
     particles: [],
     wave: 0,
+    level: 0,
     score: 0,
+    currency: 0,
     power: POWER_DEFAULTS.startingPower,
     maxPower: POWER_DEFAULTS.max,
     powerRegen: POWER_DEFAULTS.regenRate,
+    upgrades,
     waveTimer: 0,
     enemiesRemainingInWave: 0,
     highScore: loadHighScore(),
+    rngSeed: seed,
   }
 }
 
 export function startNextWave(state: GameState): GameState {
   const nextWave = state.wave + 1
-  const spawns = getWave(nextWave, state.worldSize)
+  const spawns = getWave(nextWave, state.worldSize, gameRng)
   const enemies = spawns.map((s) => createEnemy(s.kind, s.pos))
   const delay = getWaveDelay(nextWave)
 
   return {
     ...state,
-    phase: 'playing',
+    phase: GamePhase.playing,
     wave: nextWave,
+    level: getLevel(nextWave),
     enemies: [...state.enemies, ...enemies],
     waveTimer: delay,
     enemiesRemainingInWave: enemies.length,
   }
 }
 
+export function applyUpgradeToState(state: GameState, upgradeId: UpgradeId): GameState {
+  if (!canPurchaseUpgrade(state.upgrades, upgradeId, state.currency)) return state
+  const { upgrades, currencySpent } = purchaseUpgrade(state.upgrades, upgradeId)
+  const abilities = applyUpgradesToAbilities(state.abilities, upgrades)
+  const ship = applyUpgradesToShip(state.ship, upgrades)
+  const powerRegen = applyUpgradesToPowerRegen(POWER_DEFAULTS.regenRate, upgrades)
+
+  return {
+    ...state,
+    upgrades,
+    currency: state.currency - currencySpent,
+    abilities,
+    ship,
+    powerRegen,
+  }
+}
+
+export function finishUpgradeScreen(state: GameState): GameState {
+  return startNextWave(state)
+}
+
 export function updateGameState(state: GameState, dt: number, input: PlayerInput): GameState {
-  if (state.phase !== 'playing') return state
+  if (state.phase !== GamePhase.playing) return state
 
   dt = Math.min(dt, 0.1)
 
-  let { ship, enemies, projectiles, abilities, meteorStrikes, particles, score, power } = state
+  let { ship, enemies, projectiles, abilities, meteorStrikes, particles, score, power, currency } =
+    state
   let { waveTimer } = state
   const { enemiesRemainingInWave, maxPower, powerRegen } = state
 
@@ -110,6 +160,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   particles = [...particles, ...meteorResult.particles]
   score += meteorResult.scoreGained
   power += meteorResult.powerGained
+  currency += computeCurrencyFromKills(meteorResult.killedEnemies)
 
   // --- Ship movement ---
   ship = updateShipPatrol(ship, dt, state.worldSize)
@@ -131,6 +182,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   enemies = projCollision.enemies
   score += projCollision.scoreGained
   power += projCollision.powerGained
+  currency += computeCurrencyFromKills(projCollision.killedEnemies)
   particles = [...particles, ...projCollision.particles]
 
   // --- Collision: enemies vs ship ---
@@ -156,7 +208,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     saveHighScore(score)
     return {
       ...state,
-      phase: 'gameOver',
+      phase: GamePhase.gameOver,
       ship,
       enemies,
       projectiles,
@@ -165,6 +217,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       particles,
       score,
       power,
+      currency,
       highScore: Math.max(state.highScore, score),
       waveTimer: 0,
       enemiesRemainingInWave,
@@ -173,9 +226,10 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
 
   // --- Check wave complete ---
   if (enemies.length === 0 && enemiesRemainingInWave > 0) {
+    const nextPhase = isUpgradeWave(state.wave) ? GamePhase.upgradeScreen : GamePhase.waveComplete
     return {
       ...state,
-      phase: 'waveComplete',
+      phase: nextPhase,
       ship,
       enemies,
       projectiles,
@@ -184,6 +238,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       particles,
       score,
       power,
+      currency,
       waveTimer: 0,
       enemiesRemainingInWave: 0,
     }
@@ -199,10 +254,24 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     particles,
     score,
     power,
+    currency,
     waveTimer,
     enemiesRemainingInWave,
   }
 }
+
+function computeCurrencyFromKills(killedEnemies: Enemy[]): number {
+  let total = 0
+  for (const enemy of killedEnemies) {
+    const range = CURRENCY_DROPS[enemy.kind as keyof typeof CURRENCY_DROPS]
+    if (range) {
+      total += gameRng.intRange(range.min, range.max)
+    }
+  }
+  return total
+}
+
+type Ship = GameState['ship']
 
 function updateShipPatrol(ship: Ship, dt: number, worldSize: { x: number; y: number }): Ship {
   const angle = ship.patrolAngle + dt * 0.4
@@ -232,8 +301,6 @@ function updateShipPatrol(ship: Ship, dt: number, worldSize: { x: number; y: num
     patrolAngle: angle,
   }
 }
-
-type Ship = GameState['ship']
 
 function updateShipAttack(
   ship: Ship,
@@ -310,6 +377,7 @@ function resolveProjectileEnemyCollisions(
   enemies: Enemy[]
   scoreGained: number
   powerGained: number
+  killedEnemies: Enemy[]
   particles: Particle[]
 } {
   const hitProjectiles = new Set<string>()
@@ -333,9 +401,11 @@ function resolveProjectileEnemyCollisions(
 
   const deadEnemies = updatedEnemies.filter((e) => e.hp <= 0)
   let powerGained = 0
+  const killedEnemies: Enemy[] = []
   for (const dead of deadEnemies) {
     scoreGained += dead.scoreValue
     powerGained += dead.powerReward
+    killedEnemies.push(dead)
     allParticles.push(...spawnExplosionParticles(dead.pos, 12, '#ffaa33'))
   }
 
@@ -344,6 +414,7 @@ function resolveProjectileEnemyCollisions(
     enemies: updatedEnemies.filter((e) => e.hp > 0),
     scoreGained,
     powerGained,
+    killedEnemies,
     particles: allParticles,
   }
 }

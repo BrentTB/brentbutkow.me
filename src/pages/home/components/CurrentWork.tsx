@@ -14,10 +14,7 @@ function CurrentWork({ role, company }: CurrentWorkProps) {
       className={styles.current}
       aria-label={`Currently ${role} at ${company} — view experience`}
     >
-      <span className={styles.label}>
-        <span className={styles.pulse} aria-hidden="true" />
-        Currently
-      </span>
+      <span className={styles.label}>Currently</span>
       <span className={styles.detail}>
         {role} <span className={styles.at}>at</span>{' '}
         <span className={styles.company}>{company}</span>

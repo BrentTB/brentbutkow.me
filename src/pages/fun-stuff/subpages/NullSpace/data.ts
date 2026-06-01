@@ -1,11 +1,11 @@
-export const GAME_NAME = 'Event Horizon'
+export const GAME_NAME = 'Null Space'
 
 export const WORLD_SIZE = { x: 3000, y: 3000 }
 
 export const SHIP_DEFAULTS = {
   hp: 100,
   maxHp: 100,
-  damage: 10,
+  damage: 5,
   fireRate: 2,
   speed: 120,
   radius: 16,
@@ -14,18 +14,25 @@ export const SHIP_DEFAULTS = {
 
 export const POWER_DEFAULTS = {
   max: 100,
-  regenRate: 3,
-  startingPower: 60,
+  regenRate: 5,
+  startingPower: 80,
 }
+
+export const METEORITE_STRIKE = {
+  delay: 0.3,
+  cooldown: 0.5,
+  powerCost: 5,
+  damage: 15,
+  aoeRadius: 40,
+} as const
 
 export const METEOR_STRIKE = {
   delay: 0.5,
-  cooldown: 1,
-  powerCost: 25,
-  damage: 40,
-  aoeRadius: 80,
-  speed: 1200,
-}
+  cooldown: 1.5,
+  powerCost: 40,
+  damage: 60,
+  aoeRadius: 100,
+} as const
 
 export const ENEMY_STATS = {
   drone: {
@@ -45,6 +52,15 @@ export const ENEMY_STATS = {
     powerReward: 15,
   },
 } as const
+
+export const CURRENCY_DROPS = {
+  drone: { min: 0, max: 2 },
+  tank: { min: 1, max: 5 },
+} as const
+
+export const CURRENCY_NAME = 'Stardust'
+
+export const WAVES_PER_LEVEL = 3
 
 export const PROJECTILE_SPEED = 400
 export const PROJECTILE_LIFETIME = 3

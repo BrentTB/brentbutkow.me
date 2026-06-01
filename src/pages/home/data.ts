@@ -16,10 +16,15 @@ const cvAction: HeroAction = {
 export const heroContent: HeroContent = {
   eyebrow: 'Full-stack engineer',
   title: 'Brent Butkow',
-  subtitle: 'All-round developer who loves to code, and a dad joke aficionado.',
-  subtitleFun: 'Coding for the love of the game, one line at a time.',
+  subtitle:
+    'Building compliance tools by day and designing wacky projects at night. Loving dad jokes around the clock.',
+  subtitleFun: 'A joke lover, video game player, wacky algorithm creator, and biltong connoisseur.',
   actions: [
-    { label: 'View projects', href: '/fun-stuff', variant: 'primary' },
+    {
+      label: 'Play Null Space (Beta)',
+      href: '/fun-stuff/games/null-space',
+      variant: 'primary',
+    },
     { label: 'Get in touch', href: '/contact', variant: 'ghost' },
     ...(cvDownloadEnabled ? [cvAction] : []),
     { label: 'Like the number 404?', href: '/404', variant: 'ghost', onlyShowInFunMode: true },

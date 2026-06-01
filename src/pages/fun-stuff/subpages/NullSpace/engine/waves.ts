@@ -1,27 +1,36 @@
-import type { EnemyKind, Vec2 } from './types'
+import { EnemyKind } from './types'
+import type { Vec2 } from './types'
+import { SeededRandom } from './random'
 
 export type EnemySpawn = {
   kind: EnemyKind
   pos: Vec2
 }
 
-export function getWave(waveNumber: number, worldSize: Vec2): EnemySpawn[] {
+export function getWave(waveNumber: number, worldSize: Vec2, rng: SeededRandom): EnemySpawn[] {
   const spawns: EnemySpawn[] = []
   const droneCount = 3 + waveNumber * 2
   const tankCount = Math.max(0, Math.floor((waveNumber - 1) / 2))
   const total = droneCount + tankCount
 
   for (let i = 0; i < total; i++) {
-    const kind: EnemyKind = i < droneCount ? 'drone' : 'tank'
-    spawns.push({ kind, pos: randomEdgePosition(worldSize, i, total) })
+    const kind = i < droneCount ? EnemyKind.drone : EnemyKind.tank
+    spawns.push({ kind, pos: randomEdgePosition(worldSize, i, total, rng) })
   }
 
   return spawns
 }
 
-function randomEdgePosition(worldSize: Vec2, index: number, total: number): Vec2 {
+function randomEdgePosition(
+  worldSize: Vec2,
+  index: number,
+  total: number,
+  rng: SeededRandom
+): Vec2 {
   const margin = 50
-  const angle = (Math.PI * 2 * index) / total + ((Math.PI * 2 * pseudoRandom(index)) / total) * 0.3
+  const baseAngle = (Math.PI * 2 * index) / total
+  const jitter = rng.range(-0.3, 0.3)
+  const angle = baseAngle + jitter
   const cx = worldSize.x / 2
   const cy = worldSize.y / 2
   const dist = Math.max(worldSize.x, worldSize.y) / 2 + margin
@@ -32,16 +41,11 @@ function randomEdgePosition(worldSize: Vec2, index: number, total: number): Vec2
   }
 }
 
-function pseudoRandom(seed: number): number {
-  const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453
-  return x - Math.floor(x)
-}
-
 function clamp(v: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, v))
 }
 
 export function getWaveDelay(waveNumber: number): number {
   if (waveNumber <= 1) return 0
-  return 2.5
+  return 1
 }

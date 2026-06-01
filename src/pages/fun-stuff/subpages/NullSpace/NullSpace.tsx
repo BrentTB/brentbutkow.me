@@ -1,16 +1,25 @@
 import { useRef } from 'react'
-import { useEventHorizon } from './useEventHorizon'
+import { BackButton } from '../../../../components/PageFormatting/BackButton'
+import { useNullSpace } from './useNullSpace'
 import { GameHUD } from './components/GameHUD'
 import { GameOverlay } from './components/GameOverlay'
-import styles from './EventHorizon.module.scss'
+import styles from './NullSpace.module.scss'
 
-function EventHorizon() {
+function NullSpace() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const { uiState, handleStart, handleNextWave, handleRestart, setSelectedAbility } =
-    useEventHorizon(canvasRef)
+  const {
+    uiState,
+    handleStart,
+    handleNextWave,
+    handleRestart,
+    setSelectedAbility,
+    handlePurchaseUpgrade,
+    handleFinishUpgrades,
+  } = useNullSpace(canvasRef)
 
   return (
     <div className={styles.wrapper}>
+      <BackButton />
       <div className={styles.gameContainer}>
         <canvas ref={canvasRef} className={styles.canvas} />
         <GameHUD uiState={uiState} onAbilitySelect={setSelectedAbility} />
@@ -19,10 +28,12 @@ function EventHorizon() {
           onStart={handleStart}
           onNextWave={handleNextWave}
           onRestart={handleRestart}
+          onPurchaseUpgrade={handlePurchaseUpgrade}
+          onFinishUpgrades={handleFinishUpgrades}
         />
       </div>
     </div>
   )
 }
 
-export default EventHorizon
+export default NullSpace

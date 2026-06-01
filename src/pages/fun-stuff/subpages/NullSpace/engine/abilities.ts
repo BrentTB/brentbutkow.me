@@ -1,15 +1,16 @@
-import { METEOR_STRIKE } from '../data'
+import { METEORITE_STRIKE, METEOR_STRIKE } from '../data'
 import { uid, spawnExplosionParticles } from './entities'
 import { distance } from './collision'
-import type { Ability, AbilityKind, Enemy, GameState, MeteorStrike, Particle, Vec2 } from './types'
+import { AbilityKind } from './types'
+import type { Ability, Enemy, GameState, MeteorStrike, Particle, Vec2 } from './types'
 
 export function tryUseAbility(
   abilities: Ability[],
-  kind: AbilityKind,
+  kind: Ability['kind'],
   targetPos: Vec2,
   currentPower: number
 ): { abilities: Ability[]; strike: MeteorStrike | null; powerSpent: number } {
-  const idx = abilities.findIndex((a) => a.kind === kind && a.cooldownRemaining <= 0)
+  const idx = abilities.findIndex((a) => a.kind === kind && a.unlocked && a.cooldownRemaining <= 0)
   if (idx === -1) return { abilities, strike: null, powerSpent: 0 }
 
   const ability = abilities[idx]
@@ -17,13 +18,16 @@ export function tryUseAbility(
 
   const updated = abilities.map((a, i) => (i === idx ? { ...a, cooldownRemaining: a.cooldown } : a))
 
+  const delayValue = kind === AbilityKind.meteorite ? METEORITE_STRIKE.delay : METEOR_STRIKE.delay
+
   const strike: MeteorStrike = {
     id: uid(),
+    kind,
     targetPos: { ...targetPos },
-    delay: METEOR_STRIKE.delay,
+    delay: delayValue,
     elapsed: 0,
-    damage: METEOR_STRIKE.damage,
-    aoeRadius: METEOR_STRIKE.aoeRadius,
+    damage: ability.damage,
+    aoeRadius: ability.aoeRadius,
   }
 
   return { abilities: updated, strike, powerSpent: ability.powerCost }
@@ -46,12 +50,14 @@ export function updateMeteorStrikes(
   particles: Particle[]
   scoreGained: number
   powerGained: number
+  killedEnemies: Enemy[]
 } {
   const remaining: MeteorStrike[] = []
   let updatedEnemies = enemies
   const allParticles: Particle[] = []
   let scoreGained = 0
   let powerGained = 0
+  const allKilled: Enemy[] = []
 
   for (const strike of strikes) {
     const elapsed = strike.elapsed + dt
@@ -62,6 +68,7 @@ export function updateMeteorStrikes(
       updatedEnemies = result.enemies
       scoreGained += result.scoreGained
       powerGained += result.powerGained
+      allKilled.push(...result.killedEnemies)
       allParticles.push(...spawnExplosionParticles(strike.targetPos, 16, '#ff6633'))
     }
   }
@@ -72,16 +79,18 @@ export function updateMeteorStrikes(
     particles: allParticles,
     scoreGained,
     powerGained,
+    killedEnemies: allKilled,
   }
 }
 
 function applyMeteorDamage(
   enemies: Enemy[],
   strike: MeteorStrike
-): { enemies: Enemy[]; scoreGained: number; powerGained: number } {
+): { enemies: Enemy[]; scoreGained: number; powerGained: number; killedEnemies: Enemy[] } {
   let scoreGained = 0
   let powerGained = 0
   const surviving: Enemy[] = []
+  const killedEnemies: Enemy[] = []
 
   for (const enemy of enemies) {
     const dist = distance(enemy.pos, strike.targetPos)
@@ -90,6 +99,7 @@ function applyMeteorDamage(
       if (damaged.hp <= 0) {
         scoreGained += enemy.scoreValue
         powerGained += enemy.powerReward
+        killedEnemies.push(enemy)
       } else {
         surviving.push(damaged)
       }
@@ -98,13 +108,13 @@ function applyMeteorDamage(
     }
   }
 
-  return { enemies: surviving, scoreGained, powerGained }
+  return { enemies: surviving, scoreGained, powerGained, killedEnemies }
 }
 
 export function resolveAbilityInput(
   state: GameState,
   clicks: Vec2[],
-  selectedAbility: AbilityKind | null
+  selectedAbility: Ability['kind'] | null
 ): { abilities: Ability[]; newStrikes: MeteorStrike[]; powerSpent: number } {
   if (!selectedAbility || clicks.length === 0) {
     return { abilities: state.abilities, newStrikes: [], powerSpent: 0 }

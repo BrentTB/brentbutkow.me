@@ -56,12 +56,15 @@
 
 .info {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .wave,
-.score {
+.score,
+.currency {
   font-size: 0.8rem;
   color: var(--text);
 }
@@ -69,6 +72,10 @@
 .wave {
   color: var(--accent);
   font-weight: 600;
+}
+
+.currency {
+  color: #c8a8ff;
 }
 
 .abilities {
@@ -87,24 +94,43 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 56px;
-  height: 60px;
+  width: 60px;
+  height: 64px;
   background: rgba(0, 0, 0, 0.7);
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
   border-radius: 8px;
   cursor: pointer;
   overflow: hidden;
   color: var(--text);
-  transition: border-color 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 
   &:hover:not(:disabled) {
     border-color: var(--accent);
   }
 
   &:disabled {
-    opacity: 0.6;
     cursor: not-allowed;
   }
+}
+
+.abilitySelected {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.4);
+}
+
+.abilityLocked {
+  opacity: 0.45;
+}
+
+.hotkeyBadge {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  font-size: 0.5rem;
+  color: var(--muted);
+  line-height: 1;
 }
 
 .abilityIcon {
@@ -113,7 +139,7 @@
 }
 
 .abilityLabel {
-  font-size: 0.5rem;
+  font-size: 0.45rem;
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;

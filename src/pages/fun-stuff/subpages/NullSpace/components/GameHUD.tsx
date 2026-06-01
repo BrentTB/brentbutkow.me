@@ -1,14 +1,20 @@
-import type { GameUIState } from '../useEventHorizon'
-import type { AbilityKind } from '../engine/types'
+import { CURRENCY_NAME } from '../data'
+import { GamePhase } from '../engine/types'
+import type { GameUIState } from '../useNullSpace'
 import styles from './GameHUD.module.scss'
 
 type GameHUDProps = {
   uiState: GameUIState
-  onAbilitySelect: (kind: AbilityKind) => void
+  onAbilitySelect: (kind: GameUIState['selectedAbility']) => void
+}
+
+const ABILITY_LABELS: Record<string, { icon: string; label: string; hotkey: string }> = {
+  meteorite: { icon: '☄', label: 'Meteorite', hotkey: '1' },
+  meteor: { icon: '🌑', label: 'Meteor', hotkey: '2' },
 }
 
 export function GameHUD({ uiState, onAbilitySelect }: GameHUDProps) {
-  if (uiState.phase === 'menu') return null
+  if (uiState.phase === GamePhase.menu) return null
 
   const hpRatio = Math.max(0, uiState.shipHp / uiState.shipMaxHp)
   const hpColor = hpRatio > 0.5 ? '#44bb44' : hpRatio > 0.25 ? '#ccaa22' : '#cc3333'
@@ -46,26 +52,53 @@ export function GameHUD({ uiState, onAbilitySelect }: GameHUDProps) {
         <div className={styles.info}>
           <span className={styles.wave}>Wave {uiState.wave}</span>
           <span className={styles.score}>Score: {uiState.score}</span>
+          <span className={styles.currency}>
+            {CURRENCY_NAME}: {uiState.currency}
+          </span>
         </div>
       </div>
       <div className={styles.abilities}>
         {uiState.abilities.map((ability) => {
-          const isReady = ability.cooldownRemaining <= 0 && uiState.power >= ability.powerCost
+          const meta = ABILITY_LABELS[ability.kind] ?? {
+            icon: '?',
+            label: ability.kind,
+            hotkey: '',
+          }
+          const isSelected = uiState.selectedAbility === ability.kind
+          const isReady =
+            ability.unlocked && ability.cooldownRemaining <= 0 && uiState.power >= ability.powerCost
           const onCooldown = ability.cooldownRemaining > 0
           const cdPercent = onCooldown ? ability.cooldownRemaining / ability.cooldown : 0
+
+          const btnClass = [
+            styles.abilityBtn,
+            isSelected ? styles.abilitySelected : '',
+            !ability.unlocked ? styles.abilityLocked : '',
+          ]
+            .filter(Boolean)
+            .join(' ')
+
           return (
             <button
               key={ability.kind}
-              className={styles.abilityBtn}
+              className={btnClass}
               onClick={() => onAbilitySelect(ability.kind)}
-              disabled={!isReady}
-              aria-label={`${ability.kind} ability (${ability.powerCost} power)${onCooldown ? ` — ${Math.ceil(ability.cooldownRemaining)}s cooldown` : ''}`}
+              disabled={!ability.unlocked}
+              aria-label={
+                ability.unlocked
+                  ? `${meta.label} (${ability.powerCost} power)${onCooldown ? ` — ${Math.ceil(ability.cooldownRemaining)}s cooldown` : ''}`
+                  : `${meta.label} — locked`
+              }
             >
-              <span className={styles.abilityIcon}>☄</span>
-              <span className={styles.abilityLabel}>Meteor</span>
-              <span className={styles.abilityCost}>{ability.powerCost}</span>
-              {onCooldown && (
+              {meta.hotkey && <span className={styles.hotkeyBadge}>{meta.hotkey}</span>}
+              <span className={styles.abilityIcon}>{ability.unlocked ? meta.icon : '🔒'}</span>
+              <span className={styles.abilityLabel}>{meta.label}</span>
+              {ability.unlocked && <span className={styles.abilityCost}>{ability.powerCost}</span>}
+              {ability.unlocked && onCooldown && (
                 <div className={styles.cooldownOverlay} style={{ height: `${cdPercent * 100}%` }} />
+              )}
+              {ability.unlocked && !isReady && !onCooldown && (
+                <div className={styles.cooldownOverlay} style={{ height: '100%', opacity: 0.3 }} />
               )}
             </button>
           )

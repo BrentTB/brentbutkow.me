@@ -1,4 +1,4 @@
-# Event Horizon
+# Null Space
 
 A space defense game where you control the fabric of space itself to protect your ship.
 
@@ -16,7 +16,7 @@ Your ship auto-flies and auto-attacks enemies. You don't control the ship direct
 The game separates pure logic from rendering and React:
 
 ```
-EventHorizon/
+NullSpace/
 ├── engine/          # Pure game logic — zero React imports, trivially testable
 │   ├── types.ts     # All type definitions (Entity, GameState, Ship, Enemy, etc.)
 │   ├── game-loop.ts # Core update: updateGameState(state, dt, input) → state
@@ -34,8 +34,8 @@ EventHorizon/
 ├── components/      # React UI overlays (HTML, not canvas)
 │   ├── GameHUD.tsx   # HP bar, power bar, wave/score, ability buttons
 │   └── GameOverlay.tsx # Menu, wave complete, game over screens
-├── useEventHorizon.ts # Main hook: wires engine + renderer + input + React state
-├── EventHorizon.tsx   # Page component: canvas + HUD + overlays
+├── useNullSpace.ts    # Main hook: wires engine + renderer + input + React state
+├── NullSpace.tsx      # Page component: canvas + HUD + overlays
 └── data.ts            # Game constants (centralized for tuning)
 ```
 

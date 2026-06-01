@@ -1,35 +1,52 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { createInitialState, startGame, startNextWave, updateGameState } from './engine/game-loop'
-import type { GamePhase, GameState, PlayerInput, AbilityKind, Vec2 } from './engine/types'
+import {
+  createInitialState,
+  startGame,
+  startNextWave,
+  updateGameState,
+  applyUpgradeToState,
+  finishUpgradeScreen,
+} from './engine/game-loop'
+import { AbilityKind, GamePhase } from './engine/types'
+import type { GameState, PlayerInput, Vec2, UpgradeId, PlayerUpgrades } from './engine/types'
 import { buildSpriteCache, type SpriteCache } from './renderer/sprite-cache'
 import { createCamera, updateCamera, screenToWorld, type Camera } from './renderer/camera'
 import { generateStarfield, type Star } from './renderer/starfield'
 import { renderFrame } from './renderer/renderer'
+import { SeededRandom } from './engine/random'
 import { WORLD_SIZE } from './data'
 
 export type GameUIState = {
-  phase: GamePhase
+  phase: GameState['phase']
   score: number
   highScore: number
   wave: number
+  level: number
   shipHp: number
   shipMaxHp: number
   power: number
   maxPower: number
+  currency: number
   abilities: GameState['abilities']
+  upgrades: PlayerUpgrades
+  selectedAbility: GameState['abilities'][number]['kind']
 }
 
-export function useEventHorizon(canvasRef: React.RefObject<HTMLCanvasElement | null>) {
+export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null>) {
   const [uiState, setUiState] = useState<GameUIState>({
-    phase: 'menu',
+    phase: GamePhase.menu,
     score: 0,
     highScore: 0,
     wave: 0,
+    level: 0,
     shipHp: 100,
     shipMaxHp: 100,
-    power: 60,
+    power: 80,
     maxPower: 100,
+    currency: 0,
     abilities: [],
+    upgrades: {} as PlayerUpgrades,
+    selectedAbility: AbilityKind.meteorite,
   })
 
   const gameStateRef = useRef<GameState>(createInitialState())
@@ -38,8 +55,8 @@ export function useEventHorizon(canvasRef: React.RefObject<HTMLCanvasElement | n
   const starsRef = useRef<Star[]>([])
   const rafRef = useRef<number>(0)
   const lastTimeRef = useRef<number>(0)
-  const inputRef = useRef<PlayerInput>({ clicks: [], selectedAbility: 'meteorStrike' })
-  const selectedAbilityRef = useRef<AbilityKind>('meteorStrike')
+  const inputRef = useRef<PlayerInput>({ clicks: [], selectedAbility: AbilityKind.meteorite })
+  const selectedAbilityRef = useRef<GameState['abilities'][number]['kind']>(AbilityKind.meteorite)
 
   const syncUI = useCallback((state: GameState) => {
     setUiState({
@@ -47,17 +64,22 @@ export function useEventHorizon(canvasRef: React.RefObject<HTMLCanvasElement | n
       score: state.score,
       highScore: state.highScore,
       wave: state.wave,
+      level: state.level,
       shipHp: state.ship.hp,
       shipMaxHp: state.ship.maxHp,
       power: state.power,
       maxPower: state.maxPower,
+      currency: state.currency,
       abilities: state.abilities,
+      upgrades: state.upgrades,
+      selectedAbility: selectedAbilityRef.current,
     })
   }, [])
 
   const handleStart = useCallback(() => {
     gameStateRef.current = startGame(gameStateRef.current)
     gameStateRef.current = startNextWave(gameStateRef.current)
+    selectedAbilityRef.current = AbilityKind.meteorite
     syncUI(gameStateRef.current)
   }, [syncUI])
 
@@ -70,9 +92,29 @@ export function useEventHorizon(canvasRef: React.RefObject<HTMLCanvasElement | n
     handleStart()
   }, [handleStart])
 
-  const setSelectedAbility = useCallback((kind: AbilityKind) => {
-    selectedAbilityRef.current = kind
-  }, [])
+  const setSelectedAbility = useCallback(
+    (kind: GameState['abilities'][number]['kind']) => {
+      const ability = gameStateRef.current.abilities.find((a) => a.kind === kind)
+      if (ability?.unlocked) {
+        selectedAbilityRef.current = kind
+        syncUI(gameStateRef.current)
+      }
+    },
+    [syncUI]
+  )
+
+  const handlePurchaseUpgrade = useCallback(
+    (upgradeId: UpgradeId) => {
+      gameStateRef.current = applyUpgradeToState(gameStateRef.current, upgradeId)
+      syncUI(gameStateRef.current)
+    },
+    [syncUI]
+  )
+
+  const handleFinishUpgrades = useCallback(() => {
+    gameStateRef.current = finishUpgradeScreen(gameStateRef.current)
+    syncUI(gameStateRef.current)
+  }, [syncUI])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -82,7 +124,8 @@ export function useEventHorizon(canvasRef: React.RefObject<HTMLCanvasElement | n
     if (!ctx) return
 
     spritesRef.current = buildSpriteCache()
-    starsRef.current = generateStarfield(WORLD_SIZE.x, WORLD_SIZE.y, 250)
+    const starRng = new SeededRandom(Date.now())
+    starsRef.current = generateStarfield(WORLD_SIZE.x, WORLD_SIZE.y, 250, starRng)
 
     const resize = () => {
       const parent = canvas.parentElement
@@ -103,7 +146,7 @@ export function useEventHorizon(canvasRef: React.RefObject<HTMLCanvasElement | n
 
     const handlePointerDown = (e: PointerEvent) => {
       const state = gameStateRef.current
-      if (state.phase !== 'playing') return
+      if (state.phase !== GamePhase.playing) return
 
       const rect = canvas.getBoundingClientRect()
       const screenPos: Vec2 = {
@@ -118,7 +161,22 @@ export function useEventHorizon(canvasRef: React.RefObject<HTMLCanvasElement | n
       }
     }
 
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (gameStateRef.current.phase !== GamePhase.playing) return
+      if (e.key === '1') {
+        selectedAbilityRef.current = AbilityKind.meteorite
+        syncUI(gameStateRef.current)
+      } else if (e.key === '2') {
+        const meteor = gameStateRef.current.abilities.find((a) => a.kind === AbilityKind.meteor)
+        if (meteor?.unlocked) {
+          selectedAbilityRef.current = AbilityKind.meteor
+          syncUI(gameStateRef.current)
+        }
+      }
+    }
+
     canvas.addEventListener('pointerdown', handlePointerDown)
+    window.addEventListener('keydown', handleKeyDown)
 
     const loop = (time: number) => {
       if (lastTimeRef.current === 0) lastTimeRef.current = time
@@ -152,7 +210,11 @@ export function useEventHorizon(canvasRef: React.RefObject<HTMLCanvasElement | n
       }
 
       const state = gameStateRef.current
-      if (state.phase !== prevPhase || input.clicks.length > 0 || state.phase === 'playing') {
+      if (
+        state.phase !== prevPhase ||
+        input.clicks.length > 0 ||
+        state.phase === GamePhase.playing
+      ) {
         syncUI(state)
       }
 
@@ -165,6 +227,7 @@ export function useEventHorizon(canvasRef: React.RefObject<HTMLCanvasElement | n
     return () => {
       cancelAnimationFrame(rafRef.current)
       canvas.removeEventListener('pointerdown', handlePointerDown)
+      window.removeEventListener('keydown', handleKeyDown)
       resizeObserver.disconnect()
     }
   }, [canvasRef, syncUI])
@@ -175,5 +238,7 @@ export function useEventHorizon(canvasRef: React.RefObject<HTMLCanvasElement | n
     handleNextWave,
     handleRestart,
     setSelectedAbility,
+    handlePurchaseUpgrade,
+    handleFinishUpgrades,
   }
 }
