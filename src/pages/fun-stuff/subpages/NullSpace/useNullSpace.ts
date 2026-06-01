@@ -19,6 +19,7 @@ export type GameUIState = {
   phase: GameState['phase']
   score: number
   highScore: number
+  isNewHighScore: boolean
   wave: number
   level: number
   shipHp: number
@@ -36,6 +37,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     phase: GamePhase.menu,
     score: 0,
     highScore: 0,
+    isNewHighScore: false,
     wave: 0,
     level: 0,
     shipHp: 100,
@@ -62,6 +64,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       phase: state.phase,
       score: state.score,
       highScore: state.highScore,
+      isNewHighScore: state.isNewHighScore,
       wave: state.wave,
       level: state.level,
       shipHp: state.ship.hp,

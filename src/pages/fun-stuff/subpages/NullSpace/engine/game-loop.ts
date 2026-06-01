@@ -46,6 +46,7 @@ export function createInitialState(): GameState {
     level: 0,
     score: 0,
     highScore: loadHighScore(),
+    isNewHighScore: false,
     currency: 0,
     power: POWER_DEFAULTS.startingPower,
     maxPower: POWER_DEFAULTS.max,
@@ -83,6 +84,7 @@ export function startGame(state: GameState): GameState {
     waveTimer: 0,
     enemiesRemainingInWave: 0,
     highScore: loadHighScore(),
+    isNewHighScore: false,
   }
 }
 
@@ -237,6 +239,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
 
   // --- Check game over ---
   if (ship.hp <= 0) {
+    const isNewHighScore = score > state.highScore
     saveHighScore(score)
     return {
       ...state,
@@ -252,6 +255,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       power,
       currency,
       highScore: Math.max(state.highScore, score),
+      isNewHighScore,
       waveTimer: 0,
       enemiesRemainingInWave,
     }
@@ -298,7 +302,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
 function computeCurrencyFromKills(killedEnemies: Enemy[]): number {
   let total = 0
   for (const enemy of killedEnemies) {
-    const range = CURRENCY_DROPS[enemy.kind as keyof typeof CURRENCY_DROPS]
+    const range = CURRENCY_DROPS[enemy.kind]
     if (range) {
       total += rng.intRange(range.min, range.max)
     }

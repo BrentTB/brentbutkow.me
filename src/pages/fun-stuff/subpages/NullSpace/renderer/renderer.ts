@@ -1,11 +1,18 @@
-import { ProjectileOwner } from '../engine/types'
+import { EnemyKind, ProjectileOwner } from '../engine/types'
 import type { BlackHole, GameState, MeteorStrike, Particle } from '../engine/types'
 import type { Camera } from './camera'
 import { worldToScreen } from './camera'
 import type { SpriteCache } from './sprite-cache'
 import { getSpriteSize } from './sprite-cache'
+import { SpriteKey } from './sprites'
 import type { Star } from './starfield'
 import { renderStarfield } from './starfield'
+
+const ENEMY_SPRITE: Record<EnemyKind, SpriteKey> = {
+  [EnemyKind.drone]: SpriteKey.drone,
+  [EnemyKind.tank]: SpriteKey.tank,
+  [EnemyKind.shooter]: SpriteKey.shooter,
+}
 
 export function renderFrame(
   ctx: CanvasRenderingContext2D,
@@ -39,7 +46,7 @@ function renderShip(
   sprites: SpriteCache
 ): void {
   const screen = worldToScreen(state.ship.pos, camera)
-  const size = getSpriteSize('ship')
+  const size = getSpriteSize(SpriteKey.ship)
 
   ctx.save()
   ctx.translate(screen.x, screen.y)
@@ -68,7 +75,7 @@ function renderEnemies(
     )
       continue
 
-    const spriteKey = enemy.kind
+    const spriteKey = ENEMY_SPRITE[enemy.kind]
     const size = getSpriteSize(spriteKey)
 
     ctx.save()
@@ -113,7 +120,7 @@ function renderProjectiles(
       continue
 
     const spriteKey =
-      proj.owner === ProjectileOwner.enemy ? ('enemyProjectile' as const) : ('projectile' as const)
+      proj.owner === ProjectileOwner.enemy ? SpriteKey.enemyProjectile : SpriteKey.projectile
     const size = getSpriteSize(spriteKey)
     ctx.drawImage(sprites[spriteKey], screen.x - size.w / 2, screen.y - size.h / 2)
   }
@@ -163,7 +170,7 @@ function renderMeteorProjectiles(
     const screen = worldToScreen(strike.targetPos, camera)
     const progress = strike.elapsed / strike.delay
 
-    const spriteKey = strike.kind === 'meteorite' ? ('meteorite' as const) : ('meteor' as const)
+    const spriteKey = strike.kind === 'meteorite' ? SpriteKey.meteorite : SpriteKey.meteor
     const size = getSpriteSize(spriteKey)
     const meteorY = screen.y - 400 * (1 - progress)
 
@@ -208,7 +215,7 @@ function renderShipHealthBar(
   camera: Camera
 ): void {
   const screen = worldToScreen(state.ship.pos, camera)
-  const shipSize = getSpriteSize('ship')
+  const shipSize = getSpriteSize(SpriteKey.ship)
   const barWidth = 40
   const barHeight = 4
   const hpRatio = Math.max(0, state.ship.hp / state.ship.maxHp)
@@ -222,6 +229,29 @@ function renderShipHealthBar(
   const hpColor = hpRatio > 0.5 ? '#44bb44' : hpRatio > 0.25 ? '#ccaa22' : '#cc3333'
   ctx.fillStyle = hpColor
   ctx.fillRect(x, y, barWidth * hpRatio, barHeight)
+}
+
+// Black hole core gradients are static (colors + radius), so cache one per radius
+// per context rather than rebuilding every frame. Painted under a translate so the
+// origin-centered gradient follows the hole's screen position.
+const blackHoleGradients = new WeakMap<CanvasRenderingContext2D, Map<number, CanvasGradient>>()
+
+function getBlackHoleGradient(ctx: CanvasRenderingContext2D, radius: number): CanvasGradient {
+  let byRadius = blackHoleGradients.get(ctx)
+  if (!byRadius) {
+    byRadius = new Map()
+    blackHoleGradients.set(ctx, byRadius)
+  }
+  let gradient = byRadius.get(radius)
+  if (!gradient) {
+    gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, radius)
+    gradient.addColorStop(0, 'rgba(20, 0, 40, 0.9)')
+    gradient.addColorStop(0.3, 'rgba(40, 10, 80, 0.6)')
+    gradient.addColorStop(0.7, 'rgba(80, 30, 160, 0.2)')
+    gradient.addColorStop(1, 'rgba(100, 50, 200, 0)')
+    byRadius.set(radius, gradient)
+  }
+  return gradient
 }
 
 function renderBlackHoles(ctx: CanvasRenderingContext2D, holes: BlackHole[], camera: Camera): void {
@@ -241,23 +271,12 @@ function renderBlackHoles(ctx: CanvasRenderingContext2D, holes: BlackHole[], cam
 
     ctx.save()
     ctx.globalAlpha = alpha
+    ctx.translate(screen.x, screen.y)
 
     // Dark core
-    const gradient = ctx.createRadialGradient(
-      screen.x,
-      screen.y,
-      0,
-      screen.x,
-      screen.y,
-      hole.radius
-    )
-    gradient.addColorStop(0, 'rgba(20, 0, 40, 0.9)')
-    gradient.addColorStop(0.3, 'rgba(40, 10, 80, 0.6)')
-    gradient.addColorStop(0.7, 'rgba(80, 30, 160, 0.2)')
-    gradient.addColorStop(1, 'rgba(100, 50, 200, 0)')
-    ctx.fillStyle = gradient
+    ctx.fillStyle = getBlackHoleGradient(ctx, hole.radius)
     ctx.beginPath()
-    ctx.arc(screen.x, screen.y, hole.radius, 0, Math.PI * 2)
+    ctx.arc(0, 0, hole.radius, 0, Math.PI * 2)
     ctx.fill()
 
     // Swirl rings
@@ -267,7 +286,7 @@ function renderBlackHoles(ctx: CanvasRenderingContext2D, holes: BlackHole[], cam
       const ringRadius = hole.radius * (0.3 + ring * 0.25)
       const rotAngle = hole.elapsed * (2 + ring) + ring * 2
       ctx.beginPath()
-      ctx.arc(screen.x, screen.y, ringRadius, rotAngle, rotAngle + Math.PI * 1.2)
+      ctx.arc(0, 0, ringRadius, rotAngle, rotAngle + Math.PI * 1.2)
       ctx.stroke()
     }
 

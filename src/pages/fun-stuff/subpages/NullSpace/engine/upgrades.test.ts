@@ -77,6 +77,18 @@ describe('applyUpgradesToAbilities', () => {
     const meteorite = updated.find((a) => a.kind === AbilityKind.meteorite)
     expect(meteorite!.damage).toBeGreaterThan(baseDamage)
   })
+
+  it('increases black hole duration with upgrades', () => {
+    const abilities = createAbilities()
+    const baseDuration = abilities.find((a) => a.kind === AbilityKind.blackHole)!.duration
+    const upgrades = {
+      ...createInitialUpgrades(),
+      [UpgradeId.blackHoleDuration]: { currentTier: 1 },
+    }
+    const updated = applyUpgradesToAbilities(abilities, upgrades)
+    const blackHole = updated.find((a) => a.kind === AbilityKind.blackHole)
+    expect(blackHole!.duration).toBeGreaterThan(baseDuration!)
+  })
 })
 
 describe('applyUpgradesToPowerRegen', () => {

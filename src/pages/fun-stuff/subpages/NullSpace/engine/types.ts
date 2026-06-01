@@ -32,7 +32,7 @@ export type Enemy = Entity & {
   attackRange: number
 }
 
-export const ProjectileOwner = { ship: 'ship', player: 'player', enemy: 'enemy' } as const
+export const ProjectileOwner = { ship: 'ship', enemy: 'enemy' } as const
 export type ProjectileOwner = (typeof ProjectileOwner)[keyof typeof ProjectileOwner]
 
 export type Projectile = Entity & {
@@ -56,6 +56,8 @@ export type Ability = {
   damage: number
   aoeRadius: number
   unlocked: boolean
+  // Black hole lifetime in seconds; unused by instantaneous strikes
+  duration?: number
 }
 
 export type MeteorStrike = {
@@ -149,6 +151,7 @@ export type GameState = {
   level: number
   score: number
   highScore: number
+  isNewHighScore: boolean
   currency: number
   power: number
   maxPower: number

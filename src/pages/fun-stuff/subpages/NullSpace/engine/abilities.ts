@@ -39,7 +39,7 @@ export function tryUseAbility(
       radius: ability.aoeRadius,
       pullStrength: BLACK_HOLE.pullStrength,
       damage: ability.damage,
-      duration: BLACK_HOLE.duration,
+      duration: ability.duration ?? BLACK_HOLE.duration,
       elapsed: 0,
     }
     return { abilities: updated, strike: null, blackHole, powerSpent: ability.powerCost }

@@ -1,3 +1,5 @@
+import type { EnemyKind } from './engine/types'
+
 export const GAME_NAME = 'Null Space'
 
 export const WORLD_SIZE = { x: 3000, y: 3000 }
@@ -73,11 +75,11 @@ export const ENEMY_STATS = {
   },
 } as const
 
-export const CURRENCY_DROPS = {
+export const CURRENCY_DROPS: Record<EnemyKind, { min: number; max: number }> = {
   drone: { min: 0, max: 2 },
   tank: { min: 1, max: 5 },
   shooter: { min: 1, max: 3 },
-} as const
+}
 
 export const CURRENCY_NAME = 'Stardust'
 
@@ -93,7 +95,7 @@ export const PARTICLE_DEFAULTS = {
   trailInterval: 0.05,
 }
 
-export const GAME_VERSION = '0.2.0'
+export const GAME_VERSION = '0.2.1'
 
 export type ChangelogEntry = {
   version: string
@@ -108,8 +110,21 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.2.1',
+    date: '2026-06-01',
+    changes: {
+      fixes: [
+        'Black Hole Duration upgrade now actually extends the black hole lifetime',
+        'Game-over screen no longer shows "New High Score!" when you only tie your best',
+        'Smoother rendering: black hole gradients are now cached instead of rebuilt each frame',
+        'Enemy stats now read from a single source of truth so balance tweaks always apply',
+        'Sprite keys converted to a const object, removing the last magic-string union',
+      ],
+    },
+  },
+  {
     version: '0.2.0',
-    date: '2026-06-02',
+    date: '2026-06-01',
     changes: {
       features: [
         'New enemy: Shooter — ranged enemy that fires projectiles at your ship',
@@ -133,7 +148,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     version: '0.1.0',
-    date: '2026-06-01',
+    date: '2026-05-31',
     changes: {
       features: [
         'Initial release — playable space defense game',

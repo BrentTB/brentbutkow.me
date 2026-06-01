@@ -108,6 +108,28 @@ describe('updateGameState', () => {
     expect(updated.phase).toBe(GamePhase.gameOver)
   })
 
+  it('flags a new high score only when the score beats the previous best', () => {
+    let state = startGame(createInitialState())
+    state = startNextWave(state)
+    const dying = {
+      ...state,
+      ship: { ...state.ship, hp: 1 },
+      enemies: state.enemies.map((e) => ({ ...e, pos: { ...state.ship.pos } })),
+    }
+
+    const beaten = updateGameState({ ...dying, score: 100, highScore: 50 }, 0.016, {
+      clicks: [],
+      selectedAbility: null,
+    })
+    expect(beaten.isNewHighScore).toBe(true)
+
+    const tied = updateGameState({ ...dying, score: 50, highScore: 50 }, 0.016, {
+      clicks: [],
+      selectedAbility: null,
+    })
+    expect(tied.isNewHighScore).toBe(false)
+  })
+
   it('shows upgrade screen after completing the 3rd wave', () => {
     let state = startGame(createInitialState())
     // Simulate reaching wave 3 (an upgrade wave)

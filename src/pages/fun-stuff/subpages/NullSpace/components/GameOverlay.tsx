@@ -47,6 +47,7 @@ export function GameOverlay({
           <GameOverScreen
             score={uiState.score}
             highScore={uiState.highScore}
+            isNewHighScore={uiState.isNewHighScore}
             wave={uiState.wave}
             onRestart={onRestart}
           />
@@ -95,7 +96,7 @@ const CATEGORY_ORDER: UpgradeCategory[] = [
   UpgradeCategory.powers,
 ]
 
-const WEAPON_LABELS: Record<string, string> = {
+const WEAPON_LABELS: Record<AbilityKind, string> = {
   [AbilityKind.meteorite]: 'Meteorite',
   [AbilityKind.blackHole]: 'Black Hole',
   [AbilityKind.meteor]: 'Meteor',
@@ -111,7 +112,7 @@ function UpgradeScreen({
   onContinue: () => void
 }) {
   const [activeTab, setActiveTab] = useState<UpgradeCategory>(UpgradeCategory.weapons)
-  const [selectedWeapon, setSelectedWeapon] = useState<string | null>(null)
+  const [selectedWeapon, setSelectedWeapon] = useState<AbilityKind | null>(null)
 
   const upgradesByCategory = CATEGORY_ORDER.map((cat) => ({
     category: cat,
@@ -146,7 +147,7 @@ function UpgradeScreen({
         )}
         {activeTab === UpgradeCategory.weapons && selectedWeapon && (
           <WeaponDetail
-            weapon={selectedWeapon as AbilityKind}
+            weapon={selectedWeapon}
             uiState={uiState}
             onBack={() => setSelectedWeapon(null)}
             onPurchase={onPurchase}
@@ -180,7 +181,7 @@ function WeaponsList({
   onPurchase,
 }: {
   uiState: GameUIState
-  onSelect: (weapon: string) => void
+  onSelect: (weapon: AbilityKind) => void
   onPurchase: (upgradeId: UpgradeId) => void
 }) {
   const weapons = [AbilityKind.meteorite, AbilityKind.blackHole, AbilityKind.meteor]
@@ -223,7 +224,6 @@ function WeaponsList({
                 Unlock {unlockCost} ✦
               </button>
             )}
-            {!needsUnlock && !isUnlocked && null}
           </div>
         )
       })}
@@ -314,16 +314,16 @@ function UpgradeCard({
 function GameOverScreen({
   score,
   highScore,
+  isNewHighScore,
   wave,
   onRestart,
 }: {
   score: number
   highScore: number
+  isNewHighScore: boolean
   wave: number
   onRestart: () => void
 }) {
-  const isNewHighScore = score >= highScore && score > 0
-
   return (
     <>
       <h2 className={styles.title}>Game Over</h2>

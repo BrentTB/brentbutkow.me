@@ -119,15 +119,17 @@ export const ENEMY_PROJECTILE_SPRITE: SpriteData = [
   [_, R, _],
 ]
 
-export type SpriteKey =
-  | 'ship'
-  | 'drone'
-  | 'tank'
-  | 'shooter'
-  | 'projectile'
-  | 'enemyProjectile'
-  | 'meteor'
-  | 'meteorite'
+export const SpriteKey = {
+  ship: 'ship',
+  drone: 'drone',
+  tank: 'tank',
+  shooter: 'shooter',
+  projectile: 'projectile',
+  enemyProjectile: 'enemyProjectile',
+  meteor: 'meteor',
+  meteorite: 'meteorite',
+} as const
+export type SpriteKey = (typeof SpriteKey)[keyof typeof SpriteKey]
 
 export const SPRITE_MAP: Record<SpriteKey, SpriteData> = {
   ship: SHIP_SPRITE,

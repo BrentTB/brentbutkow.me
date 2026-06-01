@@ -16,7 +16,8 @@ function rasterizeSprite(data: SpriteData, scale: number): OffscreenCanvas {
   const h = data.length
   const w = data[0].length
   const canvas = new OffscreenCanvas(w * scale, h * scale)
-  const ctx = canvas.getContext('2d')!
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('Failed to acquire 2D context for sprite rasterization')
 
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {

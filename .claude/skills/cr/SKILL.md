@@ -78,6 +78,10 @@ The highest-value category — changes made in one place that should have ripple
   twin left stale.
 - **Design tokens**: a color/font hard-coded where the rest of the system reads a CSS custom
   property from `index.scss`.
+- **Game changelog**: if any changed files belong to a game subsystem (e.g.
+  `src/pages/fun-stuff/subpages/NullSpace/`), check that the game's `data.ts` changelog
+  array and version have been updated to reflect the changes. Every game in this repo
+  maintains a changelog — missing entries are a propagation gap.
 
 Confirm each finding with a grep before reporting — "I searched `src/` and found 3 stale
 references to the old name" is a finding; "this might be stale" is a guess.

@@ -214,13 +214,19 @@ export function applyUpgradesToAbilities(
     if (ability.kind === AbilityKind.blackHole) {
       const unlocked = upgrades[UpgradeId.unlockBlackHole].currentTier > 0
       let damage = BLACK_HOLE.damage
+      let duration = BLACK_HOLE.duration
 
       const dmgTier = upgrades[UpgradeId.blackHoleDamage].currentTier
       for (let i = 0; i < dmgTier; i++) {
         damage += UPGRADE_DEFINITIONS[UpgradeId.blackHoleDamage].tiers[i].value
       }
 
-      return { ...ability, unlocked, damage }
+      const durTier = upgrades[UpgradeId.blackHoleDuration].currentTier
+      for (let i = 0; i < durTier; i++) {
+        duration += UPGRADE_DEFINITIONS[UpgradeId.blackHoleDuration].tiers[i].value
+      }
+
+      return { ...ability, unlocked, damage, duration }
     }
 
     return ability

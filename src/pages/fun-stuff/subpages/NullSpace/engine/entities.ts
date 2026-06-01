@@ -6,8 +6,9 @@ import {
   METEORITE_STRIKE,
   METEOR_STRIKE,
   BLACK_HOLE,
+  ENEMY_STATS,
 } from '../data'
-import { AbilityKind, EnemyKind } from './types'
+import { AbilityKind } from './types'
 import type { Ship, Enemy, Projectile, Vec2, Ability, Particle } from './types'
 import { rng } from './random'
 
@@ -37,67 +38,23 @@ export function createShip(worldSize: Vec2): Ship {
   }
 }
 
-type EnemyConfig = {
-  hp: number
-  speed: number
-  damage: number
-  radius: number
-  scoreValue: number
-  powerReward: number
-  fireRate: number
-  attackRange: number
-}
-
-const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
-  [EnemyKind.drone]: {
-    hp: 20,
-    speed: 100,
-    damage: 8,
-    radius: 10,
-    scoreValue: 10,
-    powerReward: 5,
-    fireRate: 0,
-    attackRange: 0,
-  },
-  [EnemyKind.tank]: {
-    hp: 80,
-    speed: 40,
-    damage: 15,
-    radius: 18,
-    scoreValue: 30,
-    powerReward: 15,
-    fireRate: 0,
-    attackRange: 0,
-  },
-  [EnemyKind.shooter]: {
-    hp: 30,
-    speed: 50,
-    damage: 6,
-    radius: 12,
-    scoreValue: 20,
-    powerReward: 8,
-    fireRate: 0.8,
-    attackRange: 350,
-  },
-}
-
 export function createEnemy(kind: Enemy['kind'], pos: Vec2): Enemy {
-  const config = ENEMY_CONFIGS[kind]
+  const stats = ENEMY_STATS[kind]
   return {
     id: uid(),
     pos: { ...pos },
     vel: { x: 0, y: 0 },
-    radius: config.radius,
-    hp: config.hp,
-    maxHp: config.hp,
+    radius: stats.radius,
+    hp: stats.hp,
+    maxHp: stats.hp,
     kind,
-    speed: config.speed,
-    damage: config.damage,
-    scoreValue: config.scoreValue,
-    powerReward: config.powerReward,
-    fireRate: config.fireRate,
+    speed: stats.speed,
+    damage: stats.damage,
+    scoreValue: stats.scoreValue,
+    powerReward: stats.powerReward,
+    fireRate: 'fireRate' in stats ? stats.fireRate : 0,
     fireCooldown: 0,
-    attackRange: config.attackRange,
+    attackRange: 'attackRange' in stats ? stats.attackRange : 0,
   }
 }
 
@@ -144,6 +101,7 @@ export function createAbilities(): Ability[] {
       powerCost: BLACK_HOLE.powerCost,
       damage: BLACK_HOLE.damage,
       aoeRadius: BLACK_HOLE.radius,
+      duration: BLACK_HOLE.duration,
       unlocked: false,
     },
     {
