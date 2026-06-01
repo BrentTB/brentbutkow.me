@@ -123,9 +123,7 @@ describe('updateGameState', () => {
     state = startNextWave(state)
     state = { ...state, enemies: [], enemiesRemainingInWave: 1, waveTimer: 0 }
     state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
-    const expected = isUpgradeWave(state.wave)
-      ? GamePhase.upgradeScreen
-      : GamePhase.waveComplete
+    const expected = isUpgradeWave(state.wave) ? GamePhase.upgradeScreen : GamePhase.waveComplete
     expect(state.phase).toBe(expected)
   })
 })

@@ -39,8 +39,7 @@ function NullSpace() {
           {CHANGELOG.map((entry) => (
             <div key={entry.version} className={styles.version}>
               <h4 className={styles.versionTitle}>
-                v{entry.version}{' '}
-                <span className={styles.versionDate}>— {entry.date}</span>
+                v{entry.version} <span className={styles.versionDate}>— {entry.date}</span>
               </h4>
               {entry.changes.breaking && (
                 <div className={styles.changeGroup}>
