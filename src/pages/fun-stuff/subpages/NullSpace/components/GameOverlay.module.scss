@@ -253,3 +253,67 @@
   min-width: 48px;
   text-align: center;
 }
+
+// --- Weapon list ---
+
+.weaponCard {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.weaponBtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+
+  &:hover:not(:disabled) {
+    color: var(--accent);
+  }
+
+  &:disabled {
+    color: var(--muted);
+    cursor: default;
+  }
+}
+
+.weaponName {
+  flex: 1;
+}
+
+.weaponArrow {
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin-left: 8px;
+}
+
+.backBtn {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 0;
+  align-self: flex-start;
+  transition: color 0.15s ease;
+
+  &:hover {
+    color: var(--text);
+  }
+}

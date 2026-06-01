@@ -1,12 +1,16 @@
 /**
  * Seeded pseudo-random number generator using a linear congruential approach.
- * Each call to next() advances the internal state, producing a different value.
- * Seed with Date.now() for unique sequences per game session.
+ * Exported as a singleton — call rng.next() from anywhere in the engine.
+ * Call reseed() at game start for a unique sequence per session.
  */
-export class SeededRandom {
+class SeededRandom {
   private state: number
 
   constructor(seed: number) {
+    this.state = seed >>> 0 || 1
+  }
+
+  reseed(seed: number): void {
     this.state = seed >>> 0 || 1
   }
 
@@ -25,3 +29,5 @@ export class SeededRandom {
     return this.next() * (max - min) + min
   }
 }
+
+export const rng = new SeededRandom(Date.now())

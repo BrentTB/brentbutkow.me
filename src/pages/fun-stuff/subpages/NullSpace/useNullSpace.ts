@@ -13,7 +13,6 @@ import { buildSpriteCache, type SpriteCache } from './renderer/sprite-cache'
 import { createCamera, updateCamera, screenToWorld, type Camera } from './renderer/camera'
 import { generateStarfield, type Star } from './renderer/starfield'
 import { renderFrame } from './renderer/renderer'
-import { SeededRandom } from './engine/random'
 import { WORLD_SIZE } from './data'
 
 export type GameUIState = {
@@ -124,8 +123,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     if (!ctx) return
 
     spritesRef.current = buildSpriteCache()
-    const starRng = new SeededRandom(Date.now())
-    starsRef.current = generateStarfield(WORLD_SIZE.x, WORLD_SIZE.y, 250, starRng)
+    starsRef.current = generateStarfield(WORLD_SIZE.x, WORLD_SIZE.y, 250)
 
     const resize = () => {
       const parent = canvas.parentElement

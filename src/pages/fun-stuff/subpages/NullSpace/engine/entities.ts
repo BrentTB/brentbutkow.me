@@ -8,6 +8,7 @@ import {
 } from '../data'
 import { AbilityKind, EnemyKind } from './types'
 import type { Ship, Enemy, Projectile, Vec2, Ability, Particle } from './types'
+import { rng } from './random'
 
 let nextId = 0
 export function uid(): string {
@@ -136,16 +137,16 @@ export function createParticle(
 export function spawnExplosionParticles(pos: Vec2, count: number, color: string): Particle[] {
   const particles: Particle[] = []
   for (let i = 0; i < count; i++) {
-    const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.5
-    const speed = 60 + Math.random() * 120
+    const angle = (Math.PI * 2 * i) / count + rng.range(-0.25, 0.25)
+    const speed = 60 + rng.next() * 120
     particles.push(
       createParticle(
         { x: pos.x, y: pos.y },
         { x: Math.cos(angle) * speed, y: Math.sin(angle) * speed },
         color,
-        0.4 + Math.random() * 0.4,
-        2 + Math.random() * 3
-      )
+        0.4 + rng.next() * 0.4,
+        2 + rng.next() * 3,
+      ),
     )
   }
   return particles

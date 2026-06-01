@@ -1,13 +1,13 @@
 import { EnemyKind } from './types'
 import type { Vec2 } from './types'
-import { SeededRandom } from './random'
+import { rng } from './random'
 
 export type EnemySpawn = {
   kind: EnemyKind
   pos: Vec2
 }
 
-export function getWave(waveNumber: number, worldSize: Vec2, rng: SeededRandom): EnemySpawn[] {
+export function getWave(waveNumber: number, worldSize: Vec2): EnemySpawn[] {
   const spawns: EnemySpawn[] = []
   const droneCount = 3 + waveNumber * 2
   const tankCount = Math.max(0, Math.floor((waveNumber - 1) / 2))
@@ -15,18 +15,13 @@ export function getWave(waveNumber: number, worldSize: Vec2, rng: SeededRandom):
 
   for (let i = 0; i < total; i++) {
     const kind = i < droneCount ? EnemyKind.drone : EnemyKind.tank
-    spawns.push({ kind, pos: randomEdgePosition(worldSize, i, total, rng) })
+    spawns.push({ kind, pos: randomEdgePosition(worldSize, i, total) })
   }
 
   return spawns
 }
 
-function randomEdgePosition(
-  worldSize: Vec2,
-  index: number,
-  total: number,
-  rng: SeededRandom
-): Vec2 {
+function randomEdgePosition(worldSize: Vec2, index: number, total: number): Vec2 {
   const margin = 50
   const baseAngle = (Math.PI * 2 * index) / total
   const jitter = rng.range(-0.3, 0.3)

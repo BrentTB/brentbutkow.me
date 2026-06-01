@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { CURRENCY_NAME, GAME_NAME } from '../data'
-import { GamePhase, UpgradeCategory, UpgradeId } from '../engine/types'
+import { AbilityKind, GamePhase, UpgradeCategory, UpgradeId } from '../engine/types'
 import type { UpgradeDefinition } from '../engine/types'
 import {
   UPGRADE_DEFINITIONS,
@@ -95,6 +95,11 @@ const CATEGORY_ORDER: UpgradeCategory[] = [
   UpgradeCategory.powers,
 ]
 
+const WEAPON_LABELS: Record<string, string> = {
+  [AbilityKind.meteorite]: 'Meteorite',
+  [AbilityKind.meteor]: 'Meteor',
+}
+
 function UpgradeScreen({
   uiState,
   onPurchase,
@@ -105,14 +110,12 @@ function UpgradeScreen({
   onContinue: () => void
 }) {
   const [activeTab, setActiveTab] = useState<UpgradeCategory>(UpgradeCategory.weapons)
+  const [selectedWeapon, setSelectedWeapon] = useState<string | null>(null)
 
   const upgradesByCategory = CATEGORY_ORDER.map((cat) => ({
     category: cat,
     label: UPGRADE_CATEGORY_LABELS[cat],
-    upgrades: Object.values(UPGRADE_DEFINITIONS).filter((d) => d.category === cat),
   }))
-
-  const activeUpgrades = upgradesByCategory.find((g) => g.category === activeTab)?.upgrades ?? []
 
   return (
     <div className={styles.upgradeLayout}>
@@ -126,7 +129,10 @@ function UpgradeScreen({
           <button
             key={group.category}
             className={`${styles.tab} ${activeTab === group.category ? styles.tabActive : ''}`}
-            onClick={() => setActiveTab(group.category)}
+            onClick={() => {
+              setActiveTab(group.category)
+              setSelectedWeapon(null)
+            }}
           >
             {group.label}
           </button>
@@ -134,22 +140,118 @@ function UpgradeScreen({
       </div>
 
       <div className={styles.upgradeGrid}>
-        {activeUpgrades.map((def) => (
-          <UpgradeCard
-            key={def.id}
-            def={def}
-            currentTier={uiState.upgrades[def.id]?.currentTier ?? 0}
-            currency={uiState.currency}
-            upgrades={uiState.upgrades}
+        {activeTab === UpgradeCategory.weapons && !selectedWeapon && (
+          <WeaponsList uiState={uiState} onSelect={setSelectedWeapon} onPurchase={onPurchase} />
+        )}
+        {activeTab === UpgradeCategory.weapons && selectedWeapon && (
+          <WeaponDetail
+            weapon={selectedWeapon as AbilityKind}
+            uiState={uiState}
+            onBack={() => setSelectedWeapon(null)}
             onPurchase={onPurchase}
           />
-        ))}
+        )}
+        {activeTab !== UpgradeCategory.weapons &&
+          Object.values(UPGRADE_DEFINITIONS)
+            .filter((d) => d.category === activeTab)
+            .map((def) => (
+              <UpgradeCard
+                key={def.id}
+                def={def}
+                currentTier={uiState.upgrades[def.id]?.currentTier ?? 0}
+                currency={uiState.currency}
+                upgrades={uiState.upgrades}
+                onPurchase={onPurchase}
+              />
+            ))}
       </div>
 
       <button className={styles.primaryBtn} onClick={onContinue}>
         Continue
       </button>
     </div>
+  )
+}
+
+function WeaponsList({
+  uiState,
+  onSelect,
+  onPurchase,
+}: {
+  uiState: GameUIState
+  onSelect: (weapon: string) => void
+  onPurchase: (upgradeId: UpgradeId) => void
+}) {
+  const weapons = [AbilityKind.meteorite, AbilityKind.meteor]
+
+  return (
+    <>
+      {weapons.map((weapon) => {
+        const ability = uiState.abilities.find((a) => a.kind === weapon)
+        const isUnlocked = ability?.unlocked ?? false
+        const unlockDef = UPGRADE_DEFINITIONS[UpgradeId.unlockMeteor]
+        const needsUnlock = weapon === AbilityKind.meteor && !isUnlocked
+        const unlockCost = needsUnlock ? unlockDef.tiers[0].cost : 0
+        const canUnlock = needsUnlock && canPurchaseUpgrade(uiState.upgrades, UpgradeId.unlockMeteor, uiState.currency)
+
+        return (
+          <div key={weapon} className={styles.weaponCard}>
+            <button
+              className={styles.weaponBtn}
+              onClick={() => !needsUnlock && onSelect(weapon)}
+              disabled={needsUnlock}
+            >
+              <span className={styles.weaponName}>{WEAPON_LABELS[weapon]}</span>
+              {!needsUnlock && <span className={styles.weaponArrow}>→</span>}
+            </button>
+            {needsUnlock && (
+              <button
+                className={styles.buyBtn}
+                disabled={!canUnlock}
+                onClick={() => onPurchase(UpgradeId.unlockMeteor)}
+              >
+                Unlock {unlockCost} ✦
+              </button>
+            )}
+            {!needsUnlock && !isUnlocked && null}
+          </div>
+        )
+      })}
+    </>
+  )
+}
+
+function WeaponDetail({
+  weapon,
+  uiState,
+  onBack,
+  onPurchase,
+}: {
+  weapon: AbilityKind
+  uiState: GameUIState
+  onBack: () => void
+  onPurchase: (upgradeId: UpgradeId) => void
+}) {
+  const subUpgrades = Object.values(UPGRADE_DEFINITIONS).filter(
+    (d) => d.category === UpgradeCategory.weapons && d.weapon === weapon && d.id !== UpgradeId.unlockMeteor,
+  )
+
+  return (
+    <>
+      <button className={styles.backBtn} onClick={onBack} aria-label="Back to weapons">
+        ← {WEAPON_LABELS[weapon]}
+      </button>
+      {subUpgrades.map((def) => (
+        <UpgradeCard
+          key={def.id}
+          def={def}
+          currentTier={uiState.upgrades[def.id]?.currentTier ?? 0}
+          currency={uiState.currency}
+          upgrades={uiState.upgrades}
+          onPurchase={onPurchase}
+        />
+      ))}
+    </>
   )
 }
 

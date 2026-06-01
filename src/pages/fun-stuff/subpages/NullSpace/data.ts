@@ -13,14 +13,14 @@ export const SHIP_DEFAULTS = {
 }
 
 export const POWER_DEFAULTS = {
-  max: 100,
-  regenRate: 5,
-  startingPower: 80,
+  max: 1000,
+  regenRate: 3,
+  startingPower: 100,
 }
 
 export const METEORITE_STRIKE = {
   delay: 0.3,
-  cooldown: 0.5,
+  cooldown: 0.05,
   powerCost: 5,
   damage: 15,
   aoeRadius: 40,

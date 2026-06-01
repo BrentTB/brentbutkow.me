@@ -1,5 +1,5 @@
 import type { Camera } from './camera'
-import { SeededRandom } from '../engine/random'
+import { rng } from '../engine/random'
 
 export type Star = {
   x: number
@@ -9,12 +9,7 @@ export type Star = {
   depth: number
 }
 
-export function generateStarfield(
-  worldWidth: number,
-  worldHeight: number,
-  count: number,
-  rng: SeededRandom
-): Star[] {
+export function generateStarfield(worldWidth: number, worldHeight: number, count: number): Star[] {
   const stars: Star[] = []
   for (let i = 0; i < count; i++) {
     stars.push({

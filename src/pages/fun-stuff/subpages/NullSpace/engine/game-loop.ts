@@ -21,16 +21,13 @@ import {
 } from './upgrades'
 import { getWave, getWaveDelay } from './waves'
 import { loadHighScore, saveHighScore } from './persistence'
-import { SeededRandom } from './random'
+import { rng } from './random'
 import { GamePhase } from './types'
 import type { GameState, PlayerInput, Enemy, Projectile, Particle, UpgradeId } from './types'
 
-let gameRng = new SeededRandom(Date.now())
-
 export function createInitialState(): GameState {
   resetUid()
-  const seed = Date.now()
-  gameRng = new SeededRandom(seed)
+  rng.reseed(Date.now())
   return {
     phase: GamePhase.menu,
     ship: createShip(WORLD_SIZE),
@@ -51,14 +48,12 @@ export function createInitialState(): GameState {
     worldSize: WORLD_SIZE,
     waveTimer: 0,
     enemiesRemainingInWave: 0,
-    rngSeed: seed,
   }
 }
 
 export function startGame(state: GameState): GameState {
   resetUid()
-  const seed = Date.now()
-  gameRng = new SeededRandom(seed)
+  rng.reseed(Date.now())
   const ship = createShip(state.worldSize)
   const upgrades = createInitialUpgrades()
   return {
@@ -81,13 +76,12 @@ export function startGame(state: GameState): GameState {
     waveTimer: 0,
     enemiesRemainingInWave: 0,
     highScore: loadHighScore(),
-    rngSeed: seed,
   }
 }
 
 export function startNextWave(state: GameState): GameState {
   const nextWave = state.wave + 1
-  const spawns = getWave(nextWave, state.worldSize, gameRng)
+  const spawns = getWave(nextWave, state.worldSize)
   const enemies = spawns.map((s) => createEnemy(s.kind, s.pos))
   const delay = getWaveDelay(nextWave)
 
@@ -265,7 +259,7 @@ function computeCurrencyFromKills(killedEnemies: Enemy[]): number {
   for (const enemy of killedEnemies) {
     const range = CURRENCY_DROPS[enemy.kind as keyof typeof CURRENCY_DROPS]
     if (range) {
-      total += gameRng.intRange(range.min, range.max)
+      total += rng.intRange(range.min, range.max)
     }
   }
   return total

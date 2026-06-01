@@ -43,7 +43,7 @@ export function updateAbilityCooldowns(abilities: Ability[], dt: number): Abilit
 export function updateMeteorStrikes(
   strikes: MeteorStrike[],
   enemies: Enemy[],
-  dt: number
+  dt: number,
 ): {
   strikes: MeteorStrike[]
   enemies: Enemy[]

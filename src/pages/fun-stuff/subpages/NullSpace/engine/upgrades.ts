@@ -6,6 +6,7 @@ export const UPGRADE_DEFINITIONS: Record<UpgradeId, UpgradeDefinition> = {
   [UpgradeId.unlockMeteor]: {
     id: UpgradeId.unlockMeteor,
     category: UpgradeCategory.weapons,
+    weapon: AbilityKind.meteor,
     label: 'Unlock Meteor',
     description: 'Unlock the devastating Meteor strike',
     tiers: [{ cost: 15, value: 1 }],
@@ -13,7 +14,8 @@ export const UPGRADE_DEFINITIONS: Record<UpgradeId, UpgradeDefinition> = {
   [UpgradeId.meteoriteDamage]: {
     id: UpgradeId.meteoriteDamage,
     category: UpgradeCategory.weapons,
-    label: 'Meteorite Damage',
+    weapon: AbilityKind.meteorite,
+    label: 'Damage',
     description: 'Increase meteorite strike damage',
     tiers: [
       { cost: 5, value: 5 },
@@ -24,7 +26,8 @@ export const UPGRADE_DEFINITIONS: Record<UpgradeId, UpgradeDefinition> = {
   [UpgradeId.meteoriteCostReduction]: {
     id: UpgradeId.meteoriteCostReduction,
     category: UpgradeCategory.weapons,
-    label: 'Meteorite Efficiency',
+    weapon: AbilityKind.meteorite,
+    label: 'Efficiency',
     description: 'Reduce meteorite power cost',
     tiers: [
       { cost: 8, value: 1 },
@@ -34,7 +37,8 @@ export const UPGRADE_DEFINITIONS: Record<UpgradeId, UpgradeDefinition> = {
   [UpgradeId.meteorDamage]: {
     id: UpgradeId.meteorDamage,
     category: UpgradeCategory.weapons,
-    label: 'Meteor Damage',
+    weapon: AbilityKind.meteor,
+    label: 'Damage',
     description: 'Increase meteor strike damage',
     tiers: [
       { cost: 10, value: 10 },
@@ -45,7 +49,8 @@ export const UPGRADE_DEFINITIONS: Record<UpgradeId, UpgradeDefinition> = {
   [UpgradeId.meteorCostReduction]: {
     id: UpgradeId.meteorCostReduction,
     category: UpgradeCategory.weapons,
-    label: 'Meteor Efficiency',
+    weapon: AbilityKind.meteor,
+    label: 'Efficiency',
     description: 'Reduce meteor power cost',
     tiers: [
       { cost: 12, value: 5 },

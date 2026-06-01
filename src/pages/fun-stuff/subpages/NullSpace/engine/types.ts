@@ -107,6 +107,8 @@ export type UpgradeTier = {
 export type UpgradeDefinition = {
   id: UpgradeId
   category: UpgradeCategory
+  /** For weapon upgrades, which weapon this belongs to */
+  weapon?: AbilityKind
   label: string
   description: string
   tiers: UpgradeTier[]
@@ -134,7 +136,6 @@ export type GameState = {
   worldSize: Vec2
   waveTimer: number
   enemiesRemainingInWave: number
-  rngSeed: number
 }
 
 export type PlayerInput = {
