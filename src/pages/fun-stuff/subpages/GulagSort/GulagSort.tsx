@@ -54,19 +54,19 @@ function GulagSort() {
         <p>
           <strong> - Worst Case:</strong> O(n²) – when the array is in reverse-sorted order, all
           elements are moved to their own gulag. This creates n gulags with 1 element each, leading
-          to O(n) merges of O(n) elements. Stratgies can be used to mitigate this, such as deciding
-          whether to iterate from front to back, or back to front (which converts the worst case
-          scenario into the best case by now dealing with a sorted list)
+          to O(n) merges of O(n) elements. Strategies can be used to mitigate this, such as deciding
+          whether to iterate from front to back or back to front (which converts the worst-case
+          scenario into the best case by instead dealing with a sorted list).
         </p>
         <p>
           Note: This algorithm is objectively worse in performance than merge sort, but subjectively
-          more fun
+          more fun.
         </p>
         <h4>Space Complexity</h4>
         <p>
-          O(n) – space is needed to store every element, but in place merges can be done to reduce
-          the space required. When implemented non-optimally, the space complexity will be worse -
-          eg: when created recursively, the space complexity will be higher.
+          O(n) – space is needed to store every element, but in-place merges can be done to reduce
+          the space required. When implemented non-optimally, the space complexity will be worse —
+          e.g. when created recursively, the space complexity will be higher.
         </p>
         <h4>Pseudocode/Steps</h4>
         <ol>
