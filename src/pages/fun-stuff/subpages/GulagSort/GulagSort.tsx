@@ -10,7 +10,7 @@ import { gulagSortCode } from './data'
 function GulagSort() {
   return (
     <PageLayout>
-      <PageHeader title="Gulag Sort" />
+      <PageHeader title="Gulag Sort" showBackButton />
       <div className={styles.intro}>
         <p>
           Based on the joke{' '}

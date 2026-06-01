@@ -178,6 +178,20 @@ This repo is a showcase — the code itself should look as polished as the UI.
 - Match the surrounding style: 2-space indent, single quotes, no semicolons, ~100 col width
   (enforced by Prettier — see [.prettierrc](.prettierrc)). Let Prettier format; don't fight it.
 
+## Null Space game changelog
+
+When making changes to the Null Space game (`src/pages/fun-stuff/subpages/NullSpace/`), update the
+`CHANGELOG` array and `GAME_VERSION` in
+[NullSpace/data.ts](src/pages/fun-stuff/subpages/NullSpace/data.ts). Follow semver:
+
+- **Major (x.0.0)**: breaking changes (save format incompatibility, removed features)
+- **Minor (0.x.0)**: new features (new enemies, abilities, upgrades, UI additions)
+- **Patch (0.0.x)**: bug fixes, balance tweaks, visual polish
+
+Each entry has `version`, `date`, and `changes` with optional `breaking`, `features`, `balance`,
+and `fixes` arrays. Use `balance` for changes that purely adjust data values (damage, costs, speeds,
+etc.) with no code changes. The changelog is displayed collapsed below the game canvas on desktop.
+
 ## Notes
 
 - `.github/workflows/copilot-instructions.md` is an older, longer guideline doc. Where it disagrees

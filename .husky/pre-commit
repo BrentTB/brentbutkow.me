@@ -1,3 +1,7 @@
 npm run check
 npm test
+
+# Re-stage only the files that were already staged, so prettier fixes get committed
+STAGED=$(git diff --cached --name-only --diff-filter=ACMR)
 npm run format
+echo "$STAGED" | xargs -r git add

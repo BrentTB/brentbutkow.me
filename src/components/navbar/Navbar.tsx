@@ -28,7 +28,9 @@ function Navbar() {
     <>
       <header ref={navbarRef} className={`${styles.navbar} ${openStyle}`}>
         <Link to={routePaths.home} className={styles.brand} onClick={closeMobileMenu}>
-          <span className={styles.dot} aria-hidden="true" />
+          <span className={styles.prompt} aria-hidden="true">
+            &gt;
+          </span>
           <span>Brent Butkow</span>
         </Link>
         <button
