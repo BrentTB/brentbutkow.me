@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { renderHook } from '@testing-library/react'
+import { renderHook, act } from '@testing-library/react'
 import { abilityKindForHotkey, useNullSpace } from './useNullSpace'
 import { createRef } from 'react'
 import { createAbilities } from './engine/entities'
@@ -13,6 +13,7 @@ describe('useNullSpace', () => {
     expect(result.current.uiState.score).toBe(0)
     expect(result.current.uiState.wave).toBe(0)
     expect(result.current.uiState.currency).toBe(0)
+    expect(result.current.uiState.spaceMetal).toBe(0)
     expect(result.current.uiState.selectedAbility).toBe(AbilityKind.meteorite)
   })
 
@@ -25,6 +26,41 @@ describe('useNullSpace', () => {
     expect(typeof result.current.setSelectedAbility).toBe('function')
     expect(typeof result.current.handlePurchaseUpgrade).toBe('function')
     expect(typeof result.current.handleFinishUpgrades).toBe('function')
+    expect(typeof result.current.handlePause).toBe('function')
+    expect(typeof result.current.handleResume).toBe('function')
+    expect(typeof result.current.handleSetSpeed).toBe('function')
+  })
+
+  it('pauses and resumes a playing game', () => {
+    const canvasRef = createRef<HTMLCanvasElement>()
+    const { result } = renderHook(() => useNullSpace(canvasRef))
+
+    act(() => result.current.handleStart())
+    expect(result.current.uiState.phase).toBe(GamePhase.playing)
+
+    act(() => result.current.handlePause())
+    expect(result.current.uiState.phase).toBe(GamePhase.paused)
+
+    act(() => result.current.handleResume())
+    expect(result.current.uiState.phase).toBe(GamePhase.playing)
+  })
+
+  it('pause is a no-op outside the playing phase', () => {
+    const canvasRef = createRef<HTMLCanvasElement>()
+    const { result } = renderHook(() => useNullSpace(canvasRef))
+
+    // Still in the menu — pausing should not flip the phase.
+    act(() => result.current.handlePause())
+    expect(result.current.uiState.phase).toBe(GamePhase.menu)
+  })
+
+  it('setting the game speed does not crash or change phase', () => {
+    const canvasRef = createRef<HTMLCanvasElement>()
+    const { result } = renderHook(() => useNullSpace(canvasRef))
+
+    act(() => result.current.handleStart())
+    act(() => result.current.handleSetSpeed(2))
+    expect(result.current.uiState.phase).toBe(GamePhase.playing)
   })
 })
 

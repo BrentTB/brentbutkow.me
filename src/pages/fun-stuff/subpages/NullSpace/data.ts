@@ -108,6 +108,10 @@ export const POWER_ORB = {
   floatDuration: 0.5,
   magnetStrength: 350,
   drag: 0.94,
+  // Safety-net expiry only: orbs auto-home at floatDuration and homing
+  // collectibles never time out, so in practice an orb is always collected
+  // well before this. It exists so an orb can't linger forever if homing is
+  // ever gated off.
   lifetime: 12,
 } as const
 
@@ -163,6 +167,9 @@ export const CHANGELOG: ChangelogEntry[] = [
       fixes: [
         'Wave delay no longer freezes in-flight meteors / homing power orbs — only enemy spawning is gated by the delay',
         'Game now opens with the camera already centered on your ship — no more brief "rush across space" on first load or after restarting.',
+        'Bombers now explode when they reach your ship — the on-death AoE fires on every death, not just when you shoot them down. Letting a bomber ram you now hurts as intended.',
+        'Swarm enemies now weave in sync with the game-speed setting (and freeze cleanly when paused) — their side-to-side motion is driven by game time instead of the wall clock.',
+        'Game-speed buttons in Settings now announce their selected state to screen readers.',
       ],
     },
   },

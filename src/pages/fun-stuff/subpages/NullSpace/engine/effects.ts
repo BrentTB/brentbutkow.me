@@ -21,7 +21,6 @@ export type EffectTickResult = {
   enemies: Enemy[]
   particles: Particle[]
   scoreGained: number
-  powerGained: number
   killedEnemies: Enemy[]
 }
 
@@ -43,14 +42,12 @@ export function updateActiveEffects(
   enemies: Enemy[]
   particles: Particle[]
   scoreGained: number
-  powerGained: number
   killedEnemies: Enemy[]
 } {
   const surviving: ActiveEffect[] = []
   const allParticles: Particle[] = []
   const allKilled: Enemy[] = []
   let scoreGained = 0
-  let powerGained = 0
   let currentEnemies = enemies
 
   for (const effect of effects) {
@@ -60,7 +57,6 @@ export function updateActiveEffects(
 
     currentEnemies = result.enemies
     scoreGained += result.scoreGained
-    powerGained += result.powerGained
     allKilled.push(...result.killedEnemies)
     allParticles.push(...result.particles)
 
@@ -72,7 +68,6 @@ export function updateActiveEffects(
     enemies: currentEnemies,
     particles: allParticles,
     scoreGained,
-    powerGained,
     killedEnemies: allKilled,
   }
 }
@@ -86,26 +81,11 @@ function tickMeteorStrike(effect: ActiveEffect, ctx: EffectTickContext): EffectT
       enemies: ctx.enemies,
       particles: [],
       scoreGained: 0,
-      powerGained: 0,
       killedEnemies: [],
     }
   }
 
-  if (strike.resolved) {
-    return {
-      effect: null,
-      enemies: ctx.enemies,
-      particles: [],
-      scoreGained: 0,
-      powerGained: 0,
-      killedEnemies: [],
-    }
-  }
-
-  const { enemies, scoreGained, powerGained, killedEnemies } = applyMeteorDamage(
-    ctx.enemies,
-    strike
-  )
+  const { enemies, scoreGained, killedEnemies } = applyMeteorDamage(ctx.enemies, strike)
   const particles = spawnExplosionParticles(strike.pos, 16, '#ff6633')
 
   return {
@@ -113,7 +93,6 @@ function tickMeteorStrike(effect: ActiveEffect, ctx: EffectTickContext): EffectT
     enemies,
     particles,
     scoreGained,
-    powerGained,
     killedEnemies,
   }
 }
@@ -127,7 +106,6 @@ function tickBlackHole(effect: ActiveEffect, ctx: EffectTickContext): EffectTick
       enemies: ctx.enemies,
       particles: [],
       scoreGained: 0,
-      powerGained: 0,
       killedEnemies: [],
     }
   }
@@ -139,7 +117,6 @@ function tickBlackHole(effect: ActiveEffect, ctx: EffectTickContext): EffectTick
     enemies: result.enemies,
     particles: result.particles,
     scoreGained: result.scoreGained,
-    powerGained: result.powerGained,
     killedEnemies: result.killedEnemies,
   }
 }
@@ -147,9 +124,8 @@ function tickBlackHole(effect: ActiveEffect, ctx: EffectTickContext): EffectTick
 function applyMeteorDamage(
   enemies: Enemy[],
   strike: MeteorStrikeEffect
-): { enemies: Enemy[]; scoreGained: number; powerGained: number; killedEnemies: Enemy[] } {
+): { enemies: Enemy[]; scoreGained: number; killedEnemies: Enemy[] } {
   let scoreGained = 0
-  let powerGained = 0
   const surviving: Enemy[] = []
   const killedEnemies: Enemy[] = []
 
@@ -159,7 +135,6 @@ function applyMeteorDamage(
       const damaged = { ...enemy, hp: enemy.hp - strike.damage }
       if (damaged.hp <= 0) {
         scoreGained += enemy.scoreValue
-        powerGained += enemy.powerReward
         killedEnemies.push(enemy)
       } else {
         surviving.push(damaged)
@@ -169,7 +144,7 @@ function applyMeteorDamage(
     }
   }
 
-  return { enemies: surviving, scoreGained, powerGained, killedEnemies }
+  return { enemies: surviving, scoreGained, killedEnemies }
 }
 
 function applyBlackHoleEffect(
@@ -179,12 +154,10 @@ function applyBlackHoleEffect(
 ): {
   enemies: Enemy[]
   scoreGained: number
-  powerGained: number
   killedEnemies: Enemy[]
   particles: Particle[]
 } {
   let scoreGained = 0
-  let powerGained = 0
   const surviving: Enemy[] = []
   const killedEnemies: Enemy[] = []
   const particles: Particle[] = []
@@ -222,7 +195,6 @@ function applyBlackHoleEffect(
 
     if (moved.hp <= 0) {
       scoreGained += enemy.scoreValue
-      powerGained += enemy.powerReward
       killedEnemies.push(enemy)
       particles.push(...spawnExplosionParticles(enemy.pos, 8, '#6644cc'))
     } else {
@@ -230,7 +202,7 @@ function applyBlackHoleEffect(
     }
   }
 
-  return { enemies: surviving, scoreGained, powerGained, killedEnemies, particles }
+  return { enemies: surviving, scoreGained, killedEnemies, particles }
 }
 
 export function createMeteoriteEffect(
@@ -248,7 +220,6 @@ export function createMeteoriteEffect(
     delay,
     damage,
     aoeRadius,
-    resolved: false,
   }
 }
 
@@ -267,7 +238,6 @@ export function createMeteorEffect(
     delay,
     damage,
     aoeRadius,
-    resolved: false,
   }
 }
 

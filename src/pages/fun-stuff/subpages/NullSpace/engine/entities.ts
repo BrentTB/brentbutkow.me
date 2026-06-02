@@ -10,6 +10,7 @@ import {
 } from '../data'
 import { AbilityKind, DeathBehavior, EnemyKind, MovementBehavior } from './types'
 import type { Ship, Enemy, Projectile, Vec2, Ability, Particle } from './types'
+import { rng } from './random'
 
 const ENEMY_MOVEMENT: Record<EnemyKind, MovementBehavior> = {
   [EnemyKind.drone]: MovementBehavior.chase,
@@ -26,7 +27,6 @@ const ENEMY_DEATH: Record<EnemyKind, DeathBehavior> = {
   [EnemyKind.swarm]: DeathBehavior.none,
   [EnemyKind.bomber]: DeathBehavior.explode,
 }
-import { rng } from './random'
 
 let nextId = 0
 export function uid(): string {
@@ -73,6 +73,7 @@ export function createEnemy(kind: Enemy['kind'], pos: Vec2): Enemy {
     attackRange: 'attackRange' in stats ? stats.attackRange : 0,
     movementBehavior: ENEMY_MOVEMENT[kind],
     deathBehavior: ENEMY_DEATH[kind],
+    age: 0,
   }
 }
 

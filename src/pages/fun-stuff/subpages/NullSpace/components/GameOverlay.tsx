@@ -137,11 +137,13 @@ function SettingsScreen({
       <h2 className={styles.title}>Settings</h2>
       <div className={styles.settingRow}>
         <span className={styles.settingLabel}>Game speed</span>
-        <div className={styles.segmented}>
+        <div className={styles.segmented} role="group" aria-label="Game speed">
           {SPEED_OPTIONS.map((speed) => (
             <button
               key={speed}
+              type="button"
               className={`${styles.segment} ${gameSpeed === speed ? styles.segmentActive : ''}`}
+              aria-pressed={gameSpeed === speed}
               onClick={() => onSetSpeed(speed)}
             >
               {speed}×

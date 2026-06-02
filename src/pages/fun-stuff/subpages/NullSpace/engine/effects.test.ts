@@ -53,12 +53,11 @@ describe('updateActiveEffects', () => {
       }
     })
 
-    it('awards score and power for kills', () => {
+    it('awards score and reports kills (power now flows via collectible orbs)', () => {
       const strike = createMeteoriteEffect({ x: 100, y: 100 }, 9999, 200, 0.01)
       const enemy = createEnemy(EnemyKind.drone, { x: 100, y: 100 })
       const result = updateActiveEffects([strike], [enemy], ship, 0.02)
       expect(result.scoreGained).toBeGreaterThan(0)
-      expect(result.powerGained).toBeGreaterThan(0)
       expect(result.killedEnemies.length).toBe(1)
     })
   })

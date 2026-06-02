@@ -6,10 +6,10 @@ import {
   updateGameState,
   applyUpgradeToState,
 } from './game-loop'
-import { resetUid } from './entities'
-import { AbilityKind, CollectibleKind, EffectKind, GamePhase, UpgradeId } from './types'
+import { resetUid, createEnemy } from './entities'
+import { AbilityKind, CollectibleKind, EffectKind, EnemyKind, GamePhase, UpgradeId } from './types'
 import { isUpgradeWave } from './upgrades'
-import { WAVES_PER_LEVEL } from '../data'
+import { ENEMY_STATS, WAVES_PER_LEVEL } from '../data'
 
 beforeEach(() => {
   resetUid()
@@ -596,7 +596,6 @@ describe('updateGameState — wave delay only gates spawning', () => {
           delay: 0.5,
           damage: 60,
           aoeRadius: 100,
-          resolved: false,
         },
       ],
     }
@@ -660,5 +659,75 @@ describe('updateGameState — wave delay only gates spawning', () => {
 
     const next = updateGameState(state, 0.1, { clicks: [], selectedAbility: null })
     expect(next.waveTimer).toBeCloseTo(0.4, 5)
+  })
+})
+
+// The bomber's defining mechanic is its on-death explosion. It must fire on
+// EVERY death path — including the most common one, dying by ramming the ship
+// (handled by resolveEnemyShipCollisions, separate from ability/projectile
+// kills). A regression here would silently reduce the bomber to its trivial
+// contact damage.
+describe('updateGameState — bomber explodes on death (including by ramming)', () => {
+  it('a bomber killed by ramming the ship deals its explosion AoE, not just contact', () => {
+    let state = startGame(createInitialState())
+    state = startNextWave(state)
+
+    const shipPos = state.ship.pos
+    // A bomber sitting on the ship with effectively unkillable HP, so the only
+    // way it leaves this frame is by ramming — exercising the ship-collision
+    // death path (not the projectile/ability paths).
+    state = {
+      ...state,
+      spawnQueue: [],
+      waveTimer: 0,
+      projectiles: [],
+      enemies: [{ ...createEnemy(EnemyKind.bomber, { x: shipPos.x, y: shipPos.y }), hp: 100000 }],
+    }
+
+    const before = state.ship.hp
+    const next = updateGameState(state, 1 / 60, { clicks: [], selectedAbility: null })
+
+    // The bomber is destroyed by the ram...
+    expect(next.enemies.some((e) => e.kind === EnemyKind.bomber)).toBe(false)
+    // ...and the ship took at least the explosion AoE on top of contact damage.
+    // Pre-fix this path skipped resolveDeathEffects, so hpLost was only the
+    // bomber's contact damage (well under explosionDamage).
+    const hpLost = before - next.ship.hp
+    expect(hpLost).toBeGreaterThanOrEqual(ENEMY_STATS.bomber.explosionDamage)
+  })
+})
+
+// Swarm enemies weave side-to-side. That oscillation must be driven by the
+// enemy's own (speed-scaled) age — game time — not the wall clock, so it stays
+// deterministic, testable, and in sync with the game-speed setting. A
+// regression to Date.now() would make the path independent of enemy.age.
+describe('updateGameState — swarm weave is driven by game time, not wall-clock', () => {
+  it('the weave reads enemy.age (twins differing only in age move differently)', () => {
+    let state = startGame(createInitialState())
+    state = startNextWave(state)
+    const pos = { x: state.ship.pos.x + 300, y: state.ship.pos.y }
+    // Two swarm "twins": identical id (→ identical phase offset) and start
+    // position, differing only in age. Processed in ONE tick (shared Date.now),
+    // age is the only thing that can make them diverge — and the age-driven
+    // weave does. A wall-clock weave would move them identically.
+    const twinA = { ...createEnemy(EnemyKind.swarm, pos), id: 'twin', age: 0 }
+    const twinB = { ...createEnemy(EnemyKind.swarm, pos), id: 'twin', age: 0.6 }
+    state = { ...state, spawnQueue: [], waveTimer: 0, enemies: [twinA, twinB] }
+
+    const next = updateGameState(state, 1 / 60, { clicks: [], selectedAbility: null })
+    const [a, b] = next.enemies
+    expect(a.pos.x !== b.pos.x || a.pos.y !== b.pos.y).toBe(true)
+  })
+
+  it('advances enemy age by the (speed-scaled) dt each tick', () => {
+    let state = startGame(createInitialState())
+    state = startNextWave(state)
+    const swarm = {
+      ...createEnemy(EnemyKind.swarm, { x: state.ship.pos.x + 300, y: state.ship.pos.y }),
+      age: 0,
+    }
+    state = { ...state, spawnQueue: [], waveTimer: 0, enemies: [swarm] }
+    const next = updateGameState(state, 0.05, { clicks: [], selectedAbility: null })
+    expect(next.enemies.find((e) => e.id === swarm.id)!.age).toBeCloseTo(0.05, 5)
   })
 })

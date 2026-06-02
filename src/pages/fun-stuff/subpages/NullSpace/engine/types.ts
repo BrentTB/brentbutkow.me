@@ -51,6 +51,9 @@ export type Enemy = Entity & {
   attackRange: number
   movementBehavior: MovementBehavior
   deathBehavior: DeathBehavior
+  // Seconds this enemy has been simulated; advances with the (speed-scaled) dt
+  // so time-based movement like the swarm weave stays in sync with game speed.
+  age: number
 }
 
 export const ProjectileOwner = { ship: 'ship', enemy: 'enemy' } as const
@@ -100,7 +103,6 @@ export type MeteorStrikeEffect = EffectBase & {
   delay: number
   damage: number
   aoeRadius: number
-  resolved: boolean
 }
 
 export type BlackHoleEffect = EffectBase & {

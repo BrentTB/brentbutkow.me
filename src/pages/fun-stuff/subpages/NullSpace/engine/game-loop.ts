@@ -23,6 +23,7 @@ import {
   tryCollectSpaceMetal,
 } from './collectibles'
 import { updateActiveEffects } from './effects'
+import { MAX_DT } from './time'
 import {
   createInitialUpgrades,
   isUpgradeWave,
@@ -147,7 +148,9 @@ export function finishUpgradeScreen(state: GameState): GameState {
 export function updateGameState(state: GameState, dt: number, input: PlayerInput): GameState {
   if (state.phase !== GamePhase.playing) return state
 
-  dt = Math.min(dt, 0.1)
+  // Guard direct callers (and lag spikes) against a runaway physics step;
+  // MAX_DT is the same cap the frame-time loop applies in time.ts.
+  dt = Math.min(dt, MAX_DT)
 
   let {
     ship,
@@ -274,9 +277,15 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   particles = [...particles, ...shipCollision.particles]
 
   // --- Death effects (bomber explosions, etc.) ---
-  const allKilled = [...effectResult.killedEnemies, ...projCollision.killedEnemies]
-  if (allKilled.length > 0) {
-    const deathResult = resolveDeathEffects(allKilled, ship)
+  // A bomber that dies by ramming the ship explodes too, so ship-collision
+  // kills are fed through alongside ability/projectile kills.
+  const killedForDeathEffects = [
+    ...effectResult.killedEnemies,
+    ...projCollision.killedEnemies,
+    ...shipCollision.killedEnemies,
+  ]
+  if (killedForDeathEffects.length > 0) {
+    const deathResult = resolveDeathEffects(killedForDeathEffects, ship)
     if (deathResult.shipDamage > 0) {
       ship = { ...ship, hp: ship.hp - deathResult.shipDamage }
     }
@@ -284,9 +293,10 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   }
 
   // --- Spawn collectibles from kills ---
-  const allKilledForCollectibles = [...effectResult.killedEnemies, ...projCollision.killedEnemies]
-  if (allKilledForCollectibles.length > 0) {
-    collectibles = [...collectibles, ...spawnCollectiblesFromKills(allKilledForCollectibles)]
+  // Ship-collision deaths drop nothing — no reward for letting an enemy reach you.
+  const killedForCollectibles = [...effectResult.killedEnemies, ...projCollision.killedEnemies]
+  if (killedForCollectibles.length > 0) {
+    collectibles = [...collectibles, ...spawnCollectiblesFromKills(killedForCollectibles)]
   }
 
   // --- Update collectibles (power orbs + clicked metals home toward ship) ---
@@ -554,10 +564,13 @@ function moveZigzag(enemy: Enemy, ship: Ship, dt: number): Enemy {
   const nx = dx / dist
   const ny = dy / dist
 
-  // Hash the numeric suffix of the ID for a per-enemy phase offset
+  // Hash the numeric suffix of the ID for a per-enemy phase offset so pack
+  // members don't weave in lockstep. The oscillation is driven by the enemy's
+  // own age (game time, speed-scaled) rather than wall-clock, keeping it
+  // deterministic and in sync with the game-speed setting.
   const idNum = parseInt(enemy.id.slice(1), 10) || 0
   const phase = idNum * 2.39996
-  const lateralStrength = Math.sin(Date.now() * 0.005 + phase) * 0.6
+  const lateralStrength = Math.sin(enemy.age * 5 + phase) * 0.6
 
   const mx = nx + -ny * lateralStrength
   const my = ny + nx * lateralStrength
@@ -582,7 +595,10 @@ const MOVEMENT_FN: Record<MovementBehavior, MoveFn> = {
 }
 
 function updateEnemyMovement(enemies: Enemy[], ship: Ship, dt: number): Enemy[] {
-  return enemies.map((enemy) => MOVEMENT_FN[enemy.movementBehavior](enemy, ship, dt))
+  return enemies.map((enemy) => {
+    const moved = MOVEMENT_FN[enemy.movementBehavior](enemy, ship, dt)
+    return { ...moved, age: enemy.age + dt }
+  })
 }
 
 function resolveDeathEffects(
@@ -630,7 +646,6 @@ function resolveProjectileEnemyCollisions(
   projectiles: Projectile[]
   enemies: Enemy[]
   scoreGained: number
-  powerGained: number
   killedEnemies: Enemy[]
   particles: Particle[]
 } {
@@ -654,11 +669,9 @@ function resolveProjectileEnemyCollisions(
   }
 
   const deadEnemies = updatedEnemies.filter((e) => e.hp <= 0)
-  let powerGained = 0
   const killedEnemies: Enemy[] = []
   for (const dead of deadEnemies) {
     scoreGained += dead.scoreValue
-    powerGained += dead.powerReward
     killedEnemies.push(dead)
     allParticles.push(...spawnExplosionParticles(dead.pos, 12, '#ffaa33'))
   }
@@ -667,7 +680,6 @@ function resolveProjectileEnemyCollisions(
     projectiles: projectiles.filter((p) => !hitProjectiles.has(p.id)),
     enemies: updatedEnemies.filter((e) => e.hp > 0),
     scoreGained,
-    powerGained,
     killedEnemies,
     particles: allParticles,
   }
@@ -700,14 +712,16 @@ function resolveEnemyProjectileShipCollisions(
 function resolveEnemyShipCollisions(
   enemies: Enemy[],
   ship: Ship
-): { enemies: Enemy[]; ship: Ship; particles: Particle[] } {
+): { enemies: Enemy[]; ship: Ship; particles: Particle[]; killedEnemies: Enemy[] } {
   const allParticles: Particle[] = []
   let totalDamage = 0
   const surviving: Enemy[] = []
+  const killedEnemies: Enemy[] = []
 
   for (const enemy of enemies) {
     if (checkCollision(enemy, ship)) {
       totalDamage += enemy.damage
+      killedEnemies.push(enemy)
       allParticles.push(...spawnExplosionParticles(enemy.pos, 8, '#ff2222'))
     } else {
       surviving.push(enemy)
@@ -718,6 +732,7 @@ function resolveEnemyShipCollisions(
     enemies: surviving,
     ship: totalDamage > 0 ? { ...ship, hp: ship.hp - totalDamage } : ship,
     particles: allParticles,
+    killedEnemies,
   }
 }
 
