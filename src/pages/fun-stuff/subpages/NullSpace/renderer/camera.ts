@@ -25,6 +25,15 @@ export function updateCamera(camera: Camera, target: Vec2, dt: number, worldSize
   return { ...camera, x, y }
 }
 
+/** Snap the camera so its viewport is centered on `target`, clamped to world bounds. */
+export function centerCameraOn(camera: Camera, target: Vec2, worldSize: Vec2): Camera {
+  const targetX = target.x - camera.width / 2
+  const targetY = target.y - camera.height / 2
+  const x = Math.max(0, Math.min(worldSize.x - camera.width, targetX))
+  const y = Math.max(0, Math.min(worldSize.y - camera.height, targetY))
+  return { ...camera, x, y }
+}
+
 export function worldToScreen(pos: Vec2, camera: Camera): Vec2 {
   return {
     x: pos.x - camera.x,

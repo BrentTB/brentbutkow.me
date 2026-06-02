@@ -7,12 +7,41 @@ import {
 import { createShip, createEnemy, resetUid } from './entities'
 import { rng } from './random'
 import { CollectibleKind, EnemyKind } from './types'
+import type { Collectible } from './types'
 import { WORLD_SIZE, POWER_ORB, SPACE_METAL } from '../data'
 
 beforeEach(() => {
   resetUid()
   rng.reseed(42)
 })
+
+function makeOrb(overrides: Partial<Collectible> = {}): Collectible {
+  return {
+    id: 'orb',
+    kind: CollectibleKind.powerOrb,
+    pos: { x: 0, y: 0 },
+    vel: { x: 0, y: 0 },
+    value: 5,
+    elapsed: 0,
+    lifetime: POWER_ORB.lifetime,
+    homing: false,
+    ...overrides,
+  }
+}
+
+function makeMetal(overrides: Partial<Collectible> = {}): Collectible {
+  return {
+    id: 'metal',
+    kind: CollectibleKind.spaceMetal,
+    pos: { x: 0, y: 0 },
+    vel: { x: 0, y: 0 },
+    value: 1,
+    elapsed: 0,
+    lifetime: SPACE_METAL.lifetime,
+    homing: false,
+    ...overrides,
+  }
+}
 
 describe('spawnCollectiblesFromKills', () => {
   it('spawns a power orb per killed enemy', () => {
@@ -35,6 +64,14 @@ describe('spawnCollectiblesFromKills', () => {
     expect(orb.pos.y).toBe(400)
   })
 
+  it('spawned collectibles start non-homing', () => {
+    const enemy = createEnemy(EnemyKind.tank, { x: 100, y: 100 })
+    const collectibles = spawnCollectiblesFromKills([enemy])
+    for (const c of collectibles) {
+      expect(c.homing).toBe(false)
+    }
+  })
+
   it('may spawn space metal based on drop chance', () => {
     const enemies = Array.from({ length: 100 }, () =>
       createEnemy(EnemyKind.tank, { x: 100, y: 100 })
@@ -49,62 +86,91 @@ describe('spawnCollectiblesFromKills', () => {
 describe('updateCollectibles', () => {
   const ship = createShip(WORLD_SIZE)
 
-  it('power orbs are collected when within ship radius', () => {
-    const orb = {
-      id: 'orb1',
-      kind: CollectibleKind.powerOrb,
+  it('power orbs auto-transition to homing after the float duration', () => {
+    const orb = makeOrb({
+      pos: { x: ship.pos.x + 200, y: ship.pos.y },
+      elapsed: POWER_ORB.floatDuration,
+    })
+    const result = updateCollectibles([orb], ship, 0.016)
+    expect(result.collectibles[0]?.homing).toBe(true)
+  })
+
+  it('homing power orbs are collected when they reach the ship', () => {
+    const orb = makeOrb({
       pos: { x: ship.pos.x + 1, y: ship.pos.y },
-      vel: { x: -1, y: 0 },
       value: 10,
       elapsed: POWER_ORB.floatDuration + 1,
-      lifetime: POWER_ORB.lifetime,
-    }
+      homing: true,
+    })
     const result = updateCollectibles([orb], ship, 0.016)
     expect(result.powerGained).toBe(10)
+    expect(result.spaceMetalGained).toBe(0)
     expect(result.collectibles.length).toBe(0)
   })
 
   it('power orbs drift during float phase', () => {
-    const orb = {
-      id: 'orb1',
-      kind: CollectibleKind.powerOrb,
+    const orb = makeOrb({
       pos: { x: 100, y: 100 },
       vel: { x: 20, y: 0 },
-      value: 5,
       elapsed: 0,
-      lifetime: POWER_ORB.lifetime,
-    }
+      homing: false,
+    })
     const result = updateCollectibles([orb], ship, 0.1)
     expect(result.collectibles.length).toBe(1)
     expect(result.collectibles[0].pos.x).toBeGreaterThan(100)
     expect(result.powerGained).toBe(0)
   })
 
-  it('space metal persists and is not auto-collected', () => {
-    const metal = {
-      id: 'metal1',
-      kind: CollectibleKind.spaceMetal,
-      pos: { x: ship.pos.x, y: ship.pos.y },
-      vel: { x: 0, y: 0 },
-      value: 1,
-      elapsed: 0,
-      lifetime: SPACE_METAL.lifetime,
-    }
+  it('non-homing space metal does NOT move and is NOT collected even at the ship', () => {
+    const metal = makeMetal({ pos: { x: ship.pos.x, y: ship.pos.y } })
     const result = updateCollectibles([metal], ship, 0.5)
     expect(result.collectibles.length).toBe(1)
+    expect(result.collectibles[0].pos).toEqual({ x: ship.pos.x, y: ship.pos.y })
+    expect(result.spaceMetalGained).toBe(0)
     expect(result.powerGained).toBe(0)
   })
 
-  it('collectibles expire after lifetime', () => {
-    const orb = {
-      id: 'orb1',
-      kind: CollectibleKind.powerOrb,
+  it('homing space metal flies toward the ship', () => {
+    const metal = makeMetal({
+      pos: { x: ship.pos.x + 200, y: ship.pos.y },
+      homing: true,
+    })
+    const before = metal.pos.x
+    const result = updateCollectibles([metal], ship, 0.05)
+    const after = result.collectibles.find((c) => c.id === metal.id)
+    expect(after).toBeDefined()
+    expect(after!.pos.x).toBeLessThan(before)
+  })
+
+  it('homing space metal credits the counter when it reaches the ship', () => {
+    const metal = makeMetal({
+      pos: { x: ship.pos.x + 1, y: ship.pos.y },
+      value: 1,
+      homing: true,
+    })
+    const result = updateCollectibles([metal], ship, 0.016)
+    expect(result.spaceMetalGained).toBe(1)
+    expect(result.collectibles.length).toBe(0)
+  })
+
+  it('homing collectibles ignore lifetime (must always reach the ship)', () => {
+    const metal = makeMetal({
+      pos: { x: ship.pos.x + 500, y: ship.pos.y },
+      elapsed: SPACE_METAL.lifetime - 0.01,
+      lifetime: SPACE_METAL.lifetime,
+      homing: true,
+    })
+    const result = updateCollectibles([metal], ship, 0.1)
+    expect(result.collectibles.length).toBe(1)
+  })
+
+  it('non-homing collectibles still expire after lifetime', () => {
+    const orb = makeOrb({
       pos: { x: 100, y: 100 },
-      vel: { x: 0, y: 0 },
-      value: 5,
       elapsed: POWER_ORB.lifetime - 0.01,
       lifetime: POWER_ORB.lifetime,
-    }
+      homing: false,
+    })
     const result = updateCollectibles([orb], ship, 0.1)
     expect(result.collectibles.length).toBe(0)
     expect(result.powerGained).toBe(0)
@@ -112,69 +178,44 @@ describe('updateCollectibles', () => {
 })
 
 describe('tryCollectSpaceMetal', () => {
-  it('collects space metal when clicking within radius', () => {
-    const metal = {
-      id: 'metal1',
-      kind: CollectibleKind.spaceMetal,
-      pos: { x: 100, y: 100 },
-      vel: { x: 0, y: 0 },
-      value: 1,
-      elapsed: 0,
-      lifetime: SPACE_METAL.lifetime,
-    }
+  it('marks clicked metal as homing — does not immediately credit the counter', () => {
+    const metal = makeMetal({ pos: { x: 100, y: 100 } })
     const result = tryCollectSpaceMetal([metal], [{ x: 105, y: 100 }])
-    expect(result.spaceMetalGained).toBe(1)
-    expect(result.collectibles.length).toBe(0)
+    expect(result.collectibles.length).toBe(1)
+    expect(result.collectibles[0].homing).toBe(true)
     expect(result.remainingClicks.length).toBe(0)
   })
 
-  it('does not collect when clicking outside radius', () => {
-    const metal = {
-      id: 'metal1',
-      kind: CollectibleKind.spaceMetal,
-      pos: { x: 100, y: 100 },
-      vel: { x: 0, y: 0 },
-      value: 1,
-      elapsed: 0,
-      lifetime: SPACE_METAL.lifetime,
-    }
+  it('does not affect metal when clicking outside radius', () => {
+    const metal = makeMetal({ pos: { x: 100, y: 100 } })
     const result = tryCollectSpaceMetal([metal], [{ x: 200, y: 200 }])
-    expect(result.spaceMetalGained).toBe(0)
-    expect(result.collectibles.length).toBe(1)
+    expect(result.collectibles[0].homing).toBe(false)
     expect(result.remainingClicks.length).toBe(1)
   })
 
   it('consumed click is not passed through as remaining', () => {
-    const metal = {
-      id: 'metal1',
-      kind: CollectibleKind.spaceMetal,
-      pos: { x: 100, y: 100 },
-      vel: { x: 0, y: 0 },
-      value: 1,
-      elapsed: 0,
-      lifetime: SPACE_METAL.lifetime,
-    }
+    const metal = makeMetal({ pos: { x: 100, y: 100 } })
     const clicks = [
       { x: 105, y: 100 },
       { x: 500, y: 500 },
     ]
     const result = tryCollectSpaceMetal([metal], clicks)
-    expect(result.spaceMetalGained).toBe(1)
+    expect(result.collectibles[0].homing).toBe(true)
     expect(result.remainingClicks).toEqual([{ x: 500, y: 500 }])
   })
 
+  it('a second click on already-homing metal passes through as remaining', () => {
+    const metal = makeMetal({ pos: { x: 100, y: 100 }, homing: true })
+    const result = tryCollectSpaceMetal([metal], [{ x: 105, y: 100 }])
+    expect(result.remainingClicks).toEqual([{ x: 105, y: 100 }])
+    expect(result.collectibles[0].homing).toBe(true)
+  })
+
   it('ignores power orbs', () => {
-    const orb = {
-      id: 'orb1',
-      kind: CollectibleKind.powerOrb,
-      pos: { x: 100, y: 100 },
-      vel: { x: 0, y: 0 },
-      value: 5,
-      elapsed: 0,
-      lifetime: 10,
-    }
+    const orb = makeOrb({ pos: { x: 100, y: 100 } })
     const result = tryCollectSpaceMetal([orb], [{ x: 100, y: 100 }])
-    expect(result.spaceMetalGained).toBe(0)
     expect(result.remainingClicks.length).toBe(1)
+    expect(result.collectibles[0].kind).toBe(CollectibleKind.powerOrb)
+    expect(result.collectibles[0].homing).toBe(false)
   })
 })

@@ -168,18 +168,15 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   let { waveTimer } = state
   const { maxPower, powerRegen } = state
 
+  // Wave delay only gates enemy spawning — the rest of the simulation
+  // (in-flight meteors, homing power orbs, projectiles, ship attacks against
+  // any stragglers) keeps running so nothing visibly freezes between waves.
   if (waveTimer > 0) {
-    waveTimer -= dt
-    if (waveTimer > 0) {
-      particles = updateParticles(particles, dt)
-      abilities = updateAbilityCooldowns(abilities, dt)
-      ship = updateShipPatrol(ship, dt, state.worldSize)
-      return { ...state, ship, particles, abilities, power, waveTimer }
-    }
+    waveTimer = Math.max(0, waveTimer - dt)
   }
 
   // --- Spawn queue ---
-  if (spawnQueue.length > 0) {
+  if (spawnQueue.length > 0 && waveTimer <= 0) {
     spawnTimer -= dt
     while (spawnTimer <= 0 && spawnQueue.length > 0) {
       const kind = spawnQueue[0]
@@ -209,12 +206,13 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     }
   }
 
-  // --- Space metal collection (consumes clicks that hit metal) ---
+  // --- Space metal click handling (marks clicked metal as homing) ---
+  // The counter increments in updateCollectibles when the homing metal
+  // actually reaches the ship.
   let abilityClicks = input.clicks
   if (abilityClicks.length > 0) {
     const metalResult = tryCollectSpaceMetal(collectibles, abilityClicks)
     collectibles = metalResult.collectibles
-    spaceMetal += metalResult.spaceMetalGained
     abilityClicks = metalResult.remainingClicks
   }
 
@@ -291,10 +289,11 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     collectibles = [...collectibles, ...spawnCollectiblesFromKills(allKilledForCollectibles)]
   }
 
-  // --- Update collectibles (power orbs home toward ship) ---
+  // --- Update collectibles (power orbs + clicked metals home toward ship) ---
   const collectibleResult = updateCollectibles(collectibles, ship, dt)
   collectibles = collectibleResult.collectibles
   power += collectibleResult.powerGained
+  spaceMetal += collectibleResult.spaceMetalGained
 
   // --- Ability cooldowns ---
   abilities = updateAbilityCooldowns(abilities, dt)

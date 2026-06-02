@@ -1,6 +1,7 @@
 import { POWER_ORB, SPACE_METAL } from '../data'
 import { distance } from './collision'
 import { uid } from './entities'
+import { homeTowardTarget } from './homing'
 import { rng } from './random'
 import { CollectibleKind } from './types'
 import type { Collectible, Enemy, Ship, Vec2 } from './types'
@@ -17,6 +18,7 @@ export function spawnCollectiblesFromKills(killedEnemies: Enemy[]): Collectible[
       value: enemy.powerReward,
       elapsed: 0,
       lifetime: POWER_ORB.lifetime,
+      homing: false,
     })
 
     const chance = SPACE_METAL.dropChance[enemy.kind] ?? 0
@@ -29,6 +31,7 @@ export function spawnCollectiblesFromKills(killedEnemies: Enemy[]): Collectible[
         value: 1,
         elapsed: 0,
         lifetime: SPACE_METAL.lifetime,
+        homing: false,
       })
     }
   }
@@ -40,87 +43,78 @@ export function updateCollectibles(
   collectibles: Collectible[],
   ship: Ship,
   dt: number
-): { collectibles: Collectible[]; powerGained: number } {
+): { collectibles: Collectible[]; powerGained: number; spaceMetalGained: number } {
   const surviving: Collectible[] = []
   let powerGained = 0
+  let spaceMetalGained = 0
 
   for (const c of collectibles) {
     const elapsed = c.elapsed + dt
 
-    if (elapsed >= c.lifetime) continue
+    // Non-homing collectibles expire on lifetime; homing ones have already
+    // been claimed by the player and should always make it home.
+    if (!c.homing && elapsed >= c.lifetime) continue
 
-    if (c.kind === CollectibleKind.powerOrb) {
-      const result = updatePowerOrb(c, elapsed, ship, dt)
-      if (result.collected) {
-        powerGained += c.value
-      } else {
-        surviving.push(result.orb)
+    let updated: Collectible = { ...c, elapsed }
+
+    // Power orbs auto-transition from float → homing once they've drifted long
+    // enough. Space metals only become homing via tryCollectSpaceMetal.
+    if (
+      updated.kind === CollectibleKind.powerOrb &&
+      !updated.homing &&
+      elapsed >= POWER_ORB.floatDuration
+    ) {
+      updated = { ...updated, homing: true }
+    }
+
+    if (updated.homing) {
+      const motion = homeTowardTarget(updated.pos, ship.pos, POWER_ORB.magnetStrength, dt)
+      updated = { ...updated, pos: motion.pos, vel: motion.vel }
+
+      if (distance(updated.pos, ship.pos) < ship.radius + POWER_ORB.radius + 4) {
+        if (updated.kind === CollectibleKind.powerOrb) powerGained += updated.value
+        else spaceMetalGained += updated.value
+        continue
       }
     } else {
-      surviving.push({ ...c, elapsed })
+      // Float phase — gentle drag-driven drift.
+      const vx = updated.vel.x * POWER_ORB.drag
+      const vy = updated.vel.y * POWER_ORB.drag
+      updated = {
+        ...updated,
+        vel: { x: vx, y: vy },
+        pos: { x: updated.pos.x + vx * dt, y: updated.pos.y + vy * dt },
+      }
     }
+
+    surviving.push(updated)
   }
 
-  return { collectibles: surviving, powerGained }
+  return { collectibles: surviving, powerGained, spaceMetalGained }
 }
 
-function updatePowerOrb(
-  orb: Collectible,
-  elapsed: number,
-  ship: Ship,
-  dt: number
-): { orb: Collectible; collected: boolean } {
-  let vx = orb.vel.x
-  let vy = orb.vel.y
-
-  if (elapsed < POWER_ORB.floatDuration) {
-    vx *= POWER_ORB.drag
-    vy *= POWER_ORB.drag
-  } else {
-    // Direct velocity toward ship — fast enough to catch the patrolling ship
-    const dx = ship.pos.x - orb.pos.x
-    const dy = ship.pos.y - orb.pos.y
-    const dist = Math.sqrt(dx * dx + dy * dy)
-    if (dist > 0.1) {
-      vx = (dx / dist) * POWER_ORB.magnetStrength
-      vy = (dy / dist) * POWER_ORB.magnetStrength
-    }
-  }
-
-  const newPos = { x: orb.pos.x + vx * dt, y: orb.pos.y + vy * dt }
-  const dist = distance(newPos, ship.pos)
-
-  if (dist < ship.radius + POWER_ORB.radius + 4) {
-    return { orb: orb, collected: true }
-  }
-
-  return {
-    orb: { ...orb, pos: newPos, vel: { x: vx, y: vy }, elapsed },
-    collected: false,
-  }
-}
-
+/**
+ * Marks any space metal hit by a click as homing — the update loop then flies
+ * it to the ship and credits the counter on arrival (no instant teleport-collect).
+ * Returns clicks that did NOT hit any metal so they can be passed on to the
+ * ability system.
+ */
 export function tryCollectSpaceMetal(
   collectibles: Collectible[],
   clicks: Vec2[]
-): { collectibles: Collectible[]; spaceMetalGained: number; remainingClicks: Vec2[] } {
-  let spaceMetalGained = 0
-  let currentCollectibles = collectibles
+): { collectibles: Collectible[]; remainingClicks: Vec2[] } {
+  let current = collectibles
   const remainingClicks: Vec2[] = []
 
   for (const click of clicks) {
     let consumed = false
 
-    for (let i = 0; i < currentCollectibles.length; i++) {
-      const c = currentCollectibles[i]
+    for (let i = 0; i < current.length; i++) {
+      const c = current[i]
       if (c.kind !== CollectibleKind.spaceMetal) continue
-
+      if (c.homing) continue // already heading home from a prior click
       if (distance(click, c.pos) < SPACE_METAL.collectionRadius) {
-        spaceMetalGained += c.value
-        currentCollectibles = [
-          ...currentCollectibles.slice(0, i),
-          ...currentCollectibles.slice(i + 1),
-        ]
+        current = [...current.slice(0, i), { ...c, homing: true }, ...current.slice(i + 1)]
         consumed = true
         break
       }
@@ -129,5 +123,5 @@ export function tryCollectSpaceMetal(
     if (!consumed) remainingClicks.push(click)
   }
 
-  return { collectibles: currentCollectibles, spaceMetalGained, remainingClicks }
+  return { collectibles: current, remainingClicks }
 }

@@ -18,7 +18,13 @@ import {
   type GameTime,
 } from './engine/time'
 import { buildSpriteCache, type SpriteCache } from './renderer/sprite-cache'
-import { createCamera, updateCamera, screenToWorld, type Camera } from './renderer/camera'
+import {
+  createCamera,
+  updateCamera,
+  centerCameraOn,
+  screenToWorld,
+  type Camera,
+} from './renderer/camera'
 import { generateStarfield, type Star } from './renderer/starfield'
 import { renderFrame } from './renderer/renderer'
 import { WORLD_SIZE } from './data'
@@ -111,6 +117,11 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     gameStateRef.current = startGame(gameStateRef.current)
     gameStateRef.current = startNextWave(gameStateRef.current)
     selectedAbilityRef.current = AbilityKind.meteorite
+    cameraRef.current = centerCameraOn(
+      cameraRef.current,
+      gameStateRef.current.ship.pos,
+      gameStateRef.current.worldSize
+    )
     syncUI(gameStateRef.current)
   }, [syncUI])
 
@@ -186,6 +197,14 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
         width: rect.width,
         height: rect.height,
       }
+      // Re-center on the ship after a viewport change so we never need to
+      // chase it across the world (e.g. on initial mount where the camera
+      // starts at (0,0) but the ship is at world center).
+      cameraRef.current = centerCameraOn(
+        cameraRef.current,
+        gameStateRef.current.ship.pos,
+        gameStateRef.current.worldSize
+      )
     }
     resize()
 

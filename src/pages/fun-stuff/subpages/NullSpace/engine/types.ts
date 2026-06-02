@@ -126,6 +126,10 @@ export type Collectible = {
   value: number
   elapsed: number
   lifetime: number
+  // true → flying toward the ship via the homing helper. Power orbs become
+  // homing automatically after their float phase; space metal only becomes
+  // homing once the player clicks it.
+  homing: boolean
 }
 
 export type Particle = {

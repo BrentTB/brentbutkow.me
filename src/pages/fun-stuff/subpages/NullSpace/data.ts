@@ -139,7 +139,7 @@ export const PARTICLE_DEFAULTS = {
   trailInterval: 0.05,
 }
 
-export const GAME_VERSION = '0.5.0'
+export const GAME_VERSION = '0.5.1'
 
 export type ChangelogEntry = {
   version: string
@@ -153,6 +153,19 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.5.1',
+    date: '2026-06-02',
+    changes: {
+      features: [
+        'Space metal now flies into the ship when you click it (same magnetic arc as power orbs) instead of teleporting away. Click semantics unchanged — you still have to click to claim it; only the visual flight is new.',
+      ],
+      fixes: [
+        'Wave delay no longer freezes in-flight meteors / homing power orbs — only enemy spawning is gated by the delay',
+        'Game now opens with the camera already centered on your ship — no more brief "rush across space" on first load or after restarting.',
+      ],
+    },
+  },
   {
     version: '0.5.0',
     date: '2026-06-02',

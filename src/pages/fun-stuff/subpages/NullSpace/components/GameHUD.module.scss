@@ -130,12 +130,11 @@
 }
 
 .speedBadge {
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   color: var(--accent);
   font-family: var(--font-mono);
-  padding: 1px 5px;
-  border: 1px solid var(--accent);
-  border-radius: 4px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .iconBtn {

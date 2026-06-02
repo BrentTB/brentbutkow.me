@@ -7,7 +7,7 @@ import {
   applyUpgradeToState,
 } from './game-loop'
 import { resetUid } from './entities'
-import { AbilityKind, CollectibleKind, GamePhase, UpgradeId } from './types'
+import { AbilityKind, CollectibleKind, EffectKind, GamePhase, UpgradeId } from './types'
 import { isUpgradeWave } from './upgrades'
 import { WAVES_PER_LEVEL } from '../data'
 
@@ -234,6 +234,7 @@ describe('updateGameState — state field round-trip persistence', () => {
       value: 1,
       elapsed: 0,
       lifetime: 12,
+      homing: false,
     })
 
     const before = state.spaceMetal
@@ -256,6 +257,7 @@ describe('updateGameState — state field round-trip persistence', () => {
       value: 1,
       elapsed: 0,
       lifetime: 12,
+      homing: false,
     })
 
     state = updateGameState(state, 1 / 60, {
@@ -277,6 +279,7 @@ describe('updateGameState — state field round-trip persistence', () => {
       value: 1,
       elapsed: 0,
       lifetime: 12,
+      homing: false,
     })
 
     state = updateGameState(state, 1 / 60, {
@@ -303,6 +306,7 @@ describe('updateGameState — state field round-trip persistence', () => {
       value: 10,
       elapsed: 1,
       lifetime: 12,
+      homing: true,
     })
 
     state = updateGameState(state, 1 / 60, { clicks: [], selectedAbility: null })
@@ -322,6 +326,7 @@ describe('updateGameState — state field round-trip persistence', () => {
       value: 5,
       elapsed: 0,
       lifetime: 12,
+      homing: false,
     })
 
     state = updateGameState(state, 1 / 60, { clicks: [], selectedAbility: null })
@@ -540,6 +545,7 @@ describe('updateGameState — paused phase halts simulation', () => {
           value: 10,
           elapsed: 1,
           lifetime: 12,
+          homing: true,
         },
       ],
     }
@@ -562,5 +568,97 @@ describe('updateGameState — paused phase halts simulation', () => {
     }
 
     expect(state.power).toBe(100)
+  })
+})
+
+// The wave delay (waveTimer > 0) is meant to delay the FIRST enemy spawn of
+// the next wave — not to freeze the whole simulation. These tests guard that
+// in-flight effects and collectibles keep moving through the delay, so e.g.
+// a meteor launched at the end of one wave still descends and detonates
+// during the run-up to the next wave.
+describe('updateGameState — wave delay only gates spawning', () => {
+  it('in-flight meteor strikes keep advancing during the wave delay', () => {
+    let state = startGame(createInitialState())
+    state = startNextWave(state)
+    // Construct a state mimicking the moment right after "Next Wave": waveTimer
+    // is positive (1s for wave 2+), an effect is in flight from the prior wave.
+    state = {
+      ...state,
+      wave: 2,
+      waveTimer: 1,
+      activeEffects: [
+        {
+          id: 'mid-flight-meteor',
+          kind: EffectKind.meteorStrike,
+          pos: { x: 1500, y: 1500 },
+          elapsed: 0,
+          duration: 0.5,
+          delay: 0.5,
+          damage: 60,
+          aoeRadius: 100,
+          resolved: false,
+        },
+      ],
+    }
+
+    const before = state.activeEffects[0].elapsed
+    const next = updateGameState(state, 0.1, { clicks: [], selectedAbility: null })
+    const after = next.activeEffects.find((e) => e.id === 'mid-flight-meteor')
+    expect(after).toBeDefined()
+    expect(after!.elapsed).toBeGreaterThan(before)
+  })
+
+  it('power orbs in flight keep homing during the wave delay', () => {
+    let state = startGame(createInitialState())
+    state = startNextWave(state)
+    state = {
+      ...state,
+      wave: 2,
+      waveTimer: 1,
+      collectibles: [
+        {
+          id: 'mid-flight-orb',
+          kind: CollectibleKind.powerOrb,
+          pos: { x: state.ship.pos.x + 50, y: state.ship.pos.y },
+          vel: { x: -50, y: 0 },
+          value: 5,
+          elapsed: 1,
+          lifetime: 12,
+          homing: true,
+        },
+      ],
+    }
+
+    const before = state.collectibles[0].pos.x
+    const next = updateGameState(state, 0.05, { clicks: [], selectedAbility: null })
+    const after = next.collectibles.find((c) => c.id === 'mid-flight-orb')
+    if (after) {
+      expect(after.pos.x).toBeLessThan(before)
+    } else {
+      // Acceptable: orb may have been collected this frame
+      expect(next.power).toBeGreaterThan(state.power)
+    }
+  })
+
+  it('the wave delay still prevents enemies from spawning', () => {
+    let state = startGame(createInitialState())
+    state = startNextWave(state)
+    state = { ...state, wave: 2, waveTimer: 1, spawnTimer: 0 }
+    const queueBefore = state.spawnQueue.length
+
+    const next = updateGameState(state, 0.05, { clicks: [], selectedAbility: null })
+
+    expect(next.spawnQueue.length).toBe(queueBefore)
+    expect(next.enemies.length).toBe(0)
+    expect(next.spawnedInWave).toBe(0)
+  })
+
+  it('the wave timer decrements down to zero', () => {
+    let state = startGame(createInitialState())
+    state = startNextWave(state)
+    state = { ...state, wave: 2, waveTimer: 0.5 }
+
+    const next = updateGameState(state, 0.1, { clicks: [], selectedAbility: null })
+    expect(next.waveTimer).toBeCloseTo(0.4, 5)
   })
 })

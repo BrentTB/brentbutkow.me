@@ -188,13 +188,15 @@ This repo is a showcase — the code itself should look as polished as the UI.
 - **Extract reusable behaviour into utility files; don't bury it inline.** When adding new behaviour,
   ask whether the same primitive could plausibly be needed by another feature later. If yes, put it
   in a dedicated helper file with a generic signature, and have the caller compose it — rather than
-  hard-coding the logic into the one place that needs it today. For example, the homing/magnet
-  behaviour for power orbs lives in [collectibles.ts](src/pages/fun-stuff/subpages/NullSpace/engine/collectibles.ts);
-  the same primitive should be reachable for other "thing that moves toward another thing" cases
-  (enemy projectiles that home, ally drones that return to the ship, etc.) without copy-paste.
-  Don't over-abstract for hypothetical needs — but when the second use case is *obvious from the
-  task at hand*, build the helper at that boundary now, not later. Trade-off: avoid premature
-  abstraction for a single use; if there's only one caller and no clear future caller, keep it inline.
+  hard-coding the logic into the one place that needs it today. The canonical example in this repo
+  is [homing.ts](src/pages/fun-stuff/subpages/NullSpace/engine/homing.ts): a tiny `homeTowardTarget`
+  primitive that consumes a position, target, strength, and dt. It's used by both power orbs and
+  clicked space metals in [collectibles.ts](src/pages/fun-stuff/subpages/NullSpace/engine/collectibles.ts),
+  and is ready for any future "thing that moves toward another thing" — homing missiles, ally drones
+  returning to the ship, magnetic pickups. Don't over-abstract for hypothetical needs — but when the
+  second use case is *obvious from the task at hand*, build the helper at that boundary now, not
+  later. Trade-off: avoid premature abstraction for a single use; if there's only one caller and no
+  clear future caller, keep it inline and extract when the second caller arrives.
 - Match the surrounding style: 2-space indent, single quotes, no semicolons, ~100 col width
   (enforced by Prettier — see [.prettierrc](.prettierrc)). Let Prettier format; don't fight it.
 
