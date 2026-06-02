@@ -17,6 +17,9 @@ type GameOverlayProps = {
   onRestart: () => void
   onPurchaseUpgrade: (upgradeId: UpgradeId) => void
   onFinishUpgrades: () => void
+  onResume: () => void
+  onSetSpeed: (speed: number) => void
+  gameSpeed: number
 }
 
 export function GameOverlay({
@@ -26,13 +29,42 @@ export function GameOverlay({
   onRestart,
   onPurchaseUpgrade,
   onFinishUpgrades,
+  onResume,
+  onSetSpeed,
+  gameSpeed,
 }: GameOverlayProps) {
+  const [settingsOpen, setSettingsOpen] = useState(false)
+
   if (uiState.phase === GamePhase.playing) return null
+
+  // Settings sits on top of the pause screen — close it on resume/restart
+  const handleResume = () => {
+    setSettingsOpen(false)
+    onResume()
+  }
+  const handleRestart = () => {
+    setSettingsOpen(false)
+    onRestart()
+  }
 
   return (
     <div className={styles.overlay}>
       <div className={styles.content}>
         {uiState.phase === GamePhase.menu && <MenuScreen onStart={onStart} />}
+        {uiState.phase === GamePhase.paused && !settingsOpen && (
+          <PauseScreen
+            onResume={handleResume}
+            onSettings={() => setSettingsOpen(true)}
+            onRestart={handleRestart}
+          />
+        )}
+        {uiState.phase === GamePhase.paused && settingsOpen && (
+          <SettingsScreen
+            gameSpeed={gameSpeed}
+            onSetSpeed={onSetSpeed}
+            onClose={() => setSettingsOpen(false)}
+          />
+        )}
         {uiState.phase === GamePhase.waveComplete && (
           <WaveCompleteScreen
             wave={uiState.wave}
@@ -55,11 +87,72 @@ export function GameOverlay({
             isNewHighScore={uiState.isNewHighScore}
             level={uiState.level}
             wave={uiState.wave}
-            onRestart={onRestart}
+            onRestart={handleRestart}
           />
         )}
       </div>
     </div>
+  )
+}
+
+function PauseScreen({
+  onResume,
+  onSettings,
+  onRestart,
+}: {
+  onResume: () => void
+  onSettings: () => void
+  onRestart: () => void
+}) {
+  return (
+    <>
+      <h2 className={styles.title}>Paused</h2>
+      <button className={styles.primaryBtn} onClick={onResume}>
+        Resume
+      </button>
+      <button className={styles.secondaryBtn} onClick={onSettings}>
+        Settings
+      </button>
+      <button className={styles.secondaryBtn} onClick={onRestart}>
+        Restart
+      </button>
+      <p className={styles.hint}>Press P to resume</p>
+    </>
+  )
+}
+
+const SPEED_OPTIONS = [0.5, 1, 2] as const
+
+function SettingsScreen({
+  gameSpeed,
+  onSetSpeed,
+  onClose,
+}: {
+  gameSpeed: number
+  onSetSpeed: (speed: number) => void
+  onClose: () => void
+}) {
+  return (
+    <>
+      <h2 className={styles.title}>Settings</h2>
+      <div className={styles.settingRow}>
+        <span className={styles.settingLabel}>Game speed</span>
+        <div className={styles.segmented}>
+          {SPEED_OPTIONS.map((speed) => (
+            <button
+              key={speed}
+              className={`${styles.segment} ${gameSpeed === speed ? styles.segmentActive : ''}`}
+              onClick={() => onSetSpeed(speed)}
+            >
+              {speed}×
+            </button>
+          ))}
+        </div>
+      </div>
+      <button className={styles.primaryBtn} onClick={onClose}>
+        Back
+      </button>
+    </>
   )
 }
 

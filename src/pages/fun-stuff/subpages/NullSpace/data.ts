@@ -139,7 +139,7 @@ export const PARTICLE_DEFAULTS = {
   trailInterval: 0.05,
 }
 
-export const GAME_VERSION = '0.4.0'
+export const GAME_VERSION = '0.5.0'
 
 export type ChangelogEntry = {
   version: string
@@ -153,6 +153,23 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.5.0',
+    date: '2026-06-02',
+    changes: {
+      features: [
+        'Pause menu — press P or click the pause button. Resumes cleanly with no time-skip',
+        'Settings menu — game speed slider (0.5×/1×/2×) accessible from pause',
+        'Fullscreen toggle button — uses the Fullscreen API to fill the screen',
+        'Speed indicator in the HUD when game speed is not 1×',
+      ],
+      fixes: [
+        'Upgrade menu now stays a fixed size across tabs — no more heading jumping or layout shifts when switching between Weapons/Ship/Powers',
+        'Tank enemies pursue the ship steadily — velocity is now smoothed instead of flipping each frame as the ship reverses',
+        'Shooter enemy sprite redesigned — cleaner diamond silhouette with a glowing eye, easier to tell apart from other enemies at a glance',
+      ],
+    },
+  },
   {
     version: '0.4.0',
     date: '2026-06-02',

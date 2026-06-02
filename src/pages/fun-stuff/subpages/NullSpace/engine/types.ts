@@ -141,6 +141,7 @@ export type Particle = {
 export const GamePhase = {
   menu: 'menu',
   playing: 'playing',
+  paused: 'paused',
   waveComplete: 'waveComplete',
   upgradeScreen: 'upgradeScreen',
   gameOver: 'gameOver',

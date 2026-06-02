@@ -94,23 +94,26 @@ export const METEORITE_SPRITE: SpriteData = [
 const P = '#8855cc' // purple
 const p = '#663399' // dark purple
 
+// Diamond-bodied shooter with a clear forward-facing barrel and a glowing
+// cyan-cored eye. The lateral fins make it instantly distinguishable from
+// the drone (which is small/asymmetric) and the tank (bulky/steel).
 export const SHOOTER_SPRITE: SpriteData = [
-  [_, _, _, _, _, P, P, _, _, _, _, _, _, _, _, _],
-  [_, _, _, _, P, p, p, P, _, _, _, _, _, _, _, _],
-  [_, _, _, P, p, P, P, p, P, _, _, _, _, _, _, _],
-  [_, _, P, p, P, _, _, P, p, P, _, _, _, _, _, _],
-  [_, P, p, P, _, _, _, _, P, p, P, _, _, _, _, _],
-  [_, P, p, R, _, _, _, _, R, p, P, _, _, _, _, _],
-  [_, _, P, p, P, _, _, P, p, P, _, _, _, _, _, _],
-  [_, _, _, P, p, P, P, p, P, _, _, _, _, _, _, _],
-  [_, _, _, _, P, p, p, P, _, _, _, _, _, _, _, _],
-  [_, _, _, _, _, P, P, _, _, _, P, P, P, P, _, _],
-  [_, _, _, _, _, _, _, _, _, P, p, p, p, p, P, _],
-  [_, _, _, _, _, _, _, _, P, p, p, p, p, p, p, P],
-  [_, _, _, _, _, _, _, _, P, p, p, p, p, p, p, P],
-  [_, _, _, _, _, _, _, _, _, P, p, p, p, p, P, _],
-  [_, _, _, _, _, _, _, _, _, _, P, P, P, P, _, _],
-  [_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _],
+  [_, _, _, _, _, _, _, P, P, _, _, _, _, _, _, _],
+  [_, _, _, _, _, _, P, p, p, P, _, _, _, _, _, _],
+  [_, _, _, _, _, P, p, P, P, p, P, _, _, _, _, _],
+  [_, _, _, _, P, p, P, C, C, P, p, P, _, _, _, _],
+  [_, _, _, P, p, P, C, W, W, C, P, p, P, _, _, _],
+  [_, _, P, p, P, C, W, W, W, W, C, P, p, P, _, _],
+  [_, P, p, P, C, W, W, p, p, W, W, C, P, p, P, _],
+  [P, p, P, P, C, W, p, P, P, p, W, C, P, P, p, P],
+  [P, p, P, P, C, W, p, P, P, p, W, C, P, P, p, P],
+  [_, P, p, P, C, W, W, p, p, W, W, C, P, p, P, _],
+  [_, _, P, p, P, C, W, W, W, W, C, P, p, P, _, _],
+  [_, _, _, P, p, P, C, W, W, C, P, p, P, _, _, _],
+  [_, _, _, _, P, p, P, C, C, P, p, P, _, _, _, _],
+  [_, _, _, _, _, P, p, P, P, p, P, _, _, _, _, _],
+  [_, _, _, _, _, _, P, p, p, P, _, _, _, _, _, _],
+  [_, _, _, _, _, _, _, P, P, _, _, _, _, _, _, _],
 ]
 
 export const ENEMY_PROJECTILE_SPRITE: SpriteData = [

@@ -506,15 +506,21 @@ function moveChase(enemy: Enemy, ship: Ship, dt: number): Enemy {
   const dist = Math.sqrt(dx * dx + dy * dy)
   if (dist < 1) return enemy
 
-  const nx = dx / dist
-  const ny = dy / dist
+  const targetVx = (dx / dist) * enemy.speed
+  const targetVy = (dy / dist) * enemy.speed
+
+  // Smooth velocity toward the target so slow chasers (tanks) don't jitter when
+  // the ship reverses on its patrol. Heavier enemies turn more slowly: rate
+  // scales with their movement speed.
+  const turnRate = enemy.speed / 30
+  const alpha = 1 - Math.exp(-turnRate * dt)
+  const vx = enemy.vel.x + (targetVx - enemy.vel.x) * alpha
+  const vy = enemy.vel.y + (targetVy - enemy.vel.y) * alpha
+
   return {
     ...enemy,
-    pos: {
-      x: enemy.pos.x + nx * enemy.speed * dt,
-      y: enemy.pos.y + ny * enemy.speed * dt,
-    },
-    vel: { x: nx * enemy.speed, y: ny * enemy.speed },
+    pos: { x: enemy.pos.x + vx * dt, y: enemy.pos.y + vy * dt },
+    vel: { x: vx, y: vy },
   }
 }
 

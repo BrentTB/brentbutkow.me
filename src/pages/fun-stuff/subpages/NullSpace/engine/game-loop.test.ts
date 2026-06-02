@@ -384,3 +384,183 @@ describe('updateGameState — state field round-trip persistence', () => {
     }
   })
 })
+
+// moveChase smooths velocity toward the chase target. The tank's chase vector
+// would otherwise flip every frame because the ship is on a Lissajous patrol
+// that reverses direction frequently. These tests guard the smoothing — a
+// regression to "snap velocity each frame" would produce instant 180° flips.
+describe('updateGameState — chase-movement smoothing (tank behaviour)', () => {
+  it('a chasing enemy moves toward the ship over one tick', () => {
+    let state = startGame(createInitialState())
+    state = startNextWave(state)
+    state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
+
+    state = {
+      ...state,
+      enemies: state.enemies.map((e) => ({
+        ...e,
+        pos: { x: state.ship.pos.x + 800, y: state.ship.pos.y },
+        vel: { x: 0, y: 0 },
+      })),
+    }
+
+    const distBefore = Math.abs(state.enemies[0].pos.x - state.ship.pos.x)
+    const next = updateGameState(state, 0.5, { clicks: [], selectedAbility: null })
+    const after = next.enemies.find((e) => e.id === state.enemies[0].id)
+    if (after) {
+      const distAfter = Math.abs(after.pos.x - next.ship.pos.x)
+      expect(distAfter).toBeLessThan(distBefore)
+    }
+  })
+
+  it('chase velocity does not snap to the new target in a single frame', () => {
+    let state = startGame(createInitialState())
+    state = startNextWave(state)
+    state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
+
+    // Tank moving right (+x) at full speed, ship now to the LEFT.
+    state = {
+      ...state,
+      enemies: state.enemies.map((e) => ({
+        ...e,
+        speed: 40,
+        pos: { x: state.ship.pos.x + 200, y: state.ship.pos.y },
+        vel: { x: 40, y: 0 },
+      })),
+    }
+
+    const next = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
+    const after = next.enemies.find((e) => e.id === state.enemies[0].id)
+    // After ONE frame: chase target is -40 (ship is to the left). Without
+    // smoothing the snapped vel would be -40 exactly. With smoothing it's
+    // between the old (+40) and the target (-40) — i.e. closer to +40 than
+    // to -40 for a slow turn rate.
+    if (after) {
+      expect(after.vel.x).toBeGreaterThan(-40)
+      expect(after.vel.x).toBeLessThan(40)
+      // Slow enemy (speed=40) → turn rate = 40/30 ≈ 1.33/s →
+      // alpha at dt=0.016 ≈ 0.021. Expected vel ≈ 40 + (-40-40)*0.021 ≈ 38.3.
+      // Just assert it's still strongly positive (didn't flip).
+      expect(after.vel.x).toBeGreaterThan(0)
+    }
+  })
+
+  it('a faster enemy turns more quickly than a slower one', () => {
+    let state = startGame(createInitialState())
+    state = startNextWave(state)
+    state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
+
+    if (state.enemies.length === 0) return
+
+    const baseEnemy = state.enemies[0]
+    const slowState = {
+      ...state,
+      enemies: [
+        {
+          ...baseEnemy,
+          id: 'slow',
+          speed: 40,
+          pos: { x: state.ship.pos.x + 200, y: state.ship.pos.y },
+          vel: { x: 40, y: 0 },
+        },
+      ],
+    }
+    const fastState = {
+      ...state,
+      enemies: [
+        {
+          ...baseEnemy,
+          id: 'fast',
+          speed: 150,
+          pos: { x: state.ship.pos.x + 200, y: state.ship.pos.y },
+          vel: { x: 150, y: 0 },
+        },
+      ],
+    }
+
+    const slowAfter = updateGameState(slowState, 0.05, { clicks: [], selectedAbility: null })
+    const fastAfter = updateGameState(fastState, 0.05, { clicks: [], selectedAbility: null })
+
+    // Both started at +speed; target is -speed. Fast enemy should have rotated
+    // its velocity further toward the negative direction than the slow one,
+    // i.e. velMagOverSpeedRatio is lower (more turned) for the fast enemy.
+    const slowAt = slowAfter.enemies.find((e) => e.id === 'slow')
+    const fastAt = fastAfter.enemies.find((e) => e.id === 'fast')
+    if (slowAt && fastAt) {
+      const slowRatio = slowAt.vel.x / 40
+      const fastRatio = fastAt.vel.x / 150
+      // slowRatio still ~+0.93, fastRatio ~+0.78 — fast turned more.
+      expect(fastRatio).toBeLessThan(slowRatio)
+    }
+  })
+})
+
+// updateGameState relies on phase-gating to halt the game when paused. These
+// tests guard that a paused game truly stops simulating — no enemy spawns,
+// no collectible collection, no power regen, no projectiles moving — so any
+// future refactor that bypasses the phase guard is caught immediately.
+describe('updateGameState — paused phase halts simulation', () => {
+  it('returns the same state object unchanged when phase === paused', () => {
+    let state = startGame(createInitialState())
+    state = startNextWave(state)
+    state = { ...state, phase: GamePhase.paused }
+
+    const result = updateGameState(state, 1 / 60, { clicks: [], selectedAbility: null })
+    expect(result).toBe(state)
+  })
+
+  it('queued enemies do not spawn while paused', () => {
+    let state = startGame(createInitialState())
+    state = startNextWave(state)
+    const queueBefore = state.spawnQueue.length
+    state = { ...state, phase: GamePhase.paused, waveTimer: 0 }
+
+    for (let i = 0; i < 240; i++) {
+      state = updateGameState(state, 1 / 60, { clicks: [], selectedAbility: null })
+    }
+
+    expect(state.spawnQueue.length).toBe(queueBefore)
+    expect(state.enemies.length).toBe(0)
+    expect(state.spawnedInWave).toBe(0)
+  })
+
+  it('power orbs at the ship are not collected while paused', () => {
+    let state = startGame(createInitialState())
+    state = startNextWave(state)
+    state = {
+      ...state,
+      phase: GamePhase.paused,
+      power: 50,
+      collectibles: [
+        {
+          id: 'orb-paused',
+          kind: CollectibleKind.powerOrb,
+          pos: { x: state.ship.pos.x, y: state.ship.pos.y },
+          vel: { x: 0, y: 0 },
+          value: 10,
+          elapsed: 1,
+          lifetime: 12,
+        },
+      ],
+    }
+
+    for (let i = 0; i < 30; i++) {
+      state = updateGameState(state, 1 / 60, { clicks: [], selectedAbility: null })
+    }
+
+    expect(state.power).toBe(50)
+    expect(state.collectibles.find((c) => c.id === 'orb-paused')).toBeDefined()
+  })
+
+  it('does not regenerate power while paused', () => {
+    let state = startGame(createInitialState())
+    state = startNextWave(state)
+    state = { ...state, phase: GamePhase.paused, power: 100 }
+
+    for (let i = 0; i < 60; i++) {
+      state = updateGameState(state, 1 / 60, { clicks: [], selectedAbility: null })
+    }
+
+    expect(state.power).toBe(100)
+  })
+})

@@ -6,6 +6,10 @@ import styles from './GameHUD.module.scss'
 type GameHUDProps = {
   uiState: GameUIState
   onAbilitySelect: (kind: GameUIState['selectedAbility']) => void
+  onPause: () => void
+  onToggleFullscreen: () => void
+  isFullscreen: boolean
+  gameSpeed: number
 }
 
 const ABILITY_LABELS: Record<string, { icon: string; label: string }> = {
@@ -22,7 +26,14 @@ function getLevelProgress(uiState: GameUIState): number {
   return (waveIndexInLevel + spawnFraction) / WAVES_PER_LEVEL
 }
 
-export function GameHUD({ uiState, onAbilitySelect }: GameHUDProps) {
+export function GameHUD({
+  uiState,
+  onAbilitySelect,
+  onPause,
+  onToggleFullscreen,
+  isFullscreen,
+  gameSpeed,
+}: GameHUDProps) {
   if (uiState.phase === GamePhase.menu) return null
 
   const hpRatio = Math.max(0, uiState.shipHp / uiState.shipMaxHp)
@@ -85,6 +96,24 @@ export function GameHUD({ uiState, onAbilitySelect }: GameHUDProps) {
           {uiState.spaceMetal > 0 && (
             <span className={styles.spaceMetal}>⬡ {uiState.spaceMetal}</span>
           )}
+          {gameSpeed !== 1 && <span className={styles.speedBadge}>{gameSpeed}×</span>}
+          <button
+            type="button"
+            className={styles.iconBtn}
+            onClick={onToggleFullscreen}
+            aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+          >
+            {isFullscreen ? '✕' : '⛶'}
+          </button>
+          <button
+            type="button"
+            className={styles.iconBtn}
+            onClick={onPause}
+            disabled={uiState.phase !== GamePhase.playing}
+            aria-label="Pause game"
+          >
+            ⏸
+          </button>
         </div>
       </div>
       <div className={styles.abilities}>
