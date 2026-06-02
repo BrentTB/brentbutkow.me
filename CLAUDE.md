@@ -32,6 +32,16 @@ npm test              # vitest run (unit tests; npm run test:watch to watch)
   change a hook, add/update its colocated `*.test.ts` in the same change. (Hooks that touch the DOM or
   context — `useFunMode`, `useDocumentTitle` — use `@testing-library/react`'s `renderHook` with the
   appropriate provider/router wrapper; see their tests for the pattern.)
+- **Every bug fix must include a regression test in the same change.** This is a hard rule. The test
+  must reproduce the bug (i.e. fail without the fix, pass with it) and be named/described so a future
+  reader knows what it's guarding. Before committing a fix, temporarily revert the fix and re-run
+  `npm test` to confirm the new test actually fails — a regression test that passes against the
+  broken state is no regression test at all. The point: the test suite should grow strictly stronger
+  over time, so the same class of bug can't quietly come back. See the
+  `updateGameState — state field round-trip persistence` block in
+  [game-loop.test.ts](src/pages/fun-stuff/subpages/NullSpace/engine/game-loop.test.ts) for an example
+  of regression tests that guard a whole bug class (locally-mutated state lost on return via stale
+  `...state` spread — TypeScript can't catch it, so the tests have to).
 
 `npm run check` then `npm run format` run automatically via the Husky `pre-commit` hook
 ([.husky/pre-commit](.husky/pre-commit)). Keep both green — don't bypass the hook.

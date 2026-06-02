@@ -32,6 +32,24 @@ describe('getWave', () => {
     const b = getWave(4)
     expect(a).not.toEqual(b)
   })
+
+  it('wave 5 and later include bombers', () => {
+    const kinds = getWave(8)
+    expect(kinds.some((k) => k === EnemyKind.bomber)).toBe(true)
+  })
+
+  it('wave 4 and later include swarm packs', () => {
+    const kinds = getWave(7)
+    expect(kinds.some((k) => k === EnemyKind.swarm)).toBe(true)
+    expect(kinds.filter((k) => k === EnemyKind.swarm).length).toBeGreaterThanOrEqual(5)
+  })
+
+  it('early waves have no swarm or bomber', () => {
+    const wave1 = getWave(1)
+    const wave2 = getWave(2)
+    expect(wave1.every((k) => k !== EnemyKind.swarm && k !== EnemyKind.bomber)).toBe(true)
+    expect(wave2.every((k) => k !== EnemyKind.swarm && k !== EnemyKind.bomber)).toBe(true)
+  })
 })
 
 describe('getWaveDelay', () => {

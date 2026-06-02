@@ -8,8 +8,24 @@ import {
   BLACK_HOLE,
   ENEMY_STATS,
 } from '../data'
-import { AbilityKind } from './types'
+import { AbilityKind, DeathBehavior, EnemyKind, MovementBehavior } from './types'
 import type { Ship, Enemy, Projectile, Vec2, Ability, Particle } from './types'
+
+const ENEMY_MOVEMENT: Record<EnemyKind, MovementBehavior> = {
+  [EnemyKind.drone]: MovementBehavior.chase,
+  [EnemyKind.tank]: MovementBehavior.chase,
+  [EnemyKind.shooter]: MovementBehavior.keepRange,
+  [EnemyKind.swarm]: MovementBehavior.zigzag,
+  [EnemyKind.bomber]: MovementBehavior.chase,
+}
+
+const ENEMY_DEATH: Record<EnemyKind, DeathBehavior> = {
+  [EnemyKind.drone]: DeathBehavior.none,
+  [EnemyKind.tank]: DeathBehavior.none,
+  [EnemyKind.shooter]: DeathBehavior.none,
+  [EnemyKind.swarm]: DeathBehavior.none,
+  [EnemyKind.bomber]: DeathBehavior.explode,
+}
 import { rng } from './random'
 
 let nextId = 0
@@ -55,6 +71,8 @@ export function createEnemy(kind: Enemy['kind'], pos: Vec2): Enemy {
     fireRate: 'fireRate' in stats ? stats.fireRate : 0,
     fireCooldown: 0,
     attackRange: 'attackRange' in stats ? stats.attackRange : 0,
+    movementBehavior: ENEMY_MOVEMENT[kind],
+    deathBehavior: ENEMY_DEATH[kind],
   }
 }
 

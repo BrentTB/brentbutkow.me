@@ -73,15 +73,56 @@ export const ENEMY_STATS = {
     attackRange: 350,
     projectileDamage: 8,
   },
+  swarm: {
+    hp: 8,
+    speed: 150,
+    damage: 3,
+    radius: 6,
+    scoreValue: 5,
+    powerReward: 2,
+  },
+  bomber: {
+    hp: 50,
+    speed: 35,
+    damage: 5,
+    radius: 14,
+    scoreValue: 25,
+    powerReward: 12,
+    explosionDamage: 30,
+    explosionRadius: 80,
+  },
 } as const
 
 export const CURRENCY_DROPS: Record<EnemyKind, { min: number; max: number }> = {
   drone: { min: 0, max: 2 },
   tank: { min: 1, max: 5 },
   shooter: { min: 1, max: 3 },
+  swarm: { min: 0, max: 1 },
+  bomber: { min: 1, max: 4 },
 }
 
 export const CURRENCY_NAME = 'Stardust'
+
+export const POWER_ORB = {
+  radius: 6,
+  floatDuration: 0.5,
+  magnetStrength: 350,
+  drag: 0.94,
+  lifetime: 12,
+} as const
+
+export const SPACE_METAL = {
+  radius: 10,
+  lifetime: 12,
+  collectionRadius: 30,
+  dropChance: {
+    drone: 0.03,
+    tank: 0.12,
+    shooter: 0.06,
+    swarm: 0.01,
+    bomber: 0.1,
+  } as Record<EnemyKind, number>,
+} as const
 
 export const WAVES_PER_LEVEL = 3
 
@@ -98,7 +139,7 @@ export const PARTICLE_DEFAULTS = {
   trailInterval: 0.05,
 }
 
-export const GAME_VERSION = '0.3.0'
+export const GAME_VERSION = '0.4.0'
 
 export type ChangelogEntry = {
   version: string
@@ -112,6 +153,24 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.4.0',
+    date: '2026-06-02',
+    changes: {
+      features: [
+        'New enemy: Swarm — tiny, fast, zigzag movement, spawn in packs of 5-8',
+        'New enemy: Bomber — slow, bulky, explodes on death dealing AoE damage to the ship',
+        'Power orbs — enemies now drop collectible blue orbs that magnetically arc toward your ship to restore power',
+        'Space metal — rare gold hexagonal drops that must be clicked to collect (premium currency)',
+        'Space metal counter in the HUD',
+      ],
+      fixes: [
+        'Unified effect system replaces per-ability arrays for cleaner architecture',
+        'Data-driven movement behaviors (chase, keep-range, zigzag) replace hardcoded enemy if/else',
+        'Ability creation uses a factory map instead of branching logic',
+      ],
+    },
+  },
   {
     version: '0.3.0',
     date: '2026-06-02',

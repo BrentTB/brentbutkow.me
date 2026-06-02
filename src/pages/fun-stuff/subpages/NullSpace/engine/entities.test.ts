@@ -8,7 +8,7 @@ import {
   spawnExplosionParticles,
   resetUid,
 } from './entities'
-import { AbilityKind, EnemyKind } from './types'
+import { AbilityKind, DeathBehavior, EnemyKind, MovementBehavior } from './types'
 import { WORLD_SIZE } from '../data'
 
 beforeEach(() => {
@@ -43,6 +43,32 @@ describe('createEnemy', () => {
     expect(enemy.kind).toBe(EnemyKind.tank)
     expect(enemy.hp).toBe(80)
     expect(enemy.speed).toBe(40)
+  })
+
+  it('creates a swarm with zigzag movement', () => {
+    const enemy = createEnemy(EnemyKind.swarm, { x: 100, y: 100 })
+    expect(enemy.kind).toBe(EnemyKind.swarm)
+    expect(enemy.hp).toBe(8)
+    expect(enemy.speed).toBe(150)
+    expect(enemy.movementBehavior).toBe(MovementBehavior.zigzag)
+    expect(enemy.deathBehavior).toBe(DeathBehavior.none)
+  })
+
+  it('creates a bomber with explode death behavior', () => {
+    const enemy = createEnemy(EnemyKind.bomber, { x: 100, y: 100 })
+    expect(enemy.kind).toBe(EnemyKind.bomber)
+    expect(enemy.hp).toBe(50)
+    expect(enemy.speed).toBe(35)
+    expect(enemy.movementBehavior).toBe(MovementBehavior.chase)
+    expect(enemy.deathBehavior).toBe(DeathBehavior.explode)
+  })
+
+  it('sets movement and death behaviors for all enemy kinds', () => {
+    for (const kind of Object.values(EnemyKind)) {
+      const enemy = createEnemy(kind, { x: 0, y: 0 })
+      expect(enemy.movementBehavior).toBeDefined()
+      expect(enemy.deathBehavior).toBeDefined()
+    }
   })
 })
 

@@ -82,6 +82,9 @@ export function GameHUD({ uiState, onAbilitySelect }: GameHUDProps) {
           <span className={styles.currency}>
             {CURRENCY_NAME}: {uiState.currency}
           </span>
+          {uiState.spaceMetal > 0 && (
+            <span className={styles.spaceMetal}>⬡ {uiState.spaceMetal}</span>
+          )}
         </div>
       </div>
       <div className={styles.abilities}>

@@ -27,6 +27,7 @@ export type GameUIState = {
   power: number
   maxPower: number
   currency: number
+  spaceMetal: number
   abilities: GameState['abilities']
   upgrades: PlayerUpgrades
   selectedAbility: GameState['abilities'][number]['kind']
@@ -59,6 +60,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     power: 80,
     maxPower: 100,
     currency: 0,
+    spaceMetal: 0,
     abilities: [],
     upgrades: {} as PlayerUpgrades,
     selectedAbility: AbilityKind.meteorite,
@@ -88,6 +90,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       power: state.power,
       maxPower: state.maxPower,
       currency: state.currency,
+      spaceMetal: state.spaceMetal,
       abilities: state.abilities,
       upgrades: state.upgrades,
       selectedAbility: selectedAbilityRef.current,

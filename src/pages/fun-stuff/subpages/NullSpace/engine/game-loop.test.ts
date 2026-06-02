@@ -7,7 +7,7 @@ import {
   applyUpgradeToState,
 } from './game-loop'
 import { resetUid } from './entities'
-import { AbilityKind, GamePhase, UpgradeId } from './types'
+import { AbilityKind, CollectibleKind, GamePhase, UpgradeId } from './types'
 import { isUpgradeWave } from './upgrades'
 import { WAVES_PER_LEVEL } from '../data'
 
@@ -206,5 +206,181 @@ describe('applyUpgradeToState', () => {
     const upgraded = applyUpgradeToState(state, UpgradeId.unlockMeteor)
     const meteor = upgraded.abilities.find((a) => a.kind === AbilityKind.meteor)
     expect(meteor!.unlocked).toBe(true)
+  })
+})
+
+// These tests catch a class of bugs where updateGameState mutates a local
+// variable but forgets to thread it through the returned state. `...state`
+// in the return statement silently provides every required GameState field,
+// so TypeScript can't detect a missing field — only behavioral tests can.
+// Any future scalar/array field added to GameState that is locally mutated
+// inside updateGameState should get a similar test below.
+describe('updateGameState — state field round-trip persistence', () => {
+  function injectCollectible(
+    state: ReturnType<typeof createInitialState>,
+    collectible: ReturnType<typeof createInitialState>['collectibles'][number]
+  ) {
+    return { ...state, collectibles: [...state.collectibles, collectible] }
+  }
+
+  it('clicking on space metal increments state.spaceMetal in the returned state', () => {
+    let state = startGame(createInitialState())
+    state = startNextWave(state)
+    state = injectCollectible(state, {
+      id: 'metal-1',
+      kind: CollectibleKind.spaceMetal,
+      pos: { x: 1500, y: 1500 },
+      vel: { x: 0, y: 0 },
+      value: 1,
+      elapsed: 0,
+      lifetime: 12,
+    })
+
+    const before = state.spaceMetal
+    state = updateGameState(state, 1 / 60, {
+      clicks: [{ x: 1500, y: 1500 }],
+      selectedAbility: null,
+    })
+
+    expect(state.spaceMetal).toBe(before + 1)
+  })
+
+  it('clicked space metal is removed from state.collectibles in the returned state', () => {
+    let state = startGame(createInitialState())
+    state = startNextWave(state)
+    state = injectCollectible(state, {
+      id: 'metal-1',
+      kind: CollectibleKind.spaceMetal,
+      pos: { x: 1500, y: 1500 },
+      vel: { x: 0, y: 0 },
+      value: 1,
+      elapsed: 0,
+      lifetime: 12,
+    })
+
+    state = updateGameState(state, 1 / 60, {
+      clicks: [{ x: 1500, y: 1500 }],
+      selectedAbility: null,
+    })
+
+    expect(state.collectibles.find((c) => c.id === 'metal-1')).toBeUndefined()
+  })
+
+  it('state.spaceMetal persists across many frames after being incremented', () => {
+    let state = startGame(createInitialState())
+    state = startNextWave(state)
+    state = injectCollectible(state, {
+      id: 'metal-1',
+      kind: CollectibleKind.spaceMetal,
+      pos: { x: 1500, y: 1500 },
+      vel: { x: 0, y: 0 },
+      value: 1,
+      elapsed: 0,
+      lifetime: 12,
+    })
+
+    state = updateGameState(state, 1 / 60, {
+      clicks: [{ x: 1500, y: 1500 }],
+      selectedAbility: null,
+    })
+    expect(state.spaceMetal).toBe(1)
+
+    for (let i = 0; i < 60; i++) {
+      state = updateGameState(state, 1 / 60, { clicks: [], selectedAbility: null })
+    }
+    expect(state.spaceMetal).toBe(1)
+  })
+
+  it('power orb at the ship is consumed: removed from collectibles, power increases', () => {
+    let state = startGame(createInitialState())
+    state = startNextWave(state)
+    state = { ...state, power: 50 }
+    state = injectCollectible(state, {
+      id: 'orb-1',
+      kind: CollectibleKind.powerOrb,
+      pos: { x: state.ship.pos.x, y: state.ship.pos.y },
+      vel: { x: 0, y: 0 },
+      value: 10,
+      elapsed: 1,
+      lifetime: 12,
+    })
+
+    state = updateGameState(state, 1 / 60, { clicks: [], selectedAbility: null })
+
+    expect(state.collectibles.find((c) => c.id === 'orb-1')).toBeUndefined()
+    expect(state.power).toBeGreaterThan(50)
+  })
+
+  it('uncollected power orbs remain in state.collectibles across frames', () => {
+    let state = startGame(createInitialState())
+    state = startNextWave(state)
+    state = injectCollectible(state, {
+      id: 'far-orb',
+      kind: CollectibleKind.powerOrb,
+      pos: { x: 50, y: 50 },
+      vel: { x: 0, y: 0 },
+      value: 5,
+      elapsed: 0,
+      lifetime: 12,
+    })
+
+    state = updateGameState(state, 1 / 60, { clicks: [], selectedAbility: null })
+    expect(state.collectibles.find((c) => c.id === 'far-orb')).toBeDefined()
+  })
+
+  it('manually-set spaceMetal value is preserved through a tick (no clicks)', () => {
+    let state = startGame(createInitialState())
+    state = startNextWave(state)
+    state = { ...state, spaceMetal: 7 }
+
+    state = updateGameState(state, 1 / 60, { clicks: [], selectedAbility: null })
+    expect(state.spaceMetal).toBe(7)
+  })
+
+  it('scalar field invariant: spaceMetal only increases when a metal is collected', () => {
+    let state = startGame(createInitialState())
+    state = startNextWave(state)
+    state = { ...state, spaceMetal: 3 }
+
+    // 60 frames of idle play — no metal clicks, no metal in state
+    for (let i = 0; i < 60; i++) {
+      state = updateGameState(state, 1 / 60, { clicks: [], selectedAbility: null })
+    }
+
+    expect(state.spaceMetal).toBe(3)
+  })
+
+  it('array field invariant: collectibles spawned by kills appear in the returned state', () => {
+    let state = startGame(createInitialState())
+    state = startNextWave(state)
+    state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
+
+    // Place an enemy adjacent to the ship with 1 HP so the ship's auto-attack
+    // kills it within a frame or two.
+    if (state.enemies.length > 0) {
+      const target = state.enemies[0]
+      state = {
+        ...state,
+        enemies: [
+          {
+            ...target,
+            hp: 1,
+            pos: { x: state.ship.pos.x + 30, y: state.ship.pos.y },
+          },
+        ],
+      }
+
+      // Tick a few frames for the kill + collectible spawn to land.
+      for (let i = 0; i < 4; i++) {
+        state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
+      }
+
+      // Either the orb is still in state.collectibles, or it has already been
+      // collected and added to state.power. Either way, the spawn-from-kill
+      // path persisted into the returned state.
+      const collectedSomething = state.collectibles.length > 0 || state.power > 100
+      expect(collectedSomething).toBe(true)
+      expect(state.score).toBeGreaterThan(0)
+    }
   })
 })

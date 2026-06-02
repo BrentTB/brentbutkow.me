@@ -2,17 +2,30 @@ import { EnemyKind } from './types'
 import { rng } from './random'
 
 export function getWave(waveNumber: number): EnemyKind[] {
-  const kinds: EnemyKind[] = []
   const droneCount = 3 + waveNumber * 2
   const tankCount = Math.max(0, Math.floor((waveNumber - 1) / 2))
   const shooterCount = Math.max(0, Math.floor((waveNumber - 2) / 2))
+  const swarmPacks = Math.max(0, Math.floor((waveNumber - 3) / 3))
+  const bomberCount = Math.max(0, Math.floor((waveNumber - 4) / 3))
 
-  for (let i = 0; i < droneCount; i++) kinds.push(EnemyKind.drone)
-  for (let i = 0; i < tankCount; i++) kinds.push(EnemyKind.tank)
-  for (let i = 0; i < shooterCount; i++) kinds.push(EnemyKind.shooter)
+  // Non-swarm enemies are shuffled together as singles
+  const singles: EnemyKind[] = []
+  for (let i = 0; i < droneCount; i++) singles.push(EnemyKind.drone)
+  for (let i = 0; i < tankCount; i++) singles.push(EnemyKind.tank)
+  for (let i = 0; i < shooterCount; i++) singles.push(EnemyKind.shooter)
+  for (let i = 0; i < bomberCount; i++) singles.push(EnemyKind.bomber)
+  shuffle(singles)
 
-  shuffle(kinds)
-  return kinds
+  // Each swarm pack stays contiguous; injected at a random position in the queue
+  for (let p = 0; p < swarmPacks; p++) {
+    const packSize = rng.intRange(5, 8)
+    const pack: EnemyKind[] = []
+    for (let i = 0; i < packSize; i++) pack.push(EnemyKind.swarm)
+    const insertAt = rng.intRange(0, singles.length)
+    singles.splice(insertAt, 0, ...pack)
+  }
+
+  return singles
 }
 
 function shuffle<T>(arr: T[]): void {

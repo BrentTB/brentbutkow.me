@@ -119,11 +119,49 @@ export const ENEMY_PROJECTILE_SPRITE: SpriteData = [
   [_, R, _],
 ]
 
+const M = '#cc44aa' // magenta
+const m = '#993377' // dark magenta
+
+export const SWARM_SPRITE: SpriteData = [
+  [_, _, M, M, _, _, _, _],
+  [_, M, m, m, M, _, _, _],
+  [M, m, R, R, m, M, _, _],
+  [M, m, R, m, m, M, M, _],
+  [_, M, m, m, m, R, M, _],
+  [_, _, M, m, R, M, _, _],
+  [_, _, _, M, M, _, _, _],
+  [_, _, _, _, _, _, _, _],
+]
+
+const O = '#dd6622' // dark orange
+const o = '#aa4411' // burnt orange
+
+export const BOMBER_SPRITE: SpriteData = [
+  [_, _, _, _, _, F, F, _, _, F, F, _, _, _, _, _],
+  [_, _, _, _, F, O, O, F, F, O, O, F, _, _, _, _],
+  [_, _, _, F, O, o, o, O, O, o, o, O, F, _, _, _],
+  [_, _, F, O, o, o, o, o, o, o, o, o, O, F, _, _],
+  [_, F, O, o, o, R, o, o, o, o, R, o, o, O, F, _],
+  [F, O, o, o, R, r, R, o, o, R, r, R, o, o, O, F],
+  [F, O, o, o, o, R, o, o, o, o, R, o, o, o, O, F],
+  [F, O, o, o, o, o, o, o, o, o, o, o, o, o, O, F],
+  [F, O, o, o, o, o, o, o, o, o, o, o, o, o, O, F],
+  [F, O, o, o, o, R, o, o, o, o, R, o, o, o, O, F],
+  [F, O, o, o, R, r, R, o, o, R, r, R, o, o, O, F],
+  [_, F, O, o, o, R, o, o, o, o, R, o, o, O, F, _],
+  [_, _, F, O, o, o, o, o, o, o, o, o, O, F, _, _],
+  [_, _, _, F, O, o, o, O, O, o, o, O, F, _, _, _],
+  [_, _, _, _, F, O, O, F, F, O, O, F, _, _, _, _],
+  [_, _, _, _, _, F, F, _, _, F, F, _, _, _, _, _],
+]
+
 export const SpriteKey = {
   ship: 'ship',
   drone: 'drone',
   tank: 'tank',
   shooter: 'shooter',
+  swarm: 'swarm',
+  bomber: 'bomber',
   projectile: 'projectile',
   enemyProjectile: 'enemyProjectile',
   meteor: 'meteor',
@@ -136,6 +174,8 @@ export const SPRITE_MAP: Record<SpriteKey, SpriteData> = {
   drone: DRONE_SPRITE,
   tank: TANK_SPRITE,
   shooter: SHOOTER_SPRITE,
+  swarm: SWARM_SPRITE,
+  bomber: BOMBER_SPRITE,
   projectile: PROJECTILE_SPRITE,
   enemyProjectile: ENEMY_PROJECTILE_SPRITE,
   meteor: METEOR_SPRITE,
