@@ -9,8 +9,22 @@ import {
 } from './engine/game-loop'
 import { AbilityKind, GamePhase } from './engine/types'
 import type { GameState, PlayerInput, Vec2, UpgradeId, PlayerUpgrades } from './engine/types'
+import {
+  createGameTime,
+  tickGameTime,
+  pauseGameTime,
+  resumeGameTime,
+  setGameSpeed,
+  type GameTime,
+} from './engine/time'
 import { buildSpriteCache, type SpriteCache } from './renderer/sprite-cache'
-import { createCamera, updateCamera, screenToWorld, type Camera } from './renderer/camera'
+import {
+  createCamera,
+  updateCamera,
+  centerCameraOn,
+  screenToWorld,
+  type Camera,
+} from './renderer/camera'
 import { generateStarfield, type Star } from './renderer/starfield'
 import { renderFrame } from './renderer/renderer'
 import { WORLD_SIZE } from './data'
@@ -27,6 +41,7 @@ export type GameUIState = {
   power: number
   maxPower: number
   currency: number
+  spaceMetal: number
   abilities: GameState['abilities']
   upgrades: PlayerUpgrades
   selectedAbility: GameState['abilities'][number]['kind']
@@ -59,6 +74,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     power: 80,
     maxPower: 100,
     currency: 0,
+    spaceMetal: 0,
     abilities: [],
     upgrades: {} as PlayerUpgrades,
     selectedAbility: AbilityKind.meteorite,
@@ -71,7 +87,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
   const spritesRef = useRef<SpriteCache | null>(null)
   const starsRef = useRef<Star[]>([])
   const rafRef = useRef<number>(0)
-  const lastTimeRef = useRef<number>(0)
+  const gameTimeRef = useRef<GameTime>(createGameTime())
   const inputRef = useRef<PlayerInput>({ clicks: [], selectedAbility: AbilityKind.meteorite })
   const selectedAbilityRef = useRef<GameState['abilities'][number]['kind']>(AbilityKind.meteorite)
 
@@ -88,6 +104,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       power: state.power,
       maxPower: state.maxPower,
       currency: state.currency,
+      spaceMetal: state.spaceMetal,
       abilities: state.abilities,
       upgrades: state.upgrades,
       selectedAbility: selectedAbilityRef.current,
@@ -100,6 +117,11 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     gameStateRef.current = startGame(gameStateRef.current)
     gameStateRef.current = startNextWave(gameStateRef.current)
     selectedAbilityRef.current = AbilityKind.meteorite
+    cameraRef.current = centerCameraOn(
+      cameraRef.current,
+      gameStateRef.current.ship.pos,
+      gameStateRef.current.worldSize
+    )
     syncUI(gameStateRef.current)
   }, [syncUI])
 
@@ -136,6 +158,24 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     syncUI(gameStateRef.current)
   }, [syncUI])
 
+  const handlePause = useCallback(() => {
+    if (gameStateRef.current.phase !== GamePhase.playing) return
+    gameStateRef.current = { ...gameStateRef.current, phase: GamePhase.paused }
+    gameTimeRef.current = pauseGameTime(gameTimeRef.current)
+    syncUI(gameStateRef.current)
+  }, [syncUI])
+
+  const handleResume = useCallback(() => {
+    if (gameStateRef.current.phase !== GamePhase.paused) return
+    gameStateRef.current = { ...gameStateRef.current, phase: GamePhase.playing }
+    gameTimeRef.current = resumeGameTime(gameTimeRef.current, performance.now())
+    syncUI(gameStateRef.current)
+  }, [syncUI])
+
+  const handleSetSpeed = useCallback((speed: number) => {
+    gameTimeRef.current = setGameSpeed(gameTimeRef.current, speed)
+  }, [])
+
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -157,6 +197,14 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
         width: rect.width,
         height: rect.height,
       }
+      // Re-center on the ship after a viewport change so we never need to
+      // chase it across the world (e.g. on initial mount where the camera
+      // starts at (0,0) but the ship is at world center).
+      cameraRef.current = centerCameraOn(
+        cameraRef.current,
+        gameStateRef.current.ship.pos,
+        gameStateRef.current.worldSize
+      )
     }
     resize()
 
@@ -181,6 +229,13 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Use P (not Esc) for pause: in fullscreen, browsers intercept Esc to exit
+      // fullscreen so a pause keybind there would never fire.
+      if (e.key === 'p' || e.key === 'P') {
+        if (gameStateRef.current.phase === GamePhase.playing) handlePause()
+        else if (gameStateRef.current.phase === GamePhase.paused) handleResume()
+        return
+      }
       if (gameStateRef.current.phase !== GamePhase.playing) return
       const kind = abilityKindForHotkey(gameStateRef.current.abilities, e.key)
       if (kind) {
@@ -193,9 +248,9 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     window.addEventListener('keydown', handleKeyDown)
 
     const loop = (time: number) => {
-      if (lastTimeRef.current === 0) lastTimeRef.current = time
-      const dt = Math.min((time - lastTimeRef.current) / 1000, 0.1)
-      lastTimeRef.current = time
+      const tick = tickGameTime(gameTimeRef.current, time)
+      gameTimeRef.current = tick.time
+      const dt = tick.dt
 
       const input: PlayerInput = {
         clicks: inputRef.current.clicks,
@@ -244,7 +299,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       window.removeEventListener('keydown', handleKeyDown)
       resizeObserver.disconnect()
     }
-  }, [canvasRef, syncUI])
+  }, [canvasRef, syncUI, handlePause, handleResume])
 
   return {
     uiState,
@@ -254,5 +309,8 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     setSelectedAbility,
     handlePurchaseUpgrade,
     handleFinishUpgrades,
+    handlePause,
+    handleResume,
+    handleSetSpeed,
   }
 }

@@ -32,6 +32,16 @@ npm test              # vitest run (unit tests; npm run test:watch to watch)
   change a hook, add/update its colocated `*.test.ts` in the same change. (Hooks that touch the DOM or
   context — `useFunMode`, `useDocumentTitle` — use `@testing-library/react`'s `renderHook` with the
   appropriate provider/router wrapper; see their tests for the pattern.)
+- **Every bug fix must include a regression test in the same change.** This is a hard rule. The test
+  must reproduce the bug (i.e. fail without the fix, pass with it) and be named/described so a future
+  reader knows what it's guarding. Before committing a fix, temporarily revert the fix and re-run
+  `npm test` to confirm the new test actually fails — a regression test that passes against the
+  broken state is no regression test at all. The point: the test suite should grow strictly stronger
+  over time, so the same class of bug can't quietly come back. See the
+  `updateGameState — state field round-trip persistence` block in
+  [game-loop.test.ts](src/pages/fun-stuff/subpages/NullSpace/engine/game-loop.test.ts) for an example
+  of regression tests that guard a whole bug class (locally-mutated state lost on return via stale
+  `...state` spread — TypeScript can't catch it, so the tests have to).
 
 `npm run check` then `npm run format` run automatically via the Husky `pre-commit` hook
 ([.husky/pre-commit](.husky/pre-commit)). Keep both green — don't bypass the hook.
@@ -175,6 +185,18 @@ This repo is a showcase — the code itself should look as polished as the UI.
   (`export function Hero() {}`, `export const routePaths = …`). Existing default exports are migrated
   opportunistically as files are touched, not in a big-bang pass — so don't churn unrelated files
   just to convert them.
+- **Extract reusable behaviour into utility files; don't bury it inline.** When adding new behaviour,
+  ask whether the same primitive could plausibly be needed by another feature later. If yes, put it
+  in a dedicated helper file with a generic signature, and have the caller compose it — rather than
+  hard-coding the logic into the one place that needs it today. The canonical example in this repo
+  is [homing.ts](src/pages/fun-stuff/subpages/NullSpace/engine/homing.ts): a tiny `homeTowardTarget`
+  primitive that consumes a position, target, strength, and dt. It's used by both power orbs and
+  clicked space metals in [collectibles.ts](src/pages/fun-stuff/subpages/NullSpace/engine/collectibles.ts),
+  and is ready for any future "thing that moves toward another thing" — homing missiles, ally drones
+  returning to the ship, magnetic pickups. Don't over-abstract for hypothetical needs — but when the
+  second use case is *obvious from the task at hand*, build the helper at that boundary now, not
+  later. Trade-off: avoid premature abstraction for a single use; if there's only one caller and no
+  clear future caller, keep it inline and extract when the second caller arrives.
 - Match the surrounding style: 2-space indent, single quotes, no semicolons, ~100 col width
   (enforced by Prettier — see [.prettierrc](.prettierrc)). Let Prettier format; don't fight it.
 

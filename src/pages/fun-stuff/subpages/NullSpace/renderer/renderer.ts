@@ -1,5 +1,13 @@
-import { EnemyKind, ProjectileOwner } from '../engine/types'
-import type { BlackHole, GameState, MeteorStrike, Particle } from '../engine/types'
+import { CollectibleKind, EffectKind, EnemyKind, ProjectileOwner } from '../engine/types'
+import type {
+  ActiveEffect,
+  BlackHoleEffect,
+  Collectible,
+  GameState,
+  MeteorStrikeEffect,
+  Particle,
+} from '../engine/types'
+import { POWER_ORB, SPACE_METAL } from '../data'
 import type { Camera } from './camera'
 import { worldToScreen } from './camera'
 import type { SpriteCache } from './sprite-cache'
@@ -12,6 +20,8 @@ const ENEMY_SPRITE: Record<EnemyKind, SpriteKey> = {
   [EnemyKind.drone]: SpriteKey.drone,
   [EnemyKind.tank]: SpriteKey.tank,
   [EnemyKind.shooter]: SpriteKey.shooter,
+  [EnemyKind.swarm]: SpriteKey.swarm,
+  [EnemyKind.bomber]: SpriteKey.bomber,
 }
 
 export function renderFrame(
@@ -29,13 +39,13 @@ export function renderFrame(
   ctx.fillRect(0, 0, camera.width, camera.height)
 
   renderStarfield(ctx, stars, camera)
-  renderBlackHoles(ctx, state.blackHoles, camera)
-  renderMeteorWarnings(ctx, state.meteorStrikes, camera)
+  renderActiveEffectsBack(ctx, state.activeEffects, camera)
+  renderCollectibles(ctx, state.collectibles, camera)
   renderParticles(ctx, state.particles, camera)
   renderEnemies(ctx, state, camera, sprites)
   renderProjectiles(ctx, state, camera, sprites)
   renderShip(ctx, state, camera, sprites)
-  renderMeteorProjectiles(ctx, state.meteorStrikes, camera, sprites)
+  renderActiveEffectsFront(ctx, state.activeEffects, camera, sprites)
   renderShipHealthBar(ctx, state, camera)
 }
 
@@ -126,59 +136,54 @@ function renderProjectiles(
   }
 }
 
-function renderMeteorWarnings(
+function renderMeteorWarning(
   ctx: CanvasRenderingContext2D,
-  strikes: MeteorStrike[],
+  strike: MeteorStrikeEffect,
   camera: Camera
 ): void {
-  for (const strike of strikes) {
-    if (strike.elapsed >= strike.delay) continue
-    const screen = worldToScreen(strike.targetPos, camera)
-    const progress = strike.elapsed / strike.delay
+  if (strike.elapsed >= strike.delay) return
+  const screen = worldToScreen(strike.pos, camera)
+  const progress = strike.elapsed / strike.delay
 
-    ctx.save()
-    ctx.globalAlpha = 0.3 + progress * 0.4
+  ctx.save()
+  ctx.globalAlpha = 0.3 + progress * 0.4
 
-    // Warning circle
-    ctx.strokeStyle = '#ff6633'
-    ctx.lineWidth = 2
-    ctx.beginPath()
-    ctx.arc(screen.x, screen.y, strike.aoeRadius * (1 - progress * 0.3), 0, Math.PI * 2)
-    ctx.stroke()
+  ctx.strokeStyle = '#ff6633'
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.arc(screen.x, screen.y, strike.aoeRadius * (1 - progress * 0.3), 0, Math.PI * 2)
+  ctx.stroke()
 
-    // Crosshair
-    const crossSize = 12
-    ctx.beginPath()
-    ctx.moveTo(screen.x - crossSize, screen.y)
-    ctx.lineTo(screen.x + crossSize, screen.y)
-    ctx.moveTo(screen.x, screen.y - crossSize)
-    ctx.lineTo(screen.x, screen.y + crossSize)
-    ctx.stroke()
+  const crossSize = 12
+  ctx.beginPath()
+  ctx.moveTo(screen.x - crossSize, screen.y)
+  ctx.lineTo(screen.x + crossSize, screen.y)
+  ctx.moveTo(screen.x, screen.y - crossSize)
+  ctx.lineTo(screen.x, screen.y + crossSize)
+  ctx.stroke()
 
-    ctx.restore()
-  }
+  ctx.restore()
 }
 
-function renderMeteorProjectiles(
+function renderMeteorProjectile(
   ctx: CanvasRenderingContext2D,
-  strikes: MeteorStrike[],
+  strike: MeteorStrikeEffect,
   camera: Camera,
   sprites: SpriteCache
 ): void {
-  for (const strike of strikes) {
-    if (strike.elapsed >= strike.delay) continue
-    const screen = worldToScreen(strike.targetPos, camera)
-    const progress = strike.elapsed / strike.delay
+  if (strike.elapsed >= strike.delay) return
+  const screen = worldToScreen(strike.pos, camera)
+  const progress = strike.elapsed / strike.delay
 
-    const spriteKey = strike.kind === 'meteorite' ? SpriteKey.meteorite : SpriteKey.meteor
-    const size = getSpriteSize(spriteKey)
-    const meteorY = screen.y - 400 * (1 - progress)
+  const spriteKey =
+    strike.kind === EffectKind.meteoriteStrike ? SpriteKey.meteorite : SpriteKey.meteor
+  const size = getSpriteSize(spriteKey)
+  const meteorY = screen.y - 400 * (1 - progress)
 
-    ctx.save()
-    ctx.globalAlpha = 0.5 + progress * 0.5
-    ctx.drawImage(sprites[spriteKey], screen.x - size.w / 2, meteorY - size.h / 2)
-    ctx.restore()
-  }
+  ctx.save()
+  ctx.globalAlpha = 0.5 + progress * 0.5
+  ctx.drawImage(sprites[spriteKey], screen.x - size.w / 2, meteorY - size.h / 2)
+  ctx.restore()
 }
 
 function renderParticles(
@@ -207,6 +212,72 @@ function renderParticles(
     )
   }
   ctx.globalAlpha = 1
+}
+
+function renderCollectibles(
+  ctx: CanvasRenderingContext2D,
+  collectibles: Collectible[],
+  camera: Camera
+): void {
+  for (const c of collectibles) {
+    const screen = worldToScreen(c.pos, camera)
+    if (
+      screen.x < -20 ||
+      screen.x > camera.width + 20 ||
+      screen.y < -20 ||
+      screen.y > camera.height + 20
+    )
+      continue
+
+    if (c.kind === CollectibleKind.powerOrb) {
+      const alpha = Math.min(1, 0.6 + Math.sin(c.elapsed * 8) * 0.2)
+      ctx.save()
+      ctx.globalAlpha = alpha
+      const gradient = ctx.createRadialGradient(
+        screen.x,
+        screen.y,
+        0,
+        screen.x,
+        screen.y,
+        POWER_ORB.radius * 2
+      )
+      gradient.addColorStop(0, 'rgba(100, 180, 255, 0.9)')
+      gradient.addColorStop(0.5, 'rgba(60, 120, 220, 0.4)')
+      gradient.addColorStop(1, 'rgba(40, 80, 180, 0)')
+      ctx.fillStyle = gradient
+      ctx.beginPath()
+      ctx.arc(screen.x, screen.y, POWER_ORB.radius * 2, 0, Math.PI * 2)
+      ctx.fill()
+
+      ctx.fillStyle = '#aaddff'
+      ctx.beginPath()
+      ctx.arc(screen.x, screen.y, POWER_ORB.radius * 0.6, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.restore()
+    } else {
+      const fadeAlpha = c.elapsed > c.lifetime - 2 ? Math.max(0, (c.lifetime - c.elapsed) / 2) : 1
+      const pulse = 0.7 + Math.sin(c.elapsed * 4) * 0.3
+      ctx.save()
+      ctx.globalAlpha = fadeAlpha * pulse
+
+      ctx.fillStyle = '#e9b872'
+      ctx.strokeStyle = '#f3c98c'
+      ctx.lineWidth = 1.5
+      ctx.beginPath()
+      for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI * 2 * i) / 6 - Math.PI / 6
+        const hx = screen.x + Math.cos(angle) * SPACE_METAL.radius
+        const hy = screen.y + Math.sin(angle) * SPACE_METAL.radius
+        if (i === 0) ctx.moveTo(hx, hy)
+        else ctx.lineTo(hx, hy)
+      }
+      ctx.closePath()
+      ctx.fill()
+      ctx.stroke()
+
+      ctx.restore()
+    }
+  }
 }
 
 function renderShipHealthBar(
@@ -254,42 +325,76 @@ function getBlackHoleGradient(ctx: CanvasRenderingContext2D, radius: number): Ca
   return gradient
 }
 
-function renderBlackHoles(ctx: CanvasRenderingContext2D, holes: BlackHole[], camera: Camera): void {
-  for (const hole of holes) {
-    const screen = worldToScreen(hole.pos, camera)
-    const fadeIn = Math.min(3, hole.duration * 0.3)
-    const fadeOut = Math.min(8, hole.duration * 0.6)
-    const fadeOutStart = hole.duration - fadeOut
-    let alpha: number
-    if (hole.elapsed < fadeIn) {
-      alpha = hole.elapsed / fadeIn
-    } else if (hole.elapsed > fadeOutStart) {
-      alpha = Math.max(0, (hole.duration - hole.elapsed) / fadeOut)
-    } else {
-      alpha = 1
-    }
+function renderBlackHole(
+  ctx: CanvasRenderingContext2D,
+  hole: BlackHoleEffect,
+  camera: Camera
+): void {
+  const screen = worldToScreen(hole.pos, camera)
+  const fadeIn = Math.min(3, hole.duration * 0.3)
+  const fadeOut = Math.min(8, hole.duration * 0.6)
+  const fadeOutStart = hole.duration - fadeOut
+  let alpha: number
+  if (hole.elapsed < fadeIn) {
+    alpha = hole.elapsed / fadeIn
+  } else if (hole.elapsed > fadeOutStart) {
+    alpha = Math.max(0, (hole.duration - hole.elapsed) / fadeOut)
+  } else {
+    alpha = 1
+  }
 
-    ctx.save()
-    ctx.globalAlpha = alpha
-    ctx.translate(screen.x, screen.y)
+  ctx.save()
+  ctx.globalAlpha = alpha
+  ctx.translate(screen.x, screen.y)
 
-    // Dark core
-    ctx.fillStyle = getBlackHoleGradient(ctx, hole.radius)
+  ctx.fillStyle = getBlackHoleGradient(ctx, hole.radius)
+  ctx.beginPath()
+  ctx.arc(0, 0, hole.radius, 0, Math.PI * 2)
+  ctx.fill()
+
+  ctx.strokeStyle = 'rgba(130, 80, 200, 0.4)'
+  ctx.lineWidth = 1.5
+  for (let ring = 0; ring < 3; ring++) {
+    const ringRadius = hole.radius * (0.3 + ring * 0.25)
+    const rotAngle = hole.elapsed * (2 + ring) + ring * 2
     ctx.beginPath()
-    ctx.arc(0, 0, hole.radius, 0, Math.PI * 2)
-    ctx.fill()
+    ctx.arc(0, 0, ringRadius, rotAngle, rotAngle + Math.PI * 1.2)
+    ctx.stroke()
+  }
 
-    // Swirl rings
-    ctx.strokeStyle = 'rgba(130, 80, 200, 0.4)'
-    ctx.lineWidth = 1.5
-    for (let ring = 0; ring < 3; ring++) {
-      const ringRadius = hole.radius * (0.3 + ring * 0.25)
-      const rotAngle = hole.elapsed * (2 + ring) + ring * 2
-      ctx.beginPath()
-      ctx.arc(0, 0, ringRadius, rotAngle, rotAngle + Math.PI * 1.2)
-      ctx.stroke()
+  ctx.restore()
+}
+
+function renderActiveEffectsBack(
+  ctx: CanvasRenderingContext2D,
+  effects: ActiveEffect[],
+  camera: Camera
+): void {
+  for (const effect of effects) {
+    switch (effect.kind) {
+      case EffectKind.blackHole:
+        renderBlackHole(ctx, effect, camera)
+        break
+      case EffectKind.meteoriteStrike:
+      case EffectKind.meteorStrike:
+        renderMeteorWarning(ctx, effect, camera)
+        break
     }
+  }
+}
 
-    ctx.restore()
+function renderActiveEffectsFront(
+  ctx: CanvasRenderingContext2D,
+  effects: ActiveEffect[],
+  camera: Camera,
+  sprites: SpriteCache
+): void {
+  for (const effect of effects) {
+    switch (effect.kind) {
+      case EffectKind.meteoriteStrike:
+      case EffectKind.meteorStrike:
+        renderMeteorProjectile(ctx, effect, camera, sprites)
+        break
+    }
   }
 }

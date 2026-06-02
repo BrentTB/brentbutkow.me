@@ -73,20 +73,68 @@ export const ENEMY_STATS = {
     attackRange: 350,
     projectileDamage: 8,
   },
+  swarm: {
+    hp: 8,
+    speed: 150,
+    damage: 3,
+    radius: 6,
+    scoreValue: 5,
+    powerReward: 2,
+  },
+  bomber: {
+    hp: 50,
+    speed: 35,
+    damage: 5,
+    radius: 14,
+    scoreValue: 25,
+    powerReward: 12,
+    explosionDamage: 30,
+    explosionRadius: 80,
+  },
 } as const
 
 export const CURRENCY_DROPS: Record<EnemyKind, { min: number; max: number }> = {
   drone: { min: 0, max: 2 },
   tank: { min: 1, max: 5 },
   shooter: { min: 1, max: 3 },
+  swarm: { min: 0, max: 1 },
+  bomber: { min: 1, max: 4 },
 }
 
 export const CURRENCY_NAME = 'Stardust'
+
+export const POWER_ORB = {
+  radius: 6,
+  floatDuration: 0.5,
+  magnetStrength: 350,
+  drag: 0.94,
+  // Safety-net expiry only: orbs auto-home at floatDuration and homing
+  // collectibles never time out, so in practice an orb is always collected
+  // well before this. It exists so an orb can't linger forever if homing is
+  // ever gated off.
+  lifetime: 12,
+} as const
+
+export const SPACE_METAL = {
+  radius: 10,
+  lifetime: 12,
+  collectionRadius: 30,
+  dropChance: {
+    drone: 0.03,
+    tank: 0.12,
+    shooter: 0.06,
+    swarm: 0.01,
+    bomber: 0.1,
+  } as Record<EnemyKind, number>,
+} as const
 
 export const WAVES_PER_LEVEL = 3
 
 export const SPAWN_DELAY = { min: 0.1, max: 1.0 } as const
 export const SPAWN_DISTANCE = { min: 650, max: 1050 } as const
+
+// Half-width of the box swarm members scatter into around their shared spawn center.
+export const SWARM_SPAWN_SPREAD = 60
 
 export const PROJECTILE_SPEED = 400
 export const PROJECTILE_LIFETIME = 3
@@ -98,7 +146,7 @@ export const PARTICLE_DEFAULTS = {
   trailInterval: 0.05,
 }
 
-export const GAME_VERSION = '0.3.0'
+export const GAME_VERSION = '0.5.1'
 
 export type ChangelogEntry = {
   version: string
@@ -112,6 +160,57 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.5.1',
+    date: '2026-06-02',
+    changes: {
+      features: [
+        'Space metal now flies into the ship when you click it (same magnetic arc as power orbs) instead of teleporting away. Click semantics unchanged — you still have to click to claim it; only the visual flight is new.',
+      ],
+      fixes: [
+        'Wave delay no longer freezes in-flight meteors / homing power orbs — only enemy spawning is gated by the delay',
+        'Game now opens with the camera already centered on your ship — no more brief "rush across space" on first load or after restarting.',
+        'Bombers now explode when they reach your ship — the on-death AoE fires on every death, not just when you shoot them down. Letting a bomber ram you now hurts as intended.',
+        'Swarm enemies now weave in sync with the game-speed setting (and freeze cleanly when paused) — their side-to-side motion is driven by game time instead of the wall clock.',
+        'Game-speed buttons in Settings now announce their selected state to screen readers.',
+      ],
+    },
+  },
+  {
+    version: '0.5.0',
+    date: '2026-06-02',
+    changes: {
+      features: [
+        'Pause menu — press P or click the pause button. Resumes cleanly with no time-skip',
+        'Settings menu — game speed slider (0.5×/1×/2×) accessible from pause',
+        'Fullscreen toggle button — uses the Fullscreen API to fill the screen',
+        'Speed indicator in the HUD when game speed is not 1×',
+      ],
+      fixes: [
+        'Upgrade menu now stays a fixed size across tabs — no more heading jumping or layout shifts when switching between Weapons/Ship/Powers',
+        'Tank enemies pursue the ship steadily — velocity is now smoothed instead of flipping each frame as the ship reverses',
+        'Shooter enemy sprite redesigned — cleaner diamond silhouette with a glowing eye, easier to tell apart from other enemies at a glance',
+      ],
+    },
+  },
+  {
+    version: '0.4.0',
+    date: '2026-06-02',
+    changes: {
+      features: [
+        'New enemy: Swarm — tiny, fast, zigzag movement, spawn in packs of 5-8',
+        'New enemy: Bomber — slow, bulky, explodes on death dealing AoE damage to the ship',
+        'Power orbs — enemies now drop collectible blue orbs that magnetically arc toward your ship to restore power',
+        'Space metal — rare gold hexagonal drops that must be clicked to collect (premium currency)',
+        'Space metal counter in the HUD',
+      ],
+      fixes: [
+        'Unified effect system replaces per-ability arrays for cleaner architecture',
+        'Data-driven movement behaviors (chase, keep-range, zigzag) replace hardcoded enemy if/else',
+        'Ability creation uses a factory map instead of branching logic',
+      ],
+    },
+  },
   {
     version: '0.3.0',
     date: '2026-06-02',
