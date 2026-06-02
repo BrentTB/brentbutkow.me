@@ -131,16 +131,41 @@ function tickBlackHole(effect: ActiveEffect, ctx: EffectTickContext): EffectTick
   }
 }
 
+// Radius around the rocket sprite that counts as "contact" with an enemy
+// during flight. Decoupled from aoeRadius so the explosion is bigger than
+// the rocket-as-projectile collision check.
+const ROCKET_HIT_RADIUS = 10
+
 function tickRocket(effect: ActiveEffect, ctx: EffectTickContext): EffectTickResult {
   const rocket = effect as RocketEffect
 
-  // Detonate when the elapsed flight time exceeds the planned duration.
-  if (rocket.elapsed >= rocket.duration) {
-    // Snap to the target position so the blast lands where the player aimed,
-    // regardless of how large the final dt was.
+  // Fly forward first, then test for contact / arrival from the NEW position.
+  const newPos = {
+    x: rocket.pos.x + rocket.vel.x * ctx.dt,
+    y: rocket.pos.y + rocket.vel.y * ctx.dt,
+  }
+
+  let hitContact = false
+  for (const enemy of ctx.enemies) {
+    const dx = newPos.x - enemy.pos.x
+    const dy = newPos.y - enemy.pos.y
+    const r = ROCKET_HIT_RADIUS + enemy.radius
+    if (dx * dx + dy * dy <= r * r) {
+      hitContact = true
+      break
+    }
+  }
+
+  // Arrival detection: elapsed time has reached the planned flight time.
+  const reachedTarget = rocket.elapsed >= rocket.duration
+
+  if (hitContact || reachedTarget) {
+    // Detonate at the rocket's actual current position so the visual rocket
+    // and the AoE always line up.
+    const detonatePos = hitContact ? newPos : rocket.targetPos
     const { enemies, scoreGained, killedEnemies } = damageEnemiesInRadiusFlat(
       ctx.enemies,
-      rocket.targetPos,
+      detonatePos,
       rocket.aoeRadius,
       rocket.damage
     )
@@ -148,17 +173,13 @@ function tickRocket(effect: ActiveEffect, ctx: EffectTickContext): EffectTickRes
       effect: null,
       enemies,
       projectiles: ctx.projectiles,
-      particles: spawnExplosionParticles(rocket.targetPos, 18, '#ff7733'),
+      particles: spawnExplosionParticles(detonatePos, 18, '#ff7733'),
       scoreGained,
       killedEnemies,
     }
   }
 
-  // Fly forward + emit trail particles at a steady interval.
-  const newPos = {
-    x: rocket.pos.x + rocket.vel.x * ctx.dt,
-    y: rocket.pos.y + rocket.vel.y * ctx.dt,
-  }
+  // Emit a trail particle at a steady interval.
   const trailParticles: Particle[] = []
   const trailTimer = rocket.trailTimer - ctx.dt
   if (trailTimer <= 0) {
@@ -194,17 +215,26 @@ function tickShield(effect: ActiveEffect, ctx: EffectTickContext): EffectTickRes
     return { ...passThrough(null, ctx) }
   }
 
-  // First tick: snapshot which enemies were inside when the shield spawned.
-  // They keep moving freely; the shield only blocks newcomers.
+  // Grandfathered list = enemies that have been inside the shield CONTINUOUSLY
+  // since it spawned. The shield only blocks NEW entries — anyone caught
+  // inside at spawn time gets to wander out freely, BUT once they leave they
+  // can't come back. Recompute the list every tick to enforce that.
   const radiusSq = shield.radius * shield.radius
-  let grandfathered = shield.grandfatheredEnemyIds
-  if (grandfathered === null) {
-    grandfathered = []
-    for (const enemy of ctx.enemies) {
-      const dx = enemy.pos.x - shield.pos.x
-      const dy = enemy.pos.y - shield.pos.y
-      if (dx * dx + dy * dy < radiusSq) grandfathered.push(enemy.id)
-    }
+  const insideThisTick = new Set<string>()
+  for (const enemy of ctx.enemies) {
+    const dx = enemy.pos.x - shield.pos.x
+    const dy = enemy.pos.y - shield.pos.y
+    if (dx * dx + dy * dy < radiusSq) insideThisTick.add(enemy.id)
+  }
+  let grandfathered: string[]
+  if (shield.grandfatheredEnemyIds === null) {
+    // First tick — everyone currently inside gets grandfathered.
+    grandfathered = [...insideThisTick]
+  } else {
+    // Subsequent ticks — keep only the IDs that are STILL inside. An enemy
+    // that has moved outside drops off the list and is treated as a newcomer
+    // on any future re-entry attempt.
+    grandfathered = shield.grandfatheredEnemyIds.filter((id) => insideThisTick.has(id))
   }
 
   // Absorb enemy projectiles inside the shield; leave ship projectiles alone.

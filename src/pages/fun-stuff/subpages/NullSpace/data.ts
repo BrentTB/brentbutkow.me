@@ -182,8 +182,6 @@ export const PARTICLE_DEFAULTS = {
   trailInterval: 0.05,
 }
 
-export const GAME_VERSION = '0.6.1'
-
 export type ChangelogEntry = {
   version: string
   date: string
@@ -205,6 +203,13 @@ export const CHANGELOG: ChangelogEntry[] = [
         'Mobile shows more world area (zoomed-out) so enemies approaching from the sides are visible',
         'Mobile-friendly polish: bigger pause / fullscreen tap targets (44×44) and a much taller game area on phones',
         'Fullscreen now works on iPhone Safari via a CSS-based fallback (Fullscreen API is unsupported there)',
+        'Shield now reflects enemy velocity on contact — enemies bounce off the dome instead of just being snapped back to the edge',
+        'Shield blocks bomber explosions if the ship is inside the dome and the bomber explodes outside it',
+        'Rocket now detonates when it physically touches an enemy — no more flying past an enemy and still damaging it from empty space',
+        'Shield grandfathering is now per-tick — an enemy that was inside when the shield dropped can still walk out, but the moment it leaves it loses its grandfathered status and gets bounced back if it tries to re-enter',
+        'HUD elements (level bar, score, pause / fullscreen buttons, ability hotbar) now scale with the gameplay area — going fullscreen no longer leaves the UI looking tiny',
+        'Pause / settings / upgrade / game-over screens scale with the HUD too',
+        'Game starts a bit more zoomed-out by default — more of the surrounding space is visible at a glance',
       ],
       fixes: [
         'Going fullscreen no longer reveals more of the game world — gameplay difficulty stays consistent across window sizes',
@@ -352,3 +357,5 @@ export const CHANGELOG: ChangelogEntry[] = [
     },
   },
 ]
+
+export const GAME_VERSION = CHANGELOG[0].version

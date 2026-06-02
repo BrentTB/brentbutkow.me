@@ -22,6 +22,7 @@ import {
   createCamera,
   updateCamera,
   centerCameraOn,
+  computeZoom,
   screenToWorld,
   type Camera,
 } from './renderer/camera'
@@ -196,6 +197,10 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
         ...cameraRef.current,
         width: rect.width,
         height: rect.height,
+        // Recompute zoom on every resize so the visible world area stays
+        // consistent across viewport size changes (mobile rotate,
+        // fullscreen toggle, etc.).
+        zoom: computeZoom(rect.width, rect.height),
       }
       // Re-center on the ship after a viewport change so we never need to
       // chase it across the world (e.g. on initial mount where the camera

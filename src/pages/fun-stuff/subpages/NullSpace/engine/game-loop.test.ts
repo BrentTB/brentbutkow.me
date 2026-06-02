@@ -731,3 +731,83 @@ describe('updateGameState — swarm weave is driven by game time, not wall-clock
     expect(next.enemies.find((e) => e.id === swarm.id)!.age).toBeCloseTo(0.05, 5)
   })
 })
+
+// A bomber's death explosion damages the ship if it's within range. The
+// shield should eat the blast ONLY when the ship is INSIDE the dome AND the
+// bomber is OUTSIDE the dome — every other combination still hurts.
+describe('updateGameState — shield blocks bomber explosions', () => {
+  function shieldEffect(centerOn: { x: number; y: number }, radius = 120) {
+    return {
+      id: 'test-shield',
+      kind: EffectKind.shield,
+      pos: { x: centerOn.x, y: centerOn.y },
+      elapsed: 0,
+      duration: 6,
+      radius,
+      grandfatheredEnemyIds: [] as string[],
+    }
+  }
+
+  it('BLOCKS when ship is inside and bomber is outside', () => {
+    let state = startGame(createInitialState())
+    state = startNextWave(state)
+    const bomber = {
+      ...createEnemy(EnemyKind.bomber, { x: state.ship.pos.x + 30, y: state.ship.pos.y }),
+      hp: 1,
+    }
+    state = {
+      ...state,
+      ship: { ...state.ship, hp: 100 },
+      enemies: [bomber],
+      activeEffects: [...state.activeEffects, shieldEffect(state.ship.pos, 20)],
+    }
+    for (let i = 0; i < 30 && state.enemies.length > 0; i++) {
+      state = updateGameState(state, 0.05, { clicks: [], selectedAbility: null })
+    }
+    expect(state.ship.hp).toBe(100)
+  })
+
+  it('does NOT block when bomber is inside the same shield as the ship', () => {
+    let state = startGame(createInitialState())
+    state = startNextWave(state)
+    const bomber = {
+      ...createEnemy(EnemyKind.bomber, { x: state.ship.pos.x + 30, y: state.ship.pos.y }),
+      hp: 1,
+    }
+    // Grandfather the bomber so the shield doesn't push it out — we want to
+    // exercise the "bomber inside dome" branch of resolveDeathEffects.
+    const shield = { ...shieldEffect(state.ship.pos, 200), grandfatheredEnemyIds: [bomber.id] }
+    state = {
+      ...state,
+      ship: { ...state.ship, hp: 100 },
+      enemies: [bomber],
+      activeEffects: [...state.activeEffects, shield],
+    }
+    for (let i = 0; i < 30 && state.enemies.length > 0; i++) {
+      state = updateGameState(state, 0.05, { clicks: [], selectedAbility: null })
+    }
+    expect(state.ship.hp).toBeLessThan(100)
+  })
+
+  it('does NOT block when ship is outside the shield', () => {
+    let state = startGame(createInitialState())
+    state = startNextWave(state)
+    const bomber = {
+      ...createEnemy(EnemyKind.bomber, { x: state.ship.pos.x + 30, y: state.ship.pos.y }),
+      hp: 1,
+    }
+    state = {
+      ...state,
+      ship: { ...state.ship, hp: 100 },
+      enemies: [bomber],
+      activeEffects: [
+        ...state.activeEffects,
+        shieldEffect({ x: state.ship.pos.x + 1000, y: state.ship.pos.y }, 120),
+      ],
+    }
+    for (let i = 0; i < 30 && state.enemies.length > 0; i++) {
+      state = updateGameState(state, 0.05, { clicks: [], selectedAbility: null })
+    }
+    expect(state.ship.hp).toBeLessThan(100)
+  })
+})

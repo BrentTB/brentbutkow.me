@@ -10,6 +10,7 @@ import {
 } from './effects'
 import { createShip, createEnemy, createProjectile, resetUid } from './entities'
 import { EnemyKind, ProjectileOwner } from './types'
+import type { ActiveEffect } from './types'
 import { WORLD_SIZE, METEORITE_STRIKE, BLACK_HOLE, ROCKET, SHIELD, SUN } from '../data'
 
 beforeEach(() => {
@@ -195,6 +196,40 @@ describe('updateActiveEffects', () => {
         expect(result.killedEnemies.length).toBe(1)
       }
     })
+
+    it('detonates on contact with an enemy DURING flight (not just at the target)', () => {
+      // Rocket aimed at a far point (way beyond the enemy) so the only way it
+      // damages this enemy is via in-flight contact detection.
+      const target = { x: 5000, y: 0 }
+      const rocket = createRocketEffect(
+        { x: 0, y: 0 },
+        target,
+        ROCKET.damage,
+        ROCKET.aoeRadius,
+        ROCKET.speed
+      )
+      // Enemy is between launch and target — rocket should hit it on the way.
+      const enemyInPath = createEnemy(EnemyKind.tank, { x: 200, y: 0 })
+
+      // Tick enough to reach the enemy but FAR less than `rocket.duration`
+      // (which is dist/speed = 5000/250 = 20s). 200/250 = 0.8s → 9 ticks at 0.1.
+      let state = [rocket] as ActiveEffect[]
+      let enemies = [enemyInPath]
+      for (let i = 0; i < 12; i++) {
+        const r = updateActiveEffects(state, enemies, [], ship, 0.1)
+        state = r.activeEffects
+        enemies = r.enemies
+        if (state.length === 0) break
+      }
+
+      // The rocket should have detonated (state empty) and the enemy should be
+      // either damaged or dead — NOT untouched while the rocket sails on.
+      expect(state.length).toBe(0)
+      const after = enemies.find((e) => e.id === enemyInPath.id)
+      if (after) {
+        expect(after.hp).toBeLessThan(enemyInPath.hp)
+      }
+    })
   })
 
   describe('shields', () => {
@@ -214,6 +249,51 @@ describe('updateActiveEffects', () => {
       const result = updateActiveEffects([shield], [inside, outside], [], ship, 0.016)
       const ticked = result.activeEffects[0] as typeof shield
       expect(ticked.grandfatheredEnemyIds).toEqual([inside.id])
+    })
+
+    it('drops grandfathered status when the enemy leaves the shield', () => {
+      // Tick 1: shield initialized with `inside` (at x=20) grandfathered.
+      const shield = createShieldEffect({ x: 0, y: 0 }, SHIELD.radius, SHIELD.duration)
+      const inside = createEnemy(EnemyKind.tank, { x: 20, y: 0 })
+      const r1 = updateActiveEffects([shield], [inside], [], ship, 0.016)
+      expect((r1.activeEffects[0] as typeof shield).grandfatheredEnemyIds).toEqual([inside.id])
+
+      // Tick 2: same enemy is now WELL outside the shield. The list should drop them.
+      const moved = { ...inside, pos: { x: 500, y: 0 } }
+      const r2 = updateActiveEffects(r1.activeEffects, [moved], [], ship, 0.016)
+      expect((r2.activeEffects[0] as typeof shield).grandfatheredEnemyIds).toEqual([])
+    })
+
+    it('a previously-grandfathered enemy gets pushed out if it tries to re-enter', () => {
+      // Tick 1: grandfather an enemy.
+      const shield = createShieldEffect({ x: 0, y: 0 }, 100, SHIELD.duration)
+      const inside = createEnemy(EnemyKind.tank, { x: 30, y: 0 })
+      const r1 = updateActiveEffects([shield], [inside], [], ship, 0.016)
+
+      // Tick 2: enemy steps outside; grandfathered list now empty.
+      const stepped = { ...inside, pos: { x: 200, y: 0 } }
+      const r2 = updateActiveEffects(r1.activeEffects, [stepped], [], ship, 0.016)
+
+      // Now the enemy moves back inside — apply the shield constraint.
+      const reentry = { ...inside, pos: { x: 30, y: 0 } }
+      const [pushed] = applyShieldConstraints(r2.activeEffects, [reentry])
+      // Snapped to the edge (radius 100 in +x direction).
+      expect(pushed.pos.x).toBe(100)
+    })
+
+    it('other enemies of the same type are pushed out even with a grandfathered sibling', () => {
+      // Shield with one drone (A) grandfathered inside.
+      const shield = createShieldEffect({ x: 0, y: 0 }, 100, SHIELD.duration)
+      const droneA = createEnemy(EnemyKind.drone, { x: 30, y: 0 })
+      const r1 = updateActiveEffects([shield], [droneA], [], ship, 0.016)
+      expect((r1.activeEffects[0] as typeof shield).grandfatheredEnemyIds).toEqual([droneA.id])
+
+      // Now a DIFFERENT drone (B) walks into the shield (different ID, same kind).
+      const droneB = createEnemy(EnemyKind.drone, { x: 40, y: 0 })
+      const [aAfter, bAfter] = applyShieldConstraints(r1.activeEffects, [droneA, droneB])
+      // A stays put (grandfathered); B gets pushed.
+      expect(aAfter.pos).toEqual({ x: 30, y: 0 })
+      expect(bAfter.pos.x).toBe(100)
     })
 
     it('absorbs enemy projectiles inside the dome', () => {

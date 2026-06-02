@@ -78,9 +78,10 @@ describe('abilityKindForHotkey', () => {
   })
 
   it('returns null for a locked ability', () => {
-    // Only the meteorite starts unlocked.
-    expect(abilities[1].unlocked).toBe(false)
-    expect(abilityKindForHotkey(abilities, '2')).toBeNull()
+    const locked = abilities.map((a) =>
+      a.kind === AbilityKind.meteorite ? { ...a, unlocked: true } : { ...a, unlocked: false }
+    )
+    expect(abilityKindForHotkey(locked, '2')).toBeNull()
   })
 
   it('returns null for out-of-range, zero, and non-numeric keys', () => {

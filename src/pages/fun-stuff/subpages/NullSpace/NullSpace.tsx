@@ -5,6 +5,7 @@ import { useNullSpace } from './useNullSpace'
 import { GameHUD } from './components/GameHUD'
 import { GameOverlay } from './components/GameOverlay'
 import { GAME_VERSION, CHANGELOG } from './data'
+import { computeHudScale } from './renderer/camera'
 import styles from './NullSpace.module.scss'
 
 function NullSpace() {
@@ -67,6 +68,29 @@ function NullSpace() {
     document.addEventListener('fullscreenchange', onChange)
     return () => document.removeEventListener('fullscreenchange', onChange)
   }, [])
+
+  // HUD scaling — keep overlay text/buttons proportional to the gameplay area
+  // so fullscreen doesn't leave a 28px pause icon stranded on a 1080p screen.
+  // ResizeObserver covers window resizes; the isFullscreen dep covers the
+  // CSS-class-driven fullscreen toggle, which can otherwise miss observers
+  // in some environments.
+  useEffect(() => {
+    const el = gameContainerRef.current
+    if (!el) return
+    const apply = () => {
+      const scale = computeHudScale(el.clientWidth, el.clientHeight)
+      el.style.setProperty('--hud-scale', scale.toFixed(3))
+    }
+    apply()
+    // Layout may still be settling for the class-driven fullscreen toggle.
+    const raf = requestAnimationFrame(apply)
+    const ro = new ResizeObserver(apply)
+    ro.observe(el)
+    return () => {
+      cancelAnimationFrame(raf)
+      ro.disconnect()
+    }
+  }, [isFullscreen])
 
   return (
     <div className={styles.wrapper}>
