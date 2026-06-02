@@ -117,7 +117,7 @@ function tickBlackHole(effect: ActiveEffect, ctx: EffectTickContext): EffectTick
   const hole = effect as BlackHoleEffect
 
   if (hole.elapsed >= hole.duration) {
-    return { ...passThrough(null, ctx) }
+    return passThrough(null, ctx)
   }
 
   const r = applyBlackHoleEffect(ctx.enemies, hole, ctx.dt)
@@ -212,7 +212,7 @@ function tickShield(effect: ActiveEffect, ctx: EffectTickContext): EffectTickRes
   const shield = effect as ShieldEffect
 
   if (shield.elapsed >= shield.duration) {
-    return { ...passThrough(null, ctx) }
+    return passThrough(null, ctx)
   }
 
   // Grandfathered list = enemies that have been inside the shield CONTINUOUSLY
@@ -267,7 +267,7 @@ function tickSun(effect: ActiveEffect, ctx: EffectTickContext): EffectTickResult
   const sun = effect as SunEffect
 
   if (sun.elapsed >= sun.duration) {
-    return { ...passThrough(null, ctx) }
+    return passThrough(null, ctx)
   }
 
   const { enemies, scoreGained, killedEnemies } = damageEnemiesInRadius(

@@ -12,7 +12,7 @@ import type {
 } from '../engine/types'
 import { POWER_ORB, SPACE_METAL } from '../data'
 import type { Camera } from './camera'
-import { worldToScreen } from './camera'
+import { isWithinView, worldToScreen } from './camera'
 import type { SpriteCache } from './sprite-cache'
 import { getSpriteSize } from './sprite-cache'
 import { SpriteKey } from './sprites'
@@ -88,13 +88,7 @@ function renderEnemies(
   for (const enemy of state.enemies) {
     const screen = worldToScreen(enemy.pos, camera)
 
-    if (
-      screen.x < -60 ||
-      screen.x > camera.width + 60 ||
-      screen.y < -60 ||
-      screen.y > camera.height + 60
-    )
-      continue
+    if (!isWithinView(screen, camera, 60)) continue
 
     const spriteKey = ENEMY_SPRITE[enemy.kind]
     const size = getSpriteSize(spriteKey)
@@ -132,13 +126,7 @@ function renderProjectiles(
 ): void {
   for (const proj of state.projectiles) {
     const screen = worldToScreen(proj.pos, camera)
-    if (
-      screen.x < -20 ||
-      screen.x > camera.width + 20 ||
-      screen.y < -20 ||
-      screen.y > camera.height + 20
-    )
-      continue
+    if (!isWithinView(screen, camera, 20)) continue
 
     const spriteKey =
       proj.owner === ProjectileOwner.enemy ? SpriteKey.enemyProjectile : SpriteKey.projectile
@@ -204,13 +192,7 @@ function renderParticles(
 ): void {
   for (const p of particles) {
     const screen = worldToScreen(p.pos, camera)
-    if (
-      screen.x < -10 ||
-      screen.x > camera.width + 10 ||
-      screen.y < -10 ||
-      screen.y > camera.height + 10
-    )
-      continue
+    if (!isWithinView(screen, camera, 10)) continue
 
     const alpha = 1 - p.elapsed / p.lifetime
     ctx.globalAlpha = alpha
@@ -232,13 +214,7 @@ function renderCollectibles(
 ): void {
   for (const c of collectibles) {
     const screen = worldToScreen(c.pos, camera)
-    if (
-      screen.x < -20 ||
-      screen.x > camera.width + 20 ||
-      screen.y < -20 ||
-      screen.y > camera.height + 20
-    )
-      continue
+    if (!isWithinView(screen, camera, 20)) continue
 
     if (c.kind === CollectibleKind.powerOrb) {
       const alpha = Math.min(1, 0.6 + Math.sin(c.elapsed * 8) * 0.2)

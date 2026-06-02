@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CURRENCY_NAME, GAME_NAME, WAVES_PER_LEVEL, WEAPON_ORDER } from '../data'
+import { ABILITY_META, CURRENCY_NAME, GAME_NAME, WAVES_PER_LEVEL, WEAPON_ORDER } from '../data'
 import { AbilityKind, GamePhase, UpgradeCategory, UpgradeId } from '../engine/types'
 import type { UpgradeDefinition } from '../engine/types'
 import {
@@ -204,14 +204,8 @@ const CATEGORY_ORDER: UpgradeCategory[] = [
   UpgradeCategory.powers,
 ]
 
-const WEAPON_LABELS: Record<AbilityKind, string> = {
-  [AbilityKind.meteorite]: 'Meteorite',
-  [AbilityKind.blackHole]: 'Black Hole',
-  [AbilityKind.meteor]: 'Meteor',
-  [AbilityKind.rocket]: 'Rocket',
-  [AbilityKind.shield]: 'Shield',
-  [AbilityKind.sun]: 'Sun',
-}
+// Unlock upgrades are surfaced in the weapons list, not the per-weapon detail.
+const UNLOCK_UPGRADE_IDS = new Set(Object.values(WEAPON_UNLOCK_UPGRADE))
 
 function UpgradeScreen({
   uiState,
@@ -316,7 +310,7 @@ function WeaponsList({
               onClick={() => !needsUnlock && onSelect(weapon)}
               disabled={needsUnlock}
             >
-              <span className={styles.weaponName}>{WEAPON_LABELS[weapon]}</span>
+              <span className={styles.weaponName}>{ABILITY_META[weapon].label}</span>
               {!needsUnlock && <span className={styles.weaponArrow}>→</span>}
             </button>
             {needsUnlock && unlockId && (
@@ -348,16 +342,13 @@ function WeaponDetail({
 }) {
   const subUpgrades = Object.values(UPGRADE_DEFINITIONS).filter(
     (d) =>
-      d.category === UpgradeCategory.weapons &&
-      d.weapon === weapon &&
-      d.id !== UpgradeId.unlockMeteor &&
-      d.id !== UpgradeId.unlockBlackHole
+      d.category === UpgradeCategory.weapons && d.weapon === weapon && !UNLOCK_UPGRADE_IDS.has(d.id)
   )
 
   return (
     <>
       <button className={styles.backBtn} onClick={onBack} aria-label="Back to weapons">
-        ← {WEAPON_LABELS[weapon]}
+        ← {ABILITY_META[weapon].label}
       </button>
       {subUpgrades.map((def) => (
         <UpgradeCard

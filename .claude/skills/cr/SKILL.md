@@ -18,22 +18,23 @@ codebase.
 
 Only review what the user actually changed. Unstaged and untracked files are out of scope.
 
+Run these as **separate, bare commands** — no `$(...)` capture, no `||`, no redirects — so each
+matches an allowlist prefix and runs without a permission prompt:
+
 ```bash
-BRANCH=$(git rev-parse --abbrev-ref HEAD)
-BASE=$(git merge-base origin/dev HEAD 2>/dev/null || git merge-base dev HEAD)
+git rev-parse --abbrev-ref HEAD     # current branch
+git merge-base origin/dev HEAD      # base SHA — if origin/dev is missing, run `git merge-base dev HEAD`
+```
 
-# Committed branch changes
-git log "$BASE"..HEAD --oneline
+Take the base SHA printed above and substitute it **literally** into the diff commands (write the
+actual SHA like `a1b2c3d`, never `$BASE`):
 
-# Staged working-tree changes (on top of committed work)
-git diff --cached --stat
-
-# The full reviewable diff: committed branch work + staged changes
-# (committed diff against base, plus staged diff against HEAD)
-git diff "$BASE" --stat          # committed changes
-git diff "$BASE"                 # committed full diff
-git diff --cached --stat         # staged on top
-git diff --cached                # staged full diff
+```bash
+git log a1b2c3d..HEAD --oneline   # committed branch changes
+git diff --cached --stat          # staged working-tree changes (on top of committed work)
+git diff a1b2c3d --stat           # committed changes summary
+git diff a1b2c3d                  # committed full diff
+git diff --cached                 # staged full diff
 ```
 
 If there are no committed branch changes and nothing staged, tell the user there's nothing

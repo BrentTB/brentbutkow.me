@@ -50,8 +50,8 @@ export type GameUIState = {
   totalWaveEnemies: number
 }
 
-// Number keys select abilities by their position in the list (which is sorted
-// by power cost), so the hotkey matches the HUD badge regardless of ability order.
+// Number keys select abilities by their position in the list (WEAPON_ORDER),
+// so the hotkey always matches the HUD badge.
 export function abilityKindForHotkey(
   abilities: GameState['abilities'],
   key: string

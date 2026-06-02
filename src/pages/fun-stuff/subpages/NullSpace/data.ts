@@ -81,6 +81,17 @@ export const WEAPON_ORDER: readonly AbilityKind[] = [
   AbilityKind.sun,
 ]
 
+// Icon + display name per ability, shared by the HUD hotbar and the shop.
+// Keyed by AbilityKind so a new ability won't compile until it's named here.
+export const ABILITY_META: Record<AbilityKind, { icon: string; label: string }> = {
+  [AbilityKind.meteorite]: { icon: '☄', label: 'Meteorite' },
+  [AbilityKind.rocket]: { icon: '🚀', label: 'Rocket' },
+  [AbilityKind.shield]: { icon: '🛡', label: 'Shield' },
+  [AbilityKind.meteor]: { icon: '🌑', label: 'Meteor' },
+  [AbilityKind.blackHole]: { icon: '🕳', label: 'Black Hole' },
+  [AbilityKind.sun]: { icon: '☀', label: 'Sun' },
+}
+
 export const ENEMY_STATS = {
   drone: {
     hp: 20,

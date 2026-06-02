@@ -10,6 +10,7 @@ import {
   centerCameraOn,
   worldToScreen,
   screenToWorld,
+  isWithinView,
 } from './camera'
 
 const WORLD = { x: 3000, y: 3000 }
@@ -75,6 +76,33 @@ describe('computeHudScale', () => {
 
   it('clamps to HUD_SCALE_MIN at very small sizes (still readable)', () => {
     expect(computeHudScale(200, 100)).toBe(HUD_SCALE_MIN)
+  })
+})
+
+describe('isWithinView', () => {
+  it('keeps a position that is on-screen at zoom < 1 (not culled against canvas pixels)', () => {
+    // Regression: the cull bounds must use the visible WORLD extent
+    // (width / zoom), not raw canvas pixels. On a 375px-wide phone at the
+    // mobile zoom, ~635 world units are visible, so a point at world-x 500 is
+    // on screen — comparing against camera.width (375) would wrongly cull it.
+    const cam = { x: 0, y: 0, width: 375, height: 812, zoom: computeZoom(375, 812) }
+    const onScreen = worldToScreen({ x: 500, y: 0 }, cam)
+    expect(500).toBeGreaterThan(cam.width) // beyond the canvas-pixel bound...
+    expect(isWithinView(onScreen, cam, 0)).toBe(true) // ...but still visible
+  })
+
+  it('culls a position past the visible world extent', () => {
+    const cam = { x: 0, y: 0, width: 375, height: 812, zoom: computeZoom(375, 812) }
+    const vw = cam.width / cam.zoom
+    expect(isWithinView({ x: vw + 100, y: 0 }, cam, 0)).toBe(false)
+  })
+
+  it('honors the world-unit margin on every edge', () => {
+    const cam = { x: 0, y: 0, width: W, height: H, zoom: 1 }
+    expect(isWithinView({ x: -5, y: -5 }, cam, 10)).toBe(true)
+    expect(isWithinView({ x: -15, y: 0 }, cam, 10)).toBe(false)
+    expect(isWithinView({ x: W + 5, y: H + 5 }, cam, 10)).toBe(true)
+    expect(isWithinView({ x: 0, y: H + 15 }, cam, 10)).toBe(false)
   })
 })
 

@@ -77,6 +77,21 @@ function viewportWorldHeight(camera: Camera): number {
   return camera.height / camera.zoom
 }
 
+/**
+ * Off-screen cull test for a `worldToScreen` position. The visible extent is
+ * the world width/height (`camera.width / zoom`), NOT the raw canvas pixels —
+ * at zoom < 1 the canvas shows more world than its pixel size, so culling
+ * against canvas pixels drops entities that are still on screen. `margin` is in
+ * world units and keeps just-off-screen entities drawn while they slide in.
+ */
+export function isWithinView(screen: Vec2, camera: Camera, margin: number): boolean {
+  const vw = viewportWorldWidth(camera)
+  const vh = viewportWorldHeight(camera)
+  return (
+    screen.x >= -margin && screen.x <= vw + margin && screen.y >= -margin && screen.y <= vh + margin
+  )
+}
+
 export function updateCamera(camera: Camera, target: Vec2, dt: number, worldSize: Vec2): Camera {
   const vw = viewportWorldWidth(camera)
   const vh = viewportWorldHeight(camera)
