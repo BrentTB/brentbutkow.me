@@ -133,6 +133,9 @@ export const WAVES_PER_LEVEL = 3
 export const SPAWN_DELAY = { min: 0.1, max: 1.0 } as const
 export const SPAWN_DISTANCE = { min: 650, max: 1050 } as const
 
+// Half-width of the box swarm members scatter into around their shared spawn center.
+export const SWARM_SPAWN_SPREAD = 60
+
 export const PROJECTILE_SPEED = 400
 export const PROJECTILE_LIFETIME = 3
 export const PROJECTILE_RADIUS = 4

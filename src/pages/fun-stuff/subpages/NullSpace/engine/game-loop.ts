@@ -6,6 +6,7 @@ import {
   ENEMY_STATS,
   SPAWN_DELAY,
   SPAWN_DISTANCE,
+  SWARM_SPAWN_SPREAD,
 } from '../data'
 import { checkCollision, distance } from './collision'
 import {
@@ -189,8 +190,8 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
         const center = spawnPositionNearShip(ship.pos, state.worldSize)
         while (spawnQueue.length > 0 && spawnQueue[0] === EnemyKind.swarm) {
           const pos = {
-            x: center.x + rng.range(-30, 30),
-            y: center.y + rng.range(-30, 30),
+            x: center.x + rng.range(-SWARM_SPAWN_SPREAD, SWARM_SPAWN_SPREAD),
+            y: center.y + rng.range(-SWARM_SPAWN_SPREAD, SWARM_SPAWN_SPREAD),
           }
           enemies = [...enemies, createEnemy(EnemyKind.swarm, pos)]
           spawnQueue = spawnQueue.slice(1)
