@@ -159,7 +159,10 @@ export type GameState = {
   upgrades: PlayerUpgrades
   worldSize: Vec2
   waveTimer: number
-  enemiesRemainingInWave: number
+  spawnQueue: EnemyKind[]
+  spawnTimer: number
+  totalWaveEnemies: number
+  spawnedInWave: number
 }
 
 export type PlayerInput = {

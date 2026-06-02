@@ -30,6 +30,20 @@ export type GameUIState = {
   abilities: GameState['abilities']
   upgrades: PlayerUpgrades
   selectedAbility: GameState['abilities'][number]['kind']
+  spawnedInWave: number
+  totalWaveEnemies: number
+}
+
+// Number keys select abilities by their position in the list (which is sorted
+// by power cost), so the hotkey matches the HUD badge regardless of ability order.
+export function abilityKindForHotkey(
+  abilities: GameState['abilities'],
+  key: string
+): GameState['abilities'][number]['kind'] | null {
+  const index = Number(key) - 1
+  if (!Number.isInteger(index) || index < 0) return null
+  const ability = abilities[index]
+  return ability?.unlocked ? ability.kind : null
 }
 
 export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null>) {
@@ -48,6 +62,8 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     abilities: [],
     upgrades: {} as PlayerUpgrades,
     selectedAbility: AbilityKind.meteorite,
+    spawnedInWave: 0,
+    totalWaveEnemies: 0,
   })
 
   const gameStateRef = useRef<GameState>(createInitialState())
@@ -75,6 +91,8 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       abilities: state.abilities,
       upgrades: state.upgrades,
       selectedAbility: selectedAbilityRef.current,
+      spawnedInWave: state.spawnedInWave,
+      totalWaveEnemies: state.totalWaveEnemies,
     })
   }, [])
 
@@ -164,18 +182,10 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (gameStateRef.current.phase !== GamePhase.playing) return
-      const abilityByKey: Record<string, AbilityKind> = {
-        '1': AbilityKind.meteorite,
-        '2': AbilityKind.blackHole,
-        '3': AbilityKind.meteor,
-      }
-      const kind = abilityByKey[e.key]
+      const kind = abilityKindForHotkey(gameStateRef.current.abilities, e.key)
       if (kind) {
-        const ability = gameStateRef.current.abilities.find((a) => a.kind === kind)
-        if (ability?.unlocked) {
-          selectedAbilityRef.current = kind
-          syncUI(gameStateRef.current)
-        }
+        selectedAbilityRef.current = kind
+        syncUI(gameStateRef.current)
       }
     }
 

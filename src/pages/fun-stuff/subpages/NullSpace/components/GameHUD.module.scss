@@ -6,11 +6,63 @@
   font-family: var(--font-mono);
 }
 
+.levelProgress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px 0;
+}
+
+.levelLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.progressTrack {
+  position: relative;
+  flex: 1;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+.progressFill {
+  position: absolute;
+  inset: 0;
+  width: 0;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+.progressDot {
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  transform: translate(-50%, -50%);
+  transition:
+    background 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.progressDotFilled {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
 .topBar {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 12px 16px;
+  padding: 8px 16px;
   gap: 16px;
 }
 
@@ -62,16 +114,10 @@
   justify-content: flex-end;
 }
 
-.wave,
 .score,
 .currency {
   font-size: 0.8rem;
   color: var(--text);
-}
-
-.wave {
-  color: var(--accent);
-  font-weight: 600;
 }
 
 .currency {

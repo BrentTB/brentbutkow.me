@@ -113,7 +113,7 @@ export function createAbilities(): Ability[] {
       aoeRadius: METEOR_STRIKE.aoeRadius,
       unlocked: false,
     },
-  ]
+  ].sort((a, b) => a.powerCost - b.powerCost)
 }
 
 export function createParticle(

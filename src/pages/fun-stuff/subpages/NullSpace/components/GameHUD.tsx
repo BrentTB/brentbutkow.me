@@ -1,4 +1,4 @@
-import { CURRENCY_NAME } from '../data'
+import { CURRENCY_NAME, WAVES_PER_LEVEL } from '../data'
 import { GamePhase } from '../engine/types'
 import type { GameUIState } from '../useNullSpace'
 import styles from './GameHUD.module.scss'
@@ -8,10 +8,18 @@ type GameHUDProps = {
   onAbilitySelect: (kind: GameUIState['selectedAbility']) => void
 }
 
-const ABILITY_LABELS: Record<string, { icon: string; label: string; hotkey: string }> = {
-  meteorite: { icon: '☄', label: 'Meteorite', hotkey: '1' },
-  blackHole: { icon: '🕳', label: 'Black Hole', hotkey: '2' },
-  meteor: { icon: '🌑', label: 'Meteor', hotkey: '3' },
+const ABILITY_LABELS: Record<string, { icon: string; label: string }> = {
+  meteorite: { icon: '☄', label: 'Meteorite' },
+  meteor: { icon: '🌑', label: 'Meteor' },
+  blackHole: { icon: '🕳', label: 'Black Hole' },
+}
+
+function getLevelProgress(uiState: GameUIState): number {
+  if (uiState.wave <= 0) return 0
+  const waveIndexInLevel = (uiState.wave - 1) % WAVES_PER_LEVEL
+  const spawnFraction =
+    uiState.totalWaveEnemies > 0 ? uiState.spawnedInWave / uiState.totalWaveEnemies : 0
+  return (waveIndexInLevel + spawnFraction) / WAVES_PER_LEVEL
 }
 
 export function GameHUD({ uiState, onAbilitySelect }: GameHUDProps) {
@@ -20,9 +28,28 @@ export function GameHUD({ uiState, onAbilitySelect }: GameHUDProps) {
   const hpRatio = Math.max(0, uiState.shipHp / uiState.shipMaxHp)
   const hpColor = hpRatio > 0.5 ? '#44bb44' : hpRatio > 0.25 ? '#ccaa22' : '#cc3333'
   const powerRatio = Math.max(0, uiState.power / uiState.maxPower)
+  const progressRatio = getLevelProgress(uiState)
+  const dots = Array.from({ length: WAVES_PER_LEVEL + 1 }, (_, i) => i)
 
   return (
     <div className={styles.hud}>
+      <div className={styles.levelProgress}>
+        <span className={styles.levelLabel}>Level {uiState.level}</span>
+        <div className={styles.progressTrack}>
+          <div className={styles.progressFill} style={{ width: `${progressRatio * 100}%` }} />
+          {dots.map((i) => {
+            const dotPosition = i / WAVES_PER_LEVEL
+            const filled = progressRatio >= dotPosition
+            return (
+              <div
+                key={i}
+                className={`${styles.progressDot} ${filled ? styles.progressDotFilled : ''}`}
+                style={{ left: `${dotPosition * 100}%` }}
+              />
+            )
+          })}
+        </div>
+      </div>
       <div className={styles.topBar}>
         <div className={styles.bars}>
           <div className={styles.barRow}>
@@ -51,7 +78,6 @@ export function GameHUD({ uiState, onAbilitySelect }: GameHUDProps) {
           </div>
         </div>
         <div className={styles.info}>
-          <span className={styles.wave}>Wave {uiState.wave}</span>
           <span className={styles.score}>Score: {uiState.score}</span>
           <span className={styles.currency}>
             {CURRENCY_NAME}: {uiState.currency}
@@ -59,12 +85,12 @@ export function GameHUD({ uiState, onAbilitySelect }: GameHUDProps) {
         </div>
       </div>
       <div className={styles.abilities}>
-        {uiState.abilities.map((ability) => {
+        {uiState.abilities.map((ability, index) => {
           const meta = ABILITY_LABELS[ability.kind] ?? {
             icon: '?',
             label: ability.kind,
-            hotkey: '',
           }
+          const hotkey = String(index + 1)
           const isSelected = uiState.selectedAbility === ability.kind
           const isReady =
             ability.unlocked && ability.cooldownRemaining <= 0 && uiState.power >= ability.powerCost
@@ -91,7 +117,7 @@ export function GameHUD({ uiState, onAbilitySelect }: GameHUDProps) {
                   : `${meta.label} — locked`
               }
             >
-              {meta.hotkey && <span className={styles.hotkeyBadge}>{meta.hotkey}</span>}
+              <span className={styles.hotkeyBadge}>{hotkey}</span>
               <span className={styles.abilityIcon}>{ability.unlocked ? meta.icon : '🔒'}</span>
               <span className={styles.abilityLabel}>{meta.label}</span>
               {ability.unlocked && <span className={styles.abilityCost}>{ability.powerCost}</span>}

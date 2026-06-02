@@ -1,4 +1,12 @@
-import { WORLD_SIZE, PARTICLE_DEFAULTS, POWER_DEFAULTS, CURRENCY_DROPS, ENEMY_STATS } from '../data'
+import {
+  WORLD_SIZE,
+  PARTICLE_DEFAULTS,
+  POWER_DEFAULTS,
+  CURRENCY_DROPS,
+  ENEMY_STATS,
+  SPAWN_DELAY,
+  SPAWN_DISTANCE,
+} from '../data'
 import { checkCollision, distance } from './collision'
 import {
   createShip,
@@ -28,7 +36,7 @@ import { getWave, getWaveDelay } from './waves'
 import { loadHighScore, saveHighScore } from './persistence'
 import { rng } from './random'
 import { EnemyKind, GamePhase, ProjectileOwner } from './types'
-import type { GameState, PlayerInput, Enemy, Projectile, Particle, UpgradeId } from './types'
+import type { GameState, PlayerInput, Enemy, Vec2, Projectile, Particle, UpgradeId } from './types'
 
 export function createInitialState(): GameState {
   resetUid()
@@ -54,7 +62,10 @@ export function createInitialState(): GameState {
     upgrades: createInitialUpgrades(),
     worldSize: WORLD_SIZE,
     waveTimer: 0,
-    enemiesRemainingInWave: 0,
+    spawnQueue: [],
+    spawnTimer: 0,
+    totalWaveEnemies: 0,
+    spawnedInWave: 0,
   }
 }
 
@@ -82,7 +93,10 @@ export function startGame(state: GameState): GameState {
     powerRegen: POWER_DEFAULTS.regenRate,
     upgrades,
     waveTimer: 0,
-    enemiesRemainingInWave: 0,
+    spawnQueue: [],
+    spawnTimer: 0,
+    totalWaveEnemies: 0,
+    spawnedInWave: 0,
     highScore: loadHighScore(),
     isNewHighScore: false,
   }
@@ -90,8 +104,7 @@ export function startGame(state: GameState): GameState {
 
 export function startNextWave(state: GameState): GameState {
   const nextWave = state.wave + 1
-  const spawns = getWave(nextWave, state.worldSize)
-  const enemies = spawns.map((s) => createEnemy(s.kind, s.pos))
+  const queue = getWave(nextWave)
   const delay = getWaveDelay(nextWave)
 
   return {
@@ -99,9 +112,11 @@ export function startNextWave(state: GameState): GameState {
     phase: GamePhase.playing,
     wave: nextWave,
     level: getLevel(nextWave),
-    enemies: [...state.enemies, ...enemies],
     waveTimer: delay,
-    enemiesRemainingInWave: enemies.length,
+    spawnQueue: queue,
+    spawnTimer: 0,
+    totalWaveEnemies: queue.length,
+    spawnedInWave: 0,
   }
 }
 
@@ -142,9 +157,12 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     score,
     power,
     currency,
+    spawnQueue,
+    spawnTimer,
+    spawnedInWave,
   } = state
   let { waveTimer } = state
-  const { enemiesRemainingInWave, maxPower, powerRegen } = state
+  const { maxPower, powerRegen } = state
 
   if (waveTimer > 0) {
     waveTimer -= dt
@@ -153,6 +171,21 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       abilities = updateAbilityCooldowns(abilities, dt)
       ship = updateShipPatrol(ship, dt, state.worldSize)
       return { ...state, ship, particles, abilities, power, waveTimer }
+    }
+  }
+
+  // --- Spawn queue ---
+  if (spawnQueue.length > 0) {
+    spawnTimer -= dt
+    while (spawnTimer <= 0 && spawnQueue.length > 0) {
+      const kind = spawnQueue[0]
+      spawnQueue = spawnQueue.slice(1)
+      const pos = spawnPositionNearShip(ship.pos, state.worldSize)
+      enemies = [...enemies, createEnemy(kind, pos)]
+      spawnedInWave++
+      if (spawnQueue.length > 0) {
+        spawnTimer += rng.range(SPAWN_DELAY.min, SPAWN_DELAY.max)
+      }
     }
   }
 
@@ -257,12 +290,14 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       highScore: Math.max(state.highScore, score),
       isNewHighScore,
       waveTimer: 0,
-      enemiesRemainingInWave,
+      spawnQueue,
+      spawnTimer,
+      spawnedInWave,
     }
   }
 
   // --- Check wave complete ---
-  if (enemies.length === 0 && enemiesRemainingInWave > 0) {
+  if (spawnQueue.length === 0 && enemies.length === 0 && state.totalWaveEnemies > 0) {
     const nextPhase = isUpgradeWave(state.wave) ? GamePhase.upgradeScreen : GamePhase.waveComplete
     return {
       ...state,
@@ -278,7 +313,9 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       power,
       currency,
       waveTimer: 0,
-      enemiesRemainingInWave: 0,
+      spawnQueue,
+      spawnTimer,
+      spawnedInWave,
     }
   }
 
@@ -295,7 +332,9 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     power,
     currency,
     waveTimer,
-    enemiesRemainingInWave,
+    spawnQueue,
+    spawnTimer,
+    spawnedInWave,
   }
 }
 
@@ -308,6 +347,19 @@ function computeCurrencyFromKills(killedEnemies: Enemy[]): number {
     }
   }
   return total
+}
+
+function spawnPositionNearShip(shipPos: Vec2, worldSize: Vec2): Vec2 {
+  const angle = rng.range(0, Math.PI * 2)
+  const dist = rng.range(SPAWN_DISTANCE.min, SPAWN_DISTANCE.max)
+  return {
+    x: clamp(shipPos.x + Math.cos(angle) * dist, 0, worldSize.x),
+    y: clamp(shipPos.y + Math.sin(angle) * dist, 0, worldSize.y),
+  }
+}
+
+function clamp(v: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, v))
 }
 
 type Ship = GameState['ship']

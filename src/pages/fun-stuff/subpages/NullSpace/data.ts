@@ -85,6 +85,9 @@ export const CURRENCY_NAME = 'Stardust'
 
 export const WAVES_PER_LEVEL = 3
 
+export const SPAWN_DELAY = { min: 0.1, max: 1.0 } as const
+export const SPAWN_DISTANCE = { min: 650, max: 1050 } as const
+
 export const PROJECTILE_SPEED = 400
 export const PROJECTILE_LIFETIME = 3
 export const PROJECTILE_RADIUS = 4
@@ -95,7 +98,7 @@ export const PARTICLE_DEFAULTS = {
   trailInterval: 0.05,
 }
 
-export const GAME_VERSION = '0.2.1'
+export const GAME_VERSION = '0.3.0'
 
 export type ChangelogEntry = {
   version: string
@@ -109,6 +112,22 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.3.0',
+    date: '2026-06-02',
+    changes: {
+      features: [
+        'Level progress bar at the top of the HUD — fills as enemies spawn, with milestone dots per wave',
+        'HUD now shows "Level X" instead of raw wave numbers',
+        'Enemies trickle in near the ship with randomized order and timing instead of all spawning at the map edge at once',
+        'Wave-complete and game-over screens show wave progress within the current level',
+      ],
+      fixes: [
+        'Abilities now sort by power cost (cheapest first), and their hotkey numbers and HUD badges derive from that order so they always match',
+        'Random functions now use the seeded RNG instead of deterministic index-based positioning',
+      ],
+    },
+  },
   {
     version: '0.2.1',
     date: '2026-06-01',

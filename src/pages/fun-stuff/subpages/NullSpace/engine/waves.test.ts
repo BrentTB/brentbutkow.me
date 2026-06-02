@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { getWave, getWaveDelay } from './waves'
 import { rng } from './random'
 import { EnemyKind } from './types'
-import { WORLD_SIZE } from '../data'
 
 beforeEach(() => {
   rng.reseed(42)
@@ -10,38 +9,28 @@ beforeEach(() => {
 
 describe('getWave', () => {
   it('wave 1 has drones only', () => {
-    const spawns = getWave(1, WORLD_SIZE)
-    expect(spawns.length).toBeGreaterThan(0)
-    expect(spawns.every((s) => s.kind === EnemyKind.drone)).toBe(true)
+    const kinds = getWave(1)
+    expect(kinds.length).toBeGreaterThan(0)
+    expect(kinds.every((k) => k === EnemyKind.drone)).toBe(true)
   })
 
   it('later waves include tanks', () => {
-    const spawns = getWave(4, WORLD_SIZE)
-    expect(spawns.some((s) => s.kind === EnemyKind.tank)).toBe(true)
+    const kinds = getWave(4)
+    expect(kinds.some((k) => k === EnemyKind.tank)).toBe(true)
   })
 
   it('wave count increases with wave number', () => {
-    const wave2 = getWave(2, WORLD_SIZE)
-    const wave5 = getWave(5, WORLD_SIZE)
+    const wave2 = getWave(2)
+    const wave5 = getWave(5)
     expect(wave5.length).toBeGreaterThan(wave2.length)
   })
 
-  it('spawns enemies with positions', () => {
-    const spawns = getWave(1, WORLD_SIZE)
-    for (const s of spawns) {
-      expect(s.pos.x).toBeGreaterThanOrEqual(0)
-      expect(s.pos.y).toBeGreaterThanOrEqual(0)
-    }
-  })
-
-  it('different seeds produce different spawn positions', () => {
+  it('shuffles the enemy order', () => {
     rng.reseed(1)
-    const a = getWave(1, WORLD_SIZE)
+    const a = getWave(4)
     rng.reseed(2)
-    const b = getWave(1, WORLD_SIZE)
-    const positionsA = a.map((s) => `${s.pos.x.toFixed(1)},${s.pos.y.toFixed(1)}`)
-    const positionsB = b.map((s) => `${s.pos.x.toFixed(1)},${s.pos.y.toFixed(1)}`)
-    expect(positionsA).not.toEqual(positionsB)
+    const b = getWave(4)
+    expect(a).not.toEqual(b)
   })
 })
 

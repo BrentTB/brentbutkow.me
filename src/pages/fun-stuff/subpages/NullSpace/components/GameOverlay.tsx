@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CURRENCY_NAME, GAME_NAME } from '../data'
+import { CURRENCY_NAME, GAME_NAME, WAVES_PER_LEVEL } from '../data'
 import { AbilityKind, GamePhase, UpgradeCategory, UpgradeId } from '../engine/types'
 import type { UpgradeDefinition } from '../engine/types'
 import {
@@ -34,7 +34,12 @@ export function GameOverlay({
       <div className={styles.content}>
         {uiState.phase === GamePhase.menu && <MenuScreen onStart={onStart} />}
         {uiState.phase === GamePhase.waveComplete && (
-          <WaveCompleteScreen wave={uiState.wave} score={uiState.score} onNextWave={onNextWave} />
+          <WaveCompleteScreen
+            wave={uiState.wave}
+            level={uiState.level}
+            score={uiState.score}
+            onNextWave={onNextWave}
+          />
         )}
         {uiState.phase === GamePhase.upgradeScreen && (
           <UpgradeScreen
@@ -48,6 +53,7 @@ export function GameOverlay({
             score={uiState.score}
             highScore={uiState.highScore}
             isNewHighScore={uiState.isNewHighScore}
+            level={uiState.level}
             wave={uiState.wave}
             onRestart={onRestart}
           />
@@ -72,16 +78,22 @@ function MenuScreen({ onStart }: { onStart: () => void }) {
 
 function WaveCompleteScreen({
   wave,
+  level,
   score,
   onNextWave,
 }: {
   wave: number
+  level: number
   score: number
   onNextWave: () => void
 }) {
+  const waveInLevel = ((wave - 1) % WAVES_PER_LEVEL) + 1
   return (
     <>
-      <h2 className={styles.title}>Wave {wave} Complete</h2>
+      <h2 className={styles.title}>
+        Wave {waveInLevel}/{WAVES_PER_LEVEL} Complete
+      </h2>
+      <p className={styles.stat}>Level {level}</p>
       <p className={styles.stat}>Score: {score}</p>
       <button className={styles.primaryBtn} onClick={onNextWave}>
         Next Wave
@@ -315,20 +327,23 @@ function GameOverScreen({
   score,
   highScore,
   isNewHighScore,
+  level,
   wave,
   onRestart,
 }: {
   score: number
   highScore: number
   isNewHighScore: boolean
+  level: number
   wave: number
   onRestart: () => void
 }) {
+  const waveInLevel = wave > 0 ? ((wave - 1) % WAVES_PER_LEVEL) + 1 : 0
   return (
     <>
       <h2 className={styles.title}>Game Over</h2>
       <p className={styles.stat}>
-        Survived {wave} wave{wave !== 1 ? 's' : ''}
+        Reached Level {level}, Wave {waveInLevel}/{WAVES_PER_LEVEL}
       </p>
       <p className={styles.stat}>Score: {score}</p>
       {isNewHighScore && <p className={styles.highScoreNew}>New High Score!</p>}

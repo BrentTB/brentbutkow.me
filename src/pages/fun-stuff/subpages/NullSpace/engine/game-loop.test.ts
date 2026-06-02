@@ -43,11 +43,13 @@ describe('startGame', () => {
 })
 
 describe('startNextWave', () => {
-  it('increments wave and spawns enemies', () => {
+  it('increments wave and queues enemies for spawning', () => {
     let state = startGame(createInitialState())
     state = startNextWave(state)
     expect(state.wave).toBe(1)
-    expect(state.enemies.length).toBeGreaterThan(0)
+    expect(state.spawnQueue.length).toBeGreaterThan(0)
+    expect(state.totalWaveEnemies).toBe(state.spawnQueue.length)
+    expect(state.spawnedInWave).toBe(0)
     expect(state.level).toBe(1)
   })
 })
@@ -62,6 +64,19 @@ describe('updateGameState', () => {
   it('moves enemies toward ship over time', () => {
     let state = startGame(createInitialState())
     state = startNextWave(state)
+    // Tick once to spawn an enemy from the queue
+    state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
+    expect(state.enemies.length).toBeGreaterThan(0)
+
+    // Place enemy far from ship so patrol movement doesn't dominate
+    state = {
+      ...state,
+      enemies: state.enemies.map((e) => ({
+        ...e,
+        pos: { x: state.ship.pos.x + 800, y: state.ship.pos.y },
+      })),
+    }
+
     const enemyBefore = state.enemies[0]
     const distBefore = Math.sqrt(
       (enemyBefore.pos.x - state.ship.pos.x) ** 2 + (enemyBefore.pos.y - state.ship.pos.y) ** 2
@@ -80,6 +95,8 @@ describe('updateGameState', () => {
   it('ship auto-attacks enemies in range', () => {
     let state = startGame(createInitialState())
     state = startNextWave(state)
+    // Tick to spawn an enemy, then move it into range
+    state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
     state = {
       ...state,
       enemies: state.enemies.map((e) => ({
@@ -95,6 +112,8 @@ describe('updateGameState', () => {
   it('game over when ship hp reaches 0', () => {
     let state = startGame(createInitialState())
     state = startNextWave(state)
+    // Tick to spawn enemies from queue
+    state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
     state = {
       ...state,
       ship: { ...state.ship, hp: 1 },
@@ -111,6 +130,8 @@ describe('updateGameState', () => {
   it('flags a new high score only when the score beats the previous best', () => {
     let state = startGame(createInitialState())
     state = startNextWave(state)
+    // Tick to spawn enemies from queue
+    state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
     const dying = {
       ...state,
       ship: { ...state.ship, hp: 1 },
@@ -132,10 +153,15 @@ describe('updateGameState', () => {
 
   it('shows upgrade screen after completing the 3rd wave', () => {
     let state = startGame(createInitialState())
-    // Simulate reaching wave 3 (an upgrade wave)
     state = { ...state, wave: WAVES_PER_LEVEL, phase: GamePhase.playing }
-    // All enemies dead, but there were enemies this wave
-    state = { ...state, enemies: [], enemiesRemainingInWave: 1, waveTimer: 0 }
+    state = {
+      ...state,
+      enemies: [],
+      spawnQueue: [],
+      totalWaveEnemies: 1,
+      spawnedInWave: 1,
+      waveTimer: 0,
+    }
     state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
     expect(state.phase).toBe(GamePhase.upgradeScreen)
   })
@@ -143,7 +169,13 @@ describe('updateGameState', () => {
   it('shows correct phase after wave completion', () => {
     let state = startGame(createInitialState())
     state = startNextWave(state)
-    state = { ...state, enemies: [], enemiesRemainingInWave: 1, waveTimer: 0 }
+    state = {
+      ...state,
+      enemies: [],
+      spawnQueue: [],
+      spawnedInWave: state.totalWaveEnemies,
+      waveTimer: 0,
+    }
     state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
     const expected = isUpgradeWave(state.wave) ? GamePhase.upgradeScreen : GamePhase.waveComplete
     expect(state.phase).toBe(expected)
