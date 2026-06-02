@@ -1,3 +1,4 @@
+import { AbilityKind } from './engine/types'
 import type { EnemyKind } from './engine/types'
 
 export const GAME_NAME = 'Null Space'
@@ -44,6 +45,41 @@ export const BLACK_HOLE = {
   pullStrength: 200,
   duration: 4,
 } as const
+
+export const ROCKET = {
+  cooldown: 2.5,
+  powerCost: 25,
+  damage: 50,
+  aoeRadius: 130,
+  speed: 250,
+  trailParticleInterval: 0.04,
+} as const
+
+export const SHIELD = {
+  cooldown: 4,
+  powerCost: 30,
+  radius: 80,
+  duration: 6,
+} as const
+
+export const SUN = {
+  cooldown: 12,
+  powerCost: 100,
+  radius: 180,
+  damagePerSec: 15,
+  duration: 5,
+} as const
+
+// Display order for the hotbar AND the shop. Edit this array to reorder.
+// Initial order: cheapest → most expensive at base cost (5, 25, 30, 40, 50, 100).
+export const WEAPON_ORDER: readonly AbilityKind[] = [
+  AbilityKind.meteorite,
+  AbilityKind.rocket,
+  AbilityKind.shield,
+  AbilityKind.meteor,
+  AbilityKind.blackHole,
+  AbilityKind.sun,
+]
 
 export const ENEMY_STATS = {
   drone: {
@@ -146,7 +182,7 @@ export const PARTICLE_DEFAULTS = {
   trailInterval: 0.05,
 }
 
-export const GAME_VERSION = '0.5.1'
+export const GAME_VERSION = '0.6.1'
 
 export type ChangelogEntry = {
   version: string
@@ -160,6 +196,36 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.6.1',
+    date: '2026-06-02',
+    changes: {
+      features: [
+        'Camera now zooms based on viewport area — the same total amount of world is visible regardless of screen size or fullscreen state',
+        'Mobile shows more world area (zoomed-out) so enemies approaching from the sides are visible',
+        'Mobile-friendly polish: bigger pause / fullscreen tap targets (44×44) and a much taller game area on phones',
+        'Fullscreen now works on iPhone Safari via a CSS-based fallback (Fullscreen API is unsupported there)',
+      ],
+      fixes: [
+        'Going fullscreen no longer reveals more of the game world — gameplay difficulty stays consistent across window sizes',
+      ],
+    },
+  },
+  {
+    version: '0.6.0',
+    date: '2026-06-02',
+    changes: {
+      features: [
+        'New ability: Rocket — launches from your ship and flies to the target, exploding on arrival with a bigger blast radius than the meteor',
+        'New ability: Shield — places a stationary dome that absorbs enemy projectiles and physically blocks enemies from entering (enemies already inside when the shield drops stay free until they leave)',
+        'New ability: Sun — drops a massive stationary AoE damage zone that lasts a few seconds — devastating, very long cooldown',
+        'Six abilities total now visible in the hotbar, unlockable from the shop',
+      ],
+      fixes: [
+        'Weapon order in the hotbar and shop is now controlled by a single WEAPON_ORDER array — no more drift between the two UIs when a new weapon is added',
+      ],
+    },
+  },
   {
     version: '0.5.1',
     date: '2026-06-02',

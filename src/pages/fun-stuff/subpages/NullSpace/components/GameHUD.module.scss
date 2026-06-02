@@ -163,6 +163,13 @@
     opacity: 0.4;
     cursor: not-allowed;
   }
+
+  // Touch targets need to be at least 44×44 per platform guidelines.
+  @media (max-width: 768px) {
+    width: 44px;
+    height: 44px;
+    font-size: 1.1rem;
+  }
 }
 
 .abilities {

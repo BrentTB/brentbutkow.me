@@ -23,7 +23,12 @@ function NullSpace() {
     handleSetSpeed,
   } = useNullSpace(canvasRef)
 
-  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [isRealFullscreen, setIsRealFullscreen] = useState(false)
+  // Pseudo-fullscreen fallback for browsers without the Fullscreen API
+  // (most notably iPhone Safari). Toggled when requestFullscreen is unavailable
+  // or rejects.
+  const [pseudoFullscreen, setPseudoFullscreen] = useState(false)
+  const isFullscreen = isRealFullscreen || pseudoFullscreen
   const [gameSpeed, setGameSpeedState] = useState(1)
 
   const handleSetSpeedAndSync = useCallback(
@@ -37,17 +42,28 @@ function NullSpace() {
   const handleToggleFullscreen = useCallback(() => {
     const el = gameContainerRef.current
     if (!el) return
-    if (!document.fullscreenElement) {
-      el.requestFullscreen().catch(() => {
-        /* some browsers reject when not triggered by direct user gesture; swallow */
-      })
-    } else {
+
+    // Exit path: handle whichever mode is currently active.
+    if (document.fullscreenElement) {
       document.exitFullscreen().catch(() => {})
+      return
     }
-  }, [])
+    if (pseudoFullscreen) {
+      setPseudoFullscreen(false)
+      return
+    }
+
+    // Enter path: try the real API; if it doesn't exist or it rejects,
+    // fall back to the CSS pseudo-fullscreen.
+    if (typeof el.requestFullscreen === 'function') {
+      el.requestFullscreen().catch(() => setPseudoFullscreen(true))
+    } else {
+      setPseudoFullscreen(true)
+    }
+  }, [pseudoFullscreen])
 
   useEffect(() => {
-    const onChange = () => setIsFullscreen(!!document.fullscreenElement)
+    const onChange = () => setIsRealFullscreen(!!document.fullscreenElement)
     document.addEventListener('fullscreenchange', onChange)
     return () => document.removeEventListener('fullscreenchange', onChange)
   }, [])
@@ -55,7 +71,10 @@ function NullSpace() {
   return (
     <div className={styles.wrapper}>
       <BackButton />
-      <div ref={gameContainerRef} className={styles.gameContainer}>
+      <div
+        ref={gameContainerRef}
+        className={`${styles.gameContainer} ${pseudoFullscreen ? styles.pseudoFullscreen : ''}`}
+      >
         <canvas ref={canvasRef} className={styles.canvas} />
         <GameHUD
           uiState={uiState}

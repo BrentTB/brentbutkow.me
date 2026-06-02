@@ -158,6 +158,23 @@ export const BOMBER_SPRITE: SpriteData = [
   [_, _, _, _, _, F, F, _, _, F, F, _, _, _, _, _],
 ]
 
+// Small rocket sprite, drawn rotated to its velocity. 5×12 (so it looks like
+// a slim missile rather than a meteor blob).
+export const ROCKET_SPRITE: SpriteData = [
+  [_, _, W, _, _],
+  [_, W, R, W, _],
+  [_, G, G, G, _],
+  [_, g, G, g, _],
+  [_, g, G, g, _],
+  [_, g, G, g, _],
+  [_, g, G, g, _],
+  [G, g, G, g, G],
+  [G, _, G, _, G],
+  [_, F, F, F, _],
+  [_, F, F, F, _],
+  [_, _, F, _, _],
+]
+
 export const SpriteKey = {
   ship: 'ship',
   drone: 'drone',
@@ -169,6 +186,7 @@ export const SpriteKey = {
   enemyProjectile: 'enemyProjectile',
   meteor: 'meteor',
   meteorite: 'meteorite',
+  rocket: 'rocket',
 } as const
 export type SpriteKey = (typeof SpriteKey)[keyof typeof SpriteKey]
 
@@ -183,4 +201,5 @@ export const SPRITE_MAP: Record<SpriteKey, SpriteData> = {
   enemyProjectile: ENEMY_PROJECTILE_SPRITE,
   meteor: METEOR_SPRITE,
   meteorite: METEORITE_SPRITE,
+  rocket: ROCKET_SPRITE,
 }

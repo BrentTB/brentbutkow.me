@@ -4,6 +4,7 @@ import { abilityKindForHotkey, useNullSpace } from './useNullSpace'
 import { createRef } from 'react'
 import { createAbilities } from './engine/entities'
 import { AbilityKind, GamePhase } from './engine/types'
+import { WEAPON_ORDER } from './data'
 
 describe('useNullSpace', () => {
   it('starts in menu phase with a null canvas ref', () => {
@@ -67,17 +68,13 @@ describe('useNullSpace', () => {
 describe('abilityKindForHotkey', () => {
   const abilities = createAbilities()
 
-  it('selects abilities by hotkey position, matching the power-cost order', () => {
-    // createAbilities() sorts ascending: meteorite (5) → meteor (40) → black hole (50)
-    expect(abilities.map((a) => a.kind)).toEqual([
-      AbilityKind.meteorite,
-      AbilityKind.meteor,
-      AbilityKind.blackHole,
-    ])
+  it('selects abilities by hotkey position, matching WEAPON_ORDER', () => {
+    // Hotkey i maps to position (i-1) in the abilities array, which mirrors WEAPON_ORDER.
+    expect(abilities.map((a) => a.kind)).toEqual([...WEAPON_ORDER])
     const unlocked = abilities.map((a) => ({ ...a, unlocked: true }))
-    expect(abilityKindForHotkey(unlocked, '1')).toBe(AbilityKind.meteorite)
-    expect(abilityKindForHotkey(unlocked, '2')).toBe(AbilityKind.meteor)
-    expect(abilityKindForHotkey(unlocked, '3')).toBe(AbilityKind.blackHole)
+    for (let i = 0; i < WEAPON_ORDER.length; i++) {
+      expect(abilityKindForHotkey(unlocked, String(i + 1))).toBe(WEAPON_ORDER[i])
+    }
   })
 
   it('returns null for a locked ability', () => {

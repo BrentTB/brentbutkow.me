@@ -23,7 +23,7 @@ import {
   updateCollectibles,
   tryCollectSpaceMetal,
 } from './collectibles'
-import { updateActiveEffects } from './effects'
+import { applyShieldConstraints, updateActiveEffects } from './effects'
 import { MAX_DT } from './time'
 import {
   createInitialUpgrades,
@@ -38,7 +38,14 @@ import {
 import { getWave, getWaveDelay } from './waves'
 import { loadHighScore, saveHighScore } from './persistence'
 import { rng } from './random'
-import { DeathBehavior, EnemyKind, GamePhase, MovementBehavior, ProjectileOwner } from './types'
+import {
+  DeathBehavior,
+  EffectKind,
+  EnemyKind,
+  GamePhase,
+  MovementBehavior,
+  ProjectileOwner,
+} from './types'
 import type { GameState, PlayerInput, Enemy, Vec2, Projectile, Particle, UpgradeId } from './types'
 
 export function createInitialState(): GameState {
@@ -230,10 +237,11 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   activeEffects = [...activeEffects, ...abilityResult.newEffects]
   power -= abilityResult.powerSpent
 
-  // --- Active effects (meteor strikes, black holes, etc.) ---
-  const effectResult = updateActiveEffects(activeEffects, enemies, ship, dt)
+  // --- Active effects (meteor strikes, black holes, rockets, shield, sun) ---
+  const effectResult = updateActiveEffects(activeEffects, enemies, projectiles, ship, dt)
   activeEffects = effectResult.activeEffects
   enemies = effectResult.enemies
+  projectiles = effectResult.projectiles
   particles = [...particles, ...effectResult.particles]
   score += effectResult.scoreGained
   currency += computeCurrencyFromKills(effectResult.killedEnemies)
@@ -253,6 +261,9 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
 
   // --- Enemy movement ---
   enemies = updateEnemyMovement(enemies, ship, dt)
+  // Shields block new entries — bounce non-grandfathered enemies back to the
+  // boundary after they've moved this frame.
+  enemies = applyShieldConstraints(activeEffects, enemies)
 
   // --- Projectile movement ---
   projectiles = updateProjectiles(projectiles, dt)
@@ -286,7 +297,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     ...shipCollision.killedEnemies,
   ]
   if (killedForDeathEffects.length > 0) {
-    const deathResult = resolveDeathEffects(killedForDeathEffects, ship)
+    const deathResult = resolveDeathEffects(killedForDeathEffects, ship, activeEffects)
     if (deathResult.shipDamage > 0) {
       ship = { ...ship, hp: ship.hp - deathResult.shipDamage }
     }
@@ -604,10 +615,18 @@ function updateEnemyMovement(enemies: Enemy[], ship: Ship, dt: number): Enemy[] 
 
 function resolveDeathEffects(
   killedEnemies: Enemy[],
-  ship: Ship
+  ship: Ship,
+  activeEffects: GameState['activeEffects']
 ): { shipDamage: number; particles: Particle[] } {
   let shipDamage = 0
   const particles: Particle[] = []
+
+  // Shields the ship is currently sheltering inside. A bomber outside one of
+  // these shields can't damage the ship — the dome eats the explosion.
+  const shelteringShields = activeEffects.filter((e) => {
+    if (e.kind !== EffectKind.shield) return false
+    return distance(ship.pos, e.pos) < e.radius
+  })
 
   for (const enemy of killedEnemies) {
     if (enemy.deathBehavior !== DeathBehavior.explode) continue
@@ -617,7 +636,13 @@ function resolveDeathEffects(
 
     const dist = distance(enemy.pos, ship.pos)
     if (dist < stats.explosionRadius) {
-      shipDamage += stats.explosionDamage
+      // Blocked iff the bomber is OUTSIDE a shield the ship is sheltering in.
+      const blocked = shelteringShields.some(
+        (s) => s.kind === EffectKind.shield && distance(enemy.pos, s.pos) >= s.radius
+      )
+      if (!blocked) {
+        shipDamage += stats.explosionDamage
+      }
       particles.push(...spawnExplosionParticles(enemy.pos, 20, '#ff8833'))
     } else {
       particles.push(...spawnExplosionParticles(enemy.pos, 14, '#ff6622'))

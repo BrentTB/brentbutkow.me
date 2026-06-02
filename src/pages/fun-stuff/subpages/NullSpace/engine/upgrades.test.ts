@@ -9,9 +9,10 @@ import {
   getLevel,
   isUpgradeWave,
   UPGRADE_DEFINITIONS,
+  WEAPON_UNLOCK_UPGRADE,
 } from './upgrades'
 import { createAbilities } from './entities'
-import { AbilityKind, UpgradeId } from './types'
+import { AbilityKind, UpgradeCategory, UpgradeId } from './types'
 
 describe('createInitialUpgrades', () => {
   it('all tiers start at 0', () => {
@@ -127,5 +128,84 @@ describe('isUpgradeWave', () => {
     expect(isUpgradeWave(WAVES_PER_LEVEL)).toBe(true)
     expect(isUpgradeWave(WAVES_PER_LEVEL * 2)).toBe(true)
     expect(isUpgradeWave(WAVES_PER_LEVEL * 3)).toBe(true)
+  })
+})
+
+describe('WEAPON_UNLOCK_UPGRADE', () => {
+  it('every mapped UpgradeId exists in UPGRADE_DEFINITIONS and is a weapons unlock', () => {
+    for (const [weapon, upgradeId] of Object.entries(WEAPON_UNLOCK_UPGRADE)) {
+      if (!upgradeId) continue
+      const def = UPGRADE_DEFINITIONS[upgradeId]
+      expect(def).toBeDefined()
+      expect(def.category).toBe(UpgradeCategory.weapons)
+      expect(def.weapon).toBe(weapon)
+    }
+  })
+
+  it('every ability except meteorite has an unlock entry', () => {
+    for (const kind of Object.values(AbilityKind)) {
+      if (kind === AbilityKind.meteorite) continue
+      expect(WEAPON_UNLOCK_UPGRADE[kind]).toBeDefined()
+    }
+  })
+})
+
+describe('applyUpgradesToAbilities — new abilities', () => {
+  it('rocket damage stacks across tiers', () => {
+    let upgrades = createInitialUpgrades()
+    const baseRocket = createAbilities().find((a) => a.kind === AbilityKind.rocket)
+    if (!baseRocket) throw new Error('rocket not in createAbilities')
+
+    const tiers = UPGRADE_DEFINITIONS[UpgradeId.rocketDamage].tiers
+    for (let i = 0; i < tiers.length; i++) {
+      upgrades = { ...upgrades, [UpgradeId.rocketDamage]: { currentTier: i + 1 } }
+    }
+    const upgraded = applyUpgradesToAbilities([baseRocket], upgrades)
+    const totalGain = tiers.reduce((s, t) => s + t.value, 0)
+    expect(upgraded[0].damage).toBe(baseRocket.damage + totalGain)
+  })
+
+  it('unlockRocket flips rocket.unlocked', () => {
+    const baseRocket = createAbilities().find((a) => a.kind === AbilityKind.rocket)
+    if (!baseRocket) throw new Error('rocket not in createAbilities')
+
+    const upgrades = {
+      ...createInitialUpgrades(),
+      [UpgradeId.unlockRocket]: { currentTier: 1 },
+    }
+    const upgraded = applyUpgradesToAbilities([baseRocket], upgrades)
+    expect(upgraded[0].unlocked).toBe(true)
+  })
+
+  it('shield duration stacks; unlockShield flips unlocked', () => {
+    const baseShield = createAbilities().find((a) => a.kind === AbilityKind.shield)
+    if (!baseShield) throw new Error('shield not in createAbilities')
+
+    const tiers = UPGRADE_DEFINITIONS[UpgradeId.shieldDuration].tiers
+    const totalGain = tiers.reduce((s, t) => s + t.value, 0)
+    const upgrades = {
+      ...createInitialUpgrades(),
+      [UpgradeId.unlockShield]: { currentTier: 1 },
+      [UpgradeId.shieldDuration]: { currentTier: tiers.length },
+    }
+    const upgraded = applyUpgradesToAbilities([baseShield], upgrades)
+    expect(upgraded[0].unlocked).toBe(true)
+    expect(upgraded[0].duration).toBe((baseShield.duration ?? 0) + totalGain)
+  })
+
+  it('sun damage + duration stack; unlockSun flips unlocked', () => {
+    const baseSun = createAbilities().find((a) => a.kind === AbilityKind.sun)
+    if (!baseSun) throw new Error('sun not in createAbilities')
+
+    const dmgTiers = UPGRADE_DEFINITIONS[UpgradeId.sunDamage].tiers
+    const dmgGain = dmgTiers.reduce((s, t) => s + t.value, 0)
+    const upgrades = {
+      ...createInitialUpgrades(),
+      [UpgradeId.unlockSun]: { currentTier: 1 },
+      [UpgradeId.sunDamage]: { currentTier: dmgTiers.length },
+    }
+    const upgraded = applyUpgradesToAbilities([baseSun], upgrades)
+    expect(upgraded[0].unlocked).toBe(true)
+    expect(upgraded[0].damage).toBe(baseSun.damage + dmgGain)
   })
 })

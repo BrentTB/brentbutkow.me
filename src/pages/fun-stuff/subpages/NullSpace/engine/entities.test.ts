@@ -9,7 +9,7 @@ import {
   resetUid,
 } from './entities'
 import { AbilityKind, DeathBehavior, EnemyKind, MovementBehavior } from './types'
-import { WORLD_SIZE } from '../data'
+import { WEAPON_ORDER, WORLD_SIZE } from '../data'
 
 beforeEach(() => {
   resetUid()
@@ -82,19 +82,37 @@ describe('createProjectile', () => {
   })
 })
 
+describe('WEAPON_ORDER', () => {
+  it('contains every AbilityKind value exactly once', () => {
+    const seen = new Set<string>()
+    for (const kind of WEAPON_ORDER) {
+      expect(seen.has(kind)).toBe(false)
+      seen.add(kind)
+    }
+    for (const kind of Object.values(AbilityKind)) {
+      expect(seen.has(kind)).toBe(true)
+    }
+    expect(seen.size).toBe(Object.values(AbilityKind).length)
+  })
+})
+
 describe('createAbilities', () => {
-  it('creates three abilities — meteorite unlocked, others locked', () => {
+  it('returns one ability per WEAPON_ORDER entry, in order', () => {
     const abilities = createAbilities()
-    expect(abilities).toHaveLength(3)
+    expect(abilities.map((a) => a.kind)).toEqual([...WEAPON_ORDER])
+    for (const a of abilities) {
+      expect(a.cooldownRemaining).toBe(0)
+    }
+    // Meteorite is always present and the first entry.
+    expect(abilities[0].kind).toBe(AbilityKind.meteorite)
+  })
 
-    const meteorite = abilities.find((a) => a.kind === AbilityKind.meteorite)
-    expect(meteorite).toBeDefined()
-    expect(meteorite!.unlocked).toBe(true)
-    expect(meteorite!.cooldownRemaining).toBe(0)
-
-    const meteor = abilities.find((a) => a.kind === AbilityKind.meteor)
-    expect(meteor).toBeDefined()
-    expect(meteor!.unlocked).toBe(false)
+  // Regression guard: someone re-introducing the old inline `.sort((a, b) =>
+  // a.powerCost - b.powerCost)` would break this. Hotbar order is now whatever
+  // WEAPON_ORDER says, not a derived sort.
+  it('preserves WEAPON_ORDER positionally (no automatic sort by cost)', () => {
+    const order = createAbilities().map((a) => a.kind)
+    expect(order).toEqual([...WEAPON_ORDER])
   })
 })
 

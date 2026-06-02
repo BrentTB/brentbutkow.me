@@ -6,6 +6,10 @@ import {
   METEORITE_STRIKE,
   METEOR_STRIKE,
   BLACK_HOLE,
+  ROCKET,
+  SHIELD,
+  SUN,
+  WEAPON_ORDER,
   ENEMY_STATS,
 } from '../data'
 import { AbilityKind, DeathBehavior, EnemyKind, MovementBehavior } from './types'
@@ -102,37 +106,65 @@ export function createProjectile(
   }
 }
 
+// Per-kind base config. Each entry defines the ability's starting stats; the order
+// of display is decided by WEAPON_ORDER (data.ts), NOT by sort.
+const ABILITY_BASE: Record<AbilityKind, () => Omit<Ability, 'cooldownRemaining' | 'unlocked'>> = {
+  [AbilityKind.meteorite]: () => ({
+    kind: AbilityKind.meteorite,
+    cooldown: METEORITE_STRIKE.cooldown,
+    powerCost: METEORITE_STRIKE.powerCost,
+    damage: METEORITE_STRIKE.damage,
+    aoeRadius: METEORITE_STRIKE.aoeRadius,
+  }),
+  [AbilityKind.meteor]: () => ({
+    kind: AbilityKind.meteor,
+    cooldown: METEOR_STRIKE.cooldown,
+    powerCost: METEOR_STRIKE.powerCost,
+    damage: METEOR_STRIKE.damage,
+    aoeRadius: METEOR_STRIKE.aoeRadius,
+  }),
+  [AbilityKind.blackHole]: () => ({
+    kind: AbilityKind.blackHole,
+    cooldown: BLACK_HOLE.cooldown,
+    powerCost: BLACK_HOLE.powerCost,
+    damage: BLACK_HOLE.damage,
+    aoeRadius: BLACK_HOLE.radius,
+    duration: BLACK_HOLE.duration,
+  }),
+  [AbilityKind.rocket]: () => ({
+    kind: AbilityKind.rocket,
+    cooldown: ROCKET.cooldown,
+    powerCost: ROCKET.powerCost,
+    damage: ROCKET.damage,
+    aoeRadius: ROCKET.aoeRadius,
+  }),
+  [AbilityKind.shield]: () => ({
+    kind: AbilityKind.shield,
+    cooldown: SHIELD.cooldown,
+    powerCost: SHIELD.powerCost,
+    // Shield no longer deals damage — it's a movement barrier. The Ability
+    // shape still requires `damage`, so we set 0.
+    damage: 0,
+    aoeRadius: SHIELD.radius,
+    duration: SHIELD.duration,
+  }),
+  [AbilityKind.sun]: () => ({
+    kind: AbilityKind.sun,
+    cooldown: SUN.cooldown,
+    powerCost: SUN.powerCost,
+    damage: SUN.damagePerSec,
+    aoeRadius: SUN.radius,
+    duration: SUN.duration,
+  }),
+}
+
 export function createAbilities(): Ability[] {
-  return [
-    {
-      kind: AbilityKind.meteorite,
-      cooldown: METEORITE_STRIKE.cooldown,
-      cooldownRemaining: 0,
-      powerCost: METEORITE_STRIKE.powerCost,
-      damage: METEORITE_STRIKE.damage,
-      aoeRadius: METEORITE_STRIKE.aoeRadius,
-      unlocked: true,
-    },
-    {
-      kind: AbilityKind.blackHole,
-      cooldown: BLACK_HOLE.cooldown,
-      cooldownRemaining: 0,
-      powerCost: BLACK_HOLE.powerCost,
-      damage: BLACK_HOLE.damage,
-      aoeRadius: BLACK_HOLE.radius,
-      duration: BLACK_HOLE.duration,
-      unlocked: false,
-    },
-    {
-      kind: AbilityKind.meteor,
-      cooldown: METEOR_STRIKE.cooldown,
-      cooldownRemaining: 0,
-      powerCost: METEOR_STRIKE.powerCost,
-      damage: METEOR_STRIKE.damage,
-      aoeRadius: METEOR_STRIKE.aoeRadius,
-      unlocked: false,
-    },
-  ].sort((a, b) => a.powerCost - b.powerCost)
+  return WEAPON_ORDER.map((kind) => ({
+    ...ABILITY_BASE[kind](),
+    cooldownRemaining: 0,
+    // Meteorite starts unlocked; everything else needs a shop purchase.
+    unlocked: kind === AbilityKind.meteorite,
+  }))
 }
 
 export function createParticle(

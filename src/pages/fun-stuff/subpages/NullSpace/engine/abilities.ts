@@ -1,9 +1,16 @@
-import { METEORITE_STRIKE, METEOR_STRIKE, BLACK_HOLE } from '../data'
-import { createMeteoriteEffect, createMeteorEffect, createBlackHoleEffect } from './effects'
+import { METEORITE_STRIKE, METEOR_STRIKE, BLACK_HOLE, ROCKET, SHIELD, SUN } from '../data'
+import {
+  createMeteoriteEffect,
+  createMeteorEffect,
+  createBlackHoleEffect,
+  createRocketEffect,
+  createShieldEffect,
+  createSunEffect,
+} from './effects'
 import { AbilityKind } from './types'
-import type { Ability, ActiveEffect, GameState, Vec2 } from './types'
+import type { Ability, ActiveEffect, GameState, Ship, Vec2 } from './types'
 
-type EffectFactory = (ability: Ability, targetPos: Vec2) => ActiveEffect
+type EffectFactory = (ability: Ability, targetPos: Vec2, ship: Ship) => ActiveEffect
 
 const EFFECT_FACTORY: Record<AbilityKind, EffectFactory> = {
   [AbilityKind.meteorite]: (ability, pos) =>
@@ -18,6 +25,12 @@ const EFFECT_FACTORY: Record<AbilityKind, EffectFactory> = {
       ability.damage,
       ability.duration ?? BLACK_HOLE.duration
     ),
+  [AbilityKind.rocket]: (ability, pos, ship) =>
+    createRocketEffect(ship.pos, pos, ability.damage, ability.aoeRadius, ROCKET.speed),
+  [AbilityKind.shield]: (ability, pos) =>
+    createShieldEffect(pos, ability.aoeRadius, ability.duration ?? SHIELD.duration),
+  [AbilityKind.sun]: (ability, pos) =>
+    createSunEffect(pos, ability.aoeRadius, ability.damage, ability.duration ?? SUN.duration),
 }
 
 export type AbilityResult = {
@@ -30,7 +43,8 @@ export function tryUseAbility(
   abilities: Ability[],
   kind: Ability['kind'],
   targetPos: Vec2,
-  currentPower: number
+  currentPower: number,
+  ship: Ship
 ): {
   abilities: Ability[]
   effect: ActiveEffect | null
@@ -46,7 +60,7 @@ export function tryUseAbility(
 
   const updated = abilities.map((a, i) => (i === idx ? { ...a, cooldownRemaining: a.cooldown } : a))
   const factory = EFFECT_FACTORY[kind]
-  const effect = factory(ability, targetPos)
+  const effect = factory(ability, targetPos, ship)
 
   return { abilities: updated, effect, powerSpent: ability.powerCost }
 }
@@ -73,7 +87,7 @@ export function resolveAbilityInput(
   const newEffects: ActiveEffect[] = []
 
   for (const click of clicks) {
-    const result = tryUseAbility(abilities, selectedAbility, click, remainingPower)
+    const result = tryUseAbility(abilities, selectedAbility, click, remainingPower, state.ship)
     abilities = result.abilities
     remainingPower -= result.powerSpent
     totalPowerSpent += result.powerSpent

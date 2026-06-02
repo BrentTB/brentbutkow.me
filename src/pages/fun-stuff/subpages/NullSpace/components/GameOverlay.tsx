@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { CURRENCY_NAME, GAME_NAME, WAVES_PER_LEVEL } from '../data'
+import { CURRENCY_NAME, GAME_NAME, WAVES_PER_LEVEL, WEAPON_ORDER } from '../data'
 import { AbilityKind, GamePhase, UpgradeCategory, UpgradeId } from '../engine/types'
 import type { UpgradeDefinition } from '../engine/types'
 import {
   UPGRADE_DEFINITIONS,
   UPGRADE_CATEGORY_LABELS,
+  WEAPON_UNLOCK_UPGRADE,
   canPurchaseUpgrade,
 } from '../engine/upgrades'
 import type { GameUIState } from '../useNullSpace'
@@ -207,6 +208,9 @@ const WEAPON_LABELS: Record<AbilityKind, string> = {
   [AbilityKind.meteorite]: 'Meteorite',
   [AbilityKind.blackHole]: 'Black Hole',
   [AbilityKind.meteor]: 'Meteor',
+  [AbilityKind.rocket]: 'Rocket',
+  [AbilityKind.shield]: 'Shield',
+  [AbilityKind.sun]: 'Sun',
 }
 
 function UpgradeScreen({
@@ -291,19 +295,12 @@ function WeaponsList({
   onSelect: (weapon: AbilityKind) => void
   onPurchase: (upgradeId: UpgradeId) => void
 }) {
-  const weapons = [AbilityKind.meteorite, AbilityKind.blackHole, AbilityKind.meteor]
-
-  const unlockIds: Partial<Record<AbilityKind, UpgradeId>> = {
-    [AbilityKind.blackHole]: UpgradeId.unlockBlackHole,
-    [AbilityKind.meteor]: UpgradeId.unlockMeteor,
-  }
-
   return (
     <>
-      {weapons.map((weapon) => {
+      {WEAPON_ORDER.map((weapon) => {
         const ability = uiState.abilities.find((a) => a.kind === weapon)
         const isUnlocked = ability?.unlocked ?? false
-        const unlockId = unlockIds[weapon]
+        const unlockId = WEAPON_UNLOCK_UPGRADE[weapon]
         const needsUnlock = !!unlockId && !isUnlocked
         const unlockDef = unlockId ? UPGRADE_DEFINITIONS[unlockId] : null
         const unlockCost = needsUnlock && unlockDef ? unlockDef.tiers[0].cost : 0

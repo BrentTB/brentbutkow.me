@@ -16,6 +16,9 @@ const ABILITY_LABELS: Record<string, { icon: string; label: string }> = {
   meteorite: { icon: '☄', label: 'Meteorite' },
   meteor: { icon: '🌑', label: 'Meteor' },
   blackHole: { icon: '🕳', label: 'Black Hole' },
+  rocket: { icon: '🚀', label: 'Rocket' },
+  shield: { icon: '🛡', label: 'Shield' },
+  sun: { icon: '☀', label: 'Sun' },
 }
 
 function getLevelProgress(uiState: GameUIState): number {

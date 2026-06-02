@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { tryUseAbility, updateAbilityCooldowns } from './abilities'
-import { createAbilities, resetUid } from './entities'
+import { createAbilities, createShip, resetUid } from './entities'
 import { AbilityKind, EffectKind } from './types'
+import { WORLD_SIZE } from '../data'
+
+const ship = createShip(WORLD_SIZE)
 
 beforeEach(() => {
   resetUid()
@@ -10,7 +13,7 @@ beforeEach(() => {
 describe('tryUseAbility', () => {
   it('creates a meteorite effect when off cooldown and has power', () => {
     const abilities = createAbilities()
-    const result = tryUseAbility(abilities, AbilityKind.meteorite, { x: 100, y: 200 }, 100)
+    const result = tryUseAbility(abilities, AbilityKind.meteorite, { x: 100, y: 200 }, 100, ship)
     expect(result.effect).not.toBeNull()
     expect(result.effect!.pos).toEqual({ x: 100, y: 200 })
     expect(result.effect!.kind).toBe(EffectKind.meteoriteStrike)
@@ -20,21 +23,21 @@ describe('tryUseAbility', () => {
 
   it('returns null effect when on cooldown', () => {
     const abilities = createAbilities().map((a) => ({ ...a, cooldownRemaining: 2 }))
-    const result = tryUseAbility(abilities, AbilityKind.meteorite, { x: 100, y: 200 }, 100)
+    const result = tryUseAbility(abilities, AbilityKind.meteorite, { x: 100, y: 200 }, 100, ship)
     expect(result.effect).toBeNull()
     expect(result.powerSpent).toBe(0)
   })
 
   it('returns null effect when not enough power', () => {
     const abilities = createAbilities()
-    const result = tryUseAbility(abilities, AbilityKind.meteorite, { x: 100, y: 200 }, 1)
+    const result = tryUseAbility(abilities, AbilityKind.meteorite, { x: 100, y: 200 }, 1, ship)
     expect(result.effect).toBeNull()
     expect(result.powerSpent).toBe(0)
   })
 
   it('cannot use a locked ability', () => {
     const abilities = createAbilities()
-    const result = tryUseAbility(abilities, AbilityKind.meteor, { x: 100, y: 200 }, 100)
+    const result = tryUseAbility(abilities, AbilityKind.meteor, { x: 100, y: 200 }, 100, ship)
     expect(result.effect).toBeNull()
     expect(result.powerSpent).toBe(0)
   })
@@ -43,7 +46,7 @@ describe('tryUseAbility', () => {
     const abilities = createAbilities().map((a) =>
       a.kind === AbilityKind.meteor ? { ...a, unlocked: true } : a
     )
-    const result = tryUseAbility(abilities, AbilityKind.meteor, { x: 50, y: 50 }, 100)
+    const result = tryUseAbility(abilities, AbilityKind.meteor, { x: 50, y: 50 }, 100, ship)
     expect(result.effect).not.toBeNull()
     expect(result.effect!.kind).toBe(EffectKind.meteorStrike)
     expect(result.powerSpent).toBeGreaterThan(0)
@@ -53,7 +56,7 @@ describe('tryUseAbility', () => {
     const abilities = createAbilities().map((a) =>
       a.kind === AbilityKind.blackHole ? { ...a, unlocked: true } : a
     )
-    const result = tryUseAbility(abilities, AbilityKind.blackHole, { x: 300, y: 400 }, 200)
+    const result = tryUseAbility(abilities, AbilityKind.blackHole, { x: 300, y: 400 }, 200, ship)
     expect(result.effect).not.toBeNull()
     expect(result.effect!.kind).toBe(EffectKind.blackHole)
     expect(result.powerSpent).toBeGreaterThan(0)
