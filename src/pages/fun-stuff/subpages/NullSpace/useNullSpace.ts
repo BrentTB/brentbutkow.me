@@ -22,6 +22,7 @@ import {
   createCamera,
   updateCamera,
   centerCameraOn,
+  computeZoom,
   screenToWorld,
   type Camera,
 } from './renderer/camera'
@@ -49,8 +50,8 @@ export type GameUIState = {
   totalWaveEnemies: number
 }
 
-// Number keys select abilities by their position in the list (which is sorted
-// by power cost), so the hotkey matches the HUD badge regardless of ability order.
+// Number keys select abilities by their position in the list (WEAPON_ORDER),
+// so the hotkey always matches the HUD badge.
 export function abilityKindForHotkey(
   abilities: GameState['abilities'],
   key: string
@@ -196,6 +197,10 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
         ...cameraRef.current,
         width: rect.width,
         height: rect.height,
+        // Recompute zoom on every resize so the visible world area stays
+        // consistent across viewport size changes (mobile rotate,
+        // fullscreen toggle, etc.).
+        zoom: computeZoom(rect.width, rect.height),
       }
       // Re-center on the ship after a viewport change so we never need to
       // chase it across the world (e.g. on initial mount where the camera

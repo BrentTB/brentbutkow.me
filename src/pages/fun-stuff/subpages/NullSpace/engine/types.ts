@@ -69,6 +69,9 @@ export const AbilityKind = {
   meteorite: 'meteorite',
   meteor: 'meteor',
   blackHole: 'blackHole',
+  rocket: 'rocket',
+  shield: 'shield',
+  sun: 'sun',
 } as const
 export type AbilityKind = (typeof AbilityKind)[keyof typeof AbilityKind]
 
@@ -87,6 +90,9 @@ export const EffectKind = {
   meteoriteStrike: 'meteoriteStrike',
   meteorStrike: 'meteorStrike',
   blackHole: 'blackHole',
+  rocket: 'rocket',
+  shield: 'shield',
+  sun: 'sun',
 } as const
 export type EffectKind = (typeof EffectKind)[keyof typeof EffectKind]
 
@@ -112,7 +118,36 @@ export type BlackHoleEffect = EffectBase & {
   damage: number
 }
 
-export type ActiveEffect = MeteorStrikeEffect | BlackHoleEffect
+export type RocketEffect = EffectBase & {
+  kind: typeof EffectKind.rocket
+  vel: Vec2
+  targetPos: Vec2
+  damage: number
+  aoeRadius: number
+  trailTimer: number
+}
+
+export type ShieldEffect = EffectBase & {
+  kind: typeof EffectKind.shield
+  radius: number
+  // IDs of enemies that were already inside the radius when the shield spawned.
+  // They get a free pass — the shield only blocks NEW entries. `null` means the
+  // list hasn't been initialized yet (populated on the first tick).
+  grandfatheredEnemyIds: string[] | null
+}
+
+export type SunEffect = EffectBase & {
+  kind: typeof EffectKind.sun
+  radius: number
+  damagePerSec: number
+}
+
+export type ActiveEffect =
+  | MeteorStrikeEffect
+  | BlackHoleEffect
+  | RocketEffect
+  | ShieldEffect
+  | SunEffect
 
 export const CollectibleKind = {
   powerOrb: 'powerOrb',
@@ -170,6 +205,15 @@ export const UpgradeId = {
   unlockBlackHole: 'unlockBlackHole',
   blackHoleDamage: 'blackHoleDamage',
   blackHoleDuration: 'blackHoleDuration',
+  unlockRocket: 'unlockRocket',
+  rocketDamage: 'rocketDamage',
+  rocketRadius: 'rocketRadius',
+  unlockShield: 'unlockShield',
+  shieldDuration: 'shieldDuration',
+  shieldRadius: 'shieldRadius',
+  unlockSun: 'unlockSun',
+  sunDamage: 'sunDamage',
+  sunDuration: 'sunDuration',
   shipMaxHp: 'shipMaxHp',
   shipDamage: 'shipDamage',
   powerRegen: 'powerRegen',

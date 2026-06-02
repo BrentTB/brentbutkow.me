@@ -1,4 +1,5 @@
 import type { Camera } from './camera'
+import { isWithinView } from './camera'
 import { rng } from '../engine/random'
 
 export type Star = {
@@ -33,7 +34,7 @@ export function renderStarfield(
     const sx = star.x - camera.x * parallax
     const sy = star.y - camera.y * parallax
 
-    if (sx < -10 || sx > camera.width + 10 || sy < -10 || sy > camera.height + 10) continue
+    if (!isWithinView({ x: sx, y: sy }, camera, 10)) continue
 
     ctx.globalAlpha = star.brightness
     ctx.fillStyle = '#ffffff'

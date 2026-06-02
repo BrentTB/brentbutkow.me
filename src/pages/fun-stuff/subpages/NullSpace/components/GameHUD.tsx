@@ -1,4 +1,4 @@
-import { CURRENCY_NAME, WAVES_PER_LEVEL } from '../data'
+import { ABILITY_META, CURRENCY_NAME, WAVES_PER_LEVEL } from '../data'
 import { GamePhase } from '../engine/types'
 import type { GameUIState } from '../useNullSpace'
 import styles from './GameHUD.module.scss'
@@ -10,12 +10,6 @@ type GameHUDProps = {
   onToggleFullscreen: () => void
   isFullscreen: boolean
   gameSpeed: number
-}
-
-const ABILITY_LABELS: Record<string, { icon: string; label: string }> = {
-  meteorite: { icon: '☄', label: 'Meteorite' },
-  meteor: { icon: '🌑', label: 'Meteor' },
-  blackHole: { icon: '🕳', label: 'Black Hole' },
 }
 
 function getLevelProgress(uiState: GameUIState): number {
@@ -118,10 +112,7 @@ export function GameHUD({
       </div>
       <div className={styles.abilities}>
         {uiState.abilities.map((ability, index) => {
-          const meta = ABILITY_LABELS[ability.kind] ?? {
-            icon: '?',
-            label: ability.kind,
-          }
+          const meta = ABILITY_META[ability.kind]
           const hotkey = String(index + 1)
           const isSelected = uiState.selectedAbility === ability.kind
           const isReady =

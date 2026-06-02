@@ -15,22 +15,17 @@ description: >-
 Before doing anything else, verify the branch is in a pushable state. Run these checks and
 **stop with a clear message** if any fail — do not create or update a PR from a stale branch.
 
+Run these as **separate, bare commands** — no `$(...)` capture, no redirects — so each matches an
+allowlist prefix and runs without a permission prompt. Read the current branch name first, then
+substitute it **literally** (write the real name like `my-branch`, never `$BRANCH`) into the rest:
+
 ```bash
-# Current branch name (fail if on dev or main)
-BRANCH=$(git rev-parse --abbrev-ref HEAD)
-
-# Check remote tracking
-git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null
-
-# Fetch latest remote state
-git fetch origin dev --quiet 2>/dev/null
-git fetch origin "$BRANCH" --quiet 2>/dev/null
-
-# Check if local branch has been pushed
-git log origin/"$BRANCH"..HEAD --oneline 2>/dev/null
-
-# Check if local branch is up to date with remote dev
-git log HEAD..origin/dev --oneline 2>/dev/null
+git rev-parse --abbrev-ref HEAD                       # current branch (fail if dev or main)
+git rev-parse --abbrev-ref --symbolic-full-name @{u}  # remote tracking branch (errors if none)
+git fetch origin dev --quiet                          # latest remote dev
+git fetch origin my-branch --quiet                    # latest remote branch
+git log origin/my-branch..HEAD --oneline              # unpushed local commits
+git log HEAD..origin/dev --oneline                    # commits behind dev
 ```
 
 **Stop and tell the user** (do not proceed) if:
@@ -49,10 +44,15 @@ If all checks pass, continue.
 Collect everything that differs between this branch and `dev`:
 
 ```bash
-BASE=$(git merge-base origin/dev HEAD)
-git log "$BASE"..HEAD --oneline          # commit list
-git diff "$BASE" --stat                  # files changed summary
-git diff "$BASE"                         # full diff
+git merge-base origin/dev HEAD   # base SHA
+```
+
+Substitute the printed SHA **literally** (write the real SHA like `a1b2c3d`, never `$BASE`):
+
+```bash
+git log a1b2c3d..HEAD --oneline   # commit list
+git diff a1b2c3d --stat           # files changed summary
+git diff a1b2c3d                  # full diff
 ```
 
 Read the full diff carefully. Understand what changed and why — commit messages, file names,
@@ -107,26 +107,22 @@ gh pr view --json number,title,body,url 2>/dev/null
 
 ### Case A — No PR exists
 
-Create one:
+Write the body to a temp file with the **Write tool** (e.g. `/tmp/pr-body.md`), then create the
+PR with `--body-file` — no `$(...)` substitution, so it runs without a permission prompt:
 
 ```bash
-gh pr create --base dev --title "<title>" --body "$(cat <<'EOF'
-<body>
-EOF
-)"
+gh pr create --base dev --title "<title>" --body-file /tmp/pr-body.md
 ```
 
 Print the PR URL when done.
 
 ### Case B — PR exists but has an empty body
 
-Update the description:
+Write the body to a temp file with the **Write tool** (e.g. `/tmp/pr-body.md`), then update with
+`--body-file`:
 
 ```bash
-gh pr edit --body "$(cat <<'EOF'
-<body>
-EOF
-)"
+gh pr edit --body-file /tmp/pr-body.md
 ```
 
 Tell the user the PR was updated and print the URL.

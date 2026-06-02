@@ -26,11 +26,14 @@
   @media (max-width: 768px) {
     max-width: none;
     aspect-ratio: auto;
-    height: calc(100dvh - 440px);
+    // Subtract just enough for the page nav + the BackButton above the canvas.
+    // The changelog below is display:none on mobile so it doesn't need room.
+    height: calc(100dvh - 140px);
     border: none;
     border-radius: 0;
   }
 
+  // Used by the Fullscreen API on desktop AND iPadOS.
   &:fullscreen {
     width: 100vw;
     height: 100vh;
@@ -38,6 +41,21 @@
     aspect-ratio: auto;
     border: none;
     border-radius: 0;
+  }
+
+  // Pseudo-fullscreen fallback for environments where the Fullscreen API is
+  // unavailable (most notably iPhone Safari, which has no Fullscreen API at all).
+  // Toggled by NullSpace.tsx when the real API call rejects or doesn't exist.
+  &.pseudoFullscreen {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100dvh;
+    max-width: none;
+    aspect-ratio: auto;
+    border: none;
+    border-radius: 0;
+    z-index: 9999;
   }
 }
 
