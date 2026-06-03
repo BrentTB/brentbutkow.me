@@ -313,6 +313,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       fixes: [
         'Shop upgrade buttons are now fully clickable (previously only the text was clickable, not the surrounding box)',
         'Fixed an issue where if 2 player bullets were in the air and one hit an enemy, the other would be removed',
+        'The player ship is not visible in the background before starting a game',
       ],
     },
   },

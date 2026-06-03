@@ -4,9 +4,13 @@ import ToggleableSection from '../../../../components/ToggleableSection/Toggleab
 import { useNullSpace } from './useNullSpace'
 import { GameHUD } from './components/GameHUD'
 import { GameOverlay } from './components/GameOverlay'
+import { DevConsole } from './components/DevConsole'
 import { GAME_VERSION, CHANGELOG } from './data'
 import { computeHudScale } from './renderer/camera'
 import styles from './NullSpace.module.scss'
+
+// Shows the dev mode console for easier dev testing
+const DEV_MODE = import.meta.env.VITE_NULL_SPACE_DEV_MODE === 'true'
 
 function NullSpace() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -24,6 +28,9 @@ function NullSpace() {
     handleResume,
     handleSetSpeed,
     handleUseSpaceMetalShield,
+    handleDevPatch,
+    handleDevJumpToUpgrades,
+    handleDevQuickStart,
   } = useNullSpace(canvasRef)
 
   const [isRealFullscreen, setIsRealFullscreen] = useState(false)
@@ -97,32 +104,42 @@ function NullSpace() {
   return (
     <div className={styles.wrapper}>
       <BackButton />
-      <div
-        ref={gameContainerRef}
-        className={`${styles.gameContainer} ${pseudoFullscreen ? styles.pseudoFullscreen : ''}`}
-      >
-        <canvas ref={canvasRef} className={styles.canvas} />
-        <GameHUD
-          uiState={uiState}
-          onAbilitySelect={setSelectedAbility}
-          onPause={handlePause}
-          onToggleFullscreen={handleToggleFullscreen}
-          onUseSpaceMetalShield={handleUseSpaceMetalShield}
-          isFullscreen={isFullscreen}
-          gameSpeed={gameSpeed}
-        />
-        <GameOverlay
-          uiState={uiState}
-          onStart={handleStart}
-          onSelectShip={handleSelectShip}
-          onNextWave={handleNextWave}
-          onRestart={handleRestart}
-          onPurchaseUpgrade={handlePurchaseUpgrade}
-          onFinishUpgrades={handleFinishUpgrades}
-          onResume={handleResume}
-          onSetSpeed={handleSetSpeedAndSync}
-          gameSpeed={gameSpeed}
-        />
+      <div className={styles.gameRow}>
+        <div
+          ref={gameContainerRef}
+          className={`${styles.gameContainer} ${pseudoFullscreen ? styles.pseudoFullscreen : ''}`}
+        >
+          <canvas ref={canvasRef} className={styles.canvas} />
+          <GameHUD
+            uiState={uiState}
+            onAbilitySelect={setSelectedAbility}
+            onPause={handlePause}
+            onToggleFullscreen={handleToggleFullscreen}
+            onUseSpaceMetalShield={handleUseSpaceMetalShield}
+            isFullscreen={isFullscreen}
+            gameSpeed={gameSpeed}
+          />
+          <GameOverlay
+            uiState={uiState}
+            onStart={handleStart}
+            onSelectShip={handleSelectShip}
+            onNextWave={handleNextWave}
+            onRestart={handleRestart}
+            onPurchaseUpgrade={handlePurchaseUpgrade}
+            onFinishUpgrades={handleFinishUpgrades}
+            onResume={handleResume}
+            onSetSpeed={handleSetSpeedAndSync}
+            gameSpeed={gameSpeed}
+          />
+        </div>
+        {DEV_MODE && (
+          <DevConsole
+            uiState={uiState}
+            onPatch={handleDevPatch}
+            onJumpToUpgrades={handleDevJumpToUpgrades}
+            onQuickStart={handleDevQuickStart}
+          />
+        )}
       </div>
       <div className={styles.changelog}>
         <ToggleableSection title={`Release Notes (v${GAME_VERSION})`}>

@@ -35,6 +35,14 @@ import { generateStarfield, type Star } from './renderer/starfield'
 import { renderFrame } from './renderer/renderer'
 import { WORLD_SIZE } from './data'
 
+// Build-time literal, same as in NullSpace.tsx
+const DEV_MODE = import.meta.env.VITE_NULL_SPACE_DEV_MODE === 'true'
+
+// Shared no-op stub returned in place of the dev handlers when DEV_MODE is
+// off. A single zero-arg arrow satisfies all three slots because TypeScript
+// permits assigning functions with fewer parameters where more are expected.
+const noop = () => {}
+
 export type GameUIState = {
   phase: GameState['phase']
   shipKind: ShipKind
@@ -193,11 +201,16 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     syncUI(gameStateRef.current)
   }, [syncUI])
 
-  // Dev-only: patch arbitrary slices of game state for testing. Each field is
-  // optional; undefined means "leave alone." Ship-kind changes rebuild the
-  // ship from the variant defaults but preserve in-world position/velocity.
-  const handleDevPatch = useCallback(
-    (patch: DevPatch) => {
+  // Dev-only handlers. Stubbed to no-ops by default; the `if (DEV_MODE)` block
+  // below rebinds them with real implementations. When DEV_MODE folds to
+  // `false` at build time, Rollup removes the whole block, taking the
+  // createShip / getLevel / WAVES_PER_LEVEL imports with it.
+  let handleDevPatch: (patch: DevPatch) => void = noop
+  let handleDevJumpToUpgrades: () => void = noop
+  let handleDevQuickStart: (kind: ShipKind) => void = noop
+
+  if (DEV_MODE) {
+    handleDevPatch = (patch: DevPatch) => {
       const state = gameStateRef.current
       let ship = state.ship
       let shipKind = state.shipKind
@@ -229,37 +242,30 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
         level: patch.wave !== undefined ? getLevel(wave) : state.level,
       }
       syncUI(gameStateRef.current)
-    },
-    [syncUI]
-  )
-
-  // Dev-only: jump straight to the upgrade screen. Sets wave to the next
-  // upgrade-trigger wave (multiple of WAVES_PER_LEVEL) and clears the field.
-  const handleDevJumpToUpgrades = useCallback(() => {
-    const state = gameStateRef.current
-    const base = state.wave > 0 ? state.wave : 1
-    const nextUpgradeWave = Math.ceil(base / WAVES_PER_LEVEL) * WAVES_PER_LEVEL
-    gameStateRef.current = {
-      ...state,
-      phase: GamePhase.upgradeScreen,
-      wave: nextUpgradeWave,
-      level: getLevel(nextUpgradeWave),
-      enemies: [],
-      projectiles: [],
-      activeEffects: [],
-      spawnQueue: [],
-      spawnTimer: 0,
-      spawnedInWave: 1,
-      totalWaveEnemies: 1,
-      waveTimer: 0,
     }
-    syncUI(gameStateRef.current)
-  }, [syncUI])
 
-  // Dev-only: drop straight into playing without going through ship selection.
-  // Useful when the dev console is the entry point.
-  const handleDevQuickStart = useCallback(
-    (kind: ShipKind) => {
+    handleDevJumpToUpgrades = () => {
+      const state = gameStateRef.current
+      const base = state.wave > 0 ? state.wave : 1
+      const nextUpgradeWave = Math.ceil(base / WAVES_PER_LEVEL) * WAVES_PER_LEVEL
+      gameStateRef.current = {
+        ...state,
+        phase: GamePhase.upgradeScreen,
+        wave: nextUpgradeWave,
+        level: getLevel(nextUpgradeWave),
+        enemies: [],
+        projectiles: [],
+        activeEffects: [],
+        spawnQueue: [],
+        spawnTimer: 0,
+        spawnedInWave: 1,
+        totalWaveEnemies: 1,
+        waveTimer: 0,
+      }
+      syncUI(gameStateRef.current)
+    }
+
+    handleDevQuickStart = (kind: ShipKind) => {
       gameStateRef.current = startGame(gameStateRef.current, kind)
       gameStateRef.current = startNextWave(gameStateRef.current)
       selectedAbilityRef.current = AbilityKind.meteorite
@@ -269,9 +275,8 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
         gameStateRef.current.worldSize
       )
       syncUI(gameStateRef.current)
-    },
-    [syncUI]
-  )
+    }
+  }
 
   const setSelectedAbility = useCallback(
     (kind: GameState['abilities'][number]['kind']) => {
