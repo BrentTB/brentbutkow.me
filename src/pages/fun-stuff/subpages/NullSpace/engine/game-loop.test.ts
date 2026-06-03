@@ -7,7 +7,15 @@ import {
   applyUpgradeToState,
 } from './game-loop'
 import { resetUid, createEnemy } from './entities'
-import { AbilityKind, CollectibleKind, EffectKind, EnemyKind, GamePhase, UpgradeId } from './types'
+import {
+  AbilityKind,
+  CollectibleKind,
+  EffectKind,
+  EnemyKind,
+  GamePhase,
+  ShipKind,
+  UpgradeId,
+} from './types'
 import { isUpgradeWave } from './upgrades'
 import { ENEMY_STATS, WAVES_PER_LEVEL } from '../data'
 
@@ -30,13 +38,13 @@ describe('createInitialState', () => {
 describe('startGame', () => {
   it('transitions to playing phase', () => {
     const initial = createInitialState()
-    const started = startGame(initial)
+    const started = startGame(initial, ShipKind.fighter)
     expect(started.phase).toBe(GamePhase.playing)
     expect(started.currency).toBe(0)
   })
 
   it('creates a ship with full health', () => {
-    const state = startGame(createInitialState())
+    const state = startGame(createInitialState(), ShipKind.fighter)
     const waved = startNextWave(state)
     expect(waved.ship.hp).toBe(waved.ship.maxHp)
   })
@@ -44,7 +52,7 @@ describe('startGame', () => {
 
 describe('startNextWave', () => {
   it('increments wave and queues enemies for spawning', () => {
-    let state = startGame(createInitialState())
+    let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     expect(state.wave).toBe(1)
     expect(state.spawnQueue.length).toBeGreaterThan(0)
@@ -62,7 +70,7 @@ describe('updateGameState', () => {
   })
 
   it('moves enemies toward ship over time', () => {
-    let state = startGame(createInitialState())
+    let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     // Tick once to spawn an enemy from the queue
     state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
@@ -93,7 +101,7 @@ describe('updateGameState', () => {
   })
 
   it('ship auto-attacks enemies in range', () => {
-    let state = startGame(createInitialState())
+    let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     // Tick to spawn an enemy, then move it into range
     state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
@@ -110,13 +118,13 @@ describe('updateGameState', () => {
   })
 
   it('game over when ship hp reaches 0', () => {
-    let state = startGame(createInitialState())
+    let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     // Tick to spawn enemies from queue
     state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
     state = {
       ...state,
-      ship: { ...state.ship, hp: 1 },
+      ship: { ...state.ship, hp: 1, shield: 0 },
       enemies: state.enemies.map((e) => ({
         ...e,
         pos: { ...state.ship.pos },
@@ -128,13 +136,13 @@ describe('updateGameState', () => {
   })
 
   it('flags a new high score only when the score beats the previous best', () => {
-    let state = startGame(createInitialState())
+    let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     // Tick to spawn enemies from queue
     state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
     const dying = {
       ...state,
-      ship: { ...state.ship, hp: 1 },
+      ship: { ...state.ship, hp: 1, shield: 0 },
       enemies: state.enemies.map((e) => ({ ...e, pos: { ...state.ship.pos } })),
     }
 
@@ -152,7 +160,7 @@ describe('updateGameState', () => {
   })
 
   it('shows upgrade screen after completing the 3rd wave', () => {
-    let state = startGame(createInitialState())
+    let state = startGame(createInitialState(), ShipKind.fighter)
     state = { ...state, wave: WAVES_PER_LEVEL, phase: GamePhase.playing }
     state = {
       ...state,
@@ -167,7 +175,7 @@ describe('updateGameState', () => {
   })
 
   it('shows correct phase after wave completion', () => {
-    let state = startGame(createInitialState())
+    let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     state = {
       ...state,
@@ -184,7 +192,7 @@ describe('updateGameState', () => {
 
 describe('applyUpgradeToState', () => {
   it('deducts currency and upgrades ability', () => {
-    let state = startGame(createInitialState())
+    let state = startGame(createInitialState(), ShipKind.fighter)
     state = { ...state, currency: 50 }
     const before = state.currency
     const upgraded = applyUpgradeToState(state, UpgradeId.meteoriteDamage)
@@ -193,7 +201,7 @@ describe('applyUpgradeToState', () => {
   })
 
   it('does nothing when insufficient currency', () => {
-    let state = startGame(createInitialState())
+    let state = startGame(createInitialState(), ShipKind.fighter)
     state = { ...state, currency: 0 }
     const upgraded = applyUpgradeToState(state, UpgradeId.meteoriteDamage)
     expect(upgraded.currency).toBe(0)
@@ -201,7 +209,7 @@ describe('applyUpgradeToState', () => {
   })
 
   it('unlocking meteor makes it usable', () => {
-    let state = startGame(createInitialState())
+    let state = startGame(createInitialState(), ShipKind.fighter)
     state = { ...state, currency: 50 }
     const upgraded = applyUpgradeToState(state, UpgradeId.unlockMeteor)
     const meteor = upgraded.abilities.find((a) => a.kind === AbilityKind.meteor)
@@ -224,7 +232,7 @@ describe('updateGameState — state field round-trip persistence', () => {
   }
 
   it('clicking on space metal increments state.spaceMetal in the returned state', () => {
-    let state = startGame(createInitialState())
+    let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     state = injectCollectible(state, {
       id: 'metal-1',
@@ -247,7 +255,7 @@ describe('updateGameState — state field round-trip persistence', () => {
   })
 
   it('clicked space metal is removed from state.collectibles in the returned state', () => {
-    let state = startGame(createInitialState())
+    let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     state = injectCollectible(state, {
       id: 'metal-1',
@@ -269,7 +277,7 @@ describe('updateGameState — state field round-trip persistence', () => {
   })
 
   it('state.spaceMetal persists across many frames after being incremented', () => {
-    let state = startGame(createInitialState())
+    let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     state = injectCollectible(state, {
       id: 'metal-1',
@@ -295,7 +303,7 @@ describe('updateGameState — state field round-trip persistence', () => {
   })
 
   it('power orb at the ship is consumed: removed from collectibles, power increases', () => {
-    let state = startGame(createInitialState())
+    let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     state = { ...state, power: 50 }
     state = injectCollectible(state, {
@@ -316,7 +324,7 @@ describe('updateGameState — state field round-trip persistence', () => {
   })
 
   it('uncollected power orbs remain in state.collectibles across frames', () => {
-    let state = startGame(createInitialState())
+    let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     state = injectCollectible(state, {
       id: 'far-orb',
@@ -334,7 +342,7 @@ describe('updateGameState — state field round-trip persistence', () => {
   })
 
   it('manually-set spaceMetal value is preserved through a tick (no clicks)', () => {
-    let state = startGame(createInitialState())
+    let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     state = { ...state, spaceMetal: 7 }
 
@@ -343,7 +351,7 @@ describe('updateGameState — state field round-trip persistence', () => {
   })
 
   it('scalar field invariant: spaceMetal only increases when a metal is collected', () => {
-    let state = startGame(createInitialState())
+    let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     state = { ...state, spaceMetal: 3 }
 
@@ -356,7 +364,7 @@ describe('updateGameState — state field round-trip persistence', () => {
   })
 
   it('array field invariant: collectibles spawned by kills appear in the returned state', () => {
-    let state = startGame(createInitialState())
+    let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
 
@@ -396,7 +404,7 @@ describe('updateGameState — state field round-trip persistence', () => {
 // regression to "snap velocity each frame" would produce instant 180° flips.
 describe('updateGameState — chase-movement smoothing (tank behaviour)', () => {
   it('a chasing enemy moves toward the ship over one tick', () => {
-    let state = startGame(createInitialState())
+    let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
 
@@ -419,7 +427,7 @@ describe('updateGameState — chase-movement smoothing (tank behaviour)', () => 
   })
 
   it('chase velocity does not snap to the new target in a single frame', () => {
-    let state = startGame(createInitialState())
+    let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
 
@@ -451,7 +459,7 @@ describe('updateGameState — chase-movement smoothing (tank behaviour)', () => 
   })
 
   it('a faster enemy turns more quickly than a slower one', () => {
-    let state = startGame(createInitialState())
+    let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
 
@@ -506,7 +514,7 @@ describe('updateGameState — chase-movement smoothing (tank behaviour)', () => 
 // future refactor that bypasses the phase guard is caught immediately.
 describe('updateGameState — paused phase halts simulation', () => {
   it('returns the same state object unchanged when phase === paused', () => {
-    let state = startGame(createInitialState())
+    let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     state = { ...state, phase: GamePhase.paused }
 
@@ -515,7 +523,7 @@ describe('updateGameState — paused phase halts simulation', () => {
   })
 
   it('queued enemies do not spawn while paused', () => {
-    let state = startGame(createInitialState())
+    let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     const queueBefore = state.spawnQueue.length
     state = { ...state, phase: GamePhase.paused, waveTimer: 0 }
@@ -530,7 +538,7 @@ describe('updateGameState — paused phase halts simulation', () => {
   })
 
   it('power orbs at the ship are not collected while paused', () => {
-    let state = startGame(createInitialState())
+    let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     state = {
       ...state,
@@ -559,7 +567,7 @@ describe('updateGameState — paused phase halts simulation', () => {
   })
 
   it('does not regenerate power while paused', () => {
-    let state = startGame(createInitialState())
+    let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     state = { ...state, phase: GamePhase.paused, power: 100 }
 
@@ -578,7 +586,7 @@ describe('updateGameState — paused phase halts simulation', () => {
 // during the run-up to the next wave.
 describe('updateGameState — wave delay only gates spawning', () => {
   it('in-flight meteor strikes keep advancing during the wave delay', () => {
-    let state = startGame(createInitialState())
+    let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     // Construct a state mimicking the moment right after "Next Wave": waveTimer
     // is positive (1s for wave 2+), an effect is in flight from the prior wave.
@@ -608,7 +616,7 @@ describe('updateGameState — wave delay only gates spawning', () => {
   })
 
   it('power orbs in flight keep homing during the wave delay', () => {
-    let state = startGame(createInitialState())
+    let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     state = {
       ...state,
@@ -640,7 +648,7 @@ describe('updateGameState — wave delay only gates spawning', () => {
   })
 
   it('the wave delay still prevents enemies from spawning', () => {
-    let state = startGame(createInitialState())
+    let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     state = { ...state, wave: 2, waveTimer: 1, spawnTimer: 0 }
     const queueBefore = state.spawnQueue.length
@@ -653,7 +661,7 @@ describe('updateGameState — wave delay only gates spawning', () => {
   })
 
   it('the wave timer decrements down to zero', () => {
-    let state = startGame(createInitialState())
+    let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     state = { ...state, wave: 2, waveTimer: 0.5 }
 
@@ -669,7 +677,7 @@ describe('updateGameState — wave delay only gates spawning', () => {
 // contact damage.
 describe('updateGameState — bomber explodes on death (including by ramming)', () => {
   it('a bomber killed by ramming the ship deals its explosion AoE, not just contact', () => {
-    let state = startGame(createInitialState())
+    let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
 
     const shipPos = state.ship.pos
@@ -684,7 +692,7 @@ describe('updateGameState — bomber explodes on death (including by ramming)', 
       enemies: [{ ...createEnemy(EnemyKind.bomber, { x: shipPos.x, y: shipPos.y }), hp: 100000 }],
     }
 
-    const before = state.ship.hp
+    const before = state.ship.hp + state.ship.shield
     const next = updateGameState(state, 1 / 60, { clicks: [], selectedAbility: null })
 
     // The bomber is destroyed by the ram...
@@ -692,7 +700,7 @@ describe('updateGameState — bomber explodes on death (including by ramming)', 
     // ...and the ship took at least the explosion AoE on top of contact damage.
     // Pre-fix this path skipped resolveDeathEffects, so hpLost was only the
     // bomber's contact damage (well under explosionDamage).
-    const hpLost = before - next.ship.hp
+    const hpLost = before - (next.ship.hp + next.ship.shield)
     expect(hpLost).toBeGreaterThanOrEqual(ENEMY_STATS.bomber.explosionDamage)
   })
 })
@@ -703,7 +711,7 @@ describe('updateGameState — bomber explodes on death (including by ramming)', 
 // regression to Date.now() would make the path independent of enemy.age.
 describe('updateGameState — swarm weave is driven by game time, not wall-clock', () => {
   it('the weave reads enemy.age (twins differing only in age move differently)', () => {
-    let state = startGame(createInitialState())
+    let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     const pos = { x: state.ship.pos.x + 300, y: state.ship.pos.y }
     // Two swarm "twins": identical id (→ identical phase offset) and start
@@ -720,7 +728,7 @@ describe('updateGameState — swarm weave is driven by game time, not wall-clock
   })
 
   it('advances enemy age by the (speed-scaled) dt each tick', () => {
-    let state = startGame(createInitialState())
+    let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     const swarm = {
       ...createEnemy(EnemyKind.swarm, { x: state.ship.pos.x + 300, y: state.ship.pos.y }),
@@ -749,7 +757,7 @@ describe('updateGameState — shield blocks bomber explosions', () => {
   }
 
   it('BLOCKS when ship is inside and bomber is outside', () => {
-    let state = startGame(createInitialState())
+    let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     const bomber = {
       ...createEnemy(EnemyKind.bomber, { x: state.ship.pos.x + 30, y: state.ship.pos.y }),
@@ -757,7 +765,7 @@ describe('updateGameState — shield blocks bomber explosions', () => {
     }
     state = {
       ...state,
-      ship: { ...state.ship, hp: 100 },
+      ship: { ...state.ship, hp: 100, shield: 0 },
       enemies: [bomber],
       activeEffects: [...state.activeEffects, shieldEffect(state.ship.pos, 20)],
     }
@@ -768,7 +776,7 @@ describe('updateGameState — shield blocks bomber explosions', () => {
   })
 
   it('does NOT block when bomber is inside the same shield as the ship', () => {
-    let state = startGame(createInitialState())
+    let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     const bomber = {
       ...createEnemy(EnemyKind.bomber, { x: state.ship.pos.x + 30, y: state.ship.pos.y }),
@@ -779,7 +787,7 @@ describe('updateGameState — shield blocks bomber explosions', () => {
     const shield = { ...shieldEffect(state.ship.pos, 200), grandfatheredEnemyIds: [bomber.id] }
     state = {
       ...state,
-      ship: { ...state.ship, hp: 100 },
+      ship: { ...state.ship, hp: 100, shield: 0 },
       enemies: [bomber],
       activeEffects: [...state.activeEffects, shield],
     }
@@ -790,7 +798,7 @@ describe('updateGameState — shield blocks bomber explosions', () => {
   })
 
   it('does NOT block when ship is outside the shield', () => {
-    let state = startGame(createInitialState())
+    let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     const bomber = {
       ...createEnemy(EnemyKind.bomber, { x: state.ship.pos.x + 30, y: state.ship.pos.y }),
@@ -798,7 +806,7 @@ describe('updateGameState — shield blocks bomber explosions', () => {
     }
     state = {
       ...state,
-      ship: { ...state.ship, hp: 100 },
+      ship: { ...state.ship, hp: 100, shield: 0 },
       enemies: [bomber],
       activeEffects: [
         ...state.activeEffects,

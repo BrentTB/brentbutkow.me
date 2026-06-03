@@ -3,7 +3,7 @@ import { renderHook, act } from '@testing-library/react'
 import { abilityKindForHotkey, useNullSpace } from './useNullSpace'
 import { createRef } from 'react'
 import { createAbilities } from './engine/entities'
-import { AbilityKind, GamePhase } from './engine/types'
+import { AbilityKind, GamePhase, ShipKind } from './engine/types'
 import { WEAPON_ORDER } from './data'
 
 describe('useNullSpace', () => {
@@ -22,6 +22,7 @@ describe('useNullSpace', () => {
     const canvasRef = createRef<HTMLCanvasElement>()
     const { result } = renderHook(() => useNullSpace(canvasRef))
     expect(typeof result.current.handleStart).toBe('function')
+    expect(typeof result.current.handleSelectShip).toBe('function')
     expect(typeof result.current.handleNextWave).toBe('function')
     expect(typeof result.current.handleRestart).toBe('function')
     expect(typeof result.current.setSelectedAbility).toBe('function')
@@ -30,6 +31,7 @@ describe('useNullSpace', () => {
     expect(typeof result.current.handlePause).toBe('function')
     expect(typeof result.current.handleResume).toBe('function')
     expect(typeof result.current.handleSetSpeed).toBe('function')
+    expect(typeof result.current.handleUseSpaceMetalShield).toBe('function')
   })
 
   it('pauses and resumes a playing game', () => {
@@ -37,6 +39,8 @@ describe('useNullSpace', () => {
     const { result } = renderHook(() => useNullSpace(canvasRef))
 
     act(() => result.current.handleStart())
+    expect(result.current.uiState.phase).toBe(GamePhase.shipSelection)
+    act(() => result.current.handleSelectShip(ShipKind.fighter))
     expect(result.current.uiState.phase).toBe(GamePhase.playing)
 
     act(() => result.current.handlePause())
@@ -60,6 +64,7 @@ describe('useNullSpace', () => {
     const { result } = renderHook(() => useNullSpace(canvasRef))
 
     act(() => result.current.handleStart())
+    act(() => result.current.handleSelectShip(ShipKind.fighter))
     act(() => result.current.handleSetSpeed(2))
     expect(result.current.uiState.phase).toBe(GamePhase.playing)
   })

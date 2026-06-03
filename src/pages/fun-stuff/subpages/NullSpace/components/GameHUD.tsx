@@ -8,6 +8,7 @@ type GameHUDProps = {
   onAbilitySelect: (kind: GameUIState['selectedAbility']) => void
   onPause: () => void
   onToggleFullscreen: () => void
+  onUseSpaceMetalShield: () => void
   isFullscreen: boolean
   gameSpeed: number
 }
@@ -25,14 +26,18 @@ export function GameHUD({
   onAbilitySelect,
   onPause,
   onToggleFullscreen,
+  onUseSpaceMetalShield,
   isFullscreen,
   gameSpeed,
 }: GameHUDProps) {
-  if (uiState.phase === GamePhase.menu) return null
+  if (uiState.phase === GamePhase.menu || uiState.phase === GamePhase.shipSelection) return null
 
   const hpRatio = Math.max(0, uiState.shipHp / uiState.shipMaxHp)
   const hpColor = hpRatio > 0.5 ? '#44bb44' : hpRatio > 0.25 ? '#ccaa22' : '#cc3333'
+  const shieldRatio = Math.max(0, uiState.shipShield / uiState.shipMaxShield)
+  const shieldOnCooldown = uiState.shieldCooldownRemaining > 0
   const powerRatio = Math.max(0, uiState.power / uiState.maxPower)
+  const canRechargeShield = uiState.spaceMetal >= 1 && uiState.shipShield < uiState.shipMaxShield
   const progressRatio = getLevelProgress(uiState)
   const dots = Array.from({ length: WAVES_PER_LEVEL + 1 }, (_, i) => i)
 
@@ -57,6 +62,21 @@ export function GameHUD({
       </div>
       <div className={styles.topBar}>
         <div className={styles.bars}>
+          <div className={styles.barRow}>
+            <span className={styles.label}>SHD</span>
+            <div className={styles.barOuter}>
+              <div
+                className={`${styles.barInner} ${shieldOnCooldown ? styles.barShieldCooldown : ''}`}
+                style={{
+                  width: `${shieldRatio * 100}%`,
+                  backgroundColor: shieldOnCooldown ? '#335566' : '#6ae8f5',
+                }}
+              />
+            </div>
+            <span className={styles.barText}>
+              {Math.ceil(uiState.shipShield)}/{uiState.shipMaxShield}
+            </span>
+          </div>
           <div className={styles.barRow}>
             <span className={styles.label}>HP</span>
             <div className={styles.barOuter}>
@@ -88,7 +108,18 @@ export function GameHUD({
             {CURRENCY_NAME}: {uiState.currency}
           </span>
           {uiState.spaceMetal > 0 && (
-            <span className={styles.spaceMetal}>⬡ {uiState.spaceMetal}</span>
+            <span className={styles.spaceMetal}>
+              ⬡ {uiState.spaceMetal}
+              <button
+                type="button"
+                className={`${styles.shieldRechargeBtn} ${canRechargeShield ? styles.shieldRechargeBtnActive : ''}`}
+                onClick={onUseSpaceMetalShield}
+                disabled={!canRechargeShield}
+                aria-label="Recharge shield (costs 1 space metal, press F)"
+              >
+                ⟳ F
+              </button>
+            </span>
           )}
           {gameSpeed !== 1 && <span className={styles.speedBadge}>{gameSpeed}×</span>}
           <button

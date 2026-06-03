@@ -1,4 +1,4 @@
-import { AbilityKind } from './engine/types'
+import { AbilityKind, ShipKind } from './engine/types'
 import type { EnemyKind } from './engine/types'
 
 export const GAME_NAME = 'Null Space'
@@ -13,6 +13,94 @@ export const SHIP_DEFAULTS = {
   speed: 120,
   radius: 16,
   attackRange: 280,
+}
+
+export type ShipVariantStats = {
+  hp: number
+  maxHp: number
+  maxShield: number
+  shieldRegen: number
+  damage: number
+  fireRate: number
+  speed: number
+  attackRange: number
+  radius: number
+  weaponSlots: number
+}
+
+export type ShipVariantConfig = {
+  label: string
+  description: string
+  stats: ShipVariantStats
+}
+
+export const SHIELD_COOLDOWN = 3
+
+export const SHIP_VARIANTS: Record<ShipKind, ShipVariantConfig> = {
+  [ShipKind.fighter]: {
+    label: 'Fighter',
+    description: 'Balanced all-round ship. Reliable in any situation.',
+    stats: {
+      hp: 100,
+      maxHp: 100,
+      maxShield: 50,
+      shieldRegen: 4,
+      damage: 6,
+      fireRate: 2.5,
+      speed: 120,
+      attackRange: 280,
+      radius: 16,
+      weaponSlots: 1,
+    },
+  },
+  [ShipKind.interceptor]: {
+    label: 'Interceptor',
+    description: 'Fast and hard-hitting. Fragile under sustained fire.',
+    stats: {
+      hp: 70,
+      maxHp: 70,
+      maxShield: 25,
+      shieldRegen: 3,
+      damage: 8,
+      fireRate: 3,
+      speed: 180,
+      attackRange: 280,
+      radius: 14,
+      weaponSlots: 1,
+    },
+  },
+  [ShipKind.dreadnought]: {
+    label: 'Dreadnought',
+    description: 'Massive shield pool that regens after a brief cooldown. Slow but hard to kill.',
+    stats: {
+      hp: 110,
+      maxHp: 110,
+      maxShield: 120,
+      shieldRegen: 6,
+      damage: 4,
+      fireRate: 1.5,
+      speed: 75,
+      attackRange: 280,
+      radius: 18,
+      weaponSlots: 1,
+    },
+  },
+  [ShipKind.carrier]: {
+    label: 'Carrier',
+    description: 'Fires at 3 enemies at once — but weaker hull, lower speed, and slower guns.',
+    stats: {
+      hp: 75,
+      maxHp: 75,
+      maxShield: 30,
+      shieldRegen: 2,
+      damage: 4,
+      fireRate: 1.5,
+      speed: 90,
+      attackRange: 280,
+      radius: 16,
+      weaponSlots: 3,
+    },
+  },
 }
 
 export const POWER_DEFAULTS = {
@@ -205,6 +293,29 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.7.0',
+    date: '2026-06-03',
+    changes: {
+      features: [
+        'Ship selection screen before each game — choose from Fighter, Interceptor, Dreadnought, or Carrier',
+        'Fighter: balanced all-round ship (100 HP, 50 shield)',
+        'Interceptor: fast glass cannon (70 HP, 25 shield, 8 damage, 180 speed)',
+        'Dreadnought: massive shield pool that regens after cooldown (110 HP, 120 shield, slow)',
+        'Carrier: fires at up to 3 enemies simultaneously (moderate stats)',
+        'Ship shield system — a secondary HP layer that absorbs damage first and regens over time',
+        'When the shield breaks it enters a cooldown before regenerating at half the starting amount',
+        'Space metal can instantly refill the shield — press F or click the HUD button',
+        'New upgrade: Fire Rate — increase auto-turret fire rate (3 tiers)',
+        'New upgrade: Shield Strength — increase maximum shield (3 tiers)',
+        'New upgrade: Engine Boost — increase ship speed (3 tiers)',
+      ],
+      fixes: [
+        'Shop upgrade buttons are now fully clickable (previously only the text was clickable, not the surrounding box)',
+        'Fixed an issue where if 2 player bullets were in the air and one hit an enemy, the other would be removed',
+      ],
+    },
+  },
   {
     version: '0.6.1',
     date: '2026-06-02',

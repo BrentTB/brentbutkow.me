@@ -1,5 +1,5 @@
 import {
-  SHIP_DEFAULTS,
+  SHIP_VARIANTS,
   PROJECTILE_SPEED,
   PROJECTILE_LIFETIME,
   PROJECTILE_RADIUS,
@@ -12,7 +12,7 @@ import {
   WEAPON_ORDER,
   ENEMY_STATS,
 } from '../data'
-import { AbilityKind, DeathBehavior, EnemyKind, MovementBehavior } from './types'
+import { AbilityKind, DeathBehavior, EnemyKind, MovementBehavior, ShipKind } from './types'
 import type { Ship, Enemy, Projectile, Vec2, Ability, Particle } from './types'
 import { rng } from './random'
 
@@ -41,20 +41,27 @@ export function resetUid(): void {
   nextId = 0
 }
 
-export function createShip(worldSize: Vec2): Ship {
+export function createShip(kind: ShipKind, worldSize: Vec2): Ship {
+  const s = SHIP_VARIANTS[kind].stats
   return {
     id: uid(),
+    kind,
     pos: { x: worldSize.x / 2, y: worldSize.y / 2 },
     vel: { x: 0, y: 0 },
-    radius: SHIP_DEFAULTS.radius,
-    hp: SHIP_DEFAULTS.hp,
-    maxHp: SHIP_DEFAULTS.maxHp,
-    fireRate: SHIP_DEFAULTS.fireRate,
+    radius: s.radius,
+    hp: s.maxHp,
+    maxHp: s.maxHp,
+    shield: s.maxShield,
+    maxShield: s.maxShield,
+    shieldRegen: s.shieldRegen,
+    shieldCooldownRemaining: 0,
+    fireRate: s.fireRate,
     fireCooldown: 0,
-    damage: SHIP_DEFAULTS.damage,
-    speed: SHIP_DEFAULTS.speed,
-    attackRange: SHIP_DEFAULTS.attackRange,
+    damage: s.damage,
+    speed: s.speed,
+    attackRange: s.attackRange,
     patrolAngle: 0,
+    weaponSlots: s.weaponSlots,
   }
 }
 

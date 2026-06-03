@@ -6,7 +6,7 @@ import {
   ROCKET,
   SHIELD,
   SUN,
-  SHIP_DEFAULTS,
+  SHIP_VARIANTS,
 } from '../data'
 import { AbilityKind, UpgradeCategory, UpgradeId } from './types'
 import type { Ability, PlayerUpgrades, Ship, UpgradeDefinition } from './types'
@@ -223,6 +223,39 @@ export const UPGRADE_DEFINITIONS: Record<UpgradeId, UpgradeDefinition> = {
       { cost: 30, value: 5 },
     ],
   },
+  [UpgradeId.shipFireRate]: {
+    id: UpgradeId.shipFireRate,
+    category: UpgradeCategory.ship,
+    label: 'Fire Rate',
+    description: 'Increase auto-turret fire rate',
+    tiers: [
+      { cost: 8, value: 0.4 },
+      { cost: 16, value: 0.4 },
+      { cost: 28, value: 0.6 },
+    ],
+  },
+  [UpgradeId.shipShieldStrength]: {
+    id: UpgradeId.shipShieldStrength,
+    category: UpgradeCategory.ship,
+    label: 'Shield Capacitor',
+    description: 'Increase maximum shield capacity',
+    tiers: [
+      { cost: 6, value: 20 },
+      { cost: 12, value: 20 },
+      { cost: 22, value: 40 },
+    ],
+  },
+  [UpgradeId.shipSpeed]: {
+    id: UpgradeId.shipSpeed,
+    category: UpgradeCategory.ship,
+    label: 'Engine Boost',
+    description: 'Increase ship movement speed',
+    tiers: [
+      { cost: 8, value: 15 },
+      { cost: 16, value: 15 },
+      { cost: 28, value: 25 },
+    ],
+  },
   [UpgradeId.powerRegen]: {
     id: UpgradeId.powerRegen,
     category: UpgradeCategory.powers,
@@ -395,8 +428,12 @@ export function applyUpgradesToAbilities(
 }
 
 export function applyUpgradesToShip(ship: Ship, upgrades: PlayerUpgrades): Ship {
-  let maxHp = SHIP_DEFAULTS.maxHp
-  let damage = SHIP_DEFAULTS.damage
+  const base = SHIP_VARIANTS[ship.kind].stats
+  let maxHp = base.maxHp
+  let damage = base.damage
+  let fireRate = base.fireRate
+  let maxShield = base.maxShield
+  let speed = base.speed
 
   const hpTier = upgrades[UpgradeId.shipMaxHp].currentTier
   for (let i = 0; i < hpTier; i++) {
@@ -408,12 +445,32 @@ export function applyUpgradesToShip(ship: Ship, upgrades: PlayerUpgrades): Ship 
     damage += UPGRADE_DEFINITIONS[UpgradeId.shipDamage].tiers[i].value
   }
 
+  const frTier = upgrades[UpgradeId.shipFireRate].currentTier
+  for (let i = 0; i < frTier; i++) {
+    fireRate += UPGRADE_DEFINITIONS[UpgradeId.shipFireRate].tiers[i].value
+  }
+
+  const shieldTier = upgrades[UpgradeId.shipShieldStrength].currentTier
+  for (let i = 0; i < shieldTier; i++) {
+    maxShield += UPGRADE_DEFINITIONS[UpgradeId.shipShieldStrength].tiers[i].value
+  }
+
+  const speedTier = upgrades[UpgradeId.shipSpeed].currentTier
+  for (let i = 0; i < speedTier; i++) {
+    speed += UPGRADE_DEFINITIONS[UpgradeId.shipSpeed].tiers[i].value
+  }
+
   const hpGain = maxHp - ship.maxHp
+  const shieldGain = maxShield - ship.maxShield
   return {
     ...ship,
     maxHp,
     hp: Math.min(ship.hp + Math.max(0, hpGain), maxHp),
+    maxShield,
+    shield: Math.min(ship.shield + Math.max(0, shieldGain), maxShield),
     damage,
+    fireRate,
+    speed,
   }
 }
 

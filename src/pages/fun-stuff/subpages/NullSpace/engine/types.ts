@@ -9,13 +9,27 @@ export type Entity = {
   maxHp: number
 }
 
+export const ShipKind = {
+  fighter: 'fighter',
+  interceptor: 'interceptor',
+  dreadnought: 'dreadnought',
+  carrier: 'carrier',
+} as const
+export type ShipKind = (typeof ShipKind)[keyof typeof ShipKind]
+
 export type Ship = Entity & {
+  kind: ShipKind
   fireRate: number
   fireCooldown: number
   damage: number
   speed: number
   attackRange: number
   patrolAngle: number
+  shield: number
+  maxShield: number
+  shieldRegen: number
+  shieldCooldownRemaining: number
+  weaponSlots: number
 }
 
 export const EnemyKind = {
@@ -181,6 +195,7 @@ export type Particle = {
 
 export const GamePhase = {
   menu: 'menu',
+  shipSelection: 'shipSelection',
   playing: 'playing',
   paused: 'paused',
   waveComplete: 'waveComplete',
@@ -216,6 +231,9 @@ export const UpgradeId = {
   sunDuration: 'sunDuration',
   shipMaxHp: 'shipMaxHp',
   shipDamage: 'shipDamage',
+  shipFireRate: 'shipFireRate',
+  shipShieldStrength: 'shipShieldStrength',
+  shipSpeed: 'shipSpeed',
   powerRegen: 'powerRegen',
 } as const
 export type UpgradeId = (typeof UpgradeId)[keyof typeof UpgradeId]
@@ -239,6 +257,7 @@ export type PlayerUpgrades = Record<UpgradeId, { currentTier: number }>
 
 export type GameState = {
   phase: GamePhase
+  shipKind: ShipKind
   ship: Ship
   enemies: Enemy[]
   projectiles: Projectile[]

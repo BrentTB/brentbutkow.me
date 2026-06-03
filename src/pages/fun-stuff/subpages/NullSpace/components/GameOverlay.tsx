@@ -1,7 +1,15 @@
-import { useState } from 'react'
-import { ABILITY_META, CURRENCY_NAME, GAME_NAME, WAVES_PER_LEVEL, WEAPON_ORDER } from '../data'
-import { AbilityKind, GamePhase, UpgradeCategory, UpgradeId } from '../engine/types'
+import { useEffect, useRef, useState } from 'react'
+import {
+  ABILITY_META,
+  CURRENCY_NAME,
+  GAME_NAME,
+  SHIP_VARIANTS,
+  WAVES_PER_LEVEL,
+  WEAPON_ORDER,
+} from '../data'
+import { AbilityKind, GamePhase, ShipKind, UpgradeCategory, UpgradeId } from '../engine/types'
 import type { UpgradeDefinition } from '../engine/types'
+import { SPRITE_MAP, SpriteKey } from '../renderer/sprites'
 import {
   UPGRADE_DEFINITIONS,
   UPGRADE_CATEGORY_LABELS,
@@ -14,6 +22,7 @@ import styles from './GameOverlay.module.scss'
 type GameOverlayProps = {
   uiState: GameUIState
   onStart: () => void
+  onSelectShip: (kind: ShipKind) => void
   onNextWave: () => void
   onRestart: () => void
   onPurchaseUpgrade: (upgradeId: UpgradeId) => void
@@ -26,6 +35,7 @@ type GameOverlayProps = {
 export function GameOverlay({
   uiState,
   onStart,
+  onSelectShip,
   onNextWave,
   onRestart,
   onPurchaseUpgrade,
@@ -52,6 +62,9 @@ export function GameOverlay({
     <div className={styles.overlay}>
       <div className={styles.content}>
         {uiState.phase === GamePhase.menu && <MenuScreen onStart={onStart} />}
+        {uiState.phase === GamePhase.shipSelection && (
+          <ShipSelectionScreen onSelect={onSelectShip} />
+        )}
         {uiState.phase === GamePhase.paused && !settingsOpen && (
           <PauseScreen
             onResume={handleResume}
@@ -169,6 +182,133 @@ function MenuScreen({ onStart }: { onStart: () => void }) {
         Start Game
       </button>
     </>
+  )
+}
+
+const SHIP_ORDER: ShipKind[] = [
+  ShipKind.fighter,
+  ShipKind.interceptor,
+  ShipKind.dreadnought,
+  ShipKind.carrier,
+]
+
+const STAT_MAX = { hp: 160, shield: 140, damage: 10, speed: 200, fireRate: 4, shieldRegen: 8 }
+
+const SHIP_PREVIEW_SPRITE: Record<ShipKind, SpriteKey> = {
+  [ShipKind.fighter]: SpriteKey.ship,
+  [ShipKind.interceptor]: SpriteKey.shipInterceptor,
+  [ShipKind.dreadnought]: SpriteKey.shipDreadnought,
+  [ShipKind.carrier]: SpriteKey.shipCarrier,
+}
+
+const PREVIEW_PIXEL = 5
+
+function ShipSpritePreview({ kind }: { kind: ShipKind }) {
+  const ref = useRef<HTMLCanvasElement>(null)
+  useEffect(() => {
+    const canvas = ref.current
+    if (!canvas) return
+    const data = SPRITE_MAP[SHIP_PREVIEW_SPRITE[kind]]
+    const h = data.length
+    const w = data[0].length
+    canvas.width = w * PREVIEW_PIXEL
+    canvas.height = h * PREVIEW_PIXEL
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    ctx.imageSmoothingEnabled = false
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const color = data[y][x]
+        if (color) {
+          ctx.fillStyle = color
+          ctx.fillRect(x * PREVIEW_PIXEL, y * PREVIEW_PIXEL, PREVIEW_PIXEL, PREVIEW_PIXEL)
+        }
+      }
+    }
+  }, [kind])
+  return <canvas ref={ref} className={styles.shipPreviewCanvas} />
+}
+
+function StatBar({
+  label,
+  value,
+  max,
+  color,
+}: {
+  label: string
+  value: number
+  max: number
+  color: string
+}) {
+  return (
+    <div className={styles.statRow}>
+      <span className={styles.statLabel}>{label}</span>
+      <div className={styles.statTrack}>
+        <div
+          className={styles.statFill}
+          style={{ width: `${Math.min(100, (value / max) * 100)}%`, backgroundColor: color }}
+        />
+      </div>
+    </div>
+  )
+}
+
+function ShipSelectionScreen({ onSelect }: { onSelect: (kind: ShipKind) => void }) {
+  const [selected, setSelected] = useState<ShipKind>(ShipKind.fighter)
+  const variant = SHIP_VARIANTS[selected]
+
+  return (
+    <div className={styles.shipSelectLayout}>
+      <h2 className={styles.title}>Choose Your Ship</h2>
+      <div className={styles.shipCards}>
+        {SHIP_ORDER.map((kind) => {
+          const v = SHIP_VARIANTS[kind]
+          return (
+            <button
+              key={kind}
+              className={`${styles.shipCard} ${selected === kind ? styles.shipCardSelected : ''}`}
+              onClick={() => setSelected(kind)}
+            >
+              <span className={styles.shipCardName}>{v.label}</span>
+            </button>
+          )
+        })}
+      </div>
+      <div className={styles.shipDetail}>
+        <p className={styles.shipDesc}>{variant.description}</p>
+        <StatBar label="HP" value={variant.stats.maxHp} max={STAT_MAX.hp} color="#44bb44" />
+        <StatBar
+          label="Shield"
+          value={variant.stats.maxShield}
+          max={STAT_MAX.shield}
+          color="#6ae8f5"
+        />
+        <StatBar
+          label="Shield Regen"
+          value={variant.stats.shieldRegen}
+          max={STAT_MAX.shieldRegen}
+          color="#44bb44"
+        />
+        <StatBar
+          label="Damage"
+          value={variant.stats.damage}
+          max={STAT_MAX.damage}
+          color="#e9b872"
+        />
+        <StatBar label="Speed" value={variant.stats.speed} max={STAT_MAX.speed} color="#cc88ff" />
+        <StatBar
+          label="Fire Rate"
+          value={variant.stats.fireRate}
+          max={STAT_MAX.fireRate}
+          color="#f5a53d"
+        />
+      </div>
+      <ShipSpritePreview kind={selected} />
+      <button className={styles.primaryBtn} onClick={() => onSelect(selected)}>
+        Launch
+      </button>
+    </div>
   )
 }
 
@@ -303,26 +443,33 @@ function WeaponsList({
             ? canPurchaseUpgrade(uiState.upgrades, unlockId, uiState.currency)
             : false
 
-        return (
-          <div key={weapon} className={styles.weaponCard}>
-            <button
-              className={styles.weaponBtn}
-              onClick={() => !needsUnlock && onSelect(weapon)}
-              disabled={needsUnlock}
-            >
-              <span className={styles.weaponName}>{ABILITY_META[weapon].label}</span>
-              {!needsUnlock && <span className={styles.weaponArrow}>→</span>}
-            </button>
-            {needsUnlock && unlockId && (
+        if (needsUnlock && unlockId) {
+          return (
+            <div key={weapon} className={styles.weaponCard}>
+              <span className={`${styles.weaponBtn} ${styles.weaponBtnDisabled}`}>
+                <span className={styles.weaponName}>{ABILITY_META[weapon].label}</span>
+              </span>
               <button
+                type="button"
                 className={styles.buyBtn}
                 disabled={!canUnlock}
                 onClick={() => onPurchase(unlockId)}
               >
                 Unlock {unlockCost} ✦
               </button>
-            )}
-          </div>
+            </div>
+          )
+        }
+        return (
+          <button
+            key={weapon}
+            type="button"
+            className={`${styles.weaponCard} ${styles.weaponCardBtn}`}
+            onClick={() => onSelect(weapon)}
+          >
+            <span className={styles.weaponName}>{ABILITY_META[weapon].label}</span>
+            <span className={styles.weaponArrow}>→</span>
+          </button>
         )
       })}
     </>
@@ -381,28 +528,41 @@ function UpgradeCard({
   const nextCost = maxed ? 0 : def.tiers[currentTier].cost
   const canBuy = canPurchaseUpgrade(upgrades, def.id, currency)
 
-  return (
-    <div className={`${styles.upgradeCard} ${maxed ? styles.upgradeMaxed : ''}`}>
-      <div className={styles.upgradeInfo}>
-        <div className={styles.upgradeName}>{def.label}</div>
-        <div className={styles.upgradeDesc}>{def.description}</div>
-      </div>
-      <div className={styles.upgradeTierRow}>
+  const body = (
+    <>
+      <span className={styles.upgradeInfo}>
+        <span className={styles.upgradeName}>{def.label}</span>
+        <span className={styles.upgradeDesc}>{def.description}</span>
+      </span>
+      <span className={styles.upgradeTierRow}>
         {def.tiers.map((_, i) => (
-          <div
+          <span
             key={i}
             className={`${styles.tierPip} ${i < currentTier ? styles.tierFilled : ''}`}
           />
         ))}
-      </div>
+      </span>
       {!maxed ? (
-        <button className={styles.buyBtn} disabled={!canBuy} onClick={() => onPurchase(def.id)}>
-          {nextCost} ✦
-        </button>
+        <span className={styles.buyBtn}>{nextCost} ✦</span>
       ) : (
         <span className={styles.maxedLabel}>MAX</span>
       )}
-    </div>
+    </>
+  )
+
+  if (maxed) {
+    return <div className={`${styles.upgradeCard} ${styles.upgradeMaxed}`}>{body}</div>
+  }
+
+  return (
+    <button
+      type="button"
+      className={`${styles.upgradeCard} ${styles.upgradeCardBtn}`}
+      disabled={!canBuy}
+      onClick={() => onPurchase(def.id)}
+    >
+      {body}
+    </button>
   )
 }
 

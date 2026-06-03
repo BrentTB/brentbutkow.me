@@ -8,7 +8,7 @@ import {
   spawnExplosionParticles,
   resetUid,
 } from './entities'
-import { AbilityKind, DeathBehavior, EnemyKind, MovementBehavior } from './types'
+import { AbilityKind, DeathBehavior, EnemyKind, MovementBehavior, ShipKind } from './types'
 import { WEAPON_ORDER, WORLD_SIZE } from '../data'
 
 beforeEach(() => {
@@ -17,13 +17,13 @@ beforeEach(() => {
 
 describe('createShip', () => {
   it('places ship at world center', () => {
-    const ship = createShip(WORLD_SIZE)
+    const ship = createShip(ShipKind.fighter, WORLD_SIZE)
     expect(ship.pos.x).toBe(WORLD_SIZE.x / 2)
     expect(ship.pos.y).toBe(WORLD_SIZE.y / 2)
   })
 
   it('has full health', () => {
-    const ship = createShip(WORLD_SIZE)
+    const ship = createShip(ShipKind.fighter, WORLD_SIZE)
     expect(ship.hp).toBe(ship.maxHp)
     expect(ship.hp).toBeGreaterThan(0)
   })

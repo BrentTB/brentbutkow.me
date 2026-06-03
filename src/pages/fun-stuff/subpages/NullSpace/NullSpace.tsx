@@ -14,6 +14,7 @@ function NullSpace() {
   const {
     uiState,
     handleStart,
+    handleSelectShip,
     handleNextWave,
     handleRestart,
     setSelectedAbility,
@@ -22,6 +23,7 @@ function NullSpace() {
     handlePause,
     handleResume,
     handleSetSpeed,
+    handleUseSpaceMetalShield,
   } = useNullSpace(canvasRef)
 
   const [isRealFullscreen, setIsRealFullscreen] = useState(false)
@@ -105,12 +107,14 @@ function NullSpace() {
           onAbilitySelect={setSelectedAbility}
           onPause={handlePause}
           onToggleFullscreen={handleToggleFullscreen}
+          onUseSpaceMetalShield={handleUseSpaceMetalShield}
           isFullscreen={isFullscreen}
           gameSpeed={gameSpeed}
         />
         <GameOverlay
           uiState={uiState}
           onStart={handleStart}
+          onSelectShip={handleSelectShip}
           onNextWave={handleNextWave}
           onRestart={handleRestart}
           onPurchaseUpgrade={handlePurchaseUpgrade}

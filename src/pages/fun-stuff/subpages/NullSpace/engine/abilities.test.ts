@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { tryUseAbility, updateAbilityCooldowns } from './abilities'
 import { createAbilities, createShip, resetUid } from './entities'
-import { AbilityKind, EffectKind } from './types'
+import { AbilityKind, EffectKind, ShipKind } from './types'
 import { WORLD_SIZE } from '../data'
 
-const ship = createShip(WORLD_SIZE)
+const ship = createShip(ShipKind.fighter, WORLD_SIZE)
 
 beforeEach(() => {
   resetUid()
