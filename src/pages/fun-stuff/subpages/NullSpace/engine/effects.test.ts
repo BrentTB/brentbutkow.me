@@ -9,7 +9,7 @@ import {
   createSunEffect,
 } from './effects'
 import { createShip, createEnemy, createProjectile, resetUid } from './entities'
-import { EnemyKind, ProjectileOwner } from './types'
+import { EnemyKind, ProjectileOwner, ShipKind } from './types'
 import type { ActiveEffect } from './types'
 import { WORLD_SIZE, METEORITE_STRIKE, BLACK_HOLE, ROCKET, SHIELD, SUN } from '../data'
 
@@ -18,7 +18,7 @@ beforeEach(() => {
 })
 
 describe('updateActiveEffects', () => {
-  const ship = createShip(WORLD_SIZE)
+  const ship = createShip(ShipKind.fighter, WORLD_SIZE)
 
   describe('meteor strikes', () => {
     it('keeps strike alive during delay phase', () => {

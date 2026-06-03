@@ -1,4 +1,11 @@
-import { CollectibleKind, EffectKind, EnemyKind, ProjectileOwner } from '../engine/types'
+import {
+  CollectibleKind,
+  EffectKind,
+  EnemyKind,
+  GamePhase,
+  ProjectileOwner,
+  ShipKind,
+} from '../engine/types'
 import type {
   ActiveEffect,
   BlackHoleEffect,
@@ -27,6 +34,13 @@ const ENEMY_SPRITE: Record<EnemyKind, SpriteKey> = {
   [EnemyKind.bomber]: SpriteKey.bomber,
 }
 
+export const SHIP_SPRITE_KEY: Record<ShipKind, SpriteKey> = {
+  [ShipKind.fighter]: SpriteKey.ship,
+  [ShipKind.interceptor]: SpriteKey.shipInterceptor,
+  [ShipKind.dreadnought]: SpriteKey.shipDreadnought,
+  [ShipKind.carrier]: SpriteKey.shipCarrier,
+}
+
 export function renderFrame(
   ctx: CanvasRenderingContext2D,
   state: GameState,
@@ -53,9 +67,11 @@ export function renderFrame(
   renderParticles(ctx, state.particles, camera)
   renderEnemies(ctx, state, camera, sprites)
   renderProjectiles(ctx, state, camera, sprites)
-  renderShip(ctx, state, camera, sprites)
+  // No ship is in the world before the player has chosen one.
+  const shipInWorld = state.phase !== GamePhase.menu && state.phase !== GamePhase.shipSelection
+  if (shipInWorld) renderShip(ctx, state, camera, sprites)
   renderActiveEffectsFront(ctx, state.activeEffects, camera, sprites)
-  renderShipHealthBar(ctx, state, camera)
+  if (shipInWorld) renderShipHealthBar(ctx, state, camera)
 
   ctx.restore()
 }
@@ -67,7 +83,8 @@ function renderShip(
   sprites: SpriteCache
 ): void {
   const screen = worldToScreen(state.ship.pos, camera)
-  const size = getSpriteSize(SpriteKey.ship)
+  const spriteKey = SHIP_SPRITE_KEY[state.shipKind]
+  const size = getSpriteSize(spriteKey)
 
   ctx.save()
   ctx.translate(screen.x, screen.y)
@@ -75,7 +92,19 @@ function renderShip(
   const angle = Math.atan2(state.ship.vel.y, state.ship.vel.x) + Math.PI / 2
   ctx.rotate(angle)
 
-  ctx.drawImage(sprites.ship, -size.w / 2, -size.h / 2)
+  // Shield ring — fades with shield level, invisible at 0
+  if (state.ship.shield > 0) {
+    const shieldAlpha = (state.ship.shield / state.ship.maxShield) * 0.65
+    ctx.globalAlpha = shieldAlpha
+    ctx.strokeStyle = '#6ae8f5'
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.arc(0, 0, state.ship.radius + 12, 0, Math.PI * 2)
+    ctx.stroke()
+    ctx.globalAlpha = 1
+  }
+
+  ctx.drawImage(sprites[spriteKey], -size.w / 2, -size.h / 2)
   ctx.restore()
 }
 
@@ -273,20 +302,28 @@ function renderShipHealthBar(
   camera: Camera
 ): void {
   const screen = worldToScreen(state.ship.pos, camera)
-  const shipSize = getSpriteSize(SpriteKey.ship)
+  const shipSize = getSpriteSize(SHIP_SPRITE_KEY[state.shipKind])
   const barWidth = 40
   const barHeight = 4
   const hpRatio = Math.max(0, state.ship.hp / state.ship.maxHp)
+  const shieldRatio = Math.max(0, state.ship.shield / state.ship.maxShield)
 
   const x = screen.x - barWidth / 2
   const y = screen.y + shipSize.h / 2 + 6
 
-  ctx.fillStyle = '#221111'
+  // Shield bar (above HP bar)
+  ctx.fillStyle = '#112233'
   ctx.fillRect(x, y, barWidth, barHeight)
+  ctx.fillStyle = '#6ae8f5'
+  ctx.fillRect(x, y, barWidth * shieldRatio, barHeight)
 
+  // HP bar (below shield bar)
+  const hpY = y + barHeight + 2
+  ctx.fillStyle = '#221111'
+  ctx.fillRect(x, hpY, barWidth, barHeight)
   const hpColor = hpRatio > 0.5 ? '#44bb44' : hpRatio > 0.25 ? '#ccaa22' : '#cc3333'
   ctx.fillStyle = hpColor
-  ctx.fillRect(x, y, barWidth * hpRatio, barHeight)
+  ctx.fillRect(x, hpY, barWidth * hpRatio, barHeight)
 }
 
 // Black hole core gradients are static (colors + radius), so cache one per radius

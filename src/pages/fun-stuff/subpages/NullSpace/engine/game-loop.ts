@@ -7,6 +7,7 @@ import {
   SPAWN_DELAY,
   SPAWN_DISTANCE,
   SWARM_SPAWN_SPREAD,
+  SHIELD_COOLDOWN,
 } from '../data'
 import { checkCollision, distance } from './collision'
 import {
@@ -45,6 +46,7 @@ import {
   GamePhase,
   MovementBehavior,
   ProjectileOwner,
+  ShipKind,
 } from './types'
 import type { GameState, PlayerInput, Enemy, Vec2, Projectile, Particle, UpgradeId } from './types'
 
@@ -53,7 +55,8 @@ export function createInitialState(): GameState {
   rng.reseed(Date.now())
   return {
     phase: GamePhase.menu,
-    ship: createShip(WORLD_SIZE),
+    shipKind: ShipKind.fighter,
+    ship: createShip(ShipKind.fighter, WORLD_SIZE),
     enemies: [],
     projectiles: [],
     abilities: createAbilities(),
@@ -80,14 +83,19 @@ export function createInitialState(): GameState {
   }
 }
 
-export function startGame(state: GameState): GameState {
+export function moveToShipSelection(state: GameState): GameState {
+  return { ...state, phase: GamePhase.shipSelection }
+}
+
+export function startGame(state: GameState, shipKind: ShipKind): GameState {
   resetUid()
   rng.reseed(Date.now())
-  const ship = createShip(state.worldSize)
+  const ship = createShip(shipKind, state.worldSize)
   const upgrades = createInitialUpgrades()
   return {
     ...state,
     phase: GamePhase.playing,
+    shipKind,
     ship,
     enemies: [],
     projectiles: [],
@@ -111,6 +119,15 @@ export function startGame(state: GameState): GameState {
     spawnedInWave: 0,
     highScore: loadHighScore(),
     isNewHighScore: false,
+  }
+}
+
+export function rechargeShieldWithMetal(state: GameState): GameState {
+  if (state.spaceMetal < 1 || state.ship.shield >= state.ship.maxShield) return state
+  return {
+    ...state,
+    spaceMetal: state.spaceMetal - 1,
+    ship: { ...state.ship, shield: state.ship.maxShield, shieldCooldownRemaining: 0 },
   }
 }
 
@@ -299,7 +316,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   if (killedForDeathEffects.length > 0) {
     const deathResult = resolveDeathEffects(killedForDeathEffects, ship, activeEffects)
     if (deathResult.shipDamage > 0) {
-      ship = { ...ship, hp: ship.hp - deathResult.shipDamage }
+      ship = applyDamageToShip(ship, deathResult.shipDamage)
     }
     particles = [...particles, ...deathResult.particles]
   }
@@ -322,6 +339,13 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
 
   // --- Power regen ---
   power = Math.min(maxPower, power + powerRegen * dt)
+
+  // --- Shield regen ---
+  if (ship.shieldCooldownRemaining > 0) {
+    ship = { ...ship, shieldCooldownRemaining: Math.max(0, ship.shieldCooldownRemaining - dt) }
+  } else if (ship.shield < ship.maxShield) {
+    ship = { ...ship, shield: Math.min(ship.maxShield, ship.shield + ship.shieldRegen * dt) }
+  }
 
   // --- Particles ---
   particles = updateParticles(particles, dt)
@@ -426,6 +450,20 @@ function clamp(v: number, min: number, max: number): number {
 
 type Ship = GameState['ship']
 
+function applyDamageToShip(ship: Ship, damage: number): Ship {
+  if (damage <= 0) return ship
+  const shieldAbsorb = Math.min(ship.shield, damage)
+  const hpDamage = damage - shieldAbsorb
+  return {
+    ...ship,
+    shield: ship.shield - shieldAbsorb,
+    // Any hit to the shield resets the regen timer — healing only begins after
+    // 3 seconds with no damage taken.
+    shieldCooldownRemaining: shieldAbsorb > 0 ? SHIELD_COOLDOWN : ship.shieldCooldownRemaining,
+    hp: ship.hp - hpDamage,
+  }
+}
+
 function updateShipPatrol(ship: Ship, dt: number, worldSize: { x: number; y: number }): Ship {
   const angle = ship.patrolAngle + dt * 0.4
   const cx = worldSize.x / 2
@@ -464,20 +502,20 @@ function updateShipAttack(
   let cooldown = ship.fireCooldown - dt
 
   if (cooldown <= 0 && enemies.length > 0) {
-    let nearest: Enemy | null = null
-    let nearestDist = Infinity
+    // Sort enemies in range by distance and take up to weaponSlots targets
+    const inRange = enemies
+      .map((e) => ({ enemy: e, dist: distance(ship.pos, e.pos) }))
+      .filter((x) => x.dist < ship.attackRange)
+      .sort((a, b) => a.dist - b.dist)
+      .slice(0, ship.weaponSlots)
 
-    for (const enemy of enemies) {
-      const dist = distance(ship.pos, enemy.pos)
-      if (dist < ship.attackRange && dist < nearestDist) {
-        nearest = enemy
-        nearestDist = dist
+    if (inRange.length > 0) {
+      for (const { enemy } of inRange) {
+        projectiles = [
+          ...projectiles,
+          createProjectile(ship.pos, enemy.pos, ProjectileOwner.ship, ship.damage),
+        ]
       }
-    }
-
-    if (nearest) {
-      const proj = createProjectile(ship.pos, nearest.pos, ProjectileOwner.ship, ship.damage)
-      projectiles = [...projectiles, proj]
       cooldown = 1 / ship.fireRate
     }
   }
@@ -675,7 +713,11 @@ function resolveProjectileEnemyCollisions(
   killedEnemies: Enemy[]
   particles: Particle[]
 } {
-  const hitProjectiles = new Set<string>()
+  // Track hit projectiles by OBJECT REFERENCE (not by id), so any chance of
+  // duplicate ids (HMR resetting the uid counter mid-game, two bullets
+  // accidentally sharing a string id, etc.) can't make a single hit splash-
+  // remove other in-flight bullets.
+  const hitProjectiles = new Set<Projectile>()
   const allParticles: Particle[] = []
   let scoreGained = 0
 
@@ -685,8 +727,12 @@ function resolveProjectileEnemyCollisions(
     if (proj.owner !== ProjectileOwner.ship) continue
     for (let i = 0; i < updatedEnemies.length; i++) {
       const enemy = updatedEnemies[i]
+      // Skip enemies that an earlier projectile already killed this tick — they
+      // stay in the array until the dead filter at the bottom, but a corpse
+      // shouldn't absorb a second bullet flying through the same space.
+      if (enemy.hp <= 0) continue
       if (checkCollision(proj, enemy)) {
-        hitProjectiles.add(proj.id)
+        hitProjectiles.add(proj)
         updatedEnemies[i] = { ...enemy, hp: enemy.hp - proj.damage }
         allParticles.push(...spawnExplosionParticles(enemy.pos, 6, '#ff4444'))
         break
@@ -703,7 +749,7 @@ function resolveProjectileEnemyCollisions(
   }
 
   return {
-    projectiles: projectiles.filter((p) => !hitProjectiles.has(p.id)),
+    projectiles: projectiles.filter((p) => !hitProjectiles.has(p)),
     enemies: updatedEnemies.filter((e) => e.hp > 0),
     scoreGained,
     killedEnemies,
@@ -716,12 +762,12 @@ function resolveEnemyProjectileShipCollisions(
   ship: Ship
 ): { projectiles: Projectile[]; ship: Ship; particles: Particle[] } {
   const allParticles: Particle[] = []
-  let totalDamage = 0
   const surviving: Projectile[] = []
+  let damagedShip = ship
 
   for (const proj of projectiles) {
-    if (proj.owner === ProjectileOwner.enemy && checkCollision(proj, ship)) {
-      totalDamage += proj.damage
+    if (proj.owner === ProjectileOwner.enemy && checkCollision(proj, damagedShip)) {
+      damagedShip = applyDamageToShip(damagedShip, proj.damage)
       allParticles.push(...spawnExplosionParticles(proj.pos, 4, '#ff6666'))
     } else {
       surviving.push(proj)
@@ -730,7 +776,7 @@ function resolveEnemyProjectileShipCollisions(
 
   return {
     projectiles: surviving,
-    ship: totalDamage > 0 ? { ...ship, hp: ship.hp - totalDamage } : ship,
+    ship: damagedShip,
     particles: allParticles,
   }
 }
@@ -740,13 +786,13 @@ function resolveEnemyShipCollisions(
   ship: Ship
 ): { enemies: Enemy[]; ship: Ship; particles: Particle[]; killedEnemies: Enemy[] } {
   const allParticles: Particle[] = []
-  let totalDamage = 0
   const surviving: Enemy[] = []
   const killedEnemies: Enemy[] = []
+  let damagedShip = ship
 
   for (const enemy of enemies) {
-    if (checkCollision(enemy, ship)) {
-      totalDamage += enemy.damage
+    if (checkCollision(enemy, damagedShip)) {
+      damagedShip = applyDamageToShip(damagedShip, enemy.damage)
       killedEnemies.push(enemy)
       allParticles.push(...spawnExplosionParticles(enemy.pos, 8, '#ff2222'))
     } else {
@@ -756,7 +802,7 @@ function resolveEnemyShipCollisions(
 
   return {
     enemies: surviving,
-    ship: totalDamage > 0 ? { ...ship, hp: ship.hp - totalDamage } : ship,
+    ship: damagedShip,
     particles: allParticles,
     killedEnemies,
   }

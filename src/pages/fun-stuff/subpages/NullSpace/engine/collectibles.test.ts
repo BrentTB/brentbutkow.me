@@ -6,7 +6,7 @@ import {
 } from './collectibles'
 import { createShip, createEnemy, resetUid } from './entities'
 import { rng } from './random'
-import { CollectibleKind, EnemyKind } from './types'
+import { CollectibleKind, EnemyKind, ShipKind } from './types'
 import type { Collectible } from './types'
 import { WORLD_SIZE, POWER_ORB, SPACE_METAL } from '../data'
 
@@ -84,7 +84,7 @@ describe('spawnCollectiblesFromKills', () => {
 })
 
 describe('updateCollectibles', () => {
-  const ship = createShip(WORLD_SIZE)
+  const ship = createShip(ShipKind.fighter, WORLD_SIZE)
 
   it('power orbs auto-transition to homing after the float duration', () => {
     const orb = makeOrb({

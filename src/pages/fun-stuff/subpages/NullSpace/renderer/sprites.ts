@@ -175,8 +175,76 @@ export const ROCKET_SPRITE: SpriteData = [
   [_, _, F, _, _],
 ]
 
+// Interceptor: long sleek dart silhouette. Body is 6px across the cockpit so
+// the ship has presence, with thicker swept-back wings that taper out into
+// extended tips — speed shows in the sweep, not in razor-thinness.
+export const INTERCEPTOR_SPRITE: SpriteData = [
+  [_, _, _, _, _, _, _, G, G, _, _, _, _, _, _, _],
+  [_, _, _, _, _, _, G, D, D, G, _, _, _, _, _, _],
+  [_, _, _, _, _, G, G, W, W, G, G, _, _, _, _, _],
+  [_, _, _, _, _, G, G, C, C, G, G, _, _, _, _, _],
+  [_, _, _, _, _, G, G, D, D, G, G, _, _, _, _, _],
+  [_, _, _, _, _, G, G, G, G, G, G, _, _, _, _, _],
+  [_, _, _, _, G, G, G, G, G, G, G, G, _, _, _, _],
+  [_, _, _, G, G, g, G, G, G, G, g, G, G, _, _, _],
+  [_, _, G, G, g, G, G, G, G, G, G, g, G, G, _, _],
+  [_, G, G, g, _, G, G, G, G, G, G, _, g, G, G, _],
+  [_, F, F, _, _, G, G, g, g, G, G, _, _, F, F, _],
+  [_, _, _, _, _, G, G, g, g, G, G, _, _, _, _, _],
+  [_, _, _, _, _, G, G, G, G, G, G, _, _, _, _, _],
+  [_, _, _, _, _, _, G, g, g, G, _, _, _, _, _, _],
+  [_, _, _, _, _, _, F, _, _, F, _, _, _, _, _, _],
+  [_, _, _, _, _, _, _, F, F, _, _, _, _, _, _, _],
+]
+
+// Dreadnought: wide armored hull with prominent steel plating
+export const DREADNOUGHT_SPRITE: SpriteData = [
+  [_, _, _, _, _, _, G, G, G, G, _, _, _, _, _, _],
+  [_, _, _, _, G, G, T, T, T, T, G, G, _, _, _, _],
+  [_, _, _, G, T, T, t, W, W, t, T, T, G, _, _, _],
+  [_, _, G, T, T, t, T, T, T, T, t, T, T, G, _, _],
+  [_, G, T, T, t, T, T, G, G, T, T, t, T, T, G, _],
+  [G, T, T, t, T, T, G, T, T, G, T, T, t, T, T, G],
+  [G, T, t, T, T, G, G, G, G, G, G, T, T, t, T, G],
+  [G, T, t, T, T, G, G, G, G, G, G, T, T, t, T, G],
+  [G, T, t, T, T, G, C, G, G, C, G, T, T, t, T, G],
+  [G, T, T, t, T, T, G, G, G, G, T, T, t, T, T, G],
+  [_, G, T, T, t, T, T, T, T, T, T, t, T, T, G, _],
+  [_, _, G, T, T, t, T, G, G, T, t, T, T, G, _, _],
+  [_, _, _, G, T, T, t, G, G, t, T, T, G, _, _, _],
+  [_, _, _, _, G, G, G, g, g, G, G, G, _, _, _, _],
+  [_, _, _, _, _, G, g, F, F, g, G, _, _, _, _, _],
+  [_, _, _, _, _, _, F, F, F, F, _, _, _, _, _, _],
+]
+
+// Carrier: three weapons made readable as silhouette — a front gun barrel
+// extending up from the nose, and a pointed gun barrel jutting out of each
+// side. The point tips (D / light gold) mark the muzzle of each gun.
+export const CARRIER_SPRITE: SpriteData = [
+  [_, _, _, _, _, _, _, D, D, _, _, _, _, _, _, _],
+  [_, _, _, _, _, _, G, D, D, G, _, _, _, _, _, _],
+  [_, _, _, _, _, _, G, W, W, G, _, _, _, _, _, _],
+  [_, _, _, _, _, G, G, C, C, G, G, _, _, _, _, _],
+  [C, _, _, _, G, G, D, G, G, D, G, G, _, _, _, C],
+  [g, _, _, _, G, G, D, G, G, D, G, G, _, _, _, g],
+  [g, g, G, G, G, G, D, G, G, D, G, G, G, G, g, g],
+  [g, g, G, G, G, D, C, G, G, C, D, G, G, G, g, g],
+  [_, g, G, G, G, D, G, G, G, G, D, G, G, G, g, _],
+  [_, g, _, G, G, D, G, G, G, G, D, G, G, _, g, _],
+  [_, _, _, _, G, D, G, G, G, G, D, G, _, _, _, _],
+  [_, _, _, _, _, G, G, G, G, G, G, _, _, _, _, _],
+  [_, _, _, _, _, G, G, g, g, G, G, _, _, _, _, _],
+  [_, _, _, _, _, G, g, g, g, g, G, _, _, _, _, _],
+  [_, _, _, _, _, G, g, F, F, g, G, _, _, _, _, _],
+  [_, _, _, _, _, _, F, _, _, F, _, _, _, _, _, _],
+  [_, _, _, _, _, _, _, F, F, _, _, _, _, _, _, _],
+]
+
 export const SpriteKey = {
   ship: 'ship',
+  shipInterceptor: 'shipInterceptor',
+  shipDreadnought: 'shipDreadnought',
+  shipCarrier: 'shipCarrier',
   drone: 'drone',
   tank: 'tank',
   shooter: 'shooter',
@@ -192,6 +260,9 @@ export type SpriteKey = (typeof SpriteKey)[keyof typeof SpriteKey]
 
 export const SPRITE_MAP: Record<SpriteKey, SpriteData> = {
   ship: SHIP_SPRITE,
+  shipInterceptor: INTERCEPTOR_SPRITE,
+  shipDreadnought: DREADNOUGHT_SPRITE,
+  shipCarrier: CARRIER_SPRITE,
   drone: DRONE_SPRITE,
   tank: TANK_SPRITE,
   shooter: SHOOTER_SPRITE,

@@ -129,8 +129,48 @@ $s: var(--hud-scale, 1);
 }
 
 .spaceMetal {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(4px * #{$s});
   font-size: calc(0.8rem * #{$s});
   color: var(--accent);
+}
+
+.shieldRechargeBtn {
+  pointer-events: auto;
+  font-family: var(--font-mono);
+  font-size: calc(0.6rem * #{$s});
+  font-weight: 600;
+  color: var(--muted);
+  background: rgba(106, 232, 245, 0.08);
+  border: 1px solid rgba(106, 232, 245, 0.2);
+  border-radius: 4px;
+  padding: calc(1px * #{$s}) calc(4px * #{$s});
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+}
+
+.shieldRechargeBtnActive {
+  color: #6ae8f5;
+  border-color: rgba(106, 232, 245, 0.5);
+  background: rgba(106, 232, 245, 0.15);
+
+  &:hover:not(:disabled) {
+    background: rgba(106, 232, 245, 0.25);
+    border-color: #6ae8f5;
+  }
+}
+
+.barShieldCooldown {
+  opacity: 0.5;
 }
 
 .speedBadge {

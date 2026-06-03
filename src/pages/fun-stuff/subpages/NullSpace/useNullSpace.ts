@@ -1,14 +1,19 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import {
   createInitialState,
+  moveToShipSelection,
   startGame,
   startNextWave,
   updateGameState,
   applyUpgradeToState,
   finishUpgradeScreen,
+  rechargeShieldWithMetal,
 } from './engine/game-loop'
-import { AbilityKind, GamePhase } from './engine/types'
+import { AbilityKind, GamePhase, ShipKind } from './engine/types'
 import type { GameState, PlayerInput, Vec2, UpgradeId, PlayerUpgrades } from './engine/types'
+import { createShip } from './engine/entities'
+import { getLevel } from './engine/upgrades'
+import { WAVES_PER_LEVEL } from './data'
 import {
   createGameTime,
   tickGameTime,
@@ -30,8 +35,17 @@ import { generateStarfield, type Star } from './renderer/starfield'
 import { renderFrame } from './renderer/renderer'
 import { WORLD_SIZE } from './data'
 
+// Build-time literal, same as in NullSpace.tsx
+const DEV_MODE = import.meta.env.VITE_NULL_SPACE_DEV_MODE === 'true'
+
+// Shared no-op stub returned in place of the dev handlers when DEV_MODE is
+// off. A single zero-arg arrow satisfies all three slots because TypeScript
+// permits assigning functions with fewer parameters where more are expected.
+const noop = () => {}
+
 export type GameUIState = {
   phase: GameState['phase']
+  shipKind: ShipKind
   score: number
   highScore: number
   isNewHighScore: boolean
@@ -39,6 +53,12 @@ export type GameUIState = {
   level: number
   shipHp: number
   shipMaxHp: number
+  shipShield: number
+  shipMaxShield: number
+  shieldCooldownRemaining: number
+  shipDamage: number
+  shipFireRate: number
+  shipSpeed: number
   power: number
   maxPower: number
   currency: number
@@ -48,6 +68,25 @@ export type GameUIState = {
   selectedAbility: GameState['abilities'][number]['kind']
   spawnedInWave: number
   totalWaveEnemies: number
+}
+
+// Patch shape for the dev console — every field optional, undefined means
+// "leave alone." The hook merges this onto the live GameState in one shot.
+export type DevPatch = {
+  shipKind?: ShipKind
+  shipHp?: number
+  shipMaxHp?: number
+  shipShield?: number
+  shipMaxShield?: number
+  shipDamage?: number
+  shipFireRate?: number
+  shipSpeed?: number
+  score?: number
+  currency?: number
+  spaceMetal?: number
+  power?: number
+  maxPower?: number
+  wave?: number
 }
 
 // Number keys select abilities by their position in the list (WEAPON_ORDER),
@@ -65,6 +104,7 @@ export function abilityKindForHotkey(
 export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null>) {
   const [uiState, setUiState] = useState<GameUIState>({
     phase: GamePhase.menu,
+    shipKind: ShipKind.fighter,
     score: 0,
     highScore: 0,
     isNewHighScore: false,
@@ -72,6 +112,12 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     level: 0,
     shipHp: 100,
     shipMaxHp: 100,
+    shipShield: 50,
+    shipMaxShield: 50,
+    shieldCooldownRemaining: 0,
+    shipDamage: 0,
+    shipFireRate: 0,
+    shipSpeed: 0,
     power: 80,
     maxPower: 100,
     currency: 0,
@@ -95,6 +141,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
   const syncUI = useCallback((state: GameState) => {
     setUiState({
       phase: state.phase,
+      shipKind: state.shipKind,
       score: state.score,
       highScore: state.highScore,
       isNewHighScore: state.isNewHighScore,
@@ -102,6 +149,12 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       level: state.level,
       shipHp: state.ship.hp,
       shipMaxHp: state.ship.maxHp,
+      shipShield: state.ship.shield,
+      shipMaxShield: state.ship.maxShield,
+      shieldCooldownRemaining: state.ship.shieldCooldownRemaining,
+      shipDamage: state.ship.damage,
+      shipFireRate: state.ship.fireRate,
+      shipSpeed: state.ship.speed,
       power: state.power,
       maxPower: state.maxPower,
       currency: state.currency,
@@ -115,16 +168,24 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
   }, [])
 
   const handleStart = useCallback(() => {
-    gameStateRef.current = startGame(gameStateRef.current)
-    gameStateRef.current = startNextWave(gameStateRef.current)
-    selectedAbilityRef.current = AbilityKind.meteorite
-    cameraRef.current = centerCameraOn(
-      cameraRef.current,
-      gameStateRef.current.ship.pos,
-      gameStateRef.current.worldSize
-    )
+    gameStateRef.current = moveToShipSelection(gameStateRef.current)
     syncUI(gameStateRef.current)
   }, [syncUI])
+
+  const handleSelectShip = useCallback(
+    (kind: ShipKind) => {
+      gameStateRef.current = startGame(gameStateRef.current, kind)
+      gameStateRef.current = startNextWave(gameStateRef.current)
+      selectedAbilityRef.current = AbilityKind.meteorite
+      cameraRef.current = centerCameraOn(
+        cameraRef.current,
+        gameStateRef.current.ship.pos,
+        gameStateRef.current.worldSize
+      )
+      syncUI(gameStateRef.current)
+    },
+    [syncUI]
+  )
 
   const handleNextWave = useCallback(() => {
     gameStateRef.current = startNextWave(gameStateRef.current)
@@ -134,6 +195,88 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
   const handleRestart = useCallback(() => {
     handleStart()
   }, [handleStart])
+
+  const handleUseSpaceMetalShield = useCallback(() => {
+    gameStateRef.current = rechargeShieldWithMetal(gameStateRef.current)
+    syncUI(gameStateRef.current)
+  }, [syncUI])
+
+  // Dev-only handlers. Stubbed to no-ops by default; the `if (DEV_MODE)` block
+  // below rebinds them with real implementations. When DEV_MODE folds to
+  // `false` at build time, Rollup removes the whole block, taking the
+  // createShip / getLevel / WAVES_PER_LEVEL imports with it.
+  let handleDevPatch: (patch: DevPatch) => void = noop
+  let handleDevJumpToUpgrades: () => void = noop
+  let handleDevQuickStart: (kind: ShipKind) => void = noop
+
+  if (DEV_MODE) {
+    handleDevPatch = (patch: DevPatch) => {
+      const state = gameStateRef.current
+      let ship = state.ship
+      let shipKind = state.shipKind
+
+      if (patch.shipKind !== undefined && patch.shipKind !== state.shipKind) {
+        const fresh = createShip(patch.shipKind, state.worldSize)
+        ship = { ...fresh, pos: ship.pos, vel: ship.vel, patrolAngle: ship.patrolAngle }
+        shipKind = patch.shipKind
+      }
+      if (patch.shipMaxHp !== undefined) ship = { ...ship, maxHp: patch.shipMaxHp }
+      if (patch.shipHp !== undefined) ship = { ...ship, hp: patch.shipHp }
+      if (patch.shipMaxShield !== undefined) ship = { ...ship, maxShield: patch.shipMaxShield }
+      if (patch.shipShield !== undefined) ship = { ...ship, shield: patch.shipShield }
+      if (patch.shipDamage !== undefined) ship = { ...ship, damage: patch.shipDamage }
+      if (patch.shipFireRate !== undefined) ship = { ...ship, fireRate: patch.shipFireRate }
+      if (patch.shipSpeed !== undefined) ship = { ...ship, speed: patch.shipSpeed }
+
+      const wave = patch.wave ?? state.wave
+      gameStateRef.current = {
+        ...state,
+        ship,
+        shipKind,
+        score: patch.score ?? state.score,
+        currency: patch.currency ?? state.currency,
+        spaceMetal: patch.spaceMetal ?? state.spaceMetal,
+        power: patch.power ?? state.power,
+        maxPower: patch.maxPower ?? state.maxPower,
+        wave,
+        level: patch.wave !== undefined ? getLevel(wave) : state.level,
+      }
+      syncUI(gameStateRef.current)
+    }
+
+    handleDevJumpToUpgrades = () => {
+      const state = gameStateRef.current
+      const base = state.wave > 0 ? state.wave : 1
+      const nextUpgradeWave = Math.ceil(base / WAVES_PER_LEVEL) * WAVES_PER_LEVEL
+      gameStateRef.current = {
+        ...state,
+        phase: GamePhase.upgradeScreen,
+        wave: nextUpgradeWave,
+        level: getLevel(nextUpgradeWave),
+        enemies: [],
+        projectiles: [],
+        activeEffects: [],
+        spawnQueue: [],
+        spawnTimer: 0,
+        spawnedInWave: 1,
+        totalWaveEnemies: 1,
+        waveTimer: 0,
+      }
+      syncUI(gameStateRef.current)
+    }
+
+    handleDevQuickStart = (kind: ShipKind) => {
+      gameStateRef.current = startGame(gameStateRef.current, kind)
+      gameStateRef.current = startNextWave(gameStateRef.current)
+      selectedAbilityRef.current = AbilityKind.meteorite
+      cameraRef.current = centerCameraOn(
+        cameraRef.current,
+        gameStateRef.current.ship.pos,
+        gameStateRef.current.worldSize
+      )
+      syncUI(gameStateRef.current)
+    }
+  }
 
   const setSelectedAbility = useCallback(
     (kind: GameState['abilities'][number]['kind']) => {
@@ -242,6 +385,10 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
         return
       }
       if (gameStateRef.current.phase !== GamePhase.playing) return
+      if (e.key === 'f' || e.key === 'F') {
+        handleUseSpaceMetalShield()
+        return
+      }
       const kind = abilityKindForHotkey(gameStateRef.current.abilities, e.key)
       if (kind) {
         selectedAbilityRef.current = kind
@@ -304,11 +451,12 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       window.removeEventListener('keydown', handleKeyDown)
       resizeObserver.disconnect()
     }
-  }, [canvasRef, syncUI, handlePause, handleResume])
+  }, [canvasRef, syncUI, handlePause, handleResume, handleUseSpaceMetalShield])
 
   return {
     uiState,
     handleStart,
+    handleSelectShip,
     handleNextWave,
     handleRestart,
     setSelectedAbility,
@@ -317,5 +465,9 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     handlePause,
     handleResume,
     handleSetSpeed,
+    handleUseSpaceMetalShield,
+    handleDevPatch,
+    handleDevJumpToUpgrades,
+    handleDevQuickStart,
   }
 }
