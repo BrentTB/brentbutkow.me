@@ -36,6 +36,13 @@ export type ShipVariantConfig = {
 
 export const SHIELD_COOLDOWN = 3
 
+export const SHIP_ORDER: ShipKind[] = [
+  ShipKind.fighter,
+  ShipKind.interceptor,
+  ShipKind.dreadnought,
+  ShipKind.carrier,
+]
+
 export const SHIP_VARIANTS: Record<ShipKind, ShipVariantConfig> = {
   [ShipKind.fighter]: {
     label: 'Fighter',

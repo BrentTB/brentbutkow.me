@@ -34,7 +34,7 @@ const ENEMY_SPRITE: Record<EnemyKind, SpriteKey> = {
   [EnemyKind.bomber]: SpriteKey.bomber,
 }
 
-const SHIP_SPRITE_KEY: Record<ShipKind, SpriteKey> = {
+export const SHIP_SPRITE_KEY: Record<ShipKind, SpriteKey> = {
   [ShipKind.fighter]: SpriteKey.ship,
   [ShipKind.interceptor]: SpriteKey.shipInterceptor,
   [ShipKind.dreadnought]: SpriteKey.shipDreadnought,

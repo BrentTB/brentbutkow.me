@@ -178,6 +178,17 @@ describe('rechargeShieldWithMetal', () => {
     expect(next.ship.shield).toBe(5)
     expect(next.spaceMetal).toBe(0)
   })
+
+  // Regression: pressing F with a full shield was silently spending a space metal.
+  // The keyboard shortcut bypasses the HUD disabled-state check, so the guard
+  // must live in rechargeShieldWithMetal itself.
+  it('is a no-op when shield is already full', () => {
+    let state = startGame(createInitialState(), ShipKind.fighter)
+    state = { ...state, spaceMetal: 3, ship: { ...state.ship, shield: 50, maxShield: 50 } }
+    const next = rechargeShieldWithMetal(state)
+    expect(next.spaceMetal).toBe(3)
+    expect(next.ship.shield).toBe(50)
+  })
 })
 
 // Regression: when two ship bullets are in flight and the first kills an

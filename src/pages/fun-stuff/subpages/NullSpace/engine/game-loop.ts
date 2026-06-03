@@ -123,7 +123,7 @@ export function startGame(state: GameState, shipKind: ShipKind): GameState {
 }
 
 export function rechargeShieldWithMetal(state: GameState): GameState {
-  if (state.spaceMetal < 1) return state
+  if (state.spaceMetal < 1 || state.ship.shield >= state.ship.maxShield) return state
   return {
     ...state,
     spaceMetal: state.spaceMetal - 1,

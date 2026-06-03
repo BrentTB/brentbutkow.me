@@ -3,13 +3,15 @@ import {
   ABILITY_META,
   CURRENCY_NAME,
   GAME_NAME,
+  SHIP_ORDER,
   SHIP_VARIANTS,
   WAVES_PER_LEVEL,
   WEAPON_ORDER,
 } from '../data'
 import { AbilityKind, GamePhase, ShipKind, UpgradeCategory, UpgradeId } from '../engine/types'
 import type { UpgradeDefinition } from '../engine/types'
-import { SPRITE_MAP, SpriteKey } from '../renderer/sprites'
+import { SHIP_SPRITE_KEY } from '../renderer/renderer'
+import { SPRITE_MAP } from '../renderer/sprites'
 import {
   UPGRADE_DEFINITIONS,
   UPGRADE_CATEGORY_LABELS,
@@ -185,21 +187,7 @@ function MenuScreen({ onStart }: { onStart: () => void }) {
   )
 }
 
-const SHIP_ORDER: ShipKind[] = [
-  ShipKind.fighter,
-  ShipKind.interceptor,
-  ShipKind.dreadnought,
-  ShipKind.carrier,
-]
-
 const STAT_MAX = { hp: 160, shield: 140, damage: 10, speed: 200, fireRate: 4, shieldRegen: 8 }
-
-const SHIP_PREVIEW_SPRITE: Record<ShipKind, SpriteKey> = {
-  [ShipKind.fighter]: SpriteKey.ship,
-  [ShipKind.interceptor]: SpriteKey.shipInterceptor,
-  [ShipKind.dreadnought]: SpriteKey.shipDreadnought,
-  [ShipKind.carrier]: SpriteKey.shipCarrier,
-}
 
 const PREVIEW_PIXEL = 5
 
@@ -208,7 +196,7 @@ function ShipSpritePreview({ kind }: { kind: ShipKind }) {
   useEffect(() => {
     const canvas = ref.current
     if (!canvas) return
-    const data = SPRITE_MAP[SHIP_PREVIEW_SPRITE[kind]]
+    const data = SPRITE_MAP[SHIP_SPRITE_KEY[kind]]
     const h = data.length
     const w = data[0].length
     canvas.width = w * PREVIEW_PIXEL

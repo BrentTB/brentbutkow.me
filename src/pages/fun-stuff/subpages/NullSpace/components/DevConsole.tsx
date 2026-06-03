@@ -1,4 +1,4 @@
-import { SHIP_VARIANTS } from '../data'
+import { SHIP_ORDER, SHIP_VARIANTS } from '../data'
 import { GamePhase, ShipKind } from '../engine/types'
 import type { DevPatch, GameUIState } from '../useNullSpace'
 import styles from './DevConsole.module.scss'
@@ -9,13 +9,6 @@ type DevConsoleProps = {
   onJumpToUpgrades: () => void
   onQuickStart: (kind: ShipKind) => void
 }
-
-const SHIP_ORDER: ShipKind[] = [
-  ShipKind.fighter,
-  ShipKind.interceptor,
-  ShipKind.dreadnought,
-  ShipKind.carrier,
-]
 
 export function DevConsole({ uiState, onPatch, onJumpToUpgrades, onQuickStart }: DevConsoleProps) {
   const inGame = uiState.phase !== GamePhase.menu && uiState.phase !== GamePhase.shipSelection
