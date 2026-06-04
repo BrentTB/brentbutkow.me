@@ -6,18 +6,20 @@ import {
   updateGameState,
   applyUpgradeToState,
 } from './game-loop'
-import { resetUid, createEnemy } from './entities'
+import { resetUid, createEnemy, createProjectile } from './entities'
 import {
   AbilityKind,
   CollectibleKind,
   EffectKind,
   EnemyKind,
   GamePhase,
+  ProjectileOwner,
   ShipKind,
   UpgradeId,
 } from './types'
 import { isUpgradeWave } from './upgrades'
 import { ENEMY_STATS, WAVES_PER_LEVEL } from '../data'
+import { TELEKINESIS, SOLAR_FLARE } from './abilities/abilityData'
 
 beforeEach(() => {
   resetUid()
@@ -817,5 +819,377 @@ describe('updateGameState — shield blocks bomber explosions', () => {
       state = updateGameState(state, 0.05, { clicks: [], selectedAbility: null })
     }
     expect(state.ship.hp).toBeLessThan(100)
+  })
+})
+
+describe('swept bullet collision — regression', () => {
+  // At dt=0.1 (MAX_DT), a bullet at speed 400 moves 40 units. An enemy with
+  // radius 10 and combined radius 14 can be skipped by the old point check if
+  // the bullet starts 25 units before the enemy and lands 15 units past it —
+  // point distance 15 > 14, so point check misses. Swept check catches it.
+  it('bullet jumps over thin enemy without swept check, catches it with swept check', () => {
+    let state = startGame(createInitialState(), ShipKind.fighter)
+    state = startNextWave(state)
+
+    const enemyX = 1600 // fixed x coordinate (far from ship at 1500)
+    // Enemy is stationary (speed=0 so it doesn't move during the tick)
+    const enemy = { ...createEnemy(EnemyKind.drone, { x: enemyX, y: 1500 }), speed: 0 }
+
+    // Bullet starts 25 units behind the enemy, moves +x at 400 units/s
+    // After dt=0.1: moves 40 units, landing 15 units past the enemy.
+    // Point check: dist(1640, 1600) = 40 — wait, let me recalculate.
+    // start=1575, end=1615, enemy=1600: dist(end, enemy) = 15 > combined 14 → point check MISSES.
+    const bulletStart = { x: enemyX - 25, y: 1500 }
+    const proj = createProjectile(
+      bulletStart,
+      { x: enemyX + 100, y: 1500 },
+      ProjectileOwner.ship,
+      10
+    )
+
+    state = { ...state, enemies: [enemy], projectiles: [proj], spawnQueue: [] }
+    state = updateGameState(state, 0.1, { clicks: [], selectedAbility: null })
+
+    const surviving = state.enemies.find((e) => e.id === enemy.id)
+    expect(!surviving || surviving.hp < enemy.hp).toBe(true)
+  })
+})
+
+describe('Helper ability', () => {
+  function makeUnlockedState() {
+    let state = startGame(createInitialState(), ShipKind.fighter)
+    state = startNextWave(state)
+    state = applyUpgradeToState({ ...state, currency: 999 }, UpgradeId.unlockHelper)
+    return state
+  }
+
+  it('spawns an ally when helper ability is activated', () => {
+    let state = makeUnlockedState()
+    // totalWaveEnemies=0 prevents wave-complete from firing with empty enemies
+    state = { ...state, enemies: [], spawnQueue: [], totalWaveEnemies: 0 }
+    const target = { x: state.ship.pos.x + 100, y: state.ship.pos.y }
+    state = updateGameState(state, 0.016, {
+      clicks: [target],
+      selectedAbility: AbilityKind.helper,
+    })
+    expect(state.allies.length).toBe(1)
+  })
+
+  it('ally fires a projectile when an enemy is in range', () => {
+    let state = makeUnlockedState()
+    const allySpawnPos = { x: state.ship.pos.x + 50, y: state.ship.pos.y }
+    state = { ...state, totalWaveEnemies: 0, spawnQueue: [] }
+    state = updateGameState(state, 0.016, {
+      clicks: [allySpawnPos],
+      selectedAbility: AbilityKind.helper,
+    })
+    // Place enemy near ally, within attackRange
+    const allyPos = state.allies[0]?.pos ?? allySpawnPos
+    const enemy = createEnemy(EnemyKind.drone, { x: allyPos.x + 50, y: allyPos.y })
+    state = { ...state, enemies: [enemy] }
+    const projsBefore = state.projectiles.length
+    // Tick long enough for ally fire cooldown to expire
+    state = updateGameState(state, 0.1, { clicks: [], selectedAbility: AbilityKind.helper })
+    expect(state.projectiles.length).toBeGreaterThan(projsBefore)
+  })
+
+  it('ally is removed when its duration expires', () => {
+    let state = makeUnlockedState()
+    state = { ...state, enemies: [], spawnQueue: [], totalWaveEnemies: 0 }
+    const target = { x: state.ship.pos.x + 50, y: state.ship.pos.y }
+    state = updateGameState(state, 0.016, {
+      clicks: [target],
+      selectedAbility: AbilityKind.helper,
+    })
+    expect(state.allies.length).toBe(1)
+    const duration = state.allies[0].duration
+    // Advance past the ally's duration in one tick (MAX_DT applies, loop needed)
+    let elapsed = 0
+    while (elapsed < duration + 0.5) {
+      state = updateGameState(state, 0.1, { clicks: [], selectedAbility: null })
+      elapsed += 0.1
+    }
+    expect(state.allies.length).toBe(0)
+  })
+
+  it('ally HP is reduced by enemy projectiles', () => {
+    let state = makeUnlockedState()
+    const allyPos = { x: 100, y: 100 }
+    // totalWaveEnemies=0 prevents the wave-complete check from firing when enemies=[]
+    state = { ...state, enemies: [], spawnQueue: [], totalWaveEnemies: 0 }
+    state = updateGameState(state, 0.016, {
+      clicks: [allyPos],
+      selectedAbility: AbilityKind.helper,
+    })
+    expect(state.allies.length).toBe(1)
+    const allyMaxHp = state.allies[0].maxHp
+    // Stationary projectile at exact ally position — guaranteed overlap every tick
+    const proj = {
+      ...createProjectile(allyPos, { x: allyPos.x + 1, y: allyPos.y }, ProjectileOwner.enemy, 5),
+      vel: { x: 0, y: 0 },
+      pos: { ...allyPos },
+      prevPos: { ...allyPos },
+    }
+    state = { ...state, projectiles: [proj], allies: [{ ...state.allies[0], pos: { ...allyPos } }] }
+    state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
+    const anyAllyTookDamage =
+      state.allies.some((a) => a.hp < allyMaxHp) || state.allies.length === 0
+    expect(anyAllyTookDamage).toBe(true)
+  })
+})
+
+describe('Telekinesis ability', () => {
+  function makeTKState() {
+    let state = startGame(createInitialState(), ShipKind.fighter)
+    state = startNextWave(state)
+    state = applyUpgradeToState({ ...state, currency: 999 }, UpgradeId.unlockTelekinesis)
+    // armSeconds * powerPerSec = 3 * 20 = 60. Give plenty.
+    return { ...state, power: 500 }
+  }
+
+  it('moves enemies inside the radius radially (pull or push) and leaves far enemies alone', () => {
+    let state = makeTKState()
+    const cursorPos = { x: state.ship.pos.x + 100, y: state.ship.pos.y }
+    // Stationary enemies so chase movement doesn't pollute the assertion.
+    const nearEnemy = {
+      ...createEnemy(EnemyKind.drone, { x: cursorPos.x + 30, y: cursorPos.y }),
+      speed: 0,
+    }
+    const farEnemy = {
+      ...createEnemy(EnemyKind.drone, {
+        x: cursorPos.x + TELEKINESIS.radius + 100,
+        y: cursorPos.y,
+      }),
+      speed: 0,
+    }
+    state = { ...state, enemies: [nearEnemy, farEnemy], spawnQueue: [] }
+    const before = state.enemies.map((e) => e.pos.x)
+    state = updateGameState(state, 0.1, {
+      clicks: [],
+      selectedAbility: AbilityKind.telekinesis,
+      isHolding: true,
+      holdPos: cursorPos,
+      prevHoldPos: cursorPos,
+    })
+    const nearAfter = state.enemies.find((e) => e.id === nearEnemy.id)!
+    const farAfter = state.enemies.find((e) => e.id === farEnemy.id)!
+    // Near enemy (east of cursor): pull → moves west, push → moves east.
+    if (TELEKINESIS.mode === 'pull') {
+      expect(nearAfter.pos.x).toBeLessThan(before[0])
+    } else {
+      expect(nearAfter.pos.x).toBeGreaterThan(before[0])
+    }
+    // Far enemy is outside the radius — untouched.
+    expect(farAfter.pos.x).toBeCloseTo(before[1], 1)
+  })
+
+  it('drains power while held', () => {
+    let state = makeTKState()
+    const cursorPos = { x: state.ship.pos.x + 50, y: state.ship.pos.y }
+    const powerBefore = state.power
+    state = updateGameState(state, 0.1, {
+      clicks: [],
+      selectedAbility: AbilityKind.telekinesis,
+      isHolding: true,
+      holdPos: cursorPos,
+      prevHoldPos: cursorPos,
+    })
+    expect(state.power).toBeLessThan(powerBefore)
+  })
+
+  it('sets telekinesisPos and telekinesisActive while held, clears them on release', () => {
+    let state = makeTKState()
+    const cursorPos = { x: state.ship.pos.x + 50, y: state.ship.pos.y }
+    state = updateGameState(state, 0.016, {
+      clicks: [],
+      selectedAbility: AbilityKind.telekinesis,
+      isHolding: true,
+      holdPos: cursorPos,
+      prevHoldPos: cursorPos,
+    })
+    expect(state.telekinesisPos).toEqual(cursorPos)
+    expect(state.telekinesisActive).toBe(true)
+
+    state = updateGameState(state, 0.016, {
+      clicks: [],
+      selectedAbility: AbilityKind.telekinesis,
+      isHolding: false,
+      holdPos: null,
+      prevHoldPos: null,
+    })
+    expect(state.telekinesisPos).toBeNull()
+    expect(state.telekinesisActive).toBe(false)
+  })
+
+  it('cannot start without 1s of power (arm threshold)', () => {
+    let state = makeTKState()
+    // armCost = 1 * 20 = 20; set below
+    state = { ...state, power: 15 }
+    const cursorPos = { x: state.ship.pos.x + 50, y: state.ship.pos.y }
+    state = updateGameState(state, 0.016, {
+      clicks: [],
+      selectedAbility: AbilityKind.telekinesis,
+      isHolding: true,
+      holdPos: cursorPos,
+      prevHoldPos: cursorPos,
+    })
+    expect(state.telekinesisActive).toBe(false)
+    expect(state.telekinesisPos).toBeNull()
+  })
+
+  it('stops once power runs out', () => {
+    let state = makeTKState()
+    state = { ...state, power: 70 } // just above arm threshold
+    const cursorPos = { x: state.ship.pos.x + 50, y: state.ship.pos.y }
+    // Drain past zero. dt is capped at 0.1 (MAX_DT), drain 2 per tick, regen
+    // 0.3 per tick → ~1.7 net loss per tick. ~100 ticks deplete from 70 → ~0.
+    for (let i = 0; i < 200; i++) {
+      state = updateGameState(state, 0.1, {
+        clicks: [],
+        selectedAbility: AbilityKind.telekinesis,
+        isHolding: true,
+        holdPos: cursorPos,
+        prevHoldPos: cursorPos,
+      })
+    }
+    expect(state.telekinesisActive).toBe(false)
+  })
+})
+
+describe('Solar Flare ability', () => {
+  function makeSFState() {
+    let state = startGame(createInitialState(), ShipKind.fighter)
+    state = startNextWave(state)
+    state = applyUpgradeToState({ ...state, currency: 999 }, UpgradeId.unlockSolarFlare)
+    return state
+  }
+
+  it('damages enemies inside the radius and not those outside', () => {
+    let state = makeSFState()
+    state = { ...state, power: 1000 }
+    const target = { x: state.ship.pos.x + 300, y: state.ship.pos.y }
+    const enemyInside = createEnemy(EnemyKind.drone, {
+      // Close to the target — within aoeRadius (60)
+      x: target.x + 20,
+      y: target.y,
+    })
+    const enemyOutside = createEnemy(EnemyKind.drone, {
+      x: target.x + 500,
+      y: target.y,
+    })
+    state = { ...state, enemies: [enemyInside, enemyOutside], spawnQueue: [] }
+    state = updateGameState(state, SOLAR_FLARE.drainInterval + 0.01, {
+      clicks: [],
+      selectedAbility: AbilityKind.solarFlare,
+      isHolding: true,
+      holdPos: target,
+      prevHoldPos: target,
+    })
+    const insideAfter = state.enemies.find((e) => e.id === enemyInside.id)
+    const outsideAfter = state.enemies.find((e) => e.id === enemyOutside.id)
+    const insideDamaged = !insideAfter || insideAfter.hp < enemyInside.hp
+    expect(insideDamaged).toBe(true)
+    expect(outsideAfter?.hp).toBe(enemyOutside.hp)
+  })
+
+  it('drains power on each interval tick', () => {
+    let state = makeSFState()
+    state = { ...state, power: 1000 }
+    const target = { x: state.ship.pos.x + 300, y: state.ship.pos.y }
+    const powerBefore = state.power
+    state = updateGameState(state, SOLAR_FLARE.drainInterval + 0.01, {
+      clicks: [],
+      selectedAbility: AbilityKind.solarFlare,
+      isHolding: true,
+      holdPos: target,
+      prevHoldPos: target,
+    })
+    expect(state.power).toBeLessThan(powerBefore)
+  })
+
+  it('sets solarFlareTarget while held with enough power, clears it on release', () => {
+    let state = makeSFState()
+    state = { ...state, power: 1000 }
+    const target = { x: state.ship.pos.x + 300, y: state.ship.pos.y }
+    state = updateGameState(state, 0.016, {
+      clicks: [],
+      selectedAbility: AbilityKind.solarFlare,
+      isHolding: true,
+      holdPos: target,
+      prevHoldPos: target,
+    })
+    expect(state.solarFlareTarget).toEqual(target)
+    expect(state.solarFlareActive).toBe(true)
+
+    state = updateGameState(state, 0.016, {
+      clicks: [],
+      selectedAbility: AbilityKind.solarFlare,
+      isHolding: false,
+    })
+    expect(state.solarFlareTarget).toBeNull()
+    expect(state.solarFlareActive).toBe(false)
+  })
+
+  it('cannot start firing without 3s of power (arm threshold)', () => {
+    let state = makeSFState()
+    // Arm cost = armSeconds * powerPerSec = 3 * 8 = 24. Set below.
+    state = { ...state, power: 10 }
+    const target = { x: state.ship.pos.x + 300, y: state.ship.pos.y }
+    state = updateGameState(state, 0.016, {
+      clicks: [],
+      selectedAbility: AbilityKind.solarFlare,
+      isHolding: true,
+      holdPos: target,
+      prevHoldPos: target,
+    })
+    expect(state.solarFlareActive).toBe(false)
+    expect(state.solarFlareTarget).toBeNull()
+  })
+
+  it('stops firing once power runs out', () => {
+    let state = makeSFState()
+    state = { ...state, power: 30 } // Just above arm threshold (24)
+    const target = { x: state.ship.pos.x + 300, y: state.ship.pos.y }
+    // dt is capped at MAX_DT (0.1). Loop long enough to drain past 0 even
+    // after passive power regen.
+    for (let i = 0; i < 200; i++) {
+      state = updateGameState(state, 0.1, {
+        clicks: [],
+        selectedAbility: AbilityKind.solarFlare,
+        isHolding: true,
+        holdPos: target,
+        prevHoldPos: target,
+      })
+    }
+    expect(state.solarFlareActive).toBe(false)
+  })
+})
+
+describe('Enemy melee damages allies', () => {
+  it('enemy that touches an ally dies and reduces ally HP', () => {
+    let state = startGame(createInitialState(), ShipKind.fighter)
+    state = startNextWave(state)
+    state = applyUpgradeToState({ ...state, currency: 999 }, UpgradeId.unlockHelper)
+    const allyPos = { x: 100, y: 100 }
+    state = { ...state, enemies: [], spawnQueue: [], totalWaveEnemies: 0 }
+    state = updateGameState(state, 0.016, {
+      clicks: [allyPos],
+      selectedAbility: AbilityKind.helper,
+    })
+    expect(state.allies.length).toBe(1)
+    const allyMaxHp = state.allies[0].maxHp
+    // Place an enemy directly overlapping the ally
+    const enemy = { ...createEnemy(EnemyKind.drone, { ...allyPos }), speed: 0 }
+    state = {
+      ...state,
+      enemies: [enemy],
+      allies: [{ ...state.allies[0], pos: { ...allyPos } }],
+    }
+    state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
+    // Enemy should be gone (consumed by melee)
+    expect(state.enemies.find((e) => e.id === enemy.id)).toBeUndefined()
+    // Ally either took damage or died
+    const allyDamaged = state.allies.length === 0 || state.allies.some((a) => a.hp < allyMaxHp)
+    expect(allyDamaged).toBe(true)
   })
 })

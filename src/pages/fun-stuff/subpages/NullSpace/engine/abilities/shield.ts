@@ -1,0 +1,63 @@
+import { SHIELD } from './abilityData'
+import { createShieldEffect } from '../effects'
+import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
+import type { UpgradeDefinition } from '../types'
+import { applyTierSum, type AbilityDefinition } from './ability-definition'
+
+const unlockUpgrade: UpgradeDefinition = {
+  id: UpgradeId.unlockShield,
+  category: UpgradeCategory.weapons,
+  weapon: AbilityKind.shield,
+  label: 'Unlock Shield',
+  description: 'Unlock the Shield barrier',
+  tiers: [{ cost: 30, value: 1 }],
+}
+
+const durationUpgrade: UpgradeDefinition = {
+  id: UpgradeId.shieldDuration,
+  category: UpgradeCategory.weapons,
+  weapon: AbilityKind.shield,
+  label: 'Duration',
+  description: 'Increase shield duration',
+  tiers: [
+    { cost: 12, value: 1.5 },
+    { cost: 24, value: 2.5 },
+  ],
+}
+
+const radiusUpgrade: UpgradeDefinition = {
+  id: UpgradeId.shieldRadius,
+  category: UpgradeCategory.weapons,
+  weapon: AbilityKind.shield,
+  label: 'Size',
+  description: 'Increase shield radius',
+  tiers: [
+    { cost: 10, value: 15 },
+    { cost: 20, value: 25 },
+    { cost: 35, value: 40 },
+  ],
+}
+
+export const shield: AbilityDefinition = {
+  kind: AbilityKind.shield,
+  meta: { icon: '🛡', label: 'Shield' },
+  activation: 'click',
+  base: () => ({
+    kind: AbilityKind.shield,
+    cooldown: SHIELD.cooldown,
+    powerCost: SHIELD.powerCost,
+    // Shield is a movement barrier, not a damage dealer.
+    damage: 0,
+    aoeRadius: SHIELD.radius,
+    duration: SHIELD.duration,
+  }),
+  effectFactory: (ability, pos) =>
+    createShieldEffect(pos, ability.aoeRadius, ability.duration ?? SHIELD.duration),
+  applyUpgrades: (_ability, upgrades) => ({
+    unlocked: upgrades[UpgradeId.unlockShield].currentTier > 0,
+    aoeRadius: applyTierSum(SHIELD.radius, upgrades, radiusUpgrade),
+    duration: applyTierSum(SHIELD.duration, upgrades, durationUpgrade),
+  }),
+  unlockUpgrade,
+  modifierUpgrades: [durationUpgrade, radiusUpgrade],
+}

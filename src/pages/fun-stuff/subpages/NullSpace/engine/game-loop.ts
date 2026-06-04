@@ -9,12 +9,14 @@ import {
   SWARM_SPAWN_SPREAD,
   SHIELD_COOLDOWN,
 } from '../data'
-import { checkCollision, distance } from './collision'
+import { TELEKINESIS, SOLAR_FLARE } from './abilities/abilityData'
+import { checkCollision, distance, segmentIntersectsCircle } from './collision'
 import {
   createShip,
   createAbilities,
   createProjectile,
   createEnemy,
+  createParticle,
   spawnExplosionParticles,
   resetUid,
 } from './entities'
@@ -40,6 +42,7 @@ import { getWave, getWaveDelay } from './waves'
 import { loadHighScore, saveHighScore } from './persistence'
 import { rng } from './random'
 import {
+  AbilityKind,
   DeathBehavior,
   EffectKind,
   EnemyKind,
@@ -48,7 +51,16 @@ import {
   ProjectileOwner,
   ShipKind,
 } from './types'
-import type { GameState, PlayerInput, Enemy, Vec2, Projectile, Particle, UpgradeId } from './types'
+import type {
+  GameState,
+  PlayerInput,
+  Enemy,
+  Vec2,
+  Projectile,
+  Particle,
+  Ally,
+  UpgradeId,
+} from './types'
 
 export function createInitialState(): GameState {
   resetUid()
@@ -59,6 +71,7 @@ export function createInitialState(): GameState {
     ship: createShip(ShipKind.fighter, WORLD_SIZE),
     enemies: [],
     projectiles: [],
+    allies: [],
     abilities: createAbilities(),
     activeEffects: [],
     collectibles: [],
@@ -80,6 +93,11 @@ export function createInitialState(): GameState {
     spawnTimer: 0,
     totalWaveEnemies: 0,
     spawnedInWave: 0,
+    telekinesisPos: null,
+    telekinesisActive: false,
+    solarFlareTarget: null,
+    solarFlareTimer: 0,
+    solarFlareActive: false,
   }
 }
 
@@ -99,6 +117,7 @@ export function startGame(state: GameState, shipKind: ShipKind): GameState {
     ship,
     enemies: [],
     projectiles: [],
+    allies: [],
     abilities: createAbilities(),
     activeEffects: [],
     collectibles: [],
@@ -119,6 +138,11 @@ export function startGame(state: GameState, shipKind: ShipKind): GameState {
     spawnedInWave: 0,
     highScore: loadHighScore(),
     isNewHighScore: false,
+    telekinesisPos: null,
+    telekinesisActive: false,
+    solarFlareTarget: null,
+    solarFlareTimer: 0,
+    solarFlareActive: false,
   }
 }
 
@@ -181,6 +205,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     ship,
     enemies,
     projectiles,
+    allies,
     abilities,
     activeEffects,
     collectibles,
@@ -194,7 +219,10 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     spawnedInWave,
   } = state
   let { waveTimer } = state
+  let { solarFlareTimer } = state
   const { maxPower, powerRegen } = state
+  let telekinesisPos: typeof state.telekinesisPos = null
+  let solarFlareTarget: typeof state.solarFlareTarget = null
 
   // Wave delay only gates enemy spawning — the rest of the simulation
   // (in-flight meteors, homing power orbs, projectiles, ship attacks against
@@ -252,6 +280,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   )
   abilities = abilityResult.abilities
   activeEffects = [...activeEffects, ...abilityResult.newEffects]
+  allies = [...allies, ...abilityResult.newAllies]
   power -= abilityResult.powerSpent
 
   // --- Active effects (meteor strikes, black holes, rockets, shield, sun) ---
@@ -271,19 +300,168 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   ship = attackResult.ship
   projectiles = attackResult.projectiles
 
-  // --- Enemy shooting ---
-  const enemyFireResult = updateEnemyShooting(enemies, ship, projectiles, dt)
+  // --- Enemy shooting (targets nearest of ship or ally) ---
+  const enemyFireResult = updateEnemyShooting(enemies, ship, allies, projectiles, dt)
   enemies = enemyFireResult.enemies
   projectiles = enemyFireResult.projectiles
 
-  // --- Enemy movement ---
-  enemies = updateEnemyMovement(enemies, ship, dt)
+  // --- Enemy movement (pursues nearest of ship or ally) ---
+  enemies = updateEnemyMovement(enemies, ship, allies, dt)
   // Shields block new entries — bounce non-grandfathered enemies back to the
   // boundary after they've moved this frame.
   enemies = applyShieldConstraints(activeEffects, enemies)
 
+  // --- Ally update (movement + shooting) ---
+  const allyResult = updateAllies(allies, enemies, ship, projectiles, dt)
+  allies = allyResult.allies
+  projectiles = allyResult.projectiles
+
   // --- Projectile movement ---
   projectiles = updateProjectiles(projectiles, dt)
+
+  // --- Hold ability: Telekinesis ---
+  // Power gate mirrors solar flare: needs `armSeconds` of power to start, runs
+  // until power hits zero, then deactivates and requires re-arm.
+  const isHolding = input.isHolding ?? false
+  const holdPos = input.holdPos ?? null
+  let telekinesisActive = state.telekinesisActive
+  const tkAbility = abilities.find((a) => a.kind === AbilityKind.telekinesis)
+  const tkRequested =
+    isHolding && holdPos && input.selectedAbility === AbilityKind.telekinesis && tkAbility?.unlocked
+
+  if (!tkRequested) {
+    telekinesisActive = false
+  } else {
+    const armCost = TELEKINESIS.armSeconds * TELEKINESIS.powerPerSec
+    if (!telekinesisActive && power >= armCost) telekinesisActive = true
+
+    if (telekinesisActive) {
+      const drain = TELEKINESIS.powerPerSec * dt
+      power = Math.max(0, power - drain)
+      if (power <= 0) {
+        telekinesisActive = false
+      } else {
+        telekinesisPos = holdPos
+        const radius = tkAbility.aoeRadius
+        // Plateau falloff: full force inside ~25% of the radius, smooth cosine
+        // drop to zero at the edge. Keeps the "near the cursor" plateau feel
+        // from before, just applied to a radial pull/push instead of drag.
+        const plateauEnd = 0.25
+        const forceAt = (dist: number) => {
+          if (dist >= radius) return 0
+          const x = dist / radius
+          if (x <= plateauEnd) return TELEKINESIS.force
+          const t = (x - plateauEnd) / (1 - plateauEnd)
+          return TELEKINESIS.force * 0.5 * (Math.cos(Math.PI * t) + 1)
+        }
+        const sign = TELEKINESIS.mode === 'pull' ? 1 : -1
+        enemies = enemies.map((enemy) => {
+          const dx = holdPos.x - enemy.pos.x
+          const dy = holdPos.y - enemy.pos.y
+          const dist = Math.sqrt(dx * dx + dy * dy)
+          if (dist < 0.01) return enemy
+          const f = forceAt(dist)
+          if (f === 0) return enemy
+          const step = f * dt * sign
+          return {
+            ...enemy,
+            pos: {
+              x: enemy.pos.x + (dx / dist) * step,
+              y: enemy.pos.y + (dy / dist) * step,
+            },
+          }
+        })
+      }
+    }
+  }
+
+  // --- Hold ability: Solar Flare ---
+  // Power gate: must have at least armSeconds of power to START. Once active,
+  // keeps firing until power runs out, then deactivates and requires re-arm.
+  let solarFlareActive = state.solarFlareActive
+  const sfAbility = abilities.find((a) => a.kind === AbilityKind.solarFlare)
+  const solarFlareKilledEnemies: Enemy[] = []
+  const sfRequested =
+    isHolding && holdPos && input.selectedAbility === AbilityKind.solarFlare && sfAbility?.unlocked
+
+  if (!sfRequested) {
+    solarFlareActive = false
+    solarFlareTimer = 0
+  } else {
+    // powerCost is now per-second. Per-tick drain = powerCost * drainInterval.
+    const perTickCost = sfAbility.powerCost * SOLAR_FLARE.drainInterval
+    const armCost = SOLAR_FLARE.armSeconds * sfAbility.powerCost
+    if (!solarFlareActive && power >= armCost) solarFlareActive = true
+    // Deactivate as soon as the next drain tick can't be funded. Passive power
+    // regen would otherwise nudge power back above 0 between drains and let
+    // the beam keep going with stuttering damage.
+    if (solarFlareActive && power < perTickCost) solarFlareActive = false
+
+    if (solarFlareActive) {
+      solarFlareTarget = holdPos
+      solarFlareTimer -= dt
+      // Particle rain: dense bright-white/yellow core at the center, thinner
+      // orange spray spreading to the full radius. Gives a hot-fire look
+      // rather than a uniform glow.
+      const fullRadius = sfAbility.aoeRadius
+      const hotColors = ['#ffffff', '#fff2b0', '#ffe066', '#ffc24a']
+      const outerColors = ['#ff8833', '#ff6622', '#ffaa44']
+      // Hot core: many particles, small radius, fast-fade short-life
+      for (let i = 0; i < 10; i++) {
+        const ang = rng.next() * Math.PI * 2
+        const r = Math.sqrt(rng.next()) * (fullRadius * 0.35)
+        particles = [
+          ...particles,
+          createParticle(
+            { x: holdPos.x + Math.cos(ang) * r, y: holdPos.y + Math.sin(ang) * r },
+            { x: 0, y: 0 },
+            hotColors[Math.floor(rng.next() * hotColors.length)],
+            0.18 + rng.next() * 0.18,
+            3 + rng.next() * 3
+          ),
+        ]
+      }
+      // Outer spray: fewer particles, full radius
+      for (let i = 0; i < 4; i++) {
+        const ang = rng.next() * Math.PI * 2
+        const r = Math.sqrt(rng.next()) * fullRadius
+        particles = [
+          ...particles,
+          createParticle(
+            { x: holdPos.x + Math.cos(ang) * r, y: holdPos.y + Math.sin(ang) * r },
+            { x: 0, y: 0 },
+            outerColors[Math.floor(rng.next() * outerColors.length)],
+            0.3 + rng.next() * 0.3,
+            2 + rng.next() * 2
+          ),
+        ]
+      }
+
+      if (solarFlareTimer <= 0 && power >= perTickCost) {
+        power -= perTickCost
+        solarFlareTimer = SOLAR_FLARE.drainInterval
+        const radius = sfAbility.aoeRadius
+        const updatedEnemies: Enemy[] = []
+        for (const enemy of enemies) {
+          if (distance(holdPos, enemy.pos) < radius + enemy.radius) {
+            const damaged = { ...enemy, hp: enemy.hp - sfAbility.damage }
+            if (damaged.hp <= 0) {
+              solarFlareKilledEnemies.push(enemy)
+              score += enemy.scoreValue
+              currency += computeCurrencyFromKills([enemy])
+              particles = [...particles, ...spawnExplosionParticles(enemy.pos, 12, '#ffaa33')]
+            } else {
+              updatedEnemies.push(damaged)
+              particles = [...particles, ...spawnExplosionParticles(enemy.pos, 4, '#ffdd66')]
+            }
+          } else {
+            updatedEnemies.push(enemy)
+          }
+        }
+        enemies = updatedEnemies
+      }
+    }
+  }
 
   // --- Collision: ship projectiles vs enemies ---
   const projCollision = resolveProjectileEnemyCollisions(projectiles, enemies)
@@ -299,11 +477,23 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   ship = enemyProjResult.ship
   particles = [...particles, ...enemyProjResult.particles]
 
+  // --- Collision: enemy projectiles vs allies ---
+  const allyProjResult = resolveEnemyProjectileAllyCollisions(projectiles, allies)
+  projectiles = allyProjResult.projectiles
+  allies = allyProjResult.allies
+  particles = [...particles, ...allyProjResult.particles]
+
   // --- Collision: enemies vs ship ---
   const shipCollision = resolveEnemyShipCollisions(enemies, ship)
   enemies = shipCollision.enemies
   ship = shipCollision.ship
   particles = [...particles, ...shipCollision.particles]
+
+  // --- Collision: enemies vs allies (melee — enemy dies, ally takes damage) ---
+  const allyMeleeResult = resolveEnemyAllyMeleeCollisions(enemies, allies)
+  enemies = allyMeleeResult.enemies
+  allies = allyMeleeResult.allies
+  particles = [...particles, ...allyMeleeResult.particles]
 
   // --- Death effects (bomber explosions, etc.) ---
   // A bomber that dies by ramming the ship explodes too, so ship-collision
@@ -312,6 +502,8 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     ...effectResult.killedEnemies,
     ...projCollision.killedEnemies,
     ...shipCollision.killedEnemies,
+    ...allyMeleeResult.killedEnemies,
+    ...solarFlareKilledEnemies,
   ]
   if (killedForDeathEffects.length > 0) {
     const deathResult = resolveDeathEffects(killedForDeathEffects, ship, activeEffects)
@@ -323,7 +515,11 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
 
   // --- Spawn collectibles from kills ---
   // Ship-collision deaths drop nothing — no reward for letting an enemy reach you.
-  const killedForCollectibles = [...effectResult.killedEnemies, ...projCollision.killedEnemies]
+  const killedForCollectibles = [
+    ...effectResult.killedEnemies,
+    ...projCollision.killedEnemies,
+    ...solarFlareKilledEnemies,
+  ]
   if (killedForCollectibles.length > 0) {
     collectibles = [...collectibles, ...spawnCollectiblesFromKills(killedForCollectibles)]
   }
@@ -363,6 +559,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       ship,
       enemies,
       projectiles,
+      allies: [],
       abilities,
       activeEffects,
       collectibles,
@@ -377,6 +574,10 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       spawnQueue,
       spawnTimer,
       spawnedInWave,
+      telekinesisPos: null,
+      solarFlareTarget: null,
+      solarFlareTimer: 0,
+      solarFlareActive: false,
     }
   }
 
@@ -389,6 +590,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       ship,
       enemies,
       projectiles,
+      allies,
       abilities,
       activeEffects,
       collectibles,
@@ -401,6 +603,10 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       spawnQueue,
       spawnTimer,
       spawnedInWave,
+      telekinesisPos: null,
+      solarFlareTarget: null,
+      solarFlareTimer: 0,
+      solarFlareActive: false,
     }
   }
 
@@ -409,6 +615,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     ship,
     enemies,
     projectiles,
+    allies,
     abilities,
     activeEffects,
     collectibles,
@@ -421,6 +628,11 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     spawnQueue,
     spawnTimer,
     spawnedInWave,
+    telekinesisPos,
+    telekinesisActive,
+    solarFlareTarget,
+    solarFlareTimer,
+    solarFlareActive,
   }
 }
 
@@ -526,9 +738,24 @@ function updateShipAttack(
   }
 }
 
+// Returns the position of the nearest entity to a given point (ship or any ally).
+function findNearestTarget(pos: Vec2, ship: Ship, allies: Ally[]): Vec2 {
+  let nearest = ship.pos
+  let nearestDist = distance(pos, ship.pos)
+  for (const ally of allies) {
+    const d = distance(pos, ally.pos)
+    if (d < nearestDist) {
+      nearest = ally.pos
+      nearestDist = d
+    }
+  }
+  return nearest
+}
+
 function updateEnemyShooting(
   enemies: Enemy[],
   ship: Ship,
+  allies: Ally[],
   projectiles: Projectile[],
   dt: number
 ): { enemies: Enemy[]; projectiles: Projectile[] } {
@@ -543,10 +770,11 @@ function updateEnemyShooting(
 
     let cooldown = enemy.fireCooldown - dt
     if (cooldown <= 0) {
-      const dist = distance(enemy.pos, ship.pos)
+      const target = findNearestTarget(enemy.pos, ship, allies)
+      const dist = distance(enemy.pos, target)
       if (dist < enemy.attackRange) {
         const projDamage = ENEMY_STATS.shooter.projectileDamage
-        const proj = createProjectile(enemy.pos, ship.pos, ProjectileOwner.enemy, projDamage)
+        const proj = createProjectile(enemy.pos, target, ProjectileOwner.enemy, projDamage)
         newProjectiles = [...newProjectiles, proj]
         cooldown = 1 / enemy.fireRate
       }
@@ -644,11 +872,191 @@ const MOVEMENT_FN: Record<MovementBehavior, MoveFn> = {
   [MovementBehavior.zigzag]: moveZigzag,
 }
 
-function updateEnemyMovement(enemies: Enemy[], ship: Ship, dt: number): Enemy[] {
+function updateEnemyMovement(
+  enemies: Enemy[],
+  ship: GameState['ship'],
+  allies: Ally[],
+  dt: number
+): Enemy[] {
   return enemies.map((enemy) => {
-    const moved = MOVEMENT_FN[enemy.movementBehavior](enemy, ship, dt)
+    const target = findNearestTarget(enemy.pos, ship, allies)
+    const targetAsShip = { ...ship, pos: target }
+    const moved = MOVEMENT_FN[enemy.movementBehavior](enemy, targetAsShip, dt)
     return { ...moved, age: enemy.age + dt }
   })
+}
+
+// Ally behavior: shoots the nearest enemy in range and orbits the ship at a
+// per-ally angle. Each ally has a unique phase offset from its id hash so
+// stacked allies fan out instead of overlapping. Avoidance is intentionally
+// half-baked — allies should not be optimally elusive.
+const ALLY_ORBIT_RADIUS = 130
+const ALLY_AVOID_RADIUS = 55
+const ALLY_AVOID_WEIGHT = 0.7
+const ALLY_NOISE_STRENGTH = 0.4
+
+function allyOrbitTarget(ally: Ally, ship: GameState['ship']): Vec2 {
+  // Per-ally phase from id hash; slowly drifts so each ally weaves around the
+  // ship instead of locking to a fixed offset.
+  const idNum = parseInt(ally.id.slice(1), 10) || 0
+  const baseAngle = idNum * 2.3998 // golden-angle-ish, gives good fan-out
+  const driftAngle = baseAngle + ally.elapsed * 0.6
+  return {
+    x: ship.pos.x + Math.cos(driftAngle) * ALLY_ORBIT_RADIUS,
+    y: ship.pos.y + Math.sin(driftAngle) * ALLY_ORBIT_RADIUS,
+  }
+}
+
+function updateAllies(
+  allies: Ally[],
+  enemies: Enemy[],
+  ship: GameState['ship'],
+  projectiles: Projectile[],
+  dt: number
+): { allies: Ally[]; projectiles: Projectile[] } {
+  const surviving: Ally[] = []
+  let newProjectiles = projectiles
+
+  for (const ally of allies) {
+    const elapsed = ally.elapsed + dt
+    if (elapsed >= ally.duration) continue
+
+    let updated = { ...ally, elapsed, fireCooldown: Math.max(0, ally.fireCooldown - dt) }
+
+    // --- Targeting / shooting ---
+    let nearestEnemy: Enemy | null = null
+    let nearestDist = Infinity
+    for (const enemy of enemies) {
+      const d = distance(ally.pos, enemy.pos)
+      if (d < nearestDist) {
+        nearestDist = d
+        nearestEnemy = enemy
+      }
+    }
+    if (nearestEnemy && nearestDist <= ally.attackRange && updated.fireCooldown <= 0) {
+      const proj = createProjectile(ally.pos, nearestEnemy.pos, ProjectileOwner.ship, ally.damage)
+      newProjectiles = [...newProjectiles, proj]
+      updated = { ...updated, fireCooldown: 1 / ally.fireRate }
+    }
+
+    // --- Steering: orbit a per-ally point near the ship, weak avoid + noise ---
+    const target = allyOrbitTarget(updated, ship)
+    let steerX = target.x - ally.pos.x
+    let steerY = target.y - ally.pos.y
+    const toTargetMag = Math.sqrt(steerX * steerX + steerY * steerY)
+    if (toTargetMag > 0.01) {
+      steerX /= toTargetMag
+      steerY /= toTargetMag
+    }
+    for (const enemy of enemies) {
+      const ex = ally.pos.x - enemy.pos.x
+      const ey = ally.pos.y - enemy.pos.y
+      const d = Math.sqrt(ex * ex + ey * ey)
+      if (d < ALLY_AVOID_RADIUS && d > 0.01) {
+        const weight = (1 - d / ALLY_AVOID_RADIUS) * ALLY_AVOID_WEIGHT
+        steerX += (ex / d) * weight
+        steerY += (ey / d) * weight
+      }
+    }
+    // Per-ally noise so they don't all dodge in the exact same direction
+    steerX += (rng.next() - 0.5) * ALLY_NOISE_STRENGTH
+    steerY += (rng.next() - 0.5) * ALLY_NOISE_STRENGTH
+
+    const steerMag = Math.sqrt(steerX * steerX + steerY * steerY)
+    let targetVx = 0
+    let targetVy = 0
+    if (steerMag > 0.001) {
+      targetVx = (steerX / steerMag) * ally.speed
+      targetVy = (steerY / steerMag) * ally.speed
+    }
+    const turnRate = ally.speed / 30
+    const alpha = 1 - Math.exp(-turnRate * dt)
+    const vx = ally.vel.x + (targetVx - ally.vel.x) * alpha
+    const vy = ally.vel.y + (targetVy - ally.vel.y) * alpha
+    updated = {
+      ...updated,
+      pos: { x: ally.pos.x + vx * dt, y: ally.pos.y + vy * dt },
+      vel: { x: vx, y: vy },
+    }
+
+    surviving.push(updated)
+  }
+
+  return { allies: surviving, projectiles: newProjectiles }
+}
+
+function resolveEnemyProjectileAllyCollisions(
+  projectiles: Projectile[],
+  allies: Ally[]
+): { projectiles: Projectile[]; allies: Ally[]; particles: Particle[] } {
+  const allParticles: Particle[] = []
+  const surviving: Projectile[] = []
+  const updatedAllies = allies.map((a) => ({ ...a }))
+
+  for (const proj of projectiles) {
+    if (proj.owner !== ProjectileOwner.enemy) {
+      surviving.push(proj)
+      continue
+    }
+    let hit = false
+    for (let i = 0; i < updatedAllies.length; i++) {
+      const ally = updatedAllies[i]
+      if (ally.hp <= 0) continue
+      // Ally is structurally compatible with Entity
+      const dx = proj.pos.x - ally.pos.x
+      const dy = proj.pos.y - ally.pos.y
+      if (dx * dx + dy * dy < (proj.radius + ally.radius) ** 2) {
+        updatedAllies[i] = { ...ally, hp: ally.hp - proj.damage }
+        allParticles.push(...spawnExplosionParticles(proj.pos, 4, '#88ff88'))
+        hit = true
+        break
+      }
+    }
+    if (!hit) surviving.push(proj)
+  }
+
+  return {
+    projectiles: surviving,
+    allies: updatedAllies.filter((a) => a.hp > 0),
+    particles: allParticles,
+  }
+}
+
+// Enemies that contact an ally die (same as ship-collision behavior) and the
+// ally takes the enemy's damage value.
+function resolveEnemyAllyMeleeCollisions(
+  enemies: Enemy[],
+  allies: Ally[]
+): { enemies: Enemy[]; allies: Ally[]; particles: Particle[]; killedEnemies: Enemy[] } {
+  const allParticles: Particle[] = []
+  const survivingEnemies: Enemy[] = []
+  const killedEnemies: Enemy[] = []
+  const updatedAllies = allies.map((a) => ({ ...a }))
+
+  for (const enemy of enemies) {
+    let consumed = false
+    for (let i = 0; i < updatedAllies.length; i++) {
+      const ally = updatedAllies[i]
+      if (ally.hp <= 0) continue
+      const dx = enemy.pos.x - ally.pos.x
+      const dy = enemy.pos.y - ally.pos.y
+      if (dx * dx + dy * dy < (enemy.radius + ally.radius) ** 2) {
+        updatedAllies[i] = { ...ally, hp: ally.hp - enemy.damage }
+        killedEnemies.push(enemy)
+        allParticles.push(...spawnExplosionParticles(enemy.pos, 8, '#ff8866'))
+        consumed = true
+        break
+      }
+    }
+    if (!consumed) survivingEnemies.push(enemy)
+  }
+
+  return {
+    enemies: survivingEnemies,
+    allies: updatedAllies.filter((a) => a.hp > 0),
+    particles: allParticles,
+    killedEnemies,
+  }
 }
 
 function resolveDeathEffects(
@@ -694,6 +1102,7 @@ function updateProjectiles(projectiles: Projectile[], dt: number): Projectile[] 
   return projectiles
     .map((p) => ({
       ...p,
+      prevPos: p.pos,
       pos: {
         x: p.pos.x + p.vel.x * dt,
         y: p.pos.y + p.vel.y * dt,
@@ -731,7 +1140,14 @@ function resolveProjectileEnemyCollisions(
       // stay in the array until the dead filter at the bottom, but a corpse
       // shouldn't absorb a second bullet flying through the same space.
       if (enemy.hp <= 0) continue
-      if (checkCollision(proj, enemy)) {
+      if (
+        segmentIntersectsCircle(
+          proj.prevPos ?? proj.pos,
+          proj.pos,
+          enemy.pos,
+          enemy.radius + proj.radius
+        )
+      ) {
         hitProjectiles.add(proj)
         updatedEnemies[i] = { ...enemy, hp: enemy.hp - proj.damage }
         allParticles.push(...spawnExplosionParticles(enemy.pos, 6, '#ff4444'))

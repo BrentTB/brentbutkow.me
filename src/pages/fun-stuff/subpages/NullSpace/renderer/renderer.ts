@@ -8,6 +8,7 @@ import {
 } from '../engine/types'
 import type {
   ActiveEffect,
+  Ally,
   BlackHoleEffect,
   Collectible,
   GameState,
@@ -16,8 +17,10 @@ import type {
   RocketEffect,
   ShieldEffect,
   SunEffect,
+  Vec2,
 } from '../engine/types'
 import { POWER_ORB, SPACE_METAL } from '../data'
+import { TELEKINESIS } from '../engine/abilities/abilityData'
 import type { Camera } from './camera'
 import { isWithinView, worldToScreen } from './camera'
 import type { SpriteCache } from './sprite-cache'
@@ -63,14 +66,17 @@ export function renderFrame(
 
   renderStarfield(ctx, stars, camera)
   renderActiveEffectsBack(ctx, state.activeEffects, camera)
+  renderSolarFlare(ctx, state, camera)
   renderCollectibles(ctx, state.collectibles, camera)
   renderParticles(ctx, state.particles, camera)
   renderEnemies(ctx, state, camera, sprites)
+  renderAllies(ctx, state.allies, camera, sprites)
   renderProjectiles(ctx, state, camera, sprites)
   // No ship is in the world before the player has chosen one.
   const shipInWorld = state.phase !== GamePhase.menu && state.phase !== GamePhase.shipSelection
   if (shipInWorld) renderShip(ctx, state, camera, sprites)
   renderActiveEffectsFront(ctx, state.activeEffects, camera, sprites)
+  renderTelekinesis(ctx, state, camera)
   if (shipInWorld) renderShipHealthBar(ctx, state, camera)
 
   ctx.restore()
@@ -525,6 +531,98 @@ function renderSun(ctx: CanvasRenderingContext2D, sun: SunEffect, camera: Camera
   ctx.beginPath()
   ctx.arc(0, 0, r, 0, Math.PI * 2)
   ctx.fill()
+
+  ctx.restore()
+}
+
+function renderAllies(
+  ctx: CanvasRenderingContext2D,
+  allies: Ally[],
+  camera: Camera,
+  sprites: SpriteCache
+): void {
+  for (const ally of allies) {
+    const screen = worldToScreen(ally.pos, camera)
+    if (!isWithinView(screen, camera, 20)) continue
+    const size = getSpriteSize(SpriteKey.ally)
+    // Rotate so the triangle tip faces the direction of movement (or up if idle)
+    const angle =
+      ally.vel.x !== 0 || ally.vel.y !== 0 ? Math.atan2(ally.vel.y, ally.vel.x) + Math.PI / 2 : 0
+    ctx.save()
+    ctx.translate(screen.x, screen.y)
+    ctx.rotate(angle)
+    ctx.drawImage(sprites.ally, -size.w / 2, -size.h / 2)
+    ctx.restore()
+
+    // HP bar — below the sprite, mirrors the ship's bar style but smaller
+    const hpPct = Math.max(0, ally.hp / ally.maxHp)
+    if (hpPct < 1) {
+      const barWidth = 28
+      const barHeight = 3
+      const barX = screen.x - barWidth / 2
+      const barY = screen.y + size.h / 2 + 4
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.6)'
+      ctx.fillRect(barX, barY, barWidth, barHeight)
+      ctx.fillStyle = hpPct > 0.5 ? '#44dd44' : hpPct > 0.25 ? '#dddd44' : '#dd4444'
+      ctx.fillRect(barX, barY, barWidth * hpPct, barHeight)
+    }
+  }
+}
+
+function renderSolarFlare(ctx: CanvasRenderingContext2D, state: GameState, camera: Camera): void {
+  if (!state.solarFlareTarget || !state.solarFlareActive) return
+  // Soft heat haze under the particle spawn area. Particles do the bulk of the
+  // visual; this just hints at the affected zone.
+  const center = worldToScreen(state.solarFlareTarget, camera)
+  const sfAbility = state.abilities.find((a) => a.kind === 'solarFlare')
+  if (!sfAbility) return
+  const radius = sfAbility.aoeRadius * camera.zoom
+
+  ctx.save()
+  const gradient = ctx.createRadialGradient(center.x, center.y, 0, center.x, center.y, radius)
+  gradient.addColorStop(0, 'rgba(255, 220, 120, 0.18)')
+  gradient.addColorStop(0.6, 'rgba(255, 150, 60, 0.08)')
+  gradient.addColorStop(1, 'rgba(255, 100, 30, 0)')
+  ctx.fillStyle = gradient
+  ctx.beginPath()
+  ctx.arc(center.x, center.y, radius, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.restore()
+}
+
+function renderTelekinesis(ctx: CanvasRenderingContext2D, state: GameState, camera: Camera): void {
+  if (!state.telekinesisPos) return
+  const center = worldToScreen(state.telekinesisPos, camera)
+  const screenRadius = TELEKINESIS.radius * camera.zoom
+
+  ctx.save()
+
+  // Ripple circle
+  ctx.strokeStyle = 'rgba(80, 220, 255, 0.5)'
+  ctx.lineWidth = 2
+  ctx.setLineDash([6, 4])
+  ctx.beginPath()
+  ctx.arc(center.x, center.y, screenRadius, 0, Math.PI * 2)
+  ctx.stroke()
+  ctx.setLineDash([])
+
+  // Force lines to affected entities
+  const allEntities: Array<{ pos: { x: number; y: number } }> = [...state.enemies, state.ship]
+
+  for (const entity of allEntities) {
+    const eScreen = worldToScreen(entity.pos as Vec2, camera)
+    const dx = eScreen.x - center.x
+    const dy = eScreen.y - center.y
+    const dist = Math.sqrt(dx * dx + dy * dy)
+    if (dist >= screenRadius) continue
+    const alpha = (1 - dist / screenRadius) * 0.6
+    ctx.strokeStyle = `rgba(80, 220, 255, ${alpha.toFixed(2)})`
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.moveTo(center.x, center.y)
+    ctx.lineTo(eScreen.x, eScreen.y)
+    ctx.stroke()
+  }
 
   ctx.restore()
 }

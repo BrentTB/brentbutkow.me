@@ -77,6 +77,7 @@ export type Projectile = Entity & {
   owner: ProjectileOwner
   damage: number
   lifetime: number
+  prevPos?: Vec2
 }
 
 export const AbilityKind = {
@@ -86,6 +87,9 @@ export const AbilityKind = {
   rocket: 'rocket',
   shield: 'shield',
   sun: 'sun',
+  helper: 'helper',
+  telekinesis: 'telekinesis',
+  solarFlare: 'solarFlare',
 } as const
 export type AbilityKind = (typeof AbilityKind)[keyof typeof AbilityKind]
 
@@ -183,6 +187,22 @@ export type Collectible = {
   homing: boolean
 }
 
+export type Ally = {
+  id: string
+  pos: Vec2
+  vel: Vec2
+  radius: number
+  hp: number
+  maxHp: number
+  fireRate: number
+  fireCooldown: number
+  damage: number
+  speed: number
+  attackRange: number
+  elapsed: number
+  duration: number
+}
+
 export type Particle = {
   id: string
   pos: Vec2
@@ -229,6 +249,15 @@ export const UpgradeId = {
   unlockSun: 'unlockSun',
   sunDamage: 'sunDamage',
   sunDuration: 'sunDuration',
+  unlockHelper: 'unlockHelper',
+  helperDuration: 'helperDuration',
+  helperDamage: 'helperDamage',
+  unlockTelekinesis: 'unlockTelekinesis',
+  telekinesisRadius: 'telekinesisRadius',
+  telekinesisStrength: 'telekinesisStrength',
+  unlockSolarFlare: 'unlockSolarFlare',
+  solarFlareDamage: 'solarFlareDamage',
+  solarFlareEfficiency: 'solarFlareEfficiency',
   shipMaxHp: 'shipMaxHp',
   shipDamage: 'shipDamage',
   shipFireRate: 'shipFireRate',
@@ -261,6 +290,7 @@ export type GameState = {
   ship: Ship
   enemies: Enemy[]
   projectiles: Projectile[]
+  allies: Ally[]
   abilities: Ability[]
   activeEffects: ActiveEffect[]
   collectibles: Collectible[]
@@ -282,9 +312,17 @@ export type GameState = {
   spawnTimer: number
   totalWaveEnemies: number
   spawnedInWave: number
+  telekinesisPos: Vec2 | null
+  telekinesisActive: boolean
+  solarFlareTarget: Vec2 | null
+  solarFlareTimer: number
+  solarFlareActive: boolean
 }
 
 export type PlayerInput = {
   clicks: Vec2[]
   selectedAbility: AbilityKind | null
+  holdPos?: Vec2 | null
+  prevHoldPos?: Vec2 | null
+  isHolding?: boolean
 }

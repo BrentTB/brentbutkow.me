@@ -1,4 +1,4 @@
-import { ROCKET } from '../data'
+import { ROCKET } from './abilities/abilityData'
 import { damageEnemiesInRadius, damageEnemiesInRadiusFlat } from './aoe'
 import { distance } from './collision'
 import { createParticle, spawnExplosionParticles, uid } from './entities'

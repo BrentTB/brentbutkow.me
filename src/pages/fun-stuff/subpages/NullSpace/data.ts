@@ -116,57 +116,13 @@ export const POWER_DEFAULTS = {
   startingPower: 100,
 }
 
-export const METEORITE_STRIKE = {
-  delay: 0.3,
-  cooldown: 0.05,
-  powerCost: 5,
-  damage: 15,
-  aoeRadius: 40,
-} as const
-
-export const METEOR_STRIKE = {
-  delay: 0.5,
-  cooldown: 1.5,
-  powerCost: 40,
-  damage: 60,
-  aoeRadius: 100,
-} as const
-
-export const BLACK_HOLE = {
-  cooldown: 2,
-  powerCost: 50,
-  damage: 3,
-  radius: 120,
-  pullStrength: 200,
-  duration: 4,
-} as const
-
-export const ROCKET = {
-  cooldown: 2.5,
-  powerCost: 25,
-  damage: 50,
-  aoeRadius: 130,
-  speed: 250,
-  trailParticleInterval: 0.04,
-} as const
-
-export const SHIELD = {
-  cooldown: 4,
-  powerCost: 30,
-  radius: 80,
-  duration: 6,
-} as const
-
-export const SUN = {
-  cooldown: 12,
-  powerCost: 100,
-  radius: 180,
-  damagePerSec: 15,
-  duration: 5,
-} as const
+// Ability stat constants live in engine/abilities/abilityData.ts. Import from
+// there directly.
 
 // Display order for the hotbar AND the shop. Edit this array to reorder.
 // Initial order: cheapest → most expensive at base cost (5, 25, 30, 40, 50, 100).
+// ABILITY_META, HOLD_ABILITIES, factory tables, and upgrade definitions are all
+// derived from per-ability files in engine/abilities/ — import them from there.
 export const WEAPON_ORDER: readonly AbilityKind[] = [
   AbilityKind.meteorite,
   AbilityKind.rocket,
@@ -174,18 +130,10 @@ export const WEAPON_ORDER: readonly AbilityKind[] = [
   AbilityKind.meteor,
   AbilityKind.blackHole,
   AbilityKind.sun,
+  AbilityKind.helper,
+  AbilityKind.telekinesis,
+  AbilityKind.solarFlare,
 ]
-
-// Icon + display name per ability, shared by the HUD hotbar and the shop.
-// Keyed by AbilityKind so a new ability won't compile until it's named here.
-export const ABILITY_META: Record<AbilityKind, { icon: string; label: string }> = {
-  [AbilityKind.meteorite]: { icon: '☄', label: 'Meteorite' },
-  [AbilityKind.rocket]: { icon: '🚀', label: 'Rocket' },
-  [AbilityKind.shield]: { icon: '🛡', label: 'Shield' },
-  [AbilityKind.meteor]: { icon: '🌑', label: 'Meteor' },
-  [AbilityKind.blackHole]: { icon: '🕳', label: 'Black Hole' },
-  [AbilityKind.sun]: { icon: '☀', label: 'Sun' },
-}
 
 export const ENEMY_STATS = {
   drone: {
@@ -300,6 +248,69 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.8.3',
+    date: '2026-06-04',
+    changes: {
+      features: [
+        'Telekinesis now applies a radial force — by default it PULLS enemies toward your cursor instead of pushing them around with your drag. Set TELEKINESIS.mode to "push" in data.ts to flip behavior.',
+      ],
+      fixes: [
+        'Telekinesis now needs 3 seconds of power to start (same as solar flare) and shuts off the instant power runs out, instead of half-firing on passive regen.',
+      ],
+    },
+  },
+  {
+    version: '0.8.2',
+    date: '2026-06-04',
+    changes: {
+      features: [
+        'Allies now have an HP bar that follows them, mirroring the ship bar.',
+        'Allies now orbit the ship at unique per-ally angles and weave with random noise — stacked allies fan out instead of overlapping.',
+        'Solar Flare visual now spawns a dense hot core (white/yellow) with a wider orange spray, giving a real fire feel.',
+      ],
+      balance: [
+        'Allies are noticeably worse at dodging enemies (lower avoid radius, weaker push, added random movement) so they can actually die.',
+      ],
+      fixes: [
+        'Solar Flare now deactivates the moment power drops below one tick of cost — it no longer keeps half-firing on the trickle of passive regen after running out.',
+        'Internal: consolidated all per-ability data (meta, base stats, factories, upgrade definitions, upgrade-application logic) into one file per ability under engine/abilities/. Adding a new ability now means creating a single file and registering it in the index, instead of editing ~6 separate lookup tables across the codebase.',
+      ],
+    },
+  },
+  {
+    version: '0.8.1',
+    date: '2026-06-04',
+    changes: {
+      features: [
+        'Allies now follow your ship and weave away from nearby enemies — they no longer stand still while shooting.',
+        'Solar Flare is now a radial particle storm at your cursor instead of a beam from your ship.',
+        'Solar Flare arms only when you have at least 3 seconds of power available, and stops the moment power runs out.',
+        'Telekinesis force now uses a plateau curve — full strength near the cursor with a smooth falloff, so you no longer need to land the cursor dead-on an entity.',
+      ],
+      fixes: [
+        'Enemies now die and damage allies when ramming them — previously only enemy projectiles could damage allies.',
+        'Solar Flare cursor now stays under your actual mouse instead of drifting in world coordinates as the camera moves.',
+        'Space metal can now be collected while Solar Flare or Telekinesis is selected.',
+      ],
+    },
+  },
+  {
+    version: '0.8.0',
+    date: '2026-06-04',
+    changes: {
+      features: [
+        'New ability: Helper — click to summon a ranged ally that fights alongside the ship for 20 seconds. No cap; stack them up.',
+        'New ability: Telekinesis — hold to create a force field at your cursor. Drag it to push enemies and your ship with distance-based falloff.',
+        'New ability: Solar Flare — hold toward enemies to emit a continuous damage beam. Power drains every 0.25s while active.',
+        'Enemies now target and shoot at Helper allies — use them as bait.',
+      ],
+      fixes: [
+        'Bullets no longer tunnel through enemies at 2× game speed — swept segment-circle collision replaces the old point check.',
+        'Wave-complete screen: pressing Enter now advances to the next wave.',
+      ],
+    },
+  },
   {
     version: '0.7.0',
     date: '2026-06-03',

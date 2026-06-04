@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  ABILITY_META,
   CURRENCY_NAME,
   GAME_NAME,
   SHIP_ORDER,
@@ -12,10 +11,10 @@ import { AbilityKind, GamePhase, ShipKind, UpgradeCategory, UpgradeId } from '..
 import type { UpgradeDefinition } from '../engine/types'
 import { SHIP_SPRITE_KEY } from '../renderer/renderer'
 import { SPRITE_MAP } from '../renderer/sprites'
+import { ABILITY_META, WEAPON_UNLOCK_UPGRADE } from '../engine/abilities'
 import {
   UPGRADE_DEFINITIONS,
   UPGRADE_CATEGORY_LABELS,
-  WEAPON_UNLOCK_UPGRADE,
   canPurchaseUpgrade,
 } from '../engine/upgrades'
 import type { GameUIState } from '../useNullSpace'
@@ -311,6 +310,14 @@ function WaveCompleteScreen({
   score: number
   onNextWave: () => void
 }) {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Enter') onNextWave()
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [onNextWave])
+
   const waveInLevel = ((wave - 1) % WAVES_PER_LEVEL) + 1
   return (
     <>

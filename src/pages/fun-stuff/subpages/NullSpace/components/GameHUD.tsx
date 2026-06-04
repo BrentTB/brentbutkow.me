@@ -1,4 +1,5 @@
-import { ABILITY_META, CURRENCY_NAME, WAVES_PER_LEVEL } from '../data'
+import { CURRENCY_NAME, WAVES_PER_LEVEL } from '../data'
+import { ABILITY_META } from '../engine/abilities'
 import { GamePhase } from '../engine/types'
 import type { GameUIState } from '../useNullSpace'
 import styles from './GameHUD.module.scss'

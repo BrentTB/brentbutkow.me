@@ -3,17 +3,11 @@ import {
   PROJECTILE_SPEED,
   PROJECTILE_LIFETIME,
   PROJECTILE_RADIUS,
-  METEORITE_STRIKE,
-  METEOR_STRIKE,
-  BLACK_HOLE,
-  ROCKET,
-  SHIELD,
-  SUN,
-  WEAPON_ORDER,
   ENEMY_STATS,
 } from '../data'
-import { AbilityKind, DeathBehavior, EnemyKind, MovementBehavior, ShipKind } from './types'
-import type { Ship, Enemy, Projectile, Vec2, Ability, Particle } from './types'
+import { HELPER } from './abilities/abilityData'
+import { DeathBehavior, EnemyKind, MovementBehavior, ShipKind } from './types'
+import type { Ship, Enemy, Projectile, Vec2, Ally, Particle } from './types'
 import { rng } from './random'
 
 const ENEMY_MOVEMENT: Record<EnemyKind, MovementBehavior> = {
@@ -103,6 +97,7 @@ export function createProjectile(
   return {
     id: uid(),
     pos: { ...pos },
+    prevPos: { ...pos },
     vel: { x: nx * PROJECTILE_SPEED, y: ny * PROJECTILE_SPEED },
     radius: PROJECTILE_RADIUS,
     hp: 1,
@@ -113,66 +108,27 @@ export function createProjectile(
   }
 }
 
-// Per-kind base config. Each entry defines the ability's starting stats; the order
-// of display is decided by WEAPON_ORDER (data.ts), NOT by sort.
-const ABILITY_BASE: Record<AbilityKind, () => Omit<Ability, 'cooldownRemaining' | 'unlocked'>> = {
-  [AbilityKind.meteorite]: () => ({
-    kind: AbilityKind.meteorite,
-    cooldown: METEORITE_STRIKE.cooldown,
-    powerCost: METEORITE_STRIKE.powerCost,
-    damage: METEORITE_STRIKE.damage,
-    aoeRadius: METEORITE_STRIKE.aoeRadius,
-  }),
-  [AbilityKind.meteor]: () => ({
-    kind: AbilityKind.meteor,
-    cooldown: METEOR_STRIKE.cooldown,
-    powerCost: METEOR_STRIKE.powerCost,
-    damage: METEOR_STRIKE.damage,
-    aoeRadius: METEOR_STRIKE.aoeRadius,
-  }),
-  [AbilityKind.blackHole]: () => ({
-    kind: AbilityKind.blackHole,
-    cooldown: BLACK_HOLE.cooldown,
-    powerCost: BLACK_HOLE.powerCost,
-    damage: BLACK_HOLE.damage,
-    aoeRadius: BLACK_HOLE.radius,
-    duration: BLACK_HOLE.duration,
-  }),
-  [AbilityKind.rocket]: () => ({
-    kind: AbilityKind.rocket,
-    cooldown: ROCKET.cooldown,
-    powerCost: ROCKET.powerCost,
-    damage: ROCKET.damage,
-    aoeRadius: ROCKET.aoeRadius,
-  }),
-  [AbilityKind.shield]: () => ({
-    kind: AbilityKind.shield,
-    cooldown: SHIELD.cooldown,
-    powerCost: SHIELD.powerCost,
-    // Shield no longer deals damage — it's a movement barrier. The Ability
-    // shape still requires `damage`, so we set 0.
-    damage: 0,
-    aoeRadius: SHIELD.radius,
-    duration: SHIELD.duration,
-  }),
-  [AbilityKind.sun]: () => ({
-    kind: AbilityKind.sun,
-    cooldown: SUN.cooldown,
-    powerCost: SUN.powerCost,
-    damage: SUN.damagePerSec,
-    aoeRadius: SUN.radius,
-    duration: SUN.duration,
-  }),
+export function createAlly(pos: Vec2): Ally {
+  return {
+    id: uid(),
+    pos: { ...pos },
+    vel: { x: 0, y: 0 },
+    radius: HELPER.radius,
+    hp: HELPER.hp,
+    maxHp: HELPER.hp,
+    fireRate: HELPER.fireRate,
+    fireCooldown: 0,
+    damage: HELPER.damage,
+    speed: HELPER.speed,
+    attackRange: HELPER.attackRange,
+    elapsed: 0,
+    duration: HELPER.duration,
+  }
 }
 
-export function createAbilities(): Ability[] {
-  return WEAPON_ORDER.map((kind) => ({
-    ...ABILITY_BASE[kind](),
-    cooldownRemaining: 0,
-    // Meteorite starts unlocked; everything else needs a shop purchase.
-    unlocked: kind === AbilityKind.meteorite,
-  }))
-}
+// Ability creation lives in engine/abilities/ to keep all per-ability logic in
+// one folder. Re-exported here so existing callers don't break.
+export { createAbilities } from './abilities'
 
 export function createParticle(
   pos: Vec2,

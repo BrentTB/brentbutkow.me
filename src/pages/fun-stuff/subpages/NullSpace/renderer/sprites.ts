@@ -240,6 +240,17 @@ export const CARRIER_SPRITE: SpriteData = [
   [_, _, _, _, _, _, _, F, F, _, _, _, _, _, _, _],
 ]
 
+const A = '#44ee44' // bright green (friendly)
+const a = '#22aa22' // dark green
+
+// Small upward-pointing triangle sprite for ally entities.
+export const ALLY_SPRITE: SpriteData = [
+  [_, _, _, A, _, _, _],
+  [_, _, A, a, A, _, _],
+  [_, A, a, a, a, A, _],
+  [A, a, a, a, a, a, A],
+]
+
 export const SpriteKey = {
   ship: 'ship',
   shipInterceptor: 'shipInterceptor',
@@ -255,6 +266,7 @@ export const SpriteKey = {
   meteor: 'meteor',
   meteorite: 'meteorite',
   rocket: 'rocket',
+  ally: 'ally',
 } as const
 export type SpriteKey = (typeof SpriteKey)[keyof typeof SpriteKey]
 
@@ -273,4 +285,5 @@ export const SPRITE_MAP: Record<SpriteKey, SpriteData> = {
   meteor: METEOR_SPRITE,
   meteorite: METEORITE_SPRITE,
   rocket: ROCKET_SPRITE,
+  ally: ALLY_SPRITE,
 }
