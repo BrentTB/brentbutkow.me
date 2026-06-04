@@ -312,11 +312,18 @@ export type GameState = {
   spawnTimer: number
   totalWaveEnemies: number
   spawnedInWave: number
-  telekinesisPos: Vec2 | null
-  telekinesisActive: boolean
-  solarFlareTarget: Vec2 | null
-  solarFlareTimer: number
-  solarFlareActive: boolean
+  // Per-ability runtime state for hold abilities. Keyed by AbilityKind. Each
+  // entry tracks {active, timer, target}. Inactive abilities are simply absent.
+  holdStates: Partial<Record<AbilityKind, HoldRuntimeState>>
+}
+
+// Inlined re-export of the hold-runtime state shape so types.ts doesn't have
+// to import from engine/abilities/. Kept in sync manually — both shapes are
+// trivial.
+export type HoldRuntimeState = {
+  active: boolean
+  timer: number
+  target: Vec2 | null
 }
 
 export type PlayerInput = {

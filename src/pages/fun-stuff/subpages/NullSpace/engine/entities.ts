@@ -165,3 +165,14 @@ export function spawnExplosionParticles(pos: Vec2, count: number, color: string)
   }
   return particles
 }
+
+export function updateParticles(particles: Particle[], dt: number): Particle[] {
+  return particles
+    .map((p) => ({
+      ...p,
+      pos: { x: p.pos.x + p.vel.x * dt, y: p.pos.y + p.vel.y * dt },
+      vel: { x: p.vel.x * 0.96, y: p.vel.y * 0.96 },
+      elapsed: p.elapsed + dt,
+    }))
+    .filter((p) => p.elapsed < p.lifetime)
+}

@@ -1,7 +1,12 @@
 import { SOLAR_FLARE } from './abilityData'
+import { distance } from '../collision'
+import { computeCurrencyFromKills } from '../economy'
+import { createParticle, spawnExplosionParticles } from '../entities'
+import { rng } from '../random'
 import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
-import type { UpgradeDefinition } from '../types'
+import type { Enemy, UpgradeDefinition } from '../types'
 import { applyTierSum, type AbilityDefinition } from './ability-definition'
+import type { HoldAbilityConfig } from './hold-runtime'
 
 const unlockUpgrade: UpgradeDefinition = {
   id: UpgradeId.unlockSolarFlare,
@@ -37,6 +42,82 @@ const efficiencyUpgrade: UpgradeDefinition = {
   ],
 }
 
+const HOT_COLORS = ['#ffffff', '#fff2b0', '#ffe066', '#ffc24a']
+const OUTER_COLORS = ['#ff8833', '#ff6622', '#ffaa44']
+
+const solarFlareHold: HoldAbilityConfig = {
+  armSeconds: SOLAR_FLARE.armSeconds,
+  drainInterval: SOLAR_FLARE.drainInterval,
+  // Particle rain every frame: dense bright-white/yellow core at the center,
+  // thinner orange spray spreading to the full radius. Hot-fire look.
+  onFrame: (bag, ability, holdPos) => {
+    const fullRadius = ability.aoeRadius
+    const particles = [...bag.particles]
+    // Hot core: many particles, small radius, fast-fade short-life
+    for (let i = 0; i < 10; i++) {
+      const ang = rng.next() * Math.PI * 2
+      const r = Math.sqrt(rng.next()) * (fullRadius * 0.35)
+      particles.push(
+        createParticle(
+          { x: holdPos.x + Math.cos(ang) * r, y: holdPos.y + Math.sin(ang) * r },
+          { x: 0, y: 0 },
+          HOT_COLORS[Math.floor(rng.next() * HOT_COLORS.length)],
+          0.18 + rng.next() * 0.18,
+          3 + rng.next() * 3
+        )
+      )
+    }
+    // Outer spray: fewer particles, full radius
+    for (let i = 0; i < 4; i++) {
+      const ang = rng.next() * Math.PI * 2
+      const r = Math.sqrt(rng.next()) * fullRadius
+      particles.push(
+        createParticle(
+          { x: holdPos.x + Math.cos(ang) * r, y: holdPos.y + Math.sin(ang) * r },
+          { x: 0, y: 0 },
+          OUTER_COLORS[Math.floor(rng.next() * OUTER_COLORS.length)],
+          0.3 + rng.next() * 0.3,
+          2 + rng.next() * 2
+        )
+      )
+    }
+    return { ...bag, particles }
+  },
+  // Damage tick: every drainInterval, damage all enemies in radius.
+  onTick: (bag, ability, holdPos) => {
+    const radius = ability.aoeRadius
+    const updatedEnemies: Enemy[] = []
+    let particles = bag.particles
+    let score = bag.score
+    let currency = bag.currency
+    const newKills: Enemy[] = []
+    for (const enemy of bag.enemies) {
+      if (distance(holdPos, enemy.pos) < radius + enemy.radius) {
+        const damaged = { ...enemy, hp: enemy.hp - ability.damage }
+        if (damaged.hp <= 0) {
+          newKills.push(enemy)
+          score += enemy.scoreValue
+          currency += computeCurrencyFromKills([enemy])
+          particles = [...particles, ...spawnExplosionParticles(enemy.pos, 12, '#ffaa33')]
+        } else {
+          updatedEnemies.push(damaged)
+          particles = [...particles, ...spawnExplosionParticles(enemy.pos, 4, '#ffdd66')]
+        }
+      } else {
+        updatedEnemies.push(enemy)
+      }
+    }
+    return {
+      ...bag,
+      enemies: updatedEnemies,
+      particles,
+      score,
+      currency,
+      killedEnemies: [...bag.killedEnemies, ...newKills],
+    }
+  },
+}
+
 export const solarFlare: AbilityDefinition = {
   kind: AbilityKind.solarFlare,
   meta: { icon: '🌟', label: 'Solar Flare' },
@@ -55,4 +136,5 @@ export const solarFlare: AbilityDefinition = {
   }),
   unlockUpgrade,
   modifierUpgrades: [damageUpgrade, efficiencyUpgrade],
+  hold: solarFlareHold,
 }

@@ -8,6 +8,7 @@ import type {
   UpgradeDefinition,
   Vec2,
 } from '../types'
+import type { HoldAbilityConfig } from './hold-runtime'
 
 export type AbilityActivation = 'click' | 'hold'
 
@@ -32,6 +33,9 @@ export type AbilityDefinition = {
   unlockUpgrade?: UpgradeDefinition
   // Tiered upgrades for damage, duration, radius, efficiency, etc.
   modifierUpgrades?: UpgradeDefinition[]
+  // Hold-activation runtime config. Present iff `activation === 'hold'`. Drives
+  // the generic hold runner (arm gate, drain, deactivation)
+  hold?: HoldAbilityConfig
 }
 
 // Helper: sum the values of the first N tiers of an upgrade onto a base value.

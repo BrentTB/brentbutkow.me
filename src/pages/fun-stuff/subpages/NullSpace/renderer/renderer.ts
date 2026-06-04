@@ -1,4 +1,5 @@
 import {
+  AbilityKind,
   CollectibleKind,
   EffectKind,
   EnemyKind,
@@ -570,11 +571,12 @@ function renderAllies(
 }
 
 function renderSolarFlare(ctx: CanvasRenderingContext2D, state: GameState, camera: Camera): void {
-  if (!state.solarFlareTarget || !state.solarFlareActive) return
+  const hold = state.holdStates[AbilityKind.solarFlare]
+  if (!hold?.active || !hold.target) return
   // Soft heat haze under the particle spawn area. Particles do the bulk of the
   // visual; this just hints at the affected zone.
-  const center = worldToScreen(state.solarFlareTarget, camera)
-  const sfAbility = state.abilities.find((a) => a.kind === 'solarFlare')
+  const center = worldToScreen(hold.target, camera)
+  const sfAbility = state.abilities.find((a) => a.kind === AbilityKind.solarFlare)
   if (!sfAbility) return
   const radius = sfAbility.aoeRadius * camera.zoom
 
@@ -591,8 +593,9 @@ function renderSolarFlare(ctx: CanvasRenderingContext2D, state: GameState, camer
 }
 
 function renderTelekinesis(ctx: CanvasRenderingContext2D, state: GameState, camera: Camera): void {
-  if (!state.telekinesisPos) return
-  const center = worldToScreen(state.telekinesisPos, camera)
+  const hold = state.holdStates[AbilityKind.telekinesis]
+  if (!hold?.active || !hold.target) return
+  const center = worldToScreen(hold.target, camera)
   const screenRadius = TELEKINESIS.radius * camera.zoom
 
   ctx.save()

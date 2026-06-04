@@ -2,6 +2,7 @@ import { TELEKINESIS } from './abilityData'
 import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
 import type { UpgradeDefinition } from '../types'
 import { applyTierSum, type AbilityDefinition } from './ability-definition'
+import type { HoldAbilityConfig } from './hold-runtime'
 
 const unlockUpgrade: UpgradeDefinition = {
   id: UpgradeId.unlockTelekinesis,
@@ -36,6 +37,44 @@ const strengthUpgrade: UpgradeDefinition = {
   ],
 }
 
+// Plateau falloff: full force inside ~25% of the radius, smooth cosine drop
+// to zero at the edge. Fine-positioning the cursor isn't required to apply
+// full force.
+const TELEKINESIS_PLATEAU = 0.25
+
+const telekinesisHold: HoldAbilityConfig = {
+  armSeconds: TELEKINESIS.armSeconds,
+  // No drainInterval → continuous drain + onFrame every frame.
+  onFrame: (bag, ability, holdPos, dt) => {
+    const radius = ability.aoeRadius
+    const forceAt = (dist: number) => {
+      if (dist >= radius) return 0
+      const x = dist / radius
+      if (x <= TELEKINESIS_PLATEAU) return TELEKINESIS.force
+      const t = (x - TELEKINESIS_PLATEAU) / (1 - TELEKINESIS_PLATEAU)
+      return TELEKINESIS.force * 0.5 * (Math.cos(Math.PI * t) + 1)
+    }
+    const sign = TELEKINESIS.mode === 'pull' ? 1 : -1
+    const enemies = bag.enemies.map((enemy) => {
+      const dx = holdPos.x - enemy.pos.x
+      const dy = holdPos.y - enemy.pos.y
+      const dist = Math.sqrt(dx * dx + dy * dy)
+      if (dist < 0.01) return enemy
+      const f = forceAt(dist)
+      if (f === 0) return enemy
+      const step = f * dt * sign
+      return {
+        ...enemy,
+        pos: {
+          x: enemy.pos.x + (dx / dist) * step,
+          y: enemy.pos.y + (dy / dist) * step,
+        },
+      }
+    })
+    return { ...bag, enemies }
+  },
+}
+
 export const telekinesis: AbilityDefinition = {
   kind: AbilityKind.telekinesis,
   meta: { icon: '✋', label: 'Telekinesis' },
@@ -53,4 +92,5 @@ export const telekinesis: AbilityDefinition = {
   }),
   unlockUpgrade,
   modifierUpgrades: [radiusUpgrade, strengthUpgrade],
+  hold: telekinesisHold,
 }

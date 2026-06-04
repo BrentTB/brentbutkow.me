@@ -18,7 +18,7 @@ import {
   UpgradeId,
 } from './types'
 import { isUpgradeWave } from './upgrades'
-import { ENEMY_STATS, WAVES_PER_LEVEL } from '../data'
+import { ENEMY_STATS, POWER_DEFAULTS, WAVES_PER_LEVEL } from '../data'
 import { TELEKINESIS, SOLAR_FLARE } from './abilities/abilityData'
 
 beforeEach(() => {
@@ -1007,8 +1007,8 @@ describe('Telekinesis ability', () => {
       holdPos: cursorPos,
       prevHoldPos: cursorPos,
     })
-    expect(state.telekinesisPos).toEqual(cursorPos)
-    expect(state.telekinesisActive).toBe(true)
+    expect(state.holdStates[AbilityKind.telekinesis]?.target).toEqual(cursorPos)
+    expect(state.holdStates[AbilityKind.telekinesis]?.active).toBe(true)
 
     state = updateGameState(state, 0.016, {
       clicks: [],
@@ -1017,14 +1017,13 @@ describe('Telekinesis ability', () => {
       holdPos: null,
       prevHoldPos: null,
     })
-    expect(state.telekinesisPos).toBeNull()
-    expect(state.telekinesisActive).toBe(false)
+    expect(state.holdStates[AbilityKind.telekinesis]?.target).toBeNull()
+    expect(state.holdStates[AbilityKind.telekinesis]?.active).toBe(false)
   })
 
-  it('cannot start without 1s of power (arm threshold)', () => {
+  it('cannot start without the required amount of power (arm threshold)', () => {
     let state = makeTKState()
-    // armCost = 1 * 20 = 20; set below
-    state = { ...state, power: 15 }
+    state = { ...state, power: TELEKINESIS.powerPerSec * TELEKINESIS.armSeconds - 5 }
     const cursorPos = { x: state.ship.pos.x + 50, y: state.ship.pos.y }
     state = updateGameState(state, 0.016, {
       clicks: [],
@@ -1033,17 +1032,32 @@ describe('Telekinesis ability', () => {
       holdPos: cursorPos,
       prevHoldPos: cursorPos,
     })
-    expect(state.telekinesisActive).toBe(false)
-    expect(state.telekinesisPos).toBeNull()
+    expect(state.holdStates[AbilityKind.telekinesis]?.active).toBe(false)
+    expect(state.holdStates[AbilityKind.telekinesis]?.target).toBeNull()
+  })
+  it('can start with the required amount of power (arm threshold)', () => {
+    let state = makeTKState()
+    state = { ...state, power: TELEKINESIS.powerPerSec * TELEKINESIS.armSeconds + 5 }
+    const cursorPos = { x: state.ship.pos.x + 50, y: state.ship.pos.y }
+    state = updateGameState(state, 0.016, {
+      clicks: [],
+      selectedAbility: AbilityKind.telekinesis,
+      isHolding: true,
+      holdPos: cursorPos,
+      prevHoldPos: cursorPos,
+    })
+    expect(state.holdStates[AbilityKind.telekinesis]?.active).toBe(true)
+    expect(state.holdStates[AbilityKind.telekinesis]?.target).toEqual(cursorPos)
   })
 
   it('stops once power runs out', () => {
     let state = makeTKState()
-    state = { ...state, power: 70 } // just above arm threshold
+    state = { ...state, power: TELEKINESIS.powerPerSec * TELEKINESIS.armSeconds * 2 } // double arm threshold
     const cursorPos = { x: state.ship.pos.x + 50, y: state.ship.pos.y }
-    // Drain past zero. dt is capped at 0.1 (MAX_DT), drain 2 per tick, regen
-    // 0.3 per tick → ~1.7 net loss per tick. ~100 ticks deplete from 70 → ~0.
-    for (let i = 0; i < 200; i++) {
+    const totalDrainPerSecond = TELEKINESIS.powerPerSec - POWER_DEFAULTS.regenRate
+    const secondsToDrain = state.power / totalDrainPerSecond
+    const ticksToDrain = Math.ceil(secondsToDrain / 0.1) // MAX_DT is 0.1
+    for (let i = 0; i < ticksToDrain - 1; i++) {
       state = updateGameState(state, 0.1, {
         clicks: [],
         selectedAbility: AbilityKind.telekinesis,
@@ -1052,7 +1066,17 @@ describe('Telekinesis ability', () => {
         prevHoldPos: cursorPos,
       })
     }
-    expect(state.telekinesisActive).toBe(false)
+    expect(state.holdStates[AbilityKind.telekinesis]?.active).toBe(true)
+    for (let i = 0; i < 1; i++) {
+      state = updateGameState(state, 0.1, {
+        clicks: [],
+        selectedAbility: AbilityKind.telekinesis,
+        isHolding: true,
+        holdPos: cursorPos,
+        prevHoldPos: cursorPos,
+      })
+    }
+    expect(state.holdStates[AbilityKind.telekinesis]?.active).toBe(false)
   })
 })
 
@@ -1118,16 +1142,16 @@ describe('Solar Flare ability', () => {
       holdPos: target,
       prevHoldPos: target,
     })
-    expect(state.solarFlareTarget).toEqual(target)
-    expect(state.solarFlareActive).toBe(true)
+    expect(state.holdStates[AbilityKind.solarFlare]?.target).toEqual(target)
+    expect(state.holdStates[AbilityKind.solarFlare]?.active).toBe(true)
 
     state = updateGameState(state, 0.016, {
       clicks: [],
       selectedAbility: AbilityKind.solarFlare,
       isHolding: false,
     })
-    expect(state.solarFlareTarget).toBeNull()
-    expect(state.solarFlareActive).toBe(false)
+    expect(state.holdStates[AbilityKind.solarFlare]?.target).toBeNull()
+    expect(state.holdStates[AbilityKind.solarFlare]?.active).toBe(false)
   })
 
   it('cannot start firing without 3s of power (arm threshold)', () => {
@@ -1142,13 +1166,15 @@ describe('Solar Flare ability', () => {
       holdPos: target,
       prevHoldPos: target,
     })
-    expect(state.solarFlareActive).toBe(false)
-    expect(state.solarFlareTarget).toBeNull()
+    expect(state.holdStates[AbilityKind.solarFlare]?.active).toBe(false)
+    expect(state.holdStates[AbilityKind.solarFlare]?.target).toBeNull()
   })
 
   it('stops firing once power runs out', () => {
     let state = makeSFState()
-    state = { ...state, power: 30 } // Just above arm threshold (24)
+    // Set totalWaveEnemies=0 so the wave-complete branch doesn't fire and
+    // reset holdStates while we drain power.
+    state = { ...state, power: 30, totalWaveEnemies: 0, spawnQueue: [] } // Just above arm threshold (24)
     const target = { x: state.ship.pos.x + 300, y: state.ship.pos.y }
     // dt is capped at MAX_DT (0.1). Loop long enough to drain past 0 even
     // after passive power regen.
@@ -1161,7 +1187,7 @@ describe('Solar Flare ability', () => {
         prevHoldPos: target,
       })
     }
-    expect(state.solarFlareActive).toBe(false)
+    expect(state.holdStates[AbilityKind.solarFlare]?.active).toBe(false)
   })
 })
 
