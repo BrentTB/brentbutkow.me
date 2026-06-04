@@ -1,5 +1,5 @@
 import { SHIELD } from './abilityData'
-import { createShieldEffect } from '../effects'
+import { createShieldEffect } from '../systems/effects'
 import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
 import type { UpgradeDefinition } from '../types'
 import { applyTierSum, type AbilityDefinition } from './ability-definition'

@@ -7,9 +7,9 @@ import {
   createParticle,
   spawnExplosionParticles,
   resetUid,
-} from './entities'
-import { AbilityKind, DeathBehavior, EnemyKind, MovementBehavior, ShipKind } from './types'
-import { WEAPON_ORDER, WORLD_SIZE } from '../data'
+} from './entityCreator'
+import { AbilityKind, DeathBehavior, EnemyKind, MovementBehavior, ShipKind } from '../types'
+import { WEAPON_ORDER, WORLD_SIZE } from '../../data'
 
 beforeEach(() => {
   resetUid()

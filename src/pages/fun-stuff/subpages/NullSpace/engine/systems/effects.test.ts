@@ -8,11 +8,11 @@ import {
   createShieldEffect,
   createSunEffect,
 } from './effects'
-import { createShip, createEnemy, createProjectile, resetUid } from './entities'
-import { EnemyKind, ProjectileOwner, ShipKind } from './types'
-import type { ActiveEffect } from './types'
-import { WORLD_SIZE } from '../data'
-import { METEORITE_STRIKE, BLACK_HOLE, ROCKET, SHIELD, SUN } from './abilities/abilityData'
+import { createShip, createEnemy, createProjectile, resetUid } from '../entities/entityCreator'
+import { EnemyKind, ProjectileOwner, ShipKind } from '../types'
+import type { ActiveEffect } from '../types'
+import { WORLD_SIZE } from '../../data'
+import { METEORITE_STRIKE, BLACK_HOLE, ROCKET, SHIELD, SUN } from '../abilities/abilityData'
 
 beforeEach(() => {
   resetUid()

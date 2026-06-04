@@ -1,5 +1,5 @@
 import { BLACK_HOLE } from './abilityData'
-import { createBlackHoleEffect } from '../effects'
+import { createBlackHoleEffect } from '../systems/effects'
 import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
 import type { UpgradeDefinition } from '../types'
 import { applyTierSum, type AbilityDefinition } from './ability-definition'

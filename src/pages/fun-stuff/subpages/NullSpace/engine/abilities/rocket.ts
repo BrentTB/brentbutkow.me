@@ -1,5 +1,5 @@
 import { ROCKET } from './abilityData'
-import { createRocketEffect } from '../effects'
+import { createRocketEffect } from '../systems/effects'
 import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
 import type { UpgradeDefinition } from '../types'
 import { applyTierSum, type AbilityDefinition } from './ability-definition'

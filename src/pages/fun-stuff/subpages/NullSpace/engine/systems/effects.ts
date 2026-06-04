@@ -1,8 +1,8 @@
-import { ROCKET } from './abilities/abilityData'
-import { damageEnemiesInRadius, damageEnemiesInRadiusFlat } from './aoe'
-import { distance } from './collision'
-import { createParticle, spawnExplosionParticles, uid } from './entities'
-import { EffectKind, ProjectileOwner } from './types'
+import { ROCKET } from '../abilities/abilityData'
+import { damageEnemiesInRadius, damageEnemiesInRadiusFlat } from '../math/aoe'
+import { distance } from '../math/collision'
+import { createParticle, spawnExplosionParticles, uid } from '../entities/entityCreator'
+import { EffectKind, ProjectileOwner } from '../types'
 import type {
   ActiveEffect,
   BlackHoleEffect,
@@ -14,7 +14,7 @@ import type {
   ShieldEffect,
   Ship,
   SunEffect,
-} from './types'
+} from '../types'
 
 export type EffectTickContext = {
   enemies: Enemy[]

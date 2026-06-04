@@ -1,4 +1,4 @@
-import type { Entity, Vec2 } from './types'
+import type { Entity, Vec2 } from '../types'
 
 export function checkCollision(a: Entity, b: Entity): boolean {
   const dx = a.pos.x - b.pos.x

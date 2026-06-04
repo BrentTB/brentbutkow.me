@@ -1,9 +1,9 @@
-import { ENEMY_STATS } from '../data'
-import { checkCollision, distance, segmentIntersectsCircle } from './collision'
-import { spawnExplosionParticles } from './entities'
-import { applyDamageToShip } from './ship-runtime'
-import { DeathBehavior, EffectKind, ProjectileOwner } from './types'
-import type { ActiveEffect, Ally, Enemy, Particle, Projectile, Ship } from './types'
+import { ENEMY_STATS } from '../../data'
+import { checkCollision, distance, segmentIntersectsCircle } from '../math/collision'
+import { spawnExplosionParticles } from '../entities/entityCreator'
+import { applyDamageToShip } from '../entities/ship'
+import { DeathBehavior, EffectKind, ProjectileOwner } from '../types'
+import type { ActiveEffect, Ally, Enemy, Particle, Projectile, Ship } from '../types'
 
 export function updateProjectiles(projectiles: Projectile[], dt: number): Projectile[] {
   return projectiles

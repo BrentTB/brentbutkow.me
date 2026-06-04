@@ -1,5 +1,5 @@
 import { WORLD_SIZE, PARTICLE_DEFAULTS, POWER_DEFAULTS } from '../data'
-import { createAbilities, createShip, resetUid, updateParticles } from './entities'
+import { createAbilities, createShip, resetUid, updateParticles } from './entities/entityCreator'
 import { ABILITY_LIST, resolveAbilityInput, updateAbilityCooldowns } from './abilities'
 import { INACTIVE_HOLD_STATE, runHoldAbility } from './abilities/hold-runtime'
 import type { HoldBag } from './abilities/hold-runtime'
@@ -7,13 +7,13 @@ import {
   spawnCollectiblesFromKills,
   tryCollectSpaceMetal,
   updateCollectibles,
-} from './collectibles'
-import { applyShieldConstraints, updateActiveEffects } from './effects'
-import { MAX_DT } from './time'
-import { processSpawnQueue } from './spawner'
-import { applyDamageToShip, updateShipAttack, updateShipPatrol } from './ship-runtime'
-import { updateEnemyMovement, updateEnemyShooting } from './enemy-runtime'
-import { updateAllies } from './ally-runtime'
+} from './systems/collectibles'
+import { applyShieldConstraints, updateActiveEffects } from './systems/effects'
+import { MAX_DT } from './world/time'
+import { processSpawnQueue } from './systems/spawner'
+import { applyDamageToShip, updateShipAttack, updateShipPatrol } from './entities/ship'
+import { updateEnemyMovement, updateEnemyShooting } from './entities/enemy'
+import { updateAllies } from './entities/ally'
 import {
   resolveDeathEffects,
   resolveEnemyAllyMeleeCollisions,
@@ -22,8 +22,8 @@ import {
   resolveEnemyShipCollisions,
   resolveProjectileEnemyCollisions,
   updateProjectiles,
-} from './combat'
-import { computeCurrencyFromKills } from './economy'
+} from './systems/combat'
+import { computeCurrencyFromKills } from './systems/economy'
 import {
   applyUpgradesToAbilities,
   applyUpgradesToPowerRegen,
@@ -34,9 +34,9 @@ import {
   isUpgradeWave,
   purchaseUpgrade,
 } from './upgrades'
-import { getWave, getWaveDelay } from './waves'
-import { loadHighScore, saveHighScore } from './persistence'
-import { rng } from './random'
+import { getWave, getWaveDelay } from './world/waves'
+import { loadHighScore, saveHighScore } from './world/persistence'
+import { rng } from './math/random'
 import { GamePhase, ShipKind } from './types'
 import type { GameState, PlayerInput, UpgradeId } from './types'
 

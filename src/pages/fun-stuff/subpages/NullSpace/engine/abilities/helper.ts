@@ -1,5 +1,5 @@
 import { HELPER } from './abilityData'
-import { createAlly } from '../entities'
+import { createAlly } from '../entities/entityCreator'
 import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
 import type { UpgradeDefinition } from '../types'
 import { applyTierSum, type AbilityDefinition } from './ability-definition'

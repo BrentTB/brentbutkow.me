@@ -1,8 +1,8 @@
-import { SHIELD_COOLDOWN } from '../data'
-import { distance } from './collision'
-import { createProjectile } from './entities'
-import { ProjectileOwner } from './types'
-import type { Enemy, Projectile, Ship, Vec2 } from './types'
+import { SHIELD_COOLDOWN } from '../../data'
+import { distance } from '../math/collision'
+import { createProjectile } from './entityCreator'
+import { ProjectileOwner } from '../types'
+import type { Enemy, Projectile, Ship, Vec2 } from '../types'
 
 export function applyDamageToShip(ship: Ship, damage: number): Ship {
   if (damage <= 0) return ship

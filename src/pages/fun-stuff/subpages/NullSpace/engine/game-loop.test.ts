@@ -6,7 +6,7 @@ import {
   updateGameState,
   applyUpgradeToState,
 } from './game-loop'
-import { resetUid, createEnemy, createProjectile } from './entities'
+import { resetUid, createEnemy, createProjectile } from './entities/entityCreator'
 import {
   AbilityKind,
   CollectibleKind,

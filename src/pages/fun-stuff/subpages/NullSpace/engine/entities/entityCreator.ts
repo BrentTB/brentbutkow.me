@@ -4,11 +4,11 @@ import {
   PROJECTILE_LIFETIME,
   PROJECTILE_RADIUS,
   ENEMY_STATS,
-} from '../data'
-import { HELPER } from './abilities/abilityData'
-import { DeathBehavior, EnemyKind, MovementBehavior, ShipKind } from './types'
-import type { Ship, Enemy, Projectile, Vec2, Ally, Particle } from './types'
-import { rng } from './random'
+} from '../../data'
+import { HELPER } from '../abilities/abilityData'
+import { DeathBehavior, EnemyKind, MovementBehavior, ShipKind } from '../types'
+import type { Ship, Enemy, Projectile, Vec2, Ally, Particle } from '../types'
+import { rng } from '../math/random'
 
 const ENEMY_MOVEMENT: Record<EnemyKind, MovementBehavior> = {
   [EnemyKind.drone]: MovementBehavior.chase,
@@ -128,7 +128,7 @@ export function createAlly(pos: Vec2): Ally {
 
 // Ability creation lives in engine/abilities/ to keep all per-ability logic in
 // one folder. Re-exported here so existing callers don't break.
-export { createAbilities } from './abilities'
+export { createAbilities } from '../abilities'
 
 export function createParticle(
   pos: Vec2,

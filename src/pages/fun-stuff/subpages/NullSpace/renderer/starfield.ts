@@ -1,6 +1,6 @@
 import type { Camera } from './camera'
 import { isWithinView } from './camera'
-import { rng } from '../engine/random'
+import { rng } from '../engine/math/random'
 
 export type Star = {
   x: number

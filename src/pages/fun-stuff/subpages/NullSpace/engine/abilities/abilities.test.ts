@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { tryUseAbility, updateAbilityCooldowns } from './abilities'
-import { createAbilities, createShip, resetUid } from './entities'
-import { AbilityKind, EffectKind, ShipKind } from './types'
-import { WORLD_SIZE } from '../data'
+import { tryUseAbility, updateAbilityCooldowns } from '.'
+import { createAbilities, createShip, resetUid } from '../entities/entityCreator'
+import { AbilityKind, EffectKind, ShipKind } from '../types'
+import { WORLD_SIZE } from '../../data'
 
 const ship = createShip(ShipKind.fighter, WORLD_SIZE)
 

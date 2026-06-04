@@ -1,6 +1,6 @@
-import { CURRENCY_DROPS } from '../data'
-import { rng } from './random'
-import type { Enemy } from './types'
+import { CURRENCY_DROPS } from '../../data'
+import { rng } from '../math/random'
+import type { Enemy } from '../types'
 
 export function computeCurrencyFromKills(killedEnemies: Enemy[]): number {
   let total = 0

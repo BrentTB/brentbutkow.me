@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { resolveEnemyProjectileShipCollisions } from './combat'
-import { createShip, createProjectile, resetUid } from './entities'
-import { distance } from './collision'
-import { ProjectileOwner, ShipKind } from './types'
-import { WORLD_SIZE } from '../data'
+import { createShip, createProjectile, resetUid } from '../entities/entityCreator'
+import { distance } from '../math/collision'
+import { ProjectileOwner, ShipKind } from '../types'
+import { WORLD_SIZE } from '../../data'
 
 beforeEach(() => {
   resetUid()

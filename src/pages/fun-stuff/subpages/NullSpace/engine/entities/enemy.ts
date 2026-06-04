@@ -1,8 +1,8 @@
-import { ENEMY_STATS } from '../data'
-import { distance } from './collision'
-import { createProjectile } from './entities'
-import { MovementBehavior, ProjectileOwner } from './types'
-import type { Ally, Enemy, Projectile, Ship, Vec2 } from './types'
+import { ENEMY_STATS } from '../../data'
+import { distance } from '../math/collision'
+import { createProjectile } from './entityCreator'
+import { MovementBehavior, ProjectileOwner } from '../types'
+import type { Ally, Enemy, Projectile, Ship, Vec2 } from '../types'
 
 // Returns the position of the nearest entity to a given point (ship or any ally).
 export function findNearestTarget(pos: Vec2, ship: Ship, allies: Ally[]): Vec2 {

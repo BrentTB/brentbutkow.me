@@ -1,10 +1,10 @@
-import { POWER_ORB, SPACE_METAL } from '../data'
-import { distance } from './collision'
-import { uid } from './entities'
-import { homeTowardTarget } from './homing'
-import { rng } from './random'
-import { CollectibleKind } from './types'
-import type { Collectible, Enemy, Ship, Vec2 } from './types'
+import { POWER_ORB, SPACE_METAL } from '../../data'
+import { distance } from '../math/collision'
+import { uid } from '../entities/entityCreator'
+import { homeTowardTarget } from '../math/homing'
+import { rng } from '../math/random'
+import { CollectibleKind } from '../types'
+import type { Collectible, Enemy, Ship, Vec2 } from '../types'
 
 export function spawnCollectiblesFromKills(killedEnemies: Enemy[]): Collectible[] {
   const collectibles: Collectible[] = []

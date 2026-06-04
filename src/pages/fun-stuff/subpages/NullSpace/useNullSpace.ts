@@ -11,7 +11,7 @@ import {
 } from './engine/game-loop'
 import { AbilityKind, GamePhase, ShipKind } from './engine/types'
 import type { GameState, PlayerInput, Vec2, UpgradeId, PlayerUpgrades } from './engine/types'
-import { createShip } from './engine/entities'
+import { createShip } from './engine/entities/entityCreator'
 import { getLevel } from './engine/upgrades'
 import { WAVES_PER_LEVEL } from './data'
 import { HOLD_ABILITIES } from './engine/abilities'
@@ -22,7 +22,7 @@ import {
   resumeGameTime,
   setGameSpeed,
   type GameTime,
-} from './engine/time'
+} from './engine/world/time'
 import { buildSpriteCache, type SpriteCache } from './renderer/sprite-cache'
 import {
   createCamera,

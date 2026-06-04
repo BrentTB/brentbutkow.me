@@ -1,8 +1,8 @@
-import { distance } from './collision'
-import { createProjectile } from './entities'
-import { rng } from './random'
-import { ProjectileOwner } from './types'
-import type { Ally, Enemy, Projectile, Ship, Vec2 } from './types'
+import { distance } from '../math/collision'
+import { createProjectile } from './entityCreator'
+import { rng } from '../math/random'
+import { ProjectileOwner } from '../types'
+import type { Ally, Enemy, Projectile, Ship, Vec2 } from '../types'
 
 // Ally behavior: shoots the nearest enemy in range and orbits the ship at a
 // per-ally angle. Each ally has a unique phase offset from its id hash so

@@ -1,12 +1,9 @@
-import { SPAWN_DELAY, SPAWN_DISTANCE, SWARM_SPAWN_SPREAD } from '../data'
-import { createEnemy } from './entities'
-import { rng } from './random'
-import { EnemyKind } from './types'
-import type { Enemy, Vec2 } from './types'
-
-function clamp(v: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, v))
-}
+import { SPAWN_DELAY, SPAWN_DISTANCE, SWARM_SPAWN_SPREAD } from '../../data'
+import { createEnemy } from '../entities/entityCreator'
+import { clamp } from '../math/utils'
+import { rng } from '../math/random'
+import { EnemyKind } from '../types'
+import type { Enemy, Vec2 } from '../types'
 
 export function spawnPositionNearShip(shipPos: Vec2, worldSize: Vec2): Vec2 {
   const angle = rng.range(0, Math.PI * 2)

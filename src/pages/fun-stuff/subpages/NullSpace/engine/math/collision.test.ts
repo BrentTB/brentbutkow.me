@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { checkCollision, distance, segmentIntersectsCircle } from './collision'
-import type { Entity } from './types'
+import type { Entity } from '../types'
 
 function makeEntity(x: number, y: number, radius: number): Entity {
   return { id: 'test', pos: { x, y }, vel: { x: 0, y: 0 }, radius, hp: 1, maxHp: 1 }
