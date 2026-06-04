@@ -249,14 +249,24 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.8.4',
+    date: '2026-06-04',
+    changes: {
+      fixes: [
+        'Enemy bullets no longer tunnel through the ship at 2× game speed — the swept collision check now applies to enemy fire as well as your own.',
+        'Internal: Solar Flare kills now tally score and currency through the game loop like every other kill source, instead of inline; removed the dead telekinesis drag-delta input plumbing.',
+      ],
+    },
+  },
+  {
     version: '0.8.3',
     date: '2026-06-04',
     changes: {
       features: [
-        'Telekinesis now applies a radial force — by default it PULLS enemies toward your cursor instead of pushing them around with your drag. Set TELEKINESIS.mode to "push" in data.ts to flip behavior.',
+        'Telekinesis now applies a radial force that pushes enemies away from your cursor instead of shoving them around with your drag. Set TELEKINESIS.mode to "pull" in abilityData.ts to flip behavior.',
       ],
       fixes: [
-        'Telekinesis now needs 3 seconds of power to start (same as solar flare) and shuts off the instant power runs out, instead of half-firing on passive regen.',
+        'Telekinesis now needs 1 second of power to start (same as solar flare) and shuts off the instant power runs out, instead of half-firing on passive regen.',
       ],
     },
   },
@@ -285,7 +295,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       features: [
         'Allies now follow your ship and weave away from nearby enemies — they no longer stand still while shooting.',
         'Solar Flare is now a radial particle storm at your cursor instead of a beam from your ship.',
-        'Solar Flare arms only when you have at least 3 seconds of power available, and stops the moment power runs out.',
+        'Solar Flare arms only when you have at least 1 second of power available, and stops the moment power runs out.',
         'Telekinesis force now uses a plateau curve — full strength near the cursor with a smooth falloff, so you no longer need to land the cursor dead-on an entity.',
       ],
       fixes: [
@@ -301,7 +311,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     changes: {
       features: [
         'New ability: Helper — click to summon a ranged ally that fights alongside the ship for 20 seconds. No cap; stack them up.',
-        'New ability: Telekinesis — hold to create a force field at your cursor. Drag it to push enemies and your ship with distance-based falloff.',
+        'New ability: Telekinesis — hold to create a force field at your cursor. Drag it to push enemies away with distance-based falloff.',
         'New ability: Solar Flare — hold toward enemies to emit a continuous damage beam. Power drains every 0.25s while active.',
         'Enemies now target and shoot at Helper allies — use them as bait.',
       ],

@@ -86,7 +86,15 @@ export function resolveEnemyProjectileShipCollisions(
   let damagedShip = ship
 
   for (const proj of projectiles) {
-    if (proj.owner === ProjectileOwner.enemy && checkCollision(proj, damagedShip)) {
+    if (
+      proj.owner === ProjectileOwner.enemy &&
+      segmentIntersectsCircle(
+        proj.prevPos ?? proj.pos,
+        proj.pos,
+        damagedShip.pos,
+        damagedShip.radius + proj.radius
+      )
+    ) {
       damagedShip = applyDamageToShip(damagedShip, proj.damage)
       allParticles.push(...spawnExplosionParticles(proj.pos, 4, '#ff6666'))
     } else {

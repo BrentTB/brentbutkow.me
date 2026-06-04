@@ -1,6 +1,5 @@
 import { SOLAR_FLARE } from './abilityData'
 import { distance } from '../collision'
-import { computeCurrencyFromKills } from '../economy'
 import { createParticle, spawnExplosionParticles } from '../entities'
 import { rng } from '../random'
 import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
@@ -83,21 +82,19 @@ const solarFlareHold: HoldAbilityConfig = {
     }
     return { ...bag, particles }
   },
-  // Damage tick: every drainInterval, damage all enemies in radius.
+  // Damage tick: every drainInterval, damage all enemies in radius. Score and
+  // currency for kills are tallied by the game loop from killedEnemies, same as
+  // every other kill source.
   onTick: (bag, ability, holdPos) => {
     const radius = ability.aoeRadius
     const updatedEnemies: Enemy[] = []
     let particles = bag.particles
-    let score = bag.score
-    let currency = bag.currency
     const newKills: Enemy[] = []
     for (const enemy of bag.enemies) {
       if (distance(holdPos, enemy.pos) < radius + enemy.radius) {
         const damaged = { ...enemy, hp: enemy.hp - ability.damage }
         if (damaged.hp <= 0) {
           newKills.push(enemy)
-          score += enemy.scoreValue
-          currency += computeCurrencyFromKills([enemy])
           particles = [...particles, ...spawnExplosionParticles(enemy.pos, 12, '#ffaa33')]
         } else {
           updatedEnemies.push(damaged)
@@ -111,8 +108,6 @@ const solarFlareHold: HoldAbilityConfig = {
       ...bag,
       enemies: updatedEnemies,
       particles,
-      score,
-      currency,
       killedEnemies: [...bag.killedEnemies, ...newKills],
     }
   },

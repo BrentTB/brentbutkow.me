@@ -9,7 +9,7 @@ const unlockUpgrade: UpgradeDefinition = {
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.telekinesis,
   label: 'Unlock Telekinesis',
-  description: 'Hold to push enemies and your ship with a force field',
+  description: 'Hold to push enemies away with a force field',
   tiers: [{ cost: 35, value: 1 }],
 }
 
@@ -22,18 +22,6 @@ const radiusUpgrade: UpgradeDefinition = {
   tiers: [
     { cost: 15, value: 30 },
     { cost: 30, value: 50 },
-  ],
-}
-
-const strengthUpgrade: UpgradeDefinition = {
-  id: UpgradeId.telekinesisStrength,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.telekinesis,
-  label: 'Force',
-  description: 'Increase telekinesis push strength',
-  tiers: [
-    { cost: 20, value: 0.4 },
-    { cost: 40, value: 0.6 },
   ],
 }
 
@@ -91,6 +79,6 @@ export const telekinesis: AbilityDefinition = {
     aoeRadius: applyTierSum(TELEKINESIS.radius, upgrades, radiusUpgrade),
   }),
   unlockUpgrade,
-  modifierUpgrades: [radiusUpgrade, strengthUpgrade],
+  modifierUpgrades: [radiusUpgrade],
   hold: telekinesisHold,
 }

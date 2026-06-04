@@ -18,7 +18,6 @@ import type {
   RocketEffect,
   ShieldEffect,
   SunEffect,
-  Vec2,
 } from '../engine/types'
 import { POWER_ORB, SPACE_METAL } from '../data'
 import { TELEKINESIS } from '../engine/abilities/abilityData'
@@ -609,11 +608,9 @@ function renderTelekinesis(ctx: CanvasRenderingContext2D, state: GameState, came
   ctx.stroke()
   ctx.setLineDash([])
 
-  // Force lines to affected entities
-  const allEntities: Array<{ pos: { x: number; y: number } }> = [...state.enemies, state.ship]
-
-  for (const entity of allEntities) {
-    const eScreen = worldToScreen(entity.pos as Vec2, camera)
+  // Force lines to affected enemies
+  for (const enemy of state.enemies) {
+    const eScreen = worldToScreen(enemy.pos, camera)
     const dx = eScreen.x - center.x
     const dy = eScreen.y - center.y
     const dist = Math.sqrt(dx * dx + dy * dy)

@@ -277,7 +277,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   // definition file; the runner handles the arm gate, drain, and active flag.
   const isHolding = input.isHolding ?? false
   const holdPos = input.holdPos ?? null
-  let holdBag: HoldBag = { enemies, particles, score, currency, power, killedEnemies: [] }
+  let holdBag: HoldBag = { enemies, particles, power, killedEnemies: [] }
   const nextHoldStates: typeof holdStates = { ...holdStates }
   for (const def of ABILITY_LIST) {
     if (!def.hold) continue
@@ -302,9 +302,9 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   enemies = holdBag.enemies
   particles = holdBag.particles
   power = holdBag.power
-  score = holdBag.score
-  currency = holdBag.currency
   const holdKilledEnemies = holdBag.killedEnemies
+  score += holdKilledEnemies.reduce((sum, e) => sum + e.scoreValue, 0)
+  currency += computeCurrencyFromKills(holdKilledEnemies)
 
   // --- Collision: ship projectiles vs enemies ---
   const projCollision = resolveProjectileEnemyCollisions(projectiles, enemies)

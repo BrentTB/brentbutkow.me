@@ -14,8 +14,6 @@ export const INACTIVE_HOLD_STATE: HoldRuntimeState = {
 export type HoldBag = {
   enemies: Enemy[]
   particles: Particle[]
-  score: number
-  currency: number
   power: number
   killedEnemies: Enemy[]
 }

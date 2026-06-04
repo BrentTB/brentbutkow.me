@@ -943,7 +943,7 @@ describe('Telekinesis ability', () => {
     let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     state = applyUpgradeToState({ ...state, currency: 999 }, UpgradeId.unlockTelekinesis)
-    // armSeconds * powerPerSec = 3 * 20 = 60. Give plenty.
+    // armSeconds * powerPerSec = 1 * 20 = 20. Give plenty.
     return { ...state, power: 500 }
   }
 
@@ -969,7 +969,6 @@ describe('Telekinesis ability', () => {
       selectedAbility: AbilityKind.telekinesis,
       isHolding: true,
       holdPos: cursorPos,
-      prevHoldPos: cursorPos,
     })
     const nearAfter = state.enemies.find((e) => e.id === nearEnemy.id)!
     const farAfter = state.enemies.find((e) => e.id === farEnemy.id)!
@@ -992,7 +991,6 @@ describe('Telekinesis ability', () => {
       selectedAbility: AbilityKind.telekinesis,
       isHolding: true,
       holdPos: cursorPos,
-      prevHoldPos: cursorPos,
     })
     expect(state.power).toBeLessThan(powerBefore)
   })
@@ -1005,7 +1003,6 @@ describe('Telekinesis ability', () => {
       selectedAbility: AbilityKind.telekinesis,
       isHolding: true,
       holdPos: cursorPos,
-      prevHoldPos: cursorPos,
     })
     expect(state.holdStates[AbilityKind.telekinesis]?.target).toEqual(cursorPos)
     expect(state.holdStates[AbilityKind.telekinesis]?.active).toBe(true)
@@ -1015,7 +1012,6 @@ describe('Telekinesis ability', () => {
       selectedAbility: AbilityKind.telekinesis,
       isHolding: false,
       holdPos: null,
-      prevHoldPos: null,
     })
     expect(state.holdStates[AbilityKind.telekinesis]?.target).toBeNull()
     expect(state.holdStates[AbilityKind.telekinesis]?.active).toBe(false)
@@ -1030,7 +1026,6 @@ describe('Telekinesis ability', () => {
       selectedAbility: AbilityKind.telekinesis,
       isHolding: true,
       holdPos: cursorPos,
-      prevHoldPos: cursorPos,
     })
     expect(state.holdStates[AbilityKind.telekinesis]?.active).toBe(false)
     expect(state.holdStates[AbilityKind.telekinesis]?.target).toBeNull()
@@ -1044,7 +1039,6 @@ describe('Telekinesis ability', () => {
       selectedAbility: AbilityKind.telekinesis,
       isHolding: true,
       holdPos: cursorPos,
-      prevHoldPos: cursorPos,
     })
     expect(state.holdStates[AbilityKind.telekinesis]?.active).toBe(true)
     expect(state.holdStates[AbilityKind.telekinesis]?.target).toEqual(cursorPos)
@@ -1063,7 +1057,6 @@ describe('Telekinesis ability', () => {
         selectedAbility: AbilityKind.telekinesis,
         isHolding: true,
         holdPos: cursorPos,
-        prevHoldPos: cursorPos,
       })
     }
     expect(state.holdStates[AbilityKind.telekinesis]?.active).toBe(true)
@@ -1073,7 +1066,6 @@ describe('Telekinesis ability', () => {
         selectedAbility: AbilityKind.telekinesis,
         isHolding: true,
         holdPos: cursorPos,
-        prevHoldPos: cursorPos,
       })
     }
     expect(state.holdStates[AbilityKind.telekinesis]?.active).toBe(false)
@@ -1107,7 +1099,6 @@ describe('Solar Flare ability', () => {
       selectedAbility: AbilityKind.solarFlare,
       isHolding: true,
       holdPos: target,
-      prevHoldPos: target,
     })
     const insideAfter = state.enemies.find((e) => e.id === enemyInside.id)
     const outsideAfter = state.enemies.find((e) => e.id === enemyOutside.id)
@@ -1126,7 +1117,6 @@ describe('Solar Flare ability', () => {
       selectedAbility: AbilityKind.solarFlare,
       isHolding: true,
       holdPos: target,
-      prevHoldPos: target,
     })
     expect(state.power).toBeLessThan(powerBefore)
   })
@@ -1140,7 +1130,6 @@ describe('Solar Flare ability', () => {
       selectedAbility: AbilityKind.solarFlare,
       isHolding: true,
       holdPos: target,
-      prevHoldPos: target,
     })
     expect(state.holdStates[AbilityKind.solarFlare]?.target).toEqual(target)
     expect(state.holdStates[AbilityKind.solarFlare]?.active).toBe(true)
@@ -1154,9 +1143,9 @@ describe('Solar Flare ability', () => {
     expect(state.holdStates[AbilityKind.solarFlare]?.active).toBe(false)
   })
 
-  it('cannot start firing without 3s of power (arm threshold)', () => {
+  it('cannot start firing without 1s of power (arm threshold)', () => {
     let state = makeSFState()
-    // Arm cost = armSeconds * powerPerSec = 3 * 8 = 24. Set below.
+    // Arm cost = armSeconds * powerPerSec = 1 * 20 = 20. Set below.
     state = { ...state, power: 10 }
     const target = { x: state.ship.pos.x + 300, y: state.ship.pos.y }
     state = updateGameState(state, 0.016, {
@@ -1164,7 +1153,6 @@ describe('Solar Flare ability', () => {
       selectedAbility: AbilityKind.solarFlare,
       isHolding: true,
       holdPos: target,
-      prevHoldPos: target,
     })
     expect(state.holdStates[AbilityKind.solarFlare]?.active).toBe(false)
     expect(state.holdStates[AbilityKind.solarFlare]?.target).toBeNull()
@@ -1174,7 +1162,7 @@ describe('Solar Flare ability', () => {
     let state = makeSFState()
     // Set totalWaveEnemies=0 so the wave-complete branch doesn't fire and
     // reset holdStates while we drain power.
-    state = { ...state, power: 30, totalWaveEnemies: 0, spawnQueue: [] } // Just above arm threshold (24)
+    state = { ...state, power: 30, totalWaveEnemies: 0, spawnQueue: [] } // Just above arm threshold (20)
     const target = { x: state.ship.pos.x + 300, y: state.ship.pos.y }
     // dt is capped at MAX_DT (0.1). Loop long enough to drain past 0 even
     // after passive power regen.
@@ -1184,7 +1172,6 @@ describe('Solar Flare ability', () => {
         selectedAbility: AbilityKind.solarFlare,
         isHolding: true,
         holdPos: target,
-        prevHoldPos: target,
       })
     }
     expect(state.holdStates[AbilityKind.solarFlare]?.active).toBe(false)

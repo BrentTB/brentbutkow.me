@@ -254,7 +254,6 @@ export const UpgradeId = {
   helperDamage: 'helperDamage',
   unlockTelekinesis: 'unlockTelekinesis',
   telekinesisRadius: 'telekinesisRadius',
-  telekinesisStrength: 'telekinesisStrength',
   unlockSolarFlare: 'unlockSolarFlare',
   solarFlareDamage: 'solarFlareDamage',
   solarFlareEfficiency: 'solarFlareEfficiency',
@@ -330,6 +329,5 @@ export type PlayerInput = {
   clicks: Vec2[]
   selectedAbility: AbilityKind | null
   holdPos?: Vec2 | null
-  prevHoldPos?: Vec2 | null
   isHolding?: boolean
 }

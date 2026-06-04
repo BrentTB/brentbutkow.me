@@ -140,7 +140,6 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     clicks: [],
     selectedAbility: AbilityKind.meteorite,
     holdPos: null,
-    prevHoldPos: null,
     isHolding: false,
   })
   // Hold-ability cursor tracking. Screen pos is the truth — world pos drifts
@@ -388,7 +387,6 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
           ...inputRef.current,
           isHolding: true,
           holdPos: worldPos,
-          prevHoldPos: worldPos,
           // Still register the click so the space-metal collector gets a shot
           // at it before the (no-op for hold abilities) click ability resolver.
           clicks: [...inputRef.current.clicks, worldPos],
@@ -419,7 +417,6 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
         ...inputRef.current,
         isHolding: false,
         holdPos: null,
-        prevHoldPos: null,
       }
     }
 
@@ -463,16 +460,13 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
         clicks: inputRef.current.clicks,
         selectedAbility: inputRef.current.selectedAbility,
         holdPos: liveHoldPos,
-        prevHoldPos: inputRef.current.prevHoldPos,
         isHolding: inputRef.current.isHolding,
       }
-      // Shift holdPos → prevHoldPos for next frame's delta computation.
       // clicks reset each frame; hold state persists until pointerup.
       inputRef.current = {
         ...inputRef.current,
         clicks: [],
         selectedAbility: selectedAbilityRef.current,
-        prevHoldPos: liveHoldPos,
       }
 
       const prevPhase = gameStateRef.current.phase
