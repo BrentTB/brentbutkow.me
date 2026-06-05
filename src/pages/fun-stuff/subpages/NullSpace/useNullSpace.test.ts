@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { abilityKindForHotkey, useNullSpace } from './useNullSpace'
 import { createRef } from 'react'
-import { createAbilities } from './engine/entities'
+import { createAbilities } from './engine/entities/entityCreator'
 import { AbilityKind, GamePhase, ShipKind } from './engine/types'
 import { WEAPON_ORDER } from './data'
 

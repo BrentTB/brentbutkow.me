@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { getWave, getWaveDelay } from './waves'
-import { rng } from './random'
-import { EnemyKind } from './types'
+import { rng } from '../math/random'
+import { EnemyKind } from '../types'
 
 beforeEach(() => {
   rng.reseed(42)

@@ -11,7 +11,7 @@ import {
   UPGRADE_DEFINITIONS,
   WEAPON_UNLOCK_UPGRADE,
 } from './upgrades'
-import { createAbilities } from './entities'
+import { createAbilities } from './entities/entityCreator'
 import { AbilityKind, UpgradeCategory, UpgradeId } from './types'
 
 describe('createInitialUpgrades', () => {

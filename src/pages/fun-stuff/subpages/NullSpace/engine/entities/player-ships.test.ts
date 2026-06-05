@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { createShip, resetUid, createEnemy } from './entities'
+import { createShip, resetUid, createEnemy } from './entityCreator'
 import {
   createInitialState,
   startGame,
   startNextWave,
   updateGameState,
   rechargeShieldWithMetal,
-} from './game-loop'
-import { ShipKind, EnemyKind, GamePhase } from './types'
-import { SHIP_VARIANTS, SHIELD_COOLDOWN, WORLD_SIZE } from '../data'
+} from '../game-loop'
+import { ShipKind, EnemyKind, GamePhase } from '../types'
+import { SHIP_VARIANTS, SHIELD_COOLDOWN, WORLD_SIZE } from '../../data'
 
 beforeEach(() => {
   resetUid()

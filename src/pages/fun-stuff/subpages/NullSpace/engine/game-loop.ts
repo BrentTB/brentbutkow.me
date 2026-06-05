@@ -1,54 +1,44 @@
-import {
-  WORLD_SIZE,
-  PARTICLE_DEFAULTS,
-  POWER_DEFAULTS,
-  CURRENCY_DROPS,
-  ENEMY_STATS,
-  SPAWN_DELAY,
-  SPAWN_DISTANCE,
-  SWARM_SPAWN_SPREAD,
-  SHIELD_COOLDOWN,
-} from '../data'
-import { checkCollision, distance } from './collision'
-import {
-  createShip,
-  createAbilities,
-  createProjectile,
-  createEnemy,
-  spawnExplosionParticles,
-  resetUid,
-} from './entities'
-import { updateAbilityCooldowns, resolveAbilityInput } from './abilities'
+import { WORLD_SIZE, PARTICLE_DEFAULTS, POWER_DEFAULTS } from '../data'
+import { createAbilities, createShip, resetUid, updateParticles } from './entities/entityCreator'
+import { ABILITY_LIST, resolveAbilityInput, updateAbilityCooldowns } from './abilities'
+import { INACTIVE_HOLD_STATE, runHoldAbility } from './abilities/hold-runtime'
+import type { HoldBag } from './abilities/hold-runtime'
 import {
   spawnCollectiblesFromKills,
-  updateCollectibles,
   tryCollectSpaceMetal,
-} from './collectibles'
-import { applyShieldConstraints, updateActiveEffects } from './effects'
-import { MAX_DT } from './time'
+  updateCollectibles,
+} from './systems/collectibles'
+import { applyShieldConstraints, updateActiveEffects } from './systems/effects'
+import { MAX_DT } from './world/time'
+import { processSpawnQueue } from './systems/spawner'
+import { applyDamageToShip, updateShipAttack, updateShipPatrol } from './entities/ship'
+import { updateEnemyMovement, updateEnemyShooting } from './entities/enemy'
+import { updateAllies } from './entities/ally'
 import {
-  createInitialUpgrades,
-  isUpgradeWave,
-  getLevel,
-  canPurchaseUpgrade,
-  purchaseUpgrade,
+  resolveDeathEffects,
+  resolveEnemyAllyMeleeCollisions,
+  resolveEnemyProjectileAllyCollisions,
+  resolveEnemyProjectileShipCollisions,
+  resolveEnemyShipCollisions,
+  resolveProjectileEnemyCollisions,
+  updateProjectiles,
+} from './systems/combat'
+import { computeCurrencyFromKills } from './systems/economy'
+import {
   applyUpgradesToAbilities,
-  applyUpgradesToShip,
   applyUpgradesToPowerRegen,
+  applyUpgradesToShip,
+  canPurchaseUpgrade,
+  createInitialUpgrades,
+  getLevel,
+  isUpgradeWave,
+  purchaseUpgrade,
 } from './upgrades'
-import { getWave, getWaveDelay } from './waves'
-import { loadHighScore, saveHighScore } from './persistence'
-import { rng } from './random'
-import {
-  DeathBehavior,
-  EffectKind,
-  EnemyKind,
-  GamePhase,
-  MovementBehavior,
-  ProjectileOwner,
-  ShipKind,
-} from './types'
-import type { GameState, PlayerInput, Enemy, Vec2, Projectile, Particle, UpgradeId } from './types'
+import { getWave, getWaveDelay } from './world/waves'
+import { loadHighScore, saveHighScore } from './world/persistence'
+import { rng } from './math/random'
+import { GamePhase, ShipKind } from './types'
+import type { GameState, PlayerInput, UpgradeId } from './types'
 
 export function createInitialState(): GameState {
   resetUid()
@@ -59,6 +49,7 @@ export function createInitialState(): GameState {
     ship: createShip(ShipKind.fighter, WORLD_SIZE),
     enemies: [],
     projectiles: [],
+    allies: [],
     abilities: createAbilities(),
     activeEffects: [],
     collectibles: [],
@@ -80,6 +71,7 @@ export function createInitialState(): GameState {
     spawnTimer: 0,
     totalWaveEnemies: 0,
     spawnedInWave: 0,
+    holdStates: {},
   }
 }
 
@@ -99,6 +91,7 @@ export function startGame(state: GameState, shipKind: ShipKind): GameState {
     ship,
     enemies: [],
     projectiles: [],
+    allies: [],
     abilities: createAbilities(),
     activeEffects: [],
     collectibles: [],
@@ -119,6 +112,7 @@ export function startGame(state: GameState, shipKind: ShipKind): GameState {
     spawnedInWave: 0,
     highScore: loadHighScore(),
     isNewHighScore: false,
+    holdStates: {},
   }
 }
 
@@ -181,6 +175,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     ship,
     enemies,
     projectiles,
+    allies,
     abilities,
     activeEffects,
     collectibles,
@@ -195,6 +190,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   } = state
   let { waveTimer } = state
   const { maxPower, powerRegen } = state
+  let holdStates = state.holdStates
 
   // Wave delay only gates enemy spawning — the rest of the simulation
   // (in-flight meteors, homing power orbs, projectiles, ship attacks against
@@ -204,35 +200,20 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   }
 
   // --- Spawn queue ---
-  if (spawnQueue.length > 0 && waveTimer <= 0) {
-    spawnTimer -= dt
-    while (spawnTimer <= 0 && spawnQueue.length > 0) {
-      const kind = spawnQueue[0]
-
-      if (kind === EnemyKind.swarm) {
-        // Burst-spawn all consecutive swarms at a shared center so the pack stays together
-        const center = spawnPositionNearShip(ship.pos, state.worldSize)
-        while (spawnQueue.length > 0 && spawnQueue[0] === EnemyKind.swarm) {
-          const pos = {
-            x: center.x + rng.range(-SWARM_SPAWN_SPREAD, SWARM_SPAWN_SPREAD),
-            y: center.y + rng.range(-SWARM_SPAWN_SPREAD, SWARM_SPAWN_SPREAD),
-          }
-          enemies = [...enemies, createEnemy(EnemyKind.swarm, pos)]
-          spawnQueue = spawnQueue.slice(1)
-          spawnedInWave++
-        }
-      } else {
-        spawnQueue = spawnQueue.slice(1)
-        const pos = spawnPositionNearShip(ship.pos, state.worldSize)
-        enemies = [...enemies, createEnemy(kind, pos)]
-        spawnedInWave++
-      }
-
-      if (spawnQueue.length > 0) {
-        spawnTimer += rng.range(SPAWN_DELAY.min, SPAWN_DELAY.max)
-      }
-    }
-  }
+  const spawnResult = processSpawnQueue({
+    spawnQueue,
+    spawnTimer,
+    enemies,
+    waveTimer,
+    spawnedInWave,
+    shipPos: ship.pos,
+    worldSize: state.worldSize,
+    dt,
+  })
+  spawnQueue = spawnResult.spawnQueue
+  spawnTimer = spawnResult.spawnTimer
+  enemies = spawnResult.enemies
+  spawnedInWave = spawnResult.spawnedInWave
 
   // --- Space metal click handling (marks clicked metal as homing) ---
   // The counter increments in updateCollectibles when the homing metal
@@ -252,6 +233,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   )
   abilities = abilityResult.abilities
   activeEffects = [...activeEffects, ...abilityResult.newEffects]
+  allies = [...allies, ...abilityResult.newAllies]
   power -= abilityResult.powerSpent
 
   // --- Active effects (meteor strikes, black holes, rockets, shield, sun) ---
@@ -271,19 +253,58 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   ship = attackResult.ship
   projectiles = attackResult.projectiles
 
-  // --- Enemy shooting ---
-  const enemyFireResult = updateEnemyShooting(enemies, ship, projectiles, dt)
+  // --- Enemy shooting (targets nearest of ship or ally) ---
+  const enemyFireResult = updateEnemyShooting(enemies, ship, allies, projectiles, dt)
   enemies = enemyFireResult.enemies
   projectiles = enemyFireResult.projectiles
 
-  // --- Enemy movement ---
-  enemies = updateEnemyMovement(enemies, ship, dt)
+  // --- Enemy movement (pursues nearest of ship or ally) ---
+  enemies = updateEnemyMovement(enemies, ship, allies, dt)
   // Shields block new entries — bounce non-grandfathered enemies back to the
   // boundary after they've moved this frame.
   enemies = applyShieldConstraints(activeEffects, enemies)
 
+  // --- Ally update (movement + shooting) ---
+  const allyResult = updateAllies(allies, enemies, ship, projectiles, dt)
+  allies = allyResult.allies
+  projectiles = allyResult.projectiles
+
   // --- Projectile movement ---
   projectiles = updateProjectiles(projectiles, dt)
+
+  // --- Hold abilities (Telekinesis, Solar Flare, etc.) ---
+  // Each hold ability registers an `onFrame` and/or `onTick` callback in its
+  // definition file; the runner handles the arm gate, drain, and active flag.
+  const isHolding = input.isHolding ?? false
+  const holdPos = input.holdPos ?? null
+  let holdBag: HoldBag = { enemies, particles, power, killedEnemies: [] }
+  const nextHoldStates: typeof holdStates = { ...holdStates }
+  for (const def of ABILITY_LIST) {
+    if (!def.hold) continue
+    const ability = abilities.find((a) => a.kind === def.kind)
+    if (!ability) continue
+    const requested =
+      isHolding && holdPos !== null && input.selectedAbility === def.kind && ability.unlocked
+    const prev = holdStates[def.kind] ?? INACTIVE_HOLD_STATE
+    const result = runHoldAbility({
+      config: def.hold,
+      ability,
+      state: prev,
+      requested,
+      holdPos,
+      bag: holdBag,
+      dt,
+    })
+    nextHoldStates[def.kind] = result.state
+    holdBag = result.bag
+  }
+  holdStates = nextHoldStates
+  enemies = holdBag.enemies
+  particles = holdBag.particles
+  power = holdBag.power
+  const holdKilledEnemies = holdBag.killedEnemies
+  score += holdKilledEnemies.reduce((sum, e) => sum + e.scoreValue, 0)
+  currency += computeCurrencyFromKills(holdKilledEnemies)
 
   // --- Collision: ship projectiles vs enemies ---
   const projCollision = resolveProjectileEnemyCollisions(projectiles, enemies)
@@ -299,11 +320,23 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   ship = enemyProjResult.ship
   particles = [...particles, ...enemyProjResult.particles]
 
+  // --- Collision: enemy projectiles vs allies ---
+  const allyProjResult = resolveEnemyProjectileAllyCollisions(projectiles, allies)
+  projectiles = allyProjResult.projectiles
+  allies = allyProjResult.allies
+  particles = [...particles, ...allyProjResult.particles]
+
   // --- Collision: enemies vs ship ---
   const shipCollision = resolveEnemyShipCollisions(enemies, ship)
   enemies = shipCollision.enemies
   ship = shipCollision.ship
   particles = [...particles, ...shipCollision.particles]
+
+  // --- Collision: enemies vs allies (melee — enemy dies, ally takes damage) ---
+  const allyMeleeResult = resolveEnemyAllyMeleeCollisions(enemies, allies)
+  enemies = allyMeleeResult.enemies
+  allies = allyMeleeResult.allies
+  particles = [...particles, ...allyMeleeResult.particles]
 
   // --- Death effects (bomber explosions, etc.) ---
   // A bomber that dies by ramming the ship explodes too, so ship-collision
@@ -312,6 +345,8 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     ...effectResult.killedEnemies,
     ...projCollision.killedEnemies,
     ...shipCollision.killedEnemies,
+    ...allyMeleeResult.killedEnemies,
+    ...holdKilledEnemies,
   ]
   if (killedForDeathEffects.length > 0) {
     const deathResult = resolveDeathEffects(killedForDeathEffects, ship, activeEffects)
@@ -323,7 +358,11 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
 
   // --- Spawn collectibles from kills ---
   // Ship-collision deaths drop nothing — no reward for letting an enemy reach you.
-  const killedForCollectibles = [...effectResult.killedEnemies, ...projCollision.killedEnemies]
+  const killedForCollectibles = [
+    ...effectResult.killedEnemies,
+    ...projCollision.killedEnemies,
+    ...holdKilledEnemies,
+  ]
   if (killedForCollectibles.length > 0) {
     collectibles = [...collectibles, ...spawnCollectiblesFromKills(killedForCollectibles)]
   }
@@ -363,6 +402,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       ship,
       enemies,
       projectiles,
+      allies: [],
       abilities,
       activeEffects,
       collectibles,
@@ -377,6 +417,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       spawnQueue,
       spawnTimer,
       spawnedInWave,
+      holdStates: {},
     }
   }
 
@@ -389,6 +430,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       ship,
       enemies,
       projectiles,
+      allies,
       abilities,
       activeEffects,
       collectibles,
@@ -401,6 +443,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       spawnQueue,
       spawnTimer,
       spawnedInWave,
+      holdStates: {},
     }
   }
 
@@ -409,6 +452,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     ship,
     enemies,
     projectiles,
+    allies,
     abilities,
     activeEffects,
     collectibles,
@@ -421,406 +465,6 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     spawnQueue,
     spawnTimer,
     spawnedInWave,
+    holdStates,
   }
-}
-
-function computeCurrencyFromKills(killedEnemies: Enemy[]): number {
-  let total = 0
-  for (const enemy of killedEnemies) {
-    const range = CURRENCY_DROPS[enemy.kind]
-    if (range) {
-      total += rng.intRange(range.min, range.max)
-    }
-  }
-  return total
-}
-
-function spawnPositionNearShip(shipPos: Vec2, worldSize: Vec2): Vec2 {
-  const angle = rng.range(0, Math.PI * 2)
-  const dist = rng.range(SPAWN_DISTANCE.min, SPAWN_DISTANCE.max)
-  return {
-    x: clamp(shipPos.x + Math.cos(angle) * dist, 0, worldSize.x),
-    y: clamp(shipPos.y + Math.sin(angle) * dist, 0, worldSize.y),
-  }
-}
-
-function clamp(v: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, v))
-}
-
-type Ship = GameState['ship']
-
-function applyDamageToShip(ship: Ship, damage: number): Ship {
-  if (damage <= 0) return ship
-  const shieldAbsorb = Math.min(ship.shield, damage)
-  const hpDamage = damage - shieldAbsorb
-  return {
-    ...ship,
-    shield: ship.shield - shieldAbsorb,
-    // Any hit to the shield resets the regen timer — healing only begins after
-    // 3 seconds with no damage taken.
-    shieldCooldownRemaining: shieldAbsorb > 0 ? SHIELD_COOLDOWN : ship.shieldCooldownRemaining,
-    hp: ship.hp - hpDamage,
-  }
-}
-
-function updateShipPatrol(ship: Ship, dt: number, worldSize: { x: number; y: number }): Ship {
-  const angle = ship.patrolAngle + dt * 0.4
-  const cx = worldSize.x / 2
-  const cy = worldSize.y / 2
-  const orbitX = 200
-  const orbitY = 120
-
-  const targetX = cx + Math.sin(angle) * orbitX
-  const targetY = cy + Math.sin(angle * 2) * orbitY
-
-  const dx = targetX - ship.pos.x
-  const dy = targetY - ship.pos.y
-  const dist = Math.sqrt(dx * dx + dy * dy)
-  const speed = Math.min(ship.speed, dist / dt)
-
-  const velX = dist > 0.1 ? (dx / dist) * speed : 0
-  const velY = dist > 0.1 ? (dy / dist) * speed : 0
-
-  return {
-    ...ship,
-    pos: {
-      x: ship.pos.x + velX * dt,
-      y: ship.pos.y + velY * dt,
-    },
-    vel: { x: velX, y: velY },
-    patrolAngle: angle,
-  }
-}
-
-function updateShipAttack(
-  ship: Ship,
-  enemies: Enemy[],
-  projectiles: Projectile[],
-  dt: number
-): { ship: Ship; projectiles: Projectile[] } {
-  let cooldown = ship.fireCooldown - dt
-
-  if (cooldown <= 0 && enemies.length > 0) {
-    // Sort enemies in range by distance and take up to weaponSlots targets
-    const inRange = enemies
-      .map((e) => ({ enemy: e, dist: distance(ship.pos, e.pos) }))
-      .filter((x) => x.dist < ship.attackRange)
-      .sort((a, b) => a.dist - b.dist)
-      .slice(0, ship.weaponSlots)
-
-    if (inRange.length > 0) {
-      for (const { enemy } of inRange) {
-        projectiles = [
-          ...projectiles,
-          createProjectile(ship.pos, enemy.pos, ProjectileOwner.ship, ship.damage),
-        ]
-      }
-      cooldown = 1 / ship.fireRate
-    }
-  }
-
-  return {
-    ship: { ...ship, fireCooldown: Math.max(0, cooldown) },
-    projectiles,
-  }
-}
-
-function updateEnemyShooting(
-  enemies: Enemy[],
-  ship: Ship,
-  projectiles: Projectile[],
-  dt: number
-): { enemies: Enemy[]; projectiles: Projectile[] } {
-  const updatedEnemies: Enemy[] = []
-  let newProjectiles = projectiles
-
-  for (const enemy of enemies) {
-    if (enemy.fireRate <= 0) {
-      updatedEnemies.push(enemy)
-      continue
-    }
-
-    let cooldown = enemy.fireCooldown - dt
-    if (cooldown <= 0) {
-      const dist = distance(enemy.pos, ship.pos)
-      if (dist < enemy.attackRange) {
-        const projDamage = ENEMY_STATS.shooter.projectileDamage
-        const proj = createProjectile(enemy.pos, ship.pos, ProjectileOwner.enemy, projDamage)
-        newProjectiles = [...newProjectiles, proj]
-        cooldown = 1 / enemy.fireRate
-      }
-    }
-    updatedEnemies.push({ ...enemy, fireCooldown: Math.max(0, cooldown) })
-  }
-
-  return { enemies: updatedEnemies, projectiles: newProjectiles }
-}
-
-type MoveFn = (enemy: Enemy, ship: Ship, dt: number) => Enemy
-
-function moveChase(enemy: Enemy, ship: Ship, dt: number): Enemy {
-  const dx = ship.pos.x - enemy.pos.x
-  const dy = ship.pos.y - enemy.pos.y
-  const dist = Math.sqrt(dx * dx + dy * dy)
-  if (dist < 1) return enemy
-
-  const targetVx = (dx / dist) * enemy.speed
-  const targetVy = (dy / dist) * enemy.speed
-
-  // Smooth velocity toward the target so slow chasers (tanks) don't jitter when
-  // the ship reverses on its patrol. Heavier enemies turn more slowly: rate
-  // scales with their movement speed.
-  const turnRate = enemy.speed / 30
-  const alpha = 1 - Math.exp(-turnRate * dt)
-  const vx = enemy.vel.x + (targetVx - enemy.vel.x) * alpha
-  const vy = enemy.vel.y + (targetVy - enemy.vel.y) * alpha
-
-  return {
-    ...enemy,
-    pos: { x: enemy.pos.x + vx * dt, y: enemy.pos.y + vy * dt },
-    vel: { x: vx, y: vy },
-  }
-}
-
-function moveKeepRange(enemy: Enemy, ship: Ship, dt: number): Enemy {
-  const dx = ship.pos.x - enemy.pos.x
-  const dy = ship.pos.y - enemy.pos.y
-  const dist = Math.sqrt(dx * dx + dy * dy)
-  if (dist < 1) return enemy
-
-  if (dist < enemy.attackRange * 0.7) {
-    return { ...enemy, vel: { x: 0, y: 0 } }
-  }
-
-  const nx = dx / dist
-  const ny = dy / dist
-  return {
-    ...enemy,
-    pos: {
-      x: enemy.pos.x + nx * enemy.speed * dt,
-      y: enemy.pos.y + ny * enemy.speed * dt,
-    },
-    vel: { x: nx * enemy.speed, y: ny * enemy.speed },
-  }
-}
-
-function moveZigzag(enemy: Enemy, ship: Ship, dt: number): Enemy {
-  const dx = ship.pos.x - enemy.pos.x
-  const dy = ship.pos.y - enemy.pos.y
-  const dist = Math.sqrt(dx * dx + dy * dy)
-  if (dist < 1) return enemy
-
-  const nx = dx / dist
-  const ny = dy / dist
-
-  // Hash the numeric suffix of the ID for a per-enemy phase offset so pack
-  // members don't weave in lockstep. The oscillation is driven by the enemy's
-  // own age (game time, speed-scaled) rather than wall-clock, keeping it
-  // deterministic and in sync with the game-speed setting.
-  const idNum = parseInt(enemy.id.slice(1), 10) || 0
-  const phase = idNum * 2.39996
-  const lateralStrength = Math.sin(enemy.age * 5 + phase) * 0.6
-
-  const mx = nx + -ny * lateralStrength
-  const my = ny + nx * lateralStrength
-  const mDist = Math.sqrt(mx * mx + my * my)
-  const fmx = mDist > 0 ? mx / mDist : 0
-  const fmy = mDist > 0 ? my / mDist : 0
-
-  return {
-    ...enemy,
-    pos: {
-      x: enemy.pos.x + fmx * enemy.speed * dt,
-      y: enemy.pos.y + fmy * enemy.speed * dt,
-    },
-    vel: { x: fmx * enemy.speed, y: fmy * enemy.speed },
-  }
-}
-
-const MOVEMENT_FN: Record<MovementBehavior, MoveFn> = {
-  [MovementBehavior.chase]: moveChase,
-  [MovementBehavior.keepRange]: moveKeepRange,
-  [MovementBehavior.zigzag]: moveZigzag,
-}
-
-function updateEnemyMovement(enemies: Enemy[], ship: Ship, dt: number): Enemy[] {
-  return enemies.map((enemy) => {
-    const moved = MOVEMENT_FN[enemy.movementBehavior](enemy, ship, dt)
-    return { ...moved, age: enemy.age + dt }
-  })
-}
-
-function resolveDeathEffects(
-  killedEnemies: Enemy[],
-  ship: Ship,
-  activeEffects: GameState['activeEffects']
-): { shipDamage: number; particles: Particle[] } {
-  let shipDamage = 0
-  const particles: Particle[] = []
-
-  // Shields the ship is currently sheltering inside. A bomber outside one of
-  // these shields can't damage the ship — the dome eats the explosion.
-  const shelteringShields = activeEffects.filter((e) => {
-    if (e.kind !== EffectKind.shield) return false
-    return distance(ship.pos, e.pos) < e.radius
-  })
-
-  for (const enemy of killedEnemies) {
-    if (enemy.deathBehavior !== DeathBehavior.explode) continue
-
-    const stats = ENEMY_STATS[enemy.kind]
-    if (!('explosionDamage' in stats)) continue
-
-    const dist = distance(enemy.pos, ship.pos)
-    if (dist < stats.explosionRadius) {
-      // Blocked iff the bomber is OUTSIDE a shield the ship is sheltering in.
-      const blocked = shelteringShields.some(
-        (s) => s.kind === EffectKind.shield && distance(enemy.pos, s.pos) >= s.radius
-      )
-      if (!blocked) {
-        shipDamage += stats.explosionDamage
-      }
-      particles.push(...spawnExplosionParticles(enemy.pos, 20, '#ff8833'))
-    } else {
-      particles.push(...spawnExplosionParticles(enemy.pos, 14, '#ff6622'))
-    }
-  }
-
-  return { shipDamage, particles }
-}
-
-function updateProjectiles(projectiles: Projectile[], dt: number): Projectile[] {
-  return projectiles
-    .map((p) => ({
-      ...p,
-      pos: {
-        x: p.pos.x + p.vel.x * dt,
-        y: p.pos.y + p.vel.y * dt,
-      },
-      lifetime: p.lifetime - dt,
-    }))
-    .filter((p) => p.lifetime > 0)
-}
-
-function resolveProjectileEnemyCollisions(
-  projectiles: Projectile[],
-  enemies: Enemy[]
-): {
-  projectiles: Projectile[]
-  enemies: Enemy[]
-  scoreGained: number
-  killedEnemies: Enemy[]
-  particles: Particle[]
-} {
-  // Track hit projectiles by OBJECT REFERENCE (not by id), so any chance of
-  // duplicate ids (HMR resetting the uid counter mid-game, two bullets
-  // accidentally sharing a string id, etc.) can't make a single hit splash-
-  // remove other in-flight bullets.
-  const hitProjectiles = new Set<Projectile>()
-  const allParticles: Particle[] = []
-  let scoreGained = 0
-
-  const updatedEnemies = enemies.map((e) => ({ ...e }))
-
-  for (const proj of projectiles) {
-    if (proj.owner !== ProjectileOwner.ship) continue
-    for (let i = 0; i < updatedEnemies.length; i++) {
-      const enemy = updatedEnemies[i]
-      // Skip enemies that an earlier projectile already killed this tick — they
-      // stay in the array until the dead filter at the bottom, but a corpse
-      // shouldn't absorb a second bullet flying through the same space.
-      if (enemy.hp <= 0) continue
-      if (checkCollision(proj, enemy)) {
-        hitProjectiles.add(proj)
-        updatedEnemies[i] = { ...enemy, hp: enemy.hp - proj.damage }
-        allParticles.push(...spawnExplosionParticles(enemy.pos, 6, '#ff4444'))
-        break
-      }
-    }
-  }
-
-  const deadEnemies = updatedEnemies.filter((e) => e.hp <= 0)
-  const killedEnemies: Enemy[] = []
-  for (const dead of deadEnemies) {
-    scoreGained += dead.scoreValue
-    killedEnemies.push(dead)
-    allParticles.push(...spawnExplosionParticles(dead.pos, 12, '#ffaa33'))
-  }
-
-  return {
-    projectiles: projectiles.filter((p) => !hitProjectiles.has(p)),
-    enemies: updatedEnemies.filter((e) => e.hp > 0),
-    scoreGained,
-    killedEnemies,
-    particles: allParticles,
-  }
-}
-
-function resolveEnemyProjectileShipCollisions(
-  projectiles: Projectile[],
-  ship: Ship
-): { projectiles: Projectile[]; ship: Ship; particles: Particle[] } {
-  const allParticles: Particle[] = []
-  const surviving: Projectile[] = []
-  let damagedShip = ship
-
-  for (const proj of projectiles) {
-    if (proj.owner === ProjectileOwner.enemy && checkCollision(proj, damagedShip)) {
-      damagedShip = applyDamageToShip(damagedShip, proj.damage)
-      allParticles.push(...spawnExplosionParticles(proj.pos, 4, '#ff6666'))
-    } else {
-      surviving.push(proj)
-    }
-  }
-
-  return {
-    projectiles: surviving,
-    ship: damagedShip,
-    particles: allParticles,
-  }
-}
-
-function resolveEnemyShipCollisions(
-  enemies: Enemy[],
-  ship: Ship
-): { enemies: Enemy[]; ship: Ship; particles: Particle[]; killedEnemies: Enemy[] } {
-  const allParticles: Particle[] = []
-  const surviving: Enemy[] = []
-  const killedEnemies: Enemy[] = []
-  let damagedShip = ship
-
-  for (const enemy of enemies) {
-    if (checkCollision(enemy, damagedShip)) {
-      damagedShip = applyDamageToShip(damagedShip, enemy.damage)
-      killedEnemies.push(enemy)
-      allParticles.push(...spawnExplosionParticles(enemy.pos, 8, '#ff2222'))
-    } else {
-      surviving.push(enemy)
-    }
-  }
-
-  return {
-    enemies: surviving,
-    ship: damagedShip,
-    particles: allParticles,
-    killedEnemies,
-  }
-}
-
-function updateParticles(particles: Particle[], dt: number): Particle[] {
-  return particles
-    .map((p) => ({
-      ...p,
-      pos: {
-        x: p.pos.x + p.vel.x * dt,
-        y: p.pos.y + p.vel.y * dt,
-      },
-      vel: {
-        x: p.vel.x * 0.96,
-        y: p.vel.y * 0.96,
-      },
-      elapsed: p.elapsed + dt,
-    }))
-    .filter((p) => p.elapsed < p.lifetime)
 }

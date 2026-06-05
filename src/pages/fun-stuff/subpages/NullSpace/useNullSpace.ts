@@ -11,9 +11,10 @@ import {
 } from './engine/game-loop'
 import { AbilityKind, GamePhase, ShipKind } from './engine/types'
 import type { GameState, PlayerInput, Vec2, UpgradeId, PlayerUpgrades } from './engine/types'
-import { createShip } from './engine/entities'
+import { createShip } from './engine/entities/entityCreator'
 import { getLevel } from './engine/upgrades'
 import { WAVES_PER_LEVEL } from './data'
+import { HOLD_ABILITIES } from './engine/abilities'
 import {
   createGameTime,
   tickGameTime,
@@ -21,7 +22,7 @@ import {
   resumeGameTime,
   setGameSpeed,
   type GameTime,
-} from './engine/time'
+} from './engine/world/time'
 import { buildSpriteCache, type SpriteCache } from './renderer/sprite-cache'
 import {
   createCamera,
@@ -135,7 +136,16 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
   const starsRef = useRef<Star[]>([])
   const rafRef = useRef<number>(0)
   const gameTimeRef = useRef<GameTime>(createGameTime())
-  const inputRef = useRef<PlayerInput>({ clicks: [], selectedAbility: AbilityKind.meteorite })
+  const inputRef = useRef<PlayerInput>({
+    clicks: [],
+    selectedAbility: AbilityKind.meteorite,
+    holdPos: null,
+    isHolding: false,
+  })
+  // Hold-ability cursor tracking. Screen pos is the truth — world pos drifts
+  // when the camera moves and we'd otherwise leave the beam pinned to stale
+  // world coordinates while the player's actual cursor stays still on screen.
+  const holdScreenPosRef = useRef<Vec2 | null>(null)
   const selectedAbilityRef = useRef<GameState['abilities'][number]['kind']>(AbilityKind.meteorite)
 
   const syncUI = useCallback((state: GameState) => {
@@ -369,10 +379,44 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
         y: e.clientY - rect.top,
       }
       const worldPos = screenToWorld(screenPos, cameraRef.current)
+      const selected = selectedAbilityRef.current
+
+      if (selected && HOLD_ABILITIES.has(selected)) {
+        holdScreenPosRef.current = screenPos
+        inputRef.current = {
+          ...inputRef.current,
+          isHolding: true,
+          holdPos: worldPos,
+          // Still register the click so the space-metal collector gets a shot
+          // at it before the (no-op for hold abilities) click ability resolver.
+          clicks: [...inputRef.current.clicks, worldPos],
+          selectedAbility: selected,
+        }
+      } else {
+        inputRef.current = {
+          ...inputRef.current,
+          clicks: [...inputRef.current.clicks, worldPos],
+          selectedAbility: selected,
+        }
+      }
+    }
+
+    const handlePointerMove = (e: PointerEvent) => {
+      if (!inputRef.current.isHolding) return
+      if (gameStateRef.current.phase !== GamePhase.playing) return
+      const rect = canvas.getBoundingClientRect()
+      holdScreenPosRef.current = {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      }
+    }
+
+    const handlePointerUp = () => {
+      holdScreenPosRef.current = null
       inputRef.current = {
         ...inputRef.current,
-        clicks: [...inputRef.current.clicks, worldPos],
-        selectedAbility: selectedAbilityRef.current,
+        isHolding: false,
+        holdPos: null,
       }
     }
 
@@ -397,6 +441,8 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     }
 
     canvas.addEventListener('pointerdown', handlePointerDown)
+    canvas.addEventListener('pointermove', handlePointerMove)
+    window.addEventListener('pointerup', handlePointerUp)
     window.addEventListener('keydown', handleKeyDown)
 
     const loop = (time: number) => {
@@ -404,11 +450,24 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       gameTimeRef.current = tick.time
       const dt = tick.dt
 
+      // Re-resolve hold cursor world-pos every frame from screen-pos so it
+      // tracks the actual cursor even as the camera moves.
+      const liveHoldPos = holdScreenPosRef.current
+        ? screenToWorld(holdScreenPosRef.current, cameraRef.current)
+        : null
+
       const input: PlayerInput = {
         clicks: inputRef.current.clicks,
         selectedAbility: inputRef.current.selectedAbility,
+        holdPos: liveHoldPos,
+        isHolding: inputRef.current.isHolding,
       }
-      inputRef.current = { clicks: [], selectedAbility: selectedAbilityRef.current }
+      // clicks reset each frame; hold state persists until pointerup.
+      inputRef.current = {
+        ...inputRef.current,
+        clicks: [],
+        selectedAbility: selectedAbilityRef.current,
+      }
 
       const prevPhase = gameStateRef.current.phase
       gameStateRef.current = updateGameState(gameStateRef.current, dt, input)
@@ -448,6 +507,8 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     return () => {
       cancelAnimationFrame(rafRef.current)
       canvas.removeEventListener('pointerdown', handlePointerDown)
+      canvas.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerUp)
       window.removeEventListener('keydown', handleKeyDown)
       resizeObserver.disconnect()
     }

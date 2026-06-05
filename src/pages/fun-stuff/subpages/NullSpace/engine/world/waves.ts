@@ -1,5 +1,5 @@
-import { EnemyKind } from './types'
-import { rng } from './random'
+import { EnemyKind } from '../types'
+import { rng } from '../math/random'
 
 export function getWave(waveNumber: number): EnemyKind[] {
   const droneCount = 3 + waveNumber * 2

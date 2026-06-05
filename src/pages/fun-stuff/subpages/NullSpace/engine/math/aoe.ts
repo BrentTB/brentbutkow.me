@@ -1,4 +1,4 @@
-import type { Enemy, Vec2 } from './types'
+import type { Enemy, Vec2 } from '../types'
 
 export type AoeResult = {
   enemies: Enemy[]

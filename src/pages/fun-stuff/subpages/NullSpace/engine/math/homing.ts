@@ -1,4 +1,4 @@
-import type { Vec2 } from './types'
+import type { Vec2 } from '../types'
 
 /**
  * Move a point toward a target with a constant magnet speed. The returned

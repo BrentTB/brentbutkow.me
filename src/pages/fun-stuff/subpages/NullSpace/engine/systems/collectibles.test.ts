@@ -4,11 +4,11 @@ import {
   updateCollectibles,
   tryCollectSpaceMetal,
 } from './collectibles'
-import { createShip, createEnemy, resetUid } from './entities'
-import { rng } from './random'
-import { CollectibleKind, EnemyKind, ShipKind } from './types'
-import type { Collectible } from './types'
-import { WORLD_SIZE, POWER_ORB, SPACE_METAL } from '../data'
+import { createShip, createEnemy, resetUid } from '../entities/entityCreator'
+import { rng } from '../math/random'
+import { CollectibleKind, EnemyKind, ShipKind } from '../types'
+import type { Collectible } from '../types'
+import { WORLD_SIZE, POWER_ORB, SPACE_METAL } from '../../data'
 
 beforeEach(() => {
   resetUid()
