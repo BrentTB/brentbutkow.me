@@ -124,6 +124,10 @@ export type Ability = {
   // if more abilities unlock later. null = still locked.
   unlockedAt: number | null
   duration?: number
+  // Helper-only: max HP for the summoned ally. The Helper upgrade lets the
+  // player bump this — allies no longer expire on a timer; they take HP decay
+  // over time and die when hp ≤ 0, so maxHp directly controls survivability.
+  maxHp?: number
 }
 
 export const EffectKind = {
@@ -221,8 +225,8 @@ export type Ally = {
   damage: number
   speed: number
   attackRange: number
+  // Time alive — drives orbit-phase drift so allies fan around the ship.
   elapsed: number
-  duration: number
 }
 
 export type Particle = {
@@ -272,7 +276,7 @@ export const UpgradeId = {
   sunDamage: 'sunDamage',
   sunDuration: 'sunDuration',
   unlockHelper: 'unlockHelper',
-  helperDuration: 'helperDuration',
+  helperMaxHp: 'helperMaxHp',
   helperDamage: 'helperDamage',
   unlockTelekinesis: 'unlockTelekinesis',
   telekinesisRadius: 'telekinesisRadius',

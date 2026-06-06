@@ -64,7 +64,7 @@ export const HOLD_ABILITIES: ReadonlySet<AbilityKind> = new Set(
 )
 
 type EffectFactory = (ability: Ability, targetPos: Vec2, ship: Ship) => ActiveEffect
-type AllyFactory = (pos: Vec2) => Ally
+type AllyFactory = (pos: Vec2, ability: Ability) => Ally
 
 export const EFFECT_FACTORY: Partial<Record<AbilityKind, EffectFactory>> = Object.fromEntries(
   ABILITY_LIST.filter((d) => d.effectFactory).map((d) => [d.kind, d.effectFactory!])

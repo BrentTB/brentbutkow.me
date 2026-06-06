@@ -13,16 +13,16 @@ const unlockUpgrade: UpgradeDefinition = {
   tiers: [{ cost: 30, value: 1 }],
 }
 
-const durationUpgrade: UpgradeDefinition = {
-  id: UpgradeId.helperDuration,
+const maxHpUpgrade: UpgradeDefinition = {
+  id: UpgradeId.helperMaxHp,
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.helper,
-  label: 'Duration',
-  description: 'Increase ally lifetime',
+  label: 'Max Health',
+  description: 'Increase ally maximum health',
   tiers: [
-    { cost: 20, value: 5 },
-    { cost: 35, value: 10 },
-    { cost: 50, value: 15 },
+    { cost: 20, value: 10 },
+    { cost: 35, value: 20 },
+    { cost: 50, value: 30 },
   ],
 }
 
@@ -48,14 +48,14 @@ export const helper: AbilityDefinition = {
     powerCost: HELPER.powerCost,
     damage: HELPER.damage,
     aoeRadius: 0,
-    duration: HELPER.duration,
+    maxHp: HELPER.hp,
   }),
-  allyFactory: (pos) => createAlly(pos),
+  allyFactory: (pos, ability) => createAlly(pos, ability.maxHp ?? HELPER.hp, ability.damage),
   applyUpgrades: (_ability, upgrades) => ({
     unlocked: upgrades[UpgradeId.unlockHelper].currentTier > 0,
-    duration: applyTierSum(HELPER.duration, upgrades, durationUpgrade),
+    maxHp: applyTierSum(HELPER.hp, upgrades, maxHpUpgrade),
     damage: applyTierSum(HELPER.damage, upgrades, damageUpgrade),
   }),
   unlockUpgrade,
-  modifierUpgrades: [durationUpgrade, damageUpgrade],
+  modifierUpgrades: [maxHpUpgrade, damageUpgrade],
 }

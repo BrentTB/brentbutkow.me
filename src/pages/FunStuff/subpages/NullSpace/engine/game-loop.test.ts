@@ -984,7 +984,7 @@ describe('Helper ability', () => {
     expect(state.projectiles.length).toBeGreaterThan(projsBefore)
   })
 
-  it('ally is removed when its duration expires', () => {
+  it('ally is removed when HP decay drops its hp to 0', () => {
     let state = makeUnlockedState()
     state = { ...state, enemies: [], spawnQueue: [], totalWaveEnemies: 0 }
     const target = { x: state.ship.pos.x + 50, y: state.ship.pos.y }
@@ -993,10 +993,12 @@ describe('Helper ability', () => {
       selectedAbility: AbilityKind.helper,
     })
     expect(state.allies.length).toBe(1)
-    const duration = state.allies[0].duration
-    // Advance past the ally's duration in one tick (MAX_DT applies, loop needed)
+    const maxHp = state.allies[0].maxHp
+    // Advance enough seconds for steady HP decay to exhaust hp. Loop because
+    // MAX_DT caps each tick.
     let elapsed = 0
-    while (elapsed < duration + 0.5) {
+    const lifetimeBudget = maxHp + 5
+    while (elapsed < lifetimeBudget && state.allies.length > 0) {
       state = updateGameState(state, 0.1, { clicks: [], selectedAbility: null })
       elapsed += 0.1
     }

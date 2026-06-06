@@ -61,7 +61,9 @@ export const HELPER = {
   fireRate: 1.5,
   attackRange: 200,
   hp: 20,
-  duration: 20,
+  // HP drained per second. With base hp=20, an untouched ally lives ~20s
+  // (matching the old duration). Upgrading maxHp extends survival.
+  hpDecayPerSec: 1,
 } as const
 
 // Toggle until we decide: 'pull' draws enemies toward the cursor, 'push'

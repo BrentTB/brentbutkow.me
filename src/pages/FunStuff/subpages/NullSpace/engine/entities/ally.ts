@@ -3,6 +3,7 @@ import { createProjectile } from './entity-creator'
 import { rng } from '../math/random'
 import { ProjectileOwner } from '../types'
 import type { Ally, Enemy, Projectile, Ship, Vec2 } from '../types'
+import { HELPER } from '../abilities/ability-data'
 
 // Ally behavior: shoots the nearest enemy in range and orbits the ship at a
 // per-ally angle. Each ally has a unique phase offset from its id hash so
@@ -37,9 +38,15 @@ export function updateAllies(
 
   for (const ally of allies) {
     const elapsed = ally.elapsed + dt
-    if (elapsed >= ally.duration) continue
+    const hp = ally.hp - HELPER.hpDecayPerSec * dt
+    if (hp <= 0) continue
 
-    let updated = { ...ally, elapsed, fireCooldown: Math.max(0, ally.fireCooldown - dt) }
+    let updated = {
+      ...ally,
+      elapsed,
+      hp,
+      fireCooldown: Math.max(0, ally.fireCooldown - dt),
+    }
 
     // --- Targeting / shooting ---
     let nearestEnemy: Enemy | null = null

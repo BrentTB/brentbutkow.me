@@ -34,7 +34,7 @@ export function tryUseAbility(
   const effect = effectFactory ? effectFactory(ability, targetPos, ship) : null
 
   const allyFactory = ALLY_FACTORY[kind]
-  const ally = allyFactory ? allyFactory(targetPos) : null
+  const ally = allyFactory ? allyFactory(targetPos, ability) : null
 
   return { abilities: updated, effect, ally, powerSpent: ability.powerCost }
 }

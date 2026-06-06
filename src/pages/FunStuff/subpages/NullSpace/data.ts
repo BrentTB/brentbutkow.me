@@ -249,6 +249,22 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.9.2',
+    date: '2026-06-06',
+    changes: {
+      features: [
+        'Helper allies no longer expire on a timer — they steadily lose HP (1/s) and die when HP hits 0. Combat damage stacks on top. The old Duration upgrade is now Max Health, directly extending how long allies survive.',
+      ],
+      fixes: [
+        'Helper damage upgrades and max-HP upgrades now actually reach the spawned ally (the duration upgrade was previously a no-op because the factory ignored ability stats).',
+        'Landscape fullscreen on mobile: start / ship-select / upgrade screens now scroll when the panel is taller than the viewport, so the Start / Launch / Continue buttons are always reachable.',
+        'Canvas now renders at devicePixelRatio resolution — sprites are crisp on Retina / high-DPI mobile instead of blocky in fullscreen.',
+        'Camera zoom now folds in min-dimension scaling, so wide-but-short viewports (landscape phone fullscreen) zoom out further and the play area no longer feels cramped.',
+        'iOS pseudo-fullscreen now nudges Safari to auto-hide its URL bar on entry.',
+      ],
+    },
+  },
+  {
     version: '0.9.1',
     date: '2026-06-06',
     changes: {

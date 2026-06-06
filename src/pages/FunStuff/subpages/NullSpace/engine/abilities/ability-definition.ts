@@ -24,8 +24,9 @@ export type AbilityDefinition = {
   // Click abilities that spawn a stationary or kinetic effect (meteorite,
   // rocket, sun, etc.).
   effectFactory?: (ability: Ability, targetPos: Vec2, ship: Ship) => ActiveEffect
-  // Click abilities that spawn an ally entity (helper).
-  allyFactory?: (pos: Vec2) => Ally
+  // Click abilities that spawn an ally entity (helper). Receives the upgraded
+  // ability so the factory can read fields like damage and maxHp.
+  allyFactory?: (pos: Vec2, ability: Ability) => Ally
   // Computes the live ability values after applying the player's purchased
   // upgrade tiers. Returns a partial that the engine merges over the base.
   applyUpgrades?: (ability: Ability, upgrades: PlayerUpgrades) => Partial<Ability>

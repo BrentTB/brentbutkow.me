@@ -558,10 +558,10 @@ function renderAllies(
     // HP bar — below the sprite, mirrors the ship's bar style but smaller
     const hpPct = Math.max(0, ally.hp / ally.maxHp)
     if (hpPct < 1) {
-      const barWidth = 28
+      const barWidth = 18
       const barHeight = 3
       const barX = screen.x - barWidth / 2
-      const barY = screen.y + size.h / 2 + 4
+      const barY = screen.y + size.h / 2 + 8
       ctx.fillStyle = 'rgba(0, 0, 0, 0.6)'
       ctx.fillRect(barX, barY, barWidth, barHeight)
       ctx.fillStyle = hpPct > 0.5 ? '#44dd44' : hpPct > 0.25 ? '#dddd44' : '#dd4444'

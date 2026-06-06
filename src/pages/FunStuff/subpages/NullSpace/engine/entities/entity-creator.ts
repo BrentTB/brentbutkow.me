@@ -110,21 +110,24 @@ export function createProjectile(
   }
 }
 
-export function createAlly(pos: Vec2): Ally {
+export function createAlly(
+  pos: Vec2,
+  maxHp: number = HELPER.hp,
+  damage: number = HELPER.damage
+): Ally {
   return {
     id: uid(),
     pos: { ...pos },
     vel: { x: 0, y: 0 },
     radius: HELPER.radius,
-    hp: HELPER.hp,
-    maxHp: HELPER.hp,
+    hp: maxHp,
+    maxHp,
     fireRate: HELPER.fireRate,
     fireCooldown: 0,
-    damage: HELPER.damage,
+    damage,
     speed: HELPER.speed,
     attackRange: HELPER.attackRange,
     elapsed: 0,
-    duration: HELPER.duration,
   }
 }
 
