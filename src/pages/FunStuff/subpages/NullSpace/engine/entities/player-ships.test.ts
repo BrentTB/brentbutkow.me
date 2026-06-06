@@ -179,7 +179,7 @@ describe('shield-regen space-metal ability', () => {
 
   // Regression: pressing F with a full shield was silently spending a space metal.
   // The keyboard shortcut bypasses the HUD disabled-state check, so the guard
-  // must live in rechargeShieldWithMetal itself.
+  // must live in the shieldRegen ability's canActivate itself.
   it('is a no-op when shield is already full', () => {
     let state = startGame(createInitialState(), ShipKind.fighter)
     state = { ...state, spaceMetal: 3, ship: { ...state.ship, shield: 50, maxShield: 50 } }

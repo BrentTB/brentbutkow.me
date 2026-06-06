@@ -74,13 +74,13 @@ BrowserRouter → FunModeProvider → WaterRippleLayer + Navbar + Router   (Foot
 
 **Casing rule** — filename = primary export:
 
-| Kind                                 | Case             | Examples                                                  |
-| ------------------------------------ | ---------------- | --------------------------------------------------------- |
-| `.tsx` component                     | `PascalCase`     | `Hero.tsx`, `PageHeader.tsx`                              |
-| Hook (`useX`)                        | `camelCase`      | `useFunMode.ts`, `useDocumentTitle.ts`                    |
-| Plain `.ts` (utils, data, logic)     | `kebab-case`     | `fun-mode.ts`, `jokes.ts`, `black-hole.ts`                |
-| Folder mapping 1:1 to a `.tsx`       | `PascalCase`     | `NullSpace/`, `GulagSort/`, `FunStuff/`, `Hero/`          |
-| Folder for internal organization     | `camelCase`      | `engine/`, `systems/`, `spaceMetalAbilities/`, `utils/`   |
+| Kind                             | Case         | Examples                                                |
+| -------------------------------- | ------------ | ------------------------------------------------------- |
+| `.tsx` component                 | `PascalCase` | `Hero.tsx`, `PageHeader.tsx`                            |
+| Hook (`useX`)                    | `camelCase`  | `useFunMode.ts`, `useDocumentTitle.ts`                  |
+| Plain `.ts` (utils, data, logic) | `kebab-case` | `fun-mode.ts`, `jokes.ts`, `black-hole.ts`              |
+| Folder mapping 1:1 to a `.tsx`   | `PascalCase` | `NullSpace/`, `GulagSort/`, `FunStuff/`, `Hero/`        |
+| Folder for internal organization | `camelCase`  | `engine/`, `systems/`, `spaceMetalAbilities/`, `utils/` |
 
 Don't name a hook file after its concept (`FunMode.ts` for `useFunMode` is wrong → `useFunMode.ts`).
 Folder-per-component pattern: `Thing/Thing.tsx` + `Thing/Thing.module.scss` side by side.
@@ -222,10 +222,3 @@ When making changes to the Null Space game (`src/pages/fun-stuff/subpages/NullSp
 Each entry has `version`, `date`, and `changes` with optional `breaking`, `features`, `balance`,
 and `fixes` arrays. Use `balance` for changes that purely adjust data values (damage, costs, speeds,
 etc.) with no code changes. The changelog is displayed collapsed below the game canvas on desktop.
-
-## Notes
-
-- `.github/workflows/copilot-instructions.md` is an older, longer guideline doc. Where it disagrees
-  with this file or the code, trust the code and this file (e.g. color tokens live in `index.scss`,
-  not `_shared.scss`).
-- `cool-effects.scss` and `TODO.md` at the root are scratch/reference, not wired into the build.

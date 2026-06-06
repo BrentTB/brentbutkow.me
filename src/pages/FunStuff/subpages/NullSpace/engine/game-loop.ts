@@ -287,7 +287,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   // Escape Mode hijacks ship movement (charge slowdown + invincible dash). When
   // inactive this is a no-op and patrol drives movement as normal.
   let escapeTrailAccumulator = state.escapeTrailAccumulator
-  const escape = tickEscapeMode(ship, dt, escapeTrailAccumulator)
+  const escape = tickEscapeMode(ship, dt, escapeTrailAccumulator, state.worldSize)
   ship = escape.ship
   particles = [...particles, ...escape.particles]
   escapeTrailAccumulator = escape.trailAccumulator
@@ -465,6 +465,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       spawnTimer,
       spawnedInWave,
       holdStates: {},
+      escapeTrailAccumulator,
     }
   }
 
@@ -496,6 +497,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       spawnedInWave,
       holdStates: {},
       levelUpWeaponOffers,
+      escapeTrailAccumulator,
     }
   }
 

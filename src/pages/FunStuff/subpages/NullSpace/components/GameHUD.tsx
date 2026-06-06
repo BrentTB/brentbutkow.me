@@ -2,6 +2,7 @@ import { CURRENCY_NAME, WAVES_PER_LEVEL } from '../data'
 import { ABILITY_META } from '../engine/abilities'
 import { GamePhase } from '../engine/types'
 import { SPACE_METAL_ABILITIES, SpaceMetalAbilityKind } from '../engine/spaceMetalAbilities'
+import { getUnlockedAbilitiesInOrder } from '../useNullSpace'
 import type { GameUIState } from '../useNullSpace'
 import styles from './GameHUD.module.scss'
 
@@ -13,14 +14,6 @@ type GameHUDProps = {
   onUseSpaceMetalAbility: (kind: SpaceMetalAbilityKind) => void
   isFullscreen: boolean
   gameSpeed: number
-}
-
-function canUseSpaceMetalAbility(kind: SpaceMetalAbilityKind, uiState: GameUIState): boolean {
-  const ability = SPACE_METAL_ABILITIES.find((a) => a.kind === kind)
-  if (!ability || uiState.spaceMetal < ability.cost) return false
-  if (kind === SpaceMetalAbilityKind.shieldRegen) return uiState.shipShield < uiState.shipMaxShield
-  if (kind === SpaceMetalAbilityKind.escapeDash) return !uiState.escapeModeActive
-  return true
 }
 
 function getLevelProgress(uiState: GameUIState): number {
@@ -139,7 +132,7 @@ export function GameHUD({
       <div className={styles.spaceMetalRail}>
         <span className={styles.spaceMetalCounter}>⬡ {uiState.spaceMetal}</span>
         {SPACE_METAL_ABILITIES.map((ability) => {
-          const canUse = canUseSpaceMetalAbility(ability.kind, uiState)
+          const canUse = ability.canUse(uiState)
           return (
             <button
               key={ability.kind}
@@ -158,50 +151,40 @@ export function GameHUD({
         })}
       </div>
       <div className={styles.abilities}>
-        {uiState.abilities
-          .filter((a) => a.unlockedAt !== null)
-          .slice()
-          .sort((a, b) => (a.unlockedAt as number) - (b.unlockedAt as number))
-          .map((ability, index) => {
-            const meta = ABILITY_META[ability.kind]
-            const hotkey = String(index + 1)
-            const isSelected = uiState.selectedAbility === ability.kind
-            const isReady = ability.cooldownRemaining <= 0 && uiState.power >= ability.powerCost
-            const onCooldown = ability.cooldownRemaining > 0
-            const cdPercent = onCooldown ? ability.cooldownRemaining / ability.cooldown : 0
+        {getUnlockedAbilitiesInOrder(uiState.abilities).map((ability, index) => {
+          const meta = ABILITY_META[ability.kind]
+          const hotkey = String(index + 1)
+          const isSelected = uiState.selectedAbility === ability.kind
+          const isReady = ability.cooldownRemaining <= 0 && uiState.power >= ability.powerCost
+          const onCooldown = ability.cooldownRemaining > 0
+          const cdPercent = onCooldown ? ability.cooldownRemaining / ability.cooldown : 0
 
-            const btnClass = [styles.abilityBtn, isSelected ? styles.abilitySelected : '']
-              .filter(Boolean)
-              .join(' ')
+          const btnClass = [styles.abilityBtn, isSelected ? styles.abilitySelected : '']
+            .filter(Boolean)
+            .join(' ')
 
-            return (
-              <button
-                key={ability.kind}
-                className={btnClass}
-                onClick={() => onAbilitySelect(ability.kind)}
-                aria-label={`${meta.label} (${ability.powerCost} power)${
-                  onCooldown ? ` — ${Math.ceil(ability.cooldownRemaining)}s cooldown` : ''
-                }`}
-              >
-                <span className={styles.hotkeyBadge}>{hotkey}</span>
-                <span className={styles.abilityIcon}>{meta.icon}</span>
-                <span className={styles.abilityLabel}>{meta.label}</span>
-                <span className={styles.abilityCost}>{ability.powerCost}</span>
-                {onCooldown && (
-                  <div
-                    className={styles.cooldownOverlay}
-                    style={{ height: `${cdPercent * 100}%` }}
-                  />
-                )}
-                {!isReady && !onCooldown && (
-                  <div
-                    className={styles.cooldownOverlay}
-                    style={{ height: '100%', opacity: 0.3 }}
-                  />
-                )}
-              </button>
-            )
-          })}
+          return (
+            <button
+              key={ability.kind}
+              className={btnClass}
+              onClick={() => onAbilitySelect(ability.kind)}
+              aria-label={`${meta.label} (${ability.powerCost} power)${
+                onCooldown ? ` — ${Math.ceil(ability.cooldownRemaining)}s cooldown` : ''
+              }`}
+            >
+              <span className={styles.hotkeyBadge}>{hotkey}</span>
+              <span className={styles.abilityIcon}>{meta.icon}</span>
+              <span className={styles.abilityLabel}>{meta.label}</span>
+              <span className={styles.abilityCost}>{ability.powerCost}</span>
+              {onCooldown && (
+                <div className={styles.cooldownOverlay} style={{ height: `${cdPercent * 100}%` }} />
+              )}
+              {!isReady && !onCooldown && (
+                <div className={styles.cooldownOverlay} style={{ height: '100%', opacity: 0.3 }} />
+              )}
+            </button>
+          )
+        })}
       </div>
     </div>
   )

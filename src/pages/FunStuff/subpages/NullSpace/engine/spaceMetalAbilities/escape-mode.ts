@@ -20,6 +20,7 @@ export const escapeDash: SpaceMetalAbility = {
   cost: ESCAPE_MODE.cost,
   hotkey: 'G',
   canActivate: (s) => s.spaceMetal >= ESCAPE_MODE.cost && s.ship.escapeMode === null,
+  canUse: (ui) => ui.spaceMetal >= ESCAPE_MODE.cost && !ui.escapeModeActive,
   activate: (s) => {
     const v = s.ship.vel
     const len = Math.hypot(v.x, v.y)

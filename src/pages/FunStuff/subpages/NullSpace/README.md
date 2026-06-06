@@ -26,10 +26,10 @@ NullSpace/
 │   │   ├── ability-definition.ts # AbilityDefinition shape: meta, base stats, factories, upgrades, hold config
 │   │   ├── resolution.ts     #   Runtime: tryUseAbility, cooldown ticking, input → state changes
 │   │   ├── hold-runtime.ts   #   Generic hold-to-channel runner (arm gate, power drain, deactivate)
-│   │   ├── abilityData.ts    #   Per-ability tuning constants
+│   │   ├── ability-data.ts   #   Per-ability tuning constants
 │   │   └── meteorite/meteor/black-hole/rocket/shield/sun/helper/telekinesis/solar-flare.ts  # Each ability
 │   ├── entities/             # Entity factories + per-entity behavior
-│   │   ├── entityCreator.ts  #   Factories: createShip, createEnemy, createProjectile, particles, uid
+│   │   ├── entity-creator.ts #   Factories: createShip, createEnemy, createProjectile, particles, uid
 │   │   ├── ship.ts           #   Ship damage / firing / shield behavior
 │   │   ├── enemy.ts          #   Enemy targeting + movement
 │   │   └── ally.ts           #   Friendly ally (helper) behavior
@@ -86,7 +86,7 @@ All tunable values are centralized in `data.ts`:
 
 - Ship variants (HP, damage, fire rate, speed, attack range, weapon)
 - Power settings (max, regen rate, starting amount)
-- Per-ability tuning lives next to each ability in `engine/abilities/abilityData.ts`
+- Per-ability tuning lives next to each ability in `engine/abilities/ability-data.ts`
 - Enemy stats per type (HP, speed, damage, score value, power reward)
 - Currency drops, collectibles (power orbs, space metal), waves-per-level
 - Projectile and particle settings

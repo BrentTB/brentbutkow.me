@@ -7,11 +7,13 @@ import {
   applyUpgradeToState,
 } from './game-loop'
 import { resetUid, createEnemy, createProjectile } from './entities/entity-creator'
+import { tickEscapeMode } from './entities/ship'
 import {
   AbilityKind,
   CollectibleKind,
   EffectKind,
   EnemyKind,
+  EscapeModePhase,
   GamePhase,
   ProjectileOwner,
   ShipKind,
@@ -488,6 +490,45 @@ describe('updateGameState — state field round-trip persistence', () => {
       expect(collectedSomething).toBe(true)
       expect(state.score).toBeGreaterThan(0)
     }
+  })
+
+  // Regression: the wave-complete early-return spread `...state` but forgot to
+  // thread `escapeTrailAccumulator`, so the frame's escape-trail update was lost
+  // whenever a wave ended mid-dash. The dash tick advances the accumulator, so a
+  // returned value of 0 (the stale frame-start value) means the field was dropped.
+  it('escapeTrailAccumulator threads through the wave-complete early return', () => {
+    let state = startGame(createInitialState(), ShipKind.fighter)
+    state = startNextWave(state)
+    // Ship mid-dash so tickEscapeMode advances the accumulator this frame.
+    state = {
+      ...state,
+      phase: GamePhase.playing,
+      escapeTrailAccumulator: 0,
+      ship: {
+        ...state.ship,
+        escapeMode: { phase: EscapeModePhase.dash, timer: 1, heading: { x: 1, y: 0 } },
+      },
+      // Force the wave-complete branch: nothing left to spawn or fight.
+      wave: 1,
+      spawnQueue: [],
+      enemies: [],
+      totalWaveEnemies: 1,
+      spawnedInWave: 1,
+    }
+
+    const dt = 0.016
+    const expected = tickEscapeMode(
+      state.ship,
+      dt,
+      state.escapeTrailAccumulator,
+      state.worldSize
+    ).trailAccumulator
+    expect(expected).toBeGreaterThan(0) // guards against a vacuous test
+
+    state = updateGameState(state, dt, { clicks: [], selectedAbility: null })
+
+    expect(state.phase).toBe(GamePhase.waveComplete)
+    expect(state.escapeTrailAccumulator).toBeCloseTo(expected)
   })
 })
 

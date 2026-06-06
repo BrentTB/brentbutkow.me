@@ -116,7 +116,7 @@ export const POWER_DEFAULTS = {
   startingPower: 100,
 }
 
-// Ability stat constants live in engine/abilities/abilityData.ts. Import from
+// Ability stat constants live in engine/abilities/ability-data.ts. Import from
 // there directly.
 
 // Display order for the hotbar AND the shop. Edit this array to reorder.
@@ -261,6 +261,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         'Canvas now renders at devicePixelRatio resolution — sprites are crisp on Retina / high-DPI mobile instead of blocky in fullscreen.',
         'Camera zoom now folds in min-dimension scaling, so wide-but-short viewports (landscape phone fullscreen) zoom out further and the play area no longer feels cramped.',
         'iOS pseudo-fullscreen now nudges Safari to auto-hide its URL bar on entry.',
+        'Escape Mode dash is now clamped to the play area, so a dash near the edge no longer flings the ship off-screen.',
       ],
     },
   },

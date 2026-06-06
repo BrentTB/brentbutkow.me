@@ -1,9 +1,20 @@
 import { SHIELD_COOLDOWN } from '../../data'
 import { distance } from '../math/collision'
+import { clamp } from '../math/utils'
 import { createParticle, createProjectile } from './entity-creator'
 import { EscapeModePhase, ProjectileOwner } from '../types'
 import type { Enemy, Particle, Projectile, Ship, Vec2 } from '../types'
 import { ESCAPE_MODE } from '../spaceMetalAbilities/escape-mode'
+
+// Keeps the ship's centre fully inside the world rect (accounting for its
+// radius). Escape Mode moves the ship directly instead of via patrol, so it
+// has to enforce the bounds patrol would otherwise keep it within.
+function clampToWorld(pos: Vec2, radius: number, world: Vec2): Vec2 {
+  return {
+    x: clamp(pos.x, radius, world.x - radius),
+    y: clamp(pos.y, radius, world.y - radius),
+  }
+}
 
 export function applyDamageToShip(ship: Ship, damage: number): Ship {
   if (damage <= 0) return ship
@@ -26,7 +37,8 @@ export function applyDamageToShip(ship: Ship, damage: number): Ship {
 export function tickEscapeMode(
   ship: Ship,
   dt: number,
-  trailAccumulator: number
+  trailAccumulator: number,
+  worldSize: Vec2
 ): { ship: Ship; particles: Particle[]; trailAccumulator: number } {
   if (ship.escapeMode === null) {
     return { ship, particles: [], trailAccumulator: 0 }
@@ -40,7 +52,11 @@ export function tickEscapeMode(
   if (e.phase === EscapeModePhase.charge) {
     const speed = ship.speed * ESCAPE_MODE.chargeSpeedMultiplier
     const vel = { x: e.heading.x * speed, y: e.heading.y * speed }
-    const pos = { x: ship.pos.x + vel.x * dt, y: ship.pos.y + vel.y * dt }
+    const pos = clampToWorld(
+      { x: ship.pos.x + vel.x * dt, y: ship.pos.y + vel.y * dt },
+      ship.radius,
+      worldSize
+    )
     if (timer <= 0) {
       return {
         ship: {
@@ -68,7 +84,11 @@ export function tickEscapeMode(
   // Dash phase — fast straight line + flame trail.
   const speed = ship.speed * ESCAPE_MODE.dashSpeedMultiplier
   const vel = { x: e.heading.x * speed, y: e.heading.y * speed }
-  const pos = { x: ship.pos.x + vel.x * dt, y: ship.pos.y + vel.y * dt }
+  const pos = clampToWorld(
+    { x: ship.pos.x + vel.x * dt, y: ship.pos.y + vel.y * dt },
+    ship.radius,
+    worldSize
+  )
 
   nextAcc += dt
   while (nextAcc >= ESCAPE_MODE.trailInterval) {

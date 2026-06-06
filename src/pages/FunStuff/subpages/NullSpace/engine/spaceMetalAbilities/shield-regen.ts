@@ -7,6 +7,7 @@ export const shieldRegen: SpaceMetalAbility = {
   cost: 1,
   hotkey: 'F',
   canActivate: (s) => s.spaceMetal >= 1 && s.ship.shield < s.ship.maxShield,
+  canUse: (ui) => ui.spaceMetal >= 1 && ui.shipShield < ui.shipMaxShield,
   activate: (s) => ({
     ...s,
     spaceMetal: s.spaceMetal - 1,
