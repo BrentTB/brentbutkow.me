@@ -1,0 +1,18 @@
+import { EducationCard } from './components/EducationCard'
+import { PageLayout } from '../../components/PageFormatting/PageLayout'
+import { PageHeader } from '../../components/PageFormatting/PageHeader'
+import styles from './EducationPage.module.scss'
+import { education } from './data'
+
+export function EducationPage() {
+  return (
+    <PageLayout>
+      <PageHeader title="Education & Learning" />
+      <div className={styles.list}>
+        {education.map((item) => (
+          <EducationCard key={`${item.institution}-${item.degree}`} {...item} />
+        ))}
+      </div>
+    </PageLayout>
+  )
+}

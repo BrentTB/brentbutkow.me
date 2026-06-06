@@ -1,22 +1,36 @@
-import ContactMePage from '../pages/contact-me/ContactMePage'
-import EducationPage from '../pages/education/EducationPage'
-import ExperiencePage from '../pages/experience/ExperiencePage'
-import FunStuffPage from '../pages/fun-stuff/FunStuffPage'
-import HomePage from '../pages/home/HomePage'
-import NotFoundPage from '../pages/not-found/NotFoundPage'
-import AchievementsPage from '../pages/achievements/AchievementsPage'
+import { ContactMePage } from '../pages/ContactMe/ContactMePage'
+import { EducationPage } from '../pages/Education/EducationPage'
+import { ExperiencePage } from '../pages/Experience/ExperiencePage'
+import { FunStuffPage } from '../pages/FunStuff/FunStuffPage'
+import { HomePage } from '../pages/Home/HomePage'
+import { NotFoundPage } from '../pages/NotFound/NotFoundPage'
+import { AchievementsPage } from '../pages/Achievements/AchievementsPage'
 import { lazy } from 'react'
 import { AppRoute } from './routes.types'
-import { funStuffSubRoutes } from '../pages/fun-stuff/data'
-import { gamesSubRoutes } from '../pages/fun-stuff/subpages/Games/data'
+import { funStuffSubRoutes } from '../pages/FunStuff/data'
+import { gamesSubRoutes } from '../pages/FunStuff/subpages/Games/data'
 
 // Heavy / rarely-visited subpages are code-split out of the initial bundle.
-const GulagSort = lazy(() => import('../pages/fun-stuff/subpages/GulagSort/GulagSort'))
-const CourseProjects = lazy(
-  () => import('../pages/fun-stuff/subpages/CourseProjects/CourseProjects')
+const GulagSort = lazy(() =>
+  import('../pages/FunStuff/subpages/GulagSort/GulagSort').then((module) => ({
+    default: module.GulagSort,
+  }))
 )
-const GamesPage = lazy(() => import('../pages/fun-stuff/subpages/Games/GamesPage'))
-const NullSpace = lazy(() => import('../pages/fun-stuff/subpages/NullSpace/NullSpace'))
+const CourseProjects = lazy(() =>
+  import('../pages/FunStuff/subpages/CourseProjects/CourseProjects').then((module) => ({
+    default: module.CourseProjects,
+  }))
+)
+const GamesPage = lazy(() =>
+  import('../pages/FunStuff/subpages/Games/GamesPage').then((module) => ({
+    default: module.GamesPage,
+  }))
+)
+const NullSpace = lazy(() =>
+  import('../pages/FunStuff/subpages/NullSpace/NullSpace').then((module) => ({
+    default: module.NullSpace,
+  }))
+)
 
 export const routePaths = {
   home: '/',

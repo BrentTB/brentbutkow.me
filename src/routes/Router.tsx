@@ -3,7 +3,7 @@ import { Suspense } from 'react'
 import { routes } from './routes.config'
 import { useDocumentTitle } from './useDocumentTitle'
 
-function Router() {
+export function Router() {
   useDocumentTitle()
 
   return (
@@ -16,5 +16,3 @@ function Router() {
     </Suspense>
   )
 }
-
-export default Router

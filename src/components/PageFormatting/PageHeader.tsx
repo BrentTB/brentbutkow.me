@@ -6,7 +6,7 @@ interface PageHeaderProps {
   showBackButton?: boolean
 }
 
-function PageHeader({ title, showBackButton }: PageHeaderProps) {
+export function PageHeader({ title, showBackButton }: PageHeaderProps) {
   return (
     <div className={styles.header}>
       {showBackButton && <BackButton />}
@@ -14,5 +14,3 @@ function PageHeader({ title, showBackButton }: PageHeaderProps) {
     </div>
   )
 }
-
-export default PageHeader
