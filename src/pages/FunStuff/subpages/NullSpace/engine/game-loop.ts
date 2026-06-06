@@ -396,10 +396,11 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     ...holdKilledEnemies,
   ]
   if (killedForDeathEffects.length > 0) {
-    const deathResult = resolveDeathEffects(killedForDeathEffects, ship, activeEffects)
+    const deathResult = resolveDeathEffects(killedForDeathEffects, ship, allies, activeEffects)
     if (deathResult.shipDamage > 0) {
       ship = applyDamageToShip(ship, deathResult.shipDamage)
     }
+    allies = deathResult.allies
     particles = [...particles, ...deathResult.particles]
   }
 

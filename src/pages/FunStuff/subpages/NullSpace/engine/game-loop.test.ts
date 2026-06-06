@@ -1313,7 +1313,7 @@ describe('Solar Flare ability', () => {
 })
 
 describe('Enemy melee damages allies', () => {
-  it('enemy that touches an ally dies and reduces ally HP', () => {
+  it('a non-bomber enemy that touches an ally damages it, survives, and is knocked back', () => {
     let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     state = applyUpgradeToState({ ...state, currency: 999 }, UpgradeId.unlockHelper)
@@ -1325,7 +1325,6 @@ describe('Enemy melee damages allies', () => {
     })
     expect(state.allies.length).toBe(1)
     const allyMaxHp = state.allies[0].maxHp
-    // Place an enemy directly overlapping the ally
     const enemy = { ...createEnemy(EnemyKind.drone, { ...allyPos }), speed: 0 }
     state = {
       ...state,
@@ -1333,10 +1332,9 @@ describe('Enemy melee damages allies', () => {
       allies: [{ ...state.allies[0], pos: { ...allyPos } }],
     }
     state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
-    // Enemy should be gone (consumed by melee)
-    expect(state.enemies.find((e) => e.id === enemy.id)).toBeUndefined()
-    // Ally either took damage or died
     const allyDamaged = state.allies.length === 0 || state.allies.some((a) => a.hp < allyMaxHp)
     expect(allyDamaged).toBe(true)
+    // Drone survives the bump (bombers are the only kind that suicide on contact).
+    expect(state.enemies.find((e) => e.id === enemy.id)).toBeDefined()
   })
 })

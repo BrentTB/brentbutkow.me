@@ -178,7 +178,7 @@ export const ENEMY_STATS = {
     radius: 14,
     scoreValue: 25,
     powerReward: 12,
-    explosionDamage: 30,
+    explosionDamage: 40,
     explosionRadius: 80,
   },
 } as const
@@ -248,6 +248,17 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.10.1',
+    date: '2026-06-06',
+    changes: {
+      fixes: [
+        'Non-bomber enemies (drones, tanks, shooters, swarmers) no longer suicide on contact — they deal their damage, bounce off the ship or helper, and stay in the fight. Bombers still detonate on impact.',
+        'Bomber death explosions now damage helpers caught in the blast radius, not just the ship (shields still shelter a helper inside the dome).',
+      ],
+      balance: ['Increase bomber explosion damage by 33%: 30->40'],
+    },
+  },
   {
     version: '0.10.0',
     date: '2026-06-06',
