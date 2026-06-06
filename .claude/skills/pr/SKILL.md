@@ -65,37 +65,47 @@ uses this format:
 
 ```markdown
 ## Summary
+
 <!-- 1-3 sentences: the high-level what and why -->
 
 ## Changes
+
 <!-- Group changes under the applicable headings below. Delete any heading with no entries. -->
 
 ### New features
+
 - ...
 
 ### UI changes
+
 - ...
 
 ### Bug fixes
+
 - ...
 
 ### Refactors
+
 - ...
 
 ### Tests
+
 - ...
 
 ### Other
+
 - ...
 ```
 
 Guidelines:
+
 - Be specific: "add Black Hole ability with area-of-effect damage" not "add new ability".
 - Reference file paths where helpful for reviewers.
 - Each bullet is one logical change — don't list every file touched, group by intent.
 - Delete empty sections rather than leaving them with "None".
 - Keep it concise but complete — a reviewer should understand the full scope from the
   description alone.
+- NEVER say written by Claude Code — the description should read like a human wrote it.
 
 ## 4. Create or update the PR
 
