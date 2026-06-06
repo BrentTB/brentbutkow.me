@@ -177,8 +177,12 @@ function MenuScreen({ onStart }: { onStart: () => void }) {
   return (
     <>
       <h2 className={styles.title}>{GAME_NAME}</h2>
-      <p className={styles.subtitle}>Control space itself to protect your ship</p>
-      <p className={styles.hint}>Click anywhere during gameplay to launch strikes</p>
+      <p className={styles.subtitle}>You are a cosmic guardian. Protect the ship.</p>
+      <p className={styles.hint}>
+        The ship flies and fights on its own, your job is to bend space itself: click anywhere to
+        drop meteors, unlock more powers as you level up, and tap the <strong>?</strong> in-game any
+        time for the full controls.
+      </p>
       <button className={styles.primaryBtn} onClick={onStart}>
         Start Game
       </button>

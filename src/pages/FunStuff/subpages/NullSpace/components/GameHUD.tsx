@@ -1,9 +1,11 @@
+import { useState } from 'react'
 import { CURRENCY_NAME, WAVES_PER_LEVEL } from '../data'
 import { ABILITY_META } from '../engine/abilities'
 import { GamePhase } from '../engine/types'
 import { SPACE_METAL_ABILITIES, SpaceMetalAbilityKind } from '../engine/spaceMetalAbilities'
 import { getUnlockedAbilitiesInOrder } from '../useNullSpace'
 import type { GameUIState } from '../useNullSpace'
+import { HelpModal } from './HelpModal'
 import styles from './GameHUD.module.scss'
 
 type GameHUDProps = {
@@ -12,6 +14,8 @@ type GameHUDProps = {
   onPause: () => void
   onToggleFullscreen: () => void
   onUseSpaceMetalAbility: (kind: SpaceMetalAbilityKind) => void
+  onSuspendTime: () => void
+  onResumeTime: () => void
   isFullscreen: boolean
   gameSpeed: number
 }
@@ -30,9 +34,12 @@ export function GameHUD({
   onPause,
   onToggleFullscreen,
   onUseSpaceMetalAbility,
+  onSuspendTime,
+  onResumeTime,
   isFullscreen,
   gameSpeed,
 }: GameHUDProps) {
+  const [helpOpen, setHelpOpen] = useState(false)
   if (uiState.phase === GamePhase.menu || uiState.phase === GamePhase.shipSelection) return null
 
   const hpRatio = Math.max(0, uiState.shipHp / uiState.shipMaxHp)
@@ -113,6 +120,14 @@ export function GameHUD({
           <button
             type="button"
             className={styles.iconBtn}
+            onClick={() => setHelpOpen(true)}
+            aria-label="How to play"
+          >
+            ?
+          </button>
+          <button
+            type="button"
+            className={styles.iconBtn}
             onClick={onToggleFullscreen}
             aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
           >
@@ -186,6 +201,14 @@ export function GameHUD({
           )
         })}
       </div>
+      {helpOpen && (
+        <HelpModal
+          onClose={() => setHelpOpen(false)}
+          onSuspendTime={onSuspendTime}
+          onResumeTime={onResumeTime}
+          shouldSuspend={uiState.phase === GamePhase.playing}
+        />
+      )}
     </div>
   )
 }

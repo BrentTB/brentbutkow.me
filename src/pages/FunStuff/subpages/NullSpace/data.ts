@@ -249,6 +249,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.10.0',
+    date: '2026-06-06',
+    changes: {
+      features: [
+        'Added an in-game help modal — the ? button (top-right) covers gameplay, controls, space-metal abilities, and progression. Opening it freezes the game and blocks input until you close it.',
+        'Reworked the start-screen blurb to set up the cosmic-guardian premise and point new players at the in-game help.',
+      ],
+    },
+  },
+  {
     version: '0.9.2',
     date: '2026-06-06',
     changes: {

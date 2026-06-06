@@ -27,6 +27,8 @@ function NullSpace() {
     handlePause,
     handleResume,
     handleSetSpeed,
+    handleSuspendTime,
+    handleResumeTime,
     handleUseSpaceMetalAbility,
     handleDevPatch,
     handleDevJumpToUpgrades,
@@ -125,6 +127,8 @@ function NullSpace() {
             onPause={handlePause}
             onToggleFullscreen={handleToggleFullscreen}
             onUseSpaceMetalAbility={handleUseSpaceMetalAbility}
+            onSuspendTime={handleSuspendTime}
+            onResumeTime={handleResumeTime}
             isFullscreen={isFullscreen}
             gameSpeed={gameSpeed}
           />

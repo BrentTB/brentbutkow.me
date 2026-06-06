@@ -356,6 +356,17 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     gameTimeRef.current = setGameSpeed(gameTimeRef.current, speed)
   }, [])
 
+  // Freezes the simulation clock without flipping GamePhase. Used by modals
+  // that should halt motion but visually replace (not stack with) the regular
+  // paused screen — e.g. the help modal.
+  const handleSuspendTime = useCallback(() => {
+    gameTimeRef.current = pauseGameTime(gameTimeRef.current)
+  }, [])
+  const handleResumeTime = useCallback(() => {
+    if (!gameTimeRef.current.paused) return
+    gameTimeRef.current = resumeGameTime(gameTimeRef.current, performance.now())
+  }, [])
+
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -555,6 +566,8 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     handlePause,
     handleResume,
     handleSetSpeed,
+    handleSuspendTime,
+    handleResumeTime,
     handleUseSpaceMetalAbility,
     handleDevPatch,
     handleDevJumpToUpgrades,
