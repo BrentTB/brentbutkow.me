@@ -96,9 +96,8 @@ export function HelpModal({ onClose, onSuspendTime, onResumeTime, shouldSuspend 
         <section className={styles.section}>
           <h3 className={styles.heading}>Progression</h3>
           <p>
-            Kill enemies to earn ✦ Stardust. Every 3 waves opens the upgrade shop — buy ability
-            upgrades, ship stats, or unlock a new power. Two random weapon offers per shop; you can
-            only buy one.
+            Kill enemies to earn ✦ Stardust. Every 3 waves opens the upgrade shop: buy ability
+            upgrades, ship stats, or unlock a new power to ensure the ship's survival.
           </p>
         </section>
 
