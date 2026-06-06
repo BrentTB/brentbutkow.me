@@ -1,13 +1,13 @@
-import PageLayout from '../../../../components/PageFormatting/PageLayout'
-import PageHeader from '../../../../components/PageFormatting/PageHeader'
+import { PageLayout } from '../../../../components/PageFormatting/PageLayout'
+import { PageHeader } from '../../../../components/PageFormatting/PageHeader'
 import { SafeLink } from '../../../../components/utils/SafeLink'
-import ToggleableSection from '../../../../components/ToggleableSection/ToggleableSection'
-import CodeSection from '../../../../components/CodeSection/CodeSection'
-import GulagSortVisualizer from './GulagSortVisualizer'
+import { ToggleableSection } from '../../../../components/ToggleableSection/ToggleableSection'
+import { CodeSection } from '../../../../components/CodeSection/CodeSection'
+import { GulagSortVisualizer } from './GulagSortVisualizer'
 import styles from './GulagSort.module.scss'
 import { gulagSortCode } from './data'
 
-function GulagSort() {
+export function GulagSort() {
   return (
     <PageLayout>
       <PageHeader title="Gulag Sort" showBackButton />
@@ -81,5 +81,3 @@ function GulagSort() {
     </PageLayout>
   )
 }
-
-export default GulagSort

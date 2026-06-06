@@ -7,7 +7,7 @@ type CurrentWorkProps = {
   company: string
 }
 
-function CurrentWork({ role, company }: CurrentWorkProps) {
+export function CurrentWork({ role, company }: CurrentWorkProps) {
   return (
     <Link
       to={routePaths.experience}
@@ -22,5 +22,3 @@ function CurrentWork({ role, company }: CurrentWorkProps) {
     </Link>
   )
 }
-
-export default CurrentWork

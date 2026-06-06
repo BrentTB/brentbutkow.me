@@ -1,10 +1,10 @@
-import PageLayout from '../../../../components/PageFormatting/PageLayout'
-import PageHeader from '../../../../components/PageFormatting/PageHeader'
-import FunCard from '../../components/FunCard'
+import { PageLayout } from '../../../../components/PageFormatting/PageLayout'
+import { PageHeader } from '../../../../components/PageFormatting/PageHeader'
+import { FunCard } from '../../components/FunCard'
 import { games } from './data'
 import styles from './GamesPage.module.scss'
 
-function GamesPage() {
+export function GamesPage() {
   return (
     <PageLayout>
       <PageHeader title="Games" showBackButton />
@@ -16,5 +16,3 @@ function GamesPage() {
     </PageLayout>
   )
 }
-
-export default GamesPage

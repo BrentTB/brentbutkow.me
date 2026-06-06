@@ -6,7 +6,7 @@ interface ToggleableSectionProps {
   children: ReactNode
 }
 
-function ToggleableSection({ title, children }: ToggleableSectionProps) {
+export function ToggleableSection({ title, children }: ToggleableSectionProps) {
   const [isOpen, setIsOpen] = useState(false)
 
   return (
@@ -23,5 +23,3 @@ function ToggleableSection({ title, children }: ToggleableSectionProps) {
     </div>
   )
 }
-
-export default ToggleableSection

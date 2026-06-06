@@ -24,7 +24,7 @@ const getBlockAnimationClass = (block: GulagBlock): string => {
   return animationClass
 }
 
-function GulagSortVisualizer() {
+export function GulagSortVisualizer() {
   const [input, setInput] = useState('')
   const [animationSpeedMultiplier, setAnimationSpeedMultiplier] = useState<number>(
     ANIMATION_SPEED.MEDIUM
@@ -150,5 +150,3 @@ function GulagSortVisualizer() {
     </div>
   )
 }
-
-export default GulagSortVisualizer

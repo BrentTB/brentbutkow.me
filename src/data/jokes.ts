@@ -4,9 +4,7 @@ import { Joke, JokeTypes } from './jokes.types'
 export const isJokeType = (value: string): value is JokeTypes =>
   Object.values(JokeTypes).includes(value as JokeTypes)
 
-const jokes: Joke[] = jokesData.map((joke) => ({
+export const jokes: Joke[] = jokesData.map((joke) => ({
   joke: joke.joke,
   jokeType: isJokeType(joke.jokeType) ? joke.jokeType : JokeTypes.dad,
 }))
-
-export default jokes

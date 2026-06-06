@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { BackButton } from '../../../../components/PageFormatting/BackButton'
-import ToggleableSection from '../../../../components/ToggleableSection/ToggleableSection'
+import { ToggleableSection } from '../../../../components/ToggleableSection/ToggleableSection'
 import { useNullSpace } from './useNullSpace'
 import { GameHUD } from './components/GameHUD'
 import { GameOverlay } from './components/GameOverlay'
@@ -12,7 +12,7 @@ import styles from './NullSpace.module.scss'
 // Shows the dev mode console for easier dev testing
 const DEV_MODE = import.meta.env.VITE_NULL_SPACE_DEV_MODE === 'true'
 
-function NullSpace() {
+export function NullSpace() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const gameContainerRef = useRef<HTMLDivElement>(null)
   const {
@@ -208,5 +208,3 @@ function NullSpace() {
     </div>
   )
 }
-
-export default NullSpace

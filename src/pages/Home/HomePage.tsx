@@ -1,6 +1,6 @@
-import Hero from './components/Hero'
-import CurrentWork from './components/CurrentWork'
-import About from './components/About'
+import { Hero } from './components/Hero'
+import { CurrentWork } from './components/CurrentWork'
+import { About } from './components/About'
 import styles from './HomePage.module.scss'
 import { heroContent, aboutSectionEnabled, aboutParagraphs } from './data'
 import { useFunMode } from '../../contexts/useFunMode'
@@ -12,7 +12,7 @@ const currentRole = experience.find((role) => role.period.toLowerCase().includes
 
 const jokeCategories = Object.values(JokeTypes)
 
-function HomePage() {
+export function HomePage() {
   const { isFunMode } = useFunMode()
   const { currentJoke, selectCategory } = useJokes()
 
@@ -52,5 +52,3 @@ function HomePage() {
     </main>
   )
 }
-
-export default HomePage

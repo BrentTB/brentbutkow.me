@@ -6,7 +6,7 @@ type ContactCardProps = {
   contactPlatform: ContactPlatform
 }
 
-function ContactCard({ contactPlatform }: ContactCardProps) {
+export function ContactCard({ contactPlatform }: ContactCardProps) {
   return (
     <ArticleOrLinkCard className={styles.card} href={contactPlatform.url}>
       <div className={styles.row}>
@@ -16,5 +16,3 @@ function ContactCard({ contactPlatform }: ContactCardProps) {
     </ArticleOrLinkCard>
   )
 }
-
-export default ContactCard

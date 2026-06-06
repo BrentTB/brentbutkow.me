@@ -1,10 +1,10 @@
 import { ArticleOrLinkCard } from '../../../../components/cards/ArticleOrLinkCard'
-import PageHeader from '../../../../components/PageFormatting/PageHeader'
-import PageLayout from '../../../../components/PageFormatting/PageLayout'
+import { PageHeader } from '../../../../components/PageFormatting/PageHeader'
+import { PageLayout } from '../../../../components/PageFormatting/PageLayout'
 import { courseProjects } from './data'
 import styles from './CourseProjects.module.scss'
 
-function CourseProjects() {
+export function CourseProjects() {
   return (
     <PageLayout>
       <PageHeader title="Course Projects" showBackButton />
@@ -19,5 +19,3 @@ function CourseProjects() {
     </PageLayout>
   )
 }
-
-export default CourseProjects

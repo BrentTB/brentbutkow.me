@@ -13,7 +13,7 @@ const PRESETS = [
   { label: 'Bounce forever', spring: 0.5, damping: 1 },
 ]
 
-function NotFoundPage() {
+export function NotFoundPage() {
   const { isFunMode } = useFunMode()
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const [spring, setSpring] = useState(DEFAULT_SPRING)
@@ -97,5 +97,3 @@ function NotFoundPage() {
     </main>
   )
 }
-
-export default NotFoundPage

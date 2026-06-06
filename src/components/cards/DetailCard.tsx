@@ -18,7 +18,7 @@ type DetailCardProps = {
   children?: ReactNode
 }
 
-function DetailCard({
+export function DetailCard({
   title,
   subtitle,
   subtitleLink,
@@ -100,5 +100,3 @@ function DetailCard({
     </article>
   )
 }
-
-export default DetailCard

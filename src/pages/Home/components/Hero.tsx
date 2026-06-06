@@ -8,7 +8,7 @@ type HeroProps = {
   isFunMode?: boolean
 }
 
-function Hero({ content, isFunMode }: HeroProps) {
+export function Hero({ content, isFunMode }: HeroProps) {
   const filteredActions = useMemo(
     () => content.actions.filter((action) => (isFunMode ? true : !action.onlyShowInFunMode)),
     [content.actions, isFunMode]
@@ -34,5 +34,3 @@ function Hero({ content, isFunMode }: HeroProps) {
     </div>
   )
 }
-
-export default Hero

@@ -5,8 +5,6 @@ interface PageLayoutProps {
   children: ReactNode
 }
 
-function PageLayout({ children }: PageLayoutProps) {
+export function PageLayout({ children }: PageLayoutProps) {
   return <main className={styles.main}>{children}</main>
 }
-
-export default PageLayout

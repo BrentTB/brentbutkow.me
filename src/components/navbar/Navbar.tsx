@@ -1,12 +1,12 @@
 import { Link, NavLink } from 'react-router-dom'
 import { routePaths, routes } from '../../routes/routes.config'
 import styles from './Navbar.module.scss'
-import ModeToggle from '../ModeToggle'
+import { ModeToggle } from '../ModeToggle'
 import { useFunMode } from '../../contexts/useFunMode'
 import { useRef, useState } from 'react'
 import { useFocusTrap } from './useFocusTrap'
 
-function Navbar() {
+export function Navbar() {
   const { isFunMode, setIsFunMode } = useFunMode()
   const navRoutes = routes.filter((route) => !route.dontShowInNavbar)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -76,5 +76,3 @@ function Navbar() {
     </>
   )
 }
-
-export default Navbar

@@ -1,11 +1,11 @@
 // import FunCard from './components/FunCard'
-import PageLayout from '../../components/PageFormatting/PageLayout'
-import PageHeader from '../../components/PageFormatting/PageHeader'
-import FunCard from './components/FunCard'
+import { PageLayout } from '../../components/PageFormatting/PageLayout'
+import { PageHeader } from '../../components/PageFormatting/PageHeader'
+import { FunCard } from './components/FunCard'
 import { funStuff } from './data'
 import styles from './FunStuffPage.module.scss'
 
-function FunStuffPage() {
+export function FunStuffPage() {
   return (
     <PageLayout>
       <PageHeader title="Fun Stuff" />
@@ -17,5 +17,3 @@ function FunStuffPage() {
     </PageLayout>
   )
 }
-
-export default FunStuffPage

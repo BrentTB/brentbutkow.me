@@ -8,7 +8,7 @@ type ModeToggleProps = {
   className?: string
 }
 
-function ModeToggle({ isEnabled, onToggle, label1, label2, className }: ModeToggleProps) {
+export function ModeToggle({ isEnabled, onToggle, label1, label2, className }: ModeToggleProps) {
   return (
     <li className={`${styles.modeControl} ${className || ''}`}>
       <button
@@ -39,5 +39,3 @@ function ModeToggle({ isEnabled, onToggle, label1, label2, className }: ModeTogg
     </li>
   )
 }
-
-export default ModeToggle

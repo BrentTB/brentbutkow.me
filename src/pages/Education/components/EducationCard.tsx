@@ -1,8 +1,8 @@
 import { Education } from '../../../data/data.types'
-import DetailCard from '../../../components/cards/DetailCard'
+import { DetailCard } from '../../../components/cards/DetailCard'
 
 const PILLS_TO_SHOW = 2
-function EducationCard({
+export function EducationCard({
   degree,
   institution,
   link,
@@ -22,5 +22,3 @@ function EducationCard({
     />
   )
 }
-
-export default EducationCard

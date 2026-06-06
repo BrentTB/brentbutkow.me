@@ -1,10 +1,10 @@
-import ExperienceCard from './components/ExperienceCard'
-import PageLayout from '../../components/PageFormatting/PageLayout'
-import PageHeader from '../../components/PageFormatting/PageHeader'
+import { ExperienceCard } from './components/ExperienceCard'
+import { PageLayout } from '../../components/PageFormatting/PageLayout'
+import { PageHeader } from '../../components/PageFormatting/PageHeader'
 import styles from './ExperiencePage.module.scss'
 import { experience } from './data'
 
-function ExperiencePage() {
+export function ExperiencePage() {
   return (
     <PageLayout>
       <PageHeader title="Professional Experience" />
@@ -16,5 +16,3 @@ function ExperiencePage() {
     </PageLayout>
   )
 }
-
-export default ExperiencePage

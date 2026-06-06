@@ -4,7 +4,7 @@ type AboutProps = {
   paragraphs: string[]
 }
 
-function About({ paragraphs }: AboutProps) {
+export function About({ paragraphs }: AboutProps) {
   return (
     <section className={styles.about} aria-label="About Brent Butkow">
       <p className={styles.eyebrow}>About</p>
@@ -18,5 +18,3 @@ function About({ paragraphs }: AboutProps) {
     </section>
   )
 }
-
-export default About

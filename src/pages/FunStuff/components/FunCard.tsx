@@ -7,7 +7,7 @@ type FunCardProps = {
   item: FunItem
 }
 
-function FunCard({ item }: FunCardProps) {
+export function FunCard({ item }: FunCardProps) {
   const location = useLocation()
 
   const content = (
@@ -28,5 +28,3 @@ function FunCard({ item }: FunCardProps) {
     </ArticleOrLinkCard>
   )
 }
-
-export default FunCard

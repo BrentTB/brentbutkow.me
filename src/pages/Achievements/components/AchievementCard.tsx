@@ -6,7 +6,7 @@ type AchievementCardProps = {
   achievement: Achievement
 }
 
-function AchievementCard({ achievement }: AchievementCardProps) {
+export function AchievementCard({ achievement }: AchievementCardProps) {
   return (
     <ArticleOrLinkCard href={achievement.link}>
       <h4 className={styles.title}>{achievement.title}</h4>
@@ -14,5 +14,3 @@ function AchievementCard({ achievement }: AchievementCardProps) {
     </ArticleOrLinkCard>
   )
 }
-
-export default AchievementCard

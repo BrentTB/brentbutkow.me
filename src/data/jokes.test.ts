@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import jokes, { isJokeType } from './jokes'
+import { jokes, isJokeType } from './jokes'
 import { JokeTypes } from './jokes.types'
 
 describe('isJokeType', () => {

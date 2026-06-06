@@ -1,10 +1,10 @@
-import EducationCard from './components/EducationCard'
-import PageLayout from '../../components/PageFormatting/PageLayout'
-import PageHeader from '../../components/PageFormatting/PageHeader'
+import { EducationCard } from './components/EducationCard'
+import { PageLayout } from '../../components/PageFormatting/PageLayout'
+import { PageHeader } from '../../components/PageFormatting/PageHeader'
 import styles from './EducationPage.module.scss'
 import { education } from './data'
 
-function EducationPage() {
+export function EducationPage() {
   return (
     <PageLayout>
       <PageHeader title="Education & Learning" />
@@ -16,5 +16,3 @@ function EducationPage() {
     </PageLayout>
   )
 }
-
-export default EducationPage

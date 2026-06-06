@@ -1,12 +1,12 @@
-import AchievementCard from './components/AchievementCard'
-import PageLayout from '../../components/PageFormatting/PageLayout'
-import PageHeader from '../../components/PageFormatting/PageHeader'
+import { AchievementCard } from './components/AchievementCard'
+import { PageLayout } from '../../components/PageFormatting/PageLayout'
+import { PageHeader } from '../../components/PageFormatting/PageHeader'
 import styles from './AchievementsPage.module.scss'
 import { achievements } from './data'
 import { useMemo } from 'react'
 import { useFunMode } from '../../contexts/useFunMode'
 
-function AchievementsPage() {
+export function AchievementsPage() {
   const { isFunMode } = useFunMode()
 
   const { sortedYears, groupedByYear } = useMemo(() => {
@@ -51,5 +51,3 @@ function AchievementsPage() {
     </PageLayout>
   )
 }
-
-export default AchievementsPage

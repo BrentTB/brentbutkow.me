@@ -1,16 +1,18 @@
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/react'
-import Router from './routes/Router'
+import { Router } from './routes/Router'
 import styles from './App.module.scss'
-import Navbar from './components/navbar/Navbar'
-import Footer from './components/footer/Footer'
+import { Navbar } from './components/navbar/Navbar'
+import { Footer } from './components/footer/Footer'
 import { BrowserRouter } from 'react-router-dom'
 import { FunModeProvider } from './contexts/FunModeProvider'
 import { useFunMode } from './contexts/useFunMode'
 import { lazy, Suspense } from 'react'
 
 // WebGL effect is Fun-mode-only and heavy — code-split it out of the initial bundle.
-const WaterRipple = lazy(() => import('./components/effects/WaterRipple'))
+const WaterRipple = lazy(() =>
+  import('./components/effects/WaterRipple').then((module) => ({ default: module.WaterRipple }))
+)
 
 const enableVercelAnalytics = import.meta.env.ENABLE_VERCEL_ANALYTICS === 'true'
 const enableVercelSpeedInsights = import.meta.env.ENABLE_VERCEL_SPEED_INSIGHTS === 'true'
@@ -24,7 +26,7 @@ const WaterRippleLayer = () => {
   ) : null
 }
 
-function App() {
+export function App() {
   return (
     <>
       <div className={styles.shell}>
@@ -42,5 +44,3 @@ function App() {
     </>
   )
 }
-
-export default App

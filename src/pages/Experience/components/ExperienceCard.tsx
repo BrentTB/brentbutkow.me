@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { Experience } from '../../../data/data.types'
-import DetailCard from '../../../components/cards/DetailCard'
+import { DetailCard } from '../../../components/cards/DetailCard'
 import styles from './ExperienceCard.module.scss'
 
 const PILLS_TO_SHOW = 4
 
-function ExperienceCard({
+export function ExperienceCard({
   role,
   company,
   companyLink,
@@ -63,5 +63,3 @@ function ExperienceCard({
     </div>
   )
 }
-
-export default ExperienceCard

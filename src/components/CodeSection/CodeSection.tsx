@@ -11,7 +11,7 @@ interface CodeSectionProps {
   codeBlocks: CodeBlock[]
 }
 
-export default function CodeSection({ codeBlocks }: CodeSectionProps) {
+export function CodeSection({ codeBlocks }: CodeSectionProps) {
   const [activeTab, setActiveTab] = useState(0)
   const { copied, copy } = useCopyToClipboard()
 
