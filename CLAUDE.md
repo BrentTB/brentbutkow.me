@@ -72,19 +72,21 @@ BrowserRouter → FunModeProvider → WaterRippleLayer + Navbar + Router   (Foot
 
 ### Layout / folder conventions
 
-- **A file is named after its primary export.** A component lives in a file named for the component
-  (`Hero.tsx`), and a hook in a file named for the hook (`useFunMode.ts`, `useDocumentTitle.ts`) —
-  the filename's case follows the export (`PascalCase` component, `useCamelCase` hook). Don't name a
-  hook file after its concept (`FunMode.ts` for `useFunMode` is wrong → `useFunMode.ts`). Plain
-  utility modules with no single hook/component (e.g. `fun-mode.ts`, `jokes.ts`, `data.ts`) stay
-  lowercase/kebab-case.
-- **Folder-per-component**: `Thing/Thing.tsx` + `Thing/Thing.module.scss` side by side.
-- **Folder-per-page** under [src/pages/](src/pages): `PageName.tsx`, `PageName.module.scss`, `data.ts`,
-  and a local `components/` for page-specific cards (e.g. `ExperienceCard`, `AchievementCard`).
-- Cross-page primitives live in [src/components/](src/components): `cards/`, `navbar/`, `footer/`,
-  `effects/`, `PageFormatting/` (`PageLayout`, `PageHeader`), `ToggleableSection/`, `CodeSection/`, `utils/`.
-- Pages: `home`, `experience`, `education`, `achievements`, `fun-stuff` (+ `GulagSort` / `CourseProjects`
-  subpages), `contact-me`, `not-found`.
+**Casing rule** — filename = primary export:
+
+| Kind                                 | Case             | Examples                                                  |
+| ------------------------------------ | ---------------- | --------------------------------------------------------- |
+| `.tsx` component                     | `PascalCase`     | `Hero.tsx`, `PageHeader.tsx`                              |
+| Hook (`useX`)                        | `camelCase`      | `useFunMode.ts`, `useDocumentTitle.ts`                    |
+| Plain `.ts` (utils, data, logic)     | `kebab-case`     | `fun-mode.ts`, `jokes.ts`, `black-hole.ts`                |
+| Folder mapping 1:1 to a `.tsx`       | `PascalCase`     | `NullSpace/`, `GulagSort/`, `FunStuff/`, `Hero/`          |
+| Folder for internal organization     | `camelCase`      | `engine/`, `systems/`, `spaceMetalAbilities/`, `utils/`   |
+
+Don't name a hook file after its concept (`FunMode.ts` for `useFunMode` is wrong → `useFunMode.ts`).
+Folder-per-component pattern: `Thing/Thing.tsx` + `Thing/Thing.module.scss` side by side.
+Folder-per-page under [src/pages/](src/pages): `PageName.tsx`, `PageName.module.scss`, `data.ts`,
+plus a local `components/` (PascalCase folders inside for each card, etc.).
+Cross-page primitives live in [src/components/](src/components).
 
 ### Page layout language (content-first, NOT card-based)
 
