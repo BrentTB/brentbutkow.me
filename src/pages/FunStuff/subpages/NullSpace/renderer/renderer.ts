@@ -52,8 +52,9 @@ export function renderFrame(
   stars: Star[]
 ): void {
   ctx.imageSmoothingEnabled = false
-  // Background fill happens in canvas pixels — must cover the actual canvas.
-  ctx.setTransform(1, 0, 0, 1, 0, 0)
+  // Baseline transform is DPR-scaled so all subsequent CSS-pixel coords map to
+  // the high-DPI canvas without each renderer having to know about DPR.
+  ctx.setTransform(camera.dpr, 0, 0, camera.dpr, 0, 0)
   ctx.clearRect(0, 0, camera.width, camera.height)
   ctx.fillStyle = '#06080e'
   ctx.fillRect(0, 0, camera.width, camera.height)

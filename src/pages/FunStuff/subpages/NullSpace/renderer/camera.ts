@@ -20,11 +20,13 @@ export type Camera = {
   /** Top-left of the viewport in WORLD coordinates. */
   x: number
   y: number
-  /** Canvas size in canvas pixels (not world units). */
+  /** Canvas size in CSS pixels (not device pixels). */
   width: number
   height: number
   /** Canvas pixels per world unit. */
   zoom: number
+  /** Device pixel ratio — canvas internal resolution is width/height × dpr. */
+  dpr: number
 }
 
 export function createCamera(viewportWidth: number, viewportHeight: number): Camera {
@@ -34,10 +36,11 @@ export function createCamera(viewportWidth: number, viewportHeight: number): Cam
     width: viewportWidth,
     height: viewportHeight,
     zoom: computeZoom(viewportWidth, viewportHeight),
+    dpr: 1,
   }
 }
 
-/** Pure sqrt(area/referenceArea). Shared by camera zoom and HUD scale. */
+/** sqrt(area/referenceArea). Used for HUD scale and as one input to zoom. */
 function areaScale(canvasWidth: number, canvasHeight: number): number {
   const targetArea = REFERENCE_VIEW.width * REFERENCE_VIEW.height
   const canvasArea = canvasWidth * canvasHeight
@@ -45,14 +48,25 @@ function areaScale(canvasWidth: number, canvasHeight: number): number {
   return Math.sqrt(canvasArea / targetArea)
 }
 
+/** Min-dimension scale relative to the reference's short side. */
+function minDimScale(canvasWidth: number, canvasHeight: number): number {
+  const refMin = Math.min(REFERENCE_VIEW.width, REFERENCE_VIEW.height)
+  const min = Math.min(canvasWidth, canvasHeight)
+  if (min <= 0) return 1
+  return min / refMin
+}
+
 /**
- * Area-based zoom multiplied by DEFAULT_GAME_ZOOM. Keeps total visible
- * world area roughly constant across viewport sizes — fullscreen stops
- * revealing extra world, mobile shows the same total area in a different
- * aspect ratio — while also starting more zoomed-out than a 1:1 mapping.
+ * Geometric mean of area-scale and min-dim-scale, times DEFAULT_GAME_ZOOM.
+ * Pure area-based zoom over-zooms on wide-short viewports (landscape phone
+ * fullscreen) because horizontal pixels dominate the area term. Folding in
+ * min-dim scale lowers zoom when the SHORT dimension is small, so a short
+ * landscape phone shows more world vertically without making desktop tiny.
  */
 export function computeZoom(canvasWidth: number, canvasHeight: number): number {
-  return areaScale(canvasWidth, canvasHeight) * DEFAULT_GAME_ZOOM
+  const a = areaScale(canvasWidth, canvasHeight)
+  const m = minDimScale(canvasWidth, canvasHeight)
+  return Math.sqrt(a * m) * DEFAULT_GAME_ZOOM
 }
 
 /**

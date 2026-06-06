@@ -270,7 +270,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         'Space-metal counter + abilities moved to a dedicated right-side rail. Built on a small registry so new space-metal powers slot in without UI surgery.',
         'Level-up weapons tab now offers 2 random locked weapons per level; buying either one removes the other for that level-up. Owned weapons remain fully upgradable.',
       ],
-      balance: [
+      fixes: [
         'Mobile ability bar wraps to multiple rows when many abilities are unlocked, fixing the cramped overflow on narrow screens.',
       ],
     },

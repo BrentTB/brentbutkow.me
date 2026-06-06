@@ -370,12 +370,14 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       const parent = canvas.parentElement
       if (!parent) return
       const rect = parent.getBoundingClientRect()
-      canvas.width = rect.width
-      canvas.height = rect.height
+      const dpr = window.devicePixelRatio || 1
+      canvas.width = Math.round(rect.width * dpr)
+      canvas.height = Math.round(rect.height * dpr)
       cameraRef.current = {
         ...cameraRef.current,
         width: rect.width,
         height: rect.height,
+        dpr,
         // Recompute zoom on every resize so the visible world area stays
         // consistent across viewport size changes (mobile rotate,
         // fullscreen toggle, etc.).

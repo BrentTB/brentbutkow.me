@@ -38,26 +38,29 @@ describe('createCamera', () => {
   })
 })
 
-describe('computeZoom (area-based)', () => {
-  it('returns DEFAULT_GAME_ZOOM at the reference area', () => {
+describe('computeZoom (geometric mean of area + min-dim)', () => {
+  it('returns DEFAULT_GAME_ZOOM at the reference view size', () => {
     expect(computeZoom(W, H)).toBeCloseTo(DEFAULT_GAME_ZOOM, 5)
   })
 
-  it('returns > DEFAULT_GAME_ZOOM when canvas area exceeds the reference', () => {
+  it('scales linearly when both dimensions scale uniformly', () => {
+    // At 2× both axes: area scale = 2, min-dim scale = 2 → geo mean = 2.
     expect(computeZoom(W * 2, H * 2)).toBeCloseTo(2 * DEFAULT_GAME_ZOOM, 5)
-  })
-
-  it('returns < DEFAULT_GAME_ZOOM when canvas area is smaller', () => {
     expect(computeZoom(W / 2, H / 2)).toBeCloseTo(0.5 * DEFAULT_GAME_ZOOM, 5)
   })
 
-  it('keeps total visible world area approximately constant', () => {
-    // Fullscreen vs mobile: very different shapes, similar total visible area.
-    const fullscreen = computeZoom(1920, 1080)
-    const mobile = computeZoom(375, 812)
-    const fullscreenArea = (1920 / fullscreen) * (1080 / fullscreen)
-    const mobileArea = (375 / mobile) * (812 / mobile)
-    expect(fullscreenArea).toBeCloseTo(mobileArea, 0)
+  it('zooms out further on wide-short viewports than pure area would', () => {
+    // Landscape phone fullscreen — pure-area-based zoom = ~0.617 was too tight
+    // vertically. New formula folds in min-dim so the short side drags zoom down.
+    const phoneLandscape = computeZoom(844, 390)
+    const areaOnly = Math.sqrt((844 * 390) / (W * H)) * DEFAULT_GAME_ZOOM
+    expect(phoneLandscape).toBeLessThan(areaOnly)
+  })
+
+  it('is symmetric across orientations (same min-dim → same zoom)', () => {
+    // Phone landscape vs portrait with swapped dimensions: both should produce
+    // the same zoom, because area and min-dim are both invariant under swap.
+    expect(computeZoom(844, 390)).toBeCloseTo(computeZoom(390, 844), 5)
   })
 })
 
@@ -85,20 +88,20 @@ describe('isWithinView', () => {
     // (width / zoom), not raw canvas pixels. On a 375px-wide phone at the
     // mobile zoom, ~635 world units are visible, so a point at world-x 500 is
     // on screen — comparing against camera.width (375) would wrongly cull it.
-    const cam = { x: 0, y: 0, width: 375, height: 812, zoom: computeZoom(375, 812) }
+    const cam = { x: 0, y: 0, width: 375, height: 812, zoom: computeZoom(375, 812), dpr: 1 }
     const onScreen = worldToScreen({ x: 500, y: 0 }, cam)
     expect(500).toBeGreaterThan(cam.width) // beyond the canvas-pixel bound...
     expect(isWithinView(onScreen, cam, 0)).toBe(true) // ...but still visible
   })
 
   it('culls a position past the visible world extent', () => {
-    const cam = { x: 0, y: 0, width: 375, height: 812, zoom: computeZoom(375, 812) }
+    const cam = { x: 0, y: 0, width: 375, height: 812, zoom: computeZoom(375, 812), dpr: 1 }
     const vw = cam.width / cam.zoom
     expect(isWithinView({ x: vw + 100, y: 0 }, cam, 0)).toBe(false)
   })
 
   it('honors the world-unit margin on every edge', () => {
-    const cam = { x: 0, y: 0, width: W, height: H, zoom: 1 }
+    const cam = { x: 0, y: 0, width: W, height: H, zoom: 1, dpr: 1 }
     expect(isWithinView({ x: -5, y: -5 }, cam, 10)).toBe(true)
     expect(isWithinView({ x: -15, y: 0 }, cam, 10)).toBe(false)
     expect(isWithinView({ x: W + 5, y: H + 5 }, cam, 10)).toBe(true)

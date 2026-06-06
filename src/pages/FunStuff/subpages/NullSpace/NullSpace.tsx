@@ -78,6 +78,15 @@ function NullSpace() {
     return () => document.removeEventListener('fullscreenchange', onChange)
   }, [])
 
+  // iOS Safari has no Fullscreen API, so we fall back to a CSS pseudo-fullscreen
+  // overlay. The browser URL bar stays visible until the user scrolls, eating ~80px
+  // of vertical space. Nudging the page by 1px on entry kicks Safari's auto-hide.
+  useEffect(() => {
+    if (!pseudoFullscreen) return
+    const t = setTimeout(() => window.scrollTo(0, 1), 0)
+    return () => clearTimeout(t)
+  }, [pseudoFullscreen])
+
   // HUD scaling — keep overlay text/buttons proportional to the gameplay area
   // so fullscreen doesn't leave a 28px pause icon stranded on a 1080p screen.
   // ResizeObserver covers window resizes; the isFullscreen dep covers the

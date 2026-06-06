@@ -2,11 +2,16 @@
   position: absolute;
   inset: 0;
   display: flex;
-  align-items: center;
+  // `safe center` falls back to flex-start when content would overflow the
+  // top, so a tall ship-select panel on a short landscape phone is fully
+  // scrollable instead of getting its title clipped.
+  align-items: safe center;
   justify-content: center;
   background: rgba(6, 8, 14, 0.88);
   z-index: 10;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px 0;
 }
 
 .content {
@@ -17,7 +22,6 @@
   text-align: center;
   padding: 40px;
   max-width: 400px;
-  max-height: 100%;
   // Match the HUD scale so pause / upgrades / game-over screens grow with
   // the gameplay area instead of staying at desktop-default size.
   transform: scale(var(--hud-scale, 1));
