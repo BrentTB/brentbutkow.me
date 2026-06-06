@@ -1,8 +1,18 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { resolveEnemyProjectileShipCollisions } from './combat'
-import { createShip, createProjectile, resetUid } from '../entities/entity-creator'
+import {
+  resolveEnemyAllyMeleeCollisions,
+  resolveEnemyProjectileShipCollisions,
+  resolveEnemyShipCollisions,
+} from './combat'
+import {
+  createAlly,
+  createEnemy,
+  createProjectile,
+  createShip,
+  resetUid,
+} from '../entities/entity-creator'
 import { distance } from '../math/collision'
-import { ProjectileOwner, ShipKind } from '../types'
+import { EnemyKind, ProjectileOwner, ShipKind } from '../types'
 import { WORLD_SIZE } from '../../data'
 
 beforeEach(() => {
@@ -60,5 +70,62 @@ describe('resolveEnemyProjectileShipCollisions — swept regression', () => {
     const result = resolveEnemyProjectileShipCollisions([miss], ship)
     expect(result.ship.hp + result.ship.shield).toBe(ship.hp + ship.shield)
     expect(result.projectiles.length).toBe(1)
+  })
+})
+
+// Non-bomber enemies used to suicide on contact (dealing one tap of damage and
+// vanishing). They now survive a ram, deal damage, and get knocked back. The
+// bomber stays as the sole self-destructing kind so its on-death AoE keeps
+// firing as designed.
+describe('resolveEnemyShipCollisions — bounce vs explode', () => {
+  it('a ramming drone survives, damages the ship, and is pushed clear of the hull', () => {
+    const ship = createShip(ShipKind.fighter, WORLD_SIZE)
+    const drone = { ...createEnemy(EnemyKind.drone, { x: ship.pos.x, y: ship.pos.y }) }
+
+    const before = ship.hp + ship.shield
+    const result = resolveEnemyShipCollisions([drone], ship)
+
+    expect(result.enemies.length).toBe(1)
+    expect(result.killedEnemies.length).toBe(0)
+    expect(result.ship.hp + result.ship.shield).toBeLessThan(before)
+    expect(distance(result.enemies[0].pos, result.ship.pos)).toBeGreaterThan(
+      drone.radius + result.ship.radius
+    )
+  })
+
+  it('a ramming bomber still dies on contact and is reported as killed', () => {
+    const ship = createShip(ShipKind.fighter, WORLD_SIZE)
+    const bomber = { ...createEnemy(EnemyKind.bomber, { x: ship.pos.x, y: ship.pos.y }) }
+
+    const result = resolveEnemyShipCollisions([bomber], ship)
+
+    expect(result.enemies.length).toBe(0)
+    expect(result.killedEnemies.length).toBe(1)
+    expect(result.killedEnemies[0].kind).toBe(EnemyKind.bomber)
+  })
+})
+
+describe('resolveEnemyAllyMeleeCollisions — bounce vs explode', () => {
+  it('a ramming drone survives, damages the ally, and is knocked back', () => {
+    const ally = createAlly({ x: 500, y: 500 })
+    const drone = { ...createEnemy(EnemyKind.drone, { x: ally.pos.x, y: ally.pos.y }) }
+
+    const result = resolveEnemyAllyMeleeCollisions([drone], [ally])
+
+    expect(result.enemies.length).toBe(1)
+    expect(result.killedEnemies.length).toBe(0)
+    expect(result.allies[0].hp).toBeLessThan(ally.hp)
+    expect(distance(result.enemies[0].pos, ally.pos)).toBeGreaterThan(drone.radius + ally.radius)
+  })
+
+  it('a ramming bomber dies on contact and is reported as killed', () => {
+    const ally = createAlly({ x: 500, y: 500 })
+    const bomber = { ...createEnemy(EnemyKind.bomber, { x: ally.pos.x, y: ally.pos.y }) }
+
+    const result = resolveEnemyAllyMeleeCollisions([bomber], [ally])
+
+    expect(result.enemies.length).toBe(0)
+    expect(result.killedEnemies.length).toBe(1)
+    expect(result.killedEnemies[0].kind).toBe(EnemyKind.bomber)
   })
 })

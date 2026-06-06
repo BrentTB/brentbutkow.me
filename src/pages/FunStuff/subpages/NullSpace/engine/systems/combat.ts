@@ -3,7 +3,7 @@ import { checkCollision, distance, segmentIntersectsCircle } from '../math/colli
 import { spawnExplosionParticles } from '../entities/entity-creator'
 import { applyDamageToShip } from '../entities/ship'
 import { DeathBehavior, EffectKind, ProjectileOwner } from '../types'
-import type { ActiveEffect, Ally, Enemy, Particle, Projectile, Ship } from '../types'
+import type { ActiveEffect, Ally, Enemy, Particle, Projectile, Ship, Vec2 } from '../types'
 
 export function updateProjectiles(projectiles: Projectile[], dt: number): Projectile[] {
   return projectiles
@@ -141,6 +141,30 @@ export function resolveEnemyProjectileAllyCollisions(
   }
 }
 
+// Extra separation (beyond the touching radius) applied when a non-exploding
+// enemy bumps the ship or an ally. Buys ~quarter-second of breathing room
+// before the chase logic re-acquires and re-contacts, so a clinging enemy
+// doesn't drain HP every frame.
+const MELEE_KNOCKBACK_DISTANCE = 30
+const MELEE_KNOCKBACK_SPEED = 180
+
+function bounceEnemyAway(enemy: Enemy, targetPos: Vec2, targetRadius: number): Enemy {
+  const dx = enemy.pos.x - targetPos.x
+  const dy = enemy.pos.y - targetPos.y
+  const dist = Math.sqrt(dx * dx + dy * dy)
+  // Dead-center hit (or floating-point dust) — pick an arbitrary direction
+  // rather than divide by zero and stick the enemy to the target.
+  const degenerate = dist < 0.0001
+  const nx = degenerate ? 1 : dx / dist
+  const ny = degenerate ? 0 : dy / dist
+  const sep = enemy.radius + targetRadius + MELEE_KNOCKBACK_DISTANCE
+  return {
+    ...enemy,
+    pos: { x: targetPos.x + nx * sep, y: targetPos.y + ny * sep },
+    vel: { x: nx * MELEE_KNOCKBACK_SPEED, y: ny * MELEE_KNOCKBACK_SPEED },
+  }
+}
+
 export function resolveEnemyShipCollisions(
   enemies: Enemy[],
   ship: Ship
@@ -151,20 +175,26 @@ export function resolveEnemyShipCollisions(
   let damagedShip = ship
 
   for (const enemy of enemies) {
-    if (checkCollision(enemy, damagedShip)) {
-      damagedShip = applyDamageToShip(damagedShip, enemy.damage)
+    if (!checkCollision(enemy, damagedShip)) {
+      surviving.push(enemy)
+      continue
+    }
+    damagedShip = applyDamageToShip(damagedShip, enemy.damage)
+    // Bombers commit suicide on contact; everything else just bounces.
+    if (enemy.deathBehavior === DeathBehavior.explode) {
       killedEnemies.push(enemy)
       allParticles.push(...spawnExplosionParticles(enemy.pos, 8, '#ff2222'))
     } else {
-      surviving.push(enemy)
+      surviving.push(bounceEnemyAway(enemy, damagedShip.pos, damagedShip.radius))
+      allParticles.push(...spawnExplosionParticles(enemy.pos, 4, '#ff6644'))
     }
   }
 
   return { enemies: surviving, ship: damagedShip, particles: allParticles, killedEnemies }
 }
 
-// Enemies that contact an ally die (same as ship-collision behavior) and the
-// ally takes the enemy's damage value.
+// Mirrors ship-collision rules: bombers explode on contact, other enemies deal
+// damage and bounce off.
 export function resolveEnemyAllyMeleeCollisions(
   enemies: Enemy[],
   allies: Ally[]
@@ -175,21 +205,30 @@ export function resolveEnemyAllyMeleeCollisions(
   const updatedAllies = allies.map((a) => ({ ...a }))
 
   for (const enemy of enemies) {
-    let consumed = false
+    let hitAllyIndex = -1
     for (let i = 0; i < updatedAllies.length; i++) {
       const ally = updatedAllies[i]
       if (ally.hp <= 0) continue
       const dx = enemy.pos.x - ally.pos.x
       const dy = enemy.pos.y - ally.pos.y
       if (dx * dx + dy * dy < (enemy.radius + ally.radius) ** 2) {
-        updatedAllies[i] = { ...ally, hp: ally.hp - enemy.damage }
-        killedEnemies.push(enemy)
-        allParticles.push(...spawnExplosionParticles(enemy.pos, 8, '#ff8866'))
-        consumed = true
+        hitAllyIndex = i
         break
       }
     }
-    if (!consumed) survivingEnemies.push(enemy)
+    if (hitAllyIndex === -1) {
+      survivingEnemies.push(enemy)
+      continue
+    }
+    const ally = updatedAllies[hitAllyIndex]
+    updatedAllies[hitAllyIndex] = { ...ally, hp: ally.hp - enemy.damage }
+    if (enemy.deathBehavior === DeathBehavior.explode) {
+      killedEnemies.push(enemy)
+      allParticles.push(...spawnExplosionParticles(enemy.pos, 8, '#ff8866'))
+    } else {
+      survivingEnemies.push(bounceEnemyAway(enemy, ally.pos, ally.radius))
+      allParticles.push(...spawnExplosionParticles(enemy.pos, 4, '#ffaa66'))
+    }
   }
 
   return {
