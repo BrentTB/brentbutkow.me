@@ -1,0 +1,210 @@
+import { WAVES_PER_LEVEL, SHIP_VARIANTS } from '../data'
+import { ABILITY_DEFINITIONS, ABILITY_UPGRADE_DEFINITIONS } from './abilities'
+import { UpgradeCategory, UpgradeId } from './types'
+import type { Ability, PlayerUpgrades, Ship, UpgradeDefinition } from './types'
+
+// Back-compat re-export: WEAPON_UNLOCK_UPGRADE now lives in engine/abilities/.
+export { WEAPON_UNLOCK_UPGRADE } from './abilities'
+
+// Ship and power upgrades live here — they aren't per-ability so they don't
+// belong in engine/abilities/. Per-ability upgrades are imported from there
+// and merged into UPGRADE_DEFINITIONS below.
+const shipAndPowerUpgrades: UpgradeDefinition[] = [
+  {
+    id: UpgradeId.shipMaxHp,
+    category: UpgradeCategory.ship,
+    label: 'Hull Plating',
+    description: 'Increase maximum ship HP',
+    tiers: [
+      { cost: 6, value: 25 },
+      { cost: 12, value: 25 },
+      { cost: 24, value: 50 },
+    ],
+  },
+  {
+    id: UpgradeId.shipDamage,
+    category: UpgradeCategory.ship,
+    label: 'Auto-Turret',
+    description: 'Increase ship auto-attack damage',
+    tiers: [
+      { cost: 8, value: 2 },
+      { cost: 16, value: 3 },
+      { cost: 30, value: 5 },
+    ],
+  },
+  {
+    id: UpgradeId.shipFireRate,
+    category: UpgradeCategory.ship,
+    label: 'Fire Rate',
+    description: 'Increase auto-turret fire rate',
+    tiers: [
+      { cost: 8, value: 0.4 },
+      { cost: 16, value: 0.4 },
+      { cost: 28, value: 0.6 },
+    ],
+  },
+  {
+    id: UpgradeId.shipShieldStrength,
+    category: UpgradeCategory.ship,
+    label: 'Shield Capacitor',
+    description: 'Increase maximum shield capacity',
+    tiers: [
+      { cost: 6, value: 20 },
+      { cost: 12, value: 20 },
+      { cost: 22, value: 40 },
+    ],
+  },
+  {
+    id: UpgradeId.shipSpeed,
+    category: UpgradeCategory.ship,
+    label: 'Engine Boost',
+    description: 'Increase ship movement speed',
+    tiers: [
+      { cost: 8, value: 15 },
+      { cost: 16, value: 15 },
+      { cost: 28, value: 25 },
+    ],
+  },
+  {
+    id: UpgradeId.powerRegen,
+    category: UpgradeCategory.powers,
+    label: 'Power Regen',
+    description: 'Increase passive power regeneration',
+    tiers: [
+      { cost: 8, value: 1 },
+      { cost: 16, value: 2 },
+      { cost: 30, value: 3 },
+    ],
+  },
+]
+
+export const UPGRADE_DEFINITIONS: Record<UpgradeId, UpgradeDefinition> = Object.fromEntries(
+  [...ABILITY_UPGRADE_DEFINITIONS, ...shipAndPowerUpgrades].map((d) => [d.id, d])
+) as Record<UpgradeId, UpgradeDefinition>
+
+export const UPGRADE_CATEGORY_LABELS: Record<UpgradeCategory, string> = {
+  [UpgradeCategory.weapons]: 'Weapons',
+  [UpgradeCategory.ship]: 'Ship',
+  [UpgradeCategory.powers]: 'Powers',
+}
+
+export function createInitialUpgrades(): PlayerUpgrades {
+  const upgrades = {} as PlayerUpgrades
+  for (const id of Object.values(UpgradeId)) {
+    upgrades[id] = { currentTier: 0 }
+  }
+  return upgrades
+}
+
+export function canPurchaseUpgrade(
+  upgrades: PlayerUpgrades,
+  upgradeId: UpgradeId,
+  currency: number
+): boolean {
+  const def = UPGRADE_DEFINITIONS[upgradeId]
+  const current = upgrades[upgradeId].currentTier
+  if (current >= def.tiers.length) return false
+  return currency >= def.tiers[current].cost
+}
+
+export function purchaseUpgrade(
+  upgrades: PlayerUpgrades,
+  upgradeId: UpgradeId
+): { upgrades: PlayerUpgrades; currencySpent: number } {
+  const def = UPGRADE_DEFINITIONS[upgradeId]
+  const current = upgrades[upgradeId].currentTier
+  const cost = def.tiers[current].cost
+
+  return {
+    upgrades: {
+      ...upgrades,
+      [upgradeId]: { currentTier: current + 1 },
+    },
+    currencySpent: cost,
+  }
+}
+
+export function applyUpgradesToAbilities(
+  abilities: Ability[],
+  upgrades: PlayerUpgrades
+): Ability[] {
+  const existingMax = abilities.reduce(
+    (max, a) => (a.unlockedAt !== null && a.unlockedAt > max ? a.unlockedAt : max),
+    -1
+  )
+  let nextIndex = existingMax + 1
+  return abilities.map((ability) => {
+    const def = ABILITY_DEFINITIONS[ability.kind]
+    const patch = def.applyUpgrades?.(ability, upgrades) ?? {}
+    const merged = { ...ability, ...patch }
+    if (merged.unlocked && merged.unlockedAt === null) {
+      merged.unlockedAt = nextIndex++
+    }
+    return merged
+  })
+}
+
+export function applyUpgradesToShip(ship: Ship, upgrades: PlayerUpgrades): Ship {
+  const base = SHIP_VARIANTS[ship.kind].stats
+  let maxHp = base.maxHp
+  let damage = base.damage
+  let fireRate = base.fireRate
+  let maxShield = base.maxShield
+  let speed = base.speed
+
+  const hpTier = upgrades[UpgradeId.shipMaxHp].currentTier
+  for (let i = 0; i < hpTier; i++) {
+    maxHp += UPGRADE_DEFINITIONS[UpgradeId.shipMaxHp].tiers[i].value
+  }
+
+  const dmgTier = upgrades[UpgradeId.shipDamage].currentTier
+  for (let i = 0; i < dmgTier; i++) {
+    damage += UPGRADE_DEFINITIONS[UpgradeId.shipDamage].tiers[i].value
+  }
+
+  const frTier = upgrades[UpgradeId.shipFireRate].currentTier
+  for (let i = 0; i < frTier; i++) {
+    fireRate += UPGRADE_DEFINITIONS[UpgradeId.shipFireRate].tiers[i].value
+  }
+
+  const shieldTier = upgrades[UpgradeId.shipShieldStrength].currentTier
+  for (let i = 0; i < shieldTier; i++) {
+    maxShield += UPGRADE_DEFINITIONS[UpgradeId.shipShieldStrength].tiers[i].value
+  }
+
+  const speedTier = upgrades[UpgradeId.shipSpeed].currentTier
+  for (let i = 0; i < speedTier; i++) {
+    speed += UPGRADE_DEFINITIONS[UpgradeId.shipSpeed].tiers[i].value
+  }
+
+  const hpGain = maxHp - ship.maxHp
+  const shieldGain = maxShield - ship.maxShield
+  return {
+    ...ship,
+    maxHp,
+    hp: Math.min(ship.hp + Math.max(0, hpGain), maxHp),
+    maxShield,
+    shield: Math.min(ship.shield + Math.max(0, shieldGain), maxShield),
+    damage,
+    fireRate,
+    speed,
+  }
+}
+
+export function applyUpgradesToPowerRegen(baseRegen: number, upgrades: PlayerUpgrades): number {
+  let regen = baseRegen
+  const tier = upgrades[UpgradeId.powerRegen].currentTier
+  for (let i = 0; i < tier; i++) {
+    regen += UPGRADE_DEFINITIONS[UpgradeId.powerRegen].tiers[i].value
+  }
+  return regen
+}
+
+export function getLevel(wave: number): number {
+  if (wave <= 0) return 0
+  return Math.ceil(wave / WAVES_PER_LEVEL)
+}
+
+export function isUpgradeWave(wave: number): boolean {
+  return wave > 0 && wave % WAVES_PER_LEVEL === 0
+}

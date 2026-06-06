@@ -4,7 +4,7 @@ import About from './components/About'
 import styles from './HomePage.module.scss'
 import { heroContent, aboutSectionEnabled, aboutParagraphs } from './data'
 import { useFunMode } from '../../contexts/useFunMode'
-import { experience } from '../experience/data'
+import { experience } from '../Experience/data'
 import { JokeTypes, jokeTypeLabels } from '../../data/jokes.types'
 import { useJokes } from './useJokes'
 

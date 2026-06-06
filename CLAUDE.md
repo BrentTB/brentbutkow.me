@@ -4,6 +4,10 @@ Personal portfolio site for Brent Butkow (`brentbutkow.me` / `butkow.com`). A po
 React app that walks the line between **formal and fun** — a global toggle flips the whole site
 between a buttoned-up "Professional" presentation and a playful "Fun" mode.
 
+## Skills
+
+Before doing anything ALWAYS run the Caveman + Token Reducer skills. Only stop them if explicitly told to stop
+
 ## Stack
 
 - **React 18.3** + **TypeScript 5.5** (strict), **Vite 7** build
@@ -136,7 +140,7 @@ come alive.
   typeface — the look stays plain-spoken and technical, not designer-y.
   Atmosphere comes from one restrained radial glow + a fixed film-grain overlay (`body::before`), not
   stacked gradient blobs. Use the variables — don't hard-code colors or font families.
-- **Shared SCSS** lives in [styles/_shared.scss](src/styles/_shared.scss): the `card-base` mixin
+- **Shared SCSS** lives in [styles/\_shared.scss](src/styles/_shared.scss): the `card-base` mixin
   (the consistent card look — hairline border, `--surface` fill, `--radius`, soft elevation + an
   inset top highlight) and the Fun-mode keyframes (`float`, `glow`, `rainbow-shadow`). Pull it in
   with `@use '../../styles/shared' as *;` then `@include card-base;`. Since the content pages are now
@@ -157,6 +161,7 @@ This repo is a showcase — the code itself should look as polished as the UI.
   domain types in [data/data.types.ts](src/data/data.types.ts).
 - **No magic-string union types.** Don't write `type Foo = 'a' | 'b'` — define a `const` object and
   derive the type from it so the values are also usable as runtime identifiers:
+
   ```ts
   // Good — values are accessible as ProjectileOwner.ship
   export const ProjectileOwner = { ship: 'ship', player: 'player' } as const
@@ -165,15 +170,17 @@ This repo is a showcase — the code itself should look as polished as the UI.
   // Bad — 'ship' is a magic string everywhere it's used
   export type ProjectileOwner = 'ship' | 'player'
   ```
+
   This pattern applies to any string-union used as a discriminator, enum-like set, or lookup key (game
   phases, enemy kinds, ability kinds, etc.). The object name and type name share the same identifier
   (TypeScript can distinguish value vs type position).
+
 - **Validate untrusted/JSON data** rather than casting — see the `isJokeType` type guard in
   [data/jokes.ts](src/data/jokes.ts).
 - **Clean up effects**: cancel `requestAnimationFrame`, remove listeners, clear timeouts on unmount
   (see [WaterRipple.tsx](src/components/effects/WaterRipple.tsx), [CodeSection.tsx](src/components/CodeSection/CodeSection.tsx)).
 - **External links go through [SafeLink](src/components/utils/SafeLink.tsx)** (auto `target="_blank"`
-  + `rel="noopener noreferrer"`); internal links use React Router `Link`.
+  - `rel="noopener noreferrer"`); internal links use React Router `Link`.
 - **Comments are lean and present-tense.** Explain what the code does now and why — never how it
   used to work, and never narrate a change ("no longer…", "previously…", "the old approach"). If the
   code is self-explanatory, write no comment. Prefer one tight line over a paragraph.
@@ -194,7 +201,7 @@ This repo is a showcase — the code itself should look as polished as the UI.
   clicked space metals in [collectibles.ts](src/pages/fun-stuff/subpages/NullSpace/engine/collectibles.ts),
   and is ready for any future "thing that moves toward another thing" — homing missiles, ally drones
   returning to the ship, magnetic pickups. Don't over-abstract for hypothetical needs — but when the
-  second use case is *obvious from the task at hand*, build the helper at that boundary now, not
+  second use case is _obvious from the task at hand_, build the helper at that boundary now, not
   later. Trade-off: avoid premature abstraction for a single use; if there's only one caller and no
   clear future caller, keep it inline and extract when the second caller arrives.
 - Match the surrounding style: 2-space indent, single quotes, no semicolons, ~100 col width

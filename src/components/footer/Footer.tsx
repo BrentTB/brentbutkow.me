@@ -1,6 +1,6 @@
 import styles from './Footer.module.scss'
 import { SafeLink } from '../utils/SafeLink'
-import { contactPlatforms } from '../../pages/contact-me/data'
+import { contactPlatforms } from '../../pages/ContactMe/data'
 
 function Footer() {
   const currentYear = new Date().getFullYear()
