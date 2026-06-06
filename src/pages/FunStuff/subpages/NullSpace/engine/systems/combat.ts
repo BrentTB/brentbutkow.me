@@ -242,17 +242,21 @@ export function resolveEnemyAllyMeleeCollisions(
 export function resolveDeathEffects(
   killedEnemies: Enemy[],
   ship: Ship,
+  allies: Ally[],
   activeEffects: ActiveEffect[]
-): { shipDamage: number; particles: Particle[] } {
+): { shipDamage: number; allies: Ally[]; particles: Particle[] } {
   let shipDamage = 0
   const particles: Particle[] = []
+  const updatedAllies = allies.map((a) => ({ ...a }))
 
-  // Shields the ship is currently sheltering inside. A bomber outside one of
-  // these shields can't damage the ship — the dome eats the explosion.
-  const shelteringShields = activeEffects.filter((e) => {
-    if (e.kind !== EffectKind.shield) return false
-    return distance(ship.pos, e.pos) < e.radius
-  })
+  const shields = activeEffects.filter((e) => e.kind === EffectKind.shield)
+
+  // A target is shielded from a blast iff it shelters inside a dome the bomber
+  // is outside of — the dome eats the explosion.
+  const isBlocked = (targetPos: Vec2, enemyPos: Vec2): boolean =>
+    shields.some(
+      (s) => distance(targetPos, s.pos) < s.radius && distance(enemyPos, s.pos) >= s.radius
+    )
 
   for (const enemy of killedEnemies) {
     if (enemy.deathBehavior !== DeathBehavior.explode) continue
@@ -260,20 +264,32 @@ export function resolveDeathEffects(
     const stats = ENEMY_STATS[enemy.kind]
     if (!('explosionDamage' in stats)) continue
 
-    const dist = distance(enemy.pos, ship.pos)
-    if (dist < stats.explosionRadius) {
-      // Blocked iff the bomber is OUTSIDE a shield the ship is sheltering in.
-      const blocked = shelteringShields.some(
-        (s) => s.kind === EffectKind.shield && distance(enemy.pos, s.pos) >= s.radius
-      )
-      if (!blocked) {
-        shipDamage += stats.explosionDamage
-      }
-      particles.push(...spawnExplosionParticles(enemy.pos, 20, '#ff8833'))
-    } else {
-      particles.push(...spawnExplosionParticles(enemy.pos, 14, '#ff6622'))
+    let hitSomething = false
+
+    if (distance(enemy.pos, ship.pos) < stats.explosionRadius) {
+      hitSomething = true
+      if (!isBlocked(ship.pos, enemy.pos)) shipDamage += stats.explosionDamage
     }
+
+    for (let i = 0; i < updatedAllies.length; i++) {
+      const ally = updatedAllies[i]
+      if (ally.hp <= 0) continue
+      if (distance(enemy.pos, ally.pos) < stats.explosionRadius) {
+        hitSomething = true
+        if (!isBlocked(ally.pos, enemy.pos)) {
+          updatedAllies[i] = { ...ally, hp: ally.hp - stats.explosionDamage }
+        }
+      }
+    }
+
+    particles.push(
+      ...spawnExplosionParticles(
+        enemy.pos,
+        hitSomething ? 20 : 14,
+        hitSomething ? '#ff8833' : '#ff6622'
+      )
+    )
   }
 
-  return { shipDamage, particles }
+  return { shipDamage, allies: updatedAllies.filter((a) => a.hp > 0), particles }
 }

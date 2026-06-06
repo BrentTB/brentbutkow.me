@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import {
+  resolveDeathEffects,
   resolveEnemyAllyMeleeCollisions,
   resolveEnemyProjectileShipCollisions,
   resolveEnemyShipCollisions,
@@ -12,8 +13,9 @@ import {
   resetUid,
 } from '../entities/entity-creator'
 import { distance } from '../math/collision'
-import { EnemyKind, ProjectileOwner, ShipKind } from '../types'
-import { WORLD_SIZE } from '../../data'
+import { EffectKind, EnemyKind, ProjectileOwner, ShipKind } from '../types'
+import type { ShieldEffect } from '../types'
+import { ENEMY_STATS, WORLD_SIZE } from '../../data'
 
 beforeEach(() => {
   resetUid()
@@ -73,8 +75,7 @@ describe('resolveEnemyProjectileShipCollisions — swept regression', () => {
   })
 })
 
-// Non-bomber enemies used to suicide on contact (dealing one tap of damage and
-// vanishing). They now survive a ram, deal damage, and get knocked back. The
+// Non-bomber enemies survive a ram, deal damage, and get knocked back. The
 // bomber stays as the sole self-destructing kind so its on-death AoE keeps
 // firing as designed.
 describe('resolveEnemyShipCollisions — bounce vs explode', () => {
@@ -127,5 +128,59 @@ describe('resolveEnemyAllyMeleeCollisions — bounce vs explode', () => {
     expect(result.enemies.length).toBe(0)
     expect(result.killedEnemies.length).toBe(1)
     expect(result.killedEnemies[0].kind).toBe(EnemyKind.bomber)
+  })
+})
+
+// A bomber's death blast hits allies in range, not just the ship. The shield
+// shelters an ally on the same terms as the ship: the dome eats the blast only
+// when the ally is inside it and the bomber is outside.
+describe('resolveDeathEffects — bomber blast damages allies', () => {
+  // Ship parked far away so it never absorbs the blast — isolates ally damage.
+  const farShip = () => ({ ...createShip(ShipKind.fighter, WORLD_SIZE), pos: { x: 9000, y: 9000 } })
+
+  function shield(centerOn: { x: number; y: number }, radius: number): ShieldEffect {
+    return {
+      id: 'test-shield',
+      kind: EffectKind.shield,
+      pos: { x: centerOn.x, y: centerOn.y },
+      elapsed: 0,
+      duration: 6,
+      radius,
+      grandfatheredEnemyIds: [],
+    }
+  }
+
+  it('an ally inside the blast radius takes the explosion damage', () => {
+    const ally = createAlly({ x: 500, y: 500 }, 100)
+    const bomber = { ...createEnemy(EnemyKind.bomber, { x: ally.pos.x, y: ally.pos.y }) }
+
+    const result = resolveDeathEffects([bomber], farShip(), [ally], [])
+
+    expect(result.allies[0].hp).toBe(100 - ENEMY_STATS.bomber.explosionDamage)
+  })
+
+  it('an ally outside the blast radius is untouched', () => {
+    const ally = createAlly({ x: 500, y: 500 }, 100)
+    const bomber = {
+      ...createEnemy(EnemyKind.bomber, {
+        x: ally.pos.x + ENEMY_STATS.bomber.explosionRadius + 50,
+        y: ally.pos.y,
+      }),
+    }
+
+    const result = resolveDeathEffects([bomber], farShip(), [ally], [])
+
+    expect(result.allies[0].hp).toBe(100)
+  })
+
+  it('a shield shelters the ally when the bomber detonates outside the dome', () => {
+    const ally = createAlly({ x: 500, y: 500 }, 100)
+    const bomber = { ...createEnemy(EnemyKind.bomber, { x: ally.pos.x + 40, y: ally.pos.y }) }
+    // Dome over the ally, small enough to leave the bomber outside it.
+    const dome = shield(ally.pos, 20)
+
+    const result = resolveDeathEffects([bomber], farShip(), [ally], [dome])
+
+    expect(result.allies[0].hp).toBe(100)
   })
 })
