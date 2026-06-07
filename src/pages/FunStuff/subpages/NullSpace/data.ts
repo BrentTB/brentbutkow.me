@@ -249,6 +249,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.10.2',
+    date: '2026-06-07',
+    changes: {
+      fixes: [
+        'Drag abilities (telekinesis, solar flare) no longer scroll the page on mobile — the canvas now claims touch gestures so a drag keeps controlling the game instead of panning the page.',
+        'Short landscape phones: the upgrade screen no longer leaves a forced gap that pushed the Continue button below the fold when a tab had only a few upgrades — the button now sits right under the last upgrade.',
+      ],
+    },
+  },
+  {
     version: '0.10.1',
     date: '2026-06-06',
     changes: {

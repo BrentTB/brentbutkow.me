@@ -186,6 +186,20 @@
   min-height: 480px;
 }
 
+// Short landscape phones (wide but little vertical room): the fixed min-height
+// forces a gap that pushes the Continue button below the fold when a tab has
+// only a few upgrades. Let the panel hug its content so the button sits right
+// under the last upgrade; a long list still overflows and scrolls as before.
+@media (orientation: landscape) and (max-height: 480px) {
+  .upgradeLayout {
+    min-height: 0;
+  }
+
+  .content {
+    padding: 20px;
+  }
+}
+
 .currencyDisplay {
   font-family: var(--font-mono);
   font-size: 0.9rem;
