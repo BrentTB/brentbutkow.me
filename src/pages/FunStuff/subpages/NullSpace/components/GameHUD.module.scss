@@ -128,6 +128,13 @@ $s: var(--hud-scale, 1);
   color: #c8a8ff;
 }
 
+// Desktop: a passthrough wrapper, so .abilities and .spaceMetalRail keep their
+// independent absolute positioning (bottom-center and right-rail). Mobile media
+// queries below turn it into a real flex cluster.
+.actionGroup {
+  display: contents;
+}
+
 .spaceMetalRail {
   position: absolute;
   right: calc(16px * #{$s});
@@ -325,4 +332,99 @@ $s: var(--hud-scale, 1);
   right: 0;
   background: rgba(0, 0, 0, 0.6);
   pointer-events: none;
+}
+
+// --- Mobile: gather the abilities + space-metal groups into one cluster ---
+// The split desktop layout (space-metal pinned right, abilities pinned bottom)
+// blocks shots on whichever edge faces the play area. On phones, gather both
+// into a single cluster along one edge — the bottom in portrait, the right in
+// landscape — keeping the opposite, longer edge clear for aiming. The two
+// groups stay distinct strips laid perpendicular to the cluster, so the
+// space-metal ⬡ counter always heads its own row/column instead of landing
+// mid-list between ability buttons.
+
+// Shared mobile behaviour: portrait keys off width, landscape off short height.
+@media (max-width: 768px), (orientation: landscape) and (max-height: 600px) {
+  .actionGroup {
+    display: flex;
+    position: absolute;
+    gap: calc(10px * #{$s});
+    // Only the buttons take input, so shots pass between them.
+    pointer-events: none;
+  }
+
+  .abilities,
+  .spaceMetalRail {
+    position: static;
+    transform: none;
+    max-width: none;
+    pointer-events: none;
+    gap: calc(6px * #{$s});
+  }
+
+  .abilityBtn,
+  .spaceMetalBtn {
+    pointer-events: auto;
+  }
+
+  // Main abilities sit at the screen-facing edge (most reachable); the
+  // space-metal strip sits just inside it.
+  .spaceMetalRail {
+    order: 1;
+  }
+  .abilities {
+    order: 2;
+  }
+}
+
+// Portrait → cluster along the bottom; the two groups stack as rows.
+@media (orientation: portrait) and (max-width: 768px) {
+  .actionGroup {
+    left: calc(8px * #{$s});
+    right: calc(8px * #{$s});
+    bottom: calc(10px * #{$s});
+    flex-direction: column;
+    align-items: center;
+  }
+  .abilities {
+    flex-flow: row wrap;
+    justify-content: center;
+  }
+  .spaceMetalRail {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+// Landscape → cluster on the right; the two groups sit as side-by-side columns.
+// Abilities wrap into extra columns if they run taller than the strip.
+@media (orientation: landscape) and (max-height: 600px) {
+  .actionGroup {
+    right: calc(8px * #{$s});
+    // Clear the top-right UI (level bar + score/help/fullscreen/pause) so the
+    // ability columns start below them rather than overlapping.
+    top: calc(84px * #{$s});
+    bottom: calc(8px * #{$s});
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: flex-end;
+  }
+  // Grid (not flex column-wrap, which fails to widen its box for the extra
+  // columns and bleeds onto the space-metal strip): fill top-to-bottom, then
+  // start a fresh column. The grid sizes its width to the column count.
+  .abilities {
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-rows: repeat(auto-fill, calc(64px * #{$s}));
+    grid-auto-columns: calc(60px * #{$s});
+    align-content: start;
+    justify-items: center;
+    height: 100%;
+  }
+  .spaceMetalRail {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
 }

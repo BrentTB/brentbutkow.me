@@ -249,6 +249,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.11.1',
+    date: '2026-06-07',
+    changes: {
+      fixes: [
+        'Mobile: the weapon and space-metal ability buttons now merge into one cluster positioned clear of the play area — a bottom row in portrait, a right-side column in landscape — so the controls no longer block shots at enemies on the facing edge. Desktop keeps the split bottom/side layout.',
+      ],
+    },
+  },
+  {
     version: '0.11.0',
     date: '2026-06-07',
     changes: {

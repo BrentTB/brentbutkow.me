@@ -145,66 +145,74 @@ export function GameHUD({
           </button>
         </div>
       </div>
-      <div className={styles.spaceMetalRail}>
-        <span className={styles.spaceMetalCounter}>⬡ {uiState.spaceMetal}</span>
-        {SPACE_METAL_ABILITIES.map((ability) => {
-          const canUse = ability.canUse(uiState)
-          return (
-            <button
-              key={ability.kind}
-              type="button"
-              className={styles.spaceMetalBtn}
-              onClick={() => onUseSpaceMetalAbility(ability.kind)}
-              disabled={!canUse}
-              aria-label={`${ability.meta.label} (${ability.cost} space metal, press ${ability.hotkey})`}
-            >
-              <span className={styles.hotkeyBadge}>{ability.hotkey}</span>
-              <span className={styles.abilityIcon}>
-                <Icon name={ability.meta.icon} />
-              </span>
-              <span className={styles.abilityLabel}>{ability.meta.label}</span>
-              <span className={styles.spaceMetalCost}>⬡ {ability.cost}</span>
-            </button>
-          )
-        })}
-      </div>
-      <div className={styles.abilities}>
-        {getUnlockedAbilitiesInOrder(uiState.abilities).map((ability, index) => {
-          const meta = ABILITY_META[ability.kind]
-          const hotkey = String(index + 1)
-          const isSelected = uiState.selectedAbility === ability.kind
-          const isReady = ability.cooldownRemaining <= 0 && uiState.power >= ability.powerCost
-          const onCooldown = ability.cooldownRemaining > 0
-          const cdPercent = onCooldown ? ability.cooldownRemaining / ability.cooldown : 0
+      <div className={styles.actionGroup}>
+        <div className={styles.spaceMetalRail}>
+          <span className={styles.spaceMetalCounter}>⬡ {uiState.spaceMetal}</span>
+          {SPACE_METAL_ABILITIES.map((ability) => {
+            const canUse = ability.canUse(uiState)
+            return (
+              <button
+                key={ability.kind}
+                type="button"
+                className={styles.spaceMetalBtn}
+                onClick={() => onUseSpaceMetalAbility(ability.kind)}
+                disabled={!canUse}
+                aria-label={`${ability.meta.label} (${ability.cost} space metal, press ${ability.hotkey})`}
+              >
+                <span className={styles.hotkeyBadge}>{ability.hotkey}</span>
+                <span className={styles.abilityIcon}>
+                  <Icon name={ability.meta.icon} />
+                </span>
+                <span className={styles.abilityLabel}>{ability.meta.label}</span>
+                <span className={styles.spaceMetalCost}>⬡ {ability.cost}</span>
+              </button>
+            )
+          })}
+        </div>
+        <div className={styles.abilities}>
+          {getUnlockedAbilitiesInOrder(uiState.abilities).map((ability, index) => {
+            const meta = ABILITY_META[ability.kind]
+            const hotkey = String(index + 1)
+            const isSelected = uiState.selectedAbility === ability.kind
+            const isReady = ability.cooldownRemaining <= 0 && uiState.power >= ability.powerCost
+            const onCooldown = ability.cooldownRemaining > 0
+            const cdPercent = onCooldown ? ability.cooldownRemaining / ability.cooldown : 0
 
-          const btnClass = [styles.abilityBtn, isSelected ? styles.abilitySelected : '']
-            .filter(Boolean)
-            .join(' ')
+            const btnClass = [styles.abilityBtn, isSelected ? styles.abilitySelected : '']
+              .filter(Boolean)
+              .join(' ')
 
-          return (
-            <button
-              key={ability.kind}
-              className={btnClass}
-              onClick={() => onAbilitySelect(ability.kind)}
-              aria-label={`${meta.label} (${ability.powerCost} power)${
-                onCooldown ? ` — ${Math.ceil(ability.cooldownRemaining)}s cooldown` : ''
-              }`}
-            >
-              <span className={styles.hotkeyBadge}>{hotkey}</span>
-              <span className={styles.abilityIcon}>
-                <Icon name={meta.icon} />
-              </span>
-              <span className={styles.abilityLabel}>{meta.label}</span>
-              <span className={styles.abilityCost}>{ability.powerCost}</span>
-              {onCooldown && (
-                <div className={styles.cooldownOverlay} style={{ height: `${cdPercent * 100}%` }} />
-              )}
-              {!isReady && !onCooldown && (
-                <div className={styles.cooldownOverlay} style={{ height: '100%', opacity: 0.3 }} />
-              )}
-            </button>
-          )
-        })}
+            return (
+              <button
+                key={ability.kind}
+                className={btnClass}
+                onClick={() => onAbilitySelect(ability.kind)}
+                aria-label={`${meta.label} (${ability.powerCost} power)${
+                  onCooldown ? ` — ${Math.ceil(ability.cooldownRemaining)}s cooldown` : ''
+                }`}
+              >
+                <span className={styles.hotkeyBadge}>{hotkey}</span>
+                <span className={styles.abilityIcon}>
+                  <Icon name={meta.icon} />
+                </span>
+                <span className={styles.abilityLabel}>{meta.label}</span>
+                <span className={styles.abilityCost}>{ability.powerCost}</span>
+                {onCooldown && (
+                  <div
+                    className={styles.cooldownOverlay}
+                    style={{ height: `${cdPercent * 100}%` }}
+                  />
+                )}
+                {!isReady && !onCooldown && (
+                  <div
+                    className={styles.cooldownOverlay}
+                    style={{ height: '100%', opacity: 0.3 }}
+                  />
+                )}
+              </button>
+            )
+          })}
+        </div>
       </div>
       {helpOpen && (
         <HelpModal
