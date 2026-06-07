@@ -9,7 +9,7 @@ export const ESCAPE_MODE = {
   dashDuration: 1.5,
   chargeSpeedMultiplier: 0.5,
   dashSpeedMultiplier: 5,
-  trailInterval: 0.01,
+  trailInterval: 0.02,
   trailColor: '#ff4400',
   trailLifetime: 1,
   trailSize: 8,
