@@ -249,6 +249,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.11.0',
+    date: '2026-06-07',
+    changes: {
+      features: [
+        'Replaced every game emoji (pause, fullscreen, help, all weapon and space-metal icons) with a crisp inline-SVG icon set. Icons now render identically and sleek on every device instead of as full-color OS emoji on mobile, and tint to the accent colour on hover.',
+      ],
+    },
+  },
+  {
     version: '0.10.2',
     date: '2026-06-07',
     changes: {

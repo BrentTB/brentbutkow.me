@@ -3,6 +3,7 @@ import { createBlackHoleEffect } from '../systems/effects'
 import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
 import type { UpgradeDefinition } from '../types'
 import { applyTierSum, type AbilityDefinition } from './ability-definition'
+import { IconName } from '../../icon-names'
 
 const unlockUpgrade: UpgradeDefinition = {
   id: UpgradeId.unlockBlackHole,
@@ -40,7 +41,7 @@ const durationUpgrade: UpgradeDefinition = {
 
 export const blackHole: AbilityDefinition = {
   kind: AbilityKind.blackHole,
-  meta: { icon: '🕳', label: 'Black Hole' },
+  meta: { icon: IconName.blackHole, label: 'Black Hole' },
   activation: 'click',
   base: () => ({
     kind: AbilityKind.blackHole,

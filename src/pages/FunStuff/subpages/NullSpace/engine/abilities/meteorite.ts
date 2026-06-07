@@ -3,6 +3,7 @@ import { createMeteoriteEffect } from '../systems/effects'
 import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
 import type { UpgradeDefinition } from '../types'
 import { applyTierSum, type AbilityDefinition } from './ability-definition'
+import { IconName } from '../../icon-names'
 
 const damageUpgrade: UpgradeDefinition = {
   id: UpgradeId.meteoriteDamage,
@@ -31,7 +32,7 @@ const costUpgrade: UpgradeDefinition = {
 
 export const meteorite: AbilityDefinition = {
   kind: AbilityKind.meteorite,
-  meta: { icon: '☄', label: 'Meteorite' },
+  meta: { icon: IconName.meteorite, label: 'Meteorite' },
   activation: 'click',
   startsUnlocked: true,
   base: () => ({

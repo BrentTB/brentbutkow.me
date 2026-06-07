@@ -5,6 +5,7 @@ import { rng } from '../math/random'
 import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
 import type { Enemy, UpgradeDefinition } from '../types'
 import { applyTierSum, type AbilityDefinition } from './ability-definition'
+import { IconName } from '../../icon-names'
 import type { HoldAbilityConfig } from './hold-runtime'
 
 const unlockUpgrade: UpgradeDefinition = {
@@ -115,7 +116,7 @@ const solarFlareHold: HoldAbilityConfig = {
 
 export const solarFlare: AbilityDefinition = {
   kind: AbilityKind.solarFlare,
-  meta: { icon: '🌟', label: 'Solar Flare' },
+  meta: { icon: IconName.solarFlare, label: 'Solar Flare' },
   activation: 'hold',
   base: () => ({
     kind: AbilityKind.solarFlare,

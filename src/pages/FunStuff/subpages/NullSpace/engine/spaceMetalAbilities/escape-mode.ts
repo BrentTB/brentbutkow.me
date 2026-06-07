@@ -1,6 +1,7 @@
 import { EscapeModePhase } from '../types'
 import type { SpaceMetalAbility } from './space-metal-ability-definition'
 import { SpaceMetalAbilityKind } from './space-metal-ability-definition'
+import { IconName } from '../../icon-names'
 
 export const ESCAPE_MODE = {
   cost: 2,
@@ -16,7 +17,7 @@ export const ESCAPE_MODE = {
 
 export const escapeDash: SpaceMetalAbility = {
   kind: SpaceMetalAbilityKind.escapeDash,
-  meta: { icon: '⇶', label: 'Escape' },
+  meta: { icon: IconName.escape, label: 'Escape' },
   cost: ESCAPE_MODE.cost,
   hotkey: 'G',
   canActivate: (s) => s.spaceMetal >= ESCAPE_MODE.cost && s.ship.escapeMode === null,

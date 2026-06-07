@@ -3,6 +3,7 @@ import { createMeteorEffect } from '../systems/effects'
 import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
 import type { UpgradeDefinition } from '../types'
 import { applyTierSum, type AbilityDefinition } from './ability-definition'
+import { IconName } from '../../icon-names'
 
 const unlockUpgrade: UpgradeDefinition = {
   id: UpgradeId.unlockMeteor,
@@ -40,7 +41,7 @@ const costUpgrade: UpgradeDefinition = {
 
 export const meteor: AbilityDefinition = {
   kind: AbilityKind.meteor,
-  meta: { icon: '🌑', label: 'Meteor' },
+  meta: { icon: IconName.meteor, label: 'Meteor' },
   activation: 'click',
   base: () => ({
     kind: AbilityKind.meteor,

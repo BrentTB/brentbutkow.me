@@ -3,6 +3,7 @@ import { createAlly } from '../entities/entity-creator'
 import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
 import type { UpgradeDefinition } from '../types'
 import { applyTierSum, type AbilityDefinition } from './ability-definition'
+import { IconName } from '../../icon-names'
 
 const unlockUpgrade: UpgradeDefinition = {
   id: UpgradeId.unlockHelper,
@@ -40,7 +41,7 @@ const damageUpgrade: UpgradeDefinition = {
 
 export const helper: AbilityDefinition = {
   kind: AbilityKind.helper,
-  meta: { icon: '👾', label: 'Helper' },
+  meta: { icon: IconName.helper, label: 'Helper' },
   activation: 'click',
   base: () => ({
     kind: AbilityKind.helper,

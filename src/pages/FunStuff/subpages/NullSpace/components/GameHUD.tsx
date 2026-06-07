@@ -6,6 +6,7 @@ import { SPACE_METAL_ABILITIES, SpaceMetalAbilityKind } from '../engine/spaceMet
 import { getUnlockedAbilitiesInOrder } from '../useNullSpace'
 import type { GameUIState } from '../useNullSpace'
 import { HelpModal } from './HelpModal'
+import { Icon, IconName } from './Icon/Icon'
 import styles from './GameHUD.module.scss'
 
 type GameHUDProps = {
@@ -123,7 +124,7 @@ export function GameHUD({
             onClick={() => setHelpOpen(true)}
             aria-label="How to play"
           >
-            ?
+            <Icon name={IconName.help} />
           </button>
           <button
             type="button"
@@ -131,7 +132,7 @@ export function GameHUD({
             onClick={onToggleFullscreen}
             aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
           >
-            {isFullscreen ? '✕' : '⛶'}
+            <Icon name={isFullscreen ? IconName.exitFullscreen : IconName.fullscreen} />
           </button>
           <button
             type="button"
@@ -140,7 +141,7 @@ export function GameHUD({
             disabled={uiState.phase !== GamePhase.playing}
             aria-label="Pause game"
           >
-            ⏸
+            <Icon name={IconName.pause} />
           </button>
         </div>
       </div>
@@ -158,7 +159,9 @@ export function GameHUD({
               aria-label={`${ability.meta.label} (${ability.cost} space metal, press ${ability.hotkey})`}
             >
               <span className={styles.hotkeyBadge}>{ability.hotkey}</span>
-              <span className={styles.abilityIcon}>{ability.meta.icon}</span>
+              <span className={styles.abilityIcon}>
+                <Icon name={ability.meta.icon} />
+              </span>
               <span className={styles.abilityLabel}>{ability.meta.label}</span>
               <span className={styles.spaceMetalCost}>⬡ {ability.cost}</span>
             </button>
@@ -188,7 +191,9 @@ export function GameHUD({
               }`}
             >
               <span className={styles.hotkeyBadge}>{hotkey}</span>
-              <span className={styles.abilityIcon}>{meta.icon}</span>
+              <span className={styles.abilityIcon}>
+                <Icon name={meta.icon} />
+              </span>
               <span className={styles.abilityLabel}>{meta.label}</span>
               <span className={styles.abilityCost}>{ability.powerCost}</span>
               {onCooldown && (
