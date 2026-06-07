@@ -12,8 +12,8 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
       <p className={sharedStyles.subtitle}>You are a cosmic guardian. Protect the ship.</p>
       <p className={sharedStyles.hint}>
         The ship flies and fights on its own, your job is to bend space itself: click anywhere to
-        drop meteors, unlock more powers as you level up, and tap the <strong>?</strong> in-game any
-        time for the full controls.
+        drop meteorites and unlock more powers as you level up. Press the settings menu to get to
+        the help screen in-game any time for the full controls.
       </p>
       <button className={sharedStyles.primaryBtn} onClick={onStart}>
         Start Game
