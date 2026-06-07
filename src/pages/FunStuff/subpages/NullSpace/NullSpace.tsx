@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { BackButton } from '../../../../components/PageFormatting/BackButton'
 import { ToggleableSection } from '../../../../components/ToggleableSection/ToggleableSection'
 import { useNullSpace } from './useNullSpace'
+import { usePseudoFullscreenChrome } from './usePseudoFullscreenChrome'
 import { GameHUD } from './components/GameHUD'
 import { GameOverlay } from './components/GameOverlay'
 import { DevConsole } from './components/DevConsole'
@@ -80,14 +81,9 @@ export function NullSpace() {
     return () => document.removeEventListener('fullscreenchange', onChange)
   }, [])
 
-  // iOS Safari has no Fullscreen API, so we fall back to a CSS pseudo-fullscreen
-  // overlay. The browser URL bar stays visible until the user scrolls, eating ~80px
-  // of vertical space. Nudging the page by 1px on entry kicks Safari's auto-hide.
-  useEffect(() => {
-    if (!pseudoFullscreen) return
-    const t = setTimeout(() => window.scrollTo(0, 1), 0)
-    return () => clearTimeout(t)
-  }, [pseudoFullscreen])
+  // Keep Safari's URL / tab bar hidden in pseudo-fullscreen — on entry and
+  // after each rotate (Safari re-shows the bars when the phone turns).
+  usePseudoFullscreenChrome(pseudoFullscreen)
 
   // HUD scaling — keep overlay text/buttons proportional to the gameplay area
   // so fullscreen doesn't leave a 28px pause icon stranded on a 1080p screen.

@@ -255,6 +255,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       fixes: [
         'Drag abilities (telekinesis, solar flare) no longer scroll the page on mobile — the canvas now claims touch gestures so a drag keeps controlling the game instead of panning the page.',
         'Short landscape phones: the upgrade screen no longer leaves a forced gap that pushed the Continue button below the fold when a tab had only a few upgrades — the button now sits right under the last upgrade.',
+        "iOS pseudo-fullscreen now re-hides Safari's URL / tab bar after a rotate — turning the phone no longer leaves the bars stranded on screen.",
       ],
     },
   },
