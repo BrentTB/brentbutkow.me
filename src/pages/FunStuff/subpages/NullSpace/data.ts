@@ -245,7 +245,7 @@ export type ChangelogEntry = {
     balance?: string[]
     fixes?: string[]
     ui?: string[]
-    architecture?: []
+    architecture?: string[]
   }
 }
 
@@ -354,7 +354,9 @@ export const CHANGELOG: ChangelogEntry[] = [
     changes: {
       fixes: [
         'Enemy bullets no longer tunnel through the ship at 2× game speed — the swept collision check now applies to enemy fire as well as your own.',
-        'Internal: Solar Flare kills now tally score and currency through the game loop like every other kill source, instead of inline; removed the dead telekinesis drag-delta input plumbing.',
+      ],
+      architecture: [
+        'Solar Flare kills now tally score and currency through the game loop like every other kill source, instead of inline; removed the dead telekinesis drag-delta input plumbing.',
       ],
     },
   },
@@ -384,7 +386,9 @@ export const CHANGELOG: ChangelogEntry[] = [
       ],
       fixes: [
         'Solar Flare now deactivates the moment power drops below one tick of cost — it no longer keeps half-firing on the trickle of passive regen after running out.',
-        'Internal: consolidated all per-ability data (meta, base stats, factories, upgrade definitions, upgrade-application logic) into one file per ability under engine/abilities/. Adding a new ability now means creating a single file and registering it in the index, instead of editing ~6 separate lookup tables across the codebase.',
+      ],
+      architecture: [
+        'Consolidated all per-ability data (meta, base stats, factories, upgrade definitions, upgrade-application logic) into one file per ability under engine/abilities/. Adding a new ability now means creating a single file and registering it in the index, instead of editing ~6 separate lookup tables across the codebase.',
       ],
     },
   },
@@ -530,7 +534,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         'Space metal — rare gold hexagonal drops that must be clicked to collect (premium currency)',
       ],
       ui: ['Space metal counter in the HUD'],
-      fixes: [
+      architecture: [
         'Unified effect system replaces per-ability arrays for cleaner architecture',
         'Data-driven movement behaviors (chase, keep-range, zigzag) replace hardcoded enemy if/else',
         'Ability creation uses a factory map instead of branching logic',
@@ -551,6 +555,8 @@ export const CHANGELOG: ChangelogEntry[] = [
       ],
       fixes: [
         'Abilities now sort by power cost (cheapest first), and their hotkey numbers and HUD badges derive from that order so they always match',
+      ],
+      architecture: [
         'Random functions now use the seeded RNG instead of deterministic index-based positioning',
       ],
     },
@@ -562,6 +568,8 @@ export const CHANGELOG: ChangelogEntry[] = [
       fixes: [
         'Black Hole Duration upgrade now actually extends the black hole lifetime',
         'Game-over screen no longer shows "New High Score!" when you only tie your best',
+      ],
+      architecture: [
         'Smoother rendering: black hole gradients are now cached instead of rebuilt each frame',
         'Enemy stats now read from a single source of truth so balance tweaks always apply',
         'Sprite keys converted to a const object, removing the last magic-string union',
@@ -586,10 +594,8 @@ export const CHANGELOG: ChangelogEntry[] = [
         'Hotkeys 1/2/3 to switch between abilities',
       ],
       balance: ['Ship damage reduced (10→5) and power regen increased (3→5/s)'],
-      fixes: [
-        'Eliminated all magic-string union types in favor of const objects',
-        'Renamed from Event Horizon to Null Space',
-      ],
+      architecture: ['Eliminated all magic-string union types in favor of const objects'],
+      fixes: ['Renamed from Event Horizon to Null Space'],
     },
   },
   {

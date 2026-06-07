@@ -197,6 +197,26 @@ export function NullSpace() {
                   </ul>
                 </div>
               )}
+              {entry.changes.ui && (
+                <div className={styles.changeGroup}>
+                  <span className={styles.changeLabel}>User Interface</span>
+                  <ul className={styles.changeList}>
+                    {entry.changes.ui.map((c, i) => (
+                      <li key={i}>{c}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {entry.changes.architecture && (
+                <div className={styles.changeGroup}>
+                  <span className={styles.changeLabel}>Internal Architecture</span>
+                  <ul className={styles.changeList}>
+                    {entry.changes.architecture.map((c, i) => (
+                      <li key={i}>{c}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           ))}
         </ToggleableSection>
