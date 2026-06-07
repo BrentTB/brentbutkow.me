@@ -244,6 +244,8 @@ export type ChangelogEntry = {
     features?: string[]
     balance?: string[]
     fixes?: string[]
+    ui?: string[]
+    architecture?: []
   }
 }
 
@@ -252,7 +254,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: '0.11.1',
     date: '2026-06-07',
     changes: {
-      fixes: [
+      ui: [
         'Mobile: the weapon and space-metal ability buttons now merge into one cluster positioned clear of the play area — a bottom row in portrait, a right-side column in landscape — so the controls no longer block shots at enemies on the facing edge. Desktop keeps the split bottom/side layout.',
       ],
     },
@@ -261,7 +263,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: '0.11.0',
     date: '2026-06-07',
     changes: {
-      features: [
+      ui: [
         'Replaced every game emoji (pause, fullscreen, help, all weapon and space-metal icons) with a crisp inline-SVG icon set. Icons now render identically and sleek on every device instead of as full-color OS emoji on mobile, and tint to the accent colour on hover.',
       ],
     },
@@ -270,7 +272,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: '0.10.2',
     date: '2026-06-07',
     changes: {
-      fixes: [
+      ui: [
         'Drag abilities (telekinesis, solar flare) no longer scroll the page on mobile — the canvas now claims touch gestures so a drag keeps controlling the game instead of panning the page.',
         'Short landscape phones: the upgrade screen no longer leaves a forced gap that pushed the Continue button below the fold when a tab had only a few upgrades — the button now sits right under the last upgrade.',
         "iOS pseudo-fullscreen now re-hides Safari's URL / tab bar after a rotate — turning the phone no longer leaves the bars stranded on screen.",
@@ -294,6 +296,8 @@ export const CHANGELOG: ChangelogEntry[] = [
     changes: {
       features: [
         'Added an in-game help modal — the ? button (top-right) covers gameplay, controls, space-metal abilities, and progression. Opening it freezes the game and blocks input until you close it.',
+      ],
+      ui: [
         'Reworked the start-screen blurb to set up the cosmic-guardian premise and point new players at the in-game help.',
       ],
     },
@@ -305,12 +309,14 @@ export const CHANGELOG: ChangelogEntry[] = [
       features: [
         'Helper allies no longer expire on a timer — they steadily lose HP (1/s) and die when HP hits 0. Combat damage stacks on top. The old Duration upgrade is now Max Health, directly extending how long allies survive.',
       ],
-      fixes: [
-        'Helper damage upgrades and max-HP upgrades now actually reach the spawned ally (the duration upgrade was previously a no-op because the factory ignored ability stats).',
+      ui: [
         'Landscape fullscreen on mobile: start / ship-select / upgrade screens now scroll when the panel is taller than the viewport, so the Start / Launch / Continue buttons are always reachable.',
         'Canvas now renders at devicePixelRatio resolution — sprites are crisp on Retina / high-DPI mobile instead of blocky in fullscreen.',
         'Camera zoom now folds in min-dimension scaling, so wide-but-short viewports (landscape phone fullscreen) zoom out further and the play area no longer feels cramped.',
         'iOS pseudo-fullscreen now nudges Safari to auto-hide its URL bar on entry.',
+      ],
+      fixes: [
+        'Helper damage upgrades and max-HP upgrades now actually reach the spawned ally (the duration upgrade was previously a no-op because the factory ignored ability stats).',
         'Escape Mode dash is now clamped to the play area, so a dash near the edge no longer flings the ship off-screen.',
       ],
     },
@@ -334,11 +340,11 @@ export const CHANGELOG: ChangelogEntry[] = [
       features: [
         'Ability bar now hides locked abilities and orders the rest by unlock time. The ability you unlock first gets hotkey 1, the second gets 2, and so on — the slot never shifts after that.',
         'Escape Mode: new space-metal ability (hotkey G, costs 2 space metal). Briefly slows the ship while charging, then dashes in your current heading with a flame trail. Ship is invincible the entire time.',
-        'Space-metal counter + abilities moved to a dedicated right-side rail. Built on a small registry so new space-metal powers slot in without UI surgery.',
         'Level-up weapons tab now offers 2 random locked weapons per level; buying either one removes the other for that level-up. Owned weapons remain fully upgradable.',
       ],
-      fixes: [
+      ui: [
         'Mobile ability bar wraps to multiple rows when many abilities are unlocked, fixing the cramped overflow on narrow screens.',
+        'Space-metal counter + abilities moved to a dedicated right-side rail. Built on a small registry so new space-metal powers slot in without UI surgery.',
       ],
     },
   },
@@ -435,8 +441,8 @@ export const CHANGELOG: ChangelogEntry[] = [
       fixes: [
         'Shop upgrade buttons are now fully clickable (previously only the text was clickable, not the surrounding box)',
         'Fixed an issue where if 2 player bullets were in the air and one hit an enemy, the other would be removed',
-        'The player ship is not visible in the background before starting a game',
       ],
+      ui: ['The player ship is now not visible in the background before starting a game'],
     },
   },
   {
@@ -444,14 +450,16 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-02',
     changes: {
       features: [
-        'Camera now zooms based on viewport area — the same total amount of world is visible regardless of screen size or fullscreen state',
-        'Mobile shows more world area (zoomed-out) so enemies approaching from the sides are visible',
-        'Mobile-friendly polish: bigger pause / fullscreen tap targets (44×44) and a much taller game area on phones',
-        'Fullscreen now works on iPhone Safari via a CSS-based fallback (Fullscreen API is unsupported there)',
         'Shield now reflects enemy velocity on contact — enemies bounce off the dome instead of just being snapped back to the edge',
         'Shield blocks bomber explosions if the ship is inside the dome and the bomber explodes outside it',
         'Rocket now detonates when it physically touches an enemy — no more flying past an enemy and still damaging it from empty space',
         'Shield grandfathering is now per-tick — an enemy that was inside when the shield dropped can still walk out, but the moment it leaves it loses its grandfathered status and gets bounced back if it tries to re-enter',
+      ],
+      ui: [
+        'Camera now zooms based on viewport area — the same total amount of world is visible regardless of screen size or fullscreen state',
+        'Mobile shows more world area (zoomed-out) so enemies approaching from the sides are visible',
+        'Mobile-friendly polish: bigger pause / fullscreen tap targets (44×44) and a much taller game area on phones',
+        'Fullscreen now works on iPhone Safari via a CSS-based fallback (Fullscreen API is unsupported there)',
         'HUD elements (level bar, score, pause / fullscreen buttons, ability hotbar) now scale with the gameplay area — going fullscreen no longer leaves the UI looking tiny',
         'Pause / settings / upgrade / game-over screens scale with the HUD too',
         'Game starts a bit more zoomed-out by default — more of the surrounding space is visible at a glance',
@@ -488,8 +496,8 @@ export const CHANGELOG: ChangelogEntry[] = [
         'Game now opens with the camera already centered on your ship — no more brief "rush across space" on first load or after restarting.',
         'Bombers now explode when they reach your ship — the on-death AoE fires on every death, not just when you shoot them down. Letting a bomber ram you now hurts as intended.',
         'Swarm enemies now weave in sync with the game-speed setting (and freeze cleanly when paused) — their side-to-side motion is driven by game time instead of the wall clock.',
-        'Game-speed buttons in Settings now announce their selected state to screen readers.',
       ],
+      ui: ['Game-speed buttons in Settings now announce their selected state to screen readers.'],
     },
   },
   {
@@ -503,8 +511,10 @@ export const CHANGELOG: ChangelogEntry[] = [
         'Speed indicator in the HUD when game speed is not 1×',
       ],
       fixes: [
-        'Upgrade menu now stays a fixed size across tabs — no more heading jumping or layout shifts when switching between Weapons/Ship/Powers',
         'Tank enemies pursue the ship steadily — velocity is now smoothed instead of flipping each frame as the ship reverses',
+      ],
+      ui: [
+        'Upgrade menu now stays a fixed size across tabs — no more heading jumping or layout shifts when switching between Weapons/Ship/Powers',
         'Shooter enemy sprite redesigned — cleaner diamond silhouette with a glowing eye, easier to tell apart from other enemies at a glance',
       ],
     },
@@ -518,8 +528,8 @@ export const CHANGELOG: ChangelogEntry[] = [
         'New enemy: Bomber — slow, bulky, explodes on death dealing AoE damage to the ship',
         'Power orbs — enemies now drop collectible blue orbs that magnetically arc toward your ship to restore power',
         'Space metal — rare gold hexagonal drops that must be clicked to collect (premium currency)',
-        'Space metal counter in the HUD',
       ],
+      ui: ['Space metal counter in the HUD'],
       fixes: [
         'Unified effect system replaces per-ability arrays for cleaner architecture',
         'Data-driven movement behaviors (chase, keep-range, zigzag) replace hardcoded enemy if/else',
@@ -532,9 +542,11 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-02',
     changes: {
       features: [
+        'Enemies trickle in near the ship with randomized order and timing instead of all spawning at the map edge at once',
+      ],
+      ui: [
         'Level progress bar at the top of the HUD — fills as enemies spawn, with milestone dots per wave',
         'HUD now shows "Level X" instead of raw wave numbers',
-        'Enemies trickle in near the ship with randomized order and timing instead of all spawning at the map edge at once',
         'Wave-complete and game-over screens show wave progress within the current level',
       ],
       fixes: [
@@ -564,14 +576,14 @@ export const CHANGELOG: ChangelogEntry[] = [
         'New enemy: Shooter — ranged enemy that fires projectiles at your ship',
         'New ability: Black Hole — pulls enemies in a spiral, deals damage over time (more at center)',
         'Dual attack system: Meteorite (cheap/fast) and Meteor (expensive/powerful)',
-        'Upgrade shop with tabbed UI (Weapons, Ship, Powers)',
-        'Drill-down weapon upgrades: click a weapon to see its sub-upgrades',
         'Ship upgrades: Hull Plating (max HP) and Auto-Turret (damage)',
         'Power regen upgrade',
         'Stardust currency dropped by enemies for purchasing upgrades',
         'Level system: every 3 waves = 1 level, upgrade screen between levels',
-        'Hotkeys 1/2/3 to switch between abilities',
         'Seeded random number generator for unique sessions',
+        'Upgrade shop with tabbed UI (Weapons, Ship, Powers)',
+        'Drill-down weapon upgrades: click a weapon to see its sub-upgrades',
+        'Hotkeys 1/2/3 to switch between abilities',
       ],
       balance: ['Ship damage reduced (10→5) and power regen increased (3→5/s)'],
       fixes: [
@@ -591,12 +603,13 @@ export const CHANGELOG: ChangelogEntry[] = [
         'Power system for abilities with passive regen',
         'Two enemy types: Drone and Tank',
         'Wave-based progression with increasing difficulty',
-        'Pixel art sprites rendered on Canvas 2D',
-        'Parallax starfield background',
         'High score persistence via localStorage',
+        'Lazy-loaded so it does not affect site load time',
+      ],
+      ui: [
+        'Pixel art sprites rendered on Canvas 2D',
         'HUD with HP bar, power bar, score, wave counter',
         'Menu, wave complete, and game over screens',
-        'Lazy-loaded so it does not affect site load time',
         'Games hub page under Fun Stuff',
       ],
     },
