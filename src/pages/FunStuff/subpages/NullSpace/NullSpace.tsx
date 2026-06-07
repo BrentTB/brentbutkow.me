@@ -3,9 +3,9 @@ import { BackButton } from '../../../../components/PageFormatting/BackButton'
 import { ToggleableSection } from '../../../../components/ToggleableSection/ToggleableSection'
 import { useNullSpace } from './useNullSpace'
 import { usePseudoFullscreenChrome } from './usePseudoFullscreenChrome'
-import { GameHUD } from './components/GameHUD'
+import { GameHUD } from './components/GameHUD/GameHUD'
 import { GameOverlay } from './components/GameOverlay'
-import { DevConsole } from './components/DevConsole'
+import { DevConsole } from './components/Development/DevConsole'
 import { GAME_VERSION, CHANGELOG } from './data'
 import { computeHudScale } from './renderer/camera'
 import styles from './NullSpace.module.scss'
@@ -28,8 +28,6 @@ export function NullSpace() {
     handlePause,
     handleResume,
     handleSetSpeed,
-    handleSuspendTime,
-    handleResumeTime,
     handleUseSpaceMetalAbility,
     handleDevPatch,
     handleDevJumpToUpgrades,
@@ -123,8 +121,6 @@ export function NullSpace() {
             onPause={handlePause}
             onToggleFullscreen={handleToggleFullscreen}
             onUseSpaceMetalAbility={handleUseSpaceMetalAbility}
-            onSuspendTime={handleSuspendTime}
-            onResumeTime={handleResumeTime}
             isFullscreen={isFullscreen}
             gameSpeed={gameSpeed}
           />

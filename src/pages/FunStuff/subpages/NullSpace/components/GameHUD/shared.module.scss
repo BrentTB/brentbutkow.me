@@ -1,0 +1,21 @@
+.hotkeyBadge {
+  position: absolute;
+  top: calc(2px * var(--hud-scale, 1));
+  left: calc(4px * var(--hud-scale, 1));
+  font-size: calc(0.5rem * var(--hud-scale, 1));
+  color: var(--muted);
+  line-height: 1;
+}
+
+.abilityIcon {
+  font-size: calc(1.1rem * var(--hud-scale, 1));
+  line-height: 1;
+}
+
+.abilityLabel {
+  font-size: calc(0.45rem * var(--hud-scale, 1));
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 1px;
+}

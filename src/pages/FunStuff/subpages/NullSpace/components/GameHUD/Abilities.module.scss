@@ -1,0 +1,98 @@
+.abilities {
+  position: absolute;
+  bottom: calc(16px * var(--hud-scale, 1));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: calc(8px * var(--hud-scale, 1));
+  max-width: calc(100% - 32px);
+  pointer-events: auto;
+}
+
+@media (max-width: 768px) {
+  .abilities {
+    gap: calc(6px * var(--hud-scale, 1));
+    max-width: calc(100% - 16px);
+  }
+}
+
+.abilityBtn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: calc(60px * var(--hud-scale, 1));
+  height: calc(64px * var(--hud-scale, 1));
+  background: rgba(0, 0, 0, 0.7);
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  overflow: hidden;
+  color: var(--text);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.abilityBtn:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.abilityBtn:disabled {
+  cursor: not-allowed;
+}
+
+.abilitySelected {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.4);
+}
+
+.abilityCost {
+  font-size: calc(0.5rem * var(--hud-scale, 1));
+  color: #5588dd;
+  margin-top: 1px;
+}
+
+.cooldownOverlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+
+@media (max-width: 768px), (orientation: landscape) and (max-height: 600px) {
+  .abilities {
+    position: static;
+    transform: none;
+    max-width: none;
+    pointer-events: none;
+    gap: calc(6px * var(--hud-scale, 1));
+  }
+  .abilities {
+    order: 2;
+  }
+}
+
+@media (orientation: portrait) and (max-width: 768px) {
+  .abilities {
+    flex-flow: row wrap;
+    justify-content: center;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 600px) {
+  .abilities {
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-rows: repeat(auto-fill, calc(64px * var(--hud-scale, 1)));
+    grid-auto-columns: calc(60px * var(--hud-scale, 1));
+    align-content: start;
+    justify-items: center;
+    height: 100%;
+  }
+}

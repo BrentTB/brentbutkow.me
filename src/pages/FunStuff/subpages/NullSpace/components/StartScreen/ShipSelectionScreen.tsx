@@ -1,0 +1,53 @@
+import { useState } from 'react'
+import { SHIP_ORDER, SHIP_VARIANTS } from '../../data'
+import { ShipKind } from '../../engine/types'
+import { ShipSpritePreview } from './ShipSpritePreview'
+import { StatBar } from './StatBar'
+import styles from './ShipSelectionScreen.module.scss'
+import sharedStyles from '../OverlayShared.module.scss'
+
+type ShipSelectionScreenProps = {
+  onSelect: (kind: ShipKind) => void
+}
+
+const DEFAULT_SHIP = ShipKind.fighter
+
+export function ShipSelectionScreen({ onSelect }: ShipSelectionScreenProps) {
+  const [selected, setSelected] = useState<ShipKind>(DEFAULT_SHIP)
+  const variant = SHIP_VARIANTS[selected]
+
+  return (
+    <div className={styles.shipSelectLayout}>
+      <h2 className={sharedStyles.title}>Choose Your Ship</h2>
+      <div className={styles.shipCards}>
+        {SHIP_ORDER.map((kind) => {
+          const v = SHIP_VARIANTS[kind]
+          return (
+            <button
+              key={kind}
+              className={`${styles.shipCard} ${selected === kind ? styles.shipCardSelected : ''}`}
+              onClick={() => setSelected(kind)}
+            >
+              <span className={styles.shipCardName}>{v.label}</span>
+            </button>
+          )
+        })}
+      </div>
+
+      <div className={styles.shipDetail}>
+        <p className={styles.shipDesc}>{variant.description}</p>
+        <StatBar label="HP" value={variant.stats.maxHp} max={160} color="#44bb44" />
+        <StatBar label="Shield" value={variant.stats.maxShield} max={140} color="#6ae8f5" />
+        <StatBar label="Shield Regen" value={variant.stats.shieldRegen} max={8} color="#44bb44" />
+        <StatBar label="Damage" value={variant.stats.damage} max={10} color="#e9b872" />
+        <StatBar label="Speed" value={variant.stats.speed} max={200} color="#cc88ff" />
+        <StatBar label="Fire Rate" value={variant.stats.fireRate} max={4} color="#f5a53d" />
+      </div>
+
+      <ShipSpritePreview kind={selected} />
+      <button className={sharedStyles.primaryBtn} onClick={() => onSelect(selected)}>
+        Launch
+      </button>
+    </div>
+  )
+}
