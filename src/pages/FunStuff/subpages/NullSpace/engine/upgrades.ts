@@ -4,18 +4,28 @@ import {
   ABILITY_UPGRADE_DEFINITIONS,
   WEAPON_UNLOCK_UPGRADE,
 } from './abilities'
+import { SHIP_WEAPON_UNLOCK_UPGRADE, SHIP_WEAPON_UPGRADE_DEFINITIONS } from './ship'
 import { UpgradeCategory, UpgradeId } from './types'
-import type { Ability, AbilityKind, PlayerUpgrades, Ship, UpgradeDefinition } from './types'
+import type {
+  Ability,
+  AbilityKind,
+  PlayerUpgrades,
+  Ship,
+  ShipWeaponKind,
+  UpgradeDefinition,
+} from './types'
 
 // Back-compat re-export: WEAPON_UNLOCK_UPGRADE now lives in engine/abilities/.
 export { WEAPON_UNLOCK_UPGRADE } from './abilities'
+export { SHIP_WEAPON_UNLOCK_UPGRADE } from './ship'
 
-// Set of upgrade IDs that unlock a weapon. Used to filter unlock upgrades out
-// of per-weapon upgrade lists so the detail / max-detection views only see
-// modifier upgrades.
-export const UNLOCK_UPGRADE_IDS: ReadonlySet<UpgradeId> = new Set(
-  Object.values(WEAPON_UNLOCK_UPGRADE).filter((id): id is UpgradeId => id !== undefined)
-)
+// Set of upgrade IDs that unlock a weapon (ability OR ship weapon). Used to
+// filter unlock upgrades out of per-weapon upgrade lists so detail / max
+// detection views only see modifier upgrades.
+export const UNLOCK_UPGRADE_IDS: ReadonlySet<UpgradeId> = new Set([
+  ...Object.values(WEAPON_UNLOCK_UPGRADE).filter((id): id is UpgradeId => id !== undefined),
+  ...Object.values(SHIP_WEAPON_UNLOCK_UPGRADE).filter((id): id is UpgradeId => id !== undefined),
+])
 
 // Ship and power upgrades live here — they aren't per-ability so they don't
 // belong in engine/abilities/. Per-ability upgrades are imported from there
@@ -94,16 +104,28 @@ const shipAndPowerUpgrades: UpgradeDefinition[] = [
 ]
 
 export const UPGRADE_DEFINITIONS: Record<UpgradeId, UpgradeDefinition> = Object.fromEntries(
-  [...ABILITY_UPGRADE_DEFINITIONS, ...shipAndPowerUpgrades].map((d) => [d.id, d])
+  [...ABILITY_UPGRADE_DEFINITIONS, ...SHIP_WEAPON_UPGRADE_DEFINITIONS, ...shipAndPowerUpgrades].map(
+    (d) => [d.id, d]
+  )
 ) as Record<UpgradeId, UpgradeDefinition>
 
 // True when every modifier upgrade for `weapon` is at its max tier.
 export function isWeaponFullyMaxed(weapon: AbilityKind, upgrades: PlayerUpgrades): boolean {
+  return isModifierSetFullyMaxed(weapon, UpgradeCategory.weapons, upgrades)
+}
+
+// Parallel of isWeaponFullyMaxed for ship weapons (category: loadout).
+export function isShipWeaponFullyMaxed(weapon: ShipWeaponKind, upgrades: PlayerUpgrades): boolean {
+  return isModifierSetFullyMaxed(weapon, UpgradeCategory.loadout, upgrades)
+}
+
+function isModifierSetFullyMaxed(
+  weapon: AbilityKind | ShipWeaponKind,
+  category: UpgradeCategory,
+  upgrades: PlayerUpgrades
+): boolean {
   const modifiers = Object.values(UPGRADE_DEFINITIONS).filter(
-    (def) =>
-      def.category === UpgradeCategory.weapons &&
-      def.weapon === weapon &&
-      !UNLOCK_UPGRADE_IDS.has(def.id)
+    (def) => def.category === category && def.weapon === weapon && !UNLOCK_UPGRADE_IDS.has(def.id)
   )
   if (modifiers.length === 0) return false
   return modifiers.every((def) => upgrades[def.id].currentTier >= def.tiers.length)
@@ -112,6 +134,7 @@ export function isWeaponFullyMaxed(weapon: AbilityKind, upgrades: PlayerUpgrades
 export const UPGRADE_CATEGORY_LABELS: Record<UpgradeCategory, string> = {
   [UpgradeCategory.weapons]: 'Weapons',
   [UpgradeCategory.ship]: 'Ship',
+  [UpgradeCategory.loadout]: 'Loadout',
   [UpgradeCategory.powers]: 'Powers',
 }
 

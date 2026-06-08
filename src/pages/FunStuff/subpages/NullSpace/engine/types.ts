@@ -17,6 +17,18 @@ export const ShipKind = {
 } as const
 export type ShipKind = (typeof ShipKind)[keyof typeof ShipKind]
 
+// The ship's auto-attack weapon. Bullet is the default every ship starts with;
+// the rest are bought and equipped in the shop. Defined here (not in
+// engine/ship/) so Ship can reference it without a types→ship import cycle.
+export const ShipWeaponKind = {
+  bullet: 'bullet',
+  laser: 'laser',
+  missile: 'missile',
+  ricochet: 'ricochet',
+  nuke: 'nuke',
+} as const
+export type ShipWeaponKind = (typeof ShipWeaponKind)[keyof typeof ShipWeaponKind]
+
 export const EscapeModePhase = {
   charge: 'charge',
   dash: 'dash',
@@ -32,7 +44,9 @@ export type EscapeModeState = {
 export type Ship = Entity & {
   kind: ShipKind
   fireRate: number
-  fireCooldown: number
+  // One cooldown per weapon slot — different equipped weapons fire on their
+  // own cadence. Length equals weaponSlots.
+  fireCooldowns: number[]
   damage: number
   speed: number
   attackRange: number
@@ -42,6 +56,9 @@ export type Ship = Entity & {
   shieldRegen: number
   shieldCooldownRemaining: number
   weaponSlots: number
+  // The weapon equipped in each slot. Length equals weaponSlots. Carrier
+  // (weaponSlots=3) holds 3 distinct weapons; everything else holds one.
+  equippedWeapons: ShipWeaponKind[]
   // Cached last non-zero movement direction (unit vector). Falls back to {1,0}
   // at game start. Used by Escape Mode to dash when the ship is stationary.
   lastHeading: Vec2
@@ -96,6 +113,18 @@ export type Projectile = Entity & {
   damage: number
   lifetime: number
   prevPos?: Vec2
+  // Optional behavior tags written by ship-weapon createProjectiles. A plain
+  // bullet leaves them undefined and takes the unchanged collision path.
+  pierce?: { maxHits: number; hitEnemyIds: string[] }
+  homing?: boolean
+  bounce?: { remaining: number; hitEnemyIds: string[]; bounceRange: number }
+  detonate?: {
+    aoeRadius: number
+    blastDamage: number
+    wasteRadius: number
+    wasteDps: number
+    wasteDuration: number
+  }
 }
 
 export const AbilityKind = {
@@ -140,6 +169,7 @@ export const EffectKind = {
   rocket: 'rocket',
   shield: 'shield',
   sun: 'sun',
+  nuclearWaste: 'nuclearWaste',
 } as const
 export type EffectKind = (typeof EffectKind)[keyof typeof EffectKind]
 
@@ -189,12 +219,22 @@ export type SunEffect = EffectBase & {
   damagePerSec: number
 }
 
+// Lingering radioactive zone left by a nuke detonation. Same shape as SunEffect
+// — a DOT field that expires after `duration`. Kept as its own kind so the
+// renderer can paint it with its own visual.
+export type NuclearWasteEffect = EffectBase & {
+  kind: typeof EffectKind.nuclearWaste
+  radius: number
+  damagePerSec: number
+}
+
 export type ActiveEffect =
   | MeteorStrikeEffect
   | BlackHoleEffect
   | RocketEffect
   | ShieldEffect
   | SunEffect
+  | NuclearWasteEffect
 
 export const CollectibleKind = {
   powerOrb: 'powerOrb',
@@ -256,6 +296,7 @@ export type GamePhase = (typeof GamePhase)[keyof typeof GamePhase]
 export const UpgradeCategory = {
   weapons: 'weapons',
   ship: 'ship',
+  loadout: 'loadout',
   powers: 'powers',
 } as const
 export type UpgradeCategory = (typeof UpgradeCategory)[keyof typeof UpgradeCategory]
@@ -301,6 +342,20 @@ export const UpgradeId = {
   shipShieldStrength: 'shipShieldStrength',
   shipSpeed: 'shipSpeed',
   powerRegen: 'powerRegen',
+  // Ship-weapon unlocks + per-weapon modifiers (category: loadout).
+  unlockLaser: 'unlockLaser',
+  laserDamage: 'laserDamage',
+  laserPierce: 'laserPierce',
+  unlockMissile: 'unlockMissile',
+  missileDamage: 'missileDamage',
+  missileSpeed: 'missileSpeed',
+  unlockRicochet: 'unlockRicochet',
+  ricochetDamage: 'ricochetDamage',
+  ricochetBounces: 'ricochetBounces',
+  unlockNuke: 'unlockNuke',
+  nukeDamage: 'nukeDamage',
+  nukeBlastRadius: 'nukeBlastRadius',
+  nukeWasteDuration: 'nukeWasteDuration',
 } as const
 export type UpgradeId = (typeof UpgradeId)[keyof typeof UpgradeId]
 
@@ -312,8 +367,8 @@ export type UpgradeTier = {
 export type UpgradeDefinition = {
   id: UpgradeId
   category: UpgradeCategory
-  /** For weapon upgrades, which weapon this belongs to */
-  weapon?: AbilityKind
+  /** For weapon/loadout upgrades, which weapon this belongs to */
+  weapon?: AbilityKind | ShipWeaponKind
   label: string
   description: string
   tiers: UpgradeTier[]
@@ -356,6 +411,9 @@ export type GameState = {
   // screen. Buying any one clears the array — the player gets one unlock per
   // level-up at most. Empty between upgrade screens.
   levelUpWeaponOffers: AbilityKind[]
+  // Ship-weapon kinds the player has purchased this run. Starts with bullet;
+  // every successful ship-weapon unlock pushes its kind here. Resets per run.
+  unlockedWeapons: ShipWeaponKind[]
   // Accumulator that drives Escape Mode's flame-trail particle emission. Resets
   // to 0 when escape ends.
   escapeTrailAccumulator: number

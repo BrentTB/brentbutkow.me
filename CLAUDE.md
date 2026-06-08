@@ -154,6 +154,9 @@ This repo is a showcase — code should look as polished as the UI.
   - Good: `// One ripple per press — covers mouse and touch.`
 - **Named exports only — no `default`.** New files use named exports. Migrate existing defaults
   opportunistically as files are touched — don't churn unrelated files just to convert.
+- **No re-export shims when refactoring.** Moving/renaming a file or symbol? Update every call site to
+  the new path in the same change — never leave the old path re-exporting from the new one for
+  backwards-compat. Grep the old path/name, fix all importers, delete the old module.
 - **Extract reusable behaviour into utility files; don't bury it inline.** If a new primitive could
   plausibly serve another feature, put it in a dedicated helper with a generic signature and compose it.
   Canonical example: [homing.ts](src/pages/fun-stuff/subpages/NullSpace/engine/homing.ts) — a `homeTowardTarget`

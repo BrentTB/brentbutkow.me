@@ -8,6 +8,7 @@ import type {
   BlackHoleEffect,
   Enemy,
   MeteorStrikeEffect,
+  NuclearWasteEffect,
   Particle,
   Projectile,
   RocketEffect,
@@ -41,6 +42,7 @@ const EFFECT_TICK: Record<EffectKind, EffectTickFn> = {
   [EffectKind.rocket]: tickRocket,
   [EffectKind.shield]: tickShield,
   [EffectKind.sun]: tickSun,
+  [EffectKind.nuclearWaste]: tickNuclearWaste,
 }
 
 export function updateActiveEffects(
@@ -280,6 +282,31 @@ function tickSun(effect: ActiveEffect, ctx: EffectTickContext): EffectTickResult
 
   return {
     effect: sun,
+    enemies,
+    projectiles: ctx.projectiles,
+    particles: [],
+    scoreGained,
+    killedEnemies,
+  }
+}
+
+function tickNuclearWaste(effect: ActiveEffect, ctx: EffectTickContext): EffectTickResult {
+  const waste = effect as NuclearWasteEffect
+
+  if (waste.elapsed >= waste.duration) {
+    return passThrough(null, ctx)
+  }
+
+  const { enemies, scoreGained, killedEnemies } = damageEnemiesInRadius(
+    ctx.enemies,
+    waste.pos,
+    waste.radius,
+    waste.damagePerSec,
+    ctx.dt
+  )
+
+  return {
+    effect: waste,
     enemies,
     projectiles: ctx.projectiles,
     particles: [],
@@ -546,6 +573,23 @@ export function createSunEffect(
   return {
     id: uid(),
     kind: EffectKind.sun,
+    pos: { ...pos },
+    elapsed: 0,
+    duration,
+    radius,
+    damagePerSec,
+  }
+}
+
+export function createNuclearWasteEffect(
+  pos: { x: number; y: number },
+  radius: number,
+  damagePerSec: number,
+  duration: number
+): NuclearWasteEffect {
+  return {
+    id: uid(),
+    kind: EffectKind.nuclearWaste,
     pos: { ...pos },
     elapsed: 0,
     duration,

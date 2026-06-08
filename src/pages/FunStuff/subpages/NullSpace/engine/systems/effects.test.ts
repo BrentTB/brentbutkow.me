@@ -355,6 +355,36 @@ describe('updateActiveEffects', () => {
       expect(result.activeEffects.length).toBe(0)
     })
   })
+
+  // Nuke leaves a lingering DOT zone — same shape as the sun effect, kept as
+  // its own kind for the renderer.
+  describe('nuclearWaste', () => {
+    it('damages enemies inside its radius', async () => {
+      const { createNuclearWasteEffect } = await import('./effects')
+      const waste = createNuclearWasteEffect({ x: 0, y: 0 }, 100, 5, 4)
+      const inside = createEnemy(EnemyKind.tank, { x: 30, y: 0 })
+      const result = updateActiveEffects([waste], [inside], [], ship, 1.0)
+      const after = result.enemies.find((e) => e.id === inside.id)
+      if (after) {
+        expect(after.hp).toBeLessThan(inside.hp)
+      }
+    })
+
+    it('does not damage enemies outside its radius', async () => {
+      const { createNuclearWasteEffect } = await import('./effects')
+      const waste = createNuclearWasteEffect({ x: 0, y: 0 }, 100, 5, 4)
+      const outside = createEnemy(EnemyKind.drone, { x: 500, y: 0 })
+      const result = updateActiveEffects([waste], [outside], [], ship, 1.0)
+      expect(result.enemies[0]?.hp).toBe(outside.hp)
+    })
+
+    it('expires after duration', async () => {
+      const { createNuclearWasteEffect } = await import('./effects')
+      const waste = createNuclearWasteEffect({ x: 0, y: 0 }, 100, 5, 2)
+      const result = updateActiveEffects([waste], [], [], ship, 2.5)
+      expect(result.activeEffects.length).toBe(0)
+    })
+  })
 })
 
 describe('applyShieldConstraints', () => {

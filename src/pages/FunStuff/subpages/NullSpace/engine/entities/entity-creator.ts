@@ -6,7 +6,7 @@ import {
   ENEMY_STATS,
 } from '../../data'
 import { HELPER } from '../abilities/ability-data'
-import { DeathBehavior, EnemyKind, MovementBehavior, ShipKind } from '../types'
+import { DeathBehavior, EnemyKind, MovementBehavior, ShipKind, ShipWeaponKind } from '../types'
 import type { Ship, Enemy, Projectile, Vec2, Ally, Particle } from '../types'
 import { rng } from '../math/random'
 
@@ -50,12 +50,13 @@ export function createShip(kind: ShipKind, worldSize: Vec2): Ship {
     shieldRegen: s.shieldRegen,
     shieldCooldownRemaining: 0,
     fireRate: s.fireRate,
-    fireCooldown: 0,
+    fireCooldowns: Array(s.weaponSlots).fill(0),
     damage: s.damage,
     speed: s.speed,
     attackRange: s.attackRange,
     patrolAngle: 0,
     weaponSlots: s.weaponSlots,
+    equippedWeapons: Array(s.weaponSlots).fill(ShipWeaponKind.bullet),
     lastHeading: { x: 1, y: 0 },
     escapeMode: null,
   }

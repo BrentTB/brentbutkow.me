@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import {
   createInitialState,
+  equipShipWeapon,
   startGame,
   startNextWave,
   updateGameState,
@@ -17,6 +18,7 @@ import {
   GamePhase,
   ProjectileOwner,
   ShipKind,
+  ShipWeaponKind,
   UpgradeId,
 } from './types'
 import { isUpgradeWave } from './upgrades'
@@ -309,6 +311,95 @@ describe('levelUpWeaponOffers', () => {
     state = { ...state, currency: 1000 }
     state = applyUpgradeToState(state, UpgradeId.shipMaxHp)
     expect(state.levelUpWeaponOffers).toEqual(before)
+  })
+})
+
+describe('ship weapons in GameState', () => {
+  it('starts a run with only bullet unlocked', () => {
+    let state = startGame(createInitialState(), ShipKind.fighter)
+    state = startNextWave(state)
+    expect(state.unlockedWeapons).toEqual([ShipWeaponKind.bullet])
+  })
+
+  it('buying a ship-weapon unlock pushes the kind into unlockedWeapons', () => {
+    let state = startGame(createInitialState(), ShipKind.fighter)
+    state = startNextWave(state)
+    state = { ...state, currency: 1000 }
+    state = applyUpgradeToState(state, UpgradeId.unlockLaser)
+    expect(state.unlockedWeapons).toContain(ShipWeaponKind.laser)
+  })
+
+  it('buying the same unlock twice does not duplicate the kind in unlockedWeapons', () => {
+    let state = startGame(createInitialState(), ShipKind.fighter)
+    state = startNextWave(state)
+    state = { ...state, currency: 1000 }
+    state = applyUpgradeToState(state, UpgradeId.unlockLaser)
+    // applyUpgradeToState rejects a second purchase past the single tier, but
+    // we still want the array stable if it ever ran twice.
+    const beforeCount = state.unlockedWeapons.filter((k) => k === ShipWeaponKind.laser).length
+    state = applyUpgradeToState(state, UpgradeId.unlockLaser)
+    const afterCount = state.unlockedWeapons.filter((k) => k === ShipWeaponKind.laser).length
+    expect(afterCount).toBe(beforeCount)
+  })
+})
+
+describe('equipShipWeapon', () => {
+  it('rejects equipping a weapon that has not been unlocked', () => {
+    let state = startGame(createInitialState(), ShipKind.fighter)
+    state = startNextWave(state)
+    const before = state.ship.equippedWeapons
+    const next = equipShipWeapon(state, 0, ShipWeaponKind.laser)
+    expect(next.ship.equippedWeapons).toEqual(before)
+  })
+
+  it('equips an unlocked weapon into the given slot', () => {
+    let state = startGame(createInitialState(), ShipKind.fighter)
+    state = startNextWave(state)
+    state = { ...state, currency: 1000 }
+    state = applyUpgradeToState(state, UpgradeId.unlockLaser)
+    state = equipShipWeapon(state, 0, ShipWeaponKind.laser)
+    expect(state.ship.equippedWeapons[0]).toBe(ShipWeaponKind.laser)
+  })
+
+  it('carrier swaps duplicates between slots when equipping the same kind twice', () => {
+    let state = startGame(createInitialState(), ShipKind.carrier)
+    state = startNextWave(state)
+    state = { ...state, currency: 5000 }
+    state = applyUpgradeToState(state, UpgradeId.unlockLaser)
+    // Equip laser in slot 0; slots 1 and 2 still hold bullet.
+    state = equipShipWeapon(state, 0, ShipWeaponKind.laser)
+    expect(state.ship.equippedWeapons[0]).toBe(ShipWeaponKind.laser)
+    // Equipping laser in slot 2: the swap moves slot-2's previous bullet over
+    // to slot 0 (the prior laser location), so laser isn't duplicated.
+    state = equipShipWeapon(state, 2, ShipWeaponKind.laser)
+    expect(state.ship.equippedWeapons[2]).toBe(ShipWeaponKind.laser)
+    expect(state.ship.equippedWeapons[0]).toBe(ShipWeaponKind.bullet)
+    // Laser appears exactly once across the loadout.
+    expect(state.ship.equippedWeapons.filter((k) => k === ShipWeaponKind.laser)).toHaveLength(1)
+  })
+
+  it('carrier with three distinct unlocks can equip three different weapons', () => {
+    let state = startGame(createInitialState(), ShipKind.carrier)
+    state = startNextWave(state)
+    state = { ...state, currency: 5000 }
+    state = applyUpgradeToState(state, UpgradeId.unlockLaser)
+    state = applyUpgradeToState(state, UpgradeId.unlockMissile)
+    state = equipShipWeapon(state, 0, ShipWeaponKind.laser)
+    state = equipShipWeapon(state, 1, ShipWeaponKind.missile)
+    expect(state.ship.equippedWeapons).toEqual([
+      ShipWeaponKind.laser,
+      ShipWeaponKind.missile,
+      ShipWeaponKind.bullet,
+    ])
+    expect(new Set(state.ship.equippedWeapons).size).toBe(3)
+  })
+
+  it('rejects a slot index out of range', () => {
+    let state = startGame(createInitialState(), ShipKind.fighter)
+    state = startNextWave(state)
+    const before = state.ship.equippedWeapons
+    expect(equipShipWeapon(state, -1, ShipWeaponKind.bullet).ship.equippedWeapons).toEqual(before)
+    expect(equipShipWeapon(state, 5, ShipWeaponKind.bullet).ship.equippedWeapons).toEqual(before)
   })
 })
 

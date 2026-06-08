@@ -4,6 +4,8 @@ import {
   resolveEnemyAllyMeleeCollisions,
   resolveEnemyProjectileShipCollisions,
   resolveEnemyShipCollisions,
+  resolveProjectileEnemyCollisions,
+  updateProjectiles,
 } from './combat'
 import {
   createAlly,
@@ -12,6 +14,7 @@ import {
   createShip,
   resetUid,
 } from '../entities/entity-creator'
+import { buildShipProjectile } from '../ship'
 import { distance } from '../math/collision'
 import { EffectKind, EnemyKind, ProjectileOwner, ShipKind } from '../types'
 import type { ShieldEffect } from '../types'
@@ -128,6 +131,155 @@ describe('resolveEnemyAllyMeleeCollisions — bounce vs explode', () => {
     expect(result.enemies.length).toBe(0)
     expect(result.killedEnemies.length).toBe(1)
     expect(result.killedEnemies[0].kind).toBe(EnemyKind.bomber)
+  })
+})
+
+// --- Regression: plain bullets behave exactly as they did pre-weapons ---
+// If a future change adds new branches around the default collision path, this
+// guard catches accidental fallout. Land it BEFORE refactoring the loop.
+describe('resolveProjectileEnemyCollisions — bullet (default) unchanged', () => {
+  it('a single bullet hits one enemy, is consumed, and damage applies', () => {
+    const enemy = createEnemy(EnemyKind.drone, { x: 100, y: 0 })
+    const proj = createProjectile({ x: 0, y: 0 }, enemy.pos, ProjectileOwner.ship, 10)
+    // Place projectile at the enemy so the swept segment hits.
+    const swept = { ...proj, prevPos: { x: 0, y: 0 }, pos: { x: enemy.pos.x, y: enemy.pos.y } }
+    const result = resolveProjectileEnemyCollisions([swept], [enemy])
+    expect(result.projectiles).toHaveLength(0)
+    expect(result.enemies[0]?.hp ?? 0).toBeLessThan(enemy.hp)
+    expect(result.newEffects).toEqual([])
+  })
+
+  it('two bullets passing through the same dead enemy only consume the one that killed it', () => {
+    // Use 100-damage bullets vs a 20-hp drone so the first hit kills outright.
+    const enemy = createEnemy(EnemyKind.drone, { x: 100, y: 0 })
+    const p1 = {
+      ...createProjectile({ x: 0, y: 0 }, enemy.pos, ProjectileOwner.ship, 100),
+      prevPos: { x: 0, y: 0 },
+      pos: { x: enemy.pos.x, y: enemy.pos.y },
+    }
+    const p2 = {
+      ...createProjectile({ x: 0, y: 0 }, enemy.pos, ProjectileOwner.ship, 100),
+      prevPos: { x: 0, y: 0 },
+      pos: { x: enemy.pos.x, y: enemy.pos.y },
+    }
+    const result = resolveProjectileEnemyCollisions([p1, p2], [enemy])
+    // One bullet consumed; one survived through the corpse.
+    expect(result.projectiles).toHaveLength(1)
+    expect(result.enemies).toHaveLength(0)
+  })
+})
+
+describe('resolveProjectileEnemyCollisions — laser pierce', () => {
+  it('damages multiple enemies in one pass, up to maxHits', () => {
+    const enemies = [
+      createEnemy(EnemyKind.drone, { x: 100, y: 0 }),
+      createEnemy(EnemyKind.drone, { x: 200, y: 0 }),
+      createEnemy(EnemyKind.drone, { x: 300, y: 0 }),
+    ]
+    // Beam swept across all three — pierce=2 should hit the first two only.
+    const beam = buildShipProjectile({ x: 0, y: 0 }, { x: 1000, y: 0 }, 5, {
+      speed: 1000,
+      lifetime: 1,
+      pierce: { maxHits: 2, hitEnemyIds: [] },
+    })
+    beam.prevPos = { x: 0, y: 0 }
+    beam.pos = { x: 400, y: 0 }
+
+    const result = resolveProjectileEnemyCollisions([beam], enemies)
+    // Beam consumed once maxHits reached.
+    expect(result.projectiles).toHaveLength(0)
+    // First two damaged, third untouched.
+    expect(result.enemies.find((e) => e.id === enemies[0].id)?.hp).toBeLessThan(enemies[0].hp)
+    expect(result.enemies.find((e) => e.id === enemies[1].id)?.hp).toBeLessThan(enemies[1].hp)
+    expect(result.enemies.find((e) => e.id === enemies[2].id)?.hp).toBe(enemies[2].hp)
+    // Hit ids accumulated so subsequent ticks don't re-damage.
+    expect(beam.pierce?.hitEnemyIds).toHaveLength(2)
+  })
+})
+
+describe('resolveProjectileEnemyCollisions — ricochet bounce', () => {
+  it('redirects velocity toward the nearest unhit enemy in range after a hit', () => {
+    const a = createEnemy(EnemyKind.drone, { x: 100, y: 0 })
+    const b = createEnemy(EnemyKind.drone, { x: 120, y: 60 })
+    const proj = buildShipProjectile({ x: 0, y: 0 }, a.pos, 5, {
+      speed: 200,
+      lifetime: 3,
+      bounce: { remaining: 2, hitEnemyIds: [], bounceRange: 300 },
+    })
+    proj.prevPos = { x: 0, y: 0 }
+    proj.pos = { x: a.pos.x, y: a.pos.y }
+
+    const result = resolveProjectileEnemyCollisions([proj], [a, b])
+    // Projectile survives — one bounce left.
+    expect(result.projectiles).toHaveLength(1)
+    // Hit-list grew.
+    expect(proj.bounce?.hitEnemyIds).toContain(a.id)
+    expect(proj.bounce?.remaining).toBe(1)
+    // Velocity now points roughly toward `b` (positive x and y).
+    expect(proj.vel.x).toBeGreaterThan(0)
+    expect(proj.vel.y).toBeGreaterThan(0)
+  })
+
+  it('is consumed when no unhit enemy is in range', () => {
+    const a = createEnemy(EnemyKind.drone, { x: 100, y: 0 })
+    const proj = buildShipProjectile({ x: 0, y: 0 }, a.pos, 5, {
+      speed: 200,
+      lifetime: 3,
+      bounce: { remaining: 3, hitEnemyIds: [], bounceRange: 10 },
+    })
+    proj.prevPos = { x: 0, y: 0 }
+    proj.pos = { x: a.pos.x, y: a.pos.y }
+
+    const result = resolveProjectileEnemyCollisions([proj], [a])
+    // No bounce target → projectile consumed.
+    expect(result.projectiles).toHaveLength(0)
+  })
+})
+
+describe('resolveProjectileEnemyCollisions — nuke detonate', () => {
+  it('applies AoE damage and emits a nuclearWaste effect', () => {
+    const inBlast = createEnemy(EnemyKind.drone, { x: 110, y: 0 })
+    const outside = createEnemy(EnemyKind.drone, { x: 500, y: 0 })
+    const shell = buildShipProjectile({ x: 0, y: 0 }, { x: 100, y: 0 }, 50, {
+      speed: 100,
+      lifetime: 2,
+      radius: 8,
+      detonate: {
+        aoeRadius: 80,
+        blastDamage: 50,
+        wasteRadius: 100,
+        wasteDps: 5,
+        wasteDuration: 4,
+      },
+    })
+    shell.prevPos = { x: 0, y: 0 }
+    shell.pos = { x: inBlast.pos.x, y: inBlast.pos.y }
+
+    const result = resolveProjectileEnemyCollisions([shell], [inBlast, outside])
+    // Shell consumed.
+    expect(result.projectiles).toHaveLength(0)
+    // In-blast enemy took damage; outside one untouched.
+    expect(result.enemies.find((e) => e.id === outside.id)?.hp).toBe(outside.hp)
+    // Lingering nuclear-waste effect emitted.
+    expect(result.newEffects).toHaveLength(1)
+    expect(result.newEffects[0].kind).toBe(EffectKind.nuclearWaste)
+  })
+})
+
+describe('updateProjectiles — missile homing', () => {
+  it('re-aims velocity toward the nearest enemy each tick', () => {
+    const enemy = createEnemy(EnemyKind.drone, { x: 0, y: 200 })
+    // Missile starts moving in +x but enemy is in +y — homing should pull vel
+    // toward +y over a single tick.
+    const missile = buildShipProjectile({ x: 0, y: 0 }, { x: 100, y: 0 }, 5, {
+      speed: 200,
+      lifetime: 2,
+      homing: true,
+    })
+    const [advanced] = updateProjectiles([missile], [enemy], 0.05)
+    expect(advanced.vel.y).toBeGreaterThan(0)
+    // Y component should dominate by now since the enemy is straight up.
+    expect(advanced.vel.y).toBeGreaterThan(advanced.vel.x)
   })
 })
 

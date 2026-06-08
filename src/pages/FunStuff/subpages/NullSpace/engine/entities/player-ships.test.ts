@@ -227,7 +227,7 @@ describe("projectile-enemy collision — dead enemies don't absorb extra bullets
       projectiles: [projA, projB],
       // Force the ship's auto-attack onto cooldown so it doesn't spawn a
       // fresh projectile that confuses the count.
-      ship: { ...state.ship, fireCooldown: 999 },
+      ship: { ...state.ship, fireCooldowns: state.ship.fireCooldowns.map(() => 999) },
     }
     const next = updateGameState(state, 1 / 60, { clicks: [], selectedAbility: null })
 
@@ -267,7 +267,7 @@ describe("projectile-enemy collision — dead enemies don't absorb extra bullets
       waveTimer: 0,
       enemies: [enemy],
       projectiles: [projA, projB],
-      ship: { ...state.ship, fireCooldown: 999 },
+      ship: { ...state.ship, fireCooldowns: state.ship.fireCooldowns.map(() => 999) },
     }
     const next = updateGameState(state, 1 / 60, { clicks: [], selectedAbility: null })
 
@@ -311,7 +311,7 @@ describe("projectile-enemy collision — dead enemies don't absorb extra bullets
       waveTimer: 0,
       enemies: [enemy],
       projectiles: [projA, projB],
-      ship: { ...state.ship, fireCooldown: 999 },
+      ship: { ...state.ship, fireCooldowns: state.ship.fireCooldowns.map(() => 999) },
     }
     const next = updateGameState(state, 1 / 60, { clicks: [], selectedAbility: null })
 
@@ -360,7 +360,7 @@ describe("projectile-enemy collision — dead enemies don't absorb extra bullets
       waveTimer: 0,
       enemies: [enemyA, enemyB],
       projectiles: [projA, projB],
-      ship: { ...state.ship, fireCooldown: 999 },
+      ship: { ...state.ship, fireCooldowns: state.ship.fireCooldowns.map(() => 999) },
     }
     const next = updateGameState(state, 1 / 60, { clicks: [], selectedAbility: null })
 
@@ -387,7 +387,7 @@ describe('Carrier multi-weapon attack', () => {
     ]
     state = {
       ...state,
-      ship: { ...state.ship, fireCooldown: 0 },
+      ship: { ...state.ship, fireCooldowns: state.ship.fireCooldowns.map(() => 0) },
       spawnQueue: [],
       waveTimer: 0,
       projectiles: [],
@@ -410,7 +410,7 @@ describe('Carrier multi-weapon attack', () => {
     ]
     state = {
       ...state,
-      ship: { ...state.ship, fireCooldown: 0 },
+      ship: { ...state.ship, fireCooldowns: state.ship.fireCooldowns.map(() => 0) },
       spawnQueue: [],
       waveTimer: 0,
       projectiles: [],

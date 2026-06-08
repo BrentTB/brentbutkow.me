@@ -1,10 +1,11 @@
 import { SHIELD_COOLDOWN } from '../../data'
 import { distance } from '../math/collision'
 import { clamp } from '../math/utils'
-import { createParticle, createProjectile } from './entity-creator'
-import { EscapeModePhase, ProjectileOwner } from '../types'
-import type { Enemy, Particle, Projectile, Ship, Vec2 } from '../types'
+import { createParticle } from './entity-creator'
+import { EscapeModePhase } from '../types'
+import type { Enemy, Particle, PlayerUpgrades, Projectile, Ship, Vec2 } from '../types'
 import { ESCAPE_MODE } from '../spaceMetalAbilities/escape-mode'
+import { SHIP_WEAPON_DEFINITIONS } from '../ship'
 
 // Keeps the ship's centre fully inside the world rect (accounting for its
 // radius). Escape Mode moves the ship directly instead of via patrol, so it
@@ -153,31 +154,39 @@ export function updateShipAttack(
   ship: Ship,
   enemies: Enemy[],
   projectiles: Projectile[],
-  dt: number
+  dt: number,
+  upgrades: PlayerUpgrades
 ): { ship: Ship; projectiles: Projectile[] } {
-  let cooldown = ship.fireCooldown - dt
+  // Each slot ticks down independently — a slow Nuke slot doesn't block a fast
+  // Bullet slot on the same Carrier.
+  const fireCooldowns = ship.fireCooldowns.map((c) => Math.max(0, c - dt))
 
-  if (cooldown <= 0 && enemies.length > 0) {
-    // Sort enemies in range by distance and take up to weaponSlots targets
-    const inRange = enemies
-      .map((e) => ({ enemy: e, dist: distance(ship.pos, e.pos) }))
-      .filter((x) => x.dist < ship.attackRange)
-      .sort((a, b) => a.dist - b.dist)
-      .slice(0, ship.weaponSlots)
-
-    if (inRange.length > 0) {
-      for (const { enemy } of inRange) {
-        projectiles = [
-          ...projectiles,
-          createProjectile(ship.pos, enemy.pos, ProjectileOwner.ship, ship.damage),
-        ]
-      }
-      cooldown = 1 / ship.fireRate
-    }
+  if (enemies.length === 0) {
+    return { ship: { ...ship, fireCooldowns }, projectiles }
   }
 
-  return {
-    ship: { ...ship, fireCooldown: Math.max(0, cooldown) },
-    projectiles,
+  // Nearest in-range enemies, sorted by distance. A slot picks its target as
+  // the slot-index-th entry (so 3 ready slots fire at 3 distinct enemies); if
+  // fewer enemies than slots, multiple slots fall back to the nearest.
+  const inRange = enemies
+    .map((e) => ({ enemy: e, dist: distance(ship.pos, e.pos) }))
+    .filter((x) => x.dist < ship.attackRange)
+    .sort((a, b) => a.dist - b.dist)
+  if (inRange.length === 0) {
+    return { ship: { ...ship, fireCooldowns }, projectiles }
   }
+
+  let nextProjectiles = projectiles
+  for (let i = 0; i < ship.weaponSlots; i++) {
+    if (fireCooldowns[i] > 0) continue
+    const kind = ship.equippedWeapons[i] ?? ship.equippedWeapons[0]
+    const def = SHIP_WEAPON_DEFINITIONS[kind]
+    const target = inRange[Math.min(i, inRange.length - 1)].enemy
+    const damage = def.weaponDamage(ship.damage, upgrades)
+    const spawned = def.createProjectiles(ship.pos, target.pos, damage, upgrades)
+    nextProjectiles = [...nextProjectiles, ...spawned]
+    fireCooldowns[i] = 1 / (ship.fireRate * def.fireRateMultiplier)
+  }
+
+  return { ship: { ...ship, fireCooldowns }, projectiles: nextProjectiles }
 }
