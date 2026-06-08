@@ -10,6 +10,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "check": "tsc -b && eslint .",
+    "typecheck": "tsc -b",
+    "typecheck:fast": "tsc -p tsconfig.app.json --noEmit --incremental --tsBuildInfoFile node_modules/.cache/typecheck.tsbuildinfo",
     "test": "vitest run",
     "test:watch": "vitest",
     "prepare": "husky",

@@ -6,7 +6,9 @@ playful.
 
 ## Skills
 
-Before anything, ALWAYS run the Caveman + Token Reducer skills. Stop only if told to.
+ALWAYS invoke the Caveman + Token Reducer skills as the **very first action** on any task —
+before reading files, thinking, planning, or implementing, not just before replying. They are the
+first tool calls of your first turn. Stop only if told to.
 
 ## Stack
 
