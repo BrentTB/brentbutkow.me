@@ -1,5 +1,15 @@
-npm run check
-npm test
+#!/usr/bin/env sh
+set -e
+
+# Incremental type-check — only re-checks what changed (full tsc + eslint run in CI on PRs)
+npm run typecheck:fast
+
+# Lint + test only staged TS files (full eslint/test suite runs in CI on PRs)
+STAGED_TS=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(ts|tsx)$' || true)
+if [ -n "$STAGED_TS" ]; then
+  echo "$STAGED_TS" | xargs npx eslint
+  echo "$STAGED_TS" | xargs npx vitest related --run
+fi
 
 # Re-stage only the files that were already staged, so prettier fixes get committed
 STAGED=$(git diff --cached --name-only --diff-filter=ACMR)

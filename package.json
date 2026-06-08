@@ -10,11 +10,13 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "check": "tsc -b && eslint .",
+    "typecheck": "tsc -b",
+    "typecheck:fast": "tsc -p tsconfig.app.json --noEmit --incremental --tsBuildInfoFile node_modules/.cache/typecheck.tsbuildinfo",
     "test": "vitest run",
     "test:watch": "vitest",
     "prepare": "husky",
-    "format": "prettier --write \"src/**/*.{ts,tsx,css,scss}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx,css,scss}\""
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@vercel/analytics": "^1.6.1",

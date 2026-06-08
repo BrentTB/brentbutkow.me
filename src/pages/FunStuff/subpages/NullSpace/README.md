@@ -17,51 +17,24 @@ The game separates pure logic from rendering and React:
 
 ```
 NullSpace/
-├── engine/                   # Pure game logic — zero React imports, trivially testable
-│   ├── game-loop.ts          # Core update: updateGameState(state, dt, input) → state
-│   ├── types.ts              # All type definitions (Entity, GameState, Ship, Enemy, abilities, upgrades…)
-│   ├── upgrades.ts           # Upgrade catalog + tier math (derived from the ability definitions)
-│   ├── abilities/            # One file per ability, each self-registered into a single map
-│   │   ├── index.ts          #   ABILITY_DEFINITIONS — single source of truth; all lookup tables derive from it
-│   │   ├── ability-definition.ts # AbilityDefinition shape: meta, base stats, factories, upgrades, hold config
-│   │   ├── resolution.ts     #   Runtime: tryUseAbility, cooldown ticking, input → state changes
-│   │   ├── hold-runtime.ts   #   Generic hold-to-channel runner (arm gate, power drain, deactivate)
-│   │   ├── ability-data.ts   #   Per-ability tuning constants
-│   │   └── meteorite/meteor/black-hole/rocket/shield/sun/helper/telekinesis/solar-flare.ts  # Each ability
-│   ├── entities/             # Entity factories + per-entity behavior
-│   │   ├── entity-creator.ts #   Factories: createShip, createEnemy, createProjectile, particles, uid
-│   │   ├── ship.ts           #   Ship damage / firing / shield behavior
-│   │   ├── enemy.ts          #   Enemy targeting + movement
-│   │   └── ally.ts           #   Friendly ally (helper) behavior
-│   ├── systems/              # Per-frame simulation systems
-│   │   ├── combat.ts         #   Projectiles, collisions, damage resolution
-│   │   ├── spawner.ts        #   Enemy spawn positioning
-│   │   ├── economy.ts        #   Currency drops from kills
-│   │   ├── collectibles.ts   #   Power orbs + space metal (homing pickups)
-│   │   └── effects.ts        #   Active ability effects (black-hole pull, AoE, etc.)
-│   ├── math/                 # Pure math helpers
-│   │   ├── collision.ts      #   Circle-circle collision, distance, segment tests
-│   │   ├── aoe.ts            #   Area-of-effect damage queries
-│   │   ├── homing.ts        #   homeTowardTarget primitive
-│   │   ├── random.ts        #   Seeded RNG singleton
-│   │   └── utils.ts         #   clamp, etc.
-│   └── world/                # World / run-level state
-│       ├── waves.ts          #   Wave generation: getWave(n) → EnemyKind[]
-│       ├── time.ts           #   Frame timing (dt clamp, pause, speed)
-│       └── persistence.ts    #   localStorage high score with validation
-├── renderer/        # Canvas 2D rendering — reads state, draws frames
-│   ├── renderer.ts  # renderFrame(ctx, state, camera, sprites, stars)
-│   ├── camera.ts    # Ship-follow camera with smooth lerp
-│   ├── sprites.ts   # Pixel art sprite definitions as 2D color arrays
-│   ├── sprite-cache.ts # Pre-renders sprites to OffscreenCanvas at boot
-│   └── starfield.ts # Parallax star background
-├── components/      # React UI overlays (HTML, not canvas)
-│   ├── GameHUD.tsx     # HP bar, power bar, wave/score, ability buttons
-│   ├── GameOverlay.tsx # Menu, ship select, wave complete, game over screens
-│   └── DevConsole.tsx  # Dev/debug console overlay
-├── useNullSpace.ts    # Main hook: wires engine + renderer + input + React state
-├── NullSpace.tsx      # Page component: canvas + HUD + overlays
-└── data.ts            # Game constants (centralized for tuning)
+├── engine/        # Pure game logic — zero React imports, trivially testable
+│   ├── abilities/
+│   ├── entities/
+│   ├── math/
+│   ├── spaceMetalAbilities/
+│   ├── systems/
+│   └── world/
+├── renderer/      # Canvas 2D rendering — reads state, draws frames
+├── components/    # React UI overlays (HTML, not canvas)
+│   ├── Development/
+│   ├── GameHUD/
+│   ├── Icon/
+│   ├── PauseMenu/
+│   ├── StartScreen/
+│   └── UpgradeScreen/
+├── useNullSpace.ts # Main hook: wires engine + renderer + input + React state
+├── NullSpace.tsx   # Page component: canvas + HUD + overlays
+└── data.ts         # Game constants (centralized for tuning)
 ```
 
 Tests live colocated as `*.test.ts` beside the module they cover (e.g. `engine/systems/combat.test.ts`).

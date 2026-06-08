@@ -20,6 +20,7 @@ import { helper } from './helper'
 import { telekinesis } from './telekinesis'
 import { solarFlare } from './solar-flare'
 import type { AbilityDefinition } from './ability-definition'
+import type { IconName } from '../../icon-names'
 
 export type { AbilityDefinition } from './ability-definition'
 export { applyTierSum } from './ability-definition'
@@ -53,10 +54,10 @@ export const ABILITY_LIST: AbilityDefinition[] = Object.values(ABILITY_DEFINITIO
 
 // --- Derived lookup tables ---
 
-export const ABILITY_META: Record<AbilityKind, { icon: string; label: string }> =
+export const ABILITY_META: Record<AbilityKind, { icon: IconName; label: string }> =
   Object.fromEntries(ABILITY_LIST.map((d) => [d.kind, d.meta])) as Record<
     AbilityKind,
-    { icon: string; label: string }
+    { icon: IconName; label: string }
   >
 
 export const HOLD_ABILITIES: ReadonlySet<AbilityKind> = new Set(

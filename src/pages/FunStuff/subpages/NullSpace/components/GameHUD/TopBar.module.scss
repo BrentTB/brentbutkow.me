@@ -1,0 +1,113 @@
+.topBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: calc(8px * var(--hud-scale, 1)) calc(16px * var(--hud-scale, 1));
+  gap: calc(16px * var(--hud-scale, 1));
+}
+
+.bars {
+  display: flex;
+  flex-direction: column;
+  gap: calc(4px * var(--hud-scale, 1));
+}
+
+.barRow {
+  display: flex;
+  align-items: center;
+  gap: calc(8px * var(--hud-scale, 1));
+}
+
+.label {
+  font-size: calc(0.7rem * var(--hud-scale, 1));
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  min-width: calc(28px * var(--hud-scale, 1));
+}
+
+.barOuter {
+  width: calc(120px * var(--hud-scale, 1));
+  height: calc(6px * var(--hud-scale, 1));
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.barInner {
+  height: 100%;
+  transition: width 0.15s ease;
+  border-radius: 2px;
+}
+
+.barText {
+  font-size: calc(0.65rem * var(--hud-scale, 1));
+  color: var(--text-secondary);
+  min-width: calc(55px * var(--hud-scale, 1));
+}
+
+.info {
+  display: flex;
+  gap: calc(12px * var(--hud-scale, 1));
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.score,
+.currency {
+  font-size: calc(0.8rem * var(--hud-scale, 1));
+  color: var(--text);
+}
+
+.currency {
+  color: #c8a8ff;
+}
+
+.speedBadge {
+  font-size: calc(0.8rem * var(--hud-scale, 1));
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.iconBtn {
+  pointer-events: auto;
+  width: calc(28px * var(--hud-scale, 1));
+  height: calc(28px * var(--hud-scale, 1));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(0.85rem * var(--hud-scale, 1));
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.iconBtn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.iconBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .iconBtn {
+    width: 44px;
+    height: 44px;
+    font-size: 1.1rem;
+  }
+}
+
+.barShieldCooldown {
+  opacity: 0.5;
+}

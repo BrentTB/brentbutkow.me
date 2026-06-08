@@ -3,6 +3,7 @@ import { createShieldEffect } from '../systems/effects'
 import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
 import type { UpgradeDefinition } from '../types'
 import { applyTierSum, type AbilityDefinition } from './ability-definition'
+import { IconName } from '../../icon-names'
 
 const unlockUpgrade: UpgradeDefinition = {
   id: UpgradeId.unlockShield,
@@ -40,7 +41,7 @@ const radiusUpgrade: UpgradeDefinition = {
 
 export const shield: AbilityDefinition = {
   kind: AbilityKind.shield,
-  meta: { icon: '🛡', label: 'Shield' },
+  meta: { icon: IconName.shield, label: 'Shield' },
   activation: 'click',
   base: () => ({
     kind: AbilityKind.shield,

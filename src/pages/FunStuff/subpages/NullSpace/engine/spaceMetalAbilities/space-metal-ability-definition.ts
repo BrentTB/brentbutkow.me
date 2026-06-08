@@ -1,4 +1,5 @@
 import type { GameState } from '../types'
+import type { IconName } from '../../icon-names'
 
 export const SpaceMetalAbilityKind = {
   shieldRegen: 'shieldRegen',
@@ -19,7 +20,7 @@ export type SpaceMetalAbilityUIState = {
 
 export type SpaceMetalAbility = {
   kind: SpaceMetalAbilityKind
-  meta: { icon: string; label: string }
+  meta: { icon: IconName; label: string }
   cost: number
   // Single uppercase character (e.g. 'F'). Matched against
   // e.key.toUpperCase() in the global keyboard handler.

@@ -3,6 +3,7 @@ import { createRocketEffect } from '../systems/effects'
 import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
 import type { UpgradeDefinition } from '../types'
 import { applyTierSum, type AbilityDefinition } from './ability-definition'
+import { IconName } from '../../icon-names'
 
 const unlockUpgrade: UpgradeDefinition = {
   id: UpgradeId.unlockRocket,
@@ -40,7 +41,7 @@ const radiusUpgrade: UpgradeDefinition = {
 
 export const rocket: AbilityDefinition = {
   kind: AbilityKind.rocket,
-  meta: { icon: '🚀', label: 'Rocket' },
+  meta: { icon: IconName.rocket, label: 'Rocket' },
   activation: 'click',
   base: () => ({
     kind: AbilityKind.rocket,

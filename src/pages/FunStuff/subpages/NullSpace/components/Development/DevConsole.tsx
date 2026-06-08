@@ -1,6 +1,6 @@
-import { SHIP_ORDER, SHIP_VARIANTS } from '../data'
-import { GamePhase, ShipKind } from '../engine/types'
-import type { DevPatch, GameUIState } from '../useNullSpace'
+import { SHIP_ORDER, SHIP_VARIANTS } from '../../data'
+import { GamePhase, ShipKind } from '../../engine/types'
+import type { DevPatch, GameUIState } from '../../useNullSpace'
 import styles from './DevConsole.module.scss'
 
 type DevConsoleProps = {

@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Null Space icons</title>
+    <!--
+      Live icon gallery for the Null Space game. Run `npm run dev`, then open
+      http://localhost:5173/icon-gallery.html — it imports the real Icon.tsx, so
+      it always shows the current icons (with HMR). Dev-only: not part of the
+      production build (index.html is the only build entry).
+    -->
+    <style>
+      body {
+        margin: 0;
+        background: #0b0c0f;
+        color: #f3efe7;
+        font-family: ui-monospace, Menlo, monospace;
+        padding: 32px;
+      }
+      h1 {
+        font-weight: 600;
+        font-size: 1rem;
+        color: #8d8a82;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin: 0 0 24px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 16px;
+      }
+      .tile {
+        background: rgba(255, 255, 255, 0.025);
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        border-radius: 8px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      .btn {
+        width: 44px;
+        height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        border-radius: 6px;
+        color: #f3efe7;
+        font-size: 1.1rem;
+      }
+      .big {
+        font-size: 2.2rem;
+        display: inline-flex;
+      }
+      code {
+        color: #8d8a82;
+        font-size: 0.75rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script
+      type="module"
+      src="/src/pages/FunStuff/subpages/NullSpace/components/Icon/gallery-entry.tsx"
+    ></script>
+  </body>
+</html>

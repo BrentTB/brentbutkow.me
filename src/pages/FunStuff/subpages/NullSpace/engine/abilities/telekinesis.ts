@@ -2,6 +2,7 @@ import { TELEKINESIS } from './ability-data'
 import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
 import type { UpgradeDefinition } from '../types'
 import { applyTierSum, type AbilityDefinition } from './ability-definition'
+import { IconName } from '../../icon-names'
 import type { HoldAbilityConfig } from './hold-runtime'
 
 const unlockUpgrade: UpgradeDefinition = {
@@ -65,7 +66,7 @@ const telekinesisHold: HoldAbilityConfig = {
 
 export const telekinesis: AbilityDefinition = {
   kind: AbilityKind.telekinesis,
-  meta: { icon: '✋', label: 'Telekinesis' },
+  meta: { icon: IconName.telekinesis, label: 'Telekinesis' },
   activation: 'hold',
   base: () => ({
     kind: AbilityKind.telekinesis,

@@ -9,12 +9,13 @@ import type {
   Vec2,
 } from '../types'
 import type { HoldAbilityConfig } from './hold-runtime'
+import type { IconName } from '../../icon-names'
 
 export type AbilityActivation = 'click' | 'hold'
 
 export type AbilityDefinition = {
   kind: AbilityKind
-  meta: { icon: string; label: string }
+  meta: { icon: IconName; label: string }
   activation: AbilityActivation
   // True only for abilities the player has from the very first wave (currently
   // just meteorite). Everything else needs its `unlockUpgrade` to be purchased.

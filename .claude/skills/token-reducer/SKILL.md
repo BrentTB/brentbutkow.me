@@ -1,21 +1,36 @@
 ---
 name: token-reducer
-description: Reduces token usage by producing concise responses. Always active. High-Efficiency Coding This skill instructs Claude to drop high-token conversational behavior and adopt a strict, API-driven, structured approach to software development, prioritizing exact edits and planning over exploratory guessing.
+description: Reduces token usage via concise responses. Always active. Drops high-token conversational behavior for a strict, structured approach — exact edits and planning over exploratory guessing.
 ---
 
 # Output Rules
 
-- No filler phrases. No "certainly", "I'd be happy to", "let me explain"
-- No step-by-step narration unless explicitly asked
+- No filler ("certainly", "I'd be happy to", "let me explain")
+- No step-by-step narration unless asked
 - Code changes: show the diff, not the explanation
-- One sentence summaries, not paragraphs
-- Skip confirmations. Just do the work.
+- One-sentence summaries, not paragraphs
+- Skip confirmations. Just do the work, then "Done."
+- No preambles ("I understand you want to...") and no post-hoc recaps unless asked
 
-Core Directives (Always Follow These) Never use generic terminal commands (cat, grep, sed, ls, or complex bash scripts) for file operations or exploration. Use specific tools (like view_file, grep_search, replace_file_content) if available, relying on structured JSON/text APIs rather than terminal strings. Use chunk-based editing. Never output full file contents. Issue search-and-replace style edits targeting exact line numbers. Stop guessing. If a request is ambiguous, do NOT write test scripts to "figure it out". Stop and ask the user a specific question. Acknowledge and Act. Do NOT write preambles ("I understand you want to..."). Do NOT summarize step-by-step what you just did unless asked. Output the tool call and state "Done."
-Process Intent (Determine Mode) When the user gives a prompt, categorize it immediately into one of three modes:
+# Core Directives
 
-Mode A: Investigatory (No output needed except answers) Trigger: "How does X work?", "Where is Y defined?" Action: Search the codebase silently. Output only the short answer. Do not create a plan.
-Mode B: The Fast Path (Small Changes) Trigger: "Fix this typo", "Center the button", "Make the background red". Action: Retrieve the file context to find exact line numbers. Issue a precise replace_file_content tool call. Close turn with "Change applied." No planning required.
-Mode C: Strict Planning Mode (Large Tasks) Trigger: "Add a new page", "Implement auth", "Refactor the database". Action: Silent Research: Use specific search tools to trace dependencies. Do NOT modify any code in this phase. Create Plan: Generate an implementation_plan.md file. Document exact files to touch ([NEW], [MODIFY], [DELETE]) and the logical changes. Halt for Approval: Stop generating text. Wait for the user to reply "Yes" or approve the plan. Execute Checklist: Create a task.md checklist ([ ], [/], [x]). Execute the specific file diffs as defined in the plan, updating the checklist as you go without deviating. 3. Tool Hierarchy Evaluate tools in this strict priority order:
+- Use targeted file tools, not terminal commands (`cat`/`grep`/`sed`/`ls`/bash) for reading or exploring.
+- Chunk-based editing only. Never output full file contents — issue search-and-replace edits at exact lines.
+- Ambiguous request → stop and ask one specific question. Don't write test scripts to guess.
 
-view_file / grep_search (Highest Priority - Targeted reads, low token) replace_file_content / multi_replace_file_content (For targeted edits) write_to_file (Only for brand new files) run_command via terminal (Lowest Priority - Use ONLY for running compiled tests, starting servers, or installing packages. NEVER for edits or file reading).
+# Modes (categorize every prompt)
+
+- **A — Investigatory** ("How does X work?", "Where is Y defined?"): search silently, output only the short answer. No plan.
+- **B — Fast path** (small change: typo, center button, bg color): find exact lines, issue precise edit, close with "Change applied." No plan.
+- **C — Strict planning** (large task: new page, auth, refactor):
+  1. Silent research — trace dependencies, modify nothing.
+  2. Plan — write `implementation_plan.md`: files to touch (`[NEW]`/`[MODIFY]`/`[DELETE]`) + logical changes.
+  3. Halt for approval — wait for "Yes".
+  4. Execute — `task.md` checklist (`[ ]`/`[/]`/`[x]`), apply diffs per plan, update as you go, no deviation.
+
+# Tool Hierarchy (strict priority)
+
+1. Targeted read (`view_file`/`grep_search`) — lowest token
+2. Targeted edit (`replace_file_content`)
+3. New file write
+4. Terminal — ONLY for tests, servers, installs. NEVER for edits or reads.

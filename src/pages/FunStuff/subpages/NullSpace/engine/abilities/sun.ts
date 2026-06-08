@@ -3,6 +3,7 @@ import { createSunEffect } from '../systems/effects'
 import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
 import type { UpgradeDefinition } from '../types'
 import { applyTierSum, type AbilityDefinition } from './ability-definition'
+import { IconName } from '../../icon-names'
 
 const unlockUpgrade: UpgradeDefinition = {
   id: UpgradeId.unlockSun,
@@ -40,7 +41,7 @@ const durationUpgrade: UpgradeDefinition = {
 
 export const sun: AbilityDefinition = {
   kind: AbilityKind.sun,
-  meta: { icon: '☀', label: 'Sun' },
+  meta: { icon: IconName.sun, label: 'Sun' },
   activation: 'click',
   base: () => ({
     kind: AbilityKind.sun,

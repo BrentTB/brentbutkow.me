@@ -10,135 +10,164 @@ description: >-
 
 # CR — Code review against dev
 
-Review **staged changes** (committed branch work + `git add`-ed working-tree changes) between
-this branch and `dev`. The goal is a focused, high-signal review — not a lecture on the whole
-codebase.
+Review **staged changes** (committed branch work + `git add`-ed working-tree) between this branch and
+`dev`. Goal: focused, high-signal — not a lecture on the whole codebase.
 
-## 1. Establish the scope
+## Execution model — keep the raw diff out of the main context
 
-Only review what the user actually changed. Unstaged and untracked files are out of scope.
+The expensive part (full diffs + surrounding context + grep output) must **not** flood the main window.
 
-Run these as **separate, bare commands** — no `$(...)` capture, no `||`, no redirects — so each
-matches an allowlist prefix and runs without a permission prompt:
+- **Small change** (roughly ≤150 changed lines across ≤3 files): review **inline** — do §2 + §3
+  yourself, the context is small enough. Skip the fan-out overhead.
+- **Bigger**: **fan out**. Group the changed files by coupling (a component with its colocated
+  `*.module.scss` / `*.test.ts` / `data.ts` / `*.types.ts` = one group; standalone files = their own).
+  Spawn **one subagent per group** (Agent tool, `general-purpose`, all in parallel — multiple Agent
+  calls in a single message). Each subagent reads its files' diffs + context + greps **in its own
+  context** and returns **only structured findings** — never raw diff or context. Then you synthesize
+  (§4) and report (§5).
+
+  **Connector files** — a changed hub that several groups depend on (`routes.config.tsx`,
+  `data.types.ts`, `App.tsx`/`Router.tsx`, a barrel `index.ts`, or any changed file imported across
+  multiple groups) — do **not** belong in a folder group. Leave them for the §4 integration check,
+  where the full set of folder changes is known and coherence can actually be judged.
+
+  Each subagent can't see this file, so **paste §2 + §3 into its prompt**, plus: its file paths, the
+  base SHA, and these instructions —
+  - read its files' diffs: `git diff <base> -- <paths>` and `git diff --cached -- <paths>`;
+  - read surrounding context per §2;
+  - grep **all of `src/`** for every symbol it changed — consumers may live outside its group or
+    outside the diff entirely;
+  - apply every category in §3;
+  - return findings only, each as: `severity | title | file:line | why | fix`, plus a `changed symbols:`
+    list and any stale consumers found. No prose, no raw diff.
+
+## 1. Establish scope (cheap — runs in the main context)
+
+Only review what the user changed. Unstaged/untracked files are out of scope.
+
+Run as **separate, bare commands** — no `$(...)` capture, no `||`, no redirects — so each matches an
+allowlist prefix and runs without a prompt:
 
 ```bash
 git rev-parse --abbrev-ref HEAD     # current branch
 git merge-base origin/dev HEAD      # base SHA — if origin/dev is missing, run `git merge-base dev HEAD`
 ```
 
-Take the base SHA printed above and substitute it **literally** into the diff commands (write the
-actual SHA like `a1b2c3d`, never `$BASE`):
+Substitute the printed SHA **literally** (write the real SHA like `a1b2c3d`, never `$BASE`). These
+stay cheap — summaries and file lists only, **not** the full diff:
 
 ```bash
 git log a1b2c3d..HEAD --oneline   # committed branch changes
-git diff --cached --stat          # staged working-tree changes (on top of committed work)
-git diff a1b2c3d --stat           # committed changes summary
-git diff a1b2c3d                  # committed full diff
-git diff --cached                 # staged full diff
+git diff a1b2c3d --stat           # committed summary
+git diff a1b2c3d --name-only      # committed changed files
+git diff --cached --stat          # staged summary
+git diff --cached --name-only     # staged changed files
 ```
 
-If there are no committed branch changes and nothing staged, tell the user there's nothing
-to review and stop.
+No committed changes and nothing staged → tell the user there's nothing to review and stop. Use the
+file lists + line counts to pick inline vs fan-out and to group files. Full diffs (`git diff <base> --
+<paths>`, `git diff --cached -- <paths>`) are pulled by whoever reviews — you inline, or each subagent.
 
 ## 2. Read surrounding context
 
-A diff hunk in isolation lies. For every changed region, read enough context to understand
-the change:
+A diff hunk in isolation lies. For every changed region, read enough to understand it:
 
-- **The full function or component** containing each change, not just the 3-line hunk.
-- **The file's imports and exports** — what does this module expose, what does it depend on?
-- **Other files that import changed symbols** — grep for the symbol across `src/` to find
-  consumers. This is how you catch propagation gaps.
-- **Sibling files** in the same folder — `data.ts`, `*.types.ts`, `*.test.ts`,
-  `*.module.scss` — that are paired with the changed file.
-- **Type definitions** in `src/data/data.types.ts` or page-local `*.types.ts` when data
-  shapes are involved.
+- **The full function/component** containing each change, not just the hunk.
+- **The file's imports/exports** — what it exposes, what it depends on.
+- **Consumers** — grep the changed symbol across `src/` to catch propagation gaps.
+- **Sibling files** in the folder — `data.ts`, `*.types.ts`, `*.test.ts`, `*.module.scss` — paired
+  with the changed file.
+- **Type definitions** in `src/data/data.types.ts` or page-local `*.types.ts` when data shapes are involved.
 
-Use the Read tool and grep liberally. Speed doesn't matter — thoroughness does.
+Read and grep liberally. Thoroughness over speed.
 
 ## 3. Review checklist
 
-Work through each category below. For every finding, cite the specific `file:line` and
-explain **why** it's a problem, not just **what** it is.
+Work each category. For every finding cite `file:line` and explain **why** it's a problem, not just **what**.
 
 ### a. Incomplete propagation
 
-The highest-value category — changes made in one place that should have rippled elsewhere:
+Highest-value — changes in one place that should have rippled elsewhere:
 
-- **Renames / signature changes**: a function, prop, type, or constant renamed or reshaped
-  at its definition but a call site, test, `data.ts` literal, or sibling component still
-  uses the old name/shape. Grep for the old name across `src/`.
-- **Routing**: a route added/changed/removed in `routes.config.tsx` but `routePaths`,
-  `Router.tsx`, the Navbar, or `Link`/`SafeLink` `to=` values not kept in sync.
-- **Types vs. data**: a field added/removed from a type but `data.ts` files not updated to
-  match.
-- **Fun-mode duality**: new user-facing content added for one mode but not considered for the
-  other. If there's a `subtitle`, should there be a `subtitleFun`? Is new CSS animation
-  scoped to `:global(html.fun-mode) &`?
-- **Paired strings**: a label changed but its `aria-label`, mobile counterpart, or fun-mode
-  twin left stale.
-- **Design tokens**: a color/font hard-coded where the rest of the system reads a CSS custom
-  property from `index.scss`.
-- **Game changelog**: if any changed files belong to a game subsystem (e.g.
-  `src/pages/fun-stuff/subpages/NullSpace/`), check that the game's `data.ts` changelog
-  array and version have been updated to reflect the changes. Every game in this repo
-  maintains a changelog — missing entries are a propagation gap.
+- **Renames / signature changes**: a function, prop, type, or constant reshaped at its definition but
+  a call site, test, `data.ts` literal, or sibling still uses the old name/shape. Grep the old name across `src/`.
+- **Routing**: a route added/changed/removed in `routes.config.tsx` but `routePaths`, `Router.tsx`,
+  the Navbar, or `Link`/`SafeLink` `to=` values not kept in sync.
+- **Types vs data**: a field added/removed from a type but `data.ts` files not updated to match.
+- **Fun-mode duality**: new content for one mode but not the other. Is there a `subtitle` needing a
+  `subtitleFun`? Is new CSS animation scoped to `:global(html.fun-mode) &`?
+- **Paired strings**: a label changed but its `aria-label`, mobile counterpart, or fun-mode twin left stale.
+- **Design tokens**: a color/font hard-coded where the system reads a CSS custom property from `index.scss`.
+- **Game changelog**: if changed files belong to a game subsystem (e.g.
+  `src/pages/fun-stuff/subpages/NullSpace/`), check the game's `data.ts` `CHANGELOG` array and version
+  reflect the changes. Every game maintains a changelog — missing entries are a propagation gap.
 
-Confirm each finding with a grep before reporting — "I searched `src/` and found 3 stale
-references to the old name" is a finding; "this might be stale" is a guess.
+Confirm each finding with a grep before reporting — "searched `src/`, found 3 stale references" is a
+finding; "this might be stale" is a guess.
 
 ### b. Security
 
-Even though this site stores no user data today, flag anything that could become a problem:
+The site stores no user data today, but still flag:
 
 - `dangerouslySetInnerHTML` with unsanitized input.
 - Leaked keys, tokens, or credentials in committed code.
-- External URLs constructed from user input without validation.
+- External URLs built from user input without validation.
 - Dependencies with known vulnerabilities (if relevant files changed).
 - Raw `<a href>` to external URLs that should go through `SafeLink`.
 
 ### c. Code quality
 
-Apply the repo's documented bar (see CLAUDE.md):
+Apply the repo's documented bar (CLAUDE.md):
 
 - **Correctness & logic**: off-by-one, wrong/missing conditionals, async/await handling,
   error/empty/loading states, edge cases the happy path skips.
 - **Type safety**: no `any`, no casting untrusted data — use type guards like `isJokeType`.
-- **No magic-string union types**: flag any new `type Foo = 'a' | 'b'` — require the
-  `const` object + derived type pattern.
-- **Effect hygiene**: every `useEffect`/`requestAnimationFrame`/listener/timeout must clean
-  up on unmount. Missing cleanup is a bug, not a nit.
-- **Hook tests**: every custom hook (`useX`) must have a colocated `*.test.ts`. A new or
-  changed hook without a test is a must-fix.
+- **No magic-string union types**: flag any new `type Foo = 'a' | 'b'` — require the `const` object + derived type pattern.
+- **Effect hygiene**: every `useEffect`/`requestAnimationFrame`/listener/timeout must clean up on
+  unmount. Missing cleanup is a bug, not a nit.
+- **Hook tests**: every custom hook (`useX`) needs a colocated `*.test.ts`. A new/changed hook without one is a must-fix.
 - **Named exports only**: no `default` exports in new files.
-- **Naming & conventions**: file named after its primary export, content in `data.ts` not
-  JSX, folder-per-component layout.
-- **Comments**: lean, present-tense, explain *why* not *what*. No "previously…" or
-  "no longer…" narration. No comments that just restate the code.
+- **Naming & conventions**: file named after its primary export, content in `data.ts` not JSX, folder-per-component layout.
+- **Comments**: lean, present-tense, explain _why_ not _what_. No "previously…"/"no longer…" narration. No comments that restate the code.
 
 ### d. Refactoring opportunities
 
-Concrete improvements that would make the code cleaner, not hypothetical future-proofing:
+Concrete improvements, not hypothetical future-proofing:
 
-- **Duplication**: two+ components or blocks doing near-identical work that could be a shared
-  component, hook, or helper. Only flag when the code is genuinely the same idea — two things
-  that merely look similar but have independent reasons to change are not duplication.
-- **Simplification**: over-complicated expressions, unnecessary indirection, deeply nested
-  conditionals that could be early returns, verbose patterns that have a simpler idiomatic
-  equivalent.
-- **Dead code**: new functions, components, props, types, CSS classes, or `data.ts` entries
-  that nothing references. Grep to confirm — zero hits outside the definition means dead.
-- **Extraction**: a chunk of logic in a component that would be clearer as a custom hook or
-  utility function, especially if it mixes concerns (e.g. DOM manipulation inside business
-  logic).
+- **Duplication**: two+ blocks doing near-identical work that could share a component, hook, or helper.
+  Only flag genuinely-the-same-idea code — two things that merely look similar but change independently aren't duplication.
+- **Simplification**: over-complicated expressions, needless indirection, deep nesting that could be
+  early returns, verbose patterns with a simpler idiomatic equivalent.
+- **Dead code**: new functions, components, props, types, CSS classes, or `data.ts` entries nothing
+  references. Grep to confirm — zero hits outside the definition means dead.
+- **Extraction**: logic in a component clearer as a custom hook or utility, especially if it mixes
+  concerns (e.g. DOM manipulation inside business logic).
 
-For each suggestion, note the rough cost (how many call sites, how much code moves) so the
-user can judge whether it's worth it now.
+For each suggestion note the rough cost (call sites, code moved) so the user can judge if it's worth it now.
 
-## 4. Report
+## 4. Synthesize (main context)
 
-Present findings grouped by severity. Keep each finding tight: what, where (`file:line`),
-why it matters, and the fix.
+When fanning out, collect all subagents' findings, then:
+
+- **Dedupe** overlapping findings (same `file:line` + issue).
+- **Reconcile propagation across groups**: union every subagent's `changed symbols`; if one group's
+  change has a consumer another group flagged, keep it as one finding. (Each subagent already grepped
+  all of `src/`, so cross-group gaps are caught — just merge them.)
+- **Integration check at connector files**: for each connector/hub file (the ones set aside in the
+  Execution model section, plus any file the unioned `changed symbols` show is imported by ≥2 groups),
+  read just that file and confirm
+  it correctly wires every folder group's changes — new exports registered, routes added to
+  `routePaths`/`Router`/Navbar, type fields matched in `data.ts`, props threaded through. This is the
+  one place a whole-PR view is needed; connector files are small, so do it here in the main context.
+  If a connector file is large, delegate it to one more subagent with the `changed symbols` list.
+- **Group by severity** for the report.
+
+Don't re-read folder diffs here — work from the returned findings (the integration check reads only
+the connector files' current source, not diffs).
+
+## 5. Report
+
+Group findings by severity. Keep each tight: what, where (`file:line`), why, and the fix.
 
 ```
 ## Code review — <branch> vs dev
@@ -158,25 +187,21 @@ why it matters, and the fix.
 <Brief note on what's solid — keep it short.>
 ```
 
-- **🔴 Must fix**: bugs, missing cleanups, broken propagation, security issues, missing
-  hook tests.
-- **🟡 Should fix**: code quality issues, convention violations, incomplete fun-mode
-  handling.
-- **🟢 Consider**: refactoring opportunities, simplification suggestions, minor style
-  improvements.
+- **🔴 Must fix**: bugs, missing cleanups, broken propagation, security issues, missing hook tests.
+- **🟡 Should fix**: code quality issues, convention violations, incomplete fun-mode handling.
+- **🟢 Consider**: refactoring, simplification, minor style.
 
-If a category has no findings, say so in one line and move on. Don't manufacture findings
-to look thorough. A clean diff gets a short review.
+Empty category → say so in one line and move on. Don't manufacture findings. A clean diff gets a short review.
 
-## 5. Offer to fix
+## 6. Offer to fix
 
-After the report, offer to apply fixes — don't apply them unprompted:
+After the report, offer to apply fixes — don't apply unprompted:
 
-> Want me to apply these? I can do the 🔴 must-fixes (safe, mechanical), or all of them,
-> or just specific ones — your call.
+> Want me to apply these? I can do the 🔴 must-fixes (safe, mechanical), or all of them, or just specific ones — your call.
 
 When fixing:
+
 - Apply clear-cut, low-risk fixes directly.
 - For anything with a judgment call or behavior change, confirm the approach first.
-- After editing, re-run `npm run check` and `npm test`. Report the results.
-- Keep fixes scoped to the review — don't sneak in out-of-scope changes.
+- After editing, re-run `npm run check` and `npm test`. Report results.
+- Keep fixes scoped to the review — no out-of-scope changes.

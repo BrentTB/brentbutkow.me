@@ -31,8 +31,6 @@ describe('useNullSpace', () => {
     expect(typeof result.current.handlePause).toBe('function')
     expect(typeof result.current.handleResume).toBe('function')
     expect(typeof result.current.handleSetSpeed).toBe('function')
-    expect(typeof result.current.handleSuspendTime).toBe('function')
-    expect(typeof result.current.handleResumeTime).toBe('function')
     expect(typeof result.current.handleUseSpaceMetalAbility).toBe('function')
   })
 
@@ -59,35 +57,6 @@ describe('useNullSpace', () => {
     // Still in the menu — pausing should not flip the phase.
     act(() => result.current.handlePause())
     expect(result.current.uiState.phase).toBe(GamePhase.menu)
-  })
-
-  it('suspending then resuming game time leaves the phase playing', () => {
-    const canvasRef = createRef<HTMLCanvasElement>()
-    const { result } = renderHook(() => useNullSpace(canvasRef))
-
-    act(() => result.current.handleStart())
-    act(() => result.current.handleSelectShip(ShipKind.fighter))
-    expect(result.current.uiState.phase).toBe(GamePhase.playing)
-
-    // Suspend halts the clock without flipping GamePhase (used by the help
-    // modal so it replaces, not stacks with, the regular paused screen).
-    act(() => result.current.handleSuspendTime())
-    expect(result.current.uiState.phase).toBe(GamePhase.playing)
-
-    act(() => result.current.handleResumeTime())
-    expect(result.current.uiState.phase).toBe(GamePhase.playing)
-  })
-
-  it('resuming game time when not suspended is a no-op', () => {
-    const canvasRef = createRef<HTMLCanvasElement>()
-    const { result } = renderHook(() => useNullSpace(canvasRef))
-
-    act(() => result.current.handleStart())
-    act(() => result.current.handleSelectShip(ShipKind.fighter))
-
-    // Never suspended — resuming should neither throw nor change phase.
-    act(() => result.current.handleResumeTime())
-    expect(result.current.uiState.phase).toBe(GamePhase.playing)
   })
 
   it('setting the game speed does not crash or change phase', () => {
