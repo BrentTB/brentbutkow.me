@@ -1,0 +1,13 @@
+.ring {
+  position: absolute;
+  top: calc(3px * var(--hud-scale, 1));
+  right: calc(3px * var(--hud-scale, 1));
+  width: calc(12px * var(--hud-scale, 1));
+  height: calc(12px * var(--hud-scale, 1));
+  border-radius: 50%;
+  pointer-events: none;
+  // Center mask so the conic gradient reads as a thin ring, not a filled disc.
+  -webkit-mask: radial-gradient(circle, transparent 45%, #000 47%);
+  mask: radial-gradient(circle, transparent 45%, #000 47%);
+  box-shadow: 0 0 4px rgba(var(--accent-rgb), 0.5);
+}

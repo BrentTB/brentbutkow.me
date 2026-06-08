@@ -2,7 +2,7 @@ import { HELPER } from './ability-data'
 import { createAlly } from '../entities/entity-creator'
 import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
 import type { UpgradeDefinition } from '../types'
-import { applyTierSum, type AbilityDefinition } from './ability-definition'
+import { applyCostReduction, applyTierSum, type AbilityDefinition } from './ability-definition'
 import { IconName } from '../../icon-names'
 
 const unlockUpgrade: UpgradeDefinition = {
@@ -22,8 +22,8 @@ const maxHpUpgrade: UpgradeDefinition = {
   description: 'Increase ally maximum health',
   tiers: [
     { cost: 20, value: 10 },
-    { cost: 35, value: 20 },
-    { cost: 50, value: 30 },
+    { cost: 70, value: 20 },
+    { cost: 200, value: 30 },
   ],
 }
 
@@ -35,7 +35,22 @@ const damageUpgrade: UpgradeDefinition = {
   description: 'Increase ally attack damage',
   tiers: [
     { cost: 25, value: 1 },
-    { cost: 40, value: 2 },
+    { cost: 80, value: 2 },
+    { cost: 200, value: 3 },
+    { cost: 400, value: 4 },
+    { cost: 800, value: 5 },
+  ],
+}
+
+const costUpgrade: UpgradeDefinition = {
+  id: UpgradeId.helperCostReduction,
+  category: UpgradeCategory.weapons,
+  weapon: AbilityKind.helper,
+  label: 'Efficiency',
+  description: 'Reduce helper power cost',
+  tiers: [
+    { cost: 15, value: 8 },
+    { cost: 60, value: 10 },
   ],
 }
 
@@ -56,7 +71,8 @@ export const helper: AbilityDefinition = {
     unlocked: upgrades[UpgradeId.unlockHelper].currentTier > 0,
     maxHp: applyTierSum(HELPER.hp, upgrades, maxHpUpgrade),
     damage: applyTierSum(HELPER.damage, upgrades, damageUpgrade),
+    powerCost: applyCostReduction(HELPER.powerCost, upgrades, costUpgrade),
   }),
   unlockUpgrade,
-  modifierUpgrades: [maxHpUpgrade, damageUpgrade],
+  modifierUpgrades: [maxHpUpgrade, damageUpgrade, costUpgrade],
 }

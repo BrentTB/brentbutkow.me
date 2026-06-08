@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { loadHighScore, saveHighScore } from './persistence'
+import {
+  loadHighScore,
+  saveHighScore,
+  loadChangelogFilters,
+  saveChangelogFilters,
+  DEFAULT_CHANGELOG_FILTERS,
+} from './persistence'
 
 beforeEach(() => {
   localStorage.clear()
@@ -41,5 +47,48 @@ describe('saveHighScore', () => {
   it('floors the score', () => {
     saveHighScore(99.7)
     expect(loadHighScore()).toBe(99)
+  })
+})
+
+describe('loadChangelogFilters', () => {
+  it('returns defaults when nothing stored', () => {
+    expect(loadChangelogFilters()).toEqual(DEFAULT_CHANGELOG_FILTERS)
+  })
+
+  it('defaults architecture to false (hidden by default)', () => {
+    expect(DEFAULT_CHANGELOG_FILTERS.architecture).toBe(false)
+  })
+
+  it('defaults all other categories to true', () => {
+    expect(DEFAULT_CHANGELOG_FILTERS.breaking).toBe(true)
+    expect(DEFAULT_CHANGELOG_FILTERS.features).toBe(true)
+    expect(DEFAULT_CHANGELOG_FILTERS.balance).toBe(true)
+    expect(DEFAULT_CHANGELOG_FILTERS.fixes).toBe(true)
+    expect(DEFAULT_CHANGELOG_FILTERS.ui).toBe(true)
+  })
+
+  it('falls back to defaults on malformed JSON', () => {
+    localStorage.setItem('null-space-changelog-filters', '{not valid json')
+    expect(loadChangelogFilters()).toEqual(DEFAULT_CHANGELOG_FILTERS)
+  })
+
+  it('falls back to defaults when stored shape is wrong', () => {
+    localStorage.setItem('null-space-changelog-filters', JSON.stringify({ foo: 1 }))
+    expect(loadChangelogFilters()).toEqual(DEFAULT_CHANGELOG_FILTERS)
+  })
+})
+
+describe('saveChangelogFilters', () => {
+  it('round-trips a custom filter set', () => {
+    const filters = {
+      breaking: false,
+      features: true,
+      balance: false,
+      fixes: true,
+      ui: false,
+      architecture: true,
+    }
+    saveChangelogFilters(filters)
+    expect(loadChangelogFilters()).toEqual(filters)
   })
 })

@@ -2,7 +2,7 @@ import { METEORITE_STRIKE } from './ability-data'
 import { createMeteoriteEffect } from '../systems/effects'
 import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
 import type { UpgradeDefinition } from '../types'
-import { applyTierSum, type AbilityDefinition } from './ability-definition'
+import { applyCostReduction, applyTierSum, type AbilityDefinition } from './ability-definition'
 import { IconName } from '../../icon-names'
 
 const damageUpgrade: UpgradeDefinition = {
@@ -13,8 +13,10 @@ const damageUpgrade: UpgradeDefinition = {
   description: 'Increase meteorite strike damage',
   tiers: [
     { cost: 5, value: 5 },
-    { cost: 10, value: 5 },
-    { cost: 20, value: 10 },
+    { cost: 20, value: 5 },
+    { cost: 80, value: 10 },
+    { cost: 160, value: 15 },
+    { cost: 320, value: 25 },
   ],
 }
 
@@ -26,7 +28,8 @@ const costUpgrade: UpgradeDefinition = {
   description: 'Reduce meteorite power cost',
   tiers: [
     { cost: 8, value: 1 },
-    { cost: 16, value: 1 },
+    { cost: 32, value: 1 },
+    { cost: 128, value: 1 },
   ],
 }
 
@@ -46,7 +49,7 @@ export const meteorite: AbilityDefinition = {
     createMeteoriteEffect(pos, ability.damage, ability.aoeRadius, METEORITE_STRIKE.delay),
   applyUpgrades: (_ability, upgrades) => ({
     damage: applyTierSum(METEORITE_STRIKE.damage, upgrades, damageUpgrade),
-    powerCost: Math.max(1, applyTierSum(METEORITE_STRIKE.powerCost, upgrades, costUpgrade, -1)),
+    powerCost: applyCostReduction(METEORITE_STRIKE.powerCost, upgrades, costUpgrade),
   }),
   modifierUpgrades: [damageUpgrade, costUpgrade],
 }

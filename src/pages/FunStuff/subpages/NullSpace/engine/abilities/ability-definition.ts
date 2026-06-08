@@ -56,3 +56,16 @@ export function applyTierSum(
   }
   return value
 }
+
+// Floor a power cost can never drop below, however many efficiency tiers are bought.
+const MIN_POWER_COST = 1
+
+// Applies an efficiency upgrade: subtracts the purchased tiers from the base
+// power cost, floored so an ability never becomes free.
+export function applyCostReduction(
+  base: number,
+  upgrades: PlayerUpgrades,
+  upgradeDef: UpgradeDefinition
+): number {
+  return Math.max(MIN_POWER_COST, applyTierSum(base, upgrades, upgradeDef, -1))
+}

@@ -1,11 +1,9 @@
-import { ABILITY_META, WEAPON_UNLOCK_UPGRADE } from '../../engine/abilities'
-import { UPGRADE_DEFINITIONS } from '../../engine/upgrades'
+import { ABILITY_META } from '../../engine/abilities'
+import { UNLOCK_UPGRADE_IDS, UPGRADE_DEFINITIONS } from '../../engine/upgrades'
 import { AbilityKind, UpgradeCategory, UpgradeId } from '../../engine/types'
 import type { GameUIState } from '../../useNullSpace'
 import { UpgradeCard } from './UpgradeCard'
 import styles from './WeaponDetail.module.scss'
-
-const UNLOCK_UPGRADE_IDS = new Set(Object.values(WEAPON_UNLOCK_UPGRADE))
 
 type WeaponDetailProps = {
   weapon: AbilityKind

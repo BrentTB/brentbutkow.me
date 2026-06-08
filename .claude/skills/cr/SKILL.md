@@ -6,6 +6,7 @@ description: >-
   incomplete propagation, security issues, code quality, and refactoring opportunities.
   Use when the user asks for a code review, CR, or wants a second pair of eyes on their
   staged work before committing or pushing.
+model: opus
 ---
 
 # CR — Code review against dev
@@ -172,24 +173,24 @@ Group findings by severity. Keep each tight: what, where (`file:line`), why, and
 ```
 ## Code review — <branch> vs dev
 
-### 🔴 Must fix
+### 🚨 Critical issues
 - **<title>** — `path/file.tsx:42`
   <1-2 sentences: the problem and why it matters.>
   Fix: <the concrete change.>
 
-### 🟡 Should fix
+### ⚠️ Warnings
 - ...
 
-### 🟢 Consider
+### 📝 Notes
 - ...
 
 ### ✅ Looks good
 <Brief note on what's solid — keep it short.>
 ```
 
-- **🔴 Must fix**: bugs, missing cleanups, broken propagation, security issues, missing hook tests.
-- **🟡 Should fix**: code quality issues, convention violations, incomplete fun-mode handling.
-- **🟢 Consider**: refactoring, simplification, minor style.
+- **🚨 Critical issues**: bugs, missing cleanups, broken propagation, security issues, missing hook tests.
+- **⚠️ Warnings**: code quality issues, convention violations, incomplete fun-mode handling.
+- **📝 Notes**: refactoring, simplification, minor style.
 
 Empty category → say so in one line and move on. Don't manufacture findings. A clean diff gets a short review.
 

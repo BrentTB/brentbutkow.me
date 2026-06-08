@@ -70,11 +70,16 @@
     position: static;
     transform: none;
     max-width: none;
+    // Container passes touches through to the canvas (so taps in the gaps still
+    // shoot); the buttons below re-claim their own taps.
     pointer-events: none;
     gap: calc(6px * var(--hud-scale, 1));
   }
   .abilities {
     order: 2;
+  }
+  .abilityBtn {
+    pointer-events: auto;
   }
 }
 

@@ -1,7 +1,7 @@
 import { TELEKINESIS } from './ability-data'
 import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
 import type { UpgradeDefinition } from '../types'
-import { applyTierSum, type AbilityDefinition } from './ability-definition'
+import { applyCostReduction, applyTierSum, type AbilityDefinition } from './ability-definition'
 import { IconName } from '../../icon-names'
 import type { HoldAbilityConfig } from './hold-runtime'
 
@@ -22,7 +22,32 @@ const radiusUpgrade: UpgradeDefinition = {
   description: 'Increase telekinesis field radius',
   tiers: [
     { cost: 15, value: 30 },
-    { cost: 30, value: 50 },
+    { cost: 60, value: 50 },
+  ],
+}
+
+const costUpgrade: UpgradeDefinition = {
+  id: UpgradeId.telekinesisCostReduction,
+  category: UpgradeCategory.weapons,
+  weapon: AbilityKind.telekinesis,
+  label: 'Efficiency',
+  description: 'Reduce telekinesis power drain per second',
+  tiers: [
+    { cost: 12, value: 3 },
+    { cost: 48, value: 4 },
+  ],
+}
+
+const forceUpgrade: UpgradeDefinition = {
+  id: UpgradeId.telekinesisForce,
+  category: UpgradeCategory.weapons,
+  weapon: AbilityKind.telekinesis,
+  label: 'Force',
+  description: 'Increase telekinesis push strength',
+  tiers: [
+    { cost: 15, value: 75 },
+    { cost: 60, value: 125 },
+    { cost: 200, value: 200 },
   ],
 }
 
@@ -36,12 +61,13 @@ const telekinesisHold: HoldAbilityConfig = {
   // No drainInterval → continuous drain + onFrame every frame.
   onFrame: (bag, ability, holdPos, dt) => {
     const radius = ability.aoeRadius
+    const peakForce = ability.force ?? TELEKINESIS.force
     const forceAt = (dist: number) => {
       if (dist >= radius) return 0
       const x = dist / radius
-      if (x <= TELEKINESIS_PLATEAU) return TELEKINESIS.force
+      if (x <= TELEKINESIS_PLATEAU) return peakForce
       const t = (x - TELEKINESIS_PLATEAU) / (1 - TELEKINESIS_PLATEAU)
-      return TELEKINESIS.force * 0.5 * (Math.cos(Math.PI * t) + 1)
+      return peakForce * 0.5 * (Math.cos(Math.PI * t) + 1)
     }
     const sign = TELEKINESIS.mode === 'pull' ? 1 : -1
     const enemies = bag.enemies.map((enemy) => {
@@ -74,12 +100,15 @@ export const telekinesis: AbilityDefinition = {
     powerCost: TELEKINESIS.powerPerSec,
     damage: 0,
     aoeRadius: TELEKINESIS.radius,
+    force: TELEKINESIS.force,
   }),
   applyUpgrades: (_ability, upgrades) => ({
     unlocked: upgrades[UpgradeId.unlockTelekinesis].currentTier > 0,
     aoeRadius: applyTierSum(TELEKINESIS.radius, upgrades, radiusUpgrade),
+    powerCost: applyCostReduction(TELEKINESIS.powerPerSec, upgrades, costUpgrade),
+    force: applyTierSum(TELEKINESIS.force, upgrades, forceUpgrade),
   }),
   unlockUpgrade,
-  modifierUpgrades: [radiusUpgrade],
+  modifierUpgrades: [radiusUpgrade, costUpgrade, forceUpgrade],
   hold: telekinesisHold,
 }

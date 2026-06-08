@@ -6,6 +6,7 @@ description: >-
   (features, UI changes, bug fixes, refactors, etc.). Creates the PR if none exists, updates
   an empty description if the PR exists but has no body, or prints the existing description
   if the PR already has one.
+model: sonnet
 ---
 
 # PR — Create or update a pull request into dev
