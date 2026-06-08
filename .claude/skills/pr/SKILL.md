@@ -10,14 +10,14 @@ description: >-
 
 # PR — Create or update a pull request into dev
 
-## 1. Pre-flight: is the branch ready to PR?
+## 1. Pre-flight: branch ready to PR?
 
-Before doing anything else, verify the branch is in a pushable state. Run these checks and
-**stop with a clear message** if any fail — do not create or update a PR from a stale branch.
+Verify the branch is pushable. Run these checks; **stop with a clear message** if any fail — never
+PR from a stale branch.
 
-Run these as **separate, bare commands** — no `$(...)` capture, no redirects — so each matches an
-allowlist prefix and runs without a permission prompt. Read the current branch name first, then
-substitute it **literally** (write the real name like `my-branch`, never `$BRANCH`) into the rest:
+Run as **separate, bare commands** — no `$(...)` capture, no redirects — so each matches an allowlist
+prefix and runs without a prompt. Read the current branch name first, then substitute it **literally**
+(write the real name like `my-branch`, never `$BRANCH`):
 
 ```bash
 git rev-parse --abbrev-ref HEAD                       # current branch (fail if dev or main)
@@ -28,40 +28,47 @@ git log origin/my-branch..HEAD --oneline              # unpushed local commits
 git log HEAD..origin/dev --oneline                    # commits behind dev
 ```
 
-**Stop and tell the user** (do not proceed) if:
+**Stop and tell the user** if:
 
-- The current branch **is** `dev` or `main` — "You're on `dev`/`main`. Check out a feature
-  branch first."
-- The branch has **no remote tracking branch** or has **unpushed local commits** — "You have
-  unpushed commits. Run `git push` first."
-- The branch is **behind `origin/dev`** (i.e. `git log HEAD..origin/dev` shows commits) —
-  "Your branch is behind `origin/dev`. Rebase or merge dev first, then push."
+- Branch **is** `dev` or `main` — "You're on `dev`/`main`. Check out a feature branch first."
+- **No remote tracking branch** or **unpushed commits** — "You have unpushed commits. Run `git push` first."
+- **Behind `origin/dev`** (`git log HEAD..origin/dev` shows commits) — "Your branch is behind `origin/dev`. Rebase or merge dev first, then push."
 
-If all checks pass, continue.
+All pass → continue.
 
-## 2. Gather the diff
+## 2. Gather the diff — inline if small, subagent if big
 
-Collect everything that differs between this branch and `dev`:
+Compute the base and gauge size first (cheap, fine in the main context):
 
 ```bash
-git merge-base origin/dev HEAD   # base SHA
+git merge-base origin/dev HEAD   # base SHA — substitute literally below
+git diff a1b2c3d --stat          # files + insertions/deletions
 ```
 
-Substitute the printed SHA **literally** (write the real SHA like `a1b2c3d`, never `$BASE`):
+Read the `--stat` summary line. **Big** ≈ >500 changed lines or >20 files. Else **small**.
+
+**Small — read inline.** The raw diff is small enough for the main context:
 
 ```bash
 git log a1b2c3d..HEAD --oneline   # commit list
-git diff a1b2c3d --stat           # files changed summary
-git diff a1b2c3d                  # full diff
+git diff a1b2c3d                  # full diff — read carefully
 ```
 
-Read the full diff carefully. Understand what changed and why — commit messages, file names,
-and the code itself all contribute.
+Understand what changed and why (commits + file names + code). Draft the title + body per §3.
 
-## 3. Write the PR description
+**Big — delegate.** A large diff would flood the main context, so spawn **one subagent** (Agent tool,
+`general-purpose`) to read it in its own context and return only the distilled result. Prompt it to:
 
-Compose a PR title (under 70 characters, imperative mood) and a structured body. The body
-uses this format:
+- run `git log a1b2c3d..HEAD --oneline` and `git diff a1b2c3d`, reading the full diff carefully;
+- return **only** `TITLE: <title>` on line 1, a blank line, then the markdown body;
+- follow the title rule, template, and guidelines from §3 — **paste §3 into the prompt** (the subagent can't see this file).
+
+Parse the `TITLE:` line off the top; the rest is the body. The main context never holds the raw diff.
+
+## 3. Description format
+
+Title: imperative, under 70 chars. Body template — group changes under the applicable headings,
+**delete any heading with no entries**:
 
 ```markdown
 ## Summary
@@ -69,8 +76,6 @@ uses this format:
 <!-- 1-3 sentences: the high-level what and why -->
 
 ## Changes
-
-<!-- Group changes under the applicable headings below. Delete any heading with no entries. -->
 
 ### New features
 
@@ -99,13 +104,12 @@ uses this format:
 
 Guidelines:
 
-- Be specific: "add Black Hole ability with area-of-effect damage" not "add new ability".
-- Reference file paths where helpful for reviewers.
-- Each bullet is one logical change — don't list every file touched, group by intent.
-- Delete empty sections rather than leaving them with "None".
-- Keep it concise but complete — a reviewer should understand the full scope from the
-  description alone.
-- NEVER say written by Claude Code — the description should read like a human wrote it.
+- Specific: "add Black Hole ability with area-of-effect damage", not "add new ability".
+- Reference file paths where useful for reviewers.
+- One bullet per logical change — group by intent, don't list every file.
+- Delete empty sections, don't leave "None".
+- Concise but complete — a reviewer should grasp full scope from the description alone.
+- NEVER say written by Claude Code — it should read like a human wrote it.
 
 ## 4. Create or update the PR
 
@@ -117,29 +121,26 @@ gh pr view --json number,title,body,url 2>/dev/null
 
 ### Case A — No PR exists
 
-Write the body to a temp file with the **Write tool** (e.g. `/tmp/pr-body.md`), then create the
-PR with `--body-file` — no `$(...)` substitution, so it runs without a permission prompt:
+Write the body to a temp file with the **Write tool** (e.g. `/tmp/pr-body.md`), then create with
+`--body-file` (no `$(...)`, so no prompt):
 
 ```bash
 gh pr create --base dev --title "<title>" --body-file /tmp/pr-body.md
 ```
 
-Print the PR URL when done.
+Print the PR URL.
 
 ### Case B — PR exists but has an empty body
 
-Write the body to a temp file with the **Write tool** (e.g. `/tmp/pr-body.md`), then update with
-`--body-file`:
+Write the body to a temp file (**Write tool**, e.g. `/tmp/pr-body.md`), then update:
 
 ```bash
 gh pr edit --body-file /tmp/pr-body.md
 ```
 
-Tell the user the PR was updated and print the URL.
+Tell the user the PR was updated; print the URL.
 
 ### Case C — PR exists and already has a description
 
-Do **not** modify the PR. Instead, print the existing description to the chat so the user
-can see it. Then print the generated description below it under a heading like
-"**Generated description (not applied):**" so the user can compare or manually update if
-they want.
+Do **not** modify the PR. Print the existing description to the chat, then print the generated one
+below it under "**Generated description (not applied):**" so the user can compare or apply it manually.
