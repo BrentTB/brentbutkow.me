@@ -2,7 +2,7 @@ import { METEORITE_STRIKE } from './ability-data'
 import { createMeteoriteEffect } from '../systems/effects'
 import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
 import type { UpgradeDefinition } from '../types'
-import { applyTierSum, type AbilityDefinition } from './ability-definition'
+import { applyCostReduction, applyTierSum, type AbilityDefinition } from './ability-definition'
 import { IconName } from '../../icon-names'
 
 const damageUpgrade: UpgradeDefinition = {
@@ -49,7 +49,7 @@ export const meteorite: AbilityDefinition = {
     createMeteoriteEffect(pos, ability.damage, ability.aoeRadius, METEORITE_STRIKE.delay),
   applyUpgrades: (_ability, upgrades) => ({
     damage: applyTierSum(METEORITE_STRIKE.damage, upgrades, damageUpgrade),
-    powerCost: Math.max(1, applyTierSum(METEORITE_STRIKE.powerCost, upgrades, costUpgrade, -1)),
+    powerCost: applyCostReduction(METEORITE_STRIKE.powerCost, upgrades, costUpgrade),
   }),
   modifierUpgrades: [damageUpgrade, costUpgrade],
 }

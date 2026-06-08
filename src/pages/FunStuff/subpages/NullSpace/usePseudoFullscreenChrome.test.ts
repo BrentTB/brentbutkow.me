@@ -4,12 +4,17 @@ import { usePseudoFullscreenChrome } from './usePseudoFullscreenChrome'
 
 describe('usePseudoFullscreenChrome', () => {
   let scrollTo: ReturnType<typeof vi.fn>
+  const PAGE_HEIGHT = 5000
 
   beforeEach(() => {
     vi.useFakeTimers()
     scrollTo = vi.fn()
     vi.stubGlobal('scrollTo', scrollTo)
     window.scrollTo = scrollTo as unknown as typeof window.scrollTo
+    Object.defineProperty(document.body, 'scrollHeight', {
+      configurable: true,
+      value: PAGE_HEIGHT,
+    })
   })
 
   afterEach(() => {
@@ -26,10 +31,12 @@ describe('usePseudoFullscreenChrome', () => {
     expect(scrollTo).not.toHaveBeenCalled()
   })
 
-  it('nudges Safari to hide its chrome on entry', () => {
+  // Guards the substance of the fix: scroll to the page bottom (full scrollHeight),
+  // not a 1px nudge — the newer Safari tab bar only auto-hides at the bottom.
+  it('nudges Safari to the page bottom to hide its chrome on entry', () => {
     renderHook(() => usePseudoFullscreenChrome(true))
     vi.advanceTimersByTime(600)
-    expect(scrollTo).toHaveBeenCalledWith(0, expect.any(Number))
+    expect(scrollTo).toHaveBeenCalledWith(0, PAGE_HEIGHT)
   })
 
   // Regression: rotating the phone re-shows Safari's URL/tab bar, but the entry

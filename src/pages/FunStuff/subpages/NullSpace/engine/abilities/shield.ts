@@ -2,7 +2,7 @@ import { SHIELD } from './ability-data'
 import { createShieldEffect } from '../systems/effects'
 import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
 import type { UpgradeDefinition } from '../types'
-import { applyTierSum, type AbilityDefinition } from './ability-definition'
+import { applyCostReduction, applyTierSum, type AbilityDefinition } from './ability-definition'
 import { IconName } from '../../icon-names'
 
 const unlockUpgrade: UpgradeDefinition = {
@@ -71,7 +71,7 @@ export const shield: AbilityDefinition = {
     unlocked: upgrades[UpgradeId.unlockShield].currentTier > 0,
     aoeRadius: applyTierSum(SHIELD.radius, upgrades, radiusUpgrade),
     duration: applyTierSum(SHIELD.duration, upgrades, durationUpgrade),
-    powerCost: Math.max(1, applyTierSum(SHIELD.powerCost, upgrades, costUpgrade, -1)),
+    powerCost: applyCostReduction(SHIELD.powerCost, upgrades, costUpgrade),
   }),
   unlockUpgrade,
   modifierUpgrades: [durationUpgrade, radiusUpgrade, costUpgrade],

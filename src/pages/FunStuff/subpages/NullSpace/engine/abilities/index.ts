@@ -23,7 +23,7 @@ import type { AbilityDefinition } from './ability-definition'
 import type { IconName } from '../../icon-names'
 
 export type { AbilityDefinition } from './ability-definition'
-export { applyTierSum } from './ability-definition'
+export { applyTierSum, applyCostReduction } from './ability-definition'
 
 // Runtime helpers (turning input into state changes). Re-exported so any file
 // that used to import from `./abilities` still works after the move.

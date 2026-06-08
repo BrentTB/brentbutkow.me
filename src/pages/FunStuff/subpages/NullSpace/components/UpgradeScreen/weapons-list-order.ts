@@ -10,7 +10,7 @@ export function orderWeaponsForShop(
 ): AbilityKind[] {
   const byKind = new Map(abilities.map((a) => [a.kind, a]))
   const unlocked = abilities
-    .filter((a) => a.unlocked && a.unlockedAt !== null)
+    .filter((a) => a.unlocked)
     .sort((a, b) => (a.unlockedAt ?? 0) - (b.unlockedAt ?? 0))
     .map((a) => a.kind)
   const offered = WEAPON_ORDER.filter((kind) => {

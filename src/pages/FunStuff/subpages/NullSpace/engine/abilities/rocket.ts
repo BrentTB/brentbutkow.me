@@ -2,7 +2,7 @@ import { ROCKET } from './ability-data'
 import { createRocketEffect } from '../systems/effects'
 import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
 import type { UpgradeDefinition } from '../types'
-import { applyTierSum, type AbilityDefinition } from './ability-definition'
+import { applyCostReduction, applyTierSum, type AbilityDefinition } from './ability-definition'
 import { IconName } from '../../icon-names'
 
 const unlockUpgrade: UpgradeDefinition = {
@@ -71,7 +71,7 @@ export const rocket: AbilityDefinition = {
     unlocked: upgrades[UpgradeId.unlockRocket].currentTier > 0,
     damage: applyTierSum(ROCKET.damage, upgrades, damageUpgrade),
     aoeRadius: applyTierSum(ROCKET.aoeRadius, upgrades, radiusUpgrade),
-    powerCost: Math.max(1, applyTierSum(ROCKET.powerCost, upgrades, costUpgrade, -1)),
+    powerCost: applyCostReduction(ROCKET.powerCost, upgrades, costUpgrade),
   }),
   unlockUpgrade,
   modifierUpgrades: [damageUpgrade, radiusUpgrade, costUpgrade],

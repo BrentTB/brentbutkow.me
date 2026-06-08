@@ -1,24 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
-import { ChangelogCategory, type ChangelogFilters as Filters } from '../../engine/world/persistence'
+import { useEffect, useId, useRef, useState } from 'react'
+import {
+  CHANGELOG_CATEGORIES,
+  ChangelogCategory,
+  type ChangelogFilters as Filters,
+} from '../../engine/world/persistence'
 import styles from './ChangelogFilters.module.scss'
-
-const CATEGORY_LABELS: Record<ChangelogCategory, string> = {
-  [ChangelogCategory.breaking]: 'Breaking',
-  [ChangelogCategory.features]: 'Features',
-  [ChangelogCategory.balance]: 'Balance',
-  [ChangelogCategory.fixes]: 'Fixes',
-  [ChangelogCategory.ui]: 'User Interface',
-  [ChangelogCategory.architecture]: 'Internal Architecture',
-}
-
-const CATEGORY_ORDER: ChangelogCategory[] = [
-  ChangelogCategory.breaking,
-  ChangelogCategory.features,
-  ChangelogCategory.balance,
-  ChangelogCategory.fixes,
-  ChangelogCategory.ui,
-  ChangelogCategory.architecture,
-]
 
 type ChangelogFiltersProps = {
   filters: Filters
@@ -28,6 +14,7 @@ type ChangelogFiltersProps = {
 export function ChangelogFilters({ filters, onChange }: ChangelogFiltersProps) {
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const popoverId = useId()
   const enabledCount = Object.values(filters).filter(Boolean).length
 
   useEffect(() => {
@@ -37,8 +24,15 @@ export function ChangelogFilters({ filters, onChange }: ChangelogFiltersProps) {
         setOpen(false)
       }
     }
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
     document.addEventListener('mousedown', onDocClick)
-    return () => document.removeEventListener('mousedown', onDocClick)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', onDocClick)
+      document.removeEventListener('keydown', onKeyDown)
+    }
   }, [open])
 
   const toggle = (category: ChangelogCategory) => {
@@ -51,23 +45,25 @@ export function ChangelogFilters({ filters, onChange }: ChangelogFiltersProps) {
         type="button"
         className={styles.trigger}
         aria-expanded={open}
+        aria-controls={popoverId}
         onClick={() => setOpen((v) => !v)}
       >
-        Filter ({enabledCount}/{CATEGORY_ORDER.length})
+        Filter ({enabledCount}/{CHANGELOG_CATEGORIES.length})
         <span className={styles.caret} aria-hidden="true">
           ▾
         </span>
       </button>
       {open && (
-        <div className={styles.popover} role="group" aria-label="Changelog category filters">
-          {CATEGORY_ORDER.map((category) => (
-            <label key={category} className={styles.option}>
-              <input
-                type="checkbox"
-                checked={filters[category]}
-                onChange={() => toggle(category)}
-              />
-              <span>{CATEGORY_LABELS[category]}</span>
+        <div
+          id={popoverId}
+          className={styles.popover}
+          role="group"
+          aria-label="Changelog category filters"
+        >
+          {CHANGELOG_CATEGORIES.map(({ key, label }) => (
+            <label key={key} className={styles.option}>
+              <input type="checkbox" checked={filters[key]} onChange={() => toggle(key)} />
+              <span>{label}</span>
             </label>
           ))}
         </div>

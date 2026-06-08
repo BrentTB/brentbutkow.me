@@ -23,9 +23,8 @@ export function saveHighScore(score: number): void {
   }
 }
 
-// Changelog filter persistence. Keys mirror the ChangelogEntry.changes shape so
-// each toggle maps 1:1 to a category. Architecture defaults to false so the
-// noisy internal entries are hidden until the player opts in.
+// Architecture defaults to false to hide the noisy internal entries until the
+// player opts in.
 const CHANGELOG_FILTERS_KEY = 'null-space-changelog-filters'
 
 export const ChangelogCategory = {
@@ -49,6 +48,17 @@ export const DEFAULT_CHANGELOG_FILTERS: ChangelogFilters = {
   architecture: false,
 }
 
+// Display order + labels for changelog categories — single source of truth for
+// the filter dropdown and the changelog render.
+export const CHANGELOG_CATEGORIES: { key: ChangelogCategory; label: string }[] = [
+  { key: ChangelogCategory.breaking, label: 'Breaking' },
+  { key: ChangelogCategory.features, label: 'Features' },
+  { key: ChangelogCategory.balance, label: 'Balance' },
+  { key: ChangelogCategory.fixes, label: 'Fixes' },
+  { key: ChangelogCategory.ui, label: 'User Interface' },
+  { key: ChangelogCategory.architecture, label: 'Internal Architecture' },
+]
+
 function isChangelogFilters(value: unknown): value is ChangelogFilters {
   if (!value || typeof value !== 'object') return false
   const obj = value as Record<string, unknown>
@@ -61,7 +71,12 @@ export function loadChangelogFilters(): ChangelogFilters {
     if (raw === null) return { ...DEFAULT_CHANGELOG_FILTERS }
     const parsed: unknown = JSON.parse(raw)
     if (!isChangelogFilters(parsed)) return { ...DEFAULT_CHANGELOG_FILTERS }
-    return parsed
+    // Rebuild from known categories so a renamed/removed key in an old blob is dropped.
+    const result = { ...DEFAULT_CHANGELOG_FILTERS }
+    for (const key of Object.values(ChangelogCategory)) {
+      result[key] = parsed[key]
+    }
+    return result
   } catch {
     return { ...DEFAULT_CHANGELOG_FILTERS }
   }

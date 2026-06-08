@@ -2,7 +2,7 @@ import { METEOR_STRIKE } from './ability-data'
 import { createMeteorEffect } from '../systems/effects'
 import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
 import type { UpgradeDefinition } from '../types'
-import { applyTierSum, type AbilityDefinition } from './ability-definition'
+import { applyCostReduction, applyTierSum, type AbilityDefinition } from './ability-definition'
 import { IconName } from '../../icon-names'
 
 const unlockUpgrade: UpgradeDefinition = {
@@ -70,7 +70,7 @@ export const meteor: AbilityDefinition = {
   applyUpgrades: (_ability, upgrades) => ({
     unlocked: upgrades[UpgradeId.unlockMeteor].currentTier > 0,
     damage: applyTierSum(METEOR_STRIKE.damage, upgrades, damageUpgrade),
-    powerCost: Math.max(1, applyTierSum(METEOR_STRIKE.powerCost, upgrades, costUpgrade, -1)),
+    powerCost: applyCostReduction(METEOR_STRIKE.powerCost, upgrades, costUpgrade),
     aoeRadius: applyTierSum(METEOR_STRIKE.aoeRadius, upgrades, radiusUpgrade),
   }),
   unlockUpgrade,

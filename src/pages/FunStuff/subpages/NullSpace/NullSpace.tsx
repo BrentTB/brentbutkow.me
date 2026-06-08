@@ -10,6 +10,7 @@ import { ChangelogFilters } from './components/ChangelogFilters/ChangelogFilters
 import { GAME_VERSION, CHANGELOG } from './data'
 import { computeHudScale } from './renderer/camera'
 import {
+  CHANGELOG_CATEGORIES,
   loadChangelogFilters,
   saveChangelogFilters,
   type ChangelogFilters as ChangelogFiltersState,
@@ -164,19 +165,11 @@ export function NullSpace() {
         <ToggleableSection title={`Release Notes (v${GAME_VERSION})`}>
           <ChangelogFilters filters={changelogFilters} onChange={handleChangelogFiltersChange} />
           {CHANGELOG.map((entry) => {
-            const groups: { key: keyof typeof entry.changes; label: string; items?: string[] }[] = [
-              { key: 'breaking', label: 'Breaking', items: entry.changes.breaking },
-              { key: 'features', label: 'Features', items: entry.changes.features },
-              { key: 'balance', label: 'Balance', items: entry.changes.balance },
-              { key: 'fixes', label: 'Fixes', items: entry.changes.fixes },
-              { key: 'ui', label: 'User Interface', items: entry.changes.ui },
-              {
-                key: 'architecture',
-                label: 'Internal Architecture',
-                items: entry.changes.architecture,
-              },
-            ]
-            const visible = groups.filter((g) => changelogFilters[g.key] && g.items?.length)
+            const visible = CHANGELOG_CATEGORIES.map(({ key, label }) => ({
+              key,
+              label,
+              items: entry.changes[key],
+            })).filter((g) => changelogFilters[g.key] && g.items?.length)
             if (visible.length === 0) return null
             return (
               <div key={entry.version} className={styles.version}>

@@ -1,7 +1,7 @@
 import { TELEKINESIS } from './ability-data'
 import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
 import type { UpgradeDefinition } from '../types'
-import { applyTierSum, type AbilityDefinition } from './ability-definition'
+import { applyCostReduction, applyTierSum, type AbilityDefinition } from './ability-definition'
 import { IconName } from '../../icon-names'
 import type { HoldAbilityConfig } from './hold-runtime'
 
@@ -105,7 +105,7 @@ export const telekinesis: AbilityDefinition = {
   applyUpgrades: (_ability, upgrades) => ({
     unlocked: upgrades[UpgradeId.unlockTelekinesis].currentTier > 0,
     aoeRadius: applyTierSum(TELEKINESIS.radius, upgrades, radiusUpgrade),
-    powerCost: Math.max(1, applyTierSum(TELEKINESIS.powerPerSec, upgrades, costUpgrade, -1)),
+    powerCost: applyCostReduction(TELEKINESIS.powerPerSec, upgrades, costUpgrade),
     force: applyTierSum(TELEKINESIS.force, upgrades, forceUpgrade),
   }),
   unlockUpgrade,

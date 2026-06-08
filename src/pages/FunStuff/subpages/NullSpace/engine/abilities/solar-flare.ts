@@ -4,7 +4,7 @@ import { createParticle, spawnExplosionParticles } from '../entities/entity-crea
 import { rng } from '../math/random'
 import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
 import type { Enemy, UpgradeDefinition } from '../types'
-import { applyTierSum, type AbilityDefinition } from './ability-definition'
+import { applyCostReduction, applyTierSum, type AbilityDefinition } from './ability-definition'
 import { IconName } from '../../icon-names'
 import type { HoldAbilityConfig } from './hold-runtime'
 
@@ -143,7 +143,7 @@ export const solarFlare: AbilityDefinition = {
   applyUpgrades: (_ability, upgrades) => ({
     unlocked: upgrades[UpgradeId.unlockSolarFlare].currentTier > 0,
     damage: applyTierSum(SOLAR_FLARE.damagePerTick, upgrades, damageUpgrade),
-    powerCost: Math.max(1, applyTierSum(SOLAR_FLARE.powerPerSec, upgrades, efficiencyUpgrade, -1)),
+    powerCost: applyCostReduction(SOLAR_FLARE.powerPerSec, upgrades, efficiencyUpgrade),
     aoeRadius: applyTierSum(SOLAR_FLARE.beamWidth, upgrades, radiusUpgrade),
   }),
   unlockUpgrade,

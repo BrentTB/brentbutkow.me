@@ -2,7 +2,7 @@ import { HELPER } from './ability-data'
 import { createAlly } from '../entities/entity-creator'
 import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
 import type { UpgradeDefinition } from '../types'
-import { applyTierSum, type AbilityDefinition } from './ability-definition'
+import { applyCostReduction, applyTierSum, type AbilityDefinition } from './ability-definition'
 import { IconName } from '../../icon-names'
 
 const unlockUpgrade: UpgradeDefinition = {
@@ -71,7 +71,7 @@ export const helper: AbilityDefinition = {
     unlocked: upgrades[UpgradeId.unlockHelper].currentTier > 0,
     maxHp: applyTierSum(HELPER.hp, upgrades, maxHpUpgrade),
     damage: applyTierSum(HELPER.damage, upgrades, damageUpgrade),
-    powerCost: Math.max(1, applyTierSum(HELPER.powerCost, upgrades, costUpgrade, -1)),
+    powerCost: applyCostReduction(HELPER.powerCost, upgrades, costUpgrade),
   }),
   unlockUpgrade,
   modifierUpgrades: [maxHpUpgrade, damageUpgrade, costUpgrade],

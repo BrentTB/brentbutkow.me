@@ -207,7 +207,7 @@ describe('UNLOCK_UPGRADE_IDS', () => {
   })
 })
 
-describe('telekinesis force upgrade (regression)', () => {
+describe('telekinesis force upgrade', () => {
   it('purchasing telekinesisForce increases ability.force', () => {
     const baseTk = createAbilities().find((a) => a.kind === AbilityKind.telekinesis)
     if (!baseTk) throw new Error('telekinesis not in createAbilities')

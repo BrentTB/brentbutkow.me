@@ -20,7 +20,6 @@ import type {
   SunEffect,
 } from '../engine/types'
 import { POWER_ORB, SPACE_METAL } from '../data'
-import { TELEKINESIS } from '../engine/abilities/ability-data'
 import type { Camera } from './camera'
 import { isWithinView, worldToScreen } from './camera'
 import type { SpriteCache } from './sprite-cache'
@@ -597,8 +596,8 @@ function renderTelekinesis(ctx: CanvasRenderingContext2D, state: GameState, came
   if (!hold?.active || !hold.target) return
   const center = worldToScreen(hold.target, camera)
   const tkAbility = state.abilities.find((a) => a.kind === AbilityKind.telekinesis)
-  const worldRadius = tkAbility?.aoeRadius ?? TELEKINESIS.radius
-  const screenRadius = worldRadius * camera.zoom
+  if (!tkAbility) return
+  const screenRadius = tkAbility.aoeRadius * camera.zoom
 
   ctx.save()
 

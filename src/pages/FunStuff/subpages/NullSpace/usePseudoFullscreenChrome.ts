@@ -20,6 +20,9 @@ export function usePseudoFullscreenChrome(active: boolean) {
     let pending: ReturnType<typeof setTimeout>[] = []
     const hideChrome = () => {
       const max = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight)
+      // Skip if already at the bottom, so the resize Safari fires while hiding its
+      // own chrome doesn't bounce back into another scroll.
+      if (window.scrollY + window.innerHeight >= max) return
       window.scrollTo(0, max)
     }
     const nudge = () => {
