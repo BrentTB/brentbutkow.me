@@ -26,6 +26,11 @@ The expensive part (full diffs + surrounding context + grep output) must **not**
   context** and returns **only structured findings** — never raw diff or context. Then you synthesize
   (§4) and report (§5).
 
+  **Connector files** — a changed hub that several groups depend on (`routes.config.tsx`,
+  `data.types.ts`, `App.tsx`/`Router.tsx`, a barrel `index.ts`, or any changed file imported across
+  multiple groups) — do **not** belong in a folder group. Leave them for the §4 integration check,
+  where the full set of folder changes is known and coherence can actually be judged.
+
   Each subagent can't see this file, so **paste §2 + §3 into its prompt**, plus: its file paths, the
   base SHA, and these instructions —
   - read its files' diffs: `git diff <base> -- <paths>` and `git diff --cached -- <paths>`;
@@ -148,9 +153,17 @@ When fanning out, collect all subagents' findings, then:
 - **Reconcile propagation across groups**: union every subagent's `changed symbols`; if one group's
   change has a consumer another group flagged, keep it as one finding. (Each subagent already grepped
   all of `src/`, so cross-group gaps are caught — just merge them.)
+- **Integration check at connector files**: for each connector/hub file (the ones set aside in the
+  Execution model section, plus any file the unioned `changed symbols` show is imported by ≥2 groups),
+  read just that file and confirm
+  it correctly wires every folder group's changes — new exports registered, routes added to
+  `routePaths`/`Router`/Navbar, type fields matched in `data.ts`, props threaded through. This is the
+  one place a whole-PR view is needed; connector files are small, so do it here in the main context.
+  If a connector file is large, delegate it to one more subagent with the `changed symbols` list.
 - **Group by severity** for the report.
 
-Don't re-read diffs here — work from the returned findings.
+Don't re-read folder diffs here — work from the returned findings (the integration check reads only
+the connector files' current source, not diffs).
 
 ## 5. Report
 
