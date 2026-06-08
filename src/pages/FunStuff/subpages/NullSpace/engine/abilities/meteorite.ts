@@ -13,8 +13,10 @@ const damageUpgrade: UpgradeDefinition = {
   description: 'Increase meteorite strike damage',
   tiers: [
     { cost: 5, value: 5 },
-    { cost: 10, value: 5 },
-    { cost: 20, value: 10 },
+    { cost: 20, value: 5 },
+    { cost: 80, value: 10 },
+    { cost: 160, value: 15 },
+    { cost: 320, value: 25 },
   ],
 }
 
@@ -26,7 +28,8 @@ const costUpgrade: UpgradeDefinition = {
   description: 'Reduce meteorite power cost',
   tiers: [
     { cost: 8, value: 1 },
-    { cost: 16, value: 1 },
+    { cost: 32, value: 1 },
+    { cost: 128, value: 1 },
   ],
 }
 

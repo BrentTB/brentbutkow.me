@@ -255,12 +255,37 @@ export type ChangelogEntry = {
     features?: string[]
     balance?: string[]
     fixes?: string[]
-    ui?: string[]
-    architecture?: string[]
+    ui?: string[] // Anything that changes UI without changing actual game functionality
+    architecture?: string[] // Internal refactors that don't change game features or behavior
   }
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.12.0',
+    date: '2026-06-08',
+    changes: {
+      features: [
+        'Every weapon now has a power-cost (Efficiency) upgrade where one was missing — Rocket, Shield, Helper, and Telekinesis. Every AoE ability now has a Range / Radius upgrade — Meteor, Black Hole, Sun, and Solar Flare.',
+        'Telekinesis gains a Force upgrade — push enemies harder over time.',
+        'Damage upgrades extend to 5 tiers for every weapon and the ship auto-turret, giving late-game stardust a real sink.',
+      ],
+      balance: [
+        'Meteorite nerf: power cost 5 → 8, damage 15 → 10, cooldown 0.05 → 0.2. Tap-to-aim on mobile made it dominant; this brings it in line with mid-game weapons.',
+        'Tier 2 stardust costs ×2, Tier 3 ×4 across every weapon and ship upgrade. Endgame upgrades now feel earned.',
+      ],
+      fixes: [
+        'Telekinesis on-screen circle now matches the upgraded pull radius. Buying the Radius upgrade extends both the effect and the visible circle, not just the effect.',
+        'Shop ordering: offered weapons no longer jump into the middle of your unlocked list — they sit at the bottom until purchased.',
+      ],
+      ui: [
+        'Maxed-out weapons display a "MAX" badge in the shop list — no need to click in to check.',
+        'Changelog now has a filter dropdown — toggle categories (Features, Balance, Fixes, etc.). "Internal Architecture" is hidden by default.',
+        'Ability cards show a small recharge ring at the top-right that fills as the cooldown ticks down — readable even when the card has no visible label area.',
+        'Shop now lists weapons in unlock order (matching the hotbar). Newly-offered weapons appear at the bottom of the list instead of slotting into their canonical position.',
+      ],
+    },
+  },
   {
     version: '0.11.1',
     date: '2026-06-07',

@@ -596,7 +596,9 @@ function renderTelekinesis(ctx: CanvasRenderingContext2D, state: GameState, came
   const hold = state.holdStates[AbilityKind.telekinesis]
   if (!hold?.active || !hold.target) return
   const center = worldToScreen(hold.target, camera)
-  const screenRadius = TELEKINESIS.radius * camera.zoom
+  const tkAbility = state.abilities.find((a) => a.kind === AbilityKind.telekinesis)
+  const worldRadius = tkAbility?.aoeRadius ?? TELEKINESIS.radius
+  const screenRadius = worldRadius * camera.zoom
 
   ctx.save()
 

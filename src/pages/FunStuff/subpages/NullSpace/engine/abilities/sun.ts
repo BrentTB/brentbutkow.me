@@ -22,8 +22,10 @@ const damageUpgrade: UpgradeDefinition = {
   description: 'Increase sun damage per second',
   tiers: [
     { cost: 15, value: 5 },
-    { cost: 30, value: 8 },
-    { cost: 50, value: 12 },
+    { cost: 60, value: 8 },
+    { cost: 200, value: 12 },
+    { cost: 400, value: 18 },
+    { cost: 800, value: 25 },
   ],
 }
 
@@ -35,7 +37,20 @@ const durationUpgrade: UpgradeDefinition = {
   description: 'Increase sun duration',
   tiers: [
     { cost: 20, value: 1 },
-    { cost: 40, value: 2 },
+    { cost: 80, value: 2 },
+  ],
+}
+
+const radiusUpgrade: UpgradeDefinition = {
+  id: UpgradeId.sunRadius,
+  category: UpgradeCategory.weapons,
+  weapon: AbilityKind.sun,
+  label: 'Range',
+  description: 'Increase sun radiation radius',
+  tiers: [
+    { cost: 15, value: 30 },
+    { cost: 60, value: 50 },
+    { cost: 200, value: 80 },
   ],
 }
 
@@ -57,7 +72,8 @@ export const sun: AbilityDefinition = {
     unlocked: upgrades[UpgradeId.unlockSun].currentTier > 0,
     damage: applyTierSum(SUN.damagePerSec, upgrades, damageUpgrade),
     duration: applyTierSum(SUN.duration, upgrades, durationUpgrade),
+    aoeRadius: applyTierSum(SUN.radius, upgrades, radiusUpgrade),
   }),
   unlockUpgrade,
-  modifierUpgrades: [damageUpgrade, durationUpgrade],
+  modifierUpgrades: [damageUpgrade, durationUpgrade, radiusUpgrade],
 }

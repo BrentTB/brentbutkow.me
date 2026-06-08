@@ -2,6 +2,7 @@ import { ABILITY_META } from '../../engine/abilities'
 import { getUnlockedAbilitiesInOrder } from '../../useNullSpace'
 import type { GameUIState } from '../../useNullSpace'
 import { Icon } from '../Icon/Icon'
+import { RechargeRing } from './RechargeRing'
 import sharedStyles from './shared.module.scss'
 import styles from './Abilities.module.scss'
 
@@ -40,6 +41,7 @@ export function Abilities({ uiState, onAbilitySelect }: AbilitiesProps) {
             </span>
             <span className={sharedStyles.abilityLabel}>{meta.label}</span>
             <span className={styles.abilityCost}>{ability.powerCost}</span>
+            {onCooldown && <RechargeRing readyPercent={1 - cdPercent} />}
             {onCooldown && (
               <div className={styles.cooldownOverlay} style={{ height: `${cdPercent * 100}%` }} />
             )}

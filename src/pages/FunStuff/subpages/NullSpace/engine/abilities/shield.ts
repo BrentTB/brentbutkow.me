@@ -22,7 +22,8 @@ const durationUpgrade: UpgradeDefinition = {
   description: 'Increase shield duration',
   tiers: [
     { cost: 12, value: 1.5 },
-    { cost: 24, value: 2.5 },
+    { cost: 48, value: 2.5 },
+    { cost: 192, value: 3.5 },
   ],
 }
 
@@ -34,8 +35,20 @@ const radiusUpgrade: UpgradeDefinition = {
   description: 'Increase shield radius',
   tiers: [
     { cost: 10, value: 15 },
-    { cost: 20, value: 25 },
-    { cost: 35, value: 40 },
+    { cost: 40, value: 25 },
+    { cost: 140, value: 40 },
+  ],
+}
+
+const costUpgrade: UpgradeDefinition = {
+  id: UpgradeId.shieldCostReduction,
+  category: UpgradeCategory.weapons,
+  weapon: AbilityKind.shield,
+  label: 'Efficiency',
+  description: 'Reduce shield power cost',
+  tiers: [
+    { cost: 12, value: 5 },
+    { cost: 48, value: 5 },
   ],
 }
 
@@ -58,7 +71,8 @@ export const shield: AbilityDefinition = {
     unlocked: upgrades[UpgradeId.unlockShield].currentTier > 0,
     aoeRadius: applyTierSum(SHIELD.radius, upgrades, radiusUpgrade),
     duration: applyTierSum(SHIELD.duration, upgrades, durationUpgrade),
+    powerCost: Math.max(1, applyTierSum(SHIELD.powerCost, upgrades, costUpgrade, -1)),
   }),
   unlockUpgrade,
-  modifierUpgrades: [durationUpgrade, radiusUpgrade],
+  modifierUpgrades: [durationUpgrade, radiusUpgrade, costUpgrade],
 }

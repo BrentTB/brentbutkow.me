@@ -128,6 +128,9 @@ export type Ability = {
   // player bump this — allies no longer expire on a timer; they take HP decay
   // over time and die when hp ≤ 0, so maxHp directly controls survivability.
   maxHp?: number
+  // Telekinesis-only: peak force per second applied to enemies inside the
+  // plateau. Upgradable so the player can shove enemies harder over time.
+  force?: number
 }
 
 export const EffectKind = {
@@ -263,26 +266,35 @@ export const UpgradeId = {
   meteoriteCostReduction: 'meteoriteCostReduction',
   meteorDamage: 'meteorDamage',
   meteorCostReduction: 'meteorCostReduction',
+  meteorRadius: 'meteorRadius',
   unlockBlackHole: 'unlockBlackHole',
   blackHoleDamage: 'blackHoleDamage',
   blackHoleDuration: 'blackHoleDuration',
+  blackHoleRadius: 'blackHoleRadius',
   unlockRocket: 'unlockRocket',
   rocketDamage: 'rocketDamage',
   rocketRadius: 'rocketRadius',
+  rocketCostReduction: 'rocketCostReduction',
   unlockShield: 'unlockShield',
   shieldDuration: 'shieldDuration',
   shieldRadius: 'shieldRadius',
+  shieldCostReduction: 'shieldCostReduction',
   unlockSun: 'unlockSun',
   sunDamage: 'sunDamage',
   sunDuration: 'sunDuration',
+  sunRadius: 'sunRadius',
   unlockHelper: 'unlockHelper',
   helperMaxHp: 'helperMaxHp',
   helperDamage: 'helperDamage',
+  helperCostReduction: 'helperCostReduction',
   unlockTelekinesis: 'unlockTelekinesis',
   telekinesisRadius: 'telekinesisRadius',
+  telekinesisCostReduction: 'telekinesisCostReduction',
+  telekinesisForce: 'telekinesisForce',
   unlockSolarFlare: 'unlockSolarFlare',
   solarFlareDamage: 'solarFlareDamage',
   solarFlareEfficiency: 'solarFlareEfficiency',
+  solarFlareRadius: 'solarFlareRadius',
   shipMaxHp: 'shipMaxHp',
   shipDamage: 'shipDamage',
   shipFireRate: 'shipFireRate',

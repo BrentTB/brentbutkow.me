@@ -5,9 +5,9 @@
 
 export const METEORITE_STRIKE = {
   delay: 0.3,
-  cooldown: 0.05,
-  powerCost: 5,
-  damage: 15,
+  cooldown: 0.2,
+  powerCost: 8,
+  damage: 10,
   aoeRadius: 40,
 } as const
 

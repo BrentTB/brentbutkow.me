@@ -1,8 +1,8 @@
 import { ABILITY_META, WEAPON_UNLOCK_UPGRADE } from '../../engine/abilities'
-import { UPGRADE_DEFINITIONS, canPurchaseUpgrade } from '../../engine/upgrades'
-import { WEAPON_ORDER } from '../../data'
+import { UPGRADE_DEFINITIONS, canPurchaseUpgrade, isWeaponFullyMaxed } from '../../engine/upgrades'
 import type { AbilityKind, UpgradeId } from '../../engine/types'
 import type { GameUIState } from '../../useNullSpace'
+import { orderWeaponsForShop } from './weapons-list-order'
 import sharedStyles from '../OverlayShared.module.scss'
 import styles from './WeaponsList.module.scss'
 
@@ -14,16 +14,15 @@ type WeaponsListProps = {
 
 export function WeaponsList({ uiState, onSelect, onPurchase }: WeaponsListProps) {
   const offers = uiState.levelUpWeaponOffers
+  const order = orderWeaponsForShop(uiState.abilities, offers)
 
   return (
     <>
-      {WEAPON_ORDER.map((weapon) => {
+      {order.map((weapon) => {
         const ability = uiState.abilities.find((a) => a.kind === weapon)
         const isUnlocked = ability?.unlocked ?? false
         const unlockId = WEAPON_UNLOCK_UPGRADE[weapon]
         const isOffered = offers.includes(weapon)
-
-        if (!isUnlocked && !isOffered) return null
 
         if (!isUnlocked && isOffered && unlockId) {
           const unlockDef = UPGRADE_DEFINITIONS[unlockId]
@@ -46,6 +45,7 @@ export function WeaponsList({ uiState, onSelect, onPurchase }: WeaponsListProps)
           )
         }
 
+        const maxed = isWeaponFullyMaxed(weapon, uiState.upgrades)
         return (
           <button
             key={weapon}
@@ -54,6 +54,7 @@ export function WeaponsList({ uiState, onSelect, onPurchase }: WeaponsListProps)
             onClick={() => onSelect(weapon)}
           >
             <span className={styles.weaponName}>{ABILITY_META[weapon].label}</span>
+            {maxed && <span className={styles.maxedBadge}>MAX</span>}
             <span className={styles.weaponArrow}>→</span>
           </button>
         )

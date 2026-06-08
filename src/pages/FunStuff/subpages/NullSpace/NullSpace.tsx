@@ -6,8 +6,14 @@ import { usePseudoFullscreenChrome } from './usePseudoFullscreenChrome'
 import { GameHUD } from './components/GameHUD/GameHUD'
 import { GameOverlay } from './components/GameOverlay'
 import { DevConsole } from './components/Development/DevConsole'
+import { ChangelogFilters } from './components/ChangelogFilters/ChangelogFilters'
 import { GAME_VERSION, CHANGELOG } from './data'
 import { computeHudScale } from './renderer/camera'
+import {
+  loadChangelogFilters,
+  saveChangelogFilters,
+  type ChangelogFilters as ChangelogFiltersState,
+} from './engine/world/persistence'
 import styles from './NullSpace.module.scss'
 
 // Shows the dev mode console for easier dev testing
@@ -41,6 +47,14 @@ export function NullSpace() {
   const [pseudoFullscreen, setPseudoFullscreen] = useState(false)
   const isFullscreen = isRealFullscreen || pseudoFullscreen
   const [gameSpeed, setGameSpeedState] = useState(1)
+  const [changelogFilters, setChangelogFilters] = useState<ChangelogFiltersState>(() =>
+    loadChangelogFilters()
+  )
+
+  const handleChangelogFiltersChange = useCallback((next: ChangelogFiltersState) => {
+    setChangelogFilters(next)
+    saveChangelogFilters(next)
+  }, [])
 
   const handleSetSpeedAndSync = useCallback(
     (speed: number) => {
@@ -148,73 +162,40 @@ export function NullSpace() {
       </div>
       <div className={styles.changelog}>
         <ToggleableSection title={`Release Notes (v${GAME_VERSION})`}>
-          {CHANGELOG.map((entry) => (
-            <div key={entry.version} className={styles.version}>
-              <h4 className={styles.versionTitle}>
-                v{entry.version} <span className={styles.versionDate}>— {entry.date}</span>
-              </h4>
-              {entry.changes.breaking && (
-                <div className={styles.changeGroup}>
-                  <span className={styles.changeLabel}>Breaking</span>
-                  <ul className={styles.changeList}>
-                    {entry.changes.breaking.map((c, i) => (
-                      <li key={i}>{c}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {entry.changes.features && (
-                <div className={styles.changeGroup}>
-                  <span className={styles.changeLabel}>Features</span>
-                  <ul className={styles.changeList}>
-                    {entry.changes.features.map((c, i) => (
-                      <li key={i}>{c}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {entry.changes.balance && (
-                <div className={styles.changeGroup}>
-                  <span className={styles.changeLabel}>Balance</span>
-                  <ul className={styles.changeList}>
-                    {entry.changes.balance.map((c, i) => (
-                      <li key={i}>{c}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {entry.changes.fixes && (
-                <div className={styles.changeGroup}>
-                  <span className={styles.changeLabel}>Fixes</span>
-                  <ul className={styles.changeList}>
-                    {entry.changes.fixes.map((c, i) => (
-                      <li key={i}>{c}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {entry.changes.ui && (
-                <div className={styles.changeGroup}>
-                  <span className={styles.changeLabel}>User Interface</span>
-                  <ul className={styles.changeList}>
-                    {entry.changes.ui.map((c, i) => (
-                      <li key={i}>{c}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {entry.changes.architecture && (
-                <div className={styles.changeGroup}>
-                  <span className={styles.changeLabel}>Internal Architecture</span>
-                  <ul className={styles.changeList}>
-                    {entry.changes.architecture.map((c, i) => (
-                      <li key={i}>{c}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          ))}
+          <ChangelogFilters filters={changelogFilters} onChange={handleChangelogFiltersChange} />
+          {CHANGELOG.map((entry) => {
+            const groups: { key: keyof typeof entry.changes; label: string; items?: string[] }[] = [
+              { key: 'breaking', label: 'Breaking', items: entry.changes.breaking },
+              { key: 'features', label: 'Features', items: entry.changes.features },
+              { key: 'balance', label: 'Balance', items: entry.changes.balance },
+              { key: 'fixes', label: 'Fixes', items: entry.changes.fixes },
+              { key: 'ui', label: 'User Interface', items: entry.changes.ui },
+              {
+                key: 'architecture',
+                label: 'Internal Architecture',
+                items: entry.changes.architecture,
+              },
+            ]
+            const visible = groups.filter((g) => changelogFilters[g.key] && g.items?.length)
+            if (visible.length === 0) return null
+            return (
+              <div key={entry.version} className={styles.version}>
+                <h4 className={styles.versionTitle}>
+                  v{entry.version} <span className={styles.versionDate}>— {entry.date}</span>
+                </h4>
+                {visible.map((g) => (
+                  <div key={g.key} className={styles.changeGroup}>
+                    <span className={styles.changeLabel}>{g.label}</span>
+                    <ul className={styles.changeList}>
+                      {g.items!.map((c, i) => (
+                        <li key={i}>{c}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            )
+          })}
         </ToggleableSection>
       </div>
     </div>

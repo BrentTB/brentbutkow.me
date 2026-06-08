@@ -22,8 +22,10 @@ const damageUpgrade: UpgradeDefinition = {
   description: 'Increase black hole damage over time',
   tiers: [
     { cost: 10, value: 1 },
-    { cost: 20, value: 2 },
-    { cost: 35, value: 3 },
+    { cost: 40, value: 2 },
+    { cost: 140, value: 3 },
+    { cost: 280, value: 4 },
+    { cost: 560, value: 5 },
   ],
 }
 
@@ -35,7 +37,21 @@ const durationUpgrade: UpgradeDefinition = {
   description: 'Increase black hole duration',
   tiers: [
     { cost: 12, value: 1 },
-    { cost: 24, value: 1.5 },
+    { cost: 48, value: 1.5 },
+    { cost: 192, value: 2 },
+  ],
+}
+
+const radiusUpgrade: UpgradeDefinition = {
+  id: UpgradeId.blackHoleRadius,
+  category: UpgradeCategory.weapons,
+  weapon: AbilityKind.blackHole,
+  label: 'Range',
+  description: 'Increase black hole pull radius',
+  tiers: [
+    { cost: 12, value: 25 },
+    { cost: 48, value: 40 },
+    { cost: 192, value: 70 },
   ],
 }
 
@@ -63,7 +79,8 @@ export const blackHole: AbilityDefinition = {
     unlocked: upgrades[UpgradeId.unlockBlackHole].currentTier > 0,
     damage: applyTierSum(BLACK_HOLE.damage, upgrades, damageUpgrade),
     duration: applyTierSum(BLACK_HOLE.duration, upgrades, durationUpgrade),
+    aoeRadius: applyTierSum(BLACK_HOLE.radius, upgrades, radiusUpgrade),
   }),
   unlockUpgrade,
-  modifierUpgrades: [damageUpgrade, durationUpgrade],
+  modifierUpgrades: [damageUpgrade, durationUpgrade, radiusUpgrade],
 }

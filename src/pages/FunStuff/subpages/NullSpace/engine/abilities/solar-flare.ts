@@ -25,8 +25,10 @@ const damageUpgrade: UpgradeDefinition = {
   description: 'Increase solar flare damage per tick',
   tiers: [
     { cost: 15, value: 4 },
-    { cost: 30, value: 6 },
-    { cost: 50, value: 10 },
+    { cost: 60, value: 6 },
+    { cost: 200, value: 10 },
+    { cost: 400, value: 15 },
+    { cost: 800, value: 20 },
   ],
 }
 
@@ -38,7 +40,20 @@ const efficiencyUpgrade: UpgradeDefinition = {
   description: 'Reduce solar flare power drain per second',
   tiers: [
     { cost: 20, value: 2 },
-    { cost: 40, value: 2 },
+    { cost: 80, value: 2 },
+  ],
+}
+
+const radiusUpgrade: UpgradeDefinition = {
+  id: UpgradeId.solarFlareRadius,
+  category: UpgradeCategory.weapons,
+  weapon: AbilityKind.solarFlare,
+  label: 'Range',
+  description: 'Increase solar flare beam width',
+  tiers: [
+    { cost: 15, value: 15 },
+    { cost: 60, value: 25 },
+    { cost: 200, value: 35 },
   ],
 }
 
@@ -129,8 +144,9 @@ export const solarFlare: AbilityDefinition = {
     unlocked: upgrades[UpgradeId.unlockSolarFlare].currentTier > 0,
     damage: applyTierSum(SOLAR_FLARE.damagePerTick, upgrades, damageUpgrade),
     powerCost: Math.max(1, applyTierSum(SOLAR_FLARE.powerPerSec, upgrades, efficiencyUpgrade, -1)),
+    aoeRadius: applyTierSum(SOLAR_FLARE.beamWidth, upgrades, radiusUpgrade),
   }),
   unlockUpgrade,
-  modifierUpgrades: [damageUpgrade, efficiencyUpgrade],
+  modifierUpgrades: [damageUpgrade, efficiencyUpgrade, radiusUpgrade],
   hold: solarFlareHold,
 }

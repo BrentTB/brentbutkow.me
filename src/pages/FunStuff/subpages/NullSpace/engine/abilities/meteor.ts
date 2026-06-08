@@ -22,8 +22,10 @@ const damageUpgrade: UpgradeDefinition = {
   description: 'Increase meteor strike damage',
   tiers: [
     { cost: 10, value: 10 },
-    { cost: 20, value: 15 },
-    { cost: 35, value: 20 },
+    { cost: 40, value: 15 },
+    { cost: 140, value: 20 },
+    { cost: 280, value: 25 },
+    { cost: 560, value: 35 },
   ],
 }
 
@@ -35,7 +37,20 @@ const costUpgrade: UpgradeDefinition = {
   description: 'Reduce meteor power cost',
   tiers: [
     { cost: 12, value: 5 },
-    { cost: 24, value: 5 },
+    { cost: 48, value: 5 },
+  ],
+}
+
+const radiusUpgrade: UpgradeDefinition = {
+  id: UpgradeId.meteorRadius,
+  category: UpgradeCategory.weapons,
+  weapon: AbilityKind.meteor,
+  label: 'Blast Radius',
+  description: 'Increase meteor blast radius',
+  tiers: [
+    { cost: 12, value: 20 },
+    { cost: 48, value: 30 },
+    { cost: 192, value: 40 },
   ],
 }
 
@@ -56,7 +71,8 @@ export const meteor: AbilityDefinition = {
     unlocked: upgrades[UpgradeId.unlockMeteor].currentTier > 0,
     damage: applyTierSum(METEOR_STRIKE.damage, upgrades, damageUpgrade),
     powerCost: Math.max(1, applyTierSum(METEOR_STRIKE.powerCost, upgrades, costUpgrade, -1)),
+    aoeRadius: applyTierSum(METEOR_STRIKE.aoeRadius, upgrades, radiusUpgrade),
   }),
   unlockUpgrade,
-  modifierUpgrades: [damageUpgrade, costUpgrade],
+  modifierUpgrades: [damageUpgrade, costUpgrade, radiusUpgrade],
 }

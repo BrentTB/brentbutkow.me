@@ -1,10 +1,21 @@
 import { WAVES_PER_LEVEL, SHIP_VARIANTS } from '../data'
-import { ABILITY_DEFINITIONS, ABILITY_UPGRADE_DEFINITIONS } from './abilities'
+import {
+  ABILITY_DEFINITIONS,
+  ABILITY_UPGRADE_DEFINITIONS,
+  WEAPON_UNLOCK_UPGRADE,
+} from './abilities'
 import { UpgradeCategory, UpgradeId } from './types'
-import type { Ability, PlayerUpgrades, Ship, UpgradeDefinition } from './types'
+import type { Ability, AbilityKind, PlayerUpgrades, Ship, UpgradeDefinition } from './types'
 
 // Back-compat re-export: WEAPON_UNLOCK_UPGRADE now lives in engine/abilities/.
 export { WEAPON_UNLOCK_UPGRADE } from './abilities'
+
+// Set of upgrade IDs that unlock a weapon. Used to filter unlock upgrades out
+// of per-weapon upgrade lists so the detail / max-detection views only see
+// modifier upgrades.
+export const UNLOCK_UPGRADE_IDS: ReadonlySet<UpgradeId> = new Set(
+  Object.values(WEAPON_UNLOCK_UPGRADE).filter((id): id is UpgradeId => id !== undefined)
+)
 
 // Ship and power upgrades live here — they aren't per-ability so they don't
 // belong in engine/abilities/. Per-ability upgrades are imported from there
@@ -17,8 +28,8 @@ const shipAndPowerUpgrades: UpgradeDefinition[] = [
     description: 'Increase maximum ship HP',
     tiers: [
       { cost: 6, value: 25 },
-      { cost: 12, value: 25 },
-      { cost: 24, value: 50 },
+      { cost: 24, value: 25 },
+      { cost: 96, value: 50 },
     ],
   },
   {
@@ -28,8 +39,10 @@ const shipAndPowerUpgrades: UpgradeDefinition[] = [
     description: 'Increase ship auto-attack damage',
     tiers: [
       { cost: 8, value: 2 },
-      { cost: 16, value: 3 },
-      { cost: 30, value: 5 },
+      { cost: 32, value: 3 },
+      { cost: 120, value: 5 },
+      { cost: 240, value: 7 },
+      { cost: 480, value: 10 },
     ],
   },
   {
@@ -39,8 +52,10 @@ const shipAndPowerUpgrades: UpgradeDefinition[] = [
     description: 'Increase auto-turret fire rate',
     tiers: [
       { cost: 8, value: 0.4 },
-      { cost: 16, value: 0.4 },
-      { cost: 28, value: 0.6 },
+      { cost: 32, value: 0.4 },
+      { cost: 112, value: 0.6 },
+      { cost: 224, value: 0.8 },
+      { cost: 448, value: 1.0 },
     ],
   },
   {
@@ -50,8 +65,8 @@ const shipAndPowerUpgrades: UpgradeDefinition[] = [
     description: 'Increase maximum shield capacity',
     tiers: [
       { cost: 6, value: 20 },
-      { cost: 12, value: 20 },
-      { cost: 22, value: 40 },
+      { cost: 24, value: 20 },
+      { cost: 88, value: 40 },
     ],
   },
   {
@@ -61,8 +76,8 @@ const shipAndPowerUpgrades: UpgradeDefinition[] = [
     description: 'Increase ship movement speed',
     tiers: [
       { cost: 8, value: 15 },
-      { cost: 16, value: 15 },
-      { cost: 28, value: 25 },
+      { cost: 32, value: 15 },
+      { cost: 112, value: 25 },
     ],
   },
   {
@@ -72,8 +87,8 @@ const shipAndPowerUpgrades: UpgradeDefinition[] = [
     description: 'Increase passive power regeneration',
     tiers: [
       { cost: 8, value: 1 },
-      { cost: 16, value: 2 },
-      { cost: 30, value: 3 },
+      { cost: 32, value: 2 },
+      { cost: 120, value: 3 },
     ],
   },
 ]
@@ -81,6 +96,18 @@ const shipAndPowerUpgrades: UpgradeDefinition[] = [
 export const UPGRADE_DEFINITIONS: Record<UpgradeId, UpgradeDefinition> = Object.fromEntries(
   [...ABILITY_UPGRADE_DEFINITIONS, ...shipAndPowerUpgrades].map((d) => [d.id, d])
 ) as Record<UpgradeId, UpgradeDefinition>
+
+// True when every modifier upgrade for `weapon` is at its max tier.
+export function isWeaponFullyMaxed(weapon: AbilityKind, upgrades: PlayerUpgrades): boolean {
+  const modifiers = Object.values(UPGRADE_DEFINITIONS).filter(
+    (def) =>
+      def.category === UpgradeCategory.weapons &&
+      def.weapon === weapon &&
+      !UNLOCK_UPGRADE_IDS.has(def.id)
+  )
+  if (modifiers.length === 0) return false
+  return modifiers.every((def) => upgrades[def.id].currentTier >= def.tiers.length)
+}
 
 export const UPGRADE_CATEGORY_LABELS: Record<UpgradeCategory, string> = {
   [UpgradeCategory.weapons]: 'Weapons',

@@ -62,3 +62,16 @@
   color: var(--muted);
   margin-left: 8px;
 }
+
+.maxedBadge {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  padding: 2px 6px;
+  border: 1px solid rgba(var(--accent-rgb), 0.5);
+  border-radius: 3px;
+  background: rgba(var(--accent-rgb), 0.08);
+}

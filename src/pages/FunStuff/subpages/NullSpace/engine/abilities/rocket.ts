@@ -22,8 +22,10 @@ const damageUpgrade: UpgradeDefinition = {
   description: 'Increase rocket explosion damage',
   tiers: [
     { cost: 10, value: 10 },
-    { cost: 20, value: 15 },
-    { cost: 35, value: 25 },
+    { cost: 40, value: 15 },
+    { cost: 140, value: 25 },
+    { cost: 280, value: 30 },
+    { cost: 560, value: 40 },
   ],
 }
 
@@ -35,7 +37,20 @@ const radiusUpgrade: UpgradeDefinition = {
   description: 'Increase rocket explosion radius',
   tiers: [
     { cost: 12, value: 15 },
-    { cost: 24, value: 25 },
+    { cost: 48, value: 25 },
+    { cost: 192, value: 35 },
+  ],
+}
+
+const costUpgrade: UpgradeDefinition = {
+  id: UpgradeId.rocketCostReduction,
+  category: UpgradeCategory.weapons,
+  weapon: AbilityKind.rocket,
+  label: 'Efficiency',
+  description: 'Reduce rocket power cost',
+  tiers: [
+    { cost: 12, value: 4 },
+    { cost: 48, value: 5 },
   ],
 }
 
@@ -56,7 +71,8 @@ export const rocket: AbilityDefinition = {
     unlocked: upgrades[UpgradeId.unlockRocket].currentTier > 0,
     damage: applyTierSum(ROCKET.damage, upgrades, damageUpgrade),
     aoeRadius: applyTierSum(ROCKET.aoeRadius, upgrades, radiusUpgrade),
+    powerCost: Math.max(1, applyTierSum(ROCKET.powerCost, upgrades, costUpgrade, -1)),
   }),
   unlockUpgrade,
-  modifierUpgrades: [damageUpgrade, radiusUpgrade],
+  modifierUpgrades: [damageUpgrade, radiusUpgrade, costUpgrade],
 }

@@ -8,7 +8,9 @@ import {
   applyUpgradesToPowerRegen,
   getLevel,
   isUpgradeWave,
+  isWeaponFullyMaxed,
   UPGRADE_DEFINITIONS,
+  UNLOCK_UPGRADE_IDS,
   WEAPON_UNLOCK_UPGRADE,
 } from './upgrades'
 import { createAbilities } from './entities/entity-creator'
@@ -147,6 +149,78 @@ describe('WEAPON_UNLOCK_UPGRADE', () => {
       if (kind === AbilityKind.meteorite) continue
       expect(WEAPON_UNLOCK_UPGRADE[kind]).toBeDefined()
     }
+  })
+})
+
+describe('isWeaponFullyMaxed', () => {
+  it('false when no modifier upgrades purchased', () => {
+    const upgrades = createInitialUpgrades()
+    expect(isWeaponFullyMaxed(AbilityKind.meteorite, upgrades)).toBe(false)
+  })
+
+  it('true when every modifier upgrade for the weapon is at max tier', () => {
+    let upgrades = createInitialUpgrades()
+    const modifiers = Object.values(UPGRADE_DEFINITIONS).filter(
+      (def) =>
+        def.category === UpgradeCategory.weapons &&
+        def.weapon === AbilityKind.meteorite &&
+        !UNLOCK_UPGRADE_IDS.has(def.id)
+    )
+    for (const def of modifiers) {
+      upgrades = { ...upgrades, [def.id]: { currentTier: def.tiers.length } }
+    }
+    expect(isWeaponFullyMaxed(AbilityKind.meteorite, upgrades)).toBe(true)
+  })
+
+  it('false when one modifier still has room to grow', () => {
+    let upgrades = createInitialUpgrades()
+    const modifiers = Object.values(UPGRADE_DEFINITIONS).filter(
+      (def) =>
+        def.category === UpgradeCategory.weapons &&
+        def.weapon === AbilityKind.meteor &&
+        !UNLOCK_UPGRADE_IDS.has(def.id)
+    )
+    // Max everything except the first
+    for (let i = 1; i < modifiers.length; i++) {
+      upgrades = { ...upgrades, [modifiers[i].id]: { currentTier: modifiers[i].tiers.length } }
+    }
+    expect(isWeaponFullyMaxed(AbilityKind.meteor, upgrades)).toBe(false)
+  })
+
+  it('ignores the unlock upgrade — a freshly-unlocked weapon is not "maxed"', () => {
+    const upgrades = {
+      ...createInitialUpgrades(),
+      [UpgradeId.unlockMeteor]: { currentTier: 1 },
+    }
+    expect(isWeaponFullyMaxed(AbilityKind.meteor, upgrades)).toBe(false)
+  })
+})
+
+describe('UNLOCK_UPGRADE_IDS', () => {
+  it('contains every weapon unlock id and no modifier ids', () => {
+    for (const id of Object.values(WEAPON_UNLOCK_UPGRADE)) {
+      if (!id) continue
+      expect(UNLOCK_UPGRADE_IDS.has(id)).toBe(true)
+    }
+    expect(UNLOCK_UPGRADE_IDS.has(UpgradeId.meteoriteDamage)).toBe(false)
+    expect(UNLOCK_UPGRADE_IDS.has(UpgradeId.shipDamage)).toBe(false)
+  })
+})
+
+describe('telekinesis force upgrade (regression)', () => {
+  it('purchasing telekinesisForce increases ability.force', () => {
+    const baseTk = createAbilities().find((a) => a.kind === AbilityKind.telekinesis)
+    if (!baseTk) throw new Error('telekinesis not in createAbilities')
+
+    const tiers = UPGRADE_DEFINITIONS[UpgradeId.telekinesisForce].tiers
+    const totalGain = tiers.reduce((s, t) => s + t.value, 0)
+    const upgrades = {
+      ...createInitialUpgrades(),
+      [UpgradeId.unlockTelekinesis]: { currentTier: 1 },
+      [UpgradeId.telekinesisForce]: { currentTier: tiers.length },
+    }
+    const upgraded = applyUpgradesToAbilities([baseTk], upgrades)
+    expect(upgraded[0].force).toBe((baseTk.force ?? 0) + totalGain)
   })
 })
 
