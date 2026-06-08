@@ -277,6 +277,8 @@ export const CHANGELOG: ChangelogEntry[] = [
       fixes: [
         'Telekinesis on-screen circle now matches the upgraded pull radius. Buying the Radius upgrade extends both the effect and the visible circle, not just the effect.',
         'Shop ordering: offered weapons no longer jump into the middle of your unlocked list — they sit at the bottom until purchased.',
+        'Mobile: space-metal ability buttons and weapon swapping are tappable again — the buttons lost their touch handling when the canvas claimed drag gestures for telekinesis / solar flare.',
+        'Mobile (iOS pseudo-fullscreen): rotating from portrait to landscape no longer leaves Safari’s tab bar showing — the page now scrolls far enough to trip Safari’s auto-hide on rotate and viewport resize, not just a 1px nudge.',
       ],
       ui: [
         'Maxed-out weapons display a "MAX" badge in the shop list — no need to click in to check.',
