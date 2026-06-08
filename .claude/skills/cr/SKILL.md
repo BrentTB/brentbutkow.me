@@ -6,6 +6,7 @@ description: >-
   incomplete propagation, security issues, code quality, and refactoring opportunities.
   Use when the user asks for a code review, CR, or wants a second pair of eyes on their
   staged work before committing or pushing.
+model: opus
 ---
 
 # CR — Code review against dev
