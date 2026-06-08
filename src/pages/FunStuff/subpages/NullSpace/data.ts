@@ -34,6 +34,17 @@ export type ShipVariantConfig = {
   stats: ShipVariantStats
 }
 
+// Upper bounds for the ship-select stat bars — the full-bar visual scale, not a
+// gameplay cap. Keyed by stat so a ceiling can't silently drift from a tweaked variant.
+export const STAT_MAX = {
+  maxHp: 160,
+  maxShield: 140,
+  shieldRegen: 8,
+  damage: 10,
+  speed: 200,
+  fireRate: 4,
+} as const
+
 export const SHIELD_COOLDOWN = 3
 
 export const SHIP_ORDER: ShipKind[] = [
@@ -256,6 +267,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     changes: {
       ui: [
         'Mobile: the weapon and space-metal ability buttons now merge into one cluster positioned clear of the play area — a bottom row in portrait, a right-side column in landscape — so the controls no longer block shots at enemies on the facing edge. Desktop keeps the split bottom/side layout.',
+        'The Help button is removed (The ? button), and moved into the settings menu',
       ],
     },
   },

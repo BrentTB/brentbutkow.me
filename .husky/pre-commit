@@ -1,4 +1,5 @@
 #!/usr/bin/env sh
+set -e
 
 # Incremental type-check — only re-checks what changed (full tsc + eslint run in CI on PRs)
 npm run typecheck:fast

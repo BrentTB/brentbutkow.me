@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { GamePhase, ShipKind, UpgradeId } from '../engine/types'
 import type { GameUIState } from '../useNullSpace'
 import styles from './GameOverlay.module.scss'
@@ -40,6 +40,12 @@ export function GameOverlay({
   gameSpeed,
 }: GameOverlayProps) {
   const [pauseSubPage, setPauseSubPage] = useState<SettingsSubPages | null>(null)
+
+  // Sub-pages only exist while paused. Resuming via the P-key bypasses this
+  // component's handlers, so reset here to land back on the pause menu next pause.
+  useEffect(() => {
+    if (uiState.phase !== GamePhase.paused) setPauseSubPage(null)
+  }, [uiState.phase])
 
   if (uiState.phase === GamePhase.playing) return null
 

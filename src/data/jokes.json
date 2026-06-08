@@ -1,153 +1,480 @@
 [
-	{ "jokeType": "cheesy", "joke": "What's wrong with jokes about cheese? They don't age well" },
-	{ "jokeType": "cheesy", "joke": "What did Shakespeare ask his cheesemonger? \"To bree, or not to Bree\"" },
-	{ "jokeType": "cheesy", "joke": "What cheese lives in a galaxy far, far away? Boba feta" },
-	{ "jokeType": "cheesy", "joke": "What did the melted cheese say to the unlucky tortilla? \"Its nacho day\"" },
-	{ "jokeType": "cheesy", "joke": "A cheese sandwich walks into a bar, The bar owner says: \"Sorry, we don't serve food here\"" },
-	{ "jokeType": "cheesy", "joke": "What is Bruce Banner's favourite cheese? The in-cheddar-able hulk" },
-	{ "jokeType": "cheesy", "joke": "What do you call a mythical cheese? Legen-dairy" },
-	{ "jokeType": "cheesy", "joke": "Why were mozzarella and feta holding hands? They looked Gouda together" },
-	{ "jokeType": "cheesy", "joke": "What's the pope's favourite cheese? Swiss - its holy" },
-	{ "jokeType": "cheesy", "joke": "What do ghosts put on their bagels? Scream cheese" },
-	{ "jokeType": "cheesy", "joke": "I got scared when I saw a crocodile the other day, but thankfully it only eats cheese. Its an alli-grator" },
-	{ "jokeType": "cheesy", "joke": "I told my friend I was going to make a car out of macaroni cheese. She didn't believe me until I drove pasta" },
-	{ "jokeType": "cheesy", "joke": "What kind of cheese do horror movie fans like? Gory-gonzola" },
-	{ "jokeType": "cheesy", "joke": "Did you hear the cheesy weather forecast? Rain with light bries" },
-	{ "jokeType": "cheesy", "joke": "Which cheese surrounds a medieval castle? Moat-zarella" },
-	{ "jokeType": "cheesy", "joke": "What's a pirate's favourite cheese? Chedd-aarrr" },
-	{ "jokeType": "cheesy", "joke": "Who was the most popular roman emperor mouse? Julius cheeser" },
-	{ "jokeType": "cheesy", "joke": "Why don't people at Entelect always like cheesy jokes? They're too mature for them" },
-	{ "jokeType": "cheesy", "joke": "How do ducks like their cheese? With Quackers" },
-	{ "jokeType": "cheesy", "joke": "What is Jay-Z's favourite cheese? Brie-yonce" },
-	{ "jokeType": "cheesy", "joke": "When cant you see a cheese? When its pasteurised" },
-	{ "jokeType": "cheesy", "joke": "What did Sherlock say when he solved the case of the missing cheese? \"Emmental, my dear Watson\"" },
-	{ "jokeType": "cheesy", "joke": "Who's the head of the cheese mafia? The gouda-father" },
-	{ "jokeType": "cheesy", "joke": "Did you hear about the explosion at the cheese factory? There was de-brie everywhere!" },
-	{ "jokeType": "cheesy", "joke": "What did the cheese detective say when he found a clue? \"This is most swiss-picious\"" },
-	{ "jokeType": "cheesy", "joke": "What do you call flying cheeses? Curds of prey" },
-	{ "jokeType": "cheesy", "joke": "Did you hear about the cheese that had Deja vu? It thought it'd seen this all brie-fore" },
-	{ "jokeType": "cheesy", "joke": "Why didn't the cheese want to get sliced? Because it had grater plans" },
-	{ "jokeType": "cheesy", "joke": "What kind of cheese does Medusa eat? Gorgon-zola" },
-	{ "jokeType": "cheesy", "joke": "What did the piece of cheddar say to the ghost? Don't scare me—I'm Lac-ghost intolerant!" },
-	{ "jokeType": "cheesy", "joke": "What kind of music would a slice of cheese like to dance to? R & Brie." },
-	{ "jokeType": "cheesy", "joke": "Why did the cheddar cheese decided to go to the gym? To get shredded." },
-	{ "jokeType": "dad", "joke": "What do you call a sheep in a chocolate factory? Wooly Wonka" },
-	{ "jokeType": "dad", "joke": "I ate a watch yesterday. It was very time consuming" },
-	{ "jokeType": "dad", "joke": "My wife told me to stop acting like a flamingo, so I had to put my foot down." },
-	{ "jokeType": "dad", "joke": "I couldn't figure out why the baseball kept getting larger. Then it hit me." },
-	{ "jokeType": "long", "joke": "For a high school dance, the head boy asked out the girl he liked.\nTo get flowers for her, he had to stand in a line outside the florist for an hour.\nTo make things worse, he had to wait another hour in a line outside the tuxedo shop.\nFinally, he goes to the dance with the girl.\nThe girl wanted to have some apple punch so the boy went to get it, but to his surprise, there was no punch line." },
-	{ "jokeType": "long", "joke": "A man died and went to Heaven.\nSt Peter says to him \"Before you meet with God, I should tell you ,we've looked over your life, and to be honest you really didn't do anything particularly good or bad.\nWe're not really sure what to do with you.\nCan you tell us anything you did that can help us make a decision?\"\nThe newly arrived soul thought for a moment and replied, \"Yeah, once I was driving along and came upon a little old lady who was being harassed by a group of thugs.\nSo I pulled over and went up to the leader of the thugs.\nHe was a big, muscular guy with a ring pierced through his lip.\nWell, I tore the ring out of his lip, and told him he and his gang had better stop bothering this lady or they would have to deal with me!\"\n\"Wow that's impressive, When did this happen?\" he said, and the main replied \"About three minutes ago\"." },
-	{ "jokeType": "dad", "joke": "What do wooden whales eat? Plankton." },
-	{ "jokeType": "dad", "joke": "What did the fish say when he hit the wall? \"Dam\"" },
-	{ "jokeType": "dad", "joke": "A blind man walks into a bar. And a table. And a chair." },
-	{ "jokeType": "dad", "joke": "Mr. Smith is at the doctor. The doctor says, \"I have bad news, you have cancer and you have Alzheimer's.\" Mr. Smith thinks for a moment and says, \"well at least I don't have cancer.\"" },
-	{ "jokeType": "long", "joke": "A statue of a man and a statue of a woman stood looking at each other for hundreds of years out in a park.\nOne day a wizard, feeling sorry for the statues, brought them to life for 30 minutes.\nRight away, the two of them ran into some nearby bushes and you could hear all kinds of strange sounds and moans from there.\nAfter a while they came back out, giggling.\nThe wizard told them \"You have another 15 minutes left, if you want to have another go.\"\nThe statues looked at each other and the male statue answered \"Fine, but this time you hold the pigeon and I'll shit on it.\"" },
-	{ "jokeType": "long", "joke": "Three men were at the gates of heaven, but there was only room for one person.\nSt Peter asked each of them how they died, and the best story got through.\nMan 1: I was adamant my wife was cheating.\nI came up to my apartment on the 24th floor and walked in, only to find my wife by herself.\nI was pleasantly surprised until I saw a man hanging off the edge of the balcony by just his fingers.\nI went over to him with a hammer and hit his hands until he let go.\nHe fell in some bushes, and was still alive, so I grabbed my fridge and lifted it over the edge so it would fall on him.\nAnd after all that heavy lifting, I died of a heart attack.\nMan 2: well I was on my 25th floor balcony doing some yoga and I fell over the edge!\nI was hanging on by just my fingers when I saw a man coming over, I was so relieved!\nBut then he started hammering my fingers and I fell in a bush.\nI was alive but very sore.\nHe then threw a fridge over the edge on to me, and here I am.\nMan 3: Well you see, I was hiding in a fridge..." },
-	{ "jokeType": "chuckNorris", "joke": "Chuck Norris can parallel park a train." },
-	{ "jokeType": "chuckNorris", "joke": "When Alexander Graham Bell invented the telephone he already had three missed calls from Chuck Norris." },
-	{ "jokeType": "chuckNorris", "joke": "When Chuck Norris enters a room, he doesn't turn the lights on, he turns the dark off." },
-	{ "jokeType": "chuckNorris", "joke": "Chuck Norris once kicked a donkey's chin. It's descendants are called giraffes." },
-	{ "jokeType": "chuckNorris", "joke": "Chuck Norris' calendar goes straight from March 31st to April 2nd, because no one fools Chuck Norris." },
-	{ "jokeType": "dad", "joke": "Why can't the T-rex clap its hands? Because its extinct" },
-	{ "jokeType": "dad", "joke": "Two nuns are sitting on a park bench. A man in a trench coat runs up and flashes them. The first nun has a stroke. The second nun tried but she couldn't reach." },
-	{ "jokeType": "dad", "joke": "I'm on a seafood diet. I see food, and I eat it." },
-	{ "jokeType": "dad", "joke": "My boss asked me how good I was at making spreadsheets. I told him I Excel at it." },
-	{ "jokeType": "dad", "joke": "A blonde walks into a dry cleaners and tells the woman at the counter, \"I need to have an outfit washed.\" The clerk was busy and slightly distracted, so she looked up from her work and said, \"Come again?\" The blonde said, \"No, it's toothpaste this time.\"" },
-	{ "jokeType": "dad", "joke": "A pony walks into a bar and asks for a beer. The bartender says \"Speak up, I cant hear you\". The pony responds \"Sorry, I'm a little horse\"" },
-	{ "jokeType": "dad", "joke": "Two blondes walked into a bar. Everyone else played Limbo normally" },
-	{ "jokeType": "dad", "joke": "What did the left eye say to the right eye? Between us, something smells!" },
-	{ "jokeType": "chuckNorris", "joke": "Chuck Norris can hear sign language." },
-	{ "jokeType": "chuckNorris", "joke": "When Chuck Norris was born, he drove his mom home from the hospital." },
-	{ "jokeType": "chuckNorris", "joke": "The dinosaurs looked at Chuck Norris the wrong way once. You know what happened to them." },
-	{ "jokeType": "dad", "joke": "I went to the doctors recently. He said: “Don’t eat anything fatty”. I said: “What, like bacon and burgers?”. He said, “No, fatty, don’t eat anything.”" },
-	{ "jokeType": "long", "joke": "A woman is walking home with her 3 daughters.\nThe eldest daughter turns to her and asks, \"Mummy, how did I get my name?\"\n\"Well sweetie, when we were bringing you home from the hospital, a rose petal landed on your head!\nSo that's why we named you Rose.\"\nThe second daughter, now curious, asks the same question.\n\"Well darling, when we were bringing you home from the hospital, a lily petal landed on your head!\nSo that's why we named you Lily.\"\nThe third girl asks \"HHGHGNGHGHNG?!?!?! DDDNBHGHBHNGHHH!!!\"\n\"Shhh, quiet now, Brick.\"" },
-	{ "jokeType": "dad", "joke": "Why do you never see hippos hiding in trees? Because they're very good at it." },
-	{ "jokeType": "dad", "joke": "A woman is sitting at her recently deceased husband’s funeral. A man leans in to her and asks, “Do you mind if I say a word?”. “No, go right ahead”, the woman replies.` The man stands, clears his throat, says “Plethora”, and sits back down. “Thanks”, the woman says, “that means a lot”." },
-	{ "jokeType": "dad", "joke": "Why did the half blind man fall into a well? He couldn’t see that well." },
-	{ "jokeType": "dad", "joke": "My dad asked me the other day: \"Are you even listening to me?\" Which is a really weird way to start a conversation if you ask me." },
-	{ "jokeType": "dad", "joke": "Mickey Mouse gets a call from his lawyer, the lawyer tells him \"Mickey I'm sorry, but you can't divorce Minnie just because she's crazy\" Mickey says \"I didn't say she was crazy, I said she was fucking Goofy\"" },
-	{ "jokeType": "dad", "joke": "Why do scuba divers fall backwards out of the boat? Because if they fell forwards they'd still be in the boat" },
-	{ "jokeType": "dad", "joke": "What do you get when you cross a joke with a rhetorical question?" },
-	{ "jokeType": "dad", "joke": "What did the cannibal get when he was late for dinner? The cold shoulder." },
-	{ "jokeType": "dad", "joke": "I stand corrected, said the man in the orthopaedic shoes" },
-	{ "jokeType": "dad", "joke": "What do you get when you mix Goat DNA and Human DNA? Kicked out of the petting zoo." },
-	{ "jokeType": "dad", "joke": "You’ve heard of Murphy’s law right? It says that anything that can go wrong will go wrong. But have you heard of Cole’s law? It’s thinly sliced cabbage." },
-	{ "jokeType": "dad", "joke": "How many flies does it take to screw in a lightbulb? Just two but I have no idea how they got in there." },
-	{ "jokeType": "dad", "joke": "A man on vacation with his family arrives at a hotel. As he's checking in, he says to the clerk, \"I'm on vacation with my family, please make sure the porn channel is disabled\". The clerk then replies in disgust, \"It's just regular porn, you sick fuck\"" },
-	{ "jokeType": "dad", "joke": "A wife calls her husband and says be careful driving home, some complete moron is driving down the wrong side of the motorway. The husband replies there's not just one, there's bloody hundreds of them!" },
-	{ "jokeType": "dad", "joke": "How do you think the unthinkable? It'th very thimple. With an itheberg." },
-	{ "jokeType": "dad", "joke": "What's red and bad for your teeth? A brick" },
-	{ "jokeType": "dad", "joke": "So there were two whales at a bar. The first whale says to the second Waaaaaoooooooo Waaaaoooaoaoaoa Wooooooooaaao. Then the second whale says back to the first: Go home Frank. You're drunk." },
-	{ "jokeType": "dad", "joke": "You know what they say about cliffhangers..." },
-	{ "jokeType": "dad", "joke": "So two cows are talking in a field, The first cow says hey man, you worried about this mad cow disease that is going around? The second cow says Im sure glad it doesnt effect us helicopters." },
-	{ "jokeType": "dad", "joke": "What kind of birds stick together? Velcrows" },
-	{ "jokeType": "dad", "joke": "My friend fainted on a carousel, but he'll be okay. He's coming back around" },
-	{ "jokeType": "dad", "joke": "Someone stole my diary and then passed away. My thoughts are with his family" },
-	{ "jokeType": "long", "joke": "Dad is listening to his daughter say her prayers before bedtime.\nShe says - God bless mommy and god bless daddy and god bless grandma and... goodbye grandpa.\nHe asks her - why did you say that?\nI don't know, I just felt like saying it.\nThe next day, grandpa drops dead.\nA month later at bedtime, the daughter says - God bless mommy and daddy. And goodbye grandma.\nSure enough, the next day grandma breathes her last earthly breath.\nMonths go by and one night the man is listening to his daughter saying her prayers at bedtime - God bless mommy....she turns her head and looks straight at him - and goodbye daddy.\nWhat!? are you sure honey?\nShe nods.\nThe man is so upset he can't sleep.\nThe next day he hides at work all day.\nFinally at midnight he realizes he has cheated death.\nHe drives home drenched in sweat.\nHis wife is up and waiting for him - Where were you today??!\nHe replies - Don't shout, I've had an absolutely miserable day.\nHis wife then says - You had a miserable day?\nI'm the one who had a miserable day!\nFirst, the milkman drops dead on the steps..." },
-	{ "jokeType": "dad", "joke": "If you get abducted by a group of mimes, they will do unspeakable things to you" },
-	{ "jokeType": "dad", "joke": "If you get abducted by a group of mice, they will do unsqeakable things to you" },
-	{ "jokeType": "dad", "joke": "If you think that your refrigerator collecting data and the TV spying on you is bad enough, just remember, the vacuum cleaner has been gathering dirt on you for years!" },
-	{ "jokeType": "dad", "joke": "Can February march?  No, but April may" },
-	{ "jokeType": "dad", "joke": "Why do seagulls fly over the sea? If they flew over the bay, they’d be bagels" },
-	{ "jokeType": "dad", "joke": "Two guys are robbing a liquor store, and as they are clearing the shelves the first guy goes: is this whiskey? The second guy replies: Sure, but not as wisky as wobbing a bank!" },
-	{ "jokeType": "dad", "joke": "A woman walks into a library and approaches the librarian. The woman says, I'm looking for a particular kids book for my son, but I can't remember the name. The librarian says, ok, can you describe it for me? The woman replies, it's an adventure book about Pavlov's dog and Schrodinger's cat. The librarian thinks for a minute and says, hmm, it rings a bell, but I'm not sure if we have it or not." },
-	{ "jokeType": "dad", "joke": "A penguin is having car trouble, so he takes his car to the garage. The mechanic says it'll take about an hour to check what's wrong. The penguin sees an ice cream shop across the street, and heads over to get himself a snack while he's waiting. It's awkward for the poor guy to eat with his flippers, and he makes a bit of a mess. He goes back to the mechanic to find out what's wrong with the car. Mechanic says Looks like you blew a seal. Ha, no ... that's just a little ice cream." },
-	{ "jokeType": "dad", "joke": "My grandfather has the heart of a lion, and a lifetime ban from the zoo" },
-	{ "jokeType": "long", "joke": "A guy sees an advertisement in a pet-shop window: \"Talking Centipede £100.\"\nThe guy goes in and buys it.\nHe gets home, opens the box and asks the centipede if he wants to go for a beer.\nThe centipede doesn't answer, so the guy closes the lid, convinced he's been swindled.\nThirty minutes later he decides to try again.\nHe raises his voice and shouts, \"Do you want to go for a beer?\"\nThe centipede pokes his head out of the box and says, \"Pipe down!\nI heard you the first time.\nI'm putting on my shoes!\"" },
-	{ "jokeType": "long", "joke": "Dave was bragging to his boss one day, \"You know, I know everyone there is to know.\nJust name someone, anyone, and I know them.\"\nTired of his boasting, his boss called his bluff, \"OK, Dave, how about Tom Cruise?\"\n\"No dramas boss, Tom and I are old friends, and I can prove it.\"\nSo Dave and his boss fly out to Hollywood and knock on Tom Cruise's door, and Tom Cruise shouts, \"Dave!\nWhat's happening?\nGreat to see you!\nCome on in for a beer!\"\nAlthough impressed, Dave's boss is still skeptical.\nAfter they leave Cruise's house, he tells Dave that he thinks him knowing Cruise was just lucky.\n\"No, no, just name anyone else,\" Dave says.\n\"President Obama,\" his boss quickly retorts.\n\"Yup,\" Dave says, \"Old buddies, let's fly out to Washington,\" and off they go.\nAt the White House, Obama spots Dave on the tour and motions him and his boss over, saying, \"Dave, what a surprise, I was just on my way to a meeting, but you and your friend come on in and let's have a beer first and catch up.\"\nWell, the boss is very shaken by now but still not totally convinced.\nAfter they leave the White House grounds he expresses his doubts to Dave, who again implores him to name anyone else.\n\"Pope Francis,\" his boss replies.\n\"Sure!\" says Dave.\n\"I've known the Pope for years.\"\nSo off they fly to Rome.\nDave and his boss are assembled with the masses at the Vatican's St. Peter's Square when Dave says, \"This will never work.\nI can't catch the Pope's eye among all these people.\nTell you what, I know all the guards so let me just go upstairs and I'll come out on the balcony with the Pope.\"\nHe disappears into the crowd headed towards the Vatican.\nSure enough, half an hour later Dave emerges with the Pope on the balcony, but by the time Dave returns, he finds that his boss has had a heart attack and is surrounded by paramedics.\nMaking his way to his boss' side, Dave asks him, \"What happened?\"\nHis boss looks up and says, \"It was the final straw...\nYou and the Pope came out on to the balcony and the man next to me said, 'Who the fuck is that on the balcony with Dave?'\"" },
-	{ "jokeType": "dad", "joke": "A man is smoking a cigarette and blowing smoke rings. His girlfriend says, Can’t you see the warning on the pack? Smoking is hazardous to your health! He replies, I am a programmer. We don’t worry about warnings; we only worry about errors." },
-	{ "jokeType": "dad", "joke": "Two cannibals sat around a campfire. One said God, I hate my mother-in-law. His friend said, Well then try the potatoes!" },
-	{ "jokeType": "long", "joke": "Three guys find a lamp and meet a Genie who grants 3 wishes each.\nOne wants a billion dollars, another to be richest man alive, the third wants his left arm to rotate clockwise for life.\nSecond wish: first wants to marry the most beautiful woman, second wants to be handsome and charismatic, third wants right arm to rotate counter-clockwise.\nThird wishes: first wants perfect health, second wants to stay 29 forever, third wants his head to nod back and forth.\nYears later they meet: the first two are thriving; the third arrives flailing his arms and nodding, saying Guys, I think I fucked up." },
-	{ "jokeType": "dad", "joke": "You know Orion's belt? Waist of space. I know, I know, not a very good joke... Three stars." },
-	{ "jokeType": "long", "joke": "There once was a man who loved tractors, I mean he absolutely LOVED them.\nHe had tractor models, tractor wallpaper, remote control miniature tractors, tractor board games, even some tractor porn(which is not easy to find mind you).\nThe only thing that even came close to his love for tractors, was the love he felt for his wife.\nHis high school sweetheart, who didn't mind his infatuation with tractors one bit.\nShe didn't even mind the role play where she would dress as a tractor, he would dress as a farmer, and he would take her for a \"ride\".\nSadly his wife was struck one day, a tractor fell off the back of a transport truck.\nShe didn't die until he was at her side in the hospital.\nHer dying words \"don't blame the tractor honey\" and with that she headed to the big farm in the sky.\nSadly, he did blame the tractor, he hated them now with all his mind, body, and soul.\nHe went home and destroyed ALL his tractor related items, the toys, his wifes tractor suit, and even his collection of tractor porn.\nHe put it all in a pile and burned it in the yard.\nWhat ever didn't burn enough to his liking was thrown into a woodchipper.\nHe then went inside, rarely leaving his home, for 8 years.\nFinally on the 8th anniversary of his darling wifes death he decided it was time to get back out in the dating world, plus the cute cashier at the grocery store had been asking him out for a while now, he called her out to dinner.\nThe restaurant he choose ended up being quite nice, good food, good service, great decor.\nBut there was one problem, it was EXTREMELY smoky.\nSo smoky that his date, being an asthmatic, was having some trouble breathing.\nAfter noticing her displeasure, and trouble breathing, he started breathing in.\nI mean REALLY breathing in.\nInhaling with such force that all the smoke quickly left the dining room, and went into his lungs.\nWhen the room was void of smoke he stepped outside and released it all into the night.\nWhen he rejoined his date she asked \"how on earth did you do that?\" to which he replied, \"I'm an extractor fan.\"" },
-	{ "jokeType": "long", "joke": "My buddy got arrested on drug charges and because it was his first offense, he thought he would get off lightly.\nBut it turned out his lawyer was one of the worst in the state and ended up botching his case.\nSo instead of getting a short term, he ended up getting 40 years without parole!!\nMan, that sentence was way too long." },
-	{ "jokeType": "long", "joke": "Two guys are walking their dogs.\nOne guy says to the other guy, \"We should stop in at the bar down there for a beer!\"\nHis friend loves the idea but says that they won't get in with their dogs with them.\nThe first dude says \"Follow my lead.\"\nThey approach the bar.\nAs the first man gets to the entrance, the bouncer is there who tells them plainly that he can't come in with the dog.\nThe man, eyes closed, responds \"But this is my seeing eye dog!\"\nThe bouncer grunts an OK and lets him in.\nThe other guy sees it all play out and follows suit.\nHe wanders over, eyes closed and tries to go in.\nThe bouncer says \"OK, we don't allow dogs in here so you'll have to leave.\"\nThe guy responds \"But this is my seeing eye dog!\"\nThe bouncer does a double take and says, \"A chihuahua?\"\nThe man responds, \"They gave me a fucking chihuahua?!!\"" },
-	{ "jokeType": "long", "joke": "Two hunters are out in the woods when one of them collapses.\nHe doesn't seem to be breathing and his eyes are glazed.\nThe other guy whips out his phone and calls 911.\nWhen the operator answered, he breathlessly exclaims, \"My friend is dead!\nWhat do I do?\"\nThe operator says \"Calm down.\nI can help.\nFirst, let's make sure he's dead.\"\nThere is a silence, then a shot is heard.\nBack on the phone, the guy says \"OK, now what?" },
-	{ "jokeType": "dad", "joke": "I searched a list of ten puns to find one that made me laugh.... No pun in ten did" },
-	{ "jokeType": "dad", "joke": "I think its totally unfair that a women cant be the pope. In fact, a women can't even be a bishop. Which is crazy, cause women be-shopping" },
-	{ "jokeType": "dad", "joke": "What was Frankensteins new year resolution? To make a friend" },
-	{ "jokeType": "dad", "joke": "There are 2 types of people. 1) Those who can extrapolate from incomplete information." },
-	{ "jokeType": "dad", "joke": "Why did Sally fall off the swing? Because she had no arms. Knock knock... Who's there? Not Sally." },
-	{ "jokeType": "dad", "joke": "A soldier survived mustard gas in battle, and then pepper spray by the police. He's now a seasoned veteran" },
-	{ "jokeType": "dad", "joke": "I don't always tell dad jokes, but when I do he laughs" },
-	{ "jokeType": "dad", "joke": "I'm addicted to brake fluid, but I can stop whenever I want. I used to be addicted to the Hokey Pokey, but I turned myself around. I used to be addicted to soap, but I'm clean now." },
-	{ "jokeType": "long", "joke": "A duck walks into a pub and orders a pint of beer and a ham sandwich.\nThe bartender looks at him and says, \"Hang on! You're a duck.\"\n\"I see your eyes are working,\" replies the duck.\n\"And you can talk!\" exclaims the bartender.\n\"I see your ears are working, too,\" says the duck.\n\"Now if you don't mind, can I have my beer and my sandwich please?\"\n\"Certainly, sorry about that\" says the bartender as he pours the duck a pint.\n\"It's just we don't get many ducks in this pub. What are you doing around this way?\"\n\"I'm working on the building site across the road,\" explains the duck.\n\"I'm a plasterer.\"\nThe flabbergasted bartender cannot believe the duck and wants to learn more, but takes the hint when the duck pulls out a newspaper from his bag and proceeds to read it.\nSo, the duck reads his paper, drinks his beer, eats his sandwich, bids the barman good day and leaves.\nThe same thing happens for two weeks.\nThen one day the circus comes to town.\nThe ringmaster comes into the pub for a pint and the bartender says to him:\n\"You're with the circus, aren't you?\nWell, I know this duck that could be just brilliant in your circus.\nHe talks, drinks beer, eats sandwiches, reads the newspaper and everything!\"\n\"Sounds marvelous,\" says the ringmaster, handing over his business card.\n\"Get him to give me a call.\"\nSo the next day when the duck comes into the pub the bartender says, \"Hey Mr. Duck, I reckon I can line you up with a top job, paying really good money.\"\n\"I'm always looking for the next job,\" says the duck.\n\"Where is it?\"\n\"At the circus,\" says the bartender.\n\"The circus?\" repeats the duck.\n\"That's right,\" replies the bartender.\n\"The circus?\" the duck asks again.\n\"With the big TENT?\"\n\"Yeah!\" the bartender replies.\n\"With all the animals who live in CAGES, and performers who live in CARAVANS?\" says the duck.\n\"Of course,\" the bartender replies.\n\"And the tent has CANVAS sides and a big canvas roof with a hole in the middle?\" persists the duck.\n\"That's right!\" says the bartender.\nThe duck shakes his head in amazement, and says: \"What would they want with a plasterer???\"" },
-	{ "jokeType": "dad", "joke": "I know a lot of jokes about unemployed people but none of them work." },
-	{ "jokeType": "dad", "joke": "What's the difference between a good joke and a bad joke timing." },
-	{ "jokeType": "dad", "joke": "And, why do seagulls fly over the sea? If they flew over the bay, they'd be bagels" },
-	{ "jokeType": "dad", "joke": "Say what you want about deaf people." },
-	{ "jokeType": "dad", "joke": "I went on a once in a lifetime holiday. Never again." },
-	{ "jokeType": "dad", "joke": "two muffins are sitting in an oven. one muffin turns to the other and says \"damn its getting hot in here\". the other muffin exclaims \"holy shit a talking muffin\"" },
-	{ "jokeType": "long", "joke": "Three dinosaurs come across a magic lamp.\nThey rub the lamp and out pops a genie who grants them three wishes.\nThe first dinosaur asks for a big hunk of meat.\nThe second dinosaur, looking to one-up the first, asks for a shower of meat.\nNot to be outdone, the third dinosaur asks for a meatier shower" },
-	{ "jokeType": "long", "joke": "A police officer pulls over a semi truck.\nHe gets the usual license and registration, but hears strange noises coming from the trailer, so he decides to investigate.\nInside, he finds 50 penguins.\n\"Sir, why do you have 50 penguins in your truck?\"\nThe officer asks the driver.\n\"Well, they're my friends, and we like to go on journeys together in my truck\" the man replies.\n\"I'm sorry sir, but you can't just own 50 penguins.\nI'm afraid you're going to have to take them to the zoo\".\nThe man agrees and drives off.\nThe next day the same cop pulls the truck over again, and once again hears strange noises in the trailer.\nHe goes to check and finds the same 50 penguins.\n\"I thought I told you to take these penguins to the zoo yesterday!\" The cop angrily tells the driver.\n\"I did take them to the zoo!\nThey loved it!\nToday we're going to the beach\"" },
-	{ "jokeType": "dad", "joke": "Why does water never laugh at jokes? its not a fan of dry humor" },
-	{ "jokeType": "dad", "joke": "Shout out to the people who want to know what the opposite of in is" },
-	{ "jokeType": "dad", "joke": "If life gives you lemons, then make lemonade. And If life gives you melons, you're probably dyslexic." },
-	{ "jokeType": "dad", "joke": "This is your captain speaking, AND THIS IS YOUR CAPTAIN SHOUTING." },
-	{ "jokeType": "dad", "joke": "I told my doctor that I broke my arm in two places. He told me to stop going to those places." },
-	{ "jokeType": "long", "joke": "A man walked into a bar, sat down, and ordered a beer.\nAs he sipped the beer, he heard a soothing voice say \"nice tie!\"\nLooking around, he noticed that the bar was empty except for himself and the bartender at the end of the bar.\nA few sips later, the voice said \"beautiful shirt\".\nAt this, the man called the bartender over.\n\"Hey…I must be losing my mind,\" he told the bartender.\n\"I keep hearing these voices saying nice things, and there's not a soul in here but us.\"\n\"It's the peanuts,\" answered the bartender.\n\"Say what?\"\n\"You heard me,\" said the barkeep.\n\"It's the peanuts … they're complimentary.\"" },
-	{ "jokeType": "long", "joke": "A woman wakes up on her birthday, and says to her husband \"Honey, I had a dream last night that you gave me a diamond necklace for my birthday.\nWhat do you think it means?\"\nHer husband smiles and says \"Maybe tonight you'll find out.\"\nLater that night, the couple go out to a nice show, and have dinner at their special place.\nAt the end of the meal, the husband takes out a small gift-wrapped box, gives it to his wife, and says, \"Happy Birthday honey\"\nThe wife opens the box and inside is a book titled \"How to Interpret Your Dreams.\"" },
-	{ "jokeType": "long", "joke": "There's this guy, Dave who absolutely hates going to the doctor.\nLuckily for him, his brother Henry is a veterinarian.\nSo anytime Dave is sick, he tells Henry and Henry will say \"look I'm not a doctor but here is what I would do and the medicines I would take\".\nOne day Dave breaks his leg so he calls up his brother and tells Henry he broke his leg.\nHenry is quiet for a bit and then says \"Dave, I've got bad news\"" },
-	{ "jokeType": "dad", "joke": "My grandad has the heart of a lion and a life time ban from the Edinburgh zoo." },
-	{ "jokeType": "dad", "joke": "What's the best thing about Switzerland? I don't know, but their flag is a huge plus." },
-	{ "jokeType": "dad", "joke": "I just read a story about a detective who solves crimes accidentally. They call him Sheer Luck Holmes." },
-	{ "jokeType": "dad", "joke": "So a blind man walks into a bar, a bus stop and a fence." },
-	{ "jokeType": "dad", "joke": "People who don't use punctuation should be punished. They deserve a long sentence." },
-	{ "jokeType": "dad", "joke": "In my school days, I did well in every subject except Greek mythology. You could say that it was my Achilles' elbow." },
-	{ "jokeType": "dad", "joke": "What is the best material for making a ninja suit? Leather. It's made of hide." },
-	{ "jokeType": "long", "joke": "A Buddhist walks up to a hotdog stand and says, \"Make me one with everything.\"\nThe hot dog vendor gives the Buddhist the hot dog and says \"that will be $1.75.\"\nThe Buddhist gives the man $2.\nAfter a few moments the Buddhist asks \"Where's my change?\"\nThe man says \"Change comes from within.\"" },
-	{ "jokeType": "dad", "joke": "It takes a lot of balls to golf like me." },
-	{ "jokeType": "dad", "joke": "I just lost 20% of my couch. Ouch." },
-	{ "jokeType": "dad", "joke": "Why was Lara Croft sad? her career was in ruins" },
-	{ "jokeType": "dad", "joke": "The other day I spotted an albino Dalmatian. Now it looks like a regular Dalmatian." },
-	{ "jokeType": "dad", "joke": "If a king sleeps on a king-sized bed, and a queen sleeps on a queen-sized bed, where does a prince sleep? On an heir matress" },
-	{ "jokeType": "long", "joke": "A guy is driving around the back woods of Georgia and he sees a sign in front of a broken down shanty-style house: 'Talking Dog for Sale'.\nHe rings the bell and the owner appears and tells him the dog is in the backyard.\nThe guy goes into the back yard and sees a nice looking Beagle sitting there.\n'You talk?' he asks.\n'Yep,' the Beagle replies.\nAfter the guy recovers from the shock of hearing a dog talk, he says 'So, what's your story?'\nThe Beagle looks up and says:\n\"Well, I discovered that I could talk when I was pretty young I wanted to help the government, so I told the CIA and they had me sworn into the US Army.\nSpecial Forces.\nYou know the reputation of them Green Berets.\nIn no time at all they had me jetting from country to country, sitting in rooms with spies and world leaders; because no one figured a dog would be eavesdropping.\nI was one of their most valuable spies for eight years running, but the jetting around really tired me out, and I knew I wasn't getting any younger.\nSo, I decided to settle down.\nI retired from the Army (8 dog years is 56 Corps years) and signed up for a job at the airport to do some undercover security, wandering near suspicious characters and listening in.\nI uncovered some incredible dealings and was awarded a batch of medals.\nI got married, had a mess of puppies, and now I'm just retired.\"\nThe guy is amazed.\nHe goes back in and asks the owner what he wants for the dog.\n'Ten bucks,' the guy says.\n'Ten bucks!?\nThis dog is amazing!\nWhy on earth are you selling him so cheap?\n''Because he's such a liar -- he never did any of that stuff!\nHe was in the Navy.'" },
-	{ "jokeType": "long", "joke": "You have 500 bricks.\nIf you throw one off a plane, how many will you have left?\n499.\nHow do you put an elephant into a refrigerator?\nYou open the refrigerator door, put the elephant inside, and close the door!\nHow do you put a giraffe into a refrigerator?\nYou open the refrigerator door, take the elephant out, put the giraffe in, and close the door!\nThe whole jungle was invited to the lion's party, but someone didn't show up.\nWho is it?\nThe giraffe, because he was inside the refrigerator!\nAn old granny wants to cross a crocodile-infested river.\nBut somehow, she crossed the river safely.\nHow?\nThe crocodiles went to the lions party.\nAs she got to the other side of the river, the granny died.\nHow?\nThe brick hit her head." },
-	{ "jokeType": "dad", "joke": "I'm reading a horror story in braille. Something bad is going to happen, I can feel it!" },
-	{ "jokeType": "cheesy", "joke": "Who are a turkey's favorite people? Vegetarians." },
-	{ "jokeType": "dad", "joke": "My friend won't stop making bird puns. But toucan play that game." },
-	{ "jokeType": "dad", "joke": "The inventor of Velcro passed away last week. RIP." },
-	{ "jokeType": "dad", "joke": "How do you organize a space party?... You planet" },
-	{ "jokeType": "long", "joke": "I was abducted by aliens last night.\nThey made me wash my hands, brush my hair, straighten my clothes, and eat vegetables.\nTurns out I was on the mothership." },
-	{ "jokeType": "dad", "joke": "Covid, the flu, and the common cold all walk into a doctor's office. The receptionist says, \"What is this, some kind of sick joke?\"" }
+  { "jokeType": "cheesy", "joke": "What's wrong with jokes about cheese? They don't age well" },
+  {
+    "jokeType": "cheesy",
+    "joke": "What did Shakespeare ask his cheesemonger? \"To bree, or not to Bree\""
+  },
+  { "jokeType": "cheesy", "joke": "What cheese lives in a galaxy far, far away? Boba feta" },
+  {
+    "jokeType": "cheesy",
+    "joke": "What did the melted cheese say to the unlucky tortilla? \"Its nacho day\""
+  },
+  {
+    "jokeType": "cheesy",
+    "joke": "A cheese sandwich walks into a bar, The bar owner says: \"Sorry, we don't serve food here\""
+  },
+  {
+    "jokeType": "cheesy",
+    "joke": "What is Bruce Banner's favourite cheese? The in-cheddar-able hulk"
+  },
+  { "jokeType": "cheesy", "joke": "What do you call a mythical cheese? Legen-dairy" },
+  {
+    "jokeType": "cheesy",
+    "joke": "Why were mozzarella and feta holding hands? They looked Gouda together"
+  },
+  { "jokeType": "cheesy", "joke": "What's the pope's favourite cheese? Swiss - its holy" },
+  { "jokeType": "cheesy", "joke": "What do ghosts put on their bagels? Scream cheese" },
+  {
+    "jokeType": "cheesy",
+    "joke": "I got scared when I saw a crocodile the other day, but thankfully it only eats cheese. Its an alli-grator"
+  },
+  {
+    "jokeType": "cheesy",
+    "joke": "I told my friend I was going to make a car out of macaroni cheese. She didn't believe me until I drove pasta"
+  },
+  { "jokeType": "cheesy", "joke": "What kind of cheese do horror movie fans like? Gory-gonzola" },
+  {
+    "jokeType": "cheesy",
+    "joke": "Did you hear the cheesy weather forecast? Rain with light bries"
+  },
+  { "jokeType": "cheesy", "joke": "Which cheese surrounds a medieval castle? Moat-zarella" },
+  { "jokeType": "cheesy", "joke": "What's a pirate's favourite cheese? Chedd-aarrr" },
+  { "jokeType": "cheesy", "joke": "Who was the most popular roman emperor mouse? Julius cheeser" },
+  {
+    "jokeType": "cheesy",
+    "joke": "Why don't people at Entelect always like cheesy jokes? They're too mature for them"
+  },
+  { "jokeType": "cheesy", "joke": "How do ducks like their cheese? With Quackers" },
+  { "jokeType": "cheesy", "joke": "What is Jay-Z's favourite cheese? Brie-yonce" },
+  { "jokeType": "cheesy", "joke": "When cant you see a cheese? When its pasteurised" },
+  {
+    "jokeType": "cheesy",
+    "joke": "What did Sherlock say when he solved the case of the missing cheese? \"Emmental, my dear Watson\""
+  },
+  { "jokeType": "cheesy", "joke": "Who's the head of the cheese mafia? The gouda-father" },
+  {
+    "jokeType": "cheesy",
+    "joke": "Did you hear about the explosion at the cheese factory? There was de-brie everywhere!"
+  },
+  {
+    "jokeType": "cheesy",
+    "joke": "What did the cheese detective say when he found a clue? \"This is most swiss-picious\""
+  },
+  { "jokeType": "cheesy", "joke": "What do you call flying cheeses? Curds of prey" },
+  {
+    "jokeType": "cheesy",
+    "joke": "Did you hear about the cheese that had Deja vu? It thought it'd seen this all brie-fore"
+  },
+  {
+    "jokeType": "cheesy",
+    "joke": "Why didn't the cheese want to get sliced? Because it had grater plans"
+  },
+  { "jokeType": "cheesy", "joke": "What kind of cheese does Medusa eat? Gorgon-zola" },
+  {
+    "jokeType": "cheesy",
+    "joke": "What did the piece of cheddar say to the ghost? Don't scare me—I'm Lac-ghost intolerant!"
+  },
+  {
+    "jokeType": "cheesy",
+    "joke": "What kind of music would a slice of cheese like to dance to? R & Brie."
+  },
+  {
+    "jokeType": "cheesy",
+    "joke": "Why did the cheddar cheese decided to go to the gym? To get shredded."
+  },
+  { "jokeType": "dad", "joke": "What do you call a sheep in a chocolate factory? Wooly Wonka" },
+  { "jokeType": "dad", "joke": "I ate a watch yesterday. It was very time consuming" },
+  {
+    "jokeType": "dad",
+    "joke": "My wife told me to stop acting like a flamingo, so I had to put my foot down."
+  },
+  {
+    "jokeType": "dad",
+    "joke": "I couldn't figure out why the baseball kept getting larger. Then it hit me."
+  },
+  {
+    "jokeType": "long",
+    "joke": "For a high school dance, the head boy asked out the girl he liked.\nTo get flowers for her, he had to stand in a line outside the florist for an hour.\nTo make things worse, he had to wait another hour in a line outside the tuxedo shop.\nFinally, he goes to the dance with the girl.\nThe girl wanted to have some apple punch so the boy went to get it, but to his surprise, there was no punch line."
+  },
+  {
+    "jokeType": "long",
+    "joke": "A man died and went to Heaven.\nSt Peter says to him \"Before you meet with God, I should tell you ,we've looked over your life, and to be honest you really didn't do anything particularly good or bad.\nWe're not really sure what to do with you.\nCan you tell us anything you did that can help us make a decision?\"\nThe newly arrived soul thought for a moment and replied, \"Yeah, once I was driving along and came upon a little old lady who was being harassed by a group of thugs.\nSo I pulled over and went up to the leader of the thugs.\nHe was a big, muscular guy with a ring pierced through his lip.\nWell, I tore the ring out of his lip, and told him he and his gang had better stop bothering this lady or they would have to deal with me!\"\n\"Wow that's impressive, When did this happen?\" he said, and the main replied \"About three minutes ago\"."
+  },
+  { "jokeType": "dad", "joke": "What do wooden whales eat? Plankton." },
+  { "jokeType": "dad", "joke": "What did the fish say when he hit the wall? \"Dam\"" },
+  { "jokeType": "dad", "joke": "A blind man walks into a bar. And a table. And a chair." },
+  {
+    "jokeType": "dad",
+    "joke": "Mr. Smith is at the doctor. The doctor says, \"I have bad news, you have cancer and you have Alzheimer's.\" Mr. Smith thinks for a moment and says, \"well at least I don't have cancer.\""
+  },
+  {
+    "jokeType": "long",
+    "joke": "A statue of a man and a statue of a woman stood looking at each other for hundreds of years out in a park.\nOne day a wizard, feeling sorry for the statues, brought them to life for 30 minutes.\nRight away, the two of them ran into some nearby bushes and you could hear all kinds of strange sounds and moans from there.\nAfter a while they came back out, giggling.\nThe wizard told them \"You have another 15 minutes left, if you want to have another go.\"\nThe statues looked at each other and the male statue answered \"Fine, but this time you hold the pigeon and I'll shit on it.\""
+  },
+  {
+    "jokeType": "long",
+    "joke": "Three men were at the gates of heaven, but there was only room for one person.\nSt Peter asked each of them how they died, and the best story got through.\nMan 1: I was adamant my wife was cheating.\nI came up to my apartment on the 24th floor and walked in, only to find my wife by herself.\nI was pleasantly surprised until I saw a man hanging off the edge of the balcony by just his fingers.\nI went over to him with a hammer and hit his hands until he let go.\nHe fell in some bushes, and was still alive, so I grabbed my fridge and lifted it over the edge so it would fall on him.\nAnd after all that heavy lifting, I died of a heart attack.\nMan 2: well I was on my 25th floor balcony doing some yoga and I fell over the edge!\nI was hanging on by just my fingers when I saw a man coming over, I was so relieved!\nBut then he started hammering my fingers and I fell in a bush.\nI was alive but very sore.\nHe then threw a fridge over the edge on to me, and here I am.\nMan 3: Well you see, I was hiding in a fridge..."
+  },
+  { "jokeType": "chuckNorris", "joke": "Chuck Norris can parallel park a train." },
+  {
+    "jokeType": "chuckNorris",
+    "joke": "When Alexander Graham Bell invented the telephone he already had three missed calls from Chuck Norris."
+  },
+  {
+    "jokeType": "chuckNorris",
+    "joke": "When Chuck Norris enters a room, he doesn't turn the lights on, he turns the dark off."
+  },
+  {
+    "jokeType": "chuckNorris",
+    "joke": "Chuck Norris once kicked a donkey's chin. It's descendants are called giraffes."
+  },
+  {
+    "jokeType": "chuckNorris",
+    "joke": "Chuck Norris' calendar goes straight from March 31st to April 2nd, because no one fools Chuck Norris."
+  },
+  { "jokeType": "dad", "joke": "Why can't the T-rex clap its hands? Because its extinct" },
+  {
+    "jokeType": "dad",
+    "joke": "Two nuns are sitting on a park bench. A man in a trench coat runs up and flashes them. The first nun has a stroke. The second nun tried but she couldn't reach."
+  },
+  { "jokeType": "dad", "joke": "I'm on a seafood diet. I see food, and I eat it." },
+  {
+    "jokeType": "dad",
+    "joke": "My boss asked me how good I was at making spreadsheets. I told him I Excel at it."
+  },
+  {
+    "jokeType": "dad",
+    "joke": "A blonde walks into a dry cleaners and tells the woman at the counter, \"I need to have an outfit washed.\" The clerk was busy and slightly distracted, so she looked up from her work and said, \"Come again?\" The blonde said, \"No, it's toothpaste this time.\""
+  },
+  {
+    "jokeType": "dad",
+    "joke": "A pony walks into a bar and asks for a beer. The bartender says \"Speak up, I cant hear you\". The pony responds \"Sorry, I'm a little horse\""
+  },
+  {
+    "jokeType": "dad",
+    "joke": "Two blondes walked into a bar. Everyone else played Limbo normally"
+  },
+  {
+    "jokeType": "dad",
+    "joke": "What did the left eye say to the right eye? Between us, something smells!"
+  },
+  { "jokeType": "chuckNorris", "joke": "Chuck Norris can hear sign language." },
+  {
+    "jokeType": "chuckNorris",
+    "joke": "When Chuck Norris was born, he drove his mom home from the hospital."
+  },
+  {
+    "jokeType": "chuckNorris",
+    "joke": "The dinosaurs looked at Chuck Norris the wrong way once. You know what happened to them."
+  },
+  {
+    "jokeType": "dad",
+    "joke": "I went to the doctors recently. He said: “Don’t eat anything fatty”. I said: “What, like bacon and burgers?”. He said, “No, fatty, don’t eat anything.”"
+  },
+  {
+    "jokeType": "long",
+    "joke": "A woman is walking home with her 3 daughters.\nThe eldest daughter turns to her and asks, \"Mummy, how did I get my name?\"\n\"Well sweetie, when we were bringing you home from the hospital, a rose petal landed on your head!\nSo that's why we named you Rose.\"\nThe second daughter, now curious, asks the same question.\n\"Well darling, when we were bringing you home from the hospital, a lily petal landed on your head!\nSo that's why we named you Lily.\"\nThe third girl asks \"HHGHGNGHGHNG?!?!?! DDDNBHGHBHNGHHH!!!\"\n\"Shhh, quiet now, Brick.\""
+  },
+  {
+    "jokeType": "dad",
+    "joke": "Why do you never see hippos hiding in trees? Because they're very good at it."
+  },
+  {
+    "jokeType": "dad",
+    "joke": "A woman is sitting at her recently deceased husband’s funeral. A man leans in to her and asks, “Do you mind if I say a word?”. “No, go right ahead”, the woman replies.` The man stands, clears his throat, says “Plethora”, and sits back down. “Thanks”, the woman says, “that means a lot”."
+  },
+  {
+    "jokeType": "dad",
+    "joke": "Why did the half blind man fall into a well? He couldn’t see that well."
+  },
+  {
+    "jokeType": "dad",
+    "joke": "My dad asked me the other day: \"Are you even listening to me?\" Which is a really weird way to start a conversation if you ask me."
+  },
+  {
+    "jokeType": "dad",
+    "joke": "Mickey Mouse gets a call from his lawyer, the lawyer tells him \"Mickey I'm sorry, but you can't divorce Minnie just because she's crazy\" Mickey says \"I didn't say she was crazy, I said she was fucking Goofy\""
+  },
+  {
+    "jokeType": "dad",
+    "joke": "Why do scuba divers fall backwards out of the boat? Because if they fell forwards they'd still be in the boat"
+  },
+  {
+    "jokeType": "dad",
+    "joke": "What do you get when you cross a joke with a rhetorical question?"
+  },
+  {
+    "jokeType": "dad",
+    "joke": "What did the cannibal get when he was late for dinner? The cold shoulder."
+  },
+  { "jokeType": "dad", "joke": "I stand corrected, said the man in the orthopaedic shoes" },
+  {
+    "jokeType": "dad",
+    "joke": "What do you get when you mix Goat DNA and Human DNA? Kicked out of the petting zoo."
+  },
+  {
+    "jokeType": "dad",
+    "joke": "You’ve heard of Murphy’s law right? It says that anything that can go wrong will go wrong. But have you heard of Cole’s law? It’s thinly sliced cabbage."
+  },
+  {
+    "jokeType": "dad",
+    "joke": "How many flies does it take to screw in a lightbulb? Just two but I have no idea how they got in there."
+  },
+  {
+    "jokeType": "dad",
+    "joke": "A man on vacation with his family arrives at a hotel. As he's checking in, he says to the clerk, \"I'm on vacation with my family, please make sure the porn channel is disabled\". The clerk then replies in disgust, \"It's just regular porn, you sick fuck\""
+  },
+  {
+    "jokeType": "dad",
+    "joke": "A wife calls her husband and says be careful driving home, some complete moron is driving down the wrong side of the motorway. The husband replies there's not just one, there's bloody hundreds of them!"
+  },
+  {
+    "jokeType": "dad",
+    "joke": "How do you think the unthinkable? It'th very thimple. With an itheberg."
+  },
+  { "jokeType": "dad", "joke": "What's red and bad for your teeth? A brick" },
+  {
+    "jokeType": "dad",
+    "joke": "So there were two whales at a bar. The first whale says to the second Waaaaaoooooooo Waaaaoooaoaoaoa Wooooooooaaao. Then the second whale says back to the first: Go home Frank. You're drunk."
+  },
+  { "jokeType": "dad", "joke": "You know what they say about cliffhangers..." },
+  {
+    "jokeType": "dad",
+    "joke": "So two cows are talking in a field, The first cow says hey man, you worried about this mad cow disease that is going around? The second cow says Im sure glad it doesnt effect us helicopters."
+  },
+  { "jokeType": "dad", "joke": "What kind of birds stick together? Velcrows" },
+  {
+    "jokeType": "dad",
+    "joke": "My friend fainted on a carousel, but he'll be okay. He's coming back around"
+  },
+  {
+    "jokeType": "dad",
+    "joke": "Someone stole my diary and then passed away. My thoughts are with his family"
+  },
+  {
+    "jokeType": "long",
+    "joke": "Dad is listening to his daughter say her prayers before bedtime.\nShe says - God bless mommy and god bless daddy and god bless grandma and... goodbye grandpa.\nHe asks her - why did you say that?\nI don't know, I just felt like saying it.\nThe next day, grandpa drops dead.\nA month later at bedtime, the daughter says - God bless mommy and daddy. And goodbye grandma.\nSure enough, the next day grandma breathes her last earthly breath.\nMonths go by and one night the man is listening to his daughter saying her prayers at bedtime - God bless mommy....she turns her head and looks straight at him - and goodbye daddy.\nWhat!? are you sure honey?\nShe nods.\nThe man is so upset he can't sleep.\nThe next day he hides at work all day.\nFinally at midnight he realizes he has cheated death.\nHe drives home drenched in sweat.\nHis wife is up and waiting for him - Where were you today??!\nHe replies - Don't shout, I've had an absolutely miserable day.\nHis wife then says - You had a miserable day?\nI'm the one who had a miserable day!\nFirst, the milkman drops dead on the steps..."
+  },
+  {
+    "jokeType": "dad",
+    "joke": "If you get abducted by a group of mimes, they will do unspeakable things to you"
+  },
+  {
+    "jokeType": "dad",
+    "joke": "If you get abducted by a group of mice, they will do unsqeakable things to you"
+  },
+  {
+    "jokeType": "dad",
+    "joke": "If you think that your refrigerator collecting data and the TV spying on you is bad enough, just remember, the vacuum cleaner has been gathering dirt on you for years!"
+  },
+  { "jokeType": "dad", "joke": "Can February march?  No, but April may" },
+  {
+    "jokeType": "dad",
+    "joke": "Why do seagulls fly over the sea? If they flew over the bay, they’d be bagels"
+  },
+  {
+    "jokeType": "dad",
+    "joke": "Two guys are robbing a liquor store, and as they are clearing the shelves the first guy goes: is this whiskey? The second guy replies: Sure, but not as wisky as wobbing a bank!"
+  },
+  {
+    "jokeType": "dad",
+    "joke": "A woman walks into a library and approaches the librarian. The woman says, I'm looking for a particular kids book for my son, but I can't remember the name. The librarian says, ok, can you describe it for me? The woman replies, it's an adventure book about Pavlov's dog and Schrodinger's cat. The librarian thinks for a minute and says, hmm, it rings a bell, but I'm not sure if we have it or not."
+  },
+  {
+    "jokeType": "dad",
+    "joke": "A penguin is having car trouble, so he takes his car to the garage. The mechanic says it'll take about an hour to check what's wrong. The penguin sees an ice cream shop across the street, and heads over to get himself a snack while he's waiting. It's awkward for the poor guy to eat with his flippers, and he makes a bit of a mess. He goes back to the mechanic to find out what's wrong with the car. Mechanic says Looks like you blew a seal. Ha, no ... that's just a little ice cream."
+  },
+  {
+    "jokeType": "dad",
+    "joke": "My grandfather has the heart of a lion, and a lifetime ban from the zoo"
+  },
+  {
+    "jokeType": "long",
+    "joke": "A guy sees an advertisement in a pet-shop window: \"Talking Centipede £100.\"\nThe guy goes in and buys it.\nHe gets home, opens the box and asks the centipede if he wants to go for a beer.\nThe centipede doesn't answer, so the guy closes the lid, convinced he's been swindled.\nThirty minutes later he decides to try again.\nHe raises his voice and shouts, \"Do you want to go for a beer?\"\nThe centipede pokes his head out of the box and says, \"Pipe down!\nI heard you the first time.\nI'm putting on my shoes!\""
+  },
+  {
+    "jokeType": "long",
+    "joke": "Dave was bragging to his boss one day, \"You know, I know everyone there is to know.\nJust name someone, anyone, and I know them.\"\nTired of his boasting, his boss called his bluff, \"OK, Dave, how about Tom Cruise?\"\n\"No dramas boss, Tom and I are old friends, and I can prove it.\"\nSo Dave and his boss fly out to Hollywood and knock on Tom Cruise's door, and Tom Cruise shouts, \"Dave!\nWhat's happening?\nGreat to see you!\nCome on in for a beer!\"\nAlthough impressed, Dave's boss is still skeptical.\nAfter they leave Cruise's house, he tells Dave that he thinks him knowing Cruise was just lucky.\n\"No, no, just name anyone else,\" Dave says.\n\"President Obama,\" his boss quickly retorts.\n\"Yup,\" Dave says, \"Old buddies, let's fly out to Washington,\" and off they go.\nAt the White House, Obama spots Dave on the tour and motions him and his boss over, saying, \"Dave, what a surprise, I was just on my way to a meeting, but you and your friend come on in and let's have a beer first and catch up.\"\nWell, the boss is very shaken by now but still not totally convinced.\nAfter they leave the White House grounds he expresses his doubts to Dave, who again implores him to name anyone else.\n\"Pope Francis,\" his boss replies.\n\"Sure!\" says Dave.\n\"I've known the Pope for years.\"\nSo off they fly to Rome.\nDave and his boss are assembled with the masses at the Vatican's St. Peter's Square when Dave says, \"This will never work.\nI can't catch the Pope's eye among all these people.\nTell you what, I know all the guards so let me just go upstairs and I'll come out on the balcony with the Pope.\"\nHe disappears into the crowd headed towards the Vatican.\nSure enough, half an hour later Dave emerges with the Pope on the balcony, but by the time Dave returns, he finds that his boss has had a heart attack and is surrounded by paramedics.\nMaking his way to his boss' side, Dave asks him, \"What happened?\"\nHis boss looks up and says, \"It was the final straw...\nYou and the Pope came out on to the balcony and the man next to me said, 'Who the fuck is that on the balcony with Dave?'\""
+  },
+  {
+    "jokeType": "dad",
+    "joke": "A man is smoking a cigarette and blowing smoke rings. His girlfriend says, Can’t you see the warning on the pack? Smoking is hazardous to your health! He replies, I am a programmer. We don’t worry about warnings; we only worry about errors."
+  },
+  {
+    "jokeType": "dad",
+    "joke": "Two cannibals sat around a campfire. One said God, I hate my mother-in-law. His friend said, Well then try the potatoes!"
+  },
+  {
+    "jokeType": "long",
+    "joke": "Three guys find a lamp and meet a Genie who grants 3 wishes each.\nOne wants a billion dollars, another to be richest man alive, the third wants his left arm to rotate clockwise for life.\nSecond wish: first wants to marry the most beautiful woman, second wants to be handsome and charismatic, third wants right arm to rotate counter-clockwise.\nThird wishes: first wants perfect health, second wants to stay 29 forever, third wants his head to nod back and forth.\nYears later they meet: the first two are thriving; the third arrives flailing his arms and nodding, saying Guys, I think I fucked up."
+  },
+  {
+    "jokeType": "dad",
+    "joke": "You know Orion's belt? Waist of space. I know, I know, not a very good joke... Three stars."
+  },
+  {
+    "jokeType": "long",
+    "joke": "There once was a man who loved tractors, I mean he absolutely LOVED them.\nHe had tractor models, tractor wallpaper, remote control miniature tractors, tractor board games, even some tractor porn(which is not easy to find mind you).\nThe only thing that even came close to his love for tractors, was the love he felt for his wife.\nHis high school sweetheart, who didn't mind his infatuation with tractors one bit.\nShe didn't even mind the role play where she would dress as a tractor, he would dress as a farmer, and he would take her for a \"ride\".\nSadly his wife was struck one day, a tractor fell off the back of a transport truck.\nShe didn't die until he was at her side in the hospital.\nHer dying words \"don't blame the tractor honey\" and with that she headed to the big farm in the sky.\nSadly, he did blame the tractor, he hated them now with all his mind, body, and soul.\nHe went home and destroyed ALL his tractor related items, the toys, his wifes tractor suit, and even his collection of tractor porn.\nHe put it all in a pile and burned it in the yard.\nWhat ever didn't burn enough to his liking was thrown into a woodchipper.\nHe then went inside, rarely leaving his home, for 8 years.\nFinally on the 8th anniversary of his darling wifes death he decided it was time to get back out in the dating world, plus the cute cashier at the grocery store had been asking him out for a while now, he called her out to dinner.\nThe restaurant he choose ended up being quite nice, good food, good service, great decor.\nBut there was one problem, it was EXTREMELY smoky.\nSo smoky that his date, being an asthmatic, was having some trouble breathing.\nAfter noticing her displeasure, and trouble breathing, he started breathing in.\nI mean REALLY breathing in.\nInhaling with such force that all the smoke quickly left the dining room, and went into his lungs.\nWhen the room was void of smoke he stepped outside and released it all into the night.\nWhen he rejoined his date she asked \"how on earth did you do that?\" to which he replied, \"I'm an extractor fan.\""
+  },
+  {
+    "jokeType": "long",
+    "joke": "My buddy got arrested on drug charges and because it was his first offense, he thought he would get off lightly.\nBut it turned out his lawyer was one of the worst in the state and ended up botching his case.\nSo instead of getting a short term, he ended up getting 40 years without parole!!\nMan, that sentence was way too long."
+  },
+  {
+    "jokeType": "long",
+    "joke": "Two guys are walking their dogs.\nOne guy says to the other guy, \"We should stop in at the bar down there for a beer!\"\nHis friend loves the idea but says that they won't get in with their dogs with them.\nThe first dude says \"Follow my lead.\"\nThey approach the bar.\nAs the first man gets to the entrance, the bouncer is there who tells them plainly that he can't come in with the dog.\nThe man, eyes closed, responds \"But this is my seeing eye dog!\"\nThe bouncer grunts an OK and lets him in.\nThe other guy sees it all play out and follows suit.\nHe wanders over, eyes closed and tries to go in.\nThe bouncer says \"OK, we don't allow dogs in here so you'll have to leave.\"\nThe guy responds \"But this is my seeing eye dog!\"\nThe bouncer does a double take and says, \"A chihuahua?\"\nThe man responds, \"They gave me a fucking chihuahua?!!\""
+  },
+  {
+    "jokeType": "long",
+    "joke": "Two hunters are out in the woods when one of them collapses.\nHe doesn't seem to be breathing and his eyes are glazed.\nThe other guy whips out his phone and calls 911.\nWhen the operator answered, he breathlessly exclaims, \"My friend is dead!\nWhat do I do?\"\nThe operator says \"Calm down.\nI can help.\nFirst, let's make sure he's dead.\"\nThere is a silence, then a shot is heard.\nBack on the phone, the guy says \"OK, now what?"
+  },
+  {
+    "jokeType": "dad",
+    "joke": "I searched a list of ten puns to find one that made me laugh.... No pun in ten did"
+  },
+  {
+    "jokeType": "dad",
+    "joke": "I think its totally unfair that a women cant be the pope. In fact, a women can't even be a bishop. Which is crazy, cause women be-shopping"
+  },
+  { "jokeType": "dad", "joke": "What was Frankensteins new year resolution? To make a friend" },
+  {
+    "jokeType": "dad",
+    "joke": "There are 2 types of people. 1) Those who can extrapolate from incomplete information."
+  },
+  {
+    "jokeType": "dad",
+    "joke": "Why did Sally fall off the swing? Because she had no arms. Knock knock... Who's there? Not Sally."
+  },
+  {
+    "jokeType": "dad",
+    "joke": "A soldier survived mustard gas in battle, and then pepper spray by the police. He's now a seasoned veteran"
+  },
+  { "jokeType": "dad", "joke": "I don't always tell dad jokes, but when I do he laughs" },
+  {
+    "jokeType": "dad",
+    "joke": "I'm addicted to brake fluid, but I can stop whenever I want. I used to be addicted to the Hokey Pokey, but I turned myself around. I used to be addicted to soap, but I'm clean now."
+  },
+  {
+    "jokeType": "long",
+    "joke": "A duck walks into a pub and orders a pint of beer and a ham sandwich.\nThe bartender looks at him and says, \"Hang on! You're a duck.\"\n\"I see your eyes are working,\" replies the duck.\n\"And you can talk!\" exclaims the bartender.\n\"I see your ears are working, too,\" says the duck.\n\"Now if you don't mind, can I have my beer and my sandwich please?\"\n\"Certainly, sorry about that\" says the bartender as he pours the duck a pint.\n\"It's just we don't get many ducks in this pub. What are you doing around this way?\"\n\"I'm working on the building site across the road,\" explains the duck.\n\"I'm a plasterer.\"\nThe flabbergasted bartender cannot believe the duck and wants to learn more, but takes the hint when the duck pulls out a newspaper from his bag and proceeds to read it.\nSo, the duck reads his paper, drinks his beer, eats his sandwich, bids the barman good day and leaves.\nThe same thing happens for two weeks.\nThen one day the circus comes to town.\nThe ringmaster comes into the pub for a pint and the bartender says to him:\n\"You're with the circus, aren't you?\nWell, I know this duck that could be just brilliant in your circus.\nHe talks, drinks beer, eats sandwiches, reads the newspaper and everything!\"\n\"Sounds marvelous,\" says the ringmaster, handing over his business card.\n\"Get him to give me a call.\"\nSo the next day when the duck comes into the pub the bartender says, \"Hey Mr. Duck, I reckon I can line you up with a top job, paying really good money.\"\n\"I'm always looking for the next job,\" says the duck.\n\"Where is it?\"\n\"At the circus,\" says the bartender.\n\"The circus?\" repeats the duck.\n\"That's right,\" replies the bartender.\n\"The circus?\" the duck asks again.\n\"With the big TENT?\"\n\"Yeah!\" the bartender replies.\n\"With all the animals who live in CAGES, and performers who live in CARAVANS?\" says the duck.\n\"Of course,\" the bartender replies.\n\"And the tent has CANVAS sides and a big canvas roof with a hole in the middle?\" persists the duck.\n\"That's right!\" says the bartender.\nThe duck shakes his head in amazement, and says: \"What would they want with a plasterer???\""
+  },
+  {
+    "jokeType": "dad",
+    "joke": "I know a lot of jokes about unemployed people but none of them work."
+  },
+  { "jokeType": "dad", "joke": "What's the difference between a good joke and a bad joke timing." },
+  {
+    "jokeType": "dad",
+    "joke": "And, why do seagulls fly over the sea? If they flew over the bay, they'd be bagels"
+  },
+  { "jokeType": "dad", "joke": "Say what you want about deaf people." },
+  { "jokeType": "dad", "joke": "I went on a once in a lifetime holiday. Never again." },
+  {
+    "jokeType": "dad",
+    "joke": "two muffins are sitting in an oven. one muffin turns to the other and says \"damn its getting hot in here\". the other muffin exclaims \"holy shit a talking muffin\""
+  },
+  {
+    "jokeType": "long",
+    "joke": "Three dinosaurs come across a magic lamp.\nThey rub the lamp and out pops a genie who grants them three wishes.\nThe first dinosaur asks for a big hunk of meat.\nThe second dinosaur, looking to one-up the first, asks for a shower of meat.\nNot to be outdone, the third dinosaur asks for a meatier shower"
+  },
+  {
+    "jokeType": "long",
+    "joke": "A police officer pulls over a semi truck.\nHe gets the usual license and registration, but hears strange noises coming from the trailer, so he decides to investigate.\nInside, he finds 50 penguins.\n\"Sir, why do you have 50 penguins in your truck?\"\nThe officer asks the driver.\n\"Well, they're my friends, and we like to go on journeys together in my truck\" the man replies.\n\"I'm sorry sir, but you can't just own 50 penguins.\nI'm afraid you're going to have to take them to the zoo\".\nThe man agrees and drives off.\nThe next day the same cop pulls the truck over again, and once again hears strange noises in the trailer.\nHe goes to check and finds the same 50 penguins.\n\"I thought I told you to take these penguins to the zoo yesterday!\" The cop angrily tells the driver.\n\"I did take them to the zoo!\nThey loved it!\nToday we're going to the beach\""
+  },
+  { "jokeType": "dad", "joke": "Why does water never laugh at jokes? its not a fan of dry humor" },
+  {
+    "jokeType": "dad",
+    "joke": "Shout out to the people who want to know what the opposite of in is"
+  },
+  {
+    "jokeType": "dad",
+    "joke": "If life gives you lemons, then make lemonade. And If life gives you melons, you're probably dyslexic."
+  },
+  {
+    "jokeType": "dad",
+    "joke": "This is your captain speaking, AND THIS IS YOUR CAPTAIN SHOUTING."
+  },
+  {
+    "jokeType": "dad",
+    "joke": "I told my doctor that I broke my arm in two places. He told me to stop going to those places."
+  },
+  {
+    "jokeType": "long",
+    "joke": "A man walked into a bar, sat down, and ordered a beer.\nAs he sipped the beer, he heard a soothing voice say \"nice tie!\"\nLooking around, he noticed that the bar was empty except for himself and the bartender at the end of the bar.\nA few sips later, the voice said \"beautiful shirt\".\nAt this, the man called the bartender over.\n\"Hey…I must be losing my mind,\" he told the bartender.\n\"I keep hearing these voices saying nice things, and there's not a soul in here but us.\"\n\"It's the peanuts,\" answered the bartender.\n\"Say what?\"\n\"You heard me,\" said the barkeep.\n\"It's the peanuts … they're complimentary.\""
+  },
+  {
+    "jokeType": "long",
+    "joke": "A woman wakes up on her birthday, and says to her husband \"Honey, I had a dream last night that you gave me a diamond necklace for my birthday.\nWhat do you think it means?\"\nHer husband smiles and says \"Maybe tonight you'll find out.\"\nLater that night, the couple go out to a nice show, and have dinner at their special place.\nAt the end of the meal, the husband takes out a small gift-wrapped box, gives it to his wife, and says, \"Happy Birthday honey\"\nThe wife opens the box and inside is a book titled \"How to Interpret Your Dreams.\""
+  },
+  {
+    "jokeType": "long",
+    "joke": "There's this guy, Dave who absolutely hates going to the doctor.\nLuckily for him, his brother Henry is a veterinarian.\nSo anytime Dave is sick, he tells Henry and Henry will say \"look I'm not a doctor but here is what I would do and the medicines I would take\".\nOne day Dave breaks his leg so he calls up his brother and tells Henry he broke his leg.\nHenry is quiet for a bit and then says \"Dave, I've got bad news\""
+  },
+  {
+    "jokeType": "dad",
+    "joke": "My grandad has the heart of a lion and a life time ban from the Edinburgh zoo."
+  },
+  {
+    "jokeType": "dad",
+    "joke": "What's the best thing about Switzerland? I don't know, but their flag is a huge plus."
+  },
+  {
+    "jokeType": "dad",
+    "joke": "I just read a story about a detective who solves crimes accidentally. They call him Sheer Luck Holmes."
+  },
+  { "jokeType": "dad", "joke": "So a blind man walks into a bar, a bus stop and a fence." },
+  {
+    "jokeType": "dad",
+    "joke": "People who don't use punctuation should be punished. They deserve a long sentence."
+  },
+  {
+    "jokeType": "dad",
+    "joke": "In my school days, I did well in every subject except Greek mythology. You could say that it was my Achilles' elbow."
+  },
+  {
+    "jokeType": "dad",
+    "joke": "What is the best material for making a ninja suit? Leather. It's made of hide."
+  },
+  {
+    "jokeType": "long",
+    "joke": "A Buddhist walks up to a hotdog stand and says, \"Make me one with everything.\"\nThe hot dog vendor gives the Buddhist the hot dog and says \"that will be $1.75.\"\nThe Buddhist gives the man $2.\nAfter a few moments the Buddhist asks \"Where's my change?\"\nThe man says \"Change comes from within.\""
+  },
+  { "jokeType": "dad", "joke": "It takes a lot of balls to golf like me." },
+  { "jokeType": "dad", "joke": "I just lost 20% of my couch. Ouch." },
+  { "jokeType": "dad", "joke": "Why was Lara Croft sad? her career was in ruins" },
+  {
+    "jokeType": "dad",
+    "joke": "The other day I spotted an albino Dalmatian. Now it looks like a regular Dalmatian."
+  },
+  {
+    "jokeType": "dad",
+    "joke": "If a king sleeps on a king-sized bed, and a queen sleeps on a queen-sized bed, where does a prince sleep? On an heir matress"
+  },
+  {
+    "jokeType": "long",
+    "joke": "A guy is driving around the back woods of Georgia and he sees a sign in front of a broken down shanty-style house: 'Talking Dog for Sale'.\nHe rings the bell and the owner appears and tells him the dog is in the backyard.\nThe guy goes into the back yard and sees a nice looking Beagle sitting there.\n'You talk?' he asks.\n'Yep,' the Beagle replies.\nAfter the guy recovers from the shock of hearing a dog talk, he says 'So, what's your story?'\nThe Beagle looks up and says:\n\"Well, I discovered that I could talk when I was pretty young I wanted to help the government, so I told the CIA and they had me sworn into the US Army.\nSpecial Forces.\nYou know the reputation of them Green Berets.\nIn no time at all they had me jetting from country to country, sitting in rooms with spies and world leaders; because no one figured a dog would be eavesdropping.\nI was one of their most valuable spies for eight years running, but the jetting around really tired me out, and I knew I wasn't getting any younger.\nSo, I decided to settle down.\nI retired from the Army (8 dog years is 56 Corps years) and signed up for a job at the airport to do some undercover security, wandering near suspicious characters and listening in.\nI uncovered some incredible dealings and was awarded a batch of medals.\nI got married, had a mess of puppies, and now I'm just retired.\"\nThe guy is amazed.\nHe goes back in and asks the owner what he wants for the dog.\n'Ten bucks,' the guy says.\n'Ten bucks!?\nThis dog is amazing!\nWhy on earth are you selling him so cheap?\n''Because he's such a liar -- he never did any of that stuff!\nHe was in the Navy.'"
+  },
+  {
+    "jokeType": "long",
+    "joke": "You have 500 bricks.\nIf you throw one off a plane, how many will you have left?\n499.\nHow do you put an elephant into a refrigerator?\nYou open the refrigerator door, put the elephant inside, and close the door!\nHow do you put a giraffe into a refrigerator?\nYou open the refrigerator door, take the elephant out, put the giraffe in, and close the door!\nThe whole jungle was invited to the lion's party, but someone didn't show up.\nWho is it?\nThe giraffe, because he was inside the refrigerator!\nAn old granny wants to cross a crocodile-infested river.\nBut somehow, she crossed the river safely.\nHow?\nThe crocodiles went to the lions party.\nAs she got to the other side of the river, the granny died.\nHow?\nThe brick hit her head."
+  },
+  {
+    "jokeType": "dad",
+    "joke": "I'm reading a horror story in braille. Something bad is going to happen, I can feel it!"
+  },
+  { "jokeType": "cheesy", "joke": "Who are a turkey's favorite people? Vegetarians." },
+  {
+    "jokeType": "dad",
+    "joke": "My friend won't stop making bird puns. But toucan play that game."
+  },
+  { "jokeType": "dad", "joke": "The inventor of Velcro passed away last week. RIP." },
+  { "jokeType": "dad", "joke": "How do you organize a space party?... You planet" },
+  {
+    "jokeType": "long",
+    "joke": "I was abducted by aliens last night.\nThey made me wash my hands, brush my hair, straighten my clothes, and eat vegetables.\nTurns out I was on the mothership."
+  },
+  {
+    "jokeType": "dad",
+    "joke": "Covid, the flu, and the common cold all walk into a doctor's office. The receptionist says, \"What is this, some kind of sick joke?\""
+  }
 ]

@@ -28,13 +28,6 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M16 21v-3a2 2 0 0 1 2-2h3" />
     </>
   ),
-  [IconName.help]: (
-    <>
-      <circle cx="12" cy="12" r="10" />
-      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-      <path d="M12 17h.01" />
-    </>
-  ),
   // A solid rock head with three motion trails fanning off it.
   [IconName.meteorite]: (
     <>
@@ -103,11 +96,11 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" />
     </>
   ),
-  // Flame — a fiery beam, no longer the AI-coded star.
+  // Flame — a fiery beam.
   [IconName.solarFlare]: (
     <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
   ),
-  // Refresh ring wrapping a shield — a shield recharge, not a generic reload.
+  // Refresh ring wrapping a shield.
   [IconName.shieldRegen]: (
     <>
       <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />

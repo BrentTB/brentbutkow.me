@@ -5,3 +5,6 @@ build
 coverage
 *.log
 .DS_Store
+
+# Generated — never reformat
+package-lock.json

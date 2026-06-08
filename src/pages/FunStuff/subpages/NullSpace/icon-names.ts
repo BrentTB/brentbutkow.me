@@ -6,7 +6,6 @@ export const IconName = {
   pause: 'pause',
   fullscreen: 'fullscreen',
   exitFullscreen: 'exitFullscreen',
-  help: 'help',
   meteorite: 'meteorite',
   meteor: 'meteor',
   blackHole: 'blackHole',

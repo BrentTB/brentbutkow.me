@@ -128,7 +128,7 @@ Apply the repo's documented bar (CLAUDE.md):
 - **Hook tests**: every custom hook (`useX`) needs a colocated `*.test.ts`. A new/changed hook without one is a must-fix.
 - **Named exports only**: no `default` exports in new files.
 - **Naming & conventions**: file named after its primary export, content in `data.ts` not JSX, folder-per-component layout.
-- **Comments**: lean, present-tense, explain *why* not *what*. No "previously…"/"no longer…" narration. No comments that restate the code.
+- **Comments**: lean, present-tense, explain _why_ not _what_. No "previously…"/"no longer…" narration. No comments that restate the code.
 
 ### d. Refactoring opportunities
 

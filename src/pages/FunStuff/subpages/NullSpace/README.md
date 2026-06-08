@@ -28,7 +28,7 @@ NullSpace/
 ├── components/    # React UI overlays (HTML, not canvas)
 │   ├── Development/
 │   ├── GameHUD/
-│   ├── GameOverlay/
+│   ├── Icon/
 │   ├── PauseMenu/
 │   ├── StartScreen/
 │   └── UpgradeScreen/

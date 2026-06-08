@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { SHIP_ORDER, SHIP_VARIANTS } from '../../data'
+import { SHIP_ORDER, SHIP_VARIANTS, STAT_MAX } from '../../data'
 import { ShipKind } from '../../engine/types'
 import { ShipSpritePreview } from './ShipSpritePreview'
 import { StatBar } from './StatBar'
@@ -36,12 +36,32 @@ export function ShipSelectionScreen({ onSelect }: ShipSelectionScreenProps) {
 
       <div className={styles.shipDetail}>
         <p className={styles.shipDesc}>{variant.description}</p>
-        <StatBar label="HP" value={variant.stats.maxHp} max={160} color="#44bb44" />
-        <StatBar label="Shield" value={variant.stats.maxShield} max={140} color="#6ae8f5" />
-        <StatBar label="Shield Regen" value={variant.stats.shieldRegen} max={8} color="#44bb44" />
-        <StatBar label="Damage" value={variant.stats.damage} max={10} color="#e9b872" />
-        <StatBar label="Speed" value={variant.stats.speed} max={200} color="#cc88ff" />
-        <StatBar label="Fire Rate" value={variant.stats.fireRate} max={4} color="#f5a53d" />
+        <StatBar label="HP" value={variant.stats.maxHp} max={STAT_MAX.maxHp} color="#44bb44" />
+        <StatBar
+          label="Shield"
+          value={variant.stats.maxShield}
+          max={STAT_MAX.maxShield}
+          color="#6ae8f5"
+        />
+        <StatBar
+          label="Shield Regen"
+          value={variant.stats.shieldRegen}
+          max={STAT_MAX.shieldRegen}
+          color="#44bb44"
+        />
+        <StatBar
+          label="Damage"
+          value={variant.stats.damage}
+          max={STAT_MAX.damage}
+          color="#e9b872"
+        />
+        <StatBar label="Speed" value={variant.stats.speed} max={STAT_MAX.speed} color="#cc88ff" />
+        <StatBar
+          label="Fire Rate"
+          value={variant.stats.fireRate}
+          max={STAT_MAX.fireRate}
+          color="#f5a53d"
+        />
       </div>
 
       <ShipSpritePreview kind={selected} />

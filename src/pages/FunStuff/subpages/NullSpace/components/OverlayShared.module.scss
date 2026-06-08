@@ -165,20 +165,3 @@
   background: var(--accent);
   color: var(--on-accent);
 }
-
-.backBtn {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: var(--muted);
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px 0;
-  align-self: flex-start;
-  transition: color 0.15s ease;
-}
-
-.backBtn:hover {
-  color: var(--text);
-}

@@ -1,13 +1,13 @@
 import sharedStyles from '../OverlayShared.module.scss'
 
-interface pauseMenuProps {
+interface PauseMenuProps {
   onResume: () => void
   onSettings: () => void
   onRestart: () => void
   onHelp: () => void
 }
 
-export const PauseMenu = ({ onResume, onSettings, onRestart, onHelp }: pauseMenuProps) => {
+export const PauseMenu = ({ onResume, onSettings, onRestart, onHelp }: PauseMenuProps) => {
   return (
     <>
       <h2 className={sharedStyles.title}>Paused</h2>

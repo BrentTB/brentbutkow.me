@@ -15,8 +15,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "prepare": "husky",
-    "format": "prettier --write \"src/**/*.{ts,tsx,css,scss}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx,css,scss}\""
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@vercel/analytics": "^1.6.1",
