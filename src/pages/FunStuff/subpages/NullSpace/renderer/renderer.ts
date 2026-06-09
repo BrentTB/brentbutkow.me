@@ -88,11 +88,15 @@ export function renderFrame(
   ctx.restore()
 }
 
+// Cyan shared by every defensive layer — ship shield ring, ship shield bar, and
+// the boss shield bubble — so they read as the same system.
+const SHIELD_COLOR = '#6ae8f5'
+
 // Cyan shield bubble drawn at the current translate origin. Shared by the ship
 // and shielded bosses so both read as the same defensive layer.
 function drawShieldRing(ctx: CanvasRenderingContext2D, radius: number, alpha: number): void {
   ctx.globalAlpha = alpha
-  ctx.strokeStyle = '#6ae8f5'
+  ctx.strokeStyle = SHIELD_COLOR
   ctx.lineWidth = 2
   ctx.beginPath()
   ctx.arc(0, 0, radius, 0, Math.PI * 2)
@@ -144,13 +148,20 @@ function renderEnemies(
     const angle = Math.atan2(enemy.vel.y, enemy.vel.x) + Math.PI / 2
     ctx.rotate(angle)
     ctx.drawImage(sprites[spriteKey], -size.w / 2, -size.h / 2)
+    ctx.restore()
+
     // Boss shield bubble — visible while its generators keep it damage-gated.
+    // Drawn outside the sprite's rotation so the ring never spins with the boss.
     if (enemy.boss) {
       const def = getBossDefinition(enemy.kind)
-      const shielded = def?.canTakeDamage ? !def.canTakeDamage(enemy, state.enemies) : false
-      if (shielded) drawShieldRing(ctx, enemy.radius + 12, 0.6)
+      const shielded = def?.canTakeDamage?.(enemy, state.enemies) === false
+      if (shielded) {
+        ctx.save()
+        ctx.translate(screen.x, screen.y)
+        drawShieldRing(ctx, enemy.radius + 12, 0.6)
+        ctx.restore()
+      }
     }
-    ctx.restore()
 
     // Health bar for damaged enemies
     if (enemy.hp < enemy.maxHp) {
@@ -420,7 +431,7 @@ function renderShipHealthBar(
   // Shield bar (above HP bar)
   ctx.fillStyle = '#112233'
   ctx.fillRect(x, y, barWidth, barHeight)
-  ctx.fillStyle = '#6ae8f5'
+  ctx.fillStyle = SHIELD_COLOR
   ctx.fillRect(x, y, barWidth * shieldRatio, barHeight)
 
   // HP bar (below shield bar)

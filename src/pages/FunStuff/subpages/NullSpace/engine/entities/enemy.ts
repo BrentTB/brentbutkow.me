@@ -107,10 +107,7 @@ function moveStationary(enemy: Enemy): Enemy {
 // enemy parks at a fixed standoff instead of ramming. Used by the boss so the
 // player can engage it without chasing it across the map.
 function moveApproach(enemy: Enemy, ship: Ship, dt: number): Enemy {
-  const dx = ship.pos.x - enemy.pos.x
-  const dy = ship.pos.y - enemy.pos.y
-  const dist = Math.sqrt(dx * dx + dy * dy)
-  if (dist <= enemy.attackRange) {
+  if (distance(enemy.pos, ship.pos) <= enemy.attackRange) {
     return { ...enemy, vel: { x: 0, y: 0 } }
   }
   return moveChase(enemy, ship, dt)

@@ -8,13 +8,6 @@ import { canEnemyTakeDamage } from '../bosses/index'
 import { DeathBehavior, EffectKind, ProjectileOwner } from '../types'
 import type { ActiveEffect, Ally, Enemy, Particle, Projectile, Ship, Vec2 } from '../types'
 
-// True when the enemy can't be damaged right now (shielded boss, etc.), so the
-// hit should be absorbed. `currentEnemies` is the in-progress array so
-// generators killed earlier this tick are already reflected.
-function bossDamageGated(enemy: Enemy, currentEnemies: Enemy[]): boolean {
-  return !canEnemyTakeDamage(enemy, currentEnemies)
-}
-
 export function updateProjectiles(
   projectiles: Projectile[],
   enemies: Enemy[],
@@ -108,7 +101,7 @@ export function resolveProjectileEnemyCollisions(
         )
           continue
         // Shielded boss: laser phases through without dealing damage.
-        if (bossDamageGated(enemy, updatedEnemies)) {
+        if (!canEnemyTakeDamage(enemy, updatedEnemies)) {
           allParticles.push(...spawnExplosionParticles(enemy.pos, 3, '#4477aa'))
           continue
         }
@@ -151,7 +144,7 @@ export function resolveProjectileEnemyCollisions(
       for (let i = 0; i < updatedEnemies.length; i++) {
         const e = updatedEnemies[i]
         if (e.hp <= 0) continue
-        if (bossDamageGated(e, updatedEnemies)) continue
+        if (!canEnemyTakeDamage(e, updatedEnemies)) continue
         const dx = e.pos.x - proj.pos.x
         const dy = e.pos.y - proj.pos.y
         if (dx * dx + dy * dy <= r2) {
@@ -195,7 +188,7 @@ export function resolveProjectileEnemyCollisions(
         )
           continue
         // Shielded boss: consume the bounce without redirecting or dealing damage.
-        if (bossDamageGated(enemy, updatedEnemies)) {
+        if (!canEnemyTakeDamage(enemy, updatedEnemies)) {
           hitProjectiles.add(proj)
           allParticles.push(...spawnExplosionParticles(enemy.pos, 3, '#4477aa'))
           break
@@ -263,7 +256,7 @@ export function resolveProjectileEnemyCollisions(
       ) {
         hitProjectiles.add(proj)
         // Shielded boss: consume the bullet but deal no damage.
-        if (!bossDamageGated(enemy, updatedEnemies)) {
+        if (canEnemyTakeDamage(enemy, updatedEnemies)) {
           updatedEnemies[i] = { ...enemy, hp: enemy.hp - proj.damage }
           allParticles.push(...spawnExplosionParticles(enemy.pos, 6, '#ff4444'))
         } else {

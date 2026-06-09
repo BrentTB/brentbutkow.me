@@ -47,13 +47,8 @@ export const DREADNOUGHT_BOSS: BossDefinition = {
   },
 
   onUpdate: (boss, dt) => {
-    if (!boss.boss) {
-      return {
-        updatedRuntime: { phase: 1, droneSpawnTimer: 0, linkedIds: [], hasSpawned: true },
-        spawns: [],
-      }
-    }
-    const runtime = boss.boss
+    // boss-ai only invokes onUpdate on confirmed boss enemies, so boss.boss is set.
+    const runtime = boss.boss!
     const newPhase = boss.hp <= boss.maxHp * 0.5 ? 2 : 1
     const interval = newPhase === 2 ? DRONE_INTERVAL_P2 : DRONE_INTERVAL_P1
     let droneSpawnTimer = runtime.droneSpawnTimer - dt
@@ -79,6 +74,9 @@ export const DREADNOUGHT_BOSS: BossDefinition = {
     }
 
     // Phase 1 → 2 transition: re-arm the shield with a larger generator ring.
+    // Reaching ≤50% HP requires the phase-1 shield fully down (every generator
+    // dead — canTakeDamage gates all damage otherwise), so replacing linkedIds
+    // here can never orphan a still-living generator.
     const linkedSpawns =
       runtime.phase === 1 && newPhase === 2 ? ringSpecs(boss, PHASE2_GENERATORS) : undefined
 

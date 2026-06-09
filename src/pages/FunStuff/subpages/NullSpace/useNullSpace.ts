@@ -324,7 +324,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
 
     handleDevJumpToBoss = () => {
       const state = gameStateRef.current
-      // Next boss wave at or after the current one. Spawns only the boss (no
+      // The next boss wave after the current one. Spawns only the boss (no
       // escort) so the fight is reachable instantly for testing.
       const bossInterval = WAVES_PER_LEVEL * BOSS_LEVEL_INTERVAL
       const bossWave = Math.floor(state.wave / bossInterval) * bossInterval + bossInterval
