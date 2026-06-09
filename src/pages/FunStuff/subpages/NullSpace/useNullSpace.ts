@@ -43,6 +43,7 @@ import {
 } from './renderer/camera'
 import { generateStarfield, type Star } from './renderer/starfield'
 import { renderFrame } from './renderer/renderer'
+import { drawSlingAim } from './renderer/sling-aim'
 import { WORLD_SIZE } from './data'
 
 // Build-time literal, same as in NullSpace.tsx
@@ -530,6 +531,11 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       if (slingStartRef.current) {
         const start = slingStartRef.current
         const end = slingCurrentRef.current ?? start
+        slingStartRef.current = null
+        slingCurrentRef.current = null
+        // Pausing or dying mid-drag discards the flick — never queue one that
+        // would fire on resume.
+        if (gameStateRef.current.phase !== GamePhase.playing) return
         const dx = end.x - start.x
         const dy = end.y - start.y
         const distPx = Math.hypot(dx, dy)
@@ -539,8 +545,6 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
             charge: Math.min(1, distPx / SLING_MAX_DRAG_PX),
           }
         }
-        slingStartRef.current = null
-        slingCurrentRef.current = null
         return
       }
       holdScreenPosRef.current = null
@@ -621,45 +625,18 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
           spritesRef.current,
           starsRef.current
         )
-        // Slingshot aim arrow — drawn after the world. renderFrame leaves the
-        // transform at the DPR baseline, so these are CSS-pixel coords.
+        // Slingshot aim arrow — drawn after the world while a grab is active.
         const sStart = slingStartRef.current
         const sCur = slingCurrentRef.current
-        if (sStart && sCur) {
-          const cam = cameraRef.current
-          const shipPos = gameStateRef.current.ship.pos
-          const sx = (shipPos.x - cam.x) * cam.zoom
-          const sy = (shipPos.y - cam.y) * cam.zoom
-          const dx = sCur.x - sStart.x
-          const dy = sCur.y - sStart.y
-          const len = Math.hypot(dx, dy)
-          if (len >= 1) {
-            const charge = Math.min(1, len / SLING_MAX_DRAG_PX)
-            const ux = dx / len
-            const uy = dy / len
-            const reach = 30 + charge * 90
-            const ex = sx + ux * reach
-            const ey = sy + uy * reach
-            const ah = 8 + charge * 6
-            const a = Math.atan2(uy, ux)
-            // Dim grey while recharging or overheated — a flick won't fire yet.
-            const sh = gameStateRef.current.ship
-            const blocked = sh.slingCooldownRemaining > 0 || sh.slingOverheated
-            ctx.save()
-            ctx.globalAlpha = blocked ? 0.3 : 0.4 + charge * 0.5
-            ctx.strokeStyle = blocked ? '#667788' : charge >= 1 ? '#ffcc33' : '#6ae8f5'
-            ctx.lineWidth = 2 + charge * 2
-            ctx.lineCap = 'round'
-            ctx.beginPath()
-            ctx.moveTo(sx, sy)
-            ctx.lineTo(ex, ey)
-            ctx.moveTo(ex, ey)
-            ctx.lineTo(ex - Math.cos(a - 0.4) * ah, ey - Math.sin(a - 0.4) * ah)
-            ctx.moveTo(ex, ey)
-            ctx.lineTo(ex - Math.cos(a + 0.4) * ah, ey - Math.sin(a + 0.4) * ah)
-            ctx.stroke()
-            ctx.restore()
-          }
+        if (sStart && sCur && gameStateRef.current.phase === GamePhase.playing) {
+          drawSlingAim(
+            ctx,
+            gameStateRef.current.ship,
+            cameraRef.current,
+            sStart,
+            sCur,
+            SLING_MAX_DRAG_PX
+          )
         }
       }
 

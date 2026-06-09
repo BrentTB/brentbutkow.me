@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { abilityKindForHotkey, useNullSpace } from './useNullSpace'
 import { createRef } from 'react'
@@ -106,5 +106,118 @@ describe('abilityKindForHotkey', () => {
     expect(abilityKindForHotkey(abilities, '9')).toBeNull()
     expect(abilityKindForHotkey(abilities, 'a')).toBeNull()
     expect(abilityKindForHotkey(abilities, ' ')).toBeNull()
+  })
+})
+
+describe('useNullSpace — slingshot', () => {
+  it('exposes neutral slingshot heat on a fresh game', () => {
+    const canvasRef = createRef<HTMLCanvasElement>()
+    const { result } = renderHook(() => useNullSpace(canvasRef))
+    expect(result.current.uiState.slingHeat).toBe(0)
+    expect(result.current.uiState.slingOverheated).toBe(false)
+  })
+
+  // The flick gesture only reaches the engine through the render loop, which
+  // needs a live canvas — stub just enough of the browser drawing surface to
+  // run it under jsdom, then step the loop by hand.
+  describe('flick gesture (live render loop)', () => {
+    let frame: ((t: number) => void) | null = null
+    let canvas: HTMLCanvasElement
+
+    beforeEach(() => {
+      frame = null
+      const gradient = { addColorStop: () => {} }
+      const ctx = new Proxy(
+        {},
+        {
+          get: (_t, prop) => {
+            if (prop === 'createRadialGradient' || prop === 'createLinearGradient')
+              return () => gradient
+            if (prop === 'canvas') return { width: 0, height: 0 }
+            return () => {}
+          },
+          set: () => true,
+        }
+      ) as unknown as CanvasRenderingContext2D
+
+      vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(ctx)
+      vi.stubGlobal(
+        'OffscreenCanvas',
+        class {
+          getContext() {
+            return ctx
+          }
+        }
+      )
+      vi.stubGlobal(
+        'ResizeObserver',
+        class {
+          observe() {}
+          unobserve() {}
+          disconnect() {}
+        }
+      )
+      // Capture each scheduled frame instead of running it, so a test can step
+      // the loop deterministically.
+      vi.stubGlobal('requestAnimationFrame', (cb: (t: number) => void) => {
+        frame = cb
+        return 1
+      })
+      vi.stubGlobal('cancelAnimationFrame', () => {})
+
+      canvas = document.createElement('canvas')
+      const parent = document.createElement('div')
+      parent.appendChild(canvas)
+      document.body.appendChild(parent)
+    })
+
+    afterEach(() => {
+      vi.restoreAllMocks()
+      vi.unstubAllGlobals()
+      document.body.innerHTML = ''
+    })
+
+    const step = (t: number) => act(() => frame?.(t))
+    const pointer = (target: EventTarget, type: string, x: number, y: number) =>
+      target.dispatchEvent(new MouseEvent(type, { clientX: x, clientY: y }))
+
+    const startPlaying = (result: { current: ReturnType<typeof useNullSpace> }) => {
+      act(() => result.current.handleStart())
+      act(() => result.current.handleSelectShip(ShipKind.fighter))
+      step(0) // first tick is dt=0 — just initializes game time
+    }
+
+    it('a drag-release off the ship builds slingshot heat', () => {
+      const canvasRef = { current: canvas }
+      const { result } = renderHook(() => useNullSpace(canvasRef))
+      startPlaying(result)
+
+      // Screen origin maps to the ship under the centered camera, so this grabs
+      // the ship, drags 100px, and releases into a flick.
+      pointer(canvas, 'pointerdown', 0, 0)
+      pointer(canvas, 'pointermove', 100, 0)
+      pointer(window, 'pointerup', 100, 0)
+      step(16) // consume the queued flick
+
+      expect(result.current.uiState.slingHeat).toBeGreaterThan(0)
+      expect(result.current.uiState.slingOverheated).toBe(false)
+    })
+
+    // Regression: releasing a grab after a pause must NOT queue a flick that
+    // fires on resume. Without the phase guard in handlePointerUp it leaks.
+    it('discards a flick released while paused', () => {
+      const canvasRef = { current: canvas }
+      const { result } = renderHook(() => useNullSpace(canvasRef))
+      startPlaying(result)
+
+      pointer(canvas, 'pointerdown', 0, 0)
+      pointer(canvas, 'pointermove', 100, 0)
+      act(() => result.current.handlePause())
+      pointer(window, 'pointerup', 100, 0)
+      act(() => result.current.handleResume())
+      step(16)
+
+      expect(result.current.uiState.slingHeat).toBe(0)
+    })
   })
 })

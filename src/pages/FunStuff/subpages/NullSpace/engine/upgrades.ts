@@ -256,9 +256,10 @@ export function applyUpgradesToShip(ship: Ship, upgrades: PlayerUpgrades): Ship 
   )
   const speed = applyTierSum(base.speed, upgrades, UPGRADE_DEFINITIONS[UpgradeId.shipSpeed])
 
-  // Slingshot: Power adds coast speed, Control trims jitter, Cadence trims the
-  // cooldown, Heat Sink adds cooling — each floored/capped so upgrades can't
-  // overshoot into degenerate values. (`-1` sign = the upgrade subtracts.)
+  // Slingshot: Power adds coast speed (bounded only by its tier data), while
+  // Control trims jitter, Cadence trims the cooldown, and Heat Sink adds
+  // cooling — those three floored/capped so upgrades can't overshoot into
+  // degenerate values. (`-1` sign = the upgrade subtracts.)
   const slingMaxSpeed = applyTierSum(
     SLINGSHOT.baseSpeed,
     upgrades,

@@ -252,6 +252,7 @@ src/pages/FunStuff/subpages/NullSpace/
 src/pages/FunStuff/subpages/NullSpace/renderer/
   camera.ts                                  REFERENCE_VIEW, DEFAULT_GAME_ZOOM, Camera, createCamera, computeZoom, HUD_SCALE_MIN, HUD_SCALE_MAX, computeHudScale, isWithinView, updateCamera, centerCameraOn, worldToScreen, screenToWorld
   renderer.ts                                SHIP_SPRITE_KEY, renderFrame
+  sling-aim.ts                               drawSlingAim
   sprite-cache.ts                            SpriteCache, buildSpriteCache, getSpriteSize
   sprites.ts                                 SpriteData, SHIP_SPRITE, DRONE_SPRITE, TANK_SPRITE, PROJECTILE_SPRITE, METEOR_SPRITE, METEORITE_SPRITE, SHOOTER_SPRITE, ENEMY_PROJECTILE_SPRITE, SWARM_SPRITE, BOMBER_SPRITE, ROCKET_SPRITE, INTERCEPTOR_SPRITE, DREADNOUGHT_SPRITE, CARRIER_SPRITE, ALLY_SPRITE, MISSILE_SPRITE, RICOCHET_SPRITE, NUKE_SPRITE, DREADNOUGHT_BOSS_SPRITE, SHIELD_GENERATOR_SPRITE, SpriteKey, SPRITE_MAP
   starfield.ts                               Star, generateStarfield, renderStarfield
