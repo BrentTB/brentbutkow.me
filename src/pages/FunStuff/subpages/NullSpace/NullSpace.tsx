@@ -32,6 +32,7 @@ export function NullSpace() {
     setSelectedAbility,
     handlePurchaseUpgrade,
     handleFinishUpgrades,
+    handleEquipShipWeapon,
     handlePause,
     handleResume,
     handleSetSpeed,
@@ -147,6 +148,7 @@ export function NullSpace() {
             onRestart={handleRestart}
             onPurchaseUpgrade={handlePurchaseUpgrade}
             onFinishUpgrades={handleFinishUpgrades}
+            onEquipShipWeapon={handleEquipShipWeapon}
             onResume={handleResume}
             onSetSpeed={handleSetSpeedAndSync}
             gameSpeed={gameSpeed}

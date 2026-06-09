@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import {
   createShip,
   createEnemy,
@@ -6,14 +6,16 @@ import {
   createAbilities,
   createParticle,
   spawnExplosionParticles,
-  resetUid,
 } from './entity-creator'
-import { AbilityKind, DeathBehavior, EnemyKind, MovementBehavior, ShipKind } from '../types'
+import {
+  AbilityKind,
+  DeathBehavior,
+  EnemyKind,
+  MovementBehavior,
+  ShipKind,
+  ShipWeaponKind,
+} from '../types'
 import { WEAPON_ORDER, WORLD_SIZE } from '../../data'
-
-beforeEach(() => {
-  resetUid()
-})
 
 describe('createShip', () => {
   it('places ship at world center', () => {
@@ -26,6 +28,24 @@ describe('createShip', () => {
     const ship = createShip(ShipKind.fighter, WORLD_SIZE)
     expect(ship.hp).toBe(ship.maxHp)
     expect(ship.hp).toBeGreaterThan(0)
+  })
+
+  it('starts with one bullet equipped per weapon slot (single-slot ships)', () => {
+    const ship = createShip(ShipKind.fighter, WORLD_SIZE)
+    expect(ship.equippedWeapons).toHaveLength(ship.weaponSlots)
+    expect(ship.fireCooldowns).toHaveLength(ship.weaponSlots)
+    expect(ship.equippedWeapons.every((k) => k === ShipWeaponKind.bullet)).toBe(true)
+  })
+
+  it('carrier starts with three bullets equipped (one per slot)', () => {
+    const ship = createShip(ShipKind.carrier, WORLD_SIZE)
+    expect(ship.weaponSlots).toBe(3)
+    expect(ship.equippedWeapons).toEqual([
+      ShipWeaponKind.bullet,
+      ShipWeaponKind.bullet,
+      ShipWeaponKind.bullet,
+    ])
+    expect(ship.fireCooldowns).toEqual([0, 0, 0])
   })
 })
 

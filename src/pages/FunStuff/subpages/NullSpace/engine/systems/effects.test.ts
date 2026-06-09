@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import {
   updateActiveEffects,
   applyShieldConstraints,
@@ -8,15 +8,11 @@ import {
   createShieldEffect,
   createSunEffect,
 } from './effects'
-import { createShip, createEnemy, createProjectile, resetUid } from '../entities/entity-creator'
+import { createShip, createEnemy, createProjectile } from '../entities/entity-creator'
 import { EnemyKind, ProjectileOwner, ShipKind } from '../types'
 import type { ActiveEffect } from '../types'
 import { WORLD_SIZE } from '../../data'
 import { METEORITE_STRIKE, BLACK_HOLE, ROCKET, SHIELD, SUN } from '../abilities/ability-data'
-
-beforeEach(() => {
-  resetUid()
-})
 
 describe('updateActiveEffects', () => {
   const ship = createShip(ShipKind.fighter, WORLD_SIZE)
@@ -352,6 +348,62 @@ describe('updateActiveEffects', () => {
     it('expires after duration', () => {
       const sun = createSunEffect({ x: 0, y: 0 }, SUN.radius, SUN.damagePerSec, SUN.duration)
       const result = updateActiveEffects([sun], [], [], ship, SUN.duration + 0.1)
+      expect(result.activeEffects.length).toBe(0)
+    })
+  })
+
+  // Nuke leaves a lingering DOT zone — grows from 0 to peakRadius over
+  // growDuration, then linearly shrinks back to 0 over the remainder.
+  describe('nuclearWaste', () => {
+    it('damages enemies inside its peak radius at full extent', async () => {
+      const { createNuclearWasteEffect } = await import('./effects')
+      // Grow phase 0.4s → past 0.5s elapsed it's at full peakRadius.
+      const waste = createNuclearWasteEffect({ x: 0, y: 0 }, 100, 5, 4, 0.4)
+      // Run a couple ticks to reach peak.
+      let state: ActiveEffect[] = [waste]
+      const inside = createEnemy(EnemyKind.tank, { x: 30, y: 0 })
+      let enemies = [inside]
+      for (let i = 0; i < 3; i++) {
+        const r = updateActiveEffects(state, enemies, [], ship, 0.2)
+        state = r.activeEffects
+        enemies = r.enemies
+      }
+      const after = enemies.find((e) => e.id === inside.id)
+      if (after) {
+        expect(after.hp).toBeLessThan(inside.hp)
+      }
+    })
+
+    it('does not damage enemies outside the current radius (grow then shrink)', async () => {
+      const { createNuclearWasteEffect, getNuclearWasteCurrentRadius } = await import('./effects')
+      const waste = createNuclearWasteEffect({ x: 0, y: 0 }, 100, 5, 4, 0.5)
+      // At elapsed=0 the radius is 0, so even an enemy at the center isn't
+      // damaged by the very first tick of the very first frame (radius below the enemy).
+      expect(getNuclearWasteCurrentRadius({ ...waste, elapsed: 0 })).toBe(0)
+      // Around the grow midpoint, radius is ~half of peak.
+      const half = getNuclearWasteCurrentRadius({ ...waste, elapsed: 0.25 })
+      expect(half).toBeGreaterThan(40)
+      expect(half).toBeLessThan(60)
+      // At peak (just past growDuration), it's at full radius.
+      const peak = getNuclearWasteCurrentRadius({ ...waste, elapsed: 0.51 })
+      expect(peak).toBeGreaterThan(98)
+      // Late in the shrink phase, radius is small again.
+      const late = getNuclearWasteCurrentRadius({ ...waste, elapsed: 3.5 })
+      expect(late).toBeLessThan(20)
+    })
+
+    it('does not damage enemies outside its full radius', async () => {
+      const { createNuclearWasteEffect } = await import('./effects')
+      const waste = createNuclearWasteEffect({ x: 0, y: 0 }, 100, 5, 4, 0.4)
+      const outside = createEnemy(EnemyKind.drone, { x: 500, y: 0 })
+      const result = updateActiveEffects([waste], [outside], [], ship, 1.0)
+      expect(result.enemies[0]?.hp).toBe(outside.hp)
+    })
+
+    it('expires after duration', async () => {
+      const { createNuclearWasteEffect } = await import('./effects')
+      const waste = createNuclearWasteEffect({ x: 0, y: 0 }, 100, 5, 2, 0.3)
+      const result = updateActiveEffects([waste], [], [], ship, 2.5)
       expect(result.activeEffects.length).toBe(0)
     })
   })

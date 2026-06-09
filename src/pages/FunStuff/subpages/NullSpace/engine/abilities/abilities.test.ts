@@ -1,14 +1,10 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { tryUseAbility, updateAbilityCooldowns } from '.'
-import { createAbilities, createShip, resetUid } from '../entities/entity-creator'
+import { createAbilities, createShip } from '../entities/entity-creator'
 import { AbilityKind, EffectKind, ShipKind } from '../types'
 import { WORLD_SIZE } from '../../data'
 
 const ship = createShip(ShipKind.fighter, WORLD_SIZE)
-
-beforeEach(() => {
-  resetUid()
-})
 
 describe('tryUseAbility', () => {
   it('creates a meteorite effect when off cooldown and has power', () => {

@@ -1,11 +1,7 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { damageEnemiesInRadius, damageEnemiesInRadiusFlat } from './aoe'
-import { createEnemy, resetUid } from '../entities/entity-creator'
+import { createEnemy } from '../entities/entity-creator'
 import { EnemyKind } from '../types'
-
-beforeEach(() => {
-  resetUid()
-})
 
 describe('damageEnemiesInRadius', () => {
   it('damages enemies inside the radius', () => {

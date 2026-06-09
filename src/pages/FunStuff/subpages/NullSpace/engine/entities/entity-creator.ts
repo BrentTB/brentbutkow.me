@@ -1,14 +1,9 @@
-import {
-  SHIP_VARIANTS,
-  PROJECTILE_SPEED,
-  PROJECTILE_LIFETIME,
-  PROJECTILE_RADIUS,
-  ENEMY_STATS,
-} from '../../data'
+import { PROJECTILE_SPEED, PROJECTILE_LIFETIME, PROJECTILE_RADIUS, ENEMY_STATS } from '../../data'
 import { HELPER } from '../abilities/ability-data'
-import { DeathBehavior, EnemyKind, MovementBehavior, ShipKind } from '../types'
+import { DeathBehavior, EnemyKind, MovementBehavior, ShipKind, ShipWeaponKind } from '../types'
 import type { Ship, Enemy, Projectile, Vec2, Ally, Particle } from '../types'
 import { rng } from '../math/random'
+import { SHIP_VARIANTS } from '../ship/ship-data'
 
 const ENEMY_MOVEMENT: Record<EnemyKind, MovementBehavior> = {
   [EnemyKind.drone]: MovementBehavior.chase,
@@ -26,13 +21,17 @@ const ENEMY_DEATH: Record<EnemyKind, DeathBehavior> = {
   [EnemyKind.bomber]: DeathBehavior.explode,
 }
 
-let nextId = 0
+// IDs must be unique across the whole session — including across Vite HMR
+// reloads, which would reset a module-scoped counter. crypto.randomUUID is the
+// ideal source but only exists in secure contexts (HTTPS/localhost); on a plain-
+// HTTP origin (e.g. a LAN IP for mobile testing) it's undefined, so fall back to
+// a random-suffixed id that's still collision-safe across reloads.
+let uidFallback = 0
 export function uid(): string {
-  return `e${nextId++}`
-}
-
-export function resetUid(): void {
-  nextId = 0
+  const id = crypto.randomUUID?.()
+  if (id) return id
+  uidFallback += 1
+  return `e${uidFallback}-${Math.random().toString(36).slice(5)}`
 }
 
 export function createShip(kind: ShipKind, worldSize: Vec2): Ship {
@@ -50,12 +49,13 @@ export function createShip(kind: ShipKind, worldSize: Vec2): Ship {
     shieldRegen: s.shieldRegen,
     shieldCooldownRemaining: 0,
     fireRate: s.fireRate,
-    fireCooldown: 0,
+    fireCooldowns: Array(s.weaponSlots).fill(0),
     damage: s.damage,
     speed: s.speed,
     attackRange: s.attackRange,
     patrolAngle: 0,
     weaponSlots: s.weaponSlots,
+    equippedWeapons: Array(s.weaponSlots).fill(ShipWeaponKind.bullet),
     lastHeading: { x: 1, y: 0 },
     escapeMode: null,
   }

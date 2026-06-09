@@ -117,6 +117,47 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M12 6.5 21 12l-9 5.5z" fill="currentColor" stroke="none" />
     </>
   ),
+  // A capsule rounded — the standard "bullet" shape.
+  [IconName.bullet]: (
+    <>
+      <path d="M12 3a4 4 0 0 1 4 4v8a4 4 0 0 1-8 0V7a4 4 0 0 1 4-4z" />
+      <path d="M9 18l1.5 3h3L15 18" />
+    </>
+  ),
+  // Horizontal beam capped by a focusing emitter — reads as "laser."
+  [IconName.laser]: (
+    <>
+      <circle cx="5" cy="12" r="2.5" fill="currentColor" stroke="none" />
+      <path d="M8 12h13" />
+      <path d="M14 8l3 4-3 4" />
+    </>
+  ),
+  // Slim torpedo body with fins and a flame tail.
+  [IconName.missile]: (
+    <>
+      <path d="M3 12l3-3h10l3 3-3 3H6z" />
+      <path d="M16 9V6" />
+      <path d="M16 15v3" />
+      <path d="M19 12h2" />
+    </>
+  ),
+  // Zig-zag arrow — a round bouncing off walls.
+  [IconName.ricochet]: (
+    <>
+      <circle cx="4" cy="6" r="1.6" fill="currentColor" stroke="none" />
+      <path d="M5 7l5 6-4 5" />
+      <path d="M10 13l5-5 5 9" />
+    </>
+  ),
+  // Trefoil radiation symbol over a small core.
+  [IconName.nuke]: (
+    <>
+      <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none" />
+      <path d="M12 4a5 5 0 0 1 4.33 2.5L12 9z" fill="currentColor" stroke="none" />
+      <path d="M19.79 16a5 5 0 0 1-4.33 2.5L15 14z" fill="currentColor" stroke="none" />
+      <path d="M4.21 16 9 14l-.46 4.5A5 5 0 0 1 4.21 16z" fill="currentColor" stroke="none" />
+    </>
+  ),
 }
 
 type IconProps = { name: IconName } & SVGProps<SVGSVGElement>

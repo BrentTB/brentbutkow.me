@@ -1,5 +1,5 @@
 import { WORLD_SIZE, PARTICLE_DEFAULTS, POWER_DEFAULTS } from '../data'
-import { createAbilities, createShip, resetUid, updateParticles } from './entities/entity-creator'
+import { createAbilities, createShip, updateParticles } from './entities/entity-creator'
 import {
   ABILITY_LIST,
   WEAPON_UNLOCK_UPGRADE,
@@ -47,11 +47,17 @@ import {
 import { getWave, getWaveDelay } from './world/waves'
 import { loadHighScore, saveHighScore } from './world/persistence'
 import { rng } from './math/random'
-import { GamePhase, ShipKind } from './types'
+import { getShipWeaponForUnlockUpgrade, SHIP_WEAPON_LIST } from './ship'
+import { GamePhase, ShipKind, ShipWeaponKind } from './types'
 import type { AbilityKind, GameState, PlayerInput, UpgradeId } from './types'
 
+// Weapons a fresh run starts with — derived from each weapon's startsUnlocked
+// flag so the registry stays the single source of truth.
+const INITIAL_UNLOCKED_WEAPONS: ShipWeaponKind[] = SHIP_WEAPON_LIST.filter(
+  (d) => d.startsUnlocked
+).map((d) => d.kind)
+
 export function createInitialState(): GameState {
-  resetUid()
   rng.reseed(Date.now())
   return {
     phase: GamePhase.menu,
@@ -83,6 +89,7 @@ export function createInitialState(): GameState {
     spawnedInWave: 0,
     holdStates: {},
     levelUpWeaponOffers: [],
+    unlockedWeapons: [...INITIAL_UNLOCKED_WEAPONS],
     escapeTrailAccumulator: 0,
   }
 }
@@ -92,7 +99,6 @@ export function moveToShipSelection(state: GameState): GameState {
 }
 
 export function startGame(state: GameState, shipKind: ShipKind): GameState {
-  resetUid()
   rng.reseed(Date.now())
   const ship = createShip(shipKind, state.worldSize)
   const upgrades = createInitialUpgrades()
@@ -126,6 +132,7 @@ export function startGame(state: GameState, shipKind: ShipKind): GameState {
     isNewHighScore: false,
     holdStates: {},
     levelUpWeaponOffers: [],
+    unlockedWeapons: [...INITIAL_UNLOCKED_WEAPONS],
     escapeTrailAccumulator: 0,
   }
 }
@@ -169,7 +176,7 @@ export function applyUpgradeToState(state: GameState, upgradeId: UpgradeId): Gam
   if (!canPurchaseUpgrade(state.upgrades, upgradeId, state.currency)) return state
   const { upgrades, currencySpent } = purchaseUpgrade(state.upgrades, upgradeId)
   const abilities = applyUpgradesToAbilities(state.abilities, upgrades)
-  const ship = applyUpgradesToShip(state.ship, upgrades)
+  let ship = applyUpgradesToShip(state.ship, upgrades)
   const powerRegen = applyUpgradesToPowerRegen(POWER_DEFAULTS.regenRate, upgrades)
 
   // Whichever weapon-unlock the player bought clears both offers — they only
@@ -180,6 +187,20 @@ export function applyUpgradeToState(state: GameState, upgradeId: UpgradeId): Gam
       ? []
       : state.levelUpWeaponOffers
 
+  // Ship-weapon unlock purchase: append the kind to unlockedWeapons so the
+  // Loadout shop tab and equip handler can offer it. On single-slot ships,
+  // also auto-equip the newly bought weapon (no other slot to put it in, so
+  // there's never a reason to make the player click Equip after Unlock).
+  // Carrier keeps the manual flow — the player chooses which of 3 slots.
+  const purchasedShipWeapon = getShipWeaponForUnlockUpgrade(upgradeId)
+  const unlockedWeapons =
+    purchasedShipWeapon && !state.unlockedWeapons.includes(purchasedShipWeapon)
+      ? [...state.unlockedWeapons, purchasedShipWeapon]
+      : state.unlockedWeapons
+  if (purchasedShipWeapon && ship.weaponSlots === 1) {
+    ship = { ...ship, equippedWeapons: [purchasedShipWeapon] }
+  }
+
   return {
     ...state,
     upgrades,
@@ -188,7 +209,36 @@ export function applyUpgradeToState(state: GameState, upgradeId: UpgradeId): Gam
     ship,
     powerRegen,
     levelUpWeaponOffers,
+    unlockedWeapons,
   }
+}
+
+// Equip a ship weapon to a slot. Validates the kind is unlocked and the slot
+// is in range. For the Carrier (multi-slot), enforces distinctness across
+// slots — if `kind` is already equipped in another slot, that other slot is
+// swapped to whatever was at `slotIndex` (a swap, not a duplicate).
+export function equipShipWeapon(
+  state: GameState,
+  slotIndex: number,
+  kind: ShipWeaponKind
+): GameState {
+  if (slotIndex < 0 || slotIndex >= state.ship.weaponSlots) return state
+  if (!state.unlockedWeapons.includes(kind)) return state
+
+  const current = state.ship.equippedWeapons
+  const previousAtSlot = current[slotIndex]
+  if (previousAtSlot === kind) return state
+
+  const next = [...current]
+  next[slotIndex] = kind
+  const duplicate = next.findIndex((k, i) => i !== slotIndex && k === kind)
+  if (duplicate !== -1) {
+    // Swap: send whatever was here over to the duplicate slot so the loadout
+    // stays unique without forcing the player to manually reshuffle.
+    next[duplicate] = previousAtSlot
+  }
+
+  return { ...state, ship: { ...state.ship, equippedWeapons: next } }
 }
 
 function getWeaponForUnlockUpgrade(upgradeId: UpgradeId): AbilityKind | null {
@@ -296,7 +346,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   }
 
   // --- Ship auto-attack ---
-  const attackResult = updateShipAttack(ship, enemies, projectiles, dt)
+  const attackResult = updateShipAttack(ship, enemies, projectiles, dt, state.upgrades)
   ship = attackResult.ship
   projectiles = attackResult.projectiles
 
@@ -317,7 +367,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   projectiles = allyResult.projectiles
 
   // --- Projectile movement ---
-  projectiles = updateProjectiles(projectiles, dt)
+  projectiles = updateProjectiles(projectiles, enemies, dt)
 
   // --- Hold abilities (Telekinesis, Solar Flare, etc.) ---
   // Each hold ability registers an `onFrame` and/or `onTick` callback in its
@@ -360,6 +410,10 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   score += projCollision.scoreGained
   currency += computeCurrencyFromKills(projCollision.killedEnemies)
   particles = [...particles, ...projCollision.particles]
+  // Nuke detonations spawn lingering "nuclear waste" effects here.
+  if (projCollision.newEffects.length > 0) {
+    activeEffects = [...activeEffects, ...projCollision.newEffects]
+  }
 
   // --- Collision: enemy projectiles vs ship ---
   const enemyProjResult = resolveEnemyProjectileShipCollisions(projectiles, ship)
