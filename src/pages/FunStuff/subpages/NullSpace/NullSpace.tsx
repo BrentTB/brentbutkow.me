@@ -39,6 +39,7 @@ export function NullSpace() {
     handleUseSpaceMetalAbility,
     handleDevPatch,
     handleDevJumpToUpgrades,
+    handleDevJumpToBoss,
     handleDevQuickStart,
   } = useNullSpace(canvasRef)
 
@@ -159,6 +160,7 @@ export function NullSpace() {
             uiState={uiState}
             onPatch={handleDevPatch}
             onJumpToUpgrades={handleDevJumpToUpgrades}
+            onJumpToBoss={handleDevJumpToBoss}
             onQuickStart={handleDevQuickStart}
           />
         )}

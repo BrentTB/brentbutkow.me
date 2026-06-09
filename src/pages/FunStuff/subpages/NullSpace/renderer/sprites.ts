@@ -290,6 +290,45 @@ export const NUKE_SPRITE: SpriteData = [
   [_, _, F, F, _, _],
 ]
 
+// Dreadnought Boss (20×20) — large fortress silhouette, dark steel + purple core.
+// Uses the existing P/p purple palette shared with the player Dreadnought ship.
+export const DREADNOUGHT_BOSS_SPRITE: SpriteData = [
+  [_, _, _, _, _, R, R, R, R, R, R, R, R, R, R, _, _, _, _, _],
+  [_, _, _, R, R, t, T, T, T, T, T, T, T, T, t, R, R, _, _, _],
+  [_, _, R, t, T, T, t, t, R, R, R, R, t, t, T, T, t, R, _, _],
+  [_, R, t, T, T, t, r, r, T, T, T, T, r, r, t, T, T, t, R, _],
+  [R, R, T, T, t, r, r, T, T, P, P, T, T, r, r, t, T, T, R, R],
+  [R, T, T, t, r, r, T, P, P, p, p, P, P, T, r, r, t, T, T, R],
+  [R, T, t, r, r, T, T, P, p, p, p, p, P, T, T, r, r, t, T, R],
+  [R, T, t, T, r, T, T, P, p, W, W, p, P, T, T, r, T, t, T, R],
+  [R, T, T, T, T, T, P, p, W, W, W, W, p, P, T, T, T, T, T, R],
+  [R, T, T, T, T, T, P, p, W, W, W, W, p, P, T, T, T, T, T, R],
+  [R, T, T, T, T, T, P, p, W, W, W, W, p, P, T, T, T, T, T, R],
+  [R, T, t, T, r, T, T, P, p, W, W, p, P, T, T, r, T, t, T, R],
+  [R, T, t, r, r, T, T, P, p, p, p, p, P, T, T, r, r, t, T, R],
+  [R, T, T, t, r, r, T, P, P, p, p, P, P, T, r, r, t, T, T, R],
+  [R, R, T, T, t, r, r, T, T, P, P, T, T, r, r, t, T, T, R, R],
+  [_, R, t, T, T, t, r, r, T, T, T, T, r, r, t, T, T, t, R, _],
+  [_, _, R, t, T, T, t, t, R, R, R, R, t, t, T, T, t, R, _, _],
+  [_, _, _, R, R, t, T, T, T, T, T, T, T, T, t, R, R, _, _, _],
+  [_, _, _, _, _, R, R, R, R, R, R, R, R, R, R, _, _, _, _, _],
+  [_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _],
+]
+
+// Shield Generator (10×10) — hexagonal energy emitter orbiting the Dreadnought Boss.
+export const SHIELD_GENERATOR_SPRITE: SpriteData = [
+  [_, _, _, C, C, C, C, _, _, _],
+  [_, _, C, g, G, G, g, C, _, _],
+  [_, C, g, G, C, C, G, g, C, _],
+  [C, g, G, C, W, W, C, G, g, C],
+  [C, g, C, W, G, G, W, C, g, C],
+  [C, g, C, W, G, G, W, C, g, C],
+  [C, g, G, C, W, W, C, G, g, C],
+  [_, C, g, G, C, C, G, g, C, _],
+  [_, _, C, g, G, G, g, C, _, _],
+  [_, _, _, C, C, C, C, _, _, _],
+]
+
 export const SpriteKey = {
   ship: 'ship',
   shipInterceptor: 'shipInterceptor',
@@ -300,6 +339,8 @@ export const SpriteKey = {
   shooter: 'shooter',
   swarm: 'swarm',
   bomber: 'bomber',
+  dreadnoughtBoss: 'dreadnoughtBoss',
+  shieldGenerator: 'shieldGenerator',
   projectile: 'projectile',
   enemyProjectile: 'enemyProjectile',
   meteor: 'meteor',
@@ -322,6 +363,8 @@ export const SPRITE_MAP: Record<SpriteKey, SpriteData> = {
   shooter: SHOOTER_SPRITE,
   swarm: SWARM_SPRITE,
   bomber: BOMBER_SPRITE,
+  dreadnoughtBoss: DREADNOUGHT_BOSS_SPRITE,
+  shieldGenerator: SHIELD_GENERATOR_SPRITE,
   projectile: PROJECTILE_SPRITE,
   enemyProjectile: ENEMY_PROJECTILE_SPRITE,
   meteor: METEOR_SPRITE,

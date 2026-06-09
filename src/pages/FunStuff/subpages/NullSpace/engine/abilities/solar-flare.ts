@@ -1,4 +1,5 @@
 import { SOLAR_FLARE } from './ability-data'
+import { canEnemyTakeDamage } from '../bosses/index'
 import { distance } from '../math/collision'
 import { createParticle, spawnExplosionParticles } from '../entities/entity-creator'
 import { rng } from '../math/random'
@@ -107,7 +108,11 @@ const solarFlareHold: HoldAbilityConfig = {
     let particles = bag.particles
     const newKills: Enemy[] = []
     for (const enemy of bag.enemies) {
-      if (distance(holdPos, enemy.pos) < radius + enemy.radius) {
+      // Invincible enemies (shielded boss) take no damage from the flare.
+      if (
+        distance(holdPos, enemy.pos) < radius + enemy.radius &&
+        canEnemyTakeDamage(enemy, bag.enemies)
+      ) {
         const damaged = { ...enemy, hp: enemy.hp - ability.damage }
         if (damaged.hp <= 0) {
           newKills.push(enemy)

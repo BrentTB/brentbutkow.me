@@ -1,5 +1,6 @@
 import { ROCKET } from '../abilities/ability-data'
 import { damageEnemiesInRadius, damageEnemiesInRadiusFlat } from '../math/aoe'
+import { canEnemyTakeDamage } from '../bosses/index'
 import { distance } from '../math/collision'
 import { createParticle, spawnExplosionParticles, uid } from '../entities/entity-creator'
 import { EffectKind, ProjectileOwner } from '../types'
@@ -351,7 +352,8 @@ function applyMeteorDamage(
 
   for (const enemy of enemies) {
     const dist = distance(enemy.pos, strike.pos)
-    if (dist < strike.aoeRadius) {
+    // Invincible enemies (shielded boss) are unaffected by the strike.
+    if (dist < strike.aoeRadius && canEnemyTakeDamage(enemy, enemies)) {
       const damaged = { ...enemy, hp: enemy.hp - strike.damage }
       if (damaged.hp <= 0) {
         scoreGained += enemy.scoreValue
@@ -402,7 +404,10 @@ function applyBlackHoleEffect(
     const spiralY = ny * strength * radial + nx * strength * tangential
 
     const distRatio = Math.max(0, 1 - dist / hole.radius)
-    const damageThisTick = hole.damage * (0.5 + distRatio * 1.5) * dt
+    // Still pulled in, but invincible enemies (shielded boss) take no damage.
+    const damageThisTick = canEnemyTakeDamage(enemy, enemies)
+      ? hole.damage * (0.5 + distRatio * 1.5) * dt
+      : 0
 
     const moved = {
       ...enemy,

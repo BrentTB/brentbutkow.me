@@ -78,6 +78,24 @@ export const ENEMY_STATS = {
     explosionDamage: 40,
     explosionRadius: 80,
   },
+  dreadnought: {
+    hp: 800,
+    speed: 50,
+    damage: 20,
+    radius: 36,
+    scoreValue: 500,
+    powerReward: 100,
+    // Doubles as the standoff distance — the boss approaches the player to here, then holds.
+    attackRange: 220,
+  },
+  shieldGenerator: {
+    hp: 80,
+    speed: 0,
+    damage: 12,
+    radius: 14,
+    scoreValue: 50,
+    powerReward: 20,
+  },
 } as const
 
 export const CURRENCY_DROPS: Record<EnemyKind, { min: number; max: number }> = {
@@ -86,6 +104,8 @@ export const CURRENCY_DROPS: Record<EnemyKind, { min: number; max: number }> = {
   shooter: { min: 1, max: 3 },
   swarm: { min: 0, max: 1 },
   bomber: { min: 1, max: 4 },
+  dreadnought: { min: 5, max: 15 },
+  shieldGenerator: { min: 1, max: 3 },
 }
 
 export const CURRENCY_NAME = 'Stardust'
@@ -112,10 +132,17 @@ export const SPACE_METAL = {
     shooter: 0.06,
     swarm: 0.01,
     bomber: 0.1,
+    // Boss drops are handled by BossDefinition.onDeath — these are never rolled.
+    dreadnought: 0,
+    shieldGenerator: 0,
   } as Record<EnemyKind, number>,
 } as const
 
 export const WAVES_PER_LEVEL = 3
+// Boss appears every BOSS_LEVEL_INTERVAL levels (waves = WAVES_PER_LEVEL × BOSS_LEVEL_INTERVAL).
+export const BOSS_LEVEL_INTERVAL = 3
+// Fraction of normal enemy count on boss waves. Tune to adjust how crowded the boss fight feels.
+export const BOSS_WAVE_ENEMY_MULTIPLIER = 0.4
 
 export const SPAWN_DELAY = { min: 0.1, max: 1.0 } as const
 export const SPAWN_DISTANCE = { min: 650, max: 1050 } as const
@@ -147,6 +174,28 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.14.0',
+    date: '2026-06-09',
+    changes: {
+      features: [
+        'Dreadnought boss appears at the end of every 3rd level (waves 9, 18, 27 ...).',
+        'Boss is wrapped in a shield (same look as your ship’s) projected by a ring of generator drones — destroy every generator to drop the shield and damage the boss.',
+        'At 50% HP the boss re-arms: it regenerates its shield with 5 generators (up from 3) and spawns escort drones twice as fast.',
+        'Boss slowly advances on the player and holds at a standoff, its generator ring spread evenly around it and tracking it as it moves.',
+        'While shielded the boss can’t be harmed by anything — auto-attacks, homing missiles, ricochet bounces, allies, and every AoE ability now skip or pass through it and target the generators instead.',
+        'Boss waves spawn a slimmed-down regular enemy escort alongside the boss.',
+        'Killing the boss guarantees 1–4 space metal drops.',
+      ],
+      ui: [
+        'The level-progress bar cross-fades into a top-screen boss HP bar when a boss appears, and back again once it falls.',
+        'Carrier: buying a new ship weapon now auto-equips it into a still-default (Bullet) slot. Once all three slots hold non-default weapons, new purchases are left for you to slot manually.',
+      ],
+      architecture: [
+        'New engine/bosses/ registry — add a BossDefinition to plug in future bosses (Void Worm, Phase Shifter) without touching game-loop or combat code.',
+      ],
+    },
+  },
   {
     version: '0.13.2',
     date: '2026-06-09',

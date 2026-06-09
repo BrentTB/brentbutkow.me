@@ -1,3 +1,4 @@
+import { canEnemyTakeDamage } from '../bosses/index'
 import type { Enemy, Vec2 } from '../types'
 
 export type AoeResult = {
@@ -46,6 +47,12 @@ function applyDamage(enemies: Enemy[], center: Vec2, radius: number, damage: num
     const dx = enemy.pos.x - center.x
     const dy = enemy.pos.y - center.y
     if (dx * dx + dy * dy > radiusSq) {
+      surviving.push(enemy)
+      continue
+    }
+
+    // Invincible enemies (shielded boss) absorb AoE without taking damage.
+    if (!canEnemyTakeDamage(enemy, enemies)) {
       surviving.push(enemy)
       continue
     }

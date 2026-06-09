@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { getWave, getWaveDelay } from './waves'
+import { getBossForWave, getWave, getWaveDelay, isBossWave } from './waves'
 import { rng } from '../math/random'
 import { EnemyKind } from '../types'
 
@@ -59,5 +59,46 @@ describe('getWaveDelay', () => {
 
   it('later waves have a delay', () => {
     expect(getWaveDelay(2)).toBeGreaterThan(0)
+  })
+})
+
+describe('isBossWave', () => {
+  it('wave 9 is a boss wave', () => {
+    expect(isBossWave(9)).toBe(true)
+  })
+
+  it('wave 18 is a boss wave', () => {
+    expect(isBossWave(18)).toBe(true)
+  })
+
+  it('wave 27 is a boss wave', () => {
+    expect(isBossWave(27)).toBe(true)
+  })
+
+  it('non-multiples of 9 are not boss waves', () => {
+    expect(isBossWave(1)).toBe(false)
+    expect(isBossWave(8)).toBe(false)
+    expect(isBossWave(10)).toBe(false)
+    expect(isBossWave(17)).toBe(false)
+  })
+})
+
+describe('getWave — boss waves', () => {
+  it('wave 9 queue ends with the dreadnought boss', () => {
+    const queue = getWave(9)
+    expect(queue[queue.length - 1]).toBe(EnemyKind.dreadnought)
+  })
+
+  it('wave 9 has fewer regular enemies than wave 8', () => {
+    const wave8 = getWave(8)
+    const wave9 = getWave(9)
+    const regularCount = (queue: EnemyKind[]) =>
+      queue.filter((k) => k !== EnemyKind.dreadnought && k !== EnemyKind.shieldGenerator).length
+    expect(regularCount(wave9)).toBeLessThan(regularCount(wave8))
+  })
+
+  it('getBossForWave returns dreadnought for any wave in pt1', () => {
+    expect(getBossForWave(9)).toBe(EnemyKind.dreadnought)
+    expect(getBossForWave(18)).toBe(EnemyKind.dreadnought)
   })
 })

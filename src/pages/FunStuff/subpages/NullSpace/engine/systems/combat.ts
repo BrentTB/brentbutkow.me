@@ -4,6 +4,7 @@ import { homeTowardTarget } from '../math/homing'
 import { spawnExplosionParticles } from '../entities/entity-creator'
 import { applyDamageToShip } from '../entities/ship'
 import { createNuclearWasteEffect } from './effects'
+import { canEnemyTakeDamage } from '../bosses/index'
 import { DeathBehavior, EffectKind, ProjectileOwner } from '../types'
 import type { ActiveEffect, Ally, Enemy, Particle, Projectile, Ship, Vec2 } from '../types'
 
@@ -15,11 +16,13 @@ export function updateProjectiles(
   return projectiles
     .map((p) => {
       if (p.homing && enemies.length > 0) {
-        // Re-aim toward the nearest enemy each tick. Speed is taken from the
-        // projectile's current vel magnitude so missile-speed upgrades stick.
-        let nearest = enemies[0]
+        // Re-aim toward the nearest DAMAGEABLE enemy each tick — skip invincible
+        // targets (shielded boss) so the missile chases generators / others
+        // instead. Speed taken from current vel magnitude so upgrades stick.
+        let nearest: Enemy | null = null
         let nearestDist = Infinity
         for (const e of enemies) {
+          if (!canEnemyTakeDamage(e, enemies)) continue
           const dx = e.pos.x - p.pos.x
           const dy = e.pos.y - p.pos.y
           const d = dx * dx + dy * dy
@@ -28,9 +31,18 @@ export function updateProjectiles(
             nearest = e
           }
         }
-        const speed = Math.hypot(p.vel.x, p.vel.y) || 1
-        const motion = homeTowardTarget(p.pos, nearest.pos, speed, dt)
-        return { ...p, prevPos: p.pos, pos: motion.pos, vel: motion.vel, lifetime: p.lifetime - dt }
+        // No damageable target — keep flying straight this tick.
+        if (nearest) {
+          const speed = Math.hypot(p.vel.x, p.vel.y) || 1
+          const motion = homeTowardTarget(p.pos, nearest.pos, speed, dt)
+          return {
+            ...p,
+            prevPos: p.pos,
+            pos: motion.pos,
+            vel: motion.vel,
+            lifetime: p.lifetime - dt,
+          }
+        }
       }
       return {
         ...p,
@@ -88,6 +100,11 @@ export function resolveProjectileEnemyCollisions(
           )
         )
           continue
+        // Shielded boss: laser phases through without dealing damage.
+        if (!canEnemyTakeDamage(enemy, updatedEnemies)) {
+          allParticles.push(...spawnExplosionParticles(enemy.pos, 3, '#4477aa'))
+          continue
+        }
         updatedEnemies[i] = { ...enemy, hp: enemy.hp - proj.damage }
         hitEnemyIds.push(enemy.id)
         allParticles.push(...spawnExplosionParticles(enemy.pos, 4, '#88ccff'))
@@ -127,6 +144,7 @@ export function resolveProjectileEnemyCollisions(
       for (let i = 0; i < updatedEnemies.length; i++) {
         const e = updatedEnemies[i]
         if (e.hp <= 0) continue
+        if (!canEnemyTakeDamage(e, updatedEnemies)) continue
         const dx = e.pos.x - proj.pos.x
         const dy = e.pos.y - proj.pos.y
         if (dx * dx + dy * dy <= r2) {
@@ -169,6 +187,12 @@ export function resolveProjectileEnemyCollisions(
           )
         )
           continue
+        // Shielded boss: consume the bounce without redirecting or dealing damage.
+        if (!canEnemyTakeDamage(enemy, updatedEnemies)) {
+          hitProjectiles.add(proj)
+          allParticles.push(...spawnExplosionParticles(enemy.pos, 3, '#4477aa'))
+          break
+        }
         updatedEnemies[i] = { ...enemy, hp: enemy.hp - proj.damage }
         bounce.hitEnemyIds.push(enemy.id)
         allParticles.push(...spawnExplosionParticles(enemy.pos, 6, '#ffaa44'))
@@ -183,6 +207,8 @@ export function resolveProjectileEnemyCollisions(
         for (const other of updatedEnemies) {
           if (other.hp <= 0) continue
           if (bounce.hitEnemyIds.includes(other.id)) continue
+          // Don't bounce toward an invincible target (shielded boss).
+          if (!canEnemyTakeDamage(other, updatedEnemies)) continue
           const dx = other.pos.x - proj.pos.x
           const dy = other.pos.y - proj.pos.y
           const d = dx * dx + dy * dy
@@ -229,8 +255,13 @@ export function resolveProjectileEnemyCollisions(
         )
       ) {
         hitProjectiles.add(proj)
-        updatedEnemies[i] = { ...enemy, hp: enemy.hp - proj.damage }
-        allParticles.push(...spawnExplosionParticles(enemy.pos, 6, '#ff4444'))
+        // Shielded boss: consume the bullet but deal no damage.
+        if (canEnemyTakeDamage(enemy, updatedEnemies)) {
+          updatedEnemies[i] = { ...enemy, hp: enemy.hp - proj.damage }
+          allParticles.push(...spawnExplosionParticles(enemy.pos, 6, '#ff4444'))
+        } else {
+          allParticles.push(...spawnExplosionParticles(enemy.pos, 3, '#4477aa'))
+        }
         break
       }
     }
@@ -436,6 +467,13 @@ export function resolveDeathEffects(
     )
 
   for (const enemy of killedEnemies) {
+    // Boss death: big particle burst, no area damage.
+    if (enemy.deathBehavior === DeathBehavior.boss) {
+      particles.push(...spawnExplosionParticles(enemy.pos, 40, '#cc44ff'))
+      particles.push(...spawnExplosionParticles(enemy.pos, 20, '#ffffff'))
+      continue
+    }
+
     if (enemy.deathBehavior !== DeathBehavior.explode) continue
 
     const stats = ENEMY_STATS[enemy.kind]

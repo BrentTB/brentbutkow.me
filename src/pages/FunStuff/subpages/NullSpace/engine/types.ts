@@ -73,6 +73,8 @@ export const EnemyKind = {
   shooter: 'shooter',
   swarm: 'swarm',
   bomber: 'bomber',
+  dreadnought: 'dreadnought',
+  shieldGenerator: 'shieldGenerator',
 } as const
 export type EnemyKind = (typeof EnemyKind)[keyof typeof EnemyKind]
 
@@ -80,14 +82,25 @@ export const MovementBehavior = {
   chase: 'chase',
   keepRange: 'keepRange',
   zigzag: 'zigzag',
+  stationary: 'stationary',
+  // Pursues the target until within `attackRange`, then holds position.
+  approach: 'approach',
 } as const
 export type MovementBehavior = (typeof MovementBehavior)[keyof typeof MovementBehavior]
 
 export const DeathBehavior = {
   none: 'none',
   explode: 'explode',
+  boss: 'boss',
 } as const
 export type DeathBehavior = (typeof DeathBehavior)[keyof typeof DeathBehavior]
+
+export type BossRuntimeState = {
+  phase: number
+  droneSpawnTimer: number
+  linkedIds: string[]
+  hasSpawned: boolean
+}
 
 export type Enemy = Entity & {
   kind: EnemyKind
@@ -103,6 +116,8 @@ export type Enemy = Entity & {
   // Seconds this enemy has been simulated; advances with the (speed-scaled) dt
   // so time-based movement like the swarm weave stays in sync with game speed.
   age: number
+  // Present only on boss enemies. Tracks phase, linked entity IDs, drone timer.
+  boss?: BossRuntimeState
 }
 
 export const ProjectileOwner = { ship: 'ship', enemy: 'enemy' } as const

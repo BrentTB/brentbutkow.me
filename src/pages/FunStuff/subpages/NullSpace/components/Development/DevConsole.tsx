@@ -7,10 +7,17 @@ type DevConsoleProps = {
   uiState: GameUIState
   onPatch: (patch: DevPatch) => void
   onJumpToUpgrades: () => void
+  onJumpToBoss: () => void
   onQuickStart: (kind: ShipKind) => void
 }
 
-export function DevConsole({ uiState, onPatch, onJumpToUpgrades, onQuickStart }: DevConsoleProps) {
+export function DevConsole({
+  uiState,
+  onPatch,
+  onJumpToUpgrades,
+  onJumpToBoss,
+  onQuickStart,
+}: DevConsoleProps) {
   const inGame = uiState.phase !== GamePhase.menu && uiState.phase !== GamePhase.shipSelection
 
   return (
@@ -51,6 +58,14 @@ export function DevConsole({ uiState, onPatch, onJumpToUpgrades, onQuickStart }:
           disabled={!inGame}
         >
           Skip to Upgrade Menu
+        </button>
+        <button
+          type="button"
+          className={styles.actionBtn}
+          onClick={onJumpToBoss}
+          disabled={!inGame}
+        >
+          Skip to Boss Wave
         </button>
       </Section>
 

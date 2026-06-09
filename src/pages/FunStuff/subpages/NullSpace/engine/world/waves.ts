@@ -1,12 +1,27 @@
 import { EnemyKind } from '../types'
 import { rng } from '../math/random'
+import { BOSS_LEVEL_INTERVAL, BOSS_WAVE_ENEMY_MULTIPLIER, WAVES_PER_LEVEL } from '../../data'
+
+// Boss waves occur every BOSS_LEVEL_INTERVAL levels (i.e. every 9 waves by default).
+export function isBossWave(waveNumber: number): boolean {
+  const bossInterval = WAVES_PER_LEVEL * BOSS_LEVEL_INTERVAL
+  return waveNumber > 0 && waveNumber % bossInterval === 0
+}
+
+// Returns the boss kind to spawn on boss waves. Extend the mapping here when pt2 bosses are added.
+export function getBossForWave(waveNumber: number): EnemyKind {
+  void waveNumber
+  return EnemyKind.dreadnought
+}
 
 export function getWave(waveNumber: number): EnemyKind[] {
-  const droneCount = 3 + waveNumber * 2
-  const tankCount = Math.max(0, Math.floor((waveNumber - 1) / 2))
-  const shooterCount = Math.max(0, Math.floor((waveNumber - 2) / 2))
-  const swarmPacks = Math.max(0, Math.floor((waveNumber - 3) / 3))
-  const bomberCount = Math.max(0, Math.floor((waveNumber - 4) / 3))
+  const multiplier = isBossWave(waveNumber) ? BOSS_WAVE_ENEMY_MULTIPLIER : 1
+
+  const droneCount = Math.round((3 + waveNumber * 2) * multiplier)
+  const tankCount = Math.round(Math.max(0, Math.floor((waveNumber - 1) / 2)) * multiplier)
+  const shooterCount = Math.round(Math.max(0, Math.floor((waveNumber - 2) / 2)) * multiplier)
+  const swarmPacks = Math.round(Math.max(0, Math.floor((waveNumber - 3) / 3)) * multiplier)
+  const bomberCount = Math.round(Math.max(0, Math.floor((waveNumber - 4) / 3)) * multiplier)
 
   // Non-swarm enemies are shuffled together as singles
   const singles: EnemyKind[] = []
@@ -23,6 +38,11 @@ export function getWave(waveNumber: number): EnemyKind[] {
     for (let i = 0; i < packSize; i++) pack.push(EnemyKind.swarm)
     const insertAt = rng.intRange(0, singles.length)
     singles.splice(insertAt, 0, ...pack)
+  }
+
+  // Boss appended last so it spawns after the regular enemies are cleared.
+  if (isBossWave(waveNumber)) {
+    singles.push(getBossForWave(waveNumber))
   }
 
   return singles

@@ -12,9 +12,11 @@ import {
 } from './engine/game-loop'
 import { AbilityKind, GamePhase, ShipKind, ShipWeaponKind } from './engine/types'
 import type { GameState, PlayerInput, Vec2, UpgradeId, PlayerUpgrades } from './engine/types'
+import { getBossDefinition } from './engine/bosses/index'
+import { getBossForWave } from './engine/world/waves'
 import { createShip } from './engine/entities/entity-creator'
 import { getLevel } from './engine/upgrades'
-import { WAVES_PER_LEVEL } from './data'
+import { BOSS_LEVEL_INTERVAL, WAVES_PER_LEVEL } from './data'
 import { HOLD_ABILITIES } from './engine/abilities'
 import {
   SPACE_METAL_ABILITIES,
@@ -80,6 +82,7 @@ export type GameUIState = {
   unlockedWeapons: GameState['unlockedWeapons']
   equippedWeapons: GameState['ship']['equippedWeapons']
   escapeModeActive: boolean
+  boss: { hp: number; maxHp: number; label: string } | null
 }
 
 // Patch shape for the dev console — every field optional, undefined means
@@ -153,6 +156,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     unlockedWeapons: [ShipWeaponKind.bullet],
     equippedWeapons: [ShipWeaponKind.bullet],
     escapeModeActive: false,
+    boss: null,
   })
 
   const gameStateRef = useRef<GameState>(createInitialState())
@@ -203,6 +207,15 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       unlockedWeapons: state.unlockedWeapons,
       equippedWeapons: state.ship.equippedWeapons,
       escapeModeActive: state.ship.escapeMode !== null,
+      boss: (() => {
+        const bossEnemy = state.enemies.find((e) => e.boss !== undefined)
+        if (!bossEnemy) return null
+        return {
+          hp: bossEnemy.hp,
+          maxHp: bossEnemy.maxHp,
+          label: getBossDefinition(bossEnemy.kind)?.hpBarLabel ?? 'BOSS',
+        }
+      })(),
     })
   }, [])
 
@@ -249,6 +262,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
   // createShip / getLevel / WAVES_PER_LEVEL imports with it.
   let handleDevPatch: (patch: DevPatch) => void = noop
   let handleDevJumpToUpgrades: () => void = noop
+  let handleDevJumpToBoss: () => void = noop
   let handleDevQuickStart: (kind: ShipKind) => void = noop
 
   if (DEV_MODE) {
@@ -304,6 +318,30 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
         totalWaveEnemies: 1,
         waveTimer: 0,
         levelUpWeaponOffers: rollLevelUpWeaponOffers(state.abilities),
+      }
+      syncUI(gameStateRef.current)
+    }
+
+    handleDevJumpToBoss = () => {
+      const state = gameStateRef.current
+      // The next boss wave after the current one. Spawns only the boss (no
+      // escort) so the fight is reachable instantly for testing.
+      const bossInterval = WAVES_PER_LEVEL * BOSS_LEVEL_INTERVAL
+      const bossWave = Math.floor(state.wave / bossInterval) * bossInterval + bossInterval
+      gameStateRef.current = {
+        ...state,
+        phase: GamePhase.playing,
+        wave: bossWave,
+        level: getLevel(bossWave),
+        enemies: [],
+        projectiles: [],
+        activeEffects: [],
+        collectibles: [],
+        spawnQueue: [getBossForWave(bossWave)],
+        spawnTimer: 0,
+        totalWaveEnemies: 1,
+        spawnedInWave: 0,
+        waveTimer: 0,
       }
       syncUI(gameStateRef.current)
     }
@@ -574,6 +612,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     handleUseSpaceMetalAbility,
     handleDevPatch,
     handleDevJumpToUpgrades,
+    handleDevJumpToBoss,
     handleDevQuickStart,
     spaceMetalAbilities: SPACE_METAL_ABILITIES,
   }

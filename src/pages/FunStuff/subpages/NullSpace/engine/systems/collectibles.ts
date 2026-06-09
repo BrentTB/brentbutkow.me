@@ -3,6 +3,7 @@ import { distance } from '../math/collision'
 import { uid } from '../entities/entity-creator'
 import { homeTowardTarget } from '../math/homing'
 import { rng } from '../math/random'
+import { getBossDefinition } from '../bosses/index'
 import { CollectibleKind } from '../types'
 import type { Collectible, Enemy, Ship, Vec2 } from '../types'
 
@@ -20,6 +21,26 @@ export function spawnCollectiblesFromKills(killedEnemies: Enemy[]): Collectible[
       lifetime: POWER_ORB.lifetime,
       homing: false,
     })
+
+    // Boss drops: delegate to BossDefinition.onDeath for guaranteed loot.
+    if (enemy.boss) {
+      const def = getBossDefinition(enemy.kind)
+      if (def?.onDeath) {
+        for (const drop of def.onDeath(enemy)) {
+          collectibles.push({
+            id: uid(),
+            kind: CollectibleKind.spaceMetal,
+            pos: { ...drop.pos },
+            vel: { ...drop.vel },
+            value: 1,
+            elapsed: 0,
+            lifetime: SPACE_METAL.lifetime,
+            homing: false,
+          })
+        }
+      }
+      continue
+    }
 
     const chance = SPACE_METAL.dropChance[enemy.kind] ?? 0
     if (rng.next() < chance) {
