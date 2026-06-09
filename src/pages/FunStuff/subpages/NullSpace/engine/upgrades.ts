@@ -1,8 +1,9 @@
-import { WAVES_PER_LEVEL } from '../data'
+import { SLINGSHOT, WAVES_PER_LEVEL } from '../data'
 import {
   ABILITY_DEFINITIONS,
   ABILITY_UPGRADE_DEFINITIONS,
   WEAPON_UNLOCK_UPGRADE,
+  applyTierSum,
 } from './abilities'
 import { SHIP_WEAPON_UNLOCK_UPGRADE, SHIP_WEAPON_UPGRADE_DEFINITIONS } from './ship'
 import { SHIP_VARIANTS } from './ship/ship-data'
@@ -89,6 +90,50 @@ const shipAndPowerUpgrades: UpgradeDefinition[] = [
       { cost: 8, value: 15 },
       { cost: 32, value: 15 },
       { cost: 112, value: 25 },
+    ],
+  },
+  {
+    id: UpgradeId.slingPower,
+    category: UpgradeCategory.ship,
+    label: 'Slingshot Power',
+    description: 'Slingshot the ship farther and faster',
+    tiers: [
+      { cost: 8, value: 120 },
+      { cost: 32, value: 140 },
+      { cost: 112, value: 140 },
+    ],
+  },
+  {
+    id: UpgradeId.slingAccuracy,
+    category: UpgradeCategory.ship,
+    label: 'Slingshot Control',
+    description: 'Tighten the slingshot — less random scatter',
+    tiers: [
+      { cost: 8, value: 0.1 },
+      { cost: 32, value: 0.11 },
+      { cost: 112, value: 0.12 },
+    ],
+  },
+  {
+    id: UpgradeId.slingCooldown,
+    category: UpgradeCategory.ship,
+    label: 'Slingshot Cadence',
+    description: 'Shorten the cooldown between slingshots',
+    tiers: [
+      { cost: 8, value: 0.2 },
+      { cost: 32, value: 0.2 },
+      { cost: 112, value: 0.2 },
+    ],
+  },
+  {
+    id: UpgradeId.slingHeatSink,
+    category: UpgradeCategory.ship,
+    label: 'Slingshot Heat Sink',
+    description: 'Cool slingshot heat faster, so you can sling more before overheating',
+    tiers: [
+      { cost: 8, value: 0.06 },
+      { cost: 32, value: 0.07 },
+      { cost: 112, value: 0.08 },
     ],
   },
   {
@@ -197,36 +242,41 @@ export function applyUpgradesToAbilities(
 
 export function applyUpgradesToShip(ship: Ship, upgrades: PlayerUpgrades): Ship {
   const base = SHIP_VARIANTS[ship.kind].stats
-  let maxHp = base.maxHp
-  let damage = base.damage
-  let fireRate = base.fireRate
-  let maxShield = base.maxShield
-  let speed = base.speed
+  const maxHp = applyTierSum(base.maxHp, upgrades, UPGRADE_DEFINITIONS[UpgradeId.shipMaxHp])
+  const damage = applyTierSum(base.damage, upgrades, UPGRADE_DEFINITIONS[UpgradeId.shipDamage])
+  const fireRate = applyTierSum(
+    base.fireRate,
+    upgrades,
+    UPGRADE_DEFINITIONS[UpgradeId.shipFireRate]
+  )
+  const maxShield = applyTierSum(
+    base.maxShield,
+    upgrades,
+    UPGRADE_DEFINITIONS[UpgradeId.shipShieldStrength]
+  )
+  const speed = applyTierSum(base.speed, upgrades, UPGRADE_DEFINITIONS[UpgradeId.shipSpeed])
 
-  const hpTier = upgrades[UpgradeId.shipMaxHp].currentTier
-  for (let i = 0; i < hpTier; i++) {
-    maxHp += UPGRADE_DEFINITIONS[UpgradeId.shipMaxHp].tiers[i].value
-  }
-
-  const dmgTier = upgrades[UpgradeId.shipDamage].currentTier
-  for (let i = 0; i < dmgTier; i++) {
-    damage += UPGRADE_DEFINITIONS[UpgradeId.shipDamage].tiers[i].value
-  }
-
-  const frTier = upgrades[UpgradeId.shipFireRate].currentTier
-  for (let i = 0; i < frTier; i++) {
-    fireRate += UPGRADE_DEFINITIONS[UpgradeId.shipFireRate].tiers[i].value
-  }
-
-  const shieldTier = upgrades[UpgradeId.shipShieldStrength].currentTier
-  for (let i = 0; i < shieldTier; i++) {
-    maxShield += UPGRADE_DEFINITIONS[UpgradeId.shipShieldStrength].tiers[i].value
-  }
-
-  const speedTier = upgrades[UpgradeId.shipSpeed].currentTier
-  for (let i = 0; i < speedTier; i++) {
-    speed += UPGRADE_DEFINITIONS[UpgradeId.shipSpeed].tiers[i].value
-  }
+  // Slingshot: Power adds coast speed (bounded only by its tier data), while
+  // Control trims jitter, Cadence trims the cooldown, and Heat Sink adds
+  // cooling — those three floored/capped so upgrades can't overshoot into
+  // degenerate values. (`-1` sign = the upgrade subtracts.)
+  const slingMaxSpeed = applyTierSum(
+    SLINGSHOT.baseSpeed,
+    upgrades,
+    UPGRADE_DEFINITIONS[UpgradeId.slingPower]
+  )
+  const slingJitter = Math.max(
+    SLINGSHOT.minJitter,
+    applyTierSum(SLINGSHOT.baseJitter, upgrades, UPGRADE_DEFINITIONS[UpgradeId.slingAccuracy], -1)
+  )
+  const slingCooldown = Math.max(
+    SLINGSHOT.minCooldown,
+    applyTierSum(SLINGSHOT.baseCooldown, upgrades, UPGRADE_DEFINITIONS[UpgradeId.slingCooldown], -1)
+  )
+  const slingCoolRate = Math.min(
+    SLINGSHOT.maxCoolRate,
+    applyTierSum(SLINGSHOT.baseCoolRate, upgrades, UPGRADE_DEFINITIONS[UpgradeId.slingHeatSink])
+  )
 
   const hpGain = maxHp - ship.maxHp
   const shieldGain = maxShield - ship.maxShield
@@ -239,16 +289,15 @@ export function applyUpgradesToShip(ship: Ship, upgrades: PlayerUpgrades): Ship 
     damage,
     fireRate,
     speed,
+    slingMaxSpeed,
+    slingJitter,
+    slingCooldown,
+    slingCoolRate,
   }
 }
 
 export function applyUpgradesToPowerRegen(baseRegen: number, upgrades: PlayerUpgrades): number {
-  let regen = baseRegen
-  const tier = upgrades[UpgradeId.powerRegen].currentTier
-  for (let i = 0; i < tier; i++) {
-    regen += UPGRADE_DEFINITIONS[UpgradeId.powerRegen].tiers[i].value
-  }
-  return regen
+  return applyTierSum(baseRegen, upgrades, UPGRADE_DEFINITIONS[UpgradeId.powerRegen])
 }
 
 export function getLevel(wave: number): number {

@@ -65,6 +65,21 @@ export type Ship = Entity & {
   // Set while Escape Mode is active. null when inactive. While set, the ship
   // is invincible and its movement is overridden by the escape-mode tick.
   escapeMode: EscapeModeState | null
+  // Residual slingshot velocity. A flick sets it; it decays each tick and, while
+  // non-trivial, overrides patrol so the ship coasts in the flung direction.
+  flingVel: Vec2
+  // Slingshot tuning, baked from upgrades (Power / Control / Cadence / Heat
+  // Sink), plus the live cooldown + heat state that gate the next flick.
+  slingMaxSpeed: number
+  slingJitter: number
+  slingCooldown: number
+  slingCooldownRemaining: number
+  slingCoolRate: number
+  // Heat 0..1. Each flick adds (scaled by charge); decays over time. At 1 the
+  // slingshot overheats — locked out (and the ship slows) until heat falls back
+  // below the re-engage threshold.
+  slingHeat: number
+  slingOverheated: boolean
 }
 
 export const EnemyKind = {
@@ -128,6 +143,9 @@ export type Projectile = Entity & {
   damage: number
   lifetime: number
   prevPos?: Vec2
+  // Visual-only: render as a laser beam (segment prevPos→pos) instead of a
+  // sprite. Player lasers render as beams via `pierce`; enemy lasers set this.
+  beam?: boolean
   // Optional behavior tags written by ship-weapon createProjectiles. A plain
   // bullet leaves them undefined and takes the unchanged collision path.
   pierce?: { maxHits: number; hitEnemyIds: string[] }
@@ -372,6 +390,10 @@ export const UpgradeId = {
   shipFireRate: 'shipFireRate',
   shipShieldStrength: 'shipShieldStrength',
   shipSpeed: 'shipSpeed',
+  slingPower: 'slingPower',
+  slingAccuracy: 'slingAccuracy',
+  slingCooldown: 'slingCooldown',
+  slingHeatSink: 'slingHeatSink',
   powerRegen: 'powerRegen',
   // Ship-weapon unlocks + per-weapon modifiers (category: loadout).
   unlockLaser: 'unlockLaser',
@@ -465,4 +487,7 @@ export type PlayerInput = {
   selectedAbility: AbilityKind | null
   holdPos?: Vec2 | null
   isHolding?: boolean
+  // One-shot slingshot flick: unit drag direction + 0..1 charge (drag distance).
+  // Set the frame the player releases a ship-grab drag; cleared after one tick.
+  fling?: { dir: Vec2; charge: number } | null
 }

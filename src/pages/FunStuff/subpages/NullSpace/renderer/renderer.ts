@@ -193,7 +193,7 @@ function renderProjectiles(
       // Laser/ricochet draw a segment from prevPos to pos, so keep them while
       // the tail end is still on-screen — otherwise the beam pops out a frame
       // early. Point-sprite projectiles cull on pos alone.
-      const isLine = proj.pierce !== undefined || proj.bounce !== undefined
+      const isLine = proj.pierce !== undefined || proj.bounce !== undefined || proj.beam === true
       if (
         !isLine ||
         !proj.prevPos ||
@@ -203,6 +203,11 @@ function renderProjectiles(
     }
 
     if (proj.owner === ProjectileOwner.enemy) {
+      // Enemy laser (boss / generators) — red beam, same shape as the player's.
+      if (proj.beam) {
+        renderLaserBeam(ctx, proj, camera, 'rgba(255, 80, 80, 0.35)', '#ffd0d0')
+        continue
+      }
       const size = getSpriteSize(SpriteKey.enemyProjectile)
       ctx.drawImage(
         sprites[SpriteKey.enemyProjectile],
@@ -258,13 +263,19 @@ function renderProjectiles(
   }
 }
 
-function renderLaserBeam(ctx: CanvasRenderingContext2D, proj: Projectile, camera: Camera): void {
+function renderLaserBeam(
+  ctx: CanvasRenderingContext2D,
+  proj: Projectile,
+  camera: Camera,
+  glow = 'rgba(120, 220, 255, 0.35)',
+  core = '#e8faff'
+): void {
   const from = worldToScreen(proj.prevPos ?? proj.pos, camera)
   const to = worldToScreen(proj.pos, camera)
 
   ctx.save()
   // Outer glow.
-  ctx.strokeStyle = 'rgba(120, 220, 255, 0.35)'
+  ctx.strokeStyle = glow
   ctx.lineWidth = 6
   ctx.lineCap = 'round'
   ctx.beginPath()
@@ -272,7 +283,7 @@ function renderLaserBeam(ctx: CanvasRenderingContext2D, proj: Projectile, camera
   ctx.lineTo(to.x, to.y)
   ctx.stroke()
   // Bright core.
-  ctx.strokeStyle = '#e8faff'
+  ctx.strokeStyle = core
   ctx.lineWidth = 2
   ctx.beginPath()
   ctx.moveTo(from.x, from.y)

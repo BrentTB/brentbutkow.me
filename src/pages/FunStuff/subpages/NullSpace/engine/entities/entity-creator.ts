@@ -1,4 +1,10 @@
-import { PROJECTILE_SPEED, PROJECTILE_LIFETIME, PROJECTILE_RADIUS, ENEMY_STATS } from '../../data'
+import {
+  PROJECTILE_SPEED,
+  PROJECTILE_LIFETIME,
+  PROJECTILE_RADIUS,
+  ENEMY_STATS,
+  SLINGSHOT,
+} from '../../data'
 import { HELPER } from '../abilities/ability-data'
 import { DeathBehavior, EnemyKind, MovementBehavior, ShipKind, ShipWeaponKind } from '../types'
 import type { Ship, Enemy, Projectile, Vec2, Ally, Particle } from '../types'
@@ -63,6 +69,14 @@ export function createShip(kind: ShipKind, worldSize: Vec2): Ship {
     equippedWeapons: Array(s.weaponSlots).fill(ShipWeaponKind.bullet),
     lastHeading: { x: 1, y: 0 },
     escapeMode: null,
+    flingVel: { x: 0, y: 0 },
+    slingMaxSpeed: SLINGSHOT.baseSpeed,
+    slingJitter: SLINGSHOT.baseJitter,
+    slingCooldown: SLINGSHOT.baseCooldown,
+    slingCooldownRemaining: 0,
+    slingCoolRate: SLINGSHOT.baseCoolRate,
+    slingHeat: 0,
+    slingOverheated: false,
   }
 }
 
@@ -98,25 +112,28 @@ export function createProjectile(
   pos: Vec2,
   targetPos: Vec2,
   owner: Projectile['owner'],
-  damage: number
+  damage: number,
+  opts?: { speed?: number; beam?: boolean }
 ): Projectile {
   const dx = targetPos.x - pos.x
   const dy = targetPos.y - pos.y
   const dist = Math.sqrt(dx * dx + dy * dy)
   const nx = dist > 0 ? dx / dist : 0
   const ny = dist > 0 ? dy / dist : 1
+  const speed = opts?.speed ?? PROJECTILE_SPEED
 
   return {
     id: uid(),
     pos: { ...pos },
     prevPos: { ...pos },
-    vel: { x: nx * PROJECTILE_SPEED, y: ny * PROJECTILE_SPEED },
+    vel: { x: nx * speed, y: ny * speed },
     radius: PROJECTILE_RADIUS,
     hp: 1,
     maxHp: 1,
     owner,
     damage,
     lifetime: PROJECTILE_LIFETIME,
+    ...(opts?.beam ? { beam: true } : {}),
   }
 }
 

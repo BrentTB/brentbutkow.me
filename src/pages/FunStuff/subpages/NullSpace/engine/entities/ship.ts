@@ -1,12 +1,86 @@
-import { SHIELD_COOLDOWN } from '../../data'
+import { SHIELD_COOLDOWN, SLINGSHOT } from '../../data'
 import { canEnemyTakeDamage } from '../bosses/index'
 import { distance } from '../math/collision'
 import { clamp } from '../math/utils'
+import { rng } from '../math/random'
 import { createParticle } from './entity-creator'
-import { EscapeModePhase } from '../types'
-import type { Enemy, Particle, PlayerUpgrades, Projectile, Ship, Vec2 } from '../types'
 import { ESCAPE_MODE } from '../spaceMetalAbilities/escape-mode'
 import { SHIP_WEAPON_DEFINITIONS } from '../ship'
+import { EscapeModePhase } from '../types'
+import type { Enemy, Particle, PlayerUpgrades, Projectile, Ship, Vec2 } from '../types'
+
+// --- Slingshot ---
+// Per-second exponential decay of the coast velocity — how long the ship drifts
+// after release before patrol resumes. Not upgradable (it's feel, not power).
+const SLING_DECAY = 1.7
+// Below this coast speed the fling is spent and normal patrol takes over.
+const SLING_MIN_SPEED = 60
+
+// Converts a release flick (unit dir + 0..1 charge) into a coast velocity using
+// the ship's upgraded power, accuracy, and cooldown. Scatter widens with heat
+// (control slips as you heat up). Adds heat scaled by charge, and overheats at
+// max. No-op while on cooldown or overheated.
+export function applySlingshot(ship: Ship, fling: { dir: Vec2; charge: number }): Ship {
+  if (ship.slingCooldownRemaining > 0 || ship.slingOverheated) return ship
+  const charge = clamp(fling.charge, 0, 1)
+  // Current heat widens the scatter — a warning that you're pushing your luck.
+  const jitterMag = ship.slingJitter + ship.slingHeat * SLINGSHOT.heatJitterBonus
+  const jitter = rng.range(-jitterMag, jitterMag)
+  const cos = Math.cos(jitter)
+  const sin = Math.sin(jitter)
+  const dx = fling.dir.x * cos - fling.dir.y * sin
+  const dy = fling.dir.x * sin + fling.dir.y * cos
+  const speed = ship.slingMaxSpeed * charge
+  const heat = Math.min(1, ship.slingHeat + SLINGSHOT.heatPerFling * charge)
+  return {
+    ...ship,
+    flingVel: { x: dx * speed, y: dy * speed },
+    slingCooldownRemaining: ship.slingCooldown,
+    slingHeat: heat,
+    slingOverheated: heat >= 1,
+  }
+}
+
+// Cools slingshot heat each tick and clears the overheat lockout once heat falls
+// back below the re-engage threshold (hysteresis — you can't tap in/out at the
+// cap). Cooling rate is the ship's upgraded slingCoolRate.
+export function tickSlingHeat(ship: Ship, dt: number): Ship {
+  if (ship.slingHeat <= 0 && !ship.slingOverheated) return ship
+  const heat = Math.max(0, ship.slingHeat - ship.slingCoolRate * dt)
+  const overheated = ship.slingOverheated && heat > SLINGSHOT.heatReengage
+  return { ...ship, slingHeat: heat, slingOverheated: overheated }
+}
+
+// Advances the slingshot coast: moves the ship by its fling velocity and decays
+// it. Returns `active: true` while the coast is meaningful (patrol is suppressed
+// that frame); once it fades the velocity is zeroed and patrol resumes.
+export function tickFling(
+  ship: Ship,
+  dt: number,
+  worldSize: Vec2
+): { ship: Ship; active: boolean } {
+  const speed = Math.hypot(ship.flingVel.x, ship.flingVel.y)
+  if (speed < SLING_MIN_SPEED) {
+    if (ship.flingVel.x === 0 && ship.flingVel.y === 0) return { ship, active: false }
+    return { ship: { ...ship, flingVel: { x: 0, y: 0 } }, active: false }
+  }
+  const pos = clampToWorld(
+    { x: ship.pos.x + ship.flingVel.x * dt, y: ship.pos.y + ship.flingVel.y * dt },
+    ship.radius,
+    worldSize
+  )
+  const decay = Math.exp(-SLING_DECAY * dt)
+  return {
+    ship: {
+      ...ship,
+      pos,
+      vel: { ...ship.flingVel },
+      flingVel: { x: ship.flingVel.x * decay, y: ship.flingVel.y * decay },
+      lastHeading: { x: ship.flingVel.x / speed, y: ship.flingVel.y / speed },
+    },
+    active: true,
+  }
+}
 
 // Keeps the ship's centre fully inside the world rect (accounting for its
 // radius). Escape Mode moves the ship directly instead of via patrol, so it
@@ -133,7 +207,9 @@ export function updateShipPatrol(ship: Ship, dt: number, worldSize: Vec2): Ship 
   const dx = targetX - ship.pos.x
   const dy = targetY - ship.pos.y
   const dist = Math.sqrt(dx * dx + dy * dy)
-  const speed = Math.min(ship.speed, dist / dt)
+  // Overheating the slingshot saps engine power — the ship limps until it cools.
+  const maxSpeed = ship.slingOverheated ? ship.speed * SLINGSHOT.overheatSlowMult : ship.speed
+  const speed = Math.min(maxSpeed, dist / dt)
 
   const velX = dist > 0.1 ? (dx / dist) * speed : 0
   const velY = dist > 0.1 ? (dy / dist) * speed : 0

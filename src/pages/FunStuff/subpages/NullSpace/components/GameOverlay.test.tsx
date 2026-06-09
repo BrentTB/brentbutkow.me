@@ -36,6 +36,8 @@ function makeUiState(phase: GameUIState['phase']): GameUIState {
     unlockedWeapons: [ShipWeaponKind.bullet],
     equippedWeapons: [ShipWeaponKind.bullet],
     escapeModeActive: false,
+    slingHeat: 0,
+    slingOverheated: false,
     boss: null,
   }
 }

@@ -28,6 +28,8 @@ export function TopBar({
   const shieldRatio = Math.max(0, uiState.shipShield / uiState.shipMaxShield)
   const shieldOnCooldown = uiState.shieldCooldownRemaining > 0
   const powerRatio = Math.max(0, uiState.power / uiState.maxPower)
+  const heatRatio = Math.max(0, Math.min(1, uiState.slingHeat))
+  const heatColor = uiState.slingOverheated ? '#ff3322' : heatRatio > 0.66 ? '#ff8833' : '#e0a83c'
 
   return (
     <div className={styles.topBar}>
@@ -69,6 +71,18 @@ export function TopBar({
           </div>
           <span className={styles.barText}>
             {Math.floor(uiState.power)}/{uiState.maxPower}
+          </span>
+        </div>
+        <div className={styles.barRow}>
+          <span className={styles.label}>HEAT</span>
+          <div className={styles.barOuter}>
+            <div
+              className={styles.barInner}
+              style={{ width: `${heatRatio * 100}%`, backgroundColor: heatColor }}
+            />
+          </div>
+          <span className={styles.barText}>
+            {uiState.slingOverheated ? 'OVERHEAT' : `${Math.round(heatRatio * 100)}%`}
           </span>
         </div>
       </div>
