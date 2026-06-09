@@ -45,6 +45,7 @@ import {
   purchaseUpgrade,
 } from './upgrades'
 import { getWave, getWaveDelay } from './world/waves'
+import { updateBossAI } from './bosses/boss-ai'
 import { loadHighScore, saveHighScore } from './world/persistence'
 import { rng } from './math/random'
 import { getShipWeaponForUnlockUpgrade, SHIP_WEAPON_LIST } from './ship'
@@ -188,17 +189,28 @@ export function applyUpgradeToState(state: GameState, upgradeId: UpgradeId): Gam
       : state.levelUpWeaponOffers
 
   // Ship-weapon unlock purchase: append the kind to unlockedWeapons so the
-  // Loadout shop tab and equip handler can offer it. On single-slot ships,
-  // also auto-equip the newly bought weapon (no other slot to put it in, so
-  // there's never a reason to make the player click Equip after Unlock).
-  // Carrier keeps the manual flow — the player chooses which of 3 slots.
+  // Loadout shop tab and equip handler can offer it, then auto-equip where it
+  // makes sense:
+  //  - Single-slot ships: always equip the newest weapon (only one slot).
+  //  - Carrier (multi-slot): drop it into the first still-default (bullet) slot.
+  //    Once every slot holds a non-default weapon, leave it for the player to
+  //    slot manually rather than evicting one of their choices.
   const purchasedShipWeapon = getShipWeaponForUnlockUpgrade(upgradeId)
   const unlockedWeapons =
     purchasedShipWeapon && !state.unlockedWeapons.includes(purchasedShipWeapon)
       ? [...state.unlockedWeapons, purchasedShipWeapon]
       : state.unlockedWeapons
-  if (purchasedShipWeapon && ship.weaponSlots === 1) {
-    ship = { ...ship, equippedWeapons: [purchasedShipWeapon] }
+  if (purchasedShipWeapon) {
+    if (ship.weaponSlots === 1) {
+      ship = { ...ship, equippedWeapons: [purchasedShipWeapon] }
+    } else {
+      const bulletSlot = ship.equippedWeapons.indexOf(ShipWeaponKind.bullet)
+      if (bulletSlot !== -1) {
+        const next = [...ship.equippedWeapons]
+        next[bulletSlot] = purchasedShipWeapon
+        ship = { ...ship, equippedWeapons: next }
+      }
+    }
   }
 
   return {
@@ -302,6 +314,13 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   spawnTimer = spawnResult.spawnTimer
   enemies = spawnResult.enemies
   spawnedInWave = spawnResult.spawnedInWave
+
+  // --- Boss AI (onSpawn + phase advance + drone spawning) ---
+  const bossResult = updateBossAI(enemies, dt)
+  enemies = bossResult.enemies
+  if (bossResult.newEnemies.length > 0) {
+    enemies = [...enemies, ...bossResult.newEnemies]
+  }
 
   // --- Space metal click handling (marks clicked metal as homing) ---
   // The counter increments in updateCollectibles when the homing metal

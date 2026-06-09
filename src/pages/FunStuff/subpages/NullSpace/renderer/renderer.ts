@@ -23,6 +23,7 @@ import type {
 } from '../engine/types'
 import { POWER_ORB, SPACE_METAL } from '../data'
 import { getNuclearWasteCurrentRadius } from '../engine/systems/effects'
+import { getBossDefinition } from '../engine/bosses/index'
 import type { Camera } from './camera'
 import { isWithinView, worldToScreen } from './camera'
 import type { SpriteCache } from './sprite-cache'
@@ -37,6 +38,8 @@ const ENEMY_SPRITE: Record<EnemyKind, SpriteKey> = {
   [EnemyKind.shooter]: SpriteKey.shooter,
   [EnemyKind.swarm]: SpriteKey.swarm,
   [EnemyKind.bomber]: SpriteKey.bomber,
+  [EnemyKind.dreadnought]: SpriteKey.dreadnoughtBoss,
+  [EnemyKind.shieldGenerator]: SpriteKey.shieldGenerator,
 }
 
 export const SHIP_SPRITE_KEY: Record<ShipKind, SpriteKey> = {
@@ -85,6 +88,18 @@ export function renderFrame(
   ctx.restore()
 }
 
+// Cyan shield bubble drawn at the current translate origin. Shared by the ship
+// and shielded bosses so both read as the same defensive layer.
+function drawShieldRing(ctx: CanvasRenderingContext2D, radius: number, alpha: number): void {
+  ctx.globalAlpha = alpha
+  ctx.strokeStyle = '#6ae8f5'
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.arc(0, 0, radius, 0, Math.PI * 2)
+  ctx.stroke()
+  ctx.globalAlpha = 1
+}
+
 function renderShip(
   ctx: CanvasRenderingContext2D,
   state: GameState,
@@ -103,14 +118,7 @@ function renderShip(
 
   // Shield ring — fades with shield level, invisible at 0
   if (state.ship.shield > 0) {
-    const shieldAlpha = (state.ship.shield / state.ship.maxShield) * 0.65
-    ctx.globalAlpha = shieldAlpha
-    ctx.strokeStyle = '#6ae8f5'
-    ctx.lineWidth = 2
-    ctx.beginPath()
-    ctx.arc(0, 0, state.ship.radius + 12, 0, Math.PI * 2)
-    ctx.stroke()
-    ctx.globalAlpha = 1
+    drawShieldRing(ctx, state.ship.radius + 12, (state.ship.shield / state.ship.maxShield) * 0.65)
   }
 
   ctx.drawImage(sprites[spriteKey], -size.w / 2, -size.h / 2)
@@ -136,6 +144,12 @@ function renderEnemies(
     const angle = Math.atan2(enemy.vel.y, enemy.vel.x) + Math.PI / 2
     ctx.rotate(angle)
     ctx.drawImage(sprites[spriteKey], -size.w / 2, -size.h / 2)
+    // Boss shield bubble — visible while its generators keep it damage-gated.
+    if (enemy.boss) {
+      const def = getBossDefinition(enemy.kind)
+      const shielded = def?.canTakeDamage ? !def.canTakeDamage(enemy, state.enemies) : false
+      if (shielded) drawShieldRing(ctx, enemy.radius + 12, 0.6)
+    }
     ctx.restore()
 
     // Health bar for damaged enemies

@@ -99,10 +99,29 @@ function moveZigzag(enemy: Enemy, ship: Ship, dt: number): Enemy {
   }
 }
 
+function moveStationary(enemy: Enemy): Enemy {
+  return { ...enemy, vel: { x: 0, y: 0 } }
+}
+
+// Pursues the target like chase, but stops once within `attackRange` so the
+// enemy parks at a fixed standoff instead of ramming. Used by the boss so the
+// player can engage it without chasing it across the map.
+function moveApproach(enemy: Enemy, ship: Ship, dt: number): Enemy {
+  const dx = ship.pos.x - enemy.pos.x
+  const dy = ship.pos.y - enemy.pos.y
+  const dist = Math.sqrt(dx * dx + dy * dy)
+  if (dist <= enemy.attackRange) {
+    return { ...enemy, vel: { x: 0, y: 0 } }
+  }
+  return moveChase(enemy, ship, dt)
+}
+
 const MOVEMENT_FN: Record<MovementBehavior, MoveFn> = {
   [MovementBehavior.chase]: moveChase,
   [MovementBehavior.keepRange]: moveKeepRange,
   [MovementBehavior.zigzag]: moveZigzag,
+  [MovementBehavior.stationary]: moveStationary,
+  [MovementBehavior.approach]: moveApproach,
 }
 
 export function updateEnemyMovement(

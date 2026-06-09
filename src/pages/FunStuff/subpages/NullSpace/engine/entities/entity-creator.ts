@@ -4,6 +4,7 @@ import { DeathBehavior, EnemyKind, MovementBehavior, ShipKind, ShipWeaponKind } 
 import type { Ship, Enemy, Projectile, Vec2, Ally, Particle } from '../types'
 import { rng } from '../math/random'
 import { SHIP_VARIANTS } from '../ship/ship-data'
+import { getBossDefinition, isBoss } from '../bosses/index'
 
 const ENEMY_MOVEMENT: Record<EnemyKind, MovementBehavior> = {
   [EnemyKind.drone]: MovementBehavior.chase,
@@ -11,6 +12,8 @@ const ENEMY_MOVEMENT: Record<EnemyKind, MovementBehavior> = {
   [EnemyKind.shooter]: MovementBehavior.keepRange,
   [EnemyKind.swarm]: MovementBehavior.zigzag,
   [EnemyKind.bomber]: MovementBehavior.chase,
+  [EnemyKind.dreadnought]: MovementBehavior.approach,
+  [EnemyKind.shieldGenerator]: MovementBehavior.stationary,
 }
 
 const ENEMY_DEATH: Record<EnemyKind, DeathBehavior> = {
@@ -19,6 +22,8 @@ const ENEMY_DEATH: Record<EnemyKind, DeathBehavior> = {
   [EnemyKind.shooter]: DeathBehavior.none,
   [EnemyKind.swarm]: DeathBehavior.none,
   [EnemyKind.bomber]: DeathBehavior.explode,
+  [EnemyKind.dreadnought]: DeathBehavior.boss,
+  [EnemyKind.shieldGenerator]: DeathBehavior.none,
 }
 
 // IDs must be unique across the whole session — including across Vite HMR
@@ -63,7 +68,7 @@ export function createShip(kind: ShipKind, worldSize: Vec2): Ship {
 
 export function createEnemy(kind: Enemy['kind'], pos: Vec2): Enemy {
   const stats = ENEMY_STATS[kind]
-  return {
+  const base: Enemy = {
     id: uid(),
     pos: { ...pos },
     vel: { x: 0, y: 0 },
@@ -82,6 +87,11 @@ export function createEnemy(kind: Enemy['kind'], pos: Vec2): Enemy {
     deathBehavior: ENEMY_DEATH[kind],
     age: 0,
   }
+  if (isBoss(kind)) {
+    const def = getBossDefinition(kind)
+    if (def) base.boss = def.initialState()
+  }
+  return base
 }
 
 export function createProjectile(

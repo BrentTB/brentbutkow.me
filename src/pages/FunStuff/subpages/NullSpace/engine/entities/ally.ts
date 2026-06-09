@@ -1,5 +1,6 @@
 import { distance } from '../math/collision'
 import { createProjectile } from './entity-creator'
+import { canEnemyTakeDamage } from '../bosses/index'
 import { rng } from '../math/random'
 import { ProjectileOwner } from '../types'
 import type { Ally, Enemy, Projectile, Ship, Vec2 } from '../types'
@@ -52,6 +53,8 @@ export function updateAllies(
     let nearestEnemy: Enemy | null = null
     let nearestDist = Infinity
     for (const enemy of enemies) {
+      // Skip invincible enemies (shielded boss) — don't waste shots on them.
+      if (!canEnemyTakeDamage(enemy, enemies)) continue
       const d = distance(ally.pos, enemy.pos)
       if (d < nearestDist) {
         nearestDist = d

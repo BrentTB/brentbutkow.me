@@ -336,14 +336,30 @@ describe('ship weapons in GameState', () => {
     expect(state.ship.equippedWeapons).toEqual([ShipWeaponKind.laser])
   })
 
-  it('does NOT auto-equip on Carrier — player picks the slot manually', () => {
+  it('Carrier auto-equips a bought weapon into the first default (bullet) slot', () => {
     let state = startGame(createInitialState(), ShipKind.carrier)
     state = startNextWave(state)
-    const beforeLoadout = state.ship.equippedWeapons
-    state = { ...state, currency: 1000 }
+    state = { ...state, currency: 100000 }
     state = applyUpgradeToState(state, UpgradeId.unlockLaser)
-    expect(state.unlockedWeapons).toContain(ShipWeaponKind.laser)
-    // Equipped loadout unchanged — still all bullets.
+    // One bullet slot becomes laser; the other two stay bullet.
+    expect(state.ship.equippedWeapons.filter((w) => w === ShipWeaponKind.laser)).toHaveLength(1)
+    expect(state.ship.equippedWeapons.filter((w) => w === ShipWeaponKind.bullet)).toHaveLength(2)
+  })
+
+  it('Carrier stops auto-equipping once no default (bullet) slot remains', () => {
+    let state = startGame(createInitialState(), ShipKind.carrier)
+    state = startNextWave(state)
+    state = { ...state, currency: 100000 }
+    // Fill all three slots with non-default weapons.
+    state = applyUpgradeToState(state, UpgradeId.unlockLaser)
+    state = applyUpgradeToState(state, UpgradeId.unlockMissile)
+    state = applyUpgradeToState(state, UpgradeId.unlockRicochet)
+    expect(state.ship.equippedWeapons).not.toContain(ShipWeaponKind.bullet)
+
+    // A further purchase has nowhere to auto-slot — loadout stays, weapon unlocked.
+    const beforeLoadout = state.ship.equippedWeapons
+    state = applyUpgradeToState(state, UpgradeId.unlockNuke)
+    expect(state.unlockedWeapons).toContain(ShipWeaponKind.nuke)
     expect(state.ship.equippedWeapons).toEqual(beforeLoadout)
   })
 

@@ -4,6 +4,9 @@ import styles from './LevelProgress.module.scss'
 
 type LevelProgressProps = {
   uiState: GameUIState
+  // When true (a boss is on-screen), the bar fades out so the boss HP bar can
+  // cross-fade in over the same spot.
+  dimmed: boolean
 }
 
 function getLevelProgress(uiState: GameUIState): number {
@@ -14,12 +17,12 @@ function getLevelProgress(uiState: GameUIState): number {
   return (waveIndexInLevel + spawnFraction) / WAVES_PER_LEVEL
 }
 
-export function LevelProgress({ uiState }: LevelProgressProps) {
+export function LevelProgress({ uiState, dimmed }: LevelProgressProps) {
   const progressRatio = getLevelProgress(uiState)
   const dots = Array.from({ length: WAVES_PER_LEVEL + 1 }, (_, i) => i)
 
   return (
-    <div className={styles.levelProgress}>
+    <div className={`${styles.levelProgress} ${dimmed ? styles.dimmed : ''}`}>
       <span className={styles.levelLabel}>Level {uiState.level}</span>
       <div className={styles.progressTrack}>
         <div className={styles.progressFill} style={{ width: `${progressRatio * 100}%` }} />

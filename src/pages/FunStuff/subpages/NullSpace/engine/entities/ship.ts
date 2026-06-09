@@ -1,4 +1,5 @@
 import { SHIELD_COOLDOWN } from '../../data'
+import { canEnemyTakeDamage } from '../bosses/index'
 import { distance } from '../math/collision'
 import { clamp } from '../math/utils'
 import { createParticle } from './entity-creator'
@@ -168,9 +169,12 @@ export function updateShipAttack(
   // Nearest in-range enemies, sorted by distance. A slot picks its target as
   // the slot-index-th entry (so 3 ready slots fire at 3 distinct enemies); if
   // fewer enemies than slots, multiple slots fall back to the nearest.
+  // Invincible enemies (a shielded boss) are skipped — no point shooting what
+  // can't be hurt; the ship targets generators / other enemies instead, and
+  // holds fire if nothing damageable is in range.
   const inRange = enemies
     .map((e) => ({ enemy: e, dist: distance(ship.pos, e.pos) }))
-    .filter((x) => x.dist < ship.attackRange)
+    .filter((x) => x.dist < ship.attackRange && canEnemyTakeDamage(x.enemy, enemies))
     .sort((a, b) => a.dist - b.dist)
   if (inRange.length === 0) {
     return { ship: { ...ship, fireCooldowns }, projectiles }

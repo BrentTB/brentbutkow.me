@@ -3,6 +3,7 @@ import type { GameUIState } from '../../useNullSpace'
 import styles from './GameHUD.module.scss'
 import { LevelProgress } from './LevelProgress'
 import { TopBar } from './TopBar'
+import { BossHpBar } from './BossHpBar'
 import { SpaceMetalRail } from './SpaceMetalRail'
 import { Abilities } from './Abilities'
 import { SpaceMetalAbilityKind } from '../../engine/spaceMetalAbilities'
@@ -30,7 +31,8 @@ export function GameHUD({
 
   return (
     <div className={styles.hud}>
-      <LevelProgress uiState={uiState} />
+      <LevelProgress uiState={uiState} dimmed={uiState.boss !== null} />
+      <BossHpBar boss={uiState.boss} />
       <TopBar
         uiState={uiState}
         isFullscreen={isFullscreen}
