@@ -21,8 +21,7 @@ export type ShipWeaponDefinition = {
   fireRateMultiplier: number
   // Live damage after upgrades, given the ship's base damage stat.
   weaponDamage: (baseShipDamage: number, upgrades: PlayerUpgrades) => number
-  // Spawns the projectile(s) for a single target. Returns an array so a weapon
-  // can emit more than one per target if ever needed; bullet returns 1.
+  // Spawns the projectile(s) for a single target (bullet returns 1).
   createProjectiles: (
     shipPos: Vec2,
     targetPos: Vec2,

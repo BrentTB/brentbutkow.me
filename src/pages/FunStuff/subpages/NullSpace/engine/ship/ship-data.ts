@@ -1,15 +1,5 @@
 import { ShipKind } from '../types'
 
-export const SHIP_DEFAULTS = {
-  hp: 100,
-  maxHp: 100,
-  damage: 5,
-  fireRate: 2,
-  speed: 120,
-  radius: 16,
-  attackRange: 280,
-}
-
 export type ShipVariantStats = {
   hp: number
   maxHp: number

@@ -1,10 +1,11 @@
-import { WAVES_PER_LEVEL, SHIP_VARIANTS } from '../data'
+import { WAVES_PER_LEVEL } from '../data'
 import {
   ABILITY_DEFINITIONS,
   ABILITY_UPGRADE_DEFINITIONS,
   WEAPON_UNLOCK_UPGRADE,
 } from './abilities'
 import { SHIP_WEAPON_UNLOCK_UPGRADE, SHIP_WEAPON_UPGRADE_DEFINITIONS } from './ship'
+import { SHIP_VARIANTS } from './ship/ship-data'
 import { UpgradeCategory, UpgradeId } from './types'
 import type {
   Ability,

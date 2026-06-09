@@ -49,7 +49,11 @@ export function ShipWeaponsList({ uiState, onSelect, onPurchase, onEquip }: Ship
                 className={loadoutStyles.slotChip}
                 disabled={!canCycle}
                 onClick={() => onEquip(idx, next)}
-                aria-label={`Slot ${idx + 1}: ${SHIP_WEAPON_META[equipped].label}. Click to cycle to ${SHIP_WEAPON_META[next].label}.`}
+                aria-label={
+                  canCycle
+                    ? `Slot ${idx + 1}: ${SHIP_WEAPON_META[equipped].label}. Click to cycle to ${SHIP_WEAPON_META[next].label}.`
+                    : `Slot ${idx + 1}: ${SHIP_WEAPON_META[equipped].label}.`
+                }
               >
                 <span className={loadoutStyles.slotChipLabel}>SLOT {idx + 1}</span>
                 <span className={loadoutStyles.slotChipName}>

@@ -1,17 +1,6 @@
 import { AbilityKind } from './engine/types'
 import type { EnemyKind } from './engine/types'
 
-// Ship variants moved to engine/ship/ship-data.ts. Re-export here so the ~6
-// existing callers keep working with no churn.
-export {
-  SHIP_DEFAULTS,
-  SHIP_ORDER,
-  SHIP_VARIANTS,
-  STAT_MAX,
-  type ShipVariantConfig,
-  type ShipVariantStats,
-} from './engine/ship/ship-data'
-
 export const GAME_NAME = 'Null Space'
 
 export const WORLD_SIZE = { x: 3000, y: 3000 }
@@ -157,14 +146,13 @@ export type ChangelogEntry = {
   }
 }
 
-// Short, non-verbose descritions of what changed
 export const CHANGELOG: ChangelogEntry[] = [
   {
     version: '0.13.2',
     date: '2026-06-09',
     changes: {
       balance: [
-        'Ricochet now adds ≥1.5s of lifetime per bounce, so a chain that keeps finding targets uses all its bounces instead of expiring mid-flight. Base lifetime unchanged.',
+        'Each ricochet bounce refreshes the round to at least 0.5s of remaining lifetime, so a chain that keeps finding targets uses all its bounces instead of expiring mid-flight. Base lifetime unchanged.',
         'Laser pierce 2 → 3 enemies (+50%)',
       ],
       fixes: [
@@ -184,7 +172,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       ],
       balance: [
         'Nuke: damage ×2.5 (+150%), fire cadence ~1/3 of bullet (−67%), bigger blast and waste radius.',
-        'Ricochet: bounce range 240 → 500 (+108%), bounces 2 → 3 (+50%), full bullet speed.',
+        'Ricochet: bounce range 240 → 500 (+108%), full bullet speed.',
       ],
       ui: [
         'Nuclear-waste zone expands once on detonation then shrinks to nothing (no pulse); damage area matches the visual.',

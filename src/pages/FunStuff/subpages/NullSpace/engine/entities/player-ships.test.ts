@@ -6,7 +6,8 @@ import { SpaceMetalAbilityKind, tryActivateSpaceMetalAbility } from '../spaceMet
 
 const useShieldRegen = (state: Parameters<typeof tryActivateSpaceMetalAbility>[0]) =>
   tryActivateSpaceMetalAbility(state, SpaceMetalAbilityKind.shieldRegen)
-import { SHIP_VARIANTS, SHIELD_COOLDOWN, WORLD_SIZE } from '../../data'
+import { SHIELD_COOLDOWN, WORLD_SIZE } from '../../data'
+import { SHIP_VARIANTS } from '../ship/ship-data'
 
 beforeEach(() => {
   localStorage.clear()

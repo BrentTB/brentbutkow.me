@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { SHIP_ORDER, SHIP_VARIANTS, STAT_MAX } from '../../data'
 import { ShipKind } from '../../engine/types'
 import { ShipSpritePreview } from './ShipSpritePreview'
 import { StatBar } from './StatBar'
 import styles from './ShipSelectionScreen.module.scss'
 import sharedStyles from '../OverlayShared.module.scss'
+import { SHIP_VARIANTS, SHIP_ORDER, STAT_MAX } from '../../engine/ship/ship-data'
 
 type ShipSelectionScreenProps = {
   onSelect: (kind: ShipKind) => void

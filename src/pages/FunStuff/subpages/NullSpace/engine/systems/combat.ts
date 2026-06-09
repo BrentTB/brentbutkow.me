@@ -64,6 +64,9 @@ export function resolveProjectileEnemyCollisions(
 
   const updatedEnemies = enemies.map((e) => ({ ...e }))
 
+  // The pierce/bounce branches mutate the projectile in place (hitEnemyIds,
+  // vel, remaining, lifetime) on purpose: game-loop reuses the same projectile
+  // objects frame to frame, so this is how per-projectile state carries forward.
   for (const proj of projectiles) {
     if (proj.owner !== ProjectileOwner.ship) continue
 

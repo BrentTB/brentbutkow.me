@@ -21,8 +21,6 @@ export const LASER = {
   lifetime: 0.45,
   // Number of enemies one beam can damage before being consumed.
   basePierce: 3,
-  // Width of the visible beam line, in pixels.
-  beamWidth: 3,
 } as const
 
 export const MISSILE = {

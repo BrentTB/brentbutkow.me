@@ -164,7 +164,18 @@ function renderProjectiles(
 ): void {
   for (const proj of state.projectiles) {
     const screen = worldToScreen(proj.pos, camera)
-    if (!isWithinView(screen, camera, 20)) continue
+    if (!isWithinView(screen, camera, 20)) {
+      // Laser/ricochet draw a segment from prevPos to pos, so keep them while
+      // the tail end is still on-screen — otherwise the beam pops out a frame
+      // early. Point-sprite projectiles cull on pos alone.
+      const isLine = proj.pierce !== undefined || proj.bounce !== undefined
+      if (
+        !isLine ||
+        !proj.prevPos ||
+        !isWithinView(worldToScreen(proj.prevPos, camera), camera, 20)
+      )
+        continue
+    }
 
     if (proj.owner === ProjectileOwner.enemy) {
       const size = getSpriteSize(SpriteKey.enemyProjectile)

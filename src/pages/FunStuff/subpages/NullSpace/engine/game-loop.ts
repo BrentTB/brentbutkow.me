@@ -47,9 +47,15 @@ import {
 import { getWave, getWaveDelay } from './world/waves'
 import { loadHighScore, saveHighScore } from './world/persistence'
 import { rng } from './math/random'
-import { getShipWeaponForUnlockUpgrade } from './ship'
+import { getShipWeaponForUnlockUpgrade, SHIP_WEAPON_LIST } from './ship'
 import { GamePhase, ShipKind, ShipWeaponKind } from './types'
 import type { AbilityKind, GameState, PlayerInput, UpgradeId } from './types'
+
+// Weapons a fresh run starts with — derived from each weapon's startsUnlocked
+// flag so the registry stays the single source of truth.
+const INITIAL_UNLOCKED_WEAPONS: ShipWeaponKind[] = SHIP_WEAPON_LIST.filter(
+  (d) => d.startsUnlocked
+).map((d) => d.kind)
 
 export function createInitialState(): GameState {
   rng.reseed(Date.now())
@@ -83,7 +89,7 @@ export function createInitialState(): GameState {
     spawnedInWave: 0,
     holdStates: {},
     levelUpWeaponOffers: [],
-    unlockedWeapons: [ShipWeaponKind.bullet],
+    unlockedWeapons: [...INITIAL_UNLOCKED_WEAPONS],
     escapeTrailAccumulator: 0,
   }
 }
@@ -126,7 +132,7 @@ export function startGame(state: GameState, shipKind: ShipKind): GameState {
     isNewHighScore: false,
     holdStates: {},
     levelUpWeaponOffers: [],
-    unlockedWeapons: [ShipWeaponKind.bullet],
+    unlockedWeapons: [...INITIAL_UNLOCKED_WEAPONS],
     escapeTrailAccumulator: 0,
   }
 }

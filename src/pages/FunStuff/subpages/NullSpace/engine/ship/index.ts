@@ -12,17 +12,6 @@ import type { IconName } from '../../icon-names'
 export type { ShipWeaponDefinition } from './ship-weapon-definition'
 export { buildShipProjectile } from './ship-weapon-definition'
 
-// Re-exports of the moved-from-data.ts ship-variant data, so callers that
-// already import from `engine/ship` (instead of `data.ts`) keep working.
-export {
-  SHIP_DEFAULTS,
-  SHIP_ORDER,
-  SHIP_VARIANTS,
-  STAT_MAX,
-  type ShipVariantConfig,
-  type ShipVariantStats,
-} from './ship-data'
-
 // Single source of truth: every ship weapon registers itself in one file and
 // gets added here. All downstream lookup tables (meta, factories, upgrades) are
 // DERIVED from this map, so a new weapon only needs a new file + registry entry.

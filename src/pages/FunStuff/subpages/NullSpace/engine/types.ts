@@ -118,6 +118,8 @@ export type Projectile = Entity & {
   pierce?: { maxHits: number; hitEnemyIds: string[] }
   homing?: boolean
   bounce?: {
+    // Redirects left after the initial hit. The first enemy struck is free
+    // (checked before this decrements), so a round hits remaining + 1 enemies.
     remaining: number
     hitEnemyIds: string[]
     bounceRange: number
