@@ -4,6 +4,13 @@ Personal portfolio site for Brent Butkow (`brentbutkow.me` / `butkow.com`). Sing
 with a global **Professional ↔ Fun** toggle that flips the whole site between recruiter-ready and
 playful.
 
+## Codebase navigation
+
+Before grepping or spawning Explore for "where is X" — check these two first:
+
+- [REPO_MAP.md](REPO_MAP.md) — auto-generated file → exports index (kept fresh by Husky pre-commit). Locate any symbol or file here.
+- [CONCEPTS.md](CONCEPTS.md) — hand-curated concept → entry-point map (Fun toggle, routing, editorial layout, Null Space, etc.).
+
 Scoped instructions live in nested `CLAUDE.md` files — load on demand when you touch those areas:
 
 - [src/CLAUDE.md](src/CLAUDE.md) — architecture, routing, folder/casing conventions, the Fun toggle
@@ -44,7 +51,7 @@ npm test              # vitest run (test:watch to watch)
 - **Hard rule: every bug fix includes a regression test in the same change.** It must fail without the
   fix and pass with it — before committing, revert the fix and re-run `npm test` to confirm it fails.
   Name it so a future reader knows what it guards. See `updateGameState — state field round-trip persistence`
-  in [game-loop.test.ts](src/pages/fun-stuff/subpages/NullSpace/engine/game-loop.test.ts) (guards stale
+  in [game-loop.test.ts](src/pages/FunStuff/subpages/NullSpace/engine/game-loop.test.ts) (guards stale
   `...state` spread losing locally-mutated state — TypeScript can't catch it).
 
 `npm run check` then `npm run format` run via the Husky [pre-commit](.husky/pre-commit) hook. Keep both green — don't bypass.
@@ -82,8 +89,8 @@ This repo is a showcase — code should look as polished as the UI.
   backwards-compat. Grep the old path/name, fix all importers, delete the old module.
 - **Extract reusable behaviour into utility files; don't bury it inline.** If a new primitive could
   plausibly serve another feature, put it in a dedicated helper with a generic signature and compose it.
-  Canonical example: [homing.ts](src/pages/fun-stuff/subpages/NullSpace/engine/homing.ts) — a `homeTowardTarget`
+  Canonical example: [homing.ts](src/pages/FunStuff/subpages/NullSpace/engine/homing.ts) — a `homeTowardTarget`
   primitive (position, target, strength, dt) used by power orbs and clicked space metals in
-  [collectibles.ts](src/pages/fun-stuff/subpages/NullSpace/engine/collectibles.ts). Build the helper when
+  [collectibles.ts](src/pages/FunStuff/subpages/NullSpace/engine/collectibles.ts). Build the helper when
   the second use case is obvious from the task at hand — not for hypotheticals. One caller, no clear future caller → keep inline, extract when the second arrives.
 - **Style**: 2-space indent, single quotes, no semicolons, ~100 col (Prettier — [.prettierrc](.prettierrc)). Let Prettier format; don't fight it.
