@@ -4,6 +4,13 @@ Personal portfolio site for Brent Butkow (`brentbutkow.me` / `butkow.com`). Sing
 with a global **Professional ↔ Fun** toggle that flips the whole site between recruiter-ready and
 playful.
 
+## Codebase navigation
+
+Before grepping or spawning Explore for "where is X" — check these two first:
+
+- [REPO_MAP.md](REPO_MAP.md) — auto-generated file → exports index (kept fresh by Husky pre-commit). Locate any symbol or file here.
+- [CONCEPTS.md](CONCEPTS.md) — hand-curated concept → entry-point map (Fun toggle, routing, editorial layout, Null Space, etc.).
+
 ## Skills
 
 ALWAYS invoke the Caveman + Token Reducer skills as the **very first action** on any task —
@@ -37,7 +44,7 @@ npm test              # vitest run (test:watch to watch)
 - **Hard rule: every bug fix includes a regression test in the same change.** It must fail without the
   fix and pass with it — before committing, revert the fix and re-run `npm test` to confirm it fails.
   Name it so a future reader knows what it guards. See `updateGameState — state field round-trip persistence`
-  in [game-loop.test.ts](src/pages/fun-stuff/subpages/NullSpace/engine/game-loop.test.ts) (guards stale
+  in [game-loop.test.ts](src/pages/FunStuff/subpages/NullSpace/engine/game-loop.test.ts) (guards stale
   `...state` spread losing locally-mutated state — TypeScript can't catch it).
 
 `npm run check` then `npm run format` run via the Husky [pre-commit](.husky/pre-commit) hook. Keep both green — don't bypass.
@@ -101,9 +108,9 @@ The site's personality — treat it as first-class.
 
 When adding anything, ask "how should this behave in each mode?" Three patterns:
 
-1. **Conditional render** — gate playful content with `isFunMode` (jokes in [HomePage.tsx](src/pages/home/HomePage.tsx),
+1. **Conditional render** — gate playful content with `isFunMode` (jokes in [HomePage.tsx](src/pages/Home/HomePage.tsx),
    WaterRipple background, the `onlyShowInFunMode` flag).
-2. **Swapped copy** — formal vs fun string picked by mode (`subtitle` vs `subtitleFun` in [home/data.ts](src/pages/home/data.ts)).
+2. **Swapped copy** — formal vs fun string picked by mode (`subtitle` vs `subtitleFun` in [Home/data.ts](src/pages/Home/data.ts)).
 3. **CSS reactions** — `:global(html.fun-mode) & { ... }` inside a module for Fun-only animation/glow.
 
 Professional mode stays clean, calm, recruiter-ready. Fun mode gets the animations, rainbow glows, jokes,
@@ -156,16 +163,16 @@ This repo is a showcase — code should look as polished as the UI.
   opportunistically as files are touched — don't churn unrelated files just to convert.
 - **Extract reusable behaviour into utility files; don't bury it inline.** If a new primitive could
   plausibly serve another feature, put it in a dedicated helper with a generic signature and compose it.
-  Canonical example: [homing.ts](src/pages/fun-stuff/subpages/NullSpace/engine/homing.ts) — a `homeTowardTarget`
+  Canonical example: [homing.ts](src/pages/FunStuff/subpages/NullSpace/engine/homing.ts) — a `homeTowardTarget`
   primitive (position, target, strength, dt) used by power orbs and clicked space metals in
-  [collectibles.ts](src/pages/fun-stuff/subpages/NullSpace/engine/collectibles.ts). Build the helper when
+  [collectibles.ts](src/pages/FunStuff/subpages/NullSpace/engine/collectibles.ts). Build the helper when
   the second use case is obvious from the task at hand — not for hypotheticals. One caller, no clear future caller → keep inline, extract when the second arrives.
 - **Style**: 2-space indent, single quotes, no semicolons, ~100 col (Prettier — [.prettierrc](.prettierrc)). Let Prettier format; don't fight it.
 
 ## Null Space game changelog
 
-When changing the Null Space game (`src/pages/fun-stuff/subpages/NullSpace/`), update `CHANGELOG` and
-`GAME_VERSION` in [NullSpace/data.ts](src/pages/fun-stuff/subpages/NullSpace/data.ts). Semver:
+When changing the Null Space game (`src/pages/FunStuff/subpages/NullSpace/`), update `CHANGELOG` and
+`GAME_VERSION` in [NullSpace/data.ts](src/pages/FunStuff/subpages/NullSpace/data.ts). Semver:
 
 - **Major (x.0.0)**: breaking (save-format incompatibility, removed features)
 - **Minor (0.x.0)**: new features (enemies, abilities, upgrades, UI)
