@@ -1,4 +1,10 @@
-import { PROJECTILE_SPEED, PROJECTILE_LIFETIME, PROJECTILE_RADIUS, ENEMY_STATS } from '../../data'
+import {
+  PROJECTILE_SPEED,
+  PROJECTILE_LIFETIME,
+  PROJECTILE_RADIUS,
+  ENEMY_STATS,
+  SLINGSHOT,
+} from '../../data'
 import { HELPER } from '../abilities/ability-data'
 import { DeathBehavior, EnemyKind, MovementBehavior, ShipKind, ShipWeaponKind } from '../types'
 import type { Ship, Enemy, Projectile, Vec2, Ally, Particle } from '../types'
@@ -63,6 +69,14 @@ export function createShip(kind: ShipKind, worldSize: Vec2): Ship {
     equippedWeapons: Array(s.weaponSlots).fill(ShipWeaponKind.bullet),
     lastHeading: { x: 1, y: 0 },
     escapeMode: null,
+    flingVel: { x: 0, y: 0 },
+    slingMaxSpeed: SLINGSHOT.baseSpeed,
+    slingJitter: SLINGSHOT.baseJitter,
+    slingCooldown: SLINGSHOT.baseCooldown,
+    slingCooldownRemaining: 0,
+    slingCoolRate: SLINGSHOT.baseCoolRate,
+    slingHeat: 0,
+    slingOverheated: false,
   }
 }
 

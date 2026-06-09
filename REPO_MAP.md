@@ -173,7 +173,7 @@ src/pages/FunStuff/subpages/NullSpace/components/
   WaveCompleteScreen.tsx                     WaveCompleteScreen
 
 src/pages/FunStuff/subpages/NullSpace/
-  data.ts                                    GAME_NAME, WORLD_SIZE, SHIELD_COOLDOWN, POWER_DEFAULTS, WEAPON_ORDER, ENEMY_STATS, CURRENCY_DROPS, CURRENCY_NAME, POWER_ORB, SPACE_METAL, WAVES_PER_LEVEL, BOSS_LEVEL_INTERVAL, BOSS_WAVE_ENEMY_MULTIPLIER, SPAWN_DELAY, SPAWN_DISTANCE, SWARM_SPAWN_SPREAD, PROJECTILE_SPEED, PROJECTILE_LIFETIME, PROJECTILE_RADIUS, PARTICLE_DEFAULTS, ChangelogEntry, CHANGELOG, GAME_VERSION
+  data.ts                                    GAME_NAME, WORLD_SIZE, SHIELD_COOLDOWN, SLINGSHOT, POWER_DEFAULTS, WEAPON_ORDER, ENEMY_STATS, CURRENCY_DROPS, CURRENCY_NAME, POWER_ORB, SPACE_METAL, WAVES_PER_LEVEL, BOSS_LEVEL_INTERVAL, BOSS_WAVE_ENEMY_MULTIPLIER, SPAWN_DELAY, SPAWN_DISTANCE, SWARM_SPAWN_SPREAD, PROJECTILE_SPEED, PROJECTILE_LIFETIME, PROJECTILE_RADIUS, PARTICLE_DEFAULTS, ChangelogEntry, CHANGELOG, GAME_VERSION
 
 src/pages/FunStuff/subpages/NullSpace/engine/abilities/
   ability-data.ts                            METEORITE_STRIKE, METEOR_STRIKE, BLACK_HOLE, ROCKET, SHIELD, SUN, HELPER, TELEKINESIS, SOLAR_FLARE
@@ -201,7 +201,7 @@ src/pages/FunStuff/subpages/NullSpace/engine/entities/
   ally.ts                                    updateAllies
   enemy.ts                                   findNearestTarget, updateEnemyMovement, updateEnemyShooting
   entity-creator.ts                          uid, createShip, createEnemy, createProjectile, createAlly, createParticle, spawnExplosionParticles, updateParticles, createAbilities
-  ship.ts                                    applyDamageToShip, tickEscapeMode, updateShipPatrol, updateShipAttack
+  ship.ts                                    applySlingshot, tickSlingHeat, tickFling, applyDamageToShip, tickEscapeMode, updateShipPatrol, updateShipAttack
 
 src/pages/FunStuff/subpages/NullSpace/engine/
   game-loop.ts                               createInitialState, moveToShipSelection, startGame, rollLevelUpWeaponOffers, startNextWave, applyUpgradeToState, equipShipWeapon, finishUpgradeScreen, updateGameState

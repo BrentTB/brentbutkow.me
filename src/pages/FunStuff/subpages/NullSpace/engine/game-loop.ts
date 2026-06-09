@@ -18,7 +18,10 @@ import { MAX_DT } from './world/time'
 import { processSpawnQueue } from './systems/spawner'
 import {
   applyDamageToShip,
+  applySlingshot,
   tickEscapeMode,
+  tickFling,
+  tickSlingHeat,
   updateShipAttack,
   updateShipPatrol,
 } from './entities/ship'
@@ -353,15 +356,23 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   currency += computeCurrencyFromKills(effectResult.killedEnemies)
 
   // --- Ship movement ---
-  // Escape Mode hijacks ship movement (charge slowdown + invincible dash). When
-  // inactive this is a no-op and patrol drives movement as normal.
+  // Priority: Escape Mode (invincible dash) > slingshot coast > patrol.
+  // A fresh slingshot flick sets the coast velocity; it then overrides patrol
+  // until it decays. Escape Mode still trumps everything while active.
+  if (input.fling && ship.escapeMode === null) {
+    ship = applySlingshot(ship, input.fling)
+  }
   let escapeTrailAccumulator = state.escapeTrailAccumulator
   const escape = tickEscapeMode(ship, dt, escapeTrailAccumulator, state.worldSize)
   ship = escape.ship
   particles = [...particles, ...escape.particles]
   escapeTrailAccumulator = escape.trailAccumulator
   if (ship.escapeMode === null) {
-    ship = updateShipPatrol(ship, dt, state.worldSize)
+    const flung = tickFling(ship, dt, state.worldSize)
+    ship = flung.ship
+    if (!flung.active) {
+      ship = updateShipPatrol(ship, dt, state.worldSize)
+    }
   }
 
   // --- Ship auto-attack ---
@@ -506,6 +517,12 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   } else if (ship.shield < ship.maxShield) {
     ship = { ...ship, shield: Math.min(ship.maxShield, ship.shield + ship.shieldRegen * dt) }
   }
+
+  // --- Slingshot cooldown + heat ---
+  if (ship.slingCooldownRemaining > 0) {
+    ship = { ...ship, slingCooldownRemaining: Math.max(0, ship.slingCooldownRemaining - dt) }
+  }
+  ship = tickSlingHeat(ship, dt)
 
   // --- Particles ---
   particles = updateParticles(particles, dt)

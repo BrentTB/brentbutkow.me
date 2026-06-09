@@ -7,6 +7,25 @@ export const WORLD_SIZE = { x: 3000, y: 3000 }
 
 export const SHIELD_COOLDOWN = 3
 
+// Slingshot (flick the ship). Base values are deliberately weak + wild; the
+// ship upgrades (Power / Control / Cadence / Heat Sink) push toward strong,
+// precise, fast, and sustainable.
+export const SLINGSHOT = {
+  baseSpeed: 600, // peak coast speed at full charge (world units/sec)
+  baseJitter: 0.38, // ~22° random angular scatter per flick
+  minJitter: 0.05, // accuracy floor (~3°)
+  baseCooldown: 1, // seconds between flicks
+  minCooldown: 0.4, // cadence floor
+  // --- Heat: punishes sustained kiting. 0..1; full-charge flicks add the most,
+  // tiny precise nudges almost nothing, so small dodges stay sustainable.
+  heatPerFling: 0.45, // heat added by a FULL-charge flick (scaled by charge)
+  baseCoolRate: 0.09, // heat dissipated per second (raised by Heat Sink)
+  maxCoolRate: 0.45, // cooling cap (sanity bound)
+  heatReengage: 0.5, // overheat clears only once heat falls back below this
+  overheatSlowMult: 0.5, // patrol speed multiplier while overheated
+  heatJitterBonus: 0.3, // extra scatter (rad) at full heat — control slips as you heat up
+} as const
+
 export const POWER_DEFAULTS = {
   max: 1000,
   regenRate: 3,
@@ -174,6 +193,20 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.15.0',
+    date: '2026-06-09',
+    changes: {
+      features: [
+        'New movement — Slingshot: drag from your ship in any direction and release to fling it that way. Your way to dodge danger, reposition, or close the gap — and it works no matter which ability is selected. Throws carry a little random scatter, and the ship coasts then drifts to a stop.',
+        'Slingshot Heat: every flick builds heat (big flings cost the most, tiny nudges almost nothing) that cools over time. Fill the bar and the slingshot overheats — locked out, and the ship slows, until it cools back down. Rewards short, precise dodges and burst use over endless kiting; your aim also gets shakier the hotter you run.',
+        'Four new Ship upgrades for the slingshot — Power (fling farther), Control (less scatter), Cadence (shorter cooldown), and Heat Sink (cool faster).',
+      ],
+      ui: [
+        'Added a HEAT gauge to the HUD, plus an aim arrow showing direction + charge while you drag (it greys out while the slingshot is recharging or overheated).',
+      ],
+    },
+  },
   {
     version: '0.14.0',
     date: '2026-06-09',

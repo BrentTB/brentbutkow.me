@@ -53,6 +53,15 @@ const DEV_MODE = import.meta.env.VITE_NULL_SPACE_DEV_MODE === 'true'
 // permits assigning functions with fewer parameters where more are expected.
 const noop = () => {}
 
+// --- Slingshot input feel ---
+// Press within this world radius of the ship to "grab" it for a flick, instead
+// of using the selected ability.
+const SLING_GRAB_RADIUS_WORLD = 60
+// Drag must exceed this (CSS px) to register as a flick; it reaches full charge
+// at the max and clamps beyond.
+const SLING_MIN_DRAG_PX = 14
+const SLING_MAX_DRAG_PX = 170
+
 export type GameUIState = {
   phase: GameState['phase']
   shipKind: ShipKind
@@ -82,6 +91,8 @@ export type GameUIState = {
   unlockedWeapons: GameState['unlockedWeapons']
   equippedWeapons: GameState['ship']['equippedWeapons']
   escapeModeActive: boolean
+  slingHeat: number
+  slingOverheated: boolean
   boss: { hp: number; maxHp: number; label: string } | null
 }
 
@@ -156,6 +167,8 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     unlockedWeapons: [ShipWeaponKind.bullet],
     equippedWeapons: [ShipWeaponKind.bullet],
     escapeModeActive: false,
+    slingHeat: 0,
+    slingOverheated: false,
     boss: null,
   })
 
@@ -176,6 +189,11 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
   // world coordinates while the player's actual cursor stays still on screen.
   const holdScreenPosRef = useRef<Vec2 | null>(null)
   const selectedAbilityRef = useRef<GameState['abilities'][number]['kind']>(AbilityKind.meteorite)
+  // Slingshot gesture: start/current pointer pos (CSS px) while grabbing the
+  // ship, and the one-shot flick handed to the engine on release.
+  const slingStartRef = useRef<Vec2 | null>(null)
+  const slingCurrentRef = useRef<Vec2 | null>(null)
+  const pendingFlingRef = useRef<PlayerInput['fling']>(null)
 
   const syncUI = useCallback((state: GameState) => {
     setUiState({
@@ -207,6 +225,8 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       unlockedWeapons: state.unlockedWeapons,
       equippedWeapons: state.ship.equippedWeapons,
       escapeModeActive: state.ship.escapeMode !== null,
+      slingHeat: state.ship.slingHeat,
+      slingOverheated: state.ship.slingOverheated,
       boss: (() => {
         const bossEnemy = state.enemies.find((e) => e.boss !== undefined)
         if (!bossEnemy) return null
@@ -460,6 +480,17 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
         y: e.clientY - rect.top,
       }
       const worldPos = screenToWorld(screenPos, cameraRef.current)
+
+      // Grab the ship → slingshot flick, regardless of the selected ability.
+      const shipPos = state.ship.pos
+      const gdx = worldPos.x - shipPos.x
+      const gdy = worldPos.y - shipPos.y
+      if (gdx * gdx + gdy * gdy <= SLING_GRAB_RADIUS_WORLD * SLING_GRAB_RADIUS_WORLD) {
+        slingStartRef.current = screenPos
+        slingCurrentRef.current = screenPos
+        return
+      }
+
       const selected = selectedAbilityRef.current
 
       if (selected && HOLD_ABILITIES.has(selected)) {
@@ -483,16 +514,35 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     }
 
     const handlePointerMove = (e: PointerEvent) => {
-      if (!inputRef.current.isHolding) return
       if (gameStateRef.current.phase !== GamePhase.playing) return
       const rect = canvas.getBoundingClientRect()
-      holdScreenPosRef.current = {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
+      const sp: Vec2 = { x: e.clientX - rect.left, y: e.clientY - rect.top }
+      if (slingStartRef.current) {
+        slingCurrentRef.current = sp
+        return
       }
+      if (!inputRef.current.isHolding) return
+      holdScreenPosRef.current = sp
     }
 
     const handlePointerUp = () => {
+      // Release of a ship-grab → fling in the drag direction, power by distance.
+      if (slingStartRef.current) {
+        const start = slingStartRef.current
+        const end = slingCurrentRef.current ?? start
+        const dx = end.x - start.x
+        const dy = end.y - start.y
+        const distPx = Math.hypot(dx, dy)
+        if (distPx >= SLING_MIN_DRAG_PX) {
+          pendingFlingRef.current = {
+            dir: { x: dx / distPx, y: dy / distPx },
+            charge: Math.min(1, distPx / SLING_MAX_DRAG_PX),
+          }
+        }
+        slingStartRef.current = null
+        slingCurrentRef.current = null
+        return
+      }
       holdScreenPosRef.current = null
       inputRef.current = {
         ...inputRef.current,
@@ -543,8 +593,10 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
         selectedAbility: inputRef.current.selectedAbility,
         holdPos: liveHoldPos,
         isHolding: inputRef.current.isHolding,
+        fling: pendingFlingRef.current ?? null,
       }
-      // clicks reset each frame; hold state persists until pointerup.
+      // clicks + fling are one-shot per frame; hold state persists until pointerup.
+      pendingFlingRef.current = null
       inputRef.current = {
         ...inputRef.current,
         clicks: [],
@@ -569,6 +621,46 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
           spritesRef.current,
           starsRef.current
         )
+        // Slingshot aim arrow — drawn after the world. renderFrame leaves the
+        // transform at the DPR baseline, so these are CSS-pixel coords.
+        const sStart = slingStartRef.current
+        const sCur = slingCurrentRef.current
+        if (sStart && sCur) {
+          const cam = cameraRef.current
+          const shipPos = gameStateRef.current.ship.pos
+          const sx = (shipPos.x - cam.x) * cam.zoom
+          const sy = (shipPos.y - cam.y) * cam.zoom
+          const dx = sCur.x - sStart.x
+          const dy = sCur.y - sStart.y
+          const len = Math.hypot(dx, dy)
+          if (len >= 1) {
+            const charge = Math.min(1, len / SLING_MAX_DRAG_PX)
+            const ux = dx / len
+            const uy = dy / len
+            const reach = 30 + charge * 90
+            const ex = sx + ux * reach
+            const ey = sy + uy * reach
+            const ah = 8 + charge * 6
+            const a = Math.atan2(uy, ux)
+            // Dim grey while recharging or overheated — a flick won't fire yet.
+            const sh = gameStateRef.current.ship
+            const blocked = sh.slingCooldownRemaining > 0 || sh.slingOverheated
+            ctx.save()
+            ctx.globalAlpha = blocked ? 0.3 : 0.4 + charge * 0.5
+            ctx.strokeStyle = blocked ? '#667788' : charge >= 1 ? '#ffcc33' : '#6ae8f5'
+            ctx.lineWidth = 2 + charge * 2
+            ctx.lineCap = 'round'
+            ctx.beginPath()
+            ctx.moveTo(sx, sy)
+            ctx.lineTo(ex, ey)
+            ctx.moveTo(ex, ey)
+            ctx.lineTo(ex - Math.cos(a - 0.4) * ah, ey - Math.sin(a - 0.4) * ah)
+            ctx.moveTo(ex, ey)
+            ctx.lineTo(ex - Math.cos(a + 0.4) * ah, ey - Math.sin(a + 0.4) * ah)
+            ctx.stroke()
+            ctx.restore()
+          }
+        }
       }
 
       const state = gameStateRef.current
