@@ -155,9 +155,21 @@ export function updateEnemyShooting(
     if (cooldown <= 0) {
       const target = findNearestTarget(enemy.pos, ship, allies)
       const dist = distance(enemy.pos, target)
-      if (dist < enemy.attackRange) {
-        const projDamage = ENEMY_STATS.shooter.projectileDamage
-        const proj = createProjectile(enemy.pos, target, ProjectileOwner.enemy, projDamage)
+      const stats = ENEMY_STATS[enemy.kind]
+      // Boss + generators fire from a longer `fireRange` than their movement
+      // standoff; everything else uses its attackRange.
+      const fireRange = 'fireRange' in stats ? stats.fireRange : enemy.attackRange
+      if (dist < fireRange) {
+        const projDamage =
+          'projectileDamage' in stats
+            ? stats.projectileDamage
+            : ENEMY_STATS.shooter.projectileDamage
+        const speed = 'projectileSpeed' in stats ? stats.projectileSpeed : undefined
+        const beam = 'projectileBeam' in stats ? stats.projectileBeam : undefined
+        const proj = createProjectile(enemy.pos, target, ProjectileOwner.enemy, projDamage, {
+          speed,
+          beam,
+        })
         newProjectiles = [...newProjectiles, proj]
         cooldown = 1 / enemy.fireRate
       }

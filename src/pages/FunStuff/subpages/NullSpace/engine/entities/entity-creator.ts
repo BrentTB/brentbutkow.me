@@ -112,25 +112,28 @@ export function createProjectile(
   pos: Vec2,
   targetPos: Vec2,
   owner: Projectile['owner'],
-  damage: number
+  damage: number,
+  opts?: { speed?: number; beam?: boolean }
 ): Projectile {
   const dx = targetPos.x - pos.x
   const dy = targetPos.y - pos.y
   const dist = Math.sqrt(dx * dx + dy * dy)
   const nx = dist > 0 ? dx / dist : 0
   const ny = dist > 0 ? dy / dist : 1
+  const speed = opts?.speed ?? PROJECTILE_SPEED
 
   return {
     id: uid(),
     pos: { ...pos },
     prevPos: { ...pos },
-    vel: { x: nx * PROJECTILE_SPEED, y: ny * PROJECTILE_SPEED },
+    vel: { x: nx * speed, y: ny * speed },
     radius: PROJECTILE_RADIUS,
     hp: 1,
     maxHp: 1,
     owner,
     damage,
     lifetime: PROJECTILE_LIFETIME,
+    ...(opts?.beam ? { beam: true } : {}),
   }
 }
 

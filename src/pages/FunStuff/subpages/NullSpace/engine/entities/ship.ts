@@ -12,9 +12,9 @@ import type { Enemy, Particle, PlayerUpgrades, Projectile, Ship, Vec2 } from '..
 // --- Slingshot ---
 // Per-second exponential decay of the coast velocity — how long the ship drifts
 // after release before patrol resumes. Not upgradable (it's feel, not power).
-const SLING_DECAY = 1.4
+const SLING_DECAY = 1.7
 // Below this coast speed the fling is spent and normal patrol takes over.
-const SLING_MIN_SPEED = 80
+const SLING_MIN_SPEED = 60
 
 // Converts a release flick (unit dir + 0..1 charge) into a coast velocity using
 // the ship's upgraded power, accuracy, and cooldown. Scatter widens with heat

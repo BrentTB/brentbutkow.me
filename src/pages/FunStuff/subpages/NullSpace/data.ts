@@ -106,6 +106,14 @@ export const ENEMY_STATS = {
     powerReward: 100,
     // Doubles as the standoff distance — the boss approaches the player to here, then holds.
     attackRange: 220,
+    // Laser attack. fireRange exceeds the standoff so it shoots from where it
+    // holds; projectileSpeed is well under the player laser (800) so it reads as
+    // a slow beam the player can slingshot away from.
+    fireRate: 0.5,
+    fireRange: 480,
+    projectileDamage: 12,
+    projectileSpeed: 300,
+    projectileBeam: true,
   },
   shieldGenerator: {
     hp: 80,
@@ -114,6 +122,13 @@ export const ENEMY_STATS = {
     radius: 14,
     scoreValue: 50,
     powerReward: 20,
+    // Generators fire lasers too — most of the incoming fire — so clearing them
+    // is the way to cut the boss fight's pressure down.
+    fireRate: 0.25,
+    fireRange: 460,
+    projectileDamage: 6,
+    projectileSpeed: 280,
+    projectileBeam: true,
   },
 } as const
 
@@ -193,6 +208,16 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.16.0',
+    date: '2026-06-09',
+    changes: {
+      features: [
+        'The Dreadnought boss now attacks — it fires a slow red laser beam you can slingshot clear of, shooting from range while it holds at its standoff.',
+        'Its shield generators fire lasers too, and put out most of the incoming fire — so destroying them (which also drops the boss’s shield) is the way to cut the fight’s pressure down.',
+      ],
+    },
+  },
   {
     version: '0.15.0',
     date: '2026-06-09',
