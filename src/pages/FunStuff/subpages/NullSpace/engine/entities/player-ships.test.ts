@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { createShip, resetUid, createEnemy } from './entity-creator'
+import { createShip, createEnemy } from './entity-creator'
 import { createInitialState, startGame, startNextWave, updateGameState } from '../game-loop'
 import { ShipKind, EnemyKind, GamePhase } from '../types'
 import { SpaceMetalAbilityKind, tryActivateSpaceMetalAbility } from '../spaceMetalAbilities'
@@ -9,7 +9,6 @@ const useShieldRegen = (state: Parameters<typeof tryActivateSpaceMetalAbility>[0
 import { SHIP_VARIANTS, SHIELD_COOLDOWN, WORLD_SIZE } from '../../data'
 
 beforeEach(() => {
-  resetUid()
   localStorage.clear()
 })
 

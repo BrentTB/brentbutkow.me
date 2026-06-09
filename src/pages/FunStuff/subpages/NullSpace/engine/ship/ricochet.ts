@@ -51,7 +51,12 @@ export const ricochet: ShipWeaponDefinition = {
       buildShipProjectile(shipPos, targetPos, damage, {
         speed: RICOCHET.speed,
         lifetime: RICOCHET.lifetime,
-        bounce: { remaining, hitEnemyIds: [], bounceRange: RICOCHET.bounceRange },
+        bounce: {
+          remaining,
+          hitEnemyIds: [],
+          bounceRange: RICOCHET.bounceRange,
+          lifetimePerBounce: RICOCHET.lifetimePerBounce,
+        },
       }),
     ]
   },

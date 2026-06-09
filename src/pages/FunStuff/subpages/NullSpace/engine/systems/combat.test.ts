@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import {
   resolveDeathEffects,
   resolveEnemyAllyMeleeCollisions,
@@ -7,22 +7,12 @@ import {
   resolveProjectileEnemyCollisions,
   updateProjectiles,
 } from './combat'
-import {
-  createAlly,
-  createEnemy,
-  createProjectile,
-  createShip,
-  resetUid,
-} from '../entities/entity-creator'
+import { createAlly, createEnemy, createProjectile, createShip } from '../entities/entity-creator'
 import { buildShipProjectile } from '../ship'
 import { distance } from '../math/collision'
 import { EffectKind, EnemyKind, ProjectileOwner, ShipKind } from '../types'
 import type { ShieldEffect } from '../types'
 import { ENEMY_STATS, WORLD_SIZE } from '../../data'
-
-beforeEach(() => {
-  resetUid()
-})
 
 describe('resolveEnemyProjectileShipCollisions — swept regression', () => {
   // A fast enemy bullet can step clean over the ship in one frame: its final
@@ -250,6 +240,7 @@ describe('resolveProjectileEnemyCollisions — nuke detonate', () => {
         wasteRadius: 100,
         wasteDps: 5,
         wasteDuration: 4,
+        wasteGrowDuration: 0.5,
       },
     })
     shell.prevPos = { x: 0, y: 0 }
@@ -263,6 +254,207 @@ describe('resolveProjectileEnemyCollisions — nuke detonate', () => {
     // Lingering nuclear-waste effect emitted.
     expect(result.newEffects).toHaveLength(1)
     expect(result.newEffects[0].kind).toBe(EffectKind.nuclearWaste)
+  })
+})
+
+describe('ricochet — full game-loop firing pipeline', () => {
+  it('ship-fired ricochet bounces between two enemies (updateShipAttack + collisions)', async () => {
+    const { updateShipAttack } = await import('../entities/ship')
+    const { createInitialUpgrades } = await import('../upgrades')
+    const { ShipWeaponKind } = await import('../types')
+
+    let ship = createShip(ShipKind.fighter, WORLD_SIZE)
+    ship = { ...ship, equippedWeapons: [ShipWeaponKind.ricochet], fireCooldowns: [0] }
+
+    // Tank-HP drones so a single hit can't one-shot them — we want to see them
+    // both *damaged* by bouncing, not killed before bounce can land.
+    const baseEnemyA = createEnemy(EnemyKind.tank, { x: ship.pos.x + 200, y: ship.pos.y })
+    const baseEnemyB = createEnemy(EnemyKind.tank, { x: ship.pos.x + 260, y: ship.pos.y + 40 })
+    let liveEnemies = [baseEnemyA, baseEnemyB]
+    const startingHp = { a: baseEnemyA.hp, b: baseEnemyB.hp }
+
+    let projectiles: import('../types').Projectile[] = []
+    const upgrades = createInitialUpgrades()
+    const dt = 0.016
+
+    for (let i = 0; i < 200; i++) {
+      const fired = updateShipAttack(ship, liveEnemies, projectiles, dt, upgrades)
+      ship = fired.ship
+      projectiles = fired.projectiles
+      projectiles = updateProjectiles(projectiles, liveEnemies, dt)
+      const r = resolveProjectileEnemyCollisions(projectiles, liveEnemies)
+      projectiles = r.projectiles
+      liveEnemies = r.enemies
+    }
+
+    const aAfter = liveEnemies.find((e) => e.id === baseEnemyA.id)
+    const bAfter = liveEnemies.find((e) => e.id === baseEnemyB.id)
+    // Both enemies took damage — proves the bounce reached the second target.
+    expect(aAfter?.hp ?? 0).toBeLessThan(startingHp.a)
+    expect(bAfter?.hp ?? 0).toBeLessThan(startingHp.b)
+  })
+})
+
+// Single-frame collision tests cover the redirect math, but the user-facing
+// bug is "ricochet hits one enemy then disappears" — which can only happen if
+// the multi-frame pipeline (updateProjectiles → collisions, every frame)
+// somehow drops the bounce state OR the bouncing projectile gets consumed.
+// Stepping multiple frames here catches anything single-frame tests can't.
+describe('resolveProjectileEnemyCollisions — ricochet lifetime extends per bounce', () => {
+  it('chains through 6 spaced-out enemies despite a short base lifetime', () => {
+    // Six enemies spread roughly 200px apart along a curve. Without lifetime
+    // extension, a 1.5s round at 400px/s caps at ~3 hops. With extension, it
+    // should make it through all of them.
+    const enemies = [
+      createEnemy(EnemyKind.tank, { x: 100, y: 0 }),
+      createEnemy(EnemyKind.tank, { x: 240, y: 120 }),
+      createEnemy(EnemyKind.tank, { x: 400, y: 220 }),
+      createEnemy(EnemyKind.tank, { x: 560, y: 130 }),
+      createEnemy(EnemyKind.tank, { x: 720, y: 0 }),
+      createEnemy(EnemyKind.tank, { x: 880, y: 100 }),
+    ]
+    const proj = buildShipProjectile({ x: 0, y: 0 }, enemies[0].pos, 5, {
+      speed: 400,
+      lifetime: 1.5,
+      bounce: {
+        remaining: 10,
+        hitEnemyIds: [],
+        bounceRange: 600,
+        lifetimePerBounce: 1.0,
+      },
+    })
+
+    let projectiles = [proj]
+    let liveEnemies = enemies
+    const dt = 0.016
+    for (let i = 0; i < 400; i++) {
+      projectiles = updateProjectiles(projectiles, liveEnemies, dt)
+      const r = resolveProjectileEnemyCollisions(projectiles, liveEnemies)
+      projectiles = r.projectiles
+      liveEnemies = r.enemies
+      if (projectiles.length === 0) break
+    }
+    // The bounce list should have grown well past what 1.5s of unextended
+    // flight would allow — proving the per-bounce extension is doing its job.
+    expect(proj.bounce!.hitEnemyIds.length).toBeGreaterThanOrEqual(5)
+  })
+
+  it('still dies of lifetime when bounces have no extension (control test)', () => {
+    const enemies = [
+      createEnemy(EnemyKind.tank, { x: 100, y: 0 }),
+      createEnemy(EnemyKind.tank, { x: 240, y: 120 }),
+      createEnemy(EnemyKind.tank, { x: 400, y: 220 }),
+      createEnemy(EnemyKind.tank, { x: 560, y: 130 }),
+      createEnemy(EnemyKind.tank, { x: 720, y: 0 }),
+      createEnemy(EnemyKind.tank, { x: 880, y: 100 }),
+    ]
+    const proj = buildShipProjectile({ x: 0, y: 0 }, enemies[0].pos, 5, {
+      speed: 400,
+      lifetime: 1.5,
+      // No lifetimePerBounce — projectile times out naturally.
+      bounce: { remaining: 10, hitEnemyIds: [], bounceRange: 600 },
+    })
+    let projectiles = [proj]
+    let liveEnemies = enemies
+    const dt = 0.016
+    for (let i = 0; i < 400; i++) {
+      projectiles = updateProjectiles(projectiles, liveEnemies, dt)
+      const r = resolveProjectileEnemyCollisions(projectiles, liveEnemies)
+      projectiles = r.projectiles
+      liveEnemies = r.enemies
+      if (projectiles.length === 0) break
+    }
+    // Without the extension, only the first few targets get hit before time
+    // runs out. Asserts the extension is the thing making the difference above.
+    expect(proj.bounce!.hitEnemyIds.length).toBeLessThan(5)
+  })
+})
+
+describe('resolveProjectileEnemyCollisions — ricochet multi-frame flight', () => {
+  it('hits multiple enemies across frames after firing', () => {
+    const a = createEnemy(EnemyKind.drone, { x: 100, y: 0 })
+    const b = createEnemy(EnemyKind.drone, { x: 220, y: 0 })
+    const proj = buildShipProjectile({ x: 0, y: 0 }, a.pos, 100, {
+      speed: 400,
+      lifetime: 3,
+      bounce: { remaining: 3, hitEnemyIds: [], bounceRange: 500 },
+    })
+
+    let projectiles = [proj]
+    let liveEnemies = [a, b]
+    const dt = 0.016
+    // Run up to 2 seconds of frames or until projectile is consumed.
+    for (let i = 0; i < 125; i++) {
+      projectiles = updateProjectiles(projectiles, liveEnemies, dt)
+      const r = resolveProjectileEnemyCollisions(projectiles, liveEnemies)
+      projectiles = r.projectiles
+      liveEnemies = r.enemies
+      if (projectiles.length === 0) break
+    }
+
+    // Both enemies should have been damaged or killed.
+    const aAfter = liveEnemies.find((e) => e.id === a.id)
+    const bAfter = liveEnemies.find((e) => e.id === b.id)
+    const aDamaged = !aAfter || aAfter.hp < a.hp
+    const bDamaged = !bAfter || bAfter.hp < b.hp
+    expect(aDamaged).toBe(true)
+    expect(bDamaged).toBe(true)
+  })
+
+  it('keeps the bounce state across frames (remaining stays in sync with hit count)', () => {
+    const enemies = [
+      createEnemy(EnemyKind.drone, { x: 100, y: 0 }),
+      createEnemy(EnemyKind.drone, { x: 200, y: 80 }),
+      createEnemy(EnemyKind.drone, { x: 320, y: 0 }),
+    ]
+    const proj = buildShipProjectile({ x: 0, y: 0 }, enemies[0].pos, 100, {
+      speed: 400,
+      lifetime: 3,
+      bounce: { remaining: 3, hitEnemyIds: [], bounceRange: 500 },
+    })
+
+    let projectiles = [proj]
+    let liveEnemies = enemies
+    const dt = 0.016
+    for (let i = 0; i < 200; i++) {
+      projectiles = updateProjectiles(projectiles, liveEnemies, dt)
+      const r = resolveProjectileEnemyCollisions(projectiles, liveEnemies)
+      projectiles = r.projectiles
+      liveEnemies = r.enemies
+      if (projectiles.length === 0) break
+    }
+
+    // The original proj should have hit ≥ 2 distinct enemies. (It might be
+    // consumed eventually, but the bounce list reflects whoever it touched.)
+    expect(proj.bounce!.hitEnemyIds.length).toBeGreaterThanOrEqual(2)
+  })
+})
+
+describe('resolveProjectileEnemyCollisions — missile splash (detonate without waste)', () => {
+  it('applies AoE damage on contact but does NOT emit a waste effect', () => {
+    const directHit = createEnemy(EnemyKind.drone, { x: 100, y: 0 })
+    const inSplash = createEnemy(EnemyKind.drone, { x: 130, y: 0 })
+    const outside = createEnemy(EnemyKind.drone, { x: 500, y: 0 })
+    const missile = buildShipProjectile({ x: 0, y: 0 }, directHit.pos, 12, {
+      speed: 200,
+      lifetime: 4,
+      radius: 5,
+      homing: true,
+      detonate: { aoeRadius: 50, blastDamage: 8 },
+    })
+    missile.prevPos = { x: 0, y: 0 }
+    missile.pos = { x: directHit.pos.x, y: directHit.pos.y }
+
+    const result = resolveProjectileEnemyCollisions([missile], [directHit, inSplash, outside])
+    // Missile consumed on impact.
+    expect(result.projectiles).toHaveLength(0)
+    // Splash hit both nearby enemies.
+    expect(result.enemies.find((e) => e.id === directHit.id)?.hp).toBeLessThan(directHit.hp)
+    expect(result.enemies.find((e) => e.id === inSplash.id)?.hp).toBeLessThan(inSplash.hp)
+    // Outside enemy untouched.
+    expect(result.enemies.find((e) => e.id === outside.id)?.hp).toBe(outside.hp)
+    // No lingering DOT zone.
+    expect(result.newEffects).toHaveLength(0)
   })
 })
 

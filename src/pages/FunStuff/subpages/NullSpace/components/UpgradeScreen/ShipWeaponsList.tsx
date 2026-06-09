@@ -31,22 +31,40 @@ export function ShipWeaponsList({ uiState, onSelect, onPurchase, onEquip }: Ship
     <>
       {showSlotPickers && (
         <div className={loadoutStyles.slotRow}>
-          {slots.map((equipped, idx) => (
-            <div key={idx} className={loadoutStyles.slot}>
-              <span className={loadoutStyles.slotLabel}>Slot {idx + 1}</span>
-              <select
-                className={loadoutStyles.slotSelect}
-                value={equipped}
-                onChange={(e) => onEquip(idx, e.target.value as ShipWeaponKind)}
+          {slots.map((equipped, idx) => {
+            // Cycle to the next unlocked weapon — preferring ones not already
+            // equipped in another slot so each tap moves toward a distinct
+            // loadout. Falls back to the simple next-in-unlocked rotation if
+            // every unlocked weapon is already in use.
+            const otherSlots = slots.filter((_, i) => i !== idx)
+            const currentIdx = Math.max(0, unlocked.indexOf(equipped))
+            let next = unlocked[(currentIdx + 1) % unlocked.length]
+            for (let step = 1; step <= unlocked.length; step++) {
+              const candidate = unlocked[(currentIdx + step) % unlocked.length]
+              if (candidate === equipped) continue
+              if (!otherSlots.includes(candidate)) {
+                next = candidate
+                break
+              }
+            }
+            const canCycle = unlocked.length > 1
+            return (
+              <button
+                key={idx}
+                type="button"
+                className={loadoutStyles.slotChip}
+                disabled={!canCycle}
+                onClick={() => onEquip(idx, next)}
+                aria-label={`Slot ${idx + 1}: ${SHIP_WEAPON_META[equipped].label}. Click to cycle to ${SHIP_WEAPON_META[next].label}.`}
               >
-                {unlocked.map((kind) => (
-                  <option key={kind} value={kind}>
-                    {SHIP_WEAPON_META[kind].label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ))}
+                <span className={loadoutStyles.slotChipLabel}>SLOT {idx + 1}</span>
+                <span className={loadoutStyles.slotChipName}>
+                  {SHIP_WEAPON_META[equipped].label}
+                </span>
+                {canCycle && <span className={loadoutStyles.slotChipCycle}>↻</span>}
+              </button>
+            )
+          })}
         </div>
       )}
 

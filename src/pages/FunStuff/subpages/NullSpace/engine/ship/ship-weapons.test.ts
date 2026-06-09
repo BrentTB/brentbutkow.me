@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import {
   SHIP_WEAPON_DEFINITIONS,
   SHIP_WEAPON_LIST,
@@ -6,13 +6,8 @@ import {
   SHIP_WEAPON_UNLOCK_UPGRADE,
   getShipWeaponForUnlockUpgrade,
 } from './index'
-import { resetUid } from '../entities/entity-creator'
 import { createInitialUpgrades } from '../upgrades'
 import { ShipWeaponKind, UpgradeId } from '../types'
-
-beforeEach(() => {
-  resetUid()
-})
 
 // Registry integrity — adding a new weapon kind to types.ts without wiring it
 // here would silently leave the lookup tables empty for that kind. These tests
@@ -88,10 +83,17 @@ describe('ShipWeaponDefinition.createProjectiles', () => {
     expect(proj.pierce!.hitEnemyIds).toEqual([])
   })
 
-  it('missile tags homing', () => {
+  it('missile tags homing AND a detonate splash with no waste zone', () => {
     const def = SHIP_WEAPON_DEFINITIONS[ShipWeaponKind.missile]
     const [proj] = def.createProjectiles(shipPos, targetPos, 10, upgrades)
     expect(proj.homing).toBe(true)
+    expect(proj.detonate).toBeDefined()
+    expect(proj.detonate!.aoeRadius).toBeGreaterThan(0)
+    expect(proj.detonate!.blastDamage).toBeGreaterThan(0)
+    // Splash only — no lingering DOT zone.
+    expect(proj.detonate!.wasteRadius).toBeUndefined()
+    expect(proj.detonate!.wasteDps).toBeUndefined()
+    expect(proj.detonate!.wasteDuration).toBeUndefined()
   })
 
   it('ricochet tags bounce with remaining > 0 and a bounceRange', () => {
@@ -111,6 +113,7 @@ describe('ShipWeaponDefinition.createProjectiles', () => {
     expect(proj.detonate!.wasteRadius).toBeGreaterThan(0)
     expect(proj.detonate!.wasteDps).toBeGreaterThan(0)
     expect(proj.detonate!.wasteDuration).toBeGreaterThan(0)
+    expect(proj.detonate!.wasteGrowDuration).toBeGreaterThan(0)
   })
 })
 

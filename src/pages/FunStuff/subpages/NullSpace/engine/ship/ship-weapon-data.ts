@@ -20,40 +20,51 @@ export const LASER = {
   speed: PROJECTILE_SPEED * 2,
   lifetime: 0.45,
   // Number of enemies one beam can damage before being consumed.
-  basePierce: 2,
+  basePierce: 3,
   // Width of the visible beam line, in pixels.
   beamWidth: 3,
 } as const
 
 export const MISSILE = {
   fireRateMultiplier: 0.55,
-  damageMultiplier: 2.2,
+  damageMultiplier: 2.0,
   // Homing speed (px/sec). Slower than a bullet so the homing matters.
-  baseSpeed: 220,
+  baseSpeed: PROJECTILE_SPEED / 2,
   lifetime: 4,
   radius: 5,
+  // Splash AoE on contact — radius small but enough to clip a tight group.
+  baseSplashRadius: 50,
+  // Splash damage scales with main hit damage.
+  splashDamageRatio: 0.6,
 } as const
 
 export const RICOCHET = {
   fireRateMultiplier: 0.85,
-  damageMultiplier: 1.1,
-  speed: PROJECTILE_SPEED * 0.9,
+  damageMultiplier: 1.0,
+  speed: PROJECTILE_SPEED,
   lifetime: 3,
   baseBounces: 2,
-  // Max distance a hit can redirect to for a bounce target.
-  bounceRange: 240,
+  bounceRange: 500,
+  // Each successful bounce raises the projectile's lifetime to at least this
+  // many seconds.
+  lifetimePerBounce: 0.5,
 } as const
 
 export const NUKE = {
-  fireRateMultiplier: 0.15,
-  damageMultiplier: 0.6,
+  // Much slower fire than before — the visual punch sells the tradeoff.
+  fireRateMultiplier: 0.1,
+  // Big payload — direct/blast damage well above bullet so the slow cadence pays off.
+  damageMultiplier: 1.5,
   // The slow lob: a clearly draggy projectile so the player feels the trade.
   speed: 160,
   lifetime: 8,
   radius: 8,
-  baseAoeRadius: 130,
+  baseAoeRadius: 150,
   // Lingering "nuclear waste" zone left at the detonation site.
-  baseWasteRadius: 110,
-  baseWasteDps: 8,
+  baseWasteRadius: 130,
+  baseWasteDps: 10,
   baseWasteDuration: 6,
+  // How long the zone takes to grow from 0 to peak radius after spawning,
+  // before slowly shrinking back to 0 over the remainder of the duration.
+  wasteGrowDuration: 0.6,
 } as const

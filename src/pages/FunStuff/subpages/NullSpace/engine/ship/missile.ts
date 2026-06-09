@@ -10,7 +10,7 @@ const unlockUpgrade: UpgradeDefinition = {
   category: UpgradeCategory.loadout,
   weapon: ShipWeaponKind.missile,
   label: 'Unlock Missile',
-  description: 'A slow homing projectile that tracks enemies',
+  description: 'A slow homing projectile that tracks enemies and explodes on impact',
   tiers: [{ cost: 80, value: 1 }],
 }
 
@@ -39,6 +39,18 @@ const speedUpgrade: UpgradeDefinition = {
   ],
 }
 
+const splashUpgrade: UpgradeDefinition = {
+  id: UpgradeId.missileSplash,
+  category: UpgradeCategory.loadout,
+  weapon: ShipWeaponKind.missile,
+  label: 'Splash',
+  description: 'Increase missile splash radius',
+  tiers: [
+    { cost: 40, value: 20 },
+    { cost: 160, value: 35 },
+  ],
+}
+
 export const missile: ShipWeaponDefinition = {
   kind: ShipWeaponKind.missile,
   meta: { icon: IconName.missile, label: 'Missile' },
@@ -47,15 +59,21 @@ export const missile: ShipWeaponDefinition = {
     applyTierSum(baseShipDamage * MISSILE.damageMultiplier, upgrades, damageUpgrade),
   createProjectiles: (shipPos, targetPos, damage, upgrades) => {
     const speed = applyTierSum(MISSILE.baseSpeed, upgrades, speedUpgrade)
+    const splashRadius = applyTierSum(MISSILE.baseSplashRadius, upgrades, splashUpgrade)
     return [
       buildShipProjectile(shipPos, targetPos, damage, {
         speed,
         lifetime: MISSILE.lifetime,
         radius: MISSILE.radius,
         homing: true,
+        // No waste fields → detonate is splash only, no lingering DOT zone.
+        detonate: {
+          aoeRadius: splashRadius,
+          blastDamage: Math.round(damage * MISSILE.splashDamageRatio),
+        },
       }),
     ]
   },
   unlockUpgrade,
-  modifierUpgrades: [damageUpgrade, speedUpgrade],
+  modifierUpgrades: [damageUpgrade, speedUpgrade, splashUpgrade],
 }

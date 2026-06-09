@@ -117,13 +117,25 @@ export type Projectile = Entity & {
   // bullet leaves them undefined and takes the unchanged collision path.
   pierce?: { maxHits: number; hitEnemyIds: string[] }
   homing?: boolean
-  bounce?: { remaining: number; hitEnemyIds: string[]; bounceRange: number }
+  bounce?: {
+    remaining: number
+    hitEnemyIds: string[]
+    bounceRange: number
+    // When set, every successful bounce raises the projectile's lifetime to at
+    // least this many seconds — so a ricochet that keeps chaining doesn't time
+    // out before exhausting its bounces.
+    lifetimePerBounce?: number
+  }
+  // Generic "AoE-on-hit + optional lingering zone" tag. Bullets/laser/ricochet
+  // leave it undefined and take the per-projectile damage path. Missile sets
+  // aoeRadius+blastDamage for splash. Nuke also sets waste* to leave a DOT zone.
   detonate?: {
     aoeRadius: number
     blastDamage: number
-    wasteRadius: number
-    wasteDps: number
-    wasteDuration: number
+    wasteRadius?: number
+    wasteDps?: number
+    wasteDuration?: number
+    wasteGrowDuration?: number
   }
 }
 
@@ -219,12 +231,14 @@ export type SunEffect = EffectBase & {
   damagePerSec: number
 }
 
-// Lingering radioactive zone left by a nuke detonation. Same shape as SunEffect
-// — a DOT field that expires after `duration`. Kept as its own kind so the
-// renderer can paint it with its own visual.
+// Lingering radioactive zone left by a nuke detonation. Same DOT shape as
+// SunEffect but with a grow-then-shrink size schedule: scales from 0 to
+// `peakRadius` over `growDuration`, then linearly back down to 0 over the
+// remainder of `duration`.
 export type NuclearWasteEffect = EffectBase & {
   kind: typeof EffectKind.nuclearWaste
-  radius: number
+  peakRadius: number
+  growDuration: number
   damagePerSec: number
 }
 
@@ -349,6 +363,7 @@ export const UpgradeId = {
   unlockMissile: 'unlockMissile',
   missileDamage: 'missileDamage',
   missileSpeed: 'missileSpeed',
+  missileSplash: 'missileSplash',
   unlockRicochet: 'unlockRicochet',
   ricochetDamage: 'ricochetDamage',
   ricochetBounces: 'ricochetBounces',

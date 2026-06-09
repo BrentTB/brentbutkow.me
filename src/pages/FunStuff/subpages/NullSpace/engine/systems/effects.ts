@@ -290,6 +290,20 @@ function tickSun(effect: ActiveEffect, ctx: EffectTickContext): EffectTickResult
   }
 }
 
+// Current radius of a nuclear-waste zone at `waste.elapsed`. Used by both the
+// damage tick and the renderer so the visual and the damage area always match.
+// Phase 1 (0 → growDuration): scale 0 → peakRadius.
+// Phase 2 (growDuration → duration): linearly shrink peakRadius → 0.
+export function getNuclearWasteCurrentRadius(waste: NuclearWasteEffect): number {
+  if (waste.elapsed <= 0) return 0
+  if (waste.elapsed < waste.growDuration) {
+    return waste.peakRadius * (waste.elapsed / waste.growDuration)
+  }
+  const shrinkSpan = Math.max(waste.duration - waste.growDuration, 0.0001)
+  const shrinkProgress = (waste.elapsed - waste.growDuration) / shrinkSpan
+  return Math.max(0, waste.peakRadius * (1 - shrinkProgress))
+}
+
 function tickNuclearWaste(effect: ActiveEffect, ctx: EffectTickContext): EffectTickResult {
   const waste = effect as NuclearWasteEffect
 
@@ -297,10 +311,11 @@ function tickNuclearWaste(effect: ActiveEffect, ctx: EffectTickContext): EffectT
     return passThrough(null, ctx)
   }
 
+  const currentRadius = getNuclearWasteCurrentRadius(waste)
   const { enemies, scoreGained, killedEnemies } = damageEnemiesInRadius(
     ctx.enemies,
     waste.pos,
-    waste.radius,
+    currentRadius,
     waste.damagePerSec,
     ctx.dt
   )
@@ -583,9 +598,10 @@ export function createSunEffect(
 
 export function createNuclearWasteEffect(
   pos: { x: number; y: number },
-  radius: number,
+  peakRadius: number,
   damagePerSec: number,
-  duration: number
+  duration: number,
+  growDuration: number
 ): NuclearWasteEffect {
   return {
     id: uid(),
@@ -593,7 +609,8 @@ export function createNuclearWasteEffect(
     pos: { ...pos },
     elapsed: 0,
     duration,
-    radius,
+    peakRadius,
+    growDuration,
     damagePerSec,
   }
 }

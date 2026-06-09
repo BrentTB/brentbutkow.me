@@ -75,6 +75,7 @@ export const nuke: ShipWeaponDefinition = {
           wasteRadius: NUKE.baseWasteRadius,
           wasteDps: NUKE.baseWasteDps,
           wasteDuration,
+          wasteGrowDuration: NUKE.wasteGrowDuration,
         },
       }),
     ]

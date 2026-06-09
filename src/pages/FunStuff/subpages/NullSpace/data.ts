@@ -159,6 +159,42 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.13.2',
+    date: '2026-06-09',
+    changes: {
+      balance: [
+        'Ricochet now extends its own lifetime each time it bounces, so a chain that keeps finding fresh targets actually uses up all its remaining bounces instead of expiring mid-flight. The base lifetime stays the same — but every successful hop guarantees ≥1.5s more flight time.',
+        'Laser pierce increased from 2 to 3 enemies',
+      ],
+      fixes: [
+        'Entity IDs are now genuinely unique across the whole session (crypto.randomUUID instead of a module-level counter). The old counter could reset on Vite HMR reloads, recycling IDs of freshly-spawned enemies — which made bouncing rounds skip those enemies on the assumption they had already been hit.',
+      ],
+      ui: [
+        'Buying a ship weapon on a single-slot ship now auto-equips it. Carrier keeps the manual flow so you choose which slot it goes into.',
+      ],
+    },
+  },
+  {
+    version: '0.13.1',
+    date: '2026-06-08',
+    changes: {
+      features: [
+        'Missile now splashes on impact — direct-hit damage stays the same, but anything in a small radius around the target takes 60% damage. A new Splash upgrade widens the splash radius.',
+      ],
+      balance: [
+        'Nuke: ×2.5 damage and slower fire (cadence ~1/3rd of bullet). Bigger blast and waste radius to match.',
+        'Ricochet: bounce range 240 → 500, bounces 2 → 3, full bullet speed. Now actually finds a second target in typical waves.',
+      ],
+      ui: [
+        'Nuclear-waste zone no longer pulses — it expands once on detonation, then slowly shrinks to nothing. Damage area always matches the visual.',
+        'Carrier loadout slots replaced with sleek cycle-on-click chips (was a native dropdown). Shows slot number + current weapon + a cycle hint.',
+      ],
+      fixes: [
+        'Ricochet rounds now draw a short magenta trail so the bounce direction is readable at a glance.',
+      ],
+    },
+  },
+  {
     version: '0.13.0',
     date: '2026-06-08',
     changes: {

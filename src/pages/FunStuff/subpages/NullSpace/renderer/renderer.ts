@@ -22,6 +22,7 @@ import type {
   SunEffect,
 } from '../engine/types'
 import { POWER_ORB, SPACE_METAL } from '../data'
+import { getNuclearWasteCurrentRadius } from '../engine/systems/effects'
 import type { Camera } from './camera'
 import { isWithinView, worldToScreen } from './camera'
 import type { SpriteCache } from './sprite-cache'
@@ -195,8 +196,21 @@ function renderProjectiles(
       continue
     }
 
-    // Ricochet — distinct magenta orb (no rotation).
+    // Ricochet — magenta orb with a faint trail segment so bounce direction
+    // reads at a glance.
     if (proj.bounce) {
+      if (proj.prevPos) {
+        const trailFrom = worldToScreen(proj.prevPos, camera)
+        ctx.save()
+        ctx.strokeStyle = 'rgba(255, 102, 204, 0.55)'
+        ctx.lineWidth = 2
+        ctx.lineCap = 'round'
+        ctx.beginPath()
+        ctx.moveTo(trailFrom.x, trailFrom.y)
+        ctx.lineTo(screen.x, screen.y)
+        ctx.stroke()
+        ctx.restore()
+      }
       const size = getSpriteSize(SpriteKey.ricochet)
       ctx.drawImage(sprites[SpriteKey.ricochet], screen.x - size.w / 2, screen.y - size.h / 2)
       continue
@@ -489,20 +503,11 @@ function renderNuclearWaste(
   camera: Camera
 ): void {
   const screen = worldToScreen(waste.pos, camera)
-  const fadeIn = Math.min(0.4, waste.duration * 0.15)
-  const fadeOut = Math.min(1.5, waste.duration * 0.4)
-  const fadeOutStart = waste.duration - fadeOut
-  let alpha: number
-  if (waste.elapsed < fadeIn) alpha = waste.elapsed / fadeIn
-  else if (waste.elapsed > fadeOutStart)
-    alpha = Math.max(0, (waste.duration - waste.elapsed) / fadeOut)
-  else alpha = 1
-
-  const pulse = 0.9 + Math.sin(waste.elapsed * 3) * 0.1
-  const r = waste.radius * pulse
+  // Radius shares the damage helper so visual and damage circle match exactly.
+  const r = getNuclearWasteCurrentRadius(waste)
+  if (r <= 0.5) return
 
   ctx.save()
-  ctx.globalAlpha = alpha
   ctx.translate(screen.x, screen.y)
 
   // Sickly green DOT field — flatter than the sun corona; reads as "ground"
@@ -516,8 +521,9 @@ function renderNuclearWaste(
   ctx.arc(0, 0, r, 0, Math.PI * 2)
   ctx.fill()
 
-  // Dashed rim to signal a damage zone.
-  ctx.strokeStyle = `rgba(180, 255, 100, ${0.55 * pulse})`
+  // Static dashed rim to signal a damage zone. No pulse — the size schedule
+  // (grow then shrink) carries the motion.
+  ctx.strokeStyle = 'rgba(180, 255, 100, 0.55)'
   ctx.lineWidth = 1.5
   ctx.setLineDash([4, 6])
   ctx.beginPath()

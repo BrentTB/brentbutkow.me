@@ -96,8 +96,10 @@ export function resolveProjectileEnemyCollisions(
       continue
     }
 
-    // Detonate (nuke): first segment contact applies flat AoE damage in a
-    // blast radius and leaves a nuclear-waste DOT zone behind. Always consumed.
+    // Detonate: first segment contact applies flat AoE damage in a blast
+    // radius. Used by missile (splash on hit) and nuke (bigger blast + lingering
+    // waste zone). The waste fields are optional — when absent, no DOT zone
+    // is left behind. Always consumed on contact.
     if (proj.detonate) {
       let contact = false
       for (let i = 0; i < updatedEnemies.length; i++) {
@@ -128,10 +130,22 @@ export function resolveProjectileEnemyCollisions(
           updatedEnemies[i] = { ...e, hp: e.hp - d.blastDamage }
         }
       }
-      allParticles.push(...spawnExplosionParticles(proj.pos, 20, '#88ff44'))
-      newEffects.push(
-        createNuclearWasteEffect(proj.pos, d.wasteRadius, d.wasteDps, d.wasteDuration)
+      const hasWaste =
+        d.wasteRadius !== undefined && d.wasteDps !== undefined && d.wasteDuration !== undefined
+      allParticles.push(
+        ...spawnExplosionParticles(proj.pos, hasWaste ? 20 : 10, hasWaste ? '#88ff44' : '#ffaa55')
       )
+      if (hasWaste) {
+        newEffects.push(
+          createNuclearWasteEffect(
+            proj.pos,
+            d.wasteRadius!,
+            d.wasteDps!,
+            d.wasteDuration!,
+            d.wasteGrowDuration ?? 0.5
+          )
+        )
+      }
       continue
     }
 
@@ -184,6 +198,13 @@ export function resolveProjectileEnemyCollisions(
         const speed = Math.hypot(proj.vel.x, proj.vel.y) || 1
         proj.vel = { x: (dx / len) * speed, y: (dy / len) * speed }
         bounce.remaining -= 1
+        // Lifetime is the practical limiter on long chains — a 3s round
+        // traveling 400 px/s only reaches ~6 enemies before timing out, even
+        // with bounces remaining. Extending lifetime per bounce lets the chain
+        // exhaust its `remaining` instead of dying of old age mid-flight.
+        if (bounce.lifetimePerBounce !== undefined) {
+          proj.lifetime = Math.max(proj.lifetime, bounce.lifetimePerBounce)
+        }
         break
       }
       continue

@@ -26,13 +26,11 @@ const ENEMY_DEATH: Record<EnemyKind, DeathBehavior> = {
   [EnemyKind.bomber]: DeathBehavior.explode,
 }
 
-let nextId = 0
+// IDs need to be unique across the entire game session — including across
+// Vite HMR reloads, which would reset a module-scoped counter. crypto.randomUUID
+// gives a globally unique value every call, immune to module re-evaluation.
 export function uid(): string {
-  return `e${nextId++}`
-}
-
-export function resetUid(): void {
-  nextId = 0
+  return crypto.randomUUID()
 }
 
 export function createShip(kind: ShipKind, worldSize: Vec2): Ship {

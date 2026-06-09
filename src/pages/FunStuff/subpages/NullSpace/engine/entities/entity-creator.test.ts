@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import {
   createShip,
   createEnemy,
@@ -6,7 +6,6 @@ import {
   createAbilities,
   createParticle,
   spawnExplosionParticles,
-  resetUid,
 } from './entity-creator'
 import {
   AbilityKind,
@@ -17,10 +16,6 @@ import {
   ShipWeaponKind,
 } from '../types'
 import { WEAPON_ORDER, WORLD_SIZE } from '../../data'
-
-beforeEach(() => {
-  resetUid()
-})
 
 describe('createShip', () => {
   it('places ship at world center', () => {

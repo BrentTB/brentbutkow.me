@@ -7,7 +7,7 @@ import {
   updateGameState,
   applyUpgradeToState,
 } from './game-loop'
-import { resetUid, createEnemy, createProjectile } from './entities/entity-creator'
+import { createEnemy, createProjectile } from './entities/entity-creator'
 import { tickEscapeMode } from './entities/ship'
 import {
   AbilityKind,
@@ -26,7 +26,6 @@ import { ENEMY_STATS, POWER_DEFAULTS, WAVES_PER_LEVEL } from '../data'
 import { TELEKINESIS, SOLAR_FLARE } from './abilities/ability-data'
 
 beforeEach(() => {
-  resetUid()
   localStorage.clear()
 })
 
@@ -327,6 +326,25 @@ describe('ship weapons in GameState', () => {
     state = { ...state, currency: 1000 }
     state = applyUpgradeToState(state, UpgradeId.unlockLaser)
     expect(state.unlockedWeapons).toContain(ShipWeaponKind.laser)
+  })
+
+  it('auto-equips the new weapon on single-slot ships (no other slot to put it in)', () => {
+    let state = startGame(createInitialState(), ShipKind.fighter)
+    state = startNextWave(state)
+    state = { ...state, currency: 1000 }
+    state = applyUpgradeToState(state, UpgradeId.unlockLaser)
+    expect(state.ship.equippedWeapons).toEqual([ShipWeaponKind.laser])
+  })
+
+  it('does NOT auto-equip on Carrier — player picks the slot manually', () => {
+    let state = startGame(createInitialState(), ShipKind.carrier)
+    state = startNextWave(state)
+    const beforeLoadout = state.ship.equippedWeapons
+    state = { ...state, currency: 1000 }
+    state = applyUpgradeToState(state, UpgradeId.unlockLaser)
+    expect(state.unlockedWeapons).toContain(ShipWeaponKind.laser)
+    // Equipped loadout unchanged — still all bullets.
+    expect(state.ship.equippedWeapons).toEqual(beforeLoadout)
   })
 
   it('buying the same unlock twice does not duplicate the kind in unlockedWeapons', () => {

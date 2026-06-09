@@ -1,5 +1,5 @@
 import { WORLD_SIZE, PARTICLE_DEFAULTS, POWER_DEFAULTS } from '../data'
-import { createAbilities, createShip, resetUid, updateParticles } from './entities/entity-creator'
+import { createAbilities, createShip, updateParticles } from './entities/entity-creator'
 import {
   ABILITY_LIST,
   WEAPON_UNLOCK_UPGRADE,
@@ -52,7 +52,6 @@ import { GamePhase, ShipKind, ShipWeaponKind } from './types'
 import type { AbilityKind, GameState, PlayerInput, UpgradeId } from './types'
 
 export function createInitialState(): GameState {
-  resetUid()
   rng.reseed(Date.now())
   return {
     phase: GamePhase.menu,
@@ -94,7 +93,6 @@ export function moveToShipSelection(state: GameState): GameState {
 }
 
 export function startGame(state: GameState, shipKind: ShipKind): GameState {
-  resetUid()
   rng.reseed(Date.now())
   const ship = createShip(shipKind, state.worldSize)
   const upgrades = createInitialUpgrades()
@@ -172,7 +170,7 @@ export function applyUpgradeToState(state: GameState, upgradeId: UpgradeId): Gam
   if (!canPurchaseUpgrade(state.upgrades, upgradeId, state.currency)) return state
   const { upgrades, currencySpent } = purchaseUpgrade(state.upgrades, upgradeId)
   const abilities = applyUpgradesToAbilities(state.abilities, upgrades)
-  const ship = applyUpgradesToShip(state.ship, upgrades)
+  let ship = applyUpgradesToShip(state.ship, upgrades)
   const powerRegen = applyUpgradesToPowerRegen(POWER_DEFAULTS.regenRate, upgrades)
 
   // Whichever weapon-unlock the player bought clears both offers — they only
@@ -184,12 +182,18 @@ export function applyUpgradeToState(state: GameState, upgradeId: UpgradeId): Gam
       : state.levelUpWeaponOffers
 
   // Ship-weapon unlock purchase: append the kind to unlockedWeapons so the
-  // Loadout shop tab and equip handler can offer it.
+  // Loadout shop tab and equip handler can offer it. On single-slot ships,
+  // also auto-equip the newly bought weapon (no other slot to put it in, so
+  // there's never a reason to make the player click Equip after Unlock).
+  // Carrier keeps the manual flow — the player chooses which of 3 slots.
   const purchasedShipWeapon = getShipWeaponForUnlockUpgrade(upgradeId)
   const unlockedWeapons =
     purchasedShipWeapon && !state.unlockedWeapons.includes(purchasedShipWeapon)
       ? [...state.unlockedWeapons, purchasedShipWeapon]
       : state.unlockedWeapons
+  if (purchasedShipWeapon && ship.weaponSlots === 1) {
+    ship = { ...ship, equippedWeapons: [purchasedShipWeapon] }
+  }
 
   return {
     ...state,
