@@ -1,13 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { createInitialState, startGame, updateGameState } from '../game-loop'
 import { applyDamageToShip, tickEscapeMode } from '../entities/ship'
-import { resetUid } from '../entities/entity-creator'
 import { AbilityKind, EscapeModePhase, GamePhase, ShipKind } from '../types'
 import { SpaceMetalAbilityKind, tryActivateSpaceMetalAbility } from '.'
 import { ESCAPE_MODE } from './escape-mode'
 
 beforeEach(() => {
-  resetUid()
   localStorage.clear()
 })
 

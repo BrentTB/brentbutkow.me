@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach, vi } from 'vitest'
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import { GameOverlay } from './GameOverlay'
 import { HelpScreen } from './PauseMenu/HelpScreen'
-import { AbilityKind, GamePhase, ShipKind } from '../engine/types'
+import { AbilityKind, GamePhase, ShipKind, ShipWeaponKind } from '../engine/types'
 import type { PlayerUpgrades } from '../engine/types'
 import type { GameUIState } from '../useNullSpace'
 
@@ -33,6 +33,8 @@ function makeUiState(phase: GameUIState['phase']): GameUIState {
     spawnedInWave: 0,
     totalWaveEnemies: 0,
     levelUpWeaponOffers: [],
+    unlockedWeapons: [ShipWeaponKind.bullet],
+    equippedWeapons: [ShipWeaponKind.bullet],
     escapeModeActive: false,
   }
 }
@@ -48,6 +50,7 @@ function renderOverlay(phase: GameUIState['phase']) {
     onRestart: noop,
     onPurchaseUpgrade: noop,
     onFinishUpgrades: noop,
+    onEquipShipWeapon: noop,
     onResume: noop,
     onSetSpeed: noop,
     gameSpeed: 1,

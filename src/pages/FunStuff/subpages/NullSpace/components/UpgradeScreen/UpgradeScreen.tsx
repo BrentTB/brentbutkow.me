@@ -1,17 +1,20 @@
 import { useState } from 'react'
 import { CURRENCY_NAME } from '../../data'
-import { AbilityKind, UpgradeCategory, UpgradeId } from '../../engine/types'
+import { AbilityKind, ShipWeaponKind, UpgradeCategory, UpgradeId } from '../../engine/types'
 import type { GameUIState } from '../../useNullSpace'
 import { UPGRADE_CATEGORY_LABELS, UPGRADE_DEFINITIONS } from '../../engine/upgrades'
 import { UpgradeCard } from './UpgradeCard'
 import { WeaponDetail } from './WeaponDetail'
 import { WeaponsList } from './WeaponsList'
+import { ShipWeaponsList } from './ShipWeaponsList'
+import { ShipWeaponDetail } from './ShipWeaponDetail'
 import styles from './UpgradeScreen.module.scss'
 import sharedStyles from '../OverlayShared.module.scss'
 
 const CATEGORY_ORDER: UpgradeCategory[] = [
   UpgradeCategory.weapons,
   UpgradeCategory.ship,
+  UpgradeCategory.loadout,
   UpgradeCategory.powers,
 ]
 
@@ -19,11 +22,18 @@ type UpgradeScreenProps = {
   uiState: GameUIState
   onPurchase: (upgradeId: UpgradeId) => void
   onContinue: () => void
+  onEquipShipWeapon: (slotIndex: number, weapon: ShipWeaponKind) => void
 }
 
-export function UpgradeScreen({ uiState, onPurchase, onContinue }: UpgradeScreenProps) {
+export function UpgradeScreen({
+  uiState,
+  onPurchase,
+  onContinue,
+  onEquipShipWeapon,
+}: UpgradeScreenProps) {
   const [activeTab, setActiveTab] = useState<UpgradeCategory>(UpgradeCategory.weapons)
   const [selectedWeapon, setSelectedWeapon] = useState<AbilityKind | null>(null)
+  const [selectedShipWeapon, setSelectedShipWeapon] = useState<ShipWeaponKind | null>(null)
 
   const upgradesByCategory = CATEGORY_ORDER.map((cat) => ({
     category: cat,
@@ -45,6 +55,7 @@ export function UpgradeScreen({ uiState, onPurchase, onContinue }: UpgradeScreen
             onClick={() => {
               setActiveTab(group.category)
               setSelectedWeapon(null)
+              setSelectedShipWeapon(null)
             }}
           >
             {group.label}
@@ -64,7 +75,24 @@ export function UpgradeScreen({ uiState, onPurchase, onContinue }: UpgradeScreen
             onPurchase={onPurchase}
           />
         )}
+        {activeTab === UpgradeCategory.loadout && !selectedShipWeapon && (
+          <ShipWeaponsList
+            uiState={uiState}
+            onSelect={setSelectedShipWeapon}
+            onPurchase={onPurchase}
+            onEquip={onEquipShipWeapon}
+          />
+        )}
+        {activeTab === UpgradeCategory.loadout && selectedShipWeapon && (
+          <ShipWeaponDetail
+            weapon={selectedShipWeapon}
+            uiState={uiState}
+            onBack={() => setSelectedShipWeapon(null)}
+            onPurchase={onPurchase}
+          />
+        )}
         {activeTab !== UpgradeCategory.weapons &&
+          activeTab !== UpgradeCategory.loadout &&
           Object.values(UPGRADE_DEFINITIONS)
             .filter((def) => def.category === activeTab)
             .map((def) => (

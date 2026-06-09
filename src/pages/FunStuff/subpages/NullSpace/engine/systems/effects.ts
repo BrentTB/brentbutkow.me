@@ -8,6 +8,7 @@ import type {
   BlackHoleEffect,
   Enemy,
   MeteorStrikeEffect,
+  NuclearWasteEffect,
   Particle,
   Projectile,
   RocketEffect,
@@ -41,6 +42,7 @@ const EFFECT_TICK: Record<EffectKind, EffectTickFn> = {
   [EffectKind.rocket]: tickRocket,
   [EffectKind.shield]: tickShield,
   [EffectKind.sun]: tickSun,
+  [EffectKind.nuclearWaste]: tickNuclearWaste,
 }
 
 export function updateActiveEffects(
@@ -280,6 +282,46 @@ function tickSun(effect: ActiveEffect, ctx: EffectTickContext): EffectTickResult
 
   return {
     effect: sun,
+    enemies,
+    projectiles: ctx.projectiles,
+    particles: [],
+    scoreGained,
+    killedEnemies,
+  }
+}
+
+// Current radius of a nuclear-waste zone at `waste.elapsed`. Used by both the
+// damage tick and the renderer so the visual and the damage area always match.
+// Phase 1 (0 → growDuration): scale 0 → peakRadius.
+// Phase 2 (growDuration → duration): linearly shrink peakRadius → 0.
+export function getNuclearWasteCurrentRadius(waste: NuclearWasteEffect): number {
+  if (waste.elapsed <= 0) return 0
+  if (waste.elapsed < waste.growDuration) {
+    return waste.peakRadius * (waste.elapsed / waste.growDuration)
+  }
+  const shrinkSpan = Math.max(waste.duration - waste.growDuration, 0.0001)
+  const shrinkProgress = (waste.elapsed - waste.growDuration) / shrinkSpan
+  return Math.max(0, waste.peakRadius * (1 - shrinkProgress))
+}
+
+function tickNuclearWaste(effect: ActiveEffect, ctx: EffectTickContext): EffectTickResult {
+  const waste = effect as NuclearWasteEffect
+
+  if (waste.elapsed >= waste.duration) {
+    return passThrough(null, ctx)
+  }
+
+  const currentRadius = getNuclearWasteCurrentRadius(waste)
+  const { enemies, scoreGained, killedEnemies } = damageEnemiesInRadius(
+    ctx.enemies,
+    waste.pos,
+    currentRadius,
+    waste.damagePerSec,
+    ctx.dt
+  )
+
+  return {
+    effect: waste,
     enemies,
     projectiles: ctx.projectiles,
     particles: [],
@@ -550,6 +592,25 @@ export function createSunEffect(
     elapsed: 0,
     duration,
     radius,
+    damagePerSec,
+  }
+}
+
+export function createNuclearWasteEffect(
+  pos: { x: number; y: number },
+  peakRadius: number,
+  damagePerSec: number,
+  duration: number,
+  growDuration: number
+): NuclearWasteEffect {
+  return {
+    id: uid(),
+    kind: EffectKind.nuclearWaste,
+    pos: { ...pos },
+    elapsed: 0,
+    duration,
+    peakRadius,
+    growDuration,
     damagePerSec,
   }
 }

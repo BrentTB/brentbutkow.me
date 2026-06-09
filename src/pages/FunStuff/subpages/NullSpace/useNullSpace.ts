@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import {
   createInitialState,
+  equipShipWeapon,
   moveToShipSelection,
   rollLevelUpWeaponOffers,
   startGame,
@@ -9,7 +10,7 @@ import {
   applyUpgradeToState,
   finishUpgradeScreen,
 } from './engine/game-loop'
-import { AbilityKind, GamePhase, ShipKind } from './engine/types'
+import { AbilityKind, GamePhase, ShipKind, ShipWeaponKind } from './engine/types'
 import type { GameState, PlayerInput, Vec2, UpgradeId, PlayerUpgrades } from './engine/types'
 import { createShip } from './engine/entities/entity-creator'
 import { getLevel } from './engine/upgrades'
@@ -76,6 +77,8 @@ export type GameUIState = {
   spawnedInWave: number
   totalWaveEnemies: number
   levelUpWeaponOffers: GameState['levelUpWeaponOffers']
+  unlockedWeapons: GameState['unlockedWeapons']
+  equippedWeapons: GameState['ship']['equippedWeapons']
   escapeModeActive: boolean
 }
 
@@ -147,6 +150,8 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     spawnedInWave: 0,
     totalWaveEnemies: 0,
     levelUpWeaponOffers: [],
+    unlockedWeapons: [ShipWeaponKind.bullet],
+    equippedWeapons: [ShipWeaponKind.bullet],
     escapeModeActive: false,
   })
 
@@ -195,6 +200,8 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       spawnedInWave: state.spawnedInWave,
       totalWaveEnemies: state.totalWaveEnemies,
       levelUpWeaponOffers: state.levelUpWeaponOffers,
+      unlockedWeapons: state.unlockedWeapons,
+      equippedWeapons: state.ship.equippedWeapons,
       escapeModeActive: state.ship.escapeMode !== null,
     })
   }, [])
@@ -337,6 +344,14 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     gameStateRef.current = finishUpgradeScreen(gameStateRef.current)
     syncUI(gameStateRef.current)
   }, [syncUI])
+
+  const handleEquipShipWeapon = useCallback(
+    (slotIndex: number, weapon: ShipWeaponKind) => {
+      gameStateRef.current = equipShipWeapon(gameStateRef.current, slotIndex, weapon)
+      syncUI(gameStateRef.current)
+    },
+    [syncUI]
+  )
 
   const handlePause = useCallback(() => {
     if (gameStateRef.current.phase !== GamePhase.playing) return
@@ -552,6 +567,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     setSelectedAbility,
     handlePurchaseUpgrade,
     handleFinishUpgrades,
+    handleEquipShipWeapon,
     handlePause,
     handleResume,
     handleSetSpeed,

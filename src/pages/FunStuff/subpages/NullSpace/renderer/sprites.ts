@@ -251,6 +251,45 @@ export const ALLY_SPRITE: SpriteData = [
   [A, a, a, a, a, a, A],
 ]
 
+// Slim homing missile — drawn rotated to velocity (nose up at rotation 0).
+export const MISSILE_SPRITE: SpriteData = [
+  [_, W, _],
+  [_, R, _],
+  [W, T, W],
+  [_, t, _],
+  [_, t, _],
+  [T, t, T],
+  [_, F, _],
+  [_, F, _],
+]
+
+// Fast magenta orb used by the ricochet weapon — visually distinct from the
+// default bullet (gold) and the laser beam.
+const X = '#ff66cc'
+const x = '#cc3399'
+export const RICOCHET_SPRITE: SpriteData = [
+  [_, X, _],
+  [X, x, X],
+  [_, X, _],
+]
+
+// Big slow lobbed shell — drawn upright (no rotation). Stripes hint at a
+// "warhead" silhouette.
+const N = '#88ff44' // radioactive green
+const n = '#447722'
+export const NUKE_SPRITE: SpriteData = [
+  [_, _, W, W, _, _],
+  [_, W, n, n, W, _],
+  [W, n, N, N, n, W],
+  [W, n, N, N, n, W],
+  [W, n, R, R, n, W],
+  [W, n, N, N, n, W],
+  [W, n, N, N, n, W],
+  [_, W, n, n, W, _],
+  [_, F, F, F, F, _],
+  [_, _, F, F, _, _],
+]
+
 export const SpriteKey = {
   ship: 'ship',
   shipInterceptor: 'shipInterceptor',
@@ -267,6 +306,9 @@ export const SpriteKey = {
   meteorite: 'meteorite',
   rocket: 'rocket',
   ally: 'ally',
+  missile: 'missile',
+  ricochet: 'ricochet',
+  nuke: 'nuke',
 } as const
 export type SpriteKey = (typeof SpriteKey)[keyof typeof SpriteKey]
 
@@ -286,4 +328,7 @@ export const SPRITE_MAP: Record<SpriteKey, SpriteData> = {
   meteorite: METEORITE_SPRITE,
   rocket: ROCKET_SPRITE,
   ally: ALLY_SPRITE,
+  missile: MISSILE_SPRITE,
+  ricochet: RICOCHET_SPRITE,
+  nuke: NUKE_SPRITE,
 }

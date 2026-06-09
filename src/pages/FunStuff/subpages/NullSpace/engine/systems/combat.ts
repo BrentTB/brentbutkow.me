@@ -1,18 +1,44 @@
 import { ENEMY_STATS } from '../../data'
 import { checkCollision, distance, segmentIntersectsCircle } from '../math/collision'
+import { homeTowardTarget } from '../math/homing'
 import { spawnExplosionParticles } from '../entities/entity-creator'
 import { applyDamageToShip } from '../entities/ship'
+import { createNuclearWasteEffect } from './effects'
 import { DeathBehavior, EffectKind, ProjectileOwner } from '../types'
 import type { ActiveEffect, Ally, Enemy, Particle, Projectile, Ship, Vec2 } from '../types'
 
-export function updateProjectiles(projectiles: Projectile[], dt: number): Projectile[] {
+export function updateProjectiles(
+  projectiles: Projectile[],
+  enemies: Enemy[],
+  dt: number
+): Projectile[] {
   return projectiles
-    .map((p) => ({
-      ...p,
-      prevPos: p.pos,
-      pos: { x: p.pos.x + p.vel.x * dt, y: p.pos.y + p.vel.y * dt },
-      lifetime: p.lifetime - dt,
-    }))
+    .map((p) => {
+      if (p.homing && enemies.length > 0) {
+        // Re-aim toward the nearest enemy each tick. Speed is taken from the
+        // projectile's current vel magnitude so missile-speed upgrades stick.
+        let nearest = enemies[0]
+        let nearestDist = Infinity
+        for (const e of enemies) {
+          const dx = e.pos.x - p.pos.x
+          const dy = e.pos.y - p.pos.y
+          const d = dx * dx + dy * dy
+          if (d < nearestDist) {
+            nearestDist = d
+            nearest = e
+          }
+        }
+        const speed = Math.hypot(p.vel.x, p.vel.y) || 1
+        const motion = homeTowardTarget(p.pos, nearest.pos, speed, dt)
+        return { ...p, prevPos: p.pos, pos: motion.pos, vel: motion.vel, lifetime: p.lifetime - dt }
+      }
+      return {
+        ...p,
+        prevPos: p.pos,
+        pos: { x: p.pos.x + p.vel.x * dt, y: p.pos.y + p.vel.y * dt },
+        lifetime: p.lifetime - dt,
+      }
+    })
     .filter((p) => p.lifetime > 0)
 }
 
@@ -25,6 +51,7 @@ export function resolveProjectileEnemyCollisions(
   scoreGained: number
   killedEnemies: Enemy[]
   particles: Particle[]
+  newEffects: ActiveEffect[]
 } {
   // Track hit projectiles by OBJECT REFERENCE (not by id), so any chance of
   // duplicate ids (HMR resetting the uid counter mid-game, two bullets
@@ -32,12 +59,161 @@ export function resolveProjectileEnemyCollisions(
   // remove other in-flight bullets.
   const hitProjectiles = new Set<Projectile>()
   const allParticles: Particle[] = []
+  const newEffects: ActiveEffect[] = []
   let scoreGained = 0
 
   const updatedEnemies = enemies.map((e) => ({ ...e }))
 
+  // The pierce/bounce branches mutate the projectile in place (hitEnemyIds,
+  // vel, remaining, lifetime) on purpose: game-loop reuses the same projectile
+  // objects frame to frame, so this is how per-projectile state carries forward.
   for (const proj of projectiles) {
     if (proj.owner !== ProjectileOwner.ship) continue
+
+    // Pierce (laser): hit up to maxHits distinct enemies along this tick's
+    // segment, accumulating hit ids on the projectile so the same enemy isn't
+    // hit twice across frames. Doesn't break — pass-through is the point.
+    if (proj.pierce) {
+      const { maxHits, hitEnemyIds } = proj.pierce
+      for (let i = 0; i < updatedEnemies.length; i++) {
+        const enemy = updatedEnemies[i]
+        if (enemy.hp <= 0) continue
+        if (hitEnemyIds.includes(enemy.id)) continue
+        if (
+          !segmentIntersectsCircle(
+            proj.prevPos ?? proj.pos,
+            proj.pos,
+            enemy.pos,
+            enemy.radius + proj.radius
+          )
+        )
+          continue
+        updatedEnemies[i] = { ...enemy, hp: enemy.hp - proj.damage }
+        hitEnemyIds.push(enemy.id)
+        allParticles.push(...spawnExplosionParticles(enemy.pos, 4, '#88ccff'))
+        if (hitEnemyIds.length >= maxHits) {
+          hitProjectiles.add(proj)
+          break
+        }
+      }
+      continue
+    }
+
+    // Detonate: first segment contact applies flat AoE damage in a blast
+    // radius. Used by missile (splash on hit) and nuke (bigger blast + lingering
+    // waste zone). The waste fields are optional — when absent, no DOT zone
+    // is left behind. Always consumed on contact.
+    if (proj.detonate) {
+      let contact = false
+      for (let i = 0; i < updatedEnemies.length; i++) {
+        const enemy = updatedEnemies[i]
+        if (enemy.hp <= 0) continue
+        if (
+          segmentIntersectsCircle(
+            proj.prevPos ?? proj.pos,
+            proj.pos,
+            enemy.pos,
+            enemy.radius + proj.radius
+          )
+        ) {
+          contact = true
+          break
+        }
+      }
+      if (!contact) continue
+      hitProjectiles.add(proj)
+      const d = proj.detonate
+      const r2 = d.aoeRadius * d.aoeRadius
+      for (let i = 0; i < updatedEnemies.length; i++) {
+        const e = updatedEnemies[i]
+        if (e.hp <= 0) continue
+        const dx = e.pos.x - proj.pos.x
+        const dy = e.pos.y - proj.pos.y
+        if (dx * dx + dy * dy <= r2) {
+          updatedEnemies[i] = { ...e, hp: e.hp - d.blastDamage }
+        }
+      }
+      const hasWaste =
+        d.wasteRadius !== undefined && d.wasteDps !== undefined && d.wasteDuration !== undefined
+      allParticles.push(
+        ...spawnExplosionParticles(proj.pos, hasWaste ? 20 : 10, hasWaste ? '#88ff44' : '#ffaa55')
+      )
+      if (hasWaste) {
+        newEffects.push(
+          createNuclearWasteEffect(
+            proj.pos,
+            d.wasteRadius!,
+            d.wasteDps!,
+            d.wasteDuration!,
+            d.wasteGrowDuration ?? 0.5
+          )
+        )
+      }
+      continue
+    }
+
+    // Bounce (ricochet): hit and redirect toward the nearest unhit enemy in
+    // range, decrementing `remaining`. When out of bounces, consume.
+    if (proj.bounce) {
+      const bounce = proj.bounce
+      for (let i = 0; i < updatedEnemies.length; i++) {
+        const enemy = updatedEnemies[i]
+        if (enemy.hp <= 0) continue
+        if (bounce.hitEnemyIds.includes(enemy.id)) continue
+        if (
+          !segmentIntersectsCircle(
+            proj.prevPos ?? proj.pos,
+            proj.pos,
+            enemy.pos,
+            enemy.radius + proj.radius
+          )
+        )
+          continue
+        updatedEnemies[i] = { ...enemy, hp: enemy.hp - proj.damage }
+        bounce.hitEnemyIds.push(enemy.id)
+        allParticles.push(...spawnExplosionParticles(enemy.pos, 6, '#ffaa44'))
+        if (bounce.remaining <= 0) {
+          hitProjectiles.add(proj)
+          break
+        }
+        // Pick the closest unhit, living enemy within bounceRange.
+        const rangeSq = bounce.bounceRange * bounce.bounceRange
+        let next: Enemy | null = null
+        let nextDistSq = rangeSq
+        for (const other of updatedEnemies) {
+          if (other.hp <= 0) continue
+          if (bounce.hitEnemyIds.includes(other.id)) continue
+          const dx = other.pos.x - proj.pos.x
+          const dy = other.pos.y - proj.pos.y
+          const d = dx * dx + dy * dy
+          if (d < nextDistSq) {
+            nextDistSq = d
+            next = other
+          }
+        }
+        if (!next) {
+          hitProjectiles.add(proj)
+          break
+        }
+        const dx = next.pos.x - proj.pos.x
+        const dy = next.pos.y - proj.pos.y
+        const len = Math.sqrt(dx * dx + dy * dy) || 1
+        const speed = Math.hypot(proj.vel.x, proj.vel.y) || 1
+        proj.vel = { x: (dx / len) * speed, y: (dy / len) * speed }
+        bounce.remaining -= 1
+        // Lifetime is the practical limiter on long chains — a 3s round
+        // traveling 400 px/s only reaches ~6 enemies before timing out, even
+        // with bounces remaining. Extending lifetime per bounce lets the chain
+        // exhaust its `remaining` instead of dying of old age mid-flight.
+        if (bounce.lifetimePerBounce !== undefined) {
+          proj.lifetime = Math.max(proj.lifetime, bounce.lifetimePerBounce)
+        }
+        break
+      }
+      continue
+    }
+
+    // Default bullet path — unchanged from before swappable weapons.
     for (let i = 0; i < updatedEnemies.length; i++) {
       const enemy = updatedEnemies[i]
       // Skip enemies that an earlier projectile already killed this tick — they
@@ -74,6 +250,7 @@ export function resolveProjectileEnemyCollisions(
     scoreGained,
     killedEnemies,
     particles: allParticles,
+    newEffects,
   }
 }
 

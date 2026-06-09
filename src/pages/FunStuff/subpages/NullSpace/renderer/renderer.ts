@@ -14,12 +14,15 @@ import type {
   Collectible,
   GameState,
   MeteorStrikeEffect,
+  NuclearWasteEffect,
   Particle,
+  Projectile,
   RocketEffect,
   ShieldEffect,
   SunEffect,
 } from '../engine/types'
 import { POWER_ORB, SPACE_METAL } from '../data'
+import { getNuclearWasteCurrentRadius } from '../engine/systems/effects'
 import type { Camera } from './camera'
 import { isWithinView, worldToScreen } from './camera'
 import type { SpriteCache } from './sprite-cache'
@@ -161,13 +164,96 @@ function renderProjectiles(
 ): void {
   for (const proj of state.projectiles) {
     const screen = worldToScreen(proj.pos, camera)
-    if (!isWithinView(screen, camera, 20)) continue
+    if (!isWithinView(screen, camera, 20)) {
+      // Laser/ricochet draw a segment from prevPos to pos, so keep them while
+      // the tail end is still on-screen — otherwise the beam pops out a frame
+      // early. Point-sprite projectiles cull on pos alone.
+      const isLine = proj.pierce !== undefined || proj.bounce !== undefined
+      if (
+        !isLine ||
+        !proj.prevPos ||
+        !isWithinView(worldToScreen(proj.prevPos, camera), camera, 20)
+      )
+        continue
+    }
 
-    const spriteKey =
-      proj.owner === ProjectileOwner.enemy ? SpriteKey.enemyProjectile : SpriteKey.projectile
-    const size = getSpriteSize(spriteKey)
-    ctx.drawImage(sprites[spriteKey], screen.x - size.w / 2, screen.y - size.h / 2)
+    if (proj.owner === ProjectileOwner.enemy) {
+      const size = getSpriteSize(SpriteKey.enemyProjectile)
+      ctx.drawImage(
+        sprites[SpriteKey.enemyProjectile],
+        screen.x - size.w / 2,
+        screen.y - size.h / 2
+      )
+      continue
+    }
+
+    // Laser — bright beam line from prevPos to pos (cyan), with a small
+    // additive glow. No sprite (a 3-pixel dot would lose the pass-through feel).
+    if (proj.pierce) {
+      renderLaserBeam(ctx, proj, camera)
+      continue
+    }
+
+    // Missile / Nuke — sprite drawn rotated to velocity (nose up at angle 0).
+    if (proj.homing || proj.detonate) {
+      const key = proj.homing ? SpriteKey.missile : SpriteKey.nuke
+      const size = getSpriteSize(key)
+      const angle = Math.atan2(proj.vel.y, proj.vel.x) + Math.PI / 2
+      ctx.save()
+      ctx.translate(screen.x, screen.y)
+      ctx.rotate(angle)
+      ctx.drawImage(sprites[key], -size.w / 2, -size.h / 2)
+      ctx.restore()
+      continue
+    }
+
+    // Ricochet — magenta orb with a faint trail segment so bounce direction
+    // reads at a glance.
+    if (proj.bounce) {
+      if (proj.prevPos) {
+        const trailFrom = worldToScreen(proj.prevPos, camera)
+        ctx.save()
+        ctx.strokeStyle = 'rgba(255, 102, 204, 0.55)'
+        ctx.lineWidth = 2
+        ctx.lineCap = 'round'
+        ctx.beginPath()
+        ctx.moveTo(trailFrom.x, trailFrom.y)
+        ctx.lineTo(screen.x, screen.y)
+        ctx.stroke()
+        ctx.restore()
+      }
+      const size = getSpriteSize(SpriteKey.ricochet)
+      ctx.drawImage(sprites[SpriteKey.ricochet], screen.x - size.w / 2, screen.y - size.h / 2)
+      continue
+    }
+
+    // Default bullet — unchanged.
+    const size = getSpriteSize(SpriteKey.projectile)
+    ctx.drawImage(sprites[SpriteKey.projectile], screen.x - size.w / 2, screen.y - size.h / 2)
   }
+}
+
+function renderLaserBeam(ctx: CanvasRenderingContext2D, proj: Projectile, camera: Camera): void {
+  const from = worldToScreen(proj.prevPos ?? proj.pos, camera)
+  const to = worldToScreen(proj.pos, camera)
+
+  ctx.save()
+  // Outer glow.
+  ctx.strokeStyle = 'rgba(120, 220, 255, 0.35)'
+  ctx.lineWidth = 6
+  ctx.lineCap = 'round'
+  ctx.beginPath()
+  ctx.moveTo(from.x, from.y)
+  ctx.lineTo(to.x, to.y)
+  ctx.stroke()
+  // Bright core.
+  ctx.strokeStyle = '#e8faff'
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.moveTo(from.x, from.y)
+  ctx.lineTo(to.x, to.y)
+  ctx.stroke()
+  ctx.restore()
 }
 
 function renderMeteorWarning(
@@ -408,6 +494,9 @@ function renderActiveEffectsBack(
       case EffectKind.sun:
         renderSun(ctx, effect, camera)
         break
+      case EffectKind.nuclearWaste:
+        renderNuclearWaste(ctx, effect, camera)
+        break
       case EffectKind.shield:
         renderShield(ctx, effect, camera)
         break
@@ -417,6 +506,43 @@ function renderActiveEffectsBack(
         break
     }
   }
+}
+
+function renderNuclearWaste(
+  ctx: CanvasRenderingContext2D,
+  waste: NuclearWasteEffect,
+  camera: Camera
+): void {
+  const screen = worldToScreen(waste.pos, camera)
+  // Radius shares the damage helper so visual and damage circle match exactly.
+  const r = getNuclearWasteCurrentRadius(waste)
+  if (r <= 0.5) return
+
+  ctx.save()
+  ctx.translate(screen.x, screen.y)
+
+  // Sickly green DOT field — flatter than the sun corona; reads as "ground"
+  // contamination rather than a star.
+  const fill = ctx.createRadialGradient(0, 0, 0, 0, 0, r)
+  fill.addColorStop(0, 'rgba(136, 255, 68, 0.30)')
+  fill.addColorStop(0.7, 'rgba(96, 200, 50, 0.20)')
+  fill.addColorStop(1, 'rgba(60, 130, 30, 0)')
+  ctx.fillStyle = fill
+  ctx.beginPath()
+  ctx.arc(0, 0, r, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Static dashed rim to signal a damage zone. No pulse — the size schedule
+  // (grow then shrink) carries the motion.
+  ctx.strokeStyle = 'rgba(180, 255, 100, 0.55)'
+  ctx.lineWidth = 1.5
+  ctx.setLineDash([4, 6])
+  ctx.beginPath()
+  ctx.arc(0, 0, r, 0, Math.PI * 2)
+  ctx.stroke()
+  ctx.setLineDash([])
+
+  ctx.restore()
 }
 
 function renderActiveEffectsFront(

@@ -160,6 +160,8 @@ src/pages/FunStuff/subpages/NullSpace/components/StartScreen/
   StatBar.tsx                                StatBar
 
 src/pages/FunStuff/subpages/NullSpace/components/UpgradeScreen/
+  ShipWeaponDetail.tsx                       ShipWeaponDetail
+  ShipWeaponsList.tsx                        ShipWeaponsList
   UpgradeCard.tsx                            UpgradeCard
   UpgradeScreen.tsx                          UpgradeScreen
   WeaponDetail.tsx                           WeaponDetail
@@ -170,7 +172,7 @@ src/pages/FunStuff/subpages/NullSpace/components/
   WaveCompleteScreen.tsx                     WaveCompleteScreen
 
 src/pages/FunStuff/subpages/NullSpace/
-  data.ts                                    GAME_NAME, WORLD_SIZE, SHIP_DEFAULTS, ShipVariantStats, ShipVariantConfig, STAT_MAX, SHIELD_COOLDOWN, SHIP_ORDER, SHIP_VARIANTS, POWER_DEFAULTS, WEAPON_ORDER, ENEMY_STATS, CURRENCY_DROPS, CURRENCY_NAME, POWER_ORB, SPACE_METAL, WAVES_PER_LEVEL, SPAWN_DELAY, SPAWN_DISTANCE, SWARM_SPAWN_SPREAD, PROJECTILE_SPEED, PROJECTILE_LIFETIME, PROJECTILE_RADIUS, PARTICLE_DEFAULTS, ChangelogEntry, CHANGELOG, GAME_VERSION
+  data.ts                                    GAME_NAME, WORLD_SIZE, SHIELD_COOLDOWN, POWER_DEFAULTS, WEAPON_ORDER, ENEMY_STATS, CURRENCY_DROPS, CURRENCY_NAME, POWER_ORB, SPACE_METAL, WAVES_PER_LEVEL, SPAWN_DELAY, SPAWN_DISTANCE, SWARM_SPAWN_SPREAD, PROJECTILE_SPEED, PROJECTILE_LIFETIME, PROJECTILE_RADIUS, PARTICLE_DEFAULTS, ChangelogEntry, CHANGELOG, GAME_VERSION
 
 src/pages/FunStuff/subpages/NullSpace/engine/abilities/
   ability-data.ts                            METEORITE_STRIKE, METEOR_STRIKE, BLACK_HOLE, ROCKET, SHIELD, SUN, HELPER, TELEKINESIS, SOLAR_FLARE
@@ -191,11 +193,11 @@ src/pages/FunStuff/subpages/NullSpace/engine/abilities/
 src/pages/FunStuff/subpages/NullSpace/engine/entities/
   ally.ts                                    updateAllies
   enemy.ts                                   findNearestTarget, updateEnemyMovement, updateEnemyShooting
-  entity-creator.ts                          uid, resetUid, createShip, createEnemy, createProjectile, createAlly, createParticle, spawnExplosionParticles, updateParticles, createAbilities
+  entity-creator.ts                          uid, createShip, createEnemy, createProjectile, createAlly, createParticle, spawnExplosionParticles, updateParticles, createAbilities
   ship.ts                                    applyDamageToShip, tickEscapeMode, updateShipPatrol, updateShipAttack
 
 src/pages/FunStuff/subpages/NullSpace/engine/
-  game-loop.ts                               createInitialState, moveToShipSelection, startGame, rollLevelUpWeaponOffers, startNextWave, applyUpgradeToState, finishUpgradeScreen, updateGameState
+  game-loop.ts                               createInitialState, moveToShipSelection, startGame, rollLevelUpWeaponOffers, startNextWave, applyUpgradeToState, equipShipWeapon, finishUpgradeScreen, updateGameState
 
 src/pages/FunStuff/subpages/NullSpace/engine/math/
   aoe.ts                                     AoeResult, damageEnemiesInRadiusFlat, damageEnemiesInRadius
@@ -203,6 +205,17 @@ src/pages/FunStuff/subpages/NullSpace/engine/math/
   homing.ts                                  homeTowardTarget
   random.ts                                  rng
   utils.ts                                   clamp
+
+src/pages/FunStuff/subpages/NullSpace/engine/ship/
+  bullet.ts                                  bullet
+  index.ts                                   SHIP_WEAPON_DEFINITIONS, SHIP_WEAPON_LIST, SHIP_WEAPON_ORDER, SHIP_WEAPON_META, SHIP_WEAPON_UNLOCK_UPGRADE, SHIP_WEAPON_UPGRADE_DEFINITIONS, getShipWeaponForUnlockUpgrade, buildShipProjectile
+  laser.ts                                   laser
+  missile.ts                                 missile
+  nuke.ts                                    nuke
+  ricochet.ts                                ricochet
+  ship-data.ts                               ShipVariantStats, ShipVariantConfig, STAT_MAX, SHIP_ORDER, SHIP_VARIANTS
+  ship-weapon-data.ts                        BULLET, LASER, MISSILE, RICOCHET, NUKE
+  ship-weapon-definition.ts                  ShipWeaponDefinition, WeaponProjectileOpts, buildShipProjectile
 
 src/pages/FunStuff/subpages/NullSpace/engine/spaceMetalAbilities/
   escape-mode.ts                             ESCAPE_MODE, escapeDash
@@ -214,12 +227,12 @@ src/pages/FunStuff/subpages/NullSpace/engine/systems/
   collectibles.ts                            spawnCollectiblesFromKills, updateCollectibles, tryCollectSpaceMetal
   combat.ts                                  updateProjectiles, resolveProjectileEnemyCollisions, resolveEnemyProjectileShipCollisions, resolveEnemyProjectileAllyCollisions, resolveEnemyShipCollisions, resolveEnemyAllyMeleeCollisions, resolveDeathEffects
   economy.ts                                 computeCurrencyFromKills
-  effects.ts                                 EffectTickContext, EffectTickResult, updateActiveEffects, createMeteoriteEffect, createMeteorEffect, createBlackHoleEffect, createRocketEffect, createShieldEffect, applyShieldConstraints, createSunEffect
+  effects.ts                                 EffectTickContext, EffectTickResult, updateActiveEffects, getNuclearWasteCurrentRadius, createMeteoriteEffect, createMeteorEffect, createBlackHoleEffect, createRocketEffect, createShieldEffect, applyShieldConstraints, createSunEffect, createNuclearWasteEffect
   spawner.ts                                 spawnPositionNearShip, processSpawnQueue
 
 src/pages/FunStuff/subpages/NullSpace/engine/
-  types.ts                                   Vec2, Entity, ShipKind, EscapeModePhase, EscapeModeState, Ship, EnemyKind, MovementBehavior, DeathBehavior, Enemy, ProjectileOwner, Projectile, AbilityKind, Ability, EffectKind, EffectBase, MeteorStrikeEffect, BlackHoleEffect, RocketEffect, ShieldEffect, SunEffect, ActiveEffect, CollectibleKind, Collectible, Ally, Particle, GamePhase, UpgradeCategory, UpgradeId, UpgradeTier, UpgradeDefinition, PlayerUpgrades, GameState, HoldRuntimeState, PlayerInput
-  upgrades.ts                                UNLOCK_UPGRADE_IDS, UPGRADE_DEFINITIONS, isWeaponFullyMaxed, UPGRADE_CATEGORY_LABELS, createInitialUpgrades, canPurchaseUpgrade, purchaseUpgrade, applyUpgradesToAbilities, applyUpgradesToShip, applyUpgradesToPowerRegen, getLevel, isUpgradeWave, WEAPON_UNLOCK_UPGRADE
+  types.ts                                   Vec2, Entity, ShipKind, ShipWeaponKind, EscapeModePhase, EscapeModeState, Ship, EnemyKind, MovementBehavior, DeathBehavior, Enemy, ProjectileOwner, Projectile, AbilityKind, Ability, EffectKind, EffectBase, MeteorStrikeEffect, BlackHoleEffect, RocketEffect, ShieldEffect, SunEffect, NuclearWasteEffect, ActiveEffect, CollectibleKind, Collectible, Ally, Particle, GamePhase, UpgradeCategory, UpgradeId, UpgradeTier, UpgradeDefinition, PlayerUpgrades, GameState, HoldRuntimeState, PlayerInput
+  upgrades.ts                                UNLOCK_UPGRADE_IDS, UPGRADE_DEFINITIONS, isWeaponFullyMaxed, isShipWeaponFullyMaxed, UPGRADE_CATEGORY_LABELS, createInitialUpgrades, canPurchaseUpgrade, purchaseUpgrade, applyUpgradesToAbilities, applyUpgradesToShip, applyUpgradesToPowerRegen, getLevel, isUpgradeWave, WEAPON_UNLOCK_UPGRADE, SHIP_WEAPON_UNLOCK_UPGRADE
 
 src/pages/FunStuff/subpages/NullSpace/engine/world/
   persistence.ts                             loadHighScore, saveHighScore, ChangelogCategory, ChangelogFilters, DEFAULT_CHANGELOG_FILTERS, CHANGELOG_CATEGORIES, loadChangelogFilters, saveChangelogFilters
@@ -233,7 +246,7 @@ src/pages/FunStuff/subpages/NullSpace/renderer/
   camera.ts                                  REFERENCE_VIEW, DEFAULT_GAME_ZOOM, Camera, createCamera, computeZoom, HUD_SCALE_MIN, HUD_SCALE_MAX, computeHudScale, isWithinView, updateCamera, centerCameraOn, worldToScreen, screenToWorld
   renderer.ts                                SHIP_SPRITE_KEY, renderFrame
   sprite-cache.ts                            SpriteCache, buildSpriteCache, getSpriteSize
-  sprites.ts                                 SpriteData, SHIP_SPRITE, DRONE_SPRITE, TANK_SPRITE, PROJECTILE_SPRITE, METEOR_SPRITE, METEORITE_SPRITE, SHOOTER_SPRITE, ENEMY_PROJECTILE_SPRITE, SWARM_SPRITE, BOMBER_SPRITE, ROCKET_SPRITE, INTERCEPTOR_SPRITE, DREADNOUGHT_SPRITE, CARRIER_SPRITE, ALLY_SPRITE, SpriteKey, SPRITE_MAP
+  sprites.ts                                 SpriteData, SHIP_SPRITE, DRONE_SPRITE, TANK_SPRITE, PROJECTILE_SPRITE, METEOR_SPRITE, METEORITE_SPRITE, SHOOTER_SPRITE, ENEMY_PROJECTILE_SPRITE, SWARM_SPRITE, BOMBER_SPRITE, ROCKET_SPRITE, INTERCEPTOR_SPRITE, DREADNOUGHT_SPRITE, CARRIER_SPRITE, ALLY_SPRITE, MISSILE_SPRITE, RICOCHET_SPRITE, NUKE_SPRITE, SpriteKey, SPRITE_MAP
   starfield.ts                               Star, generateStarfield, renderStarfield
 
 src/pages/FunStuff/subpages/NullSpace/
