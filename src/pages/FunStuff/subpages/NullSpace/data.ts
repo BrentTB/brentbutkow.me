@@ -157,20 +157,21 @@ export type ChangelogEntry = {
   }
 }
 
+// Short, non-verbose descritions of what changed
 export const CHANGELOG: ChangelogEntry[] = [
   {
     version: '0.13.2',
     date: '2026-06-09',
     changes: {
       balance: [
-        'Ricochet now extends its own lifetime each time it bounces, so a chain that keeps finding fresh targets actually uses up all its remaining bounces instead of expiring mid-flight. The base lifetime stays the same — but every successful hop guarantees ≥1.5s more flight time.',
-        'Laser pierce increased from 2 to 3 enemies',
+        'Ricochet now adds ≥1.5s of lifetime per bounce, so a chain that keeps finding targets uses all its bounces instead of expiring mid-flight. Base lifetime unchanged.',
+        'Laser pierce 2 → 3 enemies (+50%)',
       ],
       fixes: [
-        'Entity IDs are now genuinely unique across the whole session (crypto.randomUUID instead of a module-level counter). The old counter could reset on Vite HMR reloads, recycling IDs of freshly-spawned enemies — which made bouncing rounds skip those enemies on the assumption they had already been hit.',
+        'Entity IDs now use crypto.randomUUID for session-wide uniqueness (was a module-level counter) — bouncing rounds no longer skip enemies whose recycled IDs were already hit.',
       ],
       ui: [
-        'Buying a ship weapon on a single-slot ship now auto-equips it. Carrier keeps the manual flow so you choose which slot it goes into.',
+        'Buying a ship weapon on a single-slot ship auto-equips it. Carrier keeps the manual slot choice.',
       ],
     },
   },
@@ -179,19 +180,17 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-08',
     changes: {
       features: [
-        'Missile now splashes on impact — direct-hit damage stays the same, but anything in a small radius around the target takes 60% damage. A new Splash upgrade widens the splash radius.',
+        'Missile now splashes on impact — enemies in a small radius take 60% damage (direct hit unchanged). New Splash upgrade widens the radius.',
       ],
       balance: [
-        'Nuke: ×2.5 damage and slower fire (cadence ~1/3rd of bullet). Bigger blast and waste radius to match.',
-        'Ricochet: bounce range 240 → 500, bounces 2 → 3, full bullet speed. Now actually finds a second target in typical waves.',
+        'Nuke: damage ×2.5 (+150%), fire cadence ~1/3 of bullet (−67%), bigger blast and waste radius.',
+        'Ricochet: bounce range 240 → 500 (+108%), bounces 2 → 3 (+50%), full bullet speed.',
       ],
       ui: [
-        'Nuclear-waste zone no longer pulses — it expands once on detonation, then slowly shrinks to nothing. Damage area always matches the visual.',
-        'Carrier loadout slots replaced with sleek cycle-on-click chips (was a native dropdown). Shows slot number + current weapon + a cycle hint.',
+        'Nuclear-waste zone expands once on detonation then shrinks to nothing (no pulse); damage area matches the visual.',
+        'Carrier loadout slots are now cycle-on-click chips (was a dropdown), showing slot number, current weapon, and a cycle hint.',
       ],
-      fixes: [
-        'Ricochet rounds now draw a short magenta trail so the bounce direction is readable at a glance.',
-      ],
+      fixes: ['Ricochet rounds now draw a short magenta trail.'],
     },
   },
   {
@@ -199,12 +198,12 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-08',
     changes: {
       features: [
-        'Ship auto-attack is now a swappable weapon. The default Bullet stays unchanged — buy and equip alternatives in the new Loadout shop tab: Laser pierces enemies in a line, Missile homes onto targets, Ricochet bounces between nearby enemies, and Nuke is a slow lob with a massive blast that leaves a radioactive zone damaging anything that enters it.',
-        'Carrier fields 3 different weapons at once — equip a distinct weapon in each of its three slots and they fire on their own independent cadences (a Nuke slot stays slow while two Bullet slots keep up rapid fire).',
-        'Per-weapon upgrade trees in the Loadout tab: extra damage, more pierce, more bounces, bigger blast, longer fallout.',
+        'Ship auto-attack is now a swappable weapon. New Loadout shop tab offers alternatives (Bullet unchanged): Laser pierces in a line, Missile homes onto targets, Ricochet bounces between nearby enemies, Nuke lobs slow for a massive blast leaving a radioactive zone.',
+        'Carrier fields 3 different weapons at once — one per slot, each firing on its own independent cadence.',
+        'Per-weapon upgrade trees in the Loadout tab: damage, pierce, bounces, blast, fallout.',
       ],
       architecture: [
-        'New engine/ship/ folder holds ship variants, weapon definitions, and the weapon registry — mirrors the engine/abilities/ pattern, so a new ship weapon needs one new file + one registry entry. SHIP_VARIANTS now lives there (re-exported from data.ts for back-compat).',
+        'New engine/ship/ folder holds ship variants, weapon definitions, and the weapon registry (mirrors engine/abilities/): a new weapon needs one file + one registry entry. SHIP_VARIANTS moved there, re-exported from data.ts.',
       ],
     },
   },
@@ -213,25 +212,25 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-08',
     changes: {
       features: [
-        'Every weapon now has a power-cost (Efficiency) upgrade where one was missing — Rocket, Shield, Helper, and Telekinesis. Every AoE ability now has a Range / Radius upgrade — Meteor, Black Hole, Sun, and Solar Flare.',
-        'Telekinesis gains a Force upgrade — push enemies harder over time.',
-        'Damage upgrades extend to 5 tiers for every weapon and the ship auto-turret, giving late-game stardust a real sink.',
+        'Added power-cost (Efficiency) upgrades to Rocket, Shield, Helper, and Telekinesis. Added Range / Radius upgrades to Meteor, Black Hole, Sun, and Solar Flare.',
+        'Telekinesis gains a Force upgrade — pushes enemies harder.',
+        'Damage upgrades now extend to 5 tiers for every weapon and the ship auto-turret.',
       ],
       balance: [
-        'Meteorite nerf: power cost 5 → 8, damage 15 → 10, cooldown 0.05 → 0.2. Tap-to-aim on mobile made it dominant; this brings it in line with mid-game weapons.',
-        'Tier 2 stardust costs ×2, Tier 3 ×4 across every weapon and ship upgrade. Endgame upgrades now feel earned.',
+        'Meteorite: power cost 5 → 8 (+60%), damage 15 → 10 (−33%), cooldown 0.05 → 0.2 (×4).',
+        'Tier 2 stardust cost ×2 (+100%), Tier 3 ×4 (+300%) across every weapon and ship upgrade.',
       ],
       fixes: [
-        'Telekinesis on-screen circle now matches the upgraded pull radius. Buying the Radius upgrade extends both the effect and the visible circle, not just the effect.',
-        'Shop ordering: offered weapons no longer jump into the middle of your unlocked list — they sit at the bottom until purchased.',
-        'Mobile: space-metal ability buttons and weapon swapping are tappable again — the buttons lost their touch handling when the canvas claimed drag gestures for telekinesis / solar flare.',
-        'Mobile (iOS pseudo-fullscreen): rotating from portrait to landscape no longer leaves Safari’s tab bar showing — the page now scrolls far enough to trip Safari’s auto-hide on rotate and viewport resize, not just a 1px nudge.',
+        'Telekinesis on-screen circle now matches the upgraded pull radius.',
+        'Offered weapons sit at the bottom of the shop list until purchased (no longer jump into the middle of your unlocked list).',
+        'Mobile: space-metal ability buttons and weapon swapping are tappable again.',
+        'Mobile (iOS pseudo-fullscreen): rotating portrait to landscape no longer leaves Safari’s tab bar showing.',
       ],
       ui: [
-        'Maxed-out weapons display a "MAX" badge in the shop list — no need to click in to check.',
-        'Changelog now has a filter dropdown — toggle categories (Features, Balance, Fixes, etc.). "Internal Architecture" is hidden by default.',
-        'Ability cards show a small recharge ring at the top-right that fills as the cooldown ticks down — readable even when the card has no visible label area.',
-        'Shop now lists weapons in unlock order (matching the hotbar). Newly-offered weapons appear at the bottom of the list instead of slotting into their canonical position.',
+        'Maxed-out weapons show a "MAX" badge in the shop list.',
+        'Changelog now has a filter dropdown to toggle categories (Features, Balance, Fixes, etc.); "Internal Architecture" is hidden by default.',
+        'Ability cards show a top-right recharge ring that fills as the cooldown ticks down.',
+        'Shop now lists weapons in unlock order (matching the hotbar); newly-offered weapons appear at the bottom of the list.',
       ],
     },
   },
@@ -240,8 +239,8 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-07',
     changes: {
       ui: [
-        'Mobile: the weapon and space-metal ability buttons now merge into one cluster positioned clear of the play area — a bottom row in portrait, a right-side column in landscape — so the controls no longer block shots at enemies on the facing edge. Desktop keeps the split bottom/side layout.',
-        'The Help button is removed (The ? button), and moved into the settings menu',
+        'Mobile: the weapon and space-metal ability buttons merge into one cluster clear of the play area — a bottom row in portrait, a right-side column in landscape. Desktop keeps the split bottom/side layout.',
+        'Help (?) button removed from the HUD, moved into the settings menu.',
       ],
     },
   },
@@ -250,7 +249,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-07',
     changes: {
       ui: [
-        'Replaced every game emoji (pause, fullscreen, help, all weapon and space-metal icons) with a crisp inline-SVG icon set. Icons now render identically and sleek on every device instead of as full-color OS emoji on mobile, and tint to the accent colour on hover.',
+        'Replaced every game emoji (pause, fullscreen, help, all weapon and space-metal icons) with an inline-SVG icon set — icons render identically on every device and tint to the accent colour on hover.',
       ],
     },
   },
@@ -259,9 +258,9 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-07',
     changes: {
       ui: [
-        'Drag abilities (telekinesis, solar flare) no longer scroll the page on mobile — the canvas now claims touch gestures so a drag keeps controlling the game instead of panning the page.',
-        'Short landscape phones: the upgrade screen no longer leaves a forced gap that pushed the Continue button below the fold when a tab had only a few upgrades — the button now sits right under the last upgrade.',
-        "iOS pseudo-fullscreen now re-hides Safari's URL / tab bar after a rotate — turning the phone no longer leaves the bars stranded on screen.",
+        'Drag abilities (telekinesis, solar flare) no longer scroll the page on mobile — the canvas claims touch gestures.',
+        'Short landscape phones: the upgrade screen Continue button now sits right under the last upgrade (no forced gap).',
+        "iOS pseudo-fullscreen now re-hides Safari's URL / tab bar after a rotate.",
       ],
     },
   },
@@ -271,9 +270,9 @@ export const CHANGELOG: ChangelogEntry[] = [
     changes: {
       fixes: [
         'Non-bomber enemies (drones, tanks, shooters, swarmers) no longer suicide on contact — they deal their damage, bounce off the ship or helper, and stay in the fight. Bombers still detonate on impact.',
-        'Bomber death explosions now damage helpers caught in the blast radius, not just the ship (shields still shelter a helper inside the dome).',
+        'Bomber death explosions now damage helpers in the blast radius, not just the ship (shields still shelter a helper inside the dome).',
       ],
-      balance: ['Increase bomber explosion damage by 33%: 30->40'],
+      balance: ['Bomber explosion damage 30 → 40 (+33%)'],
     },
   },
   {
@@ -281,10 +280,10 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-06',
     changes: {
       features: [
-        'Added an in-game help modal — the ? button (top-right) covers gameplay, controls, space-metal abilities, and progression. Opening it freezes the game and blocks input until you close it.',
+        'Added an in-game help modal (? button, top-right) covering gameplay, controls, space-metal abilities, and progression; freezes the game while open.',
       ],
       ui: [
-        'Reworked the start-screen blurb to set up the cosmic-guardian premise and point new players at the in-game help.',
+        'Reworked the start-screen blurb for the cosmic-guardian premise, pointing new players at the in-game help.',
       ],
     },
   },
@@ -293,17 +292,17 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-06',
     changes: {
       features: [
-        'Helper allies no longer expire on a timer — they steadily lose HP (1/s) and die when HP hits 0. Combat damage stacks on top. The old Duration upgrade is now Max Health, directly extending how long allies survive.',
+        'Helper allies no longer expire on a timer — they lose 1 HP/s and die at 0, with combat damage on top. The old Duration upgrade is now Max Health.',
       ],
       ui: [
-        'Landscape fullscreen on mobile: start / ship-select / upgrade screens now scroll when the panel is taller than the viewport, so the Start / Launch / Continue buttons are always reachable.',
-        'Canvas now renders at devicePixelRatio resolution — sprites are crisp on Retina / high-DPI mobile instead of blocky in fullscreen.',
-        'Camera zoom now folds in min-dimension scaling, so wide-but-short viewports (landscape phone fullscreen) zoom out further and the play area no longer feels cramped.',
+        'Landscape fullscreen on mobile: start / ship-select / upgrade screens now scroll when taller than the viewport, keeping Start / Launch / Continue reachable.',
+        'Canvas now renders at devicePixelRatio resolution — sprites are crisp on Retina / high-DPI mobile.',
+        'Camera zoom now folds in min-dimension scaling, so wide-but-short viewports zoom out further.',
         'iOS pseudo-fullscreen now nudges Safari to auto-hide its URL bar on entry.',
       ],
       fixes: [
-        'Helper damage upgrades and max-HP upgrades now actually reach the spawned ally (the duration upgrade was previously a no-op because the factory ignored ability stats).',
-        'Escape Mode dash is now clamped to the play area, so a dash near the edge no longer flings the ship off-screen.',
+        'Helper damage and max-HP upgrades now reach the spawned ally.',
+        'Escape Mode dash is now clamped to the play area.',
       ],
     },
   },
@@ -312,10 +311,10 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-06',
     changes: {
       balance: [
-        'Increase sun duration by 60%: 5->8s',
-        'Decrease solar flare beam width by 33%: 60->40px',
-        'Decrease black hole cost by 40%: 50->30 power',
-        'Increase black hole pull strength by 25%: 200->250',
+        'Sun duration 5 → 8s (+60%)',
+        'Solar flare beam width 60 → 40px (−33%)',
+        'Black hole cost 50 → 30 power (−40%)',
+        'Black hole pull strength 200 → 250 (+25%)',
       ],
     },
   },
@@ -324,13 +323,13 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-06',
     changes: {
       features: [
-        'Ability bar now hides locked abilities and orders the rest by unlock time. The ability you unlock first gets hotkey 1, the second gets 2, and so on — the slot never shifts after that.',
-        'Escape Mode: new space-metal ability (hotkey G, costs 2 space metal). Briefly slows the ship while charging, then dashes in your current heading with a flame trail. Ship is invincible the entire time.',
-        'Level-up weapons tab now offers 2 random locked weapons per level; buying either one removes the other for that level-up. Owned weapons remain fully upgradable.',
+        'Ability bar now hides locked abilities and orders the rest by unlock time — the first unlocked gets hotkey 1, the second 2, and the slot never shifts after.',
+        'Escape Mode: new space-metal ability (hotkey G, costs 2 space metal) — slows the ship while charging, then dashes in your current heading with a flame trail; ship invincible throughout.',
+        'Level-up weapons tab now offers 2 random locked weapons per level; buying one removes the other for that level-up. Owned weapons stay fully upgradable.',
       ],
       ui: [
-        'Mobile ability bar wraps to multiple rows when many abilities are unlocked, fixing the cramped overflow on narrow screens.',
-        'Space-metal counter + abilities moved to a dedicated right-side rail. Built on a small registry so new space-metal powers slot in without UI surgery.',
+        'Mobile ability bar wraps to multiple rows when many abilities are unlocked.',
+        'Space-metal counter + abilities moved to a dedicated right-side rail, built on a small registry for new powers.',
       ],
     },
   },
@@ -339,10 +338,10 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-04',
     changes: {
       fixes: [
-        'Enemy bullets no longer tunnel through the ship at 2× game speed — the swept collision check now applies to enemy fire as well as your own.',
+        'Enemy bullets no longer tunnel through the ship at 2× game speed — the swept collision check now applies to enemy fire too.',
       ],
       architecture: [
-        'Solar Flare kills now tally score and currency through the game loop like every other kill source, instead of inline; removed the dead telekinesis drag-delta input plumbing.',
+        'Solar Flare kills now tally score and currency through the game loop like every other kill source (was inline); removed dead telekinesis drag-delta input plumbing.',
       ],
     },
   },
@@ -351,10 +350,10 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-04',
     changes: {
       features: [
-        'Telekinesis now applies a radial force that pushes enemies away from your cursor instead of shoving them around with your drag. Set TELEKINESIS.mode to "pull" in abilityData.ts to flip behavior.',
+        'Telekinesis now applies a radial force that pushes enemies away from your cursor (was drag-based). Set TELEKINESIS.mode to "pull" in abilityData.ts to flip behavior.',
       ],
       fixes: [
-        'Telekinesis now needs 1 second of power to start (same as solar flare) and shuts off the instant power runs out, instead of half-firing on passive regen.',
+        'Telekinesis now needs 1 second of power to start and shuts off the instant power runs out.',
       ],
     },
   },
@@ -365,16 +364,14 @@ export const CHANGELOG: ChangelogEntry[] = [
       features: [
         'Allies now have an HP bar that follows them, mirroring the ship bar.',
         'Allies now orbit the ship at unique per-ally angles and weave with random noise — stacked allies fan out instead of overlapping.',
-        'Solar Flare visual now spawns a dense hot core (white/yellow) with a wider orange spray, giving a real fire feel.',
+        'Solar Flare visual now spawns a dense white/yellow core with a wider orange spray.',
       ],
       balance: [
-        'Allies are noticeably worse at dodging enemies (lower avoid radius, weaker push, added random movement) so they can actually die.',
+        'Allies dodge enemies worse — lower avoid radius, weaker push, added random movement — so they can die.',
       ],
-      fixes: [
-        'Solar Flare now deactivates the moment power drops below one tick of cost — it no longer keeps half-firing on the trickle of passive regen after running out.',
-      ],
+      fixes: ['Solar Flare now deactivates the moment power drops below one tick of cost.'],
       architecture: [
-        'Consolidated all per-ability data (meta, base stats, factories, upgrade definitions, upgrade-application logic) into one file per ability under engine/abilities/. Adding a new ability now means creating a single file and registering it in the index, instead of editing ~6 separate lookup tables across the codebase.',
+        'Consolidated all per-ability data (meta, base stats, factories, upgrade definitions and application) into one file per ability under engine/abilities/ — a new ability is one file + an index entry.',
       ],
     },
   },
@@ -383,14 +380,14 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-04',
     changes: {
       features: [
-        'Allies now follow your ship and weave away from nearby enemies — they no longer stand still while shooting.',
-        'Solar Flare is now a radial particle storm at your cursor instead of a beam from your ship.',
-        'Solar Flare arms only when you have at least 1 second of power available, and stops the moment power runs out.',
-        'Telekinesis force now uses a plateau curve — full strength near the cursor with a smooth falloff, so you no longer need to land the cursor dead-on an entity.',
+        'Allies now follow your ship and weave away from nearby enemies (no longer stand still while shooting).',
+        'Solar Flare is now a radial particle storm at your cursor (was a beam from your ship).',
+        'Solar Flare arms only with at least 1 second of power available and stops the moment power runs out.',
+        'Telekinesis force now uses a plateau curve — full strength near the cursor with a smooth falloff.',
       ],
       fixes: [
-        'Enemies now die and damage allies when ramming them — previously only enemy projectiles could damage allies.',
-        'Solar Flare cursor now stays under your actual mouse instead of drifting in world coordinates as the camera moves.',
+        'Enemies now die and damage allies when ramming them.',
+        'Solar Flare cursor now stays under your actual mouse instead of drifting as the camera moves.',
         'Space metal can now be collected while Solar Flare or Telekinesis is selected.',
       ],
     },
@@ -400,10 +397,10 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-04',
     changes: {
       features: [
-        'New ability: Helper — click to summon a ranged ally that fights alongside the ship for 20 seconds. No cap; stack them up.',
-        'New ability: Telekinesis — hold to create a force field at your cursor. Drag it to push enemies away with distance-based falloff.',
-        'New ability: Solar Flare — hold toward enemies to emit a continuous damage beam. Power drains every 0.25s while active.',
-        'Enemies now target and shoot at Helper allies — use them as bait.',
+        'New ability: Helper — click to summon a ranged ally that fights for 20 seconds. No cap; stack them.',
+        'New ability: Telekinesis — hold to create a force field at your cursor; drag to push enemies away with distance-based falloff.',
+        'New ability: Solar Flare — hold toward enemies for a continuous damage beam; power drains every 0.25s while active.',
+        'Enemies now target and shoot at Helper allies.',
       ],
       fixes: [
         'Bullets no longer tunnel through enemies at 2× game speed — swept segment-circle collision replaces the old point check.',
@@ -422,17 +419,17 @@ export const CHANGELOG: ChangelogEntry[] = [
         'Dreadnought: massive shield pool that regens after cooldown (110 HP, 120 shield, slow)',
         'Carrier: fires at up to 3 enemies simultaneously (moderate stats)',
         'Ship shield system — a secondary HP layer that absorbs damage first and regens over time',
-        'When the shield breaks it enters a cooldown before regenerating at half the starting amount',
+        'Shield enters a cooldown when broken, then regens at half the starting amount',
         'Space metal can instantly refill the shield — press F or click the HUD button',
         'New upgrade: Fire Rate — increase auto-turret fire rate (3 tiers)',
         'New upgrade: Shield Strength — increase maximum shield (3 tiers)',
         'New upgrade: Engine Boost — increase ship speed (3 tiers)',
       ],
       fixes: [
-        'Shop upgrade buttons are now fully clickable (previously only the text was clickable, not the surrounding box)',
-        'Fixed an issue where if 2 player bullets were in the air and one hit an enemy, the other would be removed',
+        'Shop upgrade buttons are now fully clickable (was text-only, not the surrounding box)',
+        'Two player bullets in the air: one hitting an enemy no longer removes the other',
       ],
-      ui: ['The player ship is now not visible in the background before starting a game'],
+      ui: ['Player ship is no longer visible in the background before a game starts'],
     },
   },
   {
@@ -440,23 +437,21 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-02',
     changes: {
       features: [
-        'Shield now reflects enemy velocity on contact — enemies bounce off the dome instead of just being snapped back to the edge',
+        'Shield now reflects enemy velocity on contact — enemies bounce off the dome instead of snapping back to the edge',
         'Shield blocks bomber explosions if the ship is inside the dome and the bomber explodes outside it',
-        'Rocket now detonates when it physically touches an enemy — no more flying past an enemy and still damaging it from empty space',
-        'Shield grandfathering is now per-tick — an enemy that was inside when the shield dropped can still walk out, but the moment it leaves it loses its grandfathered status and gets bounced back if it tries to re-enter',
+        'Rocket now detonates when it physically touches an enemy, instead of flying past and still damaging from empty space',
+        'Shield grandfathering is now per-tick — an enemy inside when the shield dropped can walk out, but loses grandfathered status on leaving and is bounced back if it re-enters',
       ],
       ui: [
-        'Camera now zooms based on viewport area — the same total amount of world is visible regardless of screen size or fullscreen state',
+        'Camera now zooms based on viewport area — the same total world is visible regardless of screen size or fullscreen state',
         'Mobile shows more world area (zoomed-out) so enemies approaching from the sides are visible',
-        'Mobile-friendly polish: bigger pause / fullscreen tap targets (44×44) and a much taller game area on phones',
+        'Mobile polish: bigger pause / fullscreen tap targets (44×44) and a much taller game area on phones',
         'Fullscreen now works on iPhone Safari via a CSS-based fallback (Fullscreen API is unsupported there)',
-        'HUD elements (level bar, score, pause / fullscreen buttons, ability hotbar) now scale with the gameplay area — going fullscreen no longer leaves the UI looking tiny',
+        'HUD elements (level bar, score, pause / fullscreen buttons, ability hotbar) now scale with the gameplay area',
         'Pause / settings / upgrade / game-over screens scale with the HUD too',
-        'Game starts a bit more zoomed-out by default — more of the surrounding space is visible at a glance',
+        'Game starts more zoomed-out by default',
       ],
-      fixes: [
-        'Going fullscreen no longer reveals more of the game world — gameplay difficulty stays consistent across window sizes',
-      ],
+      fixes: ['Going fullscreen no longer reveals more of the game world'],
     },
   },
   {
@@ -464,14 +459,12 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-02',
     changes: {
       features: [
-        'New ability: Rocket — launches from your ship and flies to the target, exploding on arrival with a bigger blast radius than the meteor',
-        'New ability: Shield — places a stationary dome that absorbs enemy projectiles and physically blocks enemies from entering (enemies already inside when the shield drops stay free until they leave)',
-        'New ability: Sun — drops a massive stationary AoE damage zone that lasts a few seconds — devastating, very long cooldown',
+        'New ability: Rocket — flies from your ship to the target, exploding on arrival with a bigger blast radius than the meteor',
+        'New ability: Shield — a stationary dome that absorbs enemy projectiles and blocks enemies from entering (those already inside when it drops stay free until they leave)',
+        'New ability: Sun — drops a massive stationary AoE damage zone for a few seconds; very long cooldown',
         'Six abilities total now visible in the hotbar, unlockable from the shop',
       ],
-      fixes: [
-        'Weapon order in the hotbar and shop is now controlled by a single WEAPON_ORDER array — no more drift between the two UIs when a new weapon is added',
-      ],
+      fixes: ['Hotbar and shop weapon order is now driven by a single WEAPON_ORDER array'],
     },
   },
   {
@@ -479,13 +472,13 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-02',
     changes: {
       features: [
-        'Space metal now flies into the ship when you click it (same magnetic arc as power orbs) instead of teleporting away. Click semantics unchanged — you still have to click to claim it; only the visual flight is new.',
+        'Clicked space metal now flies into the ship (same magnetic arc as power orbs) instead of teleporting away. Click-to-claim unchanged.',
       ],
       fixes: [
-        'Wave delay no longer freezes in-flight meteors / homing power orbs — only enemy spawning is gated by the delay',
-        'Game now opens with the camera already centered on your ship — no more brief "rush across space" on first load or after restarting.',
-        'Bombers now explode when they reach your ship — the on-death AoE fires on every death, not just when you shoot them down. Letting a bomber ram you now hurts as intended.',
-        'Swarm enemies now weave in sync with the game-speed setting (and freeze cleanly when paused) — their side-to-side motion is driven by game time instead of the wall clock.',
+        'Wave delay no longer freezes in-flight meteors / homing power orbs — only enemy spawning is gated',
+        'Game now opens with the camera already centered on your ship — no "rush across space" on first load or restart.',
+        'Bombers now explode when they reach your ship — the on-death AoE fires on every death, not just when shot down.',
+        'Swarm enemies now weave in sync with the game-speed setting and freeze cleanly when paused — driven by game time, not the wall clock.',
       ],
       ui: ['Game-speed buttons in Settings now announce their selected state to screen readers.'],
     },
@@ -495,7 +488,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-02',
     changes: {
       features: [
-        'Pause menu — press P or click the pause button. Resumes cleanly with no time-skip',
+        'Pause menu — press P or click the pause button; resumes cleanly with no time-skip',
         'Settings menu — game speed slider (0.5×/1×/2×) accessible from pause',
         'Fullscreen toggle button — uses the Fullscreen API to fill the screen',
         'Speed indicator in the HUD when game speed is not 1×',
@@ -504,8 +497,8 @@ export const CHANGELOG: ChangelogEntry[] = [
         'Tank enemies pursue the ship steadily — velocity is now smoothed instead of flipping each frame as the ship reverses',
       ],
       ui: [
-        'Upgrade menu now stays a fixed size across tabs — no more heading jumping or layout shifts when switching between Weapons/Ship/Powers',
-        'Shooter enemy sprite redesigned — cleaner diamond silhouette with a glowing eye, easier to tell apart from other enemies at a glance',
+        'Upgrade menu now stays a fixed size across tabs — no heading jump or layout shift when switching Weapons/Ship/Powers',
+        'Shooter enemy sprite redesigned — cleaner diamond silhouette with a glowing eye',
       ],
     },
   },
@@ -516,12 +509,12 @@ export const CHANGELOG: ChangelogEntry[] = [
       features: [
         'New enemy: Swarm — tiny, fast, zigzag movement, spawn in packs of 5-8',
         'New enemy: Bomber — slow, bulky, explodes on death dealing AoE damage to the ship',
-        'Power orbs — enemies now drop collectible blue orbs that magnetically arc toward your ship to restore power',
+        'Power orbs — enemies now drop blue orbs that magnetically arc toward your ship to restore power',
         'Space metal — rare gold hexagonal drops that must be clicked to collect (premium currency)',
       ],
       ui: ['Space metal counter in the HUD'],
       architecture: [
-        'Unified effect system replaces per-ability arrays for cleaner architecture',
+        'Unified effect system replaces per-ability arrays',
         'Data-driven movement behaviors (chase, keep-range, zigzag) replace hardcoded enemy if/else',
         'Ability creation uses a factory map instead of branching logic',
       ],
@@ -532,7 +525,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-02',
     changes: {
       features: [
-        'Enemies trickle in near the ship with randomized order and timing instead of all spawning at the map edge at once',
+        'Enemies trickle in near the ship with randomized order and timing, instead of all spawning at the map edge at once',
       ],
       ui: [
         'Level progress bar at the top of the HUD — fills as enemies spawn, with milestone dots per wave',
@@ -540,7 +533,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         'Wave-complete and game-over screens show wave progress within the current level',
       ],
       fixes: [
-        'Abilities now sort by power cost (cheapest first), and their hotkey numbers and HUD badges derive from that order so they always match',
+        'Abilities now sort by power cost (cheapest first); hotkey numbers and HUD badges derive from that order',
       ],
       architecture: [
         'Random functions now use the seeded RNG instead of deterministic index-based positioning',
@@ -552,12 +545,12 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-01',
     changes: {
       fixes: [
-        'Black Hole Duration upgrade now actually extends the black hole lifetime',
+        'Black Hole Duration upgrade now extends the black hole lifetime',
         'Game-over screen no longer shows "New High Score!" when you only tie your best',
       ],
       architecture: [
-        'Smoother rendering: black hole gradients are now cached instead of rebuilt each frame',
-        'Enemy stats now read from a single source of truth so balance tweaks always apply',
+        'Black hole gradients are now cached instead of rebuilt each frame',
+        'Enemy stats now read from a single source of truth',
         'Sprite keys converted to a const object, removing the last magic-string union',
       ],
     },
@@ -579,7 +572,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         'Drill-down weapon upgrades: click a weapon to see its sub-upgrades',
         'Hotkeys 1/2/3 to switch between abilities',
       ],
-      balance: ['Ship damage reduced (10→5) and power regen increased (3→5/s)'],
+      balance: ['Ship damage 10 → 5 (−50%), power regen 3 → 5/s (+67%)'],
       architecture: ['Eliminated all magic-string union types in favor of const objects'],
       fixes: ['Renamed from Event Horizon to Null Space'],
     },
