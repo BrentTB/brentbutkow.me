@@ -3,6 +3,7 @@ import type { ShifterRuntime, Vec2 } from '../types'
 import { rng } from '../math/random'
 import { clamp } from '../math/utils'
 import type { BossDefinition, BossUpdateResult, DropSpec, SpawnSpec } from './boss-definition'
+import { metalBurst } from './loot'
 
 // Exported — the renderer scales the telegraph X's alpha by telegraphDuration.
 export const PHASE_SHIFTER = {
@@ -105,18 +106,5 @@ export const PHASE_SHIFTER_BOSS: BossDefinition = {
     return { updatedRuntime: { ...runtime, phase, shifter: next }, spawns, self }
   },
 
-  onDeath: (boss): DropSpec[] => {
-    // 1–4 space metal burst outward from the boss position.
-    const count = 1 + rng.intRange(0, 3)
-    const drops: DropSpec[] = []
-    for (let i = 0; i < count; i++) {
-      const angle = rng.range(0, Math.PI * 2)
-      const dist = rng.range(20, 60)
-      drops.push({
-        pos: { x: boss.pos.x + Math.cos(angle) * dist, y: boss.pos.y + Math.sin(angle) * dist },
-        vel: { x: Math.cos(angle) * 40, y: Math.sin(angle) * 40 },
-      })
-    }
-    return drops
-  },
+  onDeath: (boss): DropSpec[] => metalBurst(boss.pos, 1, 4),
 }

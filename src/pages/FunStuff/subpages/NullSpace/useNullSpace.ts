@@ -143,7 +143,9 @@ export function abilityKindForHotkey(
 }
 
 export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null>) {
-  const [uiState, setUiState] = useState<GameUIState>({
+  const gameStateRef = useRef<GameState>(createInitialState())
+
+  const [uiState, setUiState] = useState<GameUIState>(() => ({
     phase: GamePhase.menu,
     shipKind: ShipKind.fighter,
     score: 0,
@@ -175,10 +177,9 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     slingHeat: 0,
     slingOverheated: false,
     boss: null,
-    nextBoss: EnemyKind.dreadnought,
-  })
+    nextBoss: gameStateRef.current.bossSelection.nextBoss,
+  }))
 
-  const gameStateRef = useRef<GameState>(createInitialState())
   const cameraRef = useRef<Camera>(createCamera(800, 600))
   const spritesRef = useRef<SpriteCache | null>(null)
   const starsRef = useRef<Star[]>([])

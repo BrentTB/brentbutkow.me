@@ -1,5 +1,6 @@
 import { createEnemy } from '../entities/entity-creator'
 import { getBossDefinition } from './index'
+import type { BossTickContext } from './boss-definition'
 import type { Enemy, Vec2 } from '../types'
 
 // Asks each boss's positionLinked hook where its alive linked entities belong
@@ -31,7 +32,7 @@ function computeLinkedPositions(enemies: Enemy[]): Map<string, { pos: Vec2; vel:
 export function updateBossAI(
   enemies: Enemy[],
   dt: number,
-  ctx: { shipPos: Vec2; worldSize: Vec2 }
+  ctx: Omit<BossTickContext, 'enemies'>
 ): { enemies: Enemy[]; newEnemies: Enemy[] } {
   let newEnemies: Enemy[] = []
 

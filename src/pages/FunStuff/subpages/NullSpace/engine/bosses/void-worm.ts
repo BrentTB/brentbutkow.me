@@ -1,11 +1,12 @@
 import { EnemyKind, WormStage } from '../types'
 import type { Enemy, Vec2, WormRuntime } from '../types'
 import { ENEMY_STATS } from '../../data'
-import { rng } from '../math/random'
 import { clamp } from '../math/utils'
 import { homeTowardTarget } from '../math/homing'
+import { unitToward } from '../math/vec'
 import { hasAliveLinked } from './boss-definition'
 import type { BossDefinition, BossUpdateResult, DropSpec, SpawnSpec } from './boss-definition'
+import { metalBurst } from './loot'
 
 export const VOID_WORM = {
   segmentCount: 8,
@@ -20,15 +21,6 @@ export const VOID_WORM = {
   chargeDuration: 1.1,
 } as const
 
-// Unit vector from `from` to `to`; falls back to +x when the points coincide.
-function aimAt(from: Vec2, to: Vec2): Vec2 {
-  const dx = to.x - from.x
-  const dy = to.y - from.y
-  const d = Math.sqrt(dx * dx + dy * dy)
-  if (d < 0.0001) return { x: 1, y: 0 }
-  return { x: dx / d, y: dy / d }
-}
-
 // Each alive segment sits segmentSpacing behind the piece ahead of it, in
 // linkedIds order, facing its leader (vel orients the capsule sprite along the
 // chain). Dead segments are simply skipped, so the chain closes up — the worm
@@ -37,7 +29,7 @@ function positionChain(boss: Enemy, linked: Enemy[]): Map<string, { pos: Vec2; v
   const positions = new Map<string, { pos: Vec2; vel: Vec2 }>()
   let leader = boss.pos
   for (const seg of linked) {
-    const away = aimAt(leader, seg.pos)
+    const away = unitToward(leader, seg.pos)
     const next = {
       x: leader.x + away.x * VOID_WORM.segmentSpacing,
       y: leader.y + away.y * VOID_WORM.segmentSpacing,
@@ -93,18 +85,29 @@ export const VOID_WORM_BOSS: BossDefinition = {
     let self: BossUpdateResult['self']
 
     if (worm.stage === WormStage.cruise) {
-      // Weave toward the ship at cruise speed, re-aiming every tick.
+      // Weave toward the ship at cruise speed, re-aiming every tick. Clamp
+      // matches the charge branch — a ship kited to a world edge would
+      // otherwise drag the head off the playfield (MovementBehavior.none
+      // never bounds it).
       const homed = homeTowardTarget(boss.pos, ctx.shipPos, VOID_WORM.cruiseSpeed, dt)
-      self = { pos: homed.pos, vel: homed.vel }
-      const heading = aimAt(boss.pos, ctx.shipPos)
+      self = {
+        pos: {
+          x: clamp(homed.pos.x, 0, ctx.worldSize.x),
+          y: clamp(homed.pos.y, 0, ctx.worldSize.y),
+        },
+        vel: homed.vel,
+      }
+      const heading = unitToward(boss.pos, ctx.shipPos)
       next =
         stageTimer <= 0
           ? { stage: WormStage.windup, stageTimer: VOID_WORM.windupDuration, heading }
           : { ...worm, stageTimer, heading }
     } else if (worm.stage === WormStage.windup) {
-      // Stall in place while keeping aim — the tell before the lunge.
-      self = { vel: { x: 0, y: 0 } }
-      const heading = aimAt(boss.pos, ctx.shipPos)
+      // Stall in place while keeping aim — the tell before the lunge. Tiny
+      // vel along heading keeps the head sprite oriented (the renderer uses
+      // vel to rotate it); zero vel would flip it to default-facing mid-tell.
+      const heading = unitToward(boss.pos, ctx.shipPos)
+      self = { vel: { x: heading.x * 0.001, y: heading.y * 0.001 } }
       next =
         stageTimer <= 0
           ? { stage: WormStage.charge, stageTimer: VOID_WORM.chargeDuration, heading }
@@ -147,18 +150,5 @@ export const VOID_WORM_BOSS: BossDefinition = {
     }
   },
 
-  onDeath: (boss): DropSpec[] => {
-    // 2–4 space metal burst outward from the head.
-    const count = 2 + rng.intRange(0, 2)
-    const drops: DropSpec[] = []
-    for (let i = 0; i < count; i++) {
-      const angle = rng.range(0, Math.PI * 2)
-      const dist = rng.range(20, 60)
-      drops.push({
-        pos: { x: boss.pos.x + Math.cos(angle) * dist, y: boss.pos.y + Math.sin(angle) * dist },
-        vel: { x: Math.cos(angle) * 40, y: Math.sin(angle) * 40 },
-      })
-    }
-    return drops
-  },
+  onDeath: (boss): DropSpec[] => metalBurst(boss.pos, 2, 4),
 }

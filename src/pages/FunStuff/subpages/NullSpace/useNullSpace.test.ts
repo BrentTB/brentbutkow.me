@@ -19,6 +19,15 @@ describe('useNullSpace', () => {
     expect(result.current.uiState.selectedAbility).toBe(AbilityKind.meteorite)
   })
 
+  it('seeds nextBoss from the pre-rolled boss selection at mount, not a hardcoded default', () => {
+    // Regression: the hook used to initialise uiState.nextBoss to a literal
+    // EnemyKind.dreadnought, so the dev-console readout was misleading at
+    // menu time even though the engine had already pre-rolled a random boss.
+    const canvasRef = createRef<HTMLCanvasElement>()
+    const { result } = renderHook(() => useNullSpace(canvasRef))
+    expect(BOSS_KINDS).toContain(result.current.uiState.nextBoss)
+  })
+
   it('exposes the pre-rolled next boss once a game starts', () => {
     const canvasRef = createRef<HTMLCanvasElement>()
     const { result } = renderHook(() => useNullSpace(canvasRef))

@@ -1,8 +1,10 @@
 import { EnemyKind } from '../types'
 import type { Enemy, Vec2 } from '../types'
 import { rng } from '../math/random'
+import { unitToward } from '../math/vec'
 import { hasAliveLinked } from './boss-definition'
 import type { BossDefinition, DropSpec, SpawnSpec } from './boss-definition'
+import { metalBurst } from './loot'
 
 // Phase 1 (HP > 50%): drone pair every 10s. Phase 2 (HP ≤ 50%): every 5s.
 const DRONE_INTERVAL_P1 = 10
@@ -41,11 +43,7 @@ function positionGeneratorRing(boss: Enemy, gens: Enemy[]): Map<string, { pos: V
   const positions = new Map<string, { pos: Vec2; vel: Vec2 }>()
   for (const g of gens) {
     // Radial pin direction — the generator's current angle around the boss.
-    const dx = g.pos.x - boss.pos.x
-    const dy = g.pos.y - boss.pos.y
-    const d = Math.sqrt(dx * dx + dy * dy)
-    const nx = d > 0.0001 ? dx / d : 1
-    const ny = d > 0.0001 ? dy / d : 0
+    const { x: nx, y: ny } = unitToward(boss.pos, g.pos)
 
     // Tangential spread — sum repulsion from the other generators.
     let rx = 0
@@ -138,18 +136,5 @@ export const DREADNOUGHT_BOSS: BossDefinition = {
     }
   },
 
-  onDeath: (boss): DropSpec[] => {
-    // 1–4 space metal burst outward from the boss position.
-    const count = 1 + rng.intRange(0, 3)
-    const drops: DropSpec[] = []
-    for (let i = 0; i < count; i++) {
-      const angle = rng.range(0, Math.PI * 2)
-      const dist = rng.range(20, 60)
-      drops.push({
-        pos: { x: boss.pos.x + Math.cos(angle) * dist, y: boss.pos.y + Math.sin(angle) * dist },
-        vel: { x: Math.cos(angle) * 40, y: Math.sin(angle) * 40 },
-      })
-    }
-    return drops
-  },
+  onDeath: (boss): DropSpec[] => metalBurst(boss.pos, 1, 4),
 }

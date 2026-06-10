@@ -4,8 +4,9 @@ export type SpawnSpec = { kind: EnemyKind; pos: Vec2 }
 // Loot drop spec — position + initial velocity. Caller creates the Collectible.
 export type DropSpec = { pos: Vec2; vel: Vec2 }
 
-// Per-tick world context handed to boss hooks: where the ship is (aiming,
-// teleport targeting) and the world bounds (clamping charges/landings).
+// Per-tick world context handed to boss hooks: ship position (aiming, teleport
+// targeting), world bounds (clamping charges/landings), and the live enemy
+// list so hooks can inspect linked entities or neighbours.
 export type BossTickContext = { shipPos: Vec2; worldSize: Vec2; enemies: Enemy[] }
 
 export type BossUpdateResult = {

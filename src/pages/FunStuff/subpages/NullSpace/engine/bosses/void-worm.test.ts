@@ -147,7 +147,7 @@ describe('Void Worm — attack cycle', () => {
     expect(dist(moved.pos, CTX.shipPos)).toBeLessThan(before)
   })
 
-  it('cruise hands off to windup, which stalls the head', () => {
+  it('cruise hands off to windup, which stalls the head while keeping it aimed', () => {
     let { head } = spawnedWorm()
     head = { ...head, boss: { ...head.boss!, worm: { ...head.boss!.worm!, stageTimer: 0.001 } } }
     const result = updateBossAI([head], 0.016, CTX)
@@ -155,7 +155,10 @@ describe('Void Worm — attack cycle', () => {
     expect(moved.boss!.worm!.stage).toBe(WormStage.windup)
 
     const stalled = updateBossAI([moved], 0.016, CTX).enemies[0]
-    expect(stalled.vel).toEqual({ x: 0, y: 0 })
+    // Tiny vel along the aim — the head sprite uses vel to face the ship
+    // during the tell, but the position must not meaningfully advance.
+    expect(Math.hypot(stalled.vel.x, stalled.vel.y)).toBeLessThan(0.01)
+    expect(stalled.vel.x).toBeGreaterThan(0)
   })
 
   it('charge lunges at full speed along a heading locked at windup end', () => {
@@ -209,6 +212,25 @@ describe('Void Worm — aggregate HP bar', () => {
     const partial = VOID_WORM_BOSS.hpBarValue!(head, culled)
     expect(partial.hp).toBe(full.hp - 2 * ENEMY_STATS.wormSegment.hp)
     expect(partial.maxHp).toBe(full.maxHp)
+  })
+})
+
+describe('Void Worm — cruise stays in world bounds', () => {
+  // Regression: cruise used homeTowardTarget without clamping. With
+  // MovementBehavior.none the worm owns its position, so a ship kited to the
+  // world edge dragged the head off the playfield. Charge already clamped.
+  it('clamps cruise position when the ship sits outside the world', () => {
+    const head = createEnemy(EnemyKind.voidWorm, { x: 40, y: 1500 })
+    const offMapCtx = { shipPos: { x: -800, y: 1500 }, worldSize: WORLD_SIZE }
+    let current: Enemy = head
+    for (let i = 0; i < 30; i++) {
+      const result = updateBossAI([current], 0.5, offMapCtx)
+      current = result.enemies.find((e) => e.kind === EnemyKind.voidWorm)!
+    }
+    expect(current.pos.x).toBeGreaterThanOrEqual(0)
+    expect(current.pos.x).toBeLessThanOrEqual(WORLD_SIZE.x)
+    expect(current.pos.y).toBeGreaterThanOrEqual(0)
+    expect(current.pos.y).toBeLessThanOrEqual(WORLD_SIZE.y)
   })
 })
 

@@ -197,6 +197,7 @@ src/pages/FunStuff/subpages/NullSpace/engine/bosses/
   boss-selection.ts                          createBossSelection, advanceBossSelection
   dreadnought.ts                             DREADNOUGHT_BOSS
   index.ts                                   BOSS_KINDS, isBoss, getBossDefinition, canEnemyTakeDamage
+  loot.ts                                    metalBurst
   phase-shifter.ts                           PHASE_SHIFTER, PHASE_SHIFTER_BOSS
   void-worm.ts                               VOID_WORM, VOID_WORM_BOSS
 
@@ -215,6 +216,7 @@ src/pages/FunStuff/subpages/NullSpace/engine/math/
   homing.ts                                  homeTowardTarget
   random.ts                                  rng
   utils.ts                                   clamp
+  vec.ts                                     unitToward
 
 src/pages/FunStuff/subpages/NullSpace/engine/ship/
   bullet.ts                                  bullet
