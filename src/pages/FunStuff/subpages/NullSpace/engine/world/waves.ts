@@ -8,13 +8,8 @@ export function isBossWave(waveNumber: number): boolean {
   return waveNumber > 0 && waveNumber % bossInterval === 0
 }
 
-// Returns the boss kind to spawn on boss waves. Extend the mapping here when pt2 bosses are added.
-export function getBossForWave(waveNumber: number): EnemyKind {
-  void waveNumber
-  return EnemyKind.dreadnought
-}
-
-export function getWave(waveNumber: number): EnemyKind[] {
+// `bossKind` (from GameState.bossSelection) is appended last on boss waves.
+export function getWave(waveNumber: number, bossKind?: EnemyKind): EnemyKind[] {
   const multiplier = isBossWave(waveNumber) ? BOSS_WAVE_ENEMY_MULTIPLIER : 1
 
   const droneCount = Math.round((3 + waveNumber * 2) * multiplier)
@@ -41,8 +36,8 @@ export function getWave(waveNumber: number): EnemyKind[] {
   }
 
   // Boss appended last so it spawns after the regular enemies are cleared.
-  if (isBossWave(waveNumber)) {
-    singles.push(getBossForWave(waveNumber))
+  if (isBossWave(waveNumber) && bossKind !== undefined) {
+    singles.push(bossKind)
   }
 
   return singles

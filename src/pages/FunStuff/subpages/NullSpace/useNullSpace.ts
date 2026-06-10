@@ -10,10 +10,10 @@ import {
   applyUpgradeToState,
   finishUpgradeScreen,
 } from './engine/game-loop'
-import { AbilityKind, GamePhase, ShipKind, ShipWeaponKind } from './engine/types'
+import { AbilityKind, EnemyKind, GamePhase, ShipKind, ShipWeaponKind } from './engine/types'
 import type { GameState, PlayerInput, Vec2, UpgradeId, PlayerUpgrades } from './engine/types'
 import { getBossDefinition } from './engine/bosses/index'
-import { getBossForWave } from './engine/world/waves'
+import { advanceBossSelection } from './engine/bosses/boss-selection'
 import { createShip } from './engine/entities/entity-creator'
 import { getLevel } from './engine/upgrades'
 import { BOSS_LEVEL_INTERVAL, WAVES_PER_LEVEL } from './data'
@@ -58,8 +58,9 @@ const noop = () => {}
 // Press within this world radius of the ship to "grab" it for a flick, instead
 // of using the selected ability.
 const SLING_GRAB_RADIUS_WORLD = 60
-// Drag must exceed this (CSS px) to register as a flick; it reaches full charge
-// at the max and clamps beyond.
+// Drag must exceed this (CSS px) to register as a flick — a release below it
+// falls through to a normal ability tap, so enemies near the ship stay
+// targetable. Charge reaches full at the max and clamps beyond.
 const SLING_MIN_DRAG_PX = 14
 const SLING_MAX_DRAG_PX = 170
 
@@ -95,6 +96,7 @@ export type GameUIState = {
   slingHeat: number
   slingOverheated: boolean
   boss: { hp: number; maxHp: number; label: string } | null
+  nextBoss: EnemyKind
 }
 
 // Patch shape for the dev console — every field optional, undefined means
@@ -114,6 +116,8 @@ export type DevPatch = {
   power?: number
   maxPower?: number
   wave?: number
+  // One-shot: overrides the upcoming boss wave's boss, then selection resumes.
+  nextBoss?: EnemyKind
 }
 
 // Hotkey number = position in unlock order. The HUD renders only unlocked
@@ -171,6 +175,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     slingHeat: 0,
     slingOverheated: false,
     boss: null,
+    nextBoss: EnemyKind.dreadnought,
   })
 
   const gameStateRef = useRef<GameState>(createInitialState())
@@ -190,6 +195,9 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
   // world coordinates while the player's actual cursor stays still on screen.
   const holdScreenPosRef = useRef<Vec2 | null>(null)
   const selectedAbilityRef = useRef<GameState['abilities'][number]['kind']>(AbilityKind.meteorite)
+  // World position of the press that started a ship grab — replayed as a
+  // normal ability tap if the release never travels far enough to be a flick.
+  const slingPressWorldRef = useRef<Vec2 | null>(null)
   // Slingshot gesture: start/current pointer pos (CSS px) while grabbing the
   // ship, and the one-shot flick handed to the engine on release.
   const slingStartRef = useRef<Vec2 | null>(null)
@@ -231,12 +239,14 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       boss: (() => {
         const bossEnemy = state.enemies.find((e) => e.boss !== undefined)
         if (!bossEnemy) return null
-        return {
-          hp: bossEnemy.hp,
-          maxHp: bossEnemy.maxHp,
-          label: getBossDefinition(bossEnemy.kind)?.hpBarLabel ?? 'BOSS',
-        }
+        const def = getBossDefinition(bossEnemy.kind)
+        // Aggregate-HP bosses (the worm) report head + body; others raw HP.
+        const value = def?.hpBarValue
+          ? def.hpBarValue(bossEnemy, state.enemies)
+          : { hp: bossEnemy.hp, maxHp: bossEnemy.maxHp }
+        return { ...value, label: def?.hpBarLabel ?? 'BOSS' }
       })(),
+      nextBoss: state.bossSelection.nextBoss,
     })
   }, [])
 
@@ -317,6 +327,12 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
         maxPower: patch.maxPower ?? state.maxPower,
         wave,
         level: patch.wave !== undefined ? getLevel(wave) : state.level,
+        // One-shot by construction: only nextBoss changes — the pool is left
+        // alone, and consuming the boss wave advances selection as usual.
+        bossSelection:
+          patch.nextBoss !== undefined
+            ? { ...state.bossSelection, nextBoss: patch.nextBoss }
+            : state.bossSelection,
       }
       syncUI(gameStateRef.current)
     }
@@ -346,7 +362,8 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     handleDevJumpToBoss = () => {
       const state = gameStateRef.current
       // The next boss wave after the current one. Spawns only the boss (no
-      // escort) so the fight is reachable instantly for testing.
+      // escort) so the fight is reachable instantly for testing. Consumes
+      // nextBoss exactly like a real boss wave so the readout stays ahead.
       const bossInterval = WAVES_PER_LEVEL * BOSS_LEVEL_INTERVAL
       const bossWave = Math.floor(state.wave / bossInterval) * bossInterval + bossInterval
       gameStateRef.current = {
@@ -358,11 +375,12 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
         projectiles: [],
         activeEffects: [],
         collectibles: [],
-        spawnQueue: [getBossForWave(bossWave)],
+        spawnQueue: [state.bossSelection.nextBoss],
         spawnTimer: 0,
         totalWaveEnemies: 1,
         spawnedInWave: 0,
         waveTimer: 0,
+        bossSelection: advanceBossSelection(state.bossSelection),
       }
       syncUI(gameStateRef.current)
     }
@@ -489,6 +507,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       if (gdx * gdx + gdy * gdy <= SLING_GRAB_RADIUS_WORLD * SLING_GRAB_RADIUS_WORLD) {
         slingStartRef.current = screenPos
         slingCurrentRef.current = screenPos
+        slingPressWorldRef.current = worldPos
         return
       }
 
@@ -531,8 +550,10 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       if (slingStartRef.current) {
         const start = slingStartRef.current
         const end = slingCurrentRef.current ?? start
+        const pressWorld = slingPressWorldRef.current
         slingStartRef.current = null
         slingCurrentRef.current = null
+        slingPressWorldRef.current = null
         // Pausing or dying mid-drag discards the flick — never queue one that
         // would fire on resume.
         if (gameStateRef.current.phase !== GamePhase.playing) return
@@ -543,6 +564,14 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
           pendingFlingRef.current = {
             dir: { x: dx / distPx, y: dy / distPx },
             charge: Math.min(1, distPx / SLING_MAX_DRAG_PX),
+          }
+        } else if (pressWorld) {
+          // Barely moved: a tap, not a flick — fire the selected ability at the
+          // press point so enemies sitting on the ship are still targetable.
+          inputRef.current = {
+            ...inputRef.current,
+            clicks: [...inputRef.current.clicks, pressWorld],
+            selectedAbility: selectedAbilityRef.current,
           }
         }
         return

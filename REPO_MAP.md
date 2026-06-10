@@ -193,9 +193,12 @@ src/pages/FunStuff/subpages/NullSpace/engine/abilities/
 
 src/pages/FunStuff/subpages/NullSpace/engine/bosses/
   boss-ai.ts                                 updateBossAI
-  boss-definition.ts                         SpawnSpec, DropSpec, BossDefinition
+  boss-definition.ts                         SpawnSpec, DropSpec, BossTickContext, BossUpdateResult, BossDefinition, hasAliveLinked
+  boss-selection.ts                          createBossSelection, advanceBossSelection
   dreadnought.ts                             DREADNOUGHT_BOSS
-  index.ts                                   isBoss, getBossDefinition, canEnemyTakeDamage
+  index.ts                                   BOSS_KINDS, isBoss, getBossDefinition, canEnemyTakeDamage
+  phase-shifter.ts                           PHASE_SHIFTER, PHASE_SHIFTER_BOSS
+  void-worm.ts                               VOID_WORM, VOID_WORM_BOSS
 
 src/pages/FunStuff/subpages/NullSpace/engine/entities/
   ally.ts                                    updateAllies
@@ -238,13 +241,13 @@ src/pages/FunStuff/subpages/NullSpace/engine/systems/
   spawner.ts                                 spawnPositionNearShip, processSpawnQueue
 
 src/pages/FunStuff/subpages/NullSpace/engine/
-  types.ts                                   Vec2, Entity, ShipKind, ShipWeaponKind, EscapeModePhase, EscapeModeState, Ship, EnemyKind, MovementBehavior, DeathBehavior, BossRuntimeState, Enemy, ProjectileOwner, Projectile, AbilityKind, Ability, EffectKind, EffectBase, MeteorStrikeEffect, BlackHoleEffect, RocketEffect, ShieldEffect, SunEffect, NuclearWasteEffect, ActiveEffect, CollectibleKind, Collectible, Ally, Particle, GamePhase, UpgradeCategory, UpgradeId, UpgradeTier, UpgradeDefinition, PlayerUpgrades, GameState, HoldRuntimeState, PlayerInput
+  types.ts                                   Vec2, Entity, ShipKind, ShipWeaponKind, EscapeModePhase, EscapeModeState, Ship, EnemyKind, MovementBehavior, DeathBehavior, WormStage, ShifterStage, WormRuntime, ShifterRuntime, BossRuntimeState, Enemy, ProjectileOwner, Projectile, AbilityKind, Ability, EffectKind, EffectBase, MeteorStrikeEffect, BlackHoleEffect, RocketEffect, ShieldEffect, SunEffect, NuclearWasteEffect, ActiveEffect, CollectibleKind, Collectible, Ally, Particle, GamePhase, UpgradeCategory, UpgradeId, UpgradeTier, UpgradeDefinition, PlayerUpgrades, BossSelection, GameState, HoldRuntimeState, PlayerInput
   upgrades.ts                                UNLOCK_UPGRADE_IDS, UPGRADE_DEFINITIONS, isWeaponFullyMaxed, isShipWeaponFullyMaxed, UPGRADE_CATEGORY_LABELS, createInitialUpgrades, canPurchaseUpgrade, purchaseUpgrade, applyUpgradesToAbilities, applyUpgradesToShip, applyUpgradesToPowerRegen, getLevel, isUpgradeWave, WEAPON_UNLOCK_UPGRADE, SHIP_WEAPON_UNLOCK_UPGRADE
 
 src/pages/FunStuff/subpages/NullSpace/engine/world/
   persistence.ts                             loadHighScore, saveHighScore, ChangelogCategory, ChangelogFilters, DEFAULT_CHANGELOG_FILTERS, CHANGELOG_CATEGORIES, loadChangelogFilters, saveChangelogFilters
   time.ts                                    MAX_DT, GameTime, createGameTime, tickGameTime, pauseGameTime, resumeGameTime, setGameSpeed
-  waves.ts                                   isBossWave, getBossForWave, getWave, getWaveDelay
+  waves.ts                                   isBossWave, getWave, getWaveDelay
 
 src/pages/FunStuff/subpages/NullSpace/
   icon-names.ts                              IconName
@@ -254,7 +257,7 @@ src/pages/FunStuff/subpages/NullSpace/renderer/
   renderer.ts                                SHIP_SPRITE_KEY, renderFrame
   sling-aim.ts                               drawSlingAim
   sprite-cache.ts                            SpriteCache, buildSpriteCache, getSpriteSize
-  sprites.ts                                 SpriteData, SHIP_SPRITE, DRONE_SPRITE, TANK_SPRITE, PROJECTILE_SPRITE, METEOR_SPRITE, METEORITE_SPRITE, SHOOTER_SPRITE, ENEMY_PROJECTILE_SPRITE, SWARM_SPRITE, BOMBER_SPRITE, ROCKET_SPRITE, INTERCEPTOR_SPRITE, DREADNOUGHT_SPRITE, CARRIER_SPRITE, ALLY_SPRITE, MISSILE_SPRITE, RICOCHET_SPRITE, NUKE_SPRITE, DREADNOUGHT_BOSS_SPRITE, SHIELD_GENERATOR_SPRITE, SpriteKey, SPRITE_MAP
+  sprites.ts                                 SpriteData, SHIP_SPRITE, DRONE_SPRITE, _OLD_DRONE_SPRITE, TANK_SPRITE, PROJECTILE_SPRITE, METEOR_SPRITE, METEORITE_SPRITE, SHOOTER_SPRITE, ENEMY_PROJECTILE_SPRITE, SWARM_SPRITE, _NEW_SWARM_SPRITE, BOMBER_SPRITE, ROCKET_SPRITE, INTERCEPTOR_SPRITE, DREADNOUGHT_SPRITE, CARRIER_SPRITE, ALLY_SPRITE, MISSILE_SPRITE, RICOCHET_SPRITE, NUKE_SPRITE, DREADNOUGHT_BOSS_SPRITE, SHIELD_GENERATOR_SPRITE, VOID_WORM_BOSS_SPRITE, WORM_SEGMENT_SPRITE, PHASE_SHIFTER_BOSS_SPRITE, SpriteKey, SPRITE_MAP
   starfield.ts                               Star, generateStarfield, renderStarfield
 
 src/pages/FunStuff/subpages/NullSpace/

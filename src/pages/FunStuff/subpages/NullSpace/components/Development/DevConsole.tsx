@@ -1,3 +1,4 @@
+import { BOSS_KINDS, getBossDefinition } from '../../engine/bosses/index'
 import { SHIP_ORDER, SHIP_VARIANTS } from '../../engine/ship/ship-data'
 import { GamePhase, ShipKind } from '../../engine/types'
 import type { DevPatch, GameUIState } from '../../useNullSpace'
@@ -67,6 +68,29 @@ export function DevConsole({
         >
           Skip to Boss Wave
         </button>
+      </Section>
+
+      <Section label="Boss">
+        <div className={styles.readonlyRow}>
+          <span className={styles.readonlyLabel}>Next Boss</span>
+          <span className={styles.readonlyValue}>
+            {getBossDefinition(uiState.nextBoss)?.hpBarLabel ?? uiState.nextBoss}
+          </span>
+        </div>
+        <div className={styles.shipGrid}>
+          {BOSS_KINDS.map((kind) => (
+            <button
+              key={kind}
+              type="button"
+              className={`${styles.shipBtn} ${uiState.nextBoss === kind ? styles.shipBtnActive : ''}`}
+              onClick={() => onPatch({ nextBoss: kind })}
+              disabled={!inGame}
+            >
+              {getBossDefinition(kind)?.hpBarLabel ?? kind}
+            </button>
+          ))}
+        </div>
+        <p className={styles.hint}>One-shot: applies to the next boss wave, then random resumes.</p>
       </Section>
 
       <Section label="Currency">

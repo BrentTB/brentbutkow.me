@@ -130,6 +130,39 @@ export const ENEMY_STATS = {
     projectileSpeed: 280,
     projectileBeam: true,
   },
+  voidWorm: {
+    hp: 150,
+    speed: 80,
+    damage: 25,
+    radius: 24,
+    scoreValue: 400,
+    powerReward: 80,
+  },
+  wormSegment: {
+    hp: 120,
+    speed: 0,
+    // damage 0: the chain re-pins segments right after knockback, so contact
+    // damage would re-apply every frame as the body crosses the ship. Only the
+    // head bites.
+    damage: 0,
+    radius: 14,
+    scoreValue: 25,
+    powerReward: 8,
+  },
+  phaseShifter: {
+    hp: 350,
+    speed: 0,
+    damage: 15,
+    radius: 24,
+    scoreValue: 500,
+    powerReward: 100,
+    // Fires lasers between teleports from wherever it lands.
+    fireRate: 0.7,
+    fireRange: 520,
+    projectileDamage: 10,
+    projectileSpeed: 320,
+    projectileBeam: true,
+  },
 } as const
 
 export const CURRENCY_DROPS: Record<EnemyKind, { min: number; max: number }> = {
@@ -140,6 +173,9 @@ export const CURRENCY_DROPS: Record<EnemyKind, { min: number; max: number }> = {
   bomber: { min: 1, max: 4 },
   dreadnought: { min: 5, max: 15 },
   shieldGenerator: { min: 1, max: 3 },
+  voidWorm: { min: 5, max: 15 },
+  wormSegment: { min: 1, max: 3 },
+  phaseShifter: { min: 5, max: 15 },
 }
 
 export const CURRENCY_NAME = 'Stardust'
@@ -167,8 +203,12 @@ export const SPACE_METAL = {
     swarm: 0.01,
     bomber: 0.1,
     // Boss drops are handled by BossDefinition.onDeath — these are never rolled.
+    // Worm segments drop nothing so the body can't be farmed for metal.
     dreadnought: 0,
     shieldGenerator: 0,
+    voidWorm: 0,
+    wormSegment: 0,
+    phaseShifter: 0,
   } as Record<EnemyKind, number>,
 } as const
 
@@ -208,6 +248,30 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.17.0',
+    date: '2026-06-10',
+    changes: {
+      features: [
+        'New boss — Void Worm: a long segmented serpent that weaves after your ship and lunges in sudden charges you have to dodge. Its body shields the head — destroy the segments (the worm shortens and rejoins as pieces die), then kill the exposed head to bring it down. The boss HP bar tracks head + body combined.',
+        'New boss — Phase Shifter: blinks across the battlefield, aiming to land right on top of you. A red X marks the destination a couple of seconds ahead — while it phases it cannot be harmed, and on arrival it materialises a ring of swarmers around itself. Below half health it teleports faster and brings a bigger ring.',
+        'Boss waves now pick a random boss — each of the three bosses appears once before any repeats, then selection is fully random. The lineup reshuffles every run.',
+      ],
+      fixes: [
+        'Tapping on (or right next to) your ship now fires the selected ability there instead of being swallowed by the slingshot — only an actual drag flings the ship, so enemies swarming you stay targetable.',
+      ],
+    },
+  },
+  {
+    version: '0.16.1',
+    date: '2026-06-10',
+    changes: {
+      ui: [
+        'Full sprite art pass — every ship, enemy, and projectile redrawn with cleaner silhouettes and shading.',
+        'Bullets (yours and enemies’) are larger with white-hot cores so they’re easier to track.',
+      ],
+    },
+  },
   {
     version: '0.16.0',
     date: '2026-06-09',

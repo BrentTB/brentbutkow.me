@@ -47,7 +47,8 @@ import {
   isUpgradeWave,
   purchaseUpgrade,
 } from './upgrades'
-import { getWave, getWaveDelay } from './world/waves'
+import { getWave, getWaveDelay, isBossWave } from './world/waves'
+import { advanceBossSelection, createBossSelection } from './bosses/boss-selection'
 import { updateBossAI } from './bosses/boss-ai'
 import { loadHighScore, saveHighScore } from './world/persistence'
 import { rng } from './math/random'
@@ -95,6 +96,7 @@ export function createInitialState(): GameState {
     levelUpWeaponOffers: [],
     unlockedWeapons: [...INITIAL_UNLOCKED_WEAPONS],
     escapeTrailAccumulator: 0,
+    bossSelection: createBossSelection(),
   }
 }
 
@@ -138,6 +140,8 @@ export function startGame(state: GameState, shipKind: ShipKind): GameState {
     levelUpWeaponOffers: [],
     unlockedWeapons: [...INITIAL_UNLOCKED_WEAPONS],
     escapeTrailAccumulator: 0,
+    // Fresh unique window — every boss appears once before repeats this run.
+    bossSelection: createBossSelection(),
   }
 }
 
@@ -160,7 +164,8 @@ export function rollLevelUpWeaponOffers(
 
 export function startNextWave(state: GameState): GameState {
   const nextWave = state.wave + 1
-  const queue = getWave(nextWave)
+  const bossWave = isBossWave(nextWave)
+  const queue = getWave(nextWave, bossWave ? state.bossSelection.nextBoss : undefined)
   const delay = getWaveDelay(nextWave)
 
   return {
@@ -173,6 +178,9 @@ export function startNextWave(state: GameState): GameState {
     spawnTimer: 0,
     totalWaveEnemies: queue.length,
     spawnedInWave: 0,
+    // Consuming nextBoss rolls the following one, keeping the dev-console
+    // readout one boss wave ahead.
+    bossSelection: bossWave ? advanceBossSelection(state.bossSelection) : state.bossSelection,
   }
 }
 
@@ -318,8 +326,8 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   enemies = spawnResult.enemies
   spawnedInWave = spawnResult.spawnedInWave
 
-  // --- Boss AI (onSpawn + phase advance + drone spawning) ---
-  const bossResult = updateBossAI(enemies, dt)
+  // --- Boss AI (onSpawn + phase advance + drone spawning + self-motion) ---
+  const bossResult = updateBossAI(enemies, dt, { shipPos: ship.pos, worldSize: state.worldSize })
   enemies = bossResult.enemies
   if (bossResult.newEnemies.length > 0) {
     enemies = [...enemies, ...bossResult.newEnemies]

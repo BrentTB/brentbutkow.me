@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach, vi } from 'vitest'
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import { GameOverlay } from './GameOverlay'
 import { HelpScreen } from './PauseMenu/HelpScreen'
-import { AbilityKind, GamePhase, ShipKind, ShipWeaponKind } from '../engine/types'
+import { AbilityKind, EnemyKind, GamePhase, ShipKind, ShipWeaponKind } from '../engine/types'
 import type { PlayerUpgrades } from '../engine/types'
 import type { GameUIState } from '../useNullSpace'
 
@@ -39,6 +39,7 @@ function makeUiState(phase: GameUIState['phase']): GameUIState {
     slingHeat: 0,
     slingOverheated: false,
     boss: null,
+    nextBoss: EnemyKind.dreadnought,
   }
 }
 

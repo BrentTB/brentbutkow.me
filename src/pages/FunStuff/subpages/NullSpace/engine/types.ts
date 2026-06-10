@@ -90,6 +90,9 @@ export const EnemyKind = {
   bomber: 'bomber',
   dreadnought: 'dreadnought',
   shieldGenerator: 'shieldGenerator',
+  voidWorm: 'voidWorm',
+  wormSegment: 'wormSegment',
+  phaseShifter: 'phaseShifter',
 } as const
 export type EnemyKind = (typeof EnemyKind)[keyof typeof EnemyKind]
 
@@ -100,6 +103,9 @@ export const MovementBehavior = {
   stationary: 'stationary',
   // Pursues the target until within `attackRange`, then holds position.
   approach: 'approach',
+  // The boss tick owns position and velocity; the movement system leaves the
+  // enemy untouched (unlike `stationary`, which zeroes vel each frame).
+  none: 'none',
 } as const
 export type MovementBehavior = (typeof MovementBehavior)[keyof typeof MovementBehavior]
 
@@ -110,11 +116,24 @@ export const DeathBehavior = {
 } as const
 export type DeathBehavior = (typeof DeathBehavior)[keyof typeof DeathBehavior]
 
+export const WormStage = { cruise: 'cruise', windup: 'windup', charge: 'charge' } as const
+export type WormStage = (typeof WormStage)[keyof typeof WormStage]
+
+export const ShifterStage = { idle: 'idle', telegraph: 'telegraph' } as const
+export type ShifterStage = (typeof ShifterStage)[keyof typeof ShifterStage]
+
+// Void Worm head: attack cycle + the lunge direction (locked while charging).
+export type WormRuntime = { stage: WormStage; stageTimer: number; heading: Vec2 }
+// Phase Shifter: teleport cycle. targetPos is set only while telegraphing.
+export type ShifterRuntime = { stage: ShifterStage; stageTimer: number; targetPos: Vec2 | null }
+
 export type BossRuntimeState = {
   phase: number
   droneSpawnTimer: number
   linkedIds: string[]
   hasSpawned: boolean
+  worm?: WormRuntime
+  shifter?: ShifterRuntime
 }
 
 export type Enemy = Entity & {
@@ -430,6 +449,11 @@ export type UpgradeDefinition = {
 
 export type PlayerUpgrades = Record<UpgradeId, { currentTier: number }>
 
+// Per-run boss draw. Inlined (like HoldRuntimeState) so types.ts doesn't import
+// from engine/bosses/. pool = boss kinds not yet seen this run; nextBoss = the
+// pre-rolled upcoming boss (visible/settable in the dev console).
+export type BossSelection = { nextBoss: EnemyKind; pool: EnemyKind[] }
+
 export type GameState = {
   phase: GamePhase
   shipKind: ShipKind
@@ -471,6 +495,8 @@ export type GameState = {
   // Accumulator that drives Escape Mode's flame-trail particle emission. Resets
   // to 0 when escape ends.
   escapeTrailAccumulator: number
+  // Which boss the next boss wave spawns + the unseen pool. Reset per run.
+  bossSelection: BossSelection
 }
 
 // Inlined re-export of the hold-runtime state shape so types.ts doesn't have
