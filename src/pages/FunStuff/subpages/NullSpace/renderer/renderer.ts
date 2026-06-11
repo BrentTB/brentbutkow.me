@@ -525,8 +525,8 @@ function renderCollectibles(
       ctx.arc(screen.x, screen.y, r * 2, 0, Math.PI * 2)
       ctx.fill()
 
-      ctx.fillStyle = '#d8b4ff'
-      ctx.strokeStyle = '#f0e0ff'
+      ctx.fillStyle = SINGULARITY_SHARD.fill
+      ctx.strokeStyle = SINGULARITY_SHARD.stroke
       ctx.lineWidth = 1.5
       ctx.beginPath()
       ctx.moveTo(screen.x, screen.y - r)

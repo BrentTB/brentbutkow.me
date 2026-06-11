@@ -19,7 +19,7 @@
 
 .spaceMetalCounter {
   font-size: calc(0.85rem * var(--hud-scale, 1));
-  color: #e9b872;
+  color: var(--accent);
   font-family: var(--font-mono);
   font-weight: 600;
 }
@@ -70,7 +70,7 @@
 
 .spaceMetalCost {
   font-size: calc(0.5rem * var(--hud-scale, 1));
-  color: #e9b872;
+  color: var(--accent);
   margin-top: 1px;
 }
 

@@ -24,7 +24,7 @@ import { meteorShower } from './meteor-shower'
 import type { AbilityDefinition, UltimateDescriptor } from './ability-definition'
 import type { IconName } from '../../icon-names'
 
-export type { AbilityDefinition } from './ability-definition'
+export type { AbilityDefinition, UltimateContext } from './ability-definition'
 export { applyTierSum, applyCostReduction } from './ability-definition'
 
 // Runtime helpers (turning input into state changes). Re-exported so any file

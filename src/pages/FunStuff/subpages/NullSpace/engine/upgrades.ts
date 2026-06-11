@@ -19,10 +19,6 @@ import type {
   UpgradeDefinition,
 } from './types'
 
-// Back-compat re-export: WEAPON_UNLOCK_UPGRADE now lives in engine/abilities/.
-export { WEAPON_UNLOCK_UPGRADE } from './abilities'
-export { SHIP_WEAPON_UNLOCK_UPGRADE } from './ship'
-
 // Set of upgrade IDs that unlock a weapon (ability OR ship weapon). Used to
 // filter unlock upgrades out of per-weapon upgrade lists so detail / max
 // detection views only see modifier upgrades.
@@ -231,9 +227,7 @@ export function getWeaponModifierUpgrades(weapon: AbilityKind): UpgradeDefinitio
 // modifiers) must be at max tier.
 export function isWeaponFullyMaxed(weapon: AbilityKind, upgrades: PlayerUpgrades): boolean {
   if (ULTIMATE_DEFINITIONS[weapon]) return false
-  const modifiers = getWeaponModifierUpgrades(weapon)
-  if (modifiers.length === 0) return false
-  return modifiers.every((def) => upgrades[def.id].currentTier >= def.tiers.length)
+  return allModifiersAtMaxTier(getWeaponModifierUpgrades(weapon), upgrades)
 }
 
 // Parallel of isWeaponFullyMaxed for ship weapons (category: loadout).
@@ -249,6 +243,12 @@ function isModifierSetFullyMaxed(
   const modifiers = Object.values(UPGRADE_DEFINITIONS).filter(
     (def) => def.category === category && def.weapon === weapon && !UNLOCK_UPGRADE_IDS.has(def.id)
   )
+  return allModifiersAtMaxTier(modifiers, upgrades)
+}
+
+// True when every modifier in the set sits at its top tier. An empty set is
+// "not maxed" — a freshly-unlocked weapon has nothing to buy yet but isn't done.
+function allModifiersAtMaxTier(modifiers: UpgradeDefinition[], upgrades: PlayerUpgrades): boolean {
   if (modifiers.length === 0) return false
   return modifiers.every((def) => upgrades[def.id].currentTier >= def.tiers.length)
 }

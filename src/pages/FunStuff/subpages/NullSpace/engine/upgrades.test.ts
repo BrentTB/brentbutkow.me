@@ -14,12 +14,12 @@ import {
   getWeaponModifierUpgrades,
   isUpgradeWave,
   isWeaponFullyMaxed,
+  syncUltimateAbilities,
   UPGRADE_DEFINITIONS,
   UNLOCK_UPGRADE_IDS,
-  WEAPON_UNLOCK_UPGRADE,
 } from './upgrades'
 import { createAbilities, createShip } from './entities/entity-creator'
-import { BASE_KIND_OF } from './abilities'
+import { BASE_KIND_OF, WEAPON_UNLOCK_UPGRADE } from './abilities'
 import { AbilityKind, ShipKind, UpgradeCategory, UpgradeId } from './types'
 
 describe('createInitialUpgrades', () => {
@@ -97,6 +97,52 @@ describe('applyUpgradesToAbilities', () => {
     const updated = applyUpgradesToAbilities(abilities, upgrades)
     const blackHole = updated.find((a) => a.kind === AbilityKind.blackHole)
     expect(blackHole!.duration).toBeGreaterThan(baseDuration!)
+  })
+})
+
+describe('syncUltimateAbilities', () => {
+  const baseOf = AbilityKind.meteorite // base of cometShower
+  const ultimate = AbilityKind.cometShower
+
+  it('an owned ultimate becomes unlocked and inherits its base hotbar slot', () => {
+    expect(BASE_KIND_OF[ultimate]).toBe(baseOf)
+    const abilities = createAbilities().map((a) =>
+      a.kind === baseOf ? { ...a, unlocked: true, unlockedAt: 3 } : a
+    )
+    const synced = syncUltimateAbilities(abilities, [ultimate])
+    const row = synced.find((a) => a.kind === ultimate)!
+    expect(row.unlocked).toBe(true)
+    expect(row.unlockedAt).toBe(3)
+  })
+
+  it('an unowned ultimate is forced back to locked', () => {
+    const abilities = createAbilities().map((a) =>
+      a.kind === ultimate ? { ...a, unlocked: true, unlockedAt: 2 } : a
+    )
+    const synced = syncUltimateAbilities(abilities, [])
+    const row = synced.find((a) => a.kind === ultimate)!
+    expect(row.unlocked).toBe(false)
+    expect(row.unlockedAt).toBeNull()
+  })
+
+  it('leaves non-ultimate (base) rows untouched by reference', () => {
+    const abilities = createAbilities().map((a) =>
+      a.kind === baseOf ? { ...a, unlocked: true, unlockedAt: 0 } : a
+    )
+    const synced = syncUltimateAbilities(abilities, [ultimate])
+    const before = abilities.find((a) => a.kind === baseOf)
+    const after = synced.find((a) => a.kind === baseOf)
+    expect(after).toBe(before)
+  })
+
+  it('returns an already-locked unowned ultimate by reference (idempotent)', () => {
+    const abilities = createAbilities().map((a) =>
+      a.kind === ultimate ? { ...a, unlocked: false, unlockedAt: null } : a
+    )
+    const synced = syncUltimateAbilities(abilities, [])
+    const before = abilities.find((a) => a.kind === ultimate)
+    const after = synced.find((a) => a.kind === ultimate)
+    expect(after).toBe(before)
   })
 })
 

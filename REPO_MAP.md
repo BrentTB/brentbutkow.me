@@ -179,7 +179,7 @@ src/pages/FunStuff/subpages/NullSpace/
 
 src/pages/FunStuff/subpages/NullSpace/engine/abilities/
   ability-data.ts                            METEORITE_STRIKE, METEOR_STRIKE, COMET_SHOWER, METEOR_SHOWER, BLACK_HOLE, ROCKET, SHIELD, SUN, HELPER, TELEKINESIS, SOLAR_FLARE
-  ability-definition.ts                      AbilityActivation, UltimateCost, UltimatePrerequisite, UltimateDescriptor, AbilityDefinition, applyTierSum, applyCostReduction
+  ability-definition.ts                      AbilityActivation, UltimateCost, UltimateContext, UltimatePrerequisite, UltimateDescriptor, AbilityDefinition, applyTierSum, applyCostReduction
   black-hole.ts                              blackHole
   comet-shower.ts                            cometShower
   helper.ts                                  helper
@@ -248,8 +248,8 @@ src/pages/FunStuff/subpages/NullSpace/engine/systems/
 
 src/pages/FunStuff/subpages/NullSpace/engine/
   types.ts                                   Vec2, Entity, ShipKind, ShipWeaponKind, EscapeModePhase, EscapeModeState, Ship, EnemyKind, MovementBehavior, DeathBehavior, WormStage, ShifterStage, WormRuntime, ShifterRuntime, BossRuntimeState, Enemy, ProjectileOwner, Projectile, AbilityKind, Ability, EffectKind, EffectBase, MeteorStrikeEffect, BlackHoleEffect, RocketEffect, ShieldEffect, SunEffect, NuclearWasteEffect, ActiveEffect, CollectibleKind, Collectible, Ally, Particle, GamePhase, UpgradeCategory, UpgradeId, UpgradeTier, UpgradeDefinition, PlayerUpgrades, BossSelection, GameState, HoldRuntimeState, PlayerInput
-  ultimates.ts                               COEXIST_ULTIMATES, UltimateContext, ultimateShardCost, canPurchaseUltimate, purchaseUltimate, isBaseReplacedByUltimate
-  upgrades.ts                                UNLOCK_UPGRADE_IDS, SLINGSHOT_UPGRADE_IDS, UPGRADE_DEFINITIONS, getWeaponModifierUpgrades, isWeaponFullyMaxed, isShipWeaponFullyMaxed, UPGRADE_CATEGORY_LABELS, createInitialUpgrades, canPurchaseUpgrade, purchaseUpgrade, applyUpgradesToAbilities, syncUltimateAbilities, applyUpgradesToShip, applyUpgradesToPowerRegen, getStardustMultiplier, getSpaceMetalDropMultiplier, getPowerOrbMultiplier, getLevel, isUpgradeWave, WEAPON_UNLOCK_UPGRADE, SHIP_WEAPON_UNLOCK_UPGRADE
+  ultimates.ts                               COEXIST_ULTIMATES, ultimateShardCost, canPurchaseUltimate, purchaseUltimate, isBaseReplacedByUltimate
+  upgrades.ts                                UNLOCK_UPGRADE_IDS, SLINGSHOT_UPGRADE_IDS, UPGRADE_DEFINITIONS, getWeaponModifierUpgrades, isWeaponFullyMaxed, isShipWeaponFullyMaxed, UPGRADE_CATEGORY_LABELS, createInitialUpgrades, canPurchaseUpgrade, purchaseUpgrade, applyUpgradesToAbilities, syncUltimateAbilities, applyUpgradesToShip, applyUpgradesToPowerRegen, getStardustMultiplier, getSpaceMetalDropMultiplier, getPowerOrbMultiplier, getLevel, isUpgradeWave
 
 src/pages/FunStuff/subpages/NullSpace/engine/world/
   persistence.ts                             loadHighScore, saveHighScore, ChangelogCategory, ChangelogFilters, DEFAULT_CHANGELOG_FILTERS, CHANGELOG_CATEGORIES, loadChangelogFilters, saveChangelogFilters
@@ -268,7 +268,7 @@ src/pages/FunStuff/subpages/NullSpace/renderer/
   starfield.ts                               Star, generateStarfield, renderStarfield
 
 src/pages/FunStuff/subpages/NullSpace/
-  useNullSpace.ts                            GameUIState, DevPatch, getUnlockedAbilitiesInOrder, abilityKindForHotkey, useNullSpace
+  useNullSpace.ts                            GameUIState, DevPatch, getUnlockedAbilitiesInOrder, abilityKindForHotkey, selectionAfterUltimatePurchase, useNullSpace
   usePseudoFullscreenChrome.ts               usePseudoFullscreenChrome
 
 src/pages/Home/

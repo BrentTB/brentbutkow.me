@@ -76,6 +76,33 @@ describe('purchaseUltimate', () => {
     const s = { ...richState(), singularityShard: 1 }
     expect(canPurchaseUltimate(s, AbilityKind.meteorite)).toBe(true)
   })
+
+  // The buy-button gate (canPurchaseUltimate) and the purchase must evaluate the
+  // SAME custom prerequisite — otherwise a met-cost-but-prerequisite-failed
+  // ultimate shows an enabled button that silently no-ops on click.
+  it('a failing custom prerequisite blocks both the gate and the purchase', () => {
+    const def = ULTIMATE_DEFINITIONS[AbilityKind.meteorite]!
+    const original = def.prerequisite
+    def.prerequisite = () => false
+    try {
+      const s = richState()
+      expect(canPurchaseUltimate(s, AbilityKind.meteorite)).toBe(false)
+      expect(purchaseUltimate(s, AbilityKind.meteorite)).toBe(s)
+    } finally {
+      def.prerequisite = original
+    }
+  })
+
+  it('a met custom prerequisite still allows an otherwise-affordable purchase', () => {
+    const def = ULTIMATE_DEFINITIONS[AbilityKind.meteorite]!
+    const original = def.prerequisite
+    def.prerequisite = () => true
+    try {
+      expect(canPurchaseUltimate(richState(), AbilityKind.meteorite)).toBe(true)
+    } finally {
+      def.prerequisite = original
+    }
+  })
 })
 
 describe('isBaseReplacedByUltimate', () => {

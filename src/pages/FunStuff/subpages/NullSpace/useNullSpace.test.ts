@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
-import { abilityKindForHotkey, getUnlockedAbilitiesInOrder, useNullSpace } from './useNullSpace'
+import {
+  abilityKindForHotkey,
+  getUnlockedAbilitiesInOrder,
+  selectionAfterUltimatePurchase,
+  useNullSpace,
+} from './useNullSpace'
 import { createRef } from 'react'
 import { createAbilities } from './engine/entities/entity-creator'
 import { BOSS_KINDS } from './engine/bosses/index'
@@ -161,6 +166,33 @@ describe('getUnlockedAbilitiesInOrder — ultimate replacement', () => {
     const kinds = getUnlockedAbilitiesInOrder(abilities).map((a) => a.kind)
     expect(kinds).toContain(AbilityKind.meteorite)
     expect(kinds).not.toContain(AbilityKind.cometShower)
+  })
+})
+
+describe('selectionAfterUltimatePurchase', () => {
+  it('redirects selection to the ultimate when the purchased base was selected', () => {
+    expect(selectionAfterUltimatePurchase(AbilityKind.meteorite, AbilityKind.meteorite, true)).toBe(
+      AbilityKind.cometShower
+    )
+  })
+
+  it('leaves selection alone when a different ability was selected', () => {
+    expect(selectionAfterUltimatePurchase(AbilityKind.blackHole, AbilityKind.meteorite, true)).toBe(
+      AbilityKind.blackHole
+    )
+  })
+
+  it('leaves selection alone when the purchase did not go through', () => {
+    expect(
+      selectionAfterUltimatePurchase(AbilityKind.meteorite, AbilityKind.meteorite, false)
+    ).toBe(AbilityKind.meteorite)
+  })
+
+  it('leaves selection alone for a base with no ultimate', () => {
+    // telekinesis has no ultimate — ULTIMATE_KIND_OF lookup is undefined.
+    expect(
+      selectionAfterUltimatePurchase(AbilityKind.telekinesis, AbilityKind.telekinesis, true)
+    ).toBe(AbilityKind.telekinesis)
   })
 })
 

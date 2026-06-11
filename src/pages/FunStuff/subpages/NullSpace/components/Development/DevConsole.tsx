@@ -150,25 +150,25 @@ export function DevConsole({
             const ultimateOwned = ultimateKind
               ? uiState.ultimatesOwned.includes(ultimateKind)
               : false
-            // Locked → unlock. Unlocked with an ultimate → grant it. Otherwise done.
-            const done = unlocked && (!ultimateKind || ultimateOwned)
-            const suffix = ultimateOwned ? ' ★' : unlocked ? ' ✓' : ''
+            // The single click action this button offers: unlock a locked
+            // ability, grant the ultimate of an unlocked one, else nothing left.
+            const action = !unlocked ? 'unlock' : ultimateKind && !ultimateOwned ? 'grant' : 'done'
             return (
               <button
                 key={kind}
                 type="button"
                 className={`${styles.shipBtn} ${unlocked ? styles.shipBtnActive : ''}`}
-                disabled={!inGame || done}
+                disabled={!inGame || action === 'done'}
                 title={
-                  !unlocked ? 'Unlock' : ultimateKind && !ultimateOwned ? 'Grant ultimate' : 'Owned'
+                  action === 'unlock' ? 'Unlock' : action === 'grant' ? 'Grant ultimate' : 'Owned'
                 }
                 onClick={() => {
-                  if (!unlocked) onPatch({ unlockWeapon: kind })
-                  else if (ultimateKind && !ultimateOwned) onPatch({ grantUltimate: kind })
+                  if (action === 'unlock') onPatch({ unlockWeapon: kind })
+                  else if (action === 'grant') onPatch({ grantUltimate: kind })
                 }}
               >
                 {ABILITY_META[kind].label}
-                {suffix}
+                {ultimateOwned ? ' ★' : unlocked ? ' ✓' : ''}
               </button>
             )
           })}

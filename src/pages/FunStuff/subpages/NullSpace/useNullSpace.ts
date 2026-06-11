@@ -157,6 +157,18 @@ export function abilityKindForHotkey(
   return ordered[index]?.kind ?? null
 }
 
+// After buying an ultimate, selection should follow the base it replaces —
+// otherwise the player keeps firing the now-hidden base. Returns the ultimate
+// when the just-purchased base was the active selection, else leaves it as-is.
+export function selectionAfterUltimatePurchase(
+  current: AbilityKind,
+  baseKind: AbilityKind,
+  purchased: boolean
+): AbilityKind {
+  const ultimateKind = ULTIMATE_KIND_OF[baseKind]
+  return purchased && ultimateKind && current === baseKind ? ultimateKind : current
+}
+
 export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null>) {
   const gameStateRef = useRef<GameState>(createInitialState())
 
@@ -447,17 +459,12 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     (baseKind: AbilityKind) => {
       const before = gameStateRef.current.ultimatesOwned.length
       gameStateRef.current = applyUltimatePurchaseToState(gameStateRef.current, baseKind)
-      // If the player had the now-replaced base selected, point selection at the
-      // ultimate — otherwise they'd keep firing the (hidden) base until they
-      // manually picked another ability.
-      const ultimateKind = ULTIMATE_KIND_OF[baseKind]
-      if (
-        gameStateRef.current.ultimatesOwned.length > before &&
-        ultimateKind &&
-        selectedAbilityRef.current === baseKind
-      ) {
-        selectedAbilityRef.current = ultimateKind
-      }
+      const purchased = gameStateRef.current.ultimatesOwned.length > before
+      selectedAbilityRef.current = selectionAfterUltimatePurchase(
+        selectedAbilityRef.current,
+        baseKind,
+        purchased
+      )
       syncUI(gameStateRef.current)
     },
     [syncUI]

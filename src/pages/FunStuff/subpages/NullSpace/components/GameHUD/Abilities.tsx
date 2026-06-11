@@ -47,10 +47,10 @@ export function Abilities({ uiState, onAbilitySelect }: AbilitiesProps) {
               </span>
               <span className={sharedStyles.abilityLabel}>{meta.label}</span>
               <span className={styles.abilityCost}>{ability.powerCost}</span>
-              {onCooldown && <RechargeRing readyPercent={1 - cdPercent} />}
               {onCooldown && (
                 <div className={styles.cooldownOverlay} style={{ height: `${cdPercent * 100}%` }} />
               )}
+              {onCooldown && <RechargeRing readyPercent={1 - cdPercent} />}
               {!isReady && !onCooldown && (
                 <div className={styles.cooldownOverlay} style={{ height: '100%', opacity: 0.3 }} />
               )}

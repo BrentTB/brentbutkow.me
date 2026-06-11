@@ -1,4 +1,4 @@
-import type { AbilityKind, UpgradeDefinition, UpgradeId } from '../../engine/types'
+import type { UpgradeDefinition, UpgradeId } from '../../engine/types'
 import type { GameUIState } from '../../useNullSpace'
 import { BASE_KIND_OF } from '../../engine/abilities'
 import { canPurchaseUpgrade } from '../../engine/upgrades'
@@ -24,9 +24,9 @@ export function UpgradeCard({
   const nextCost = maxed ? 0 : def.tiers[currentTier].cost
   const canBuy = canPurchaseUpgrade(upgrades, def.id, currency)
   // Upgrades belonging to an ultimate (their weapon is an ultimate kind) read as
-  // special, matching the ultimate's hotbar styling.
-  const isUltimateUpgrade =
-    def.weapon !== undefined && BASE_KIND_OF[def.weapon as AbilityKind] !== undefined
+  // special, matching the ultimate's hotbar styling. BASE_KIND_OF is keyed by
+  // ultimate kinds only, so a ship-weapon `def.weapon` simply isn't a member.
+  const isUltimateUpgrade = def.weapon !== undefined && def.weapon in BASE_KIND_OF
   const ultimateClass = isUltimateUpgrade ? styles.upgradeUltimate : ''
 
   const body = (

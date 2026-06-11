@@ -1,4 +1,4 @@
-import { ULTIMATE_DEFINITIONS, ULTIMATE_KIND_OF } from './abilities'
+import { ULTIMATE_DEFINITIONS, ULTIMATE_KIND_OF, type UltimateContext } from './abilities'
 import type { AbilityKind, GameState } from './types'
 
 // While false, owning an ultimate hides its base in the hotbar/shop
@@ -6,31 +6,25 @@ import type { AbilityKind, GameState } from './types'
 // (coexistence) — no data changes needed, just the view.
 export const COEXIST_ULTIMATES = false
 
-// Affordability/ownership context — the structural subset both GameState and
-// GameUIState satisfy, so the shop and the engine share one predicate.
-export type UltimateContext = Pick<
-  GameState,
-  'currency' | 'spaceMetal' | 'singularityShard' | 'ultimatesOwned' | 'abilities'
->
-
 // The Nth ultimate bought this run costs N shards (N = already-owned + 1).
 export function ultimateShardCost(ultimatesOwned: AbilityKind[]): number {
   return ultimatesOwned.length + 1
 }
 
-// Default prerequisite — the base ability must be unlocked. Custom prerequisites
-// (which need the full GameState) are checked separately in purchaseUltimate.
+// Default prerequisite — the base ability must be unlocked.
 function isBaseUnlocked(ctx: UltimateContext, baseKind: AbilityKind): boolean {
   return ctx.abilities.find((a) => a.kind === baseKind)?.unlocked ?? false
 }
 
 // True when the base ability's ultimate can be bought right now: not already
-// owned, base unlocked, and all three currencies cover the cost.
+// owned, base unlocked, any custom prerequisite met, and all three currencies
+// cover the cost. The single gate both the buy-button and purchaseUltimate use.
 export function canPurchaseUltimate(ctx: UltimateContext, baseKind: AbilityKind): boolean {
   const def = ULTIMATE_DEFINITIONS[baseKind]
   if (!def) return false
   if (ctx.ultimatesOwned.includes(def.kind)) return false
   if (!isBaseUnlocked(ctx, baseKind)) return false
+  if (def.prerequisite && !def.prerequisite(ctx)) return false
   const shardCost = ultimateShardCost(ctx.ultimatesOwned)
   return (
     ctx.currency >= def.cost.stardust &&
@@ -44,7 +38,6 @@ export function canPurchaseUltimate(ctx: UltimateContext, baseKind: AbilityKind)
 export function purchaseUltimate(state: GameState, baseKind: AbilityKind): GameState {
   const def = ULTIMATE_DEFINITIONS[baseKind]
   if (!def) return state
-  if (def.prerequisite && !def.prerequisite(state)) return state
   if (!canPurchaseUltimate(state, baseKind)) return state
   const shardCost = ultimateShardCost(state.ultimatesOwned)
   return {

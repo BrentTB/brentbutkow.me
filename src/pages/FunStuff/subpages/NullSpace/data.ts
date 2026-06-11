@@ -208,6 +208,10 @@ export const SINGULARITY_SHARD = {
   radius: 9,
   floatDuration: 0.5,
   lifetime: 12,
+  // Violet diamond identity — kept here so the renderer (and any future HUD
+  // pickup icon) share one source for the shard's colour.
+  fill: '#d8b4ff',
+  stroke: '#f0e0ff',
 } as const
 
 export const SPACE_METAL = {
