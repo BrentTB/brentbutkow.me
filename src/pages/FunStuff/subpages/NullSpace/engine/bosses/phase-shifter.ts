@@ -1,11 +1,12 @@
 import { EnemyKind, ShifterStage } from '../types'
-import type { ShifterRuntime, Vec2 } from '../types'
+import type { Enemy, ShifterRuntime, Vec2 } from '../types'
 import { rng } from '../math/random'
 import { clamp } from '../math/utils'
+import type { Camera } from '../../renderer/camera'
+import { isWithinView, worldToScreen } from '../../renderer/camera'
 import type { BossDefinition, BossUpdateResult, DropSpec, SpawnSpec } from './boss-definition'
 import { metalBurst } from './loot'
 
-// Exported — the renderer scales the telegraph X's alpha by telegraphDuration.
 export const PHASE_SHIFTER = {
   telegraphDuration: 2.5,
   // Phase 2 (HP ≤ 50%) teleports on a tighter cycle with a bigger ring.
@@ -54,9 +55,52 @@ function ringSpecs(center: Vec2, count: number): SpawnSpec[] {
   return specs
 }
 
+// True while the boss is mid-shift — it renders as a ghost (no shield bubble)
+// and the telegraph X marks its destination.
+function isMidShift(boss: Enemy): boolean {
+  return boss.boss?.shifter?.stage === ShifterStage.telegraph
+}
+
+// Big red X + dashed swarm-ring circle at the teleport destination, sharpening
+// as the jump nears (same ramp as the meteor warning).
+function renderTelegraph(ctx: CanvasRenderingContext2D, boss: Enemy, camera: Camera): void {
+  const shifter = boss.boss?.shifter
+  if (shifter?.stage !== ShifterStage.telegraph || !shifter.targetPos) return
+  const screen = worldToScreen(shifter.targetPos, camera)
+  if (!isWithinView(screen, camera, PHASE_SHIFTER.ringRadius + 20)) return
+  const progress = 1 - shifter.stageTimer / PHASE_SHIFTER.telegraphDuration
+
+  ctx.save()
+  ctx.globalAlpha = 0.3 + progress * 0.5
+  ctx.strokeStyle = '#ff5050'
+
+  const arm = 40
+  ctx.lineWidth = 3
+  ctx.beginPath()
+  ctx.moveTo(screen.x - arm, screen.y - arm)
+  ctx.lineTo(screen.x + arm, screen.y + arm)
+  ctx.moveTo(screen.x - arm, screen.y + arm)
+  ctx.lineTo(screen.x + arm, screen.y - arm)
+  ctx.stroke()
+
+  // Where the swarm ring will materialise.
+  ctx.lineWidth = 1.5
+  ctx.setLineDash([6, 6])
+  ctx.beginPath()
+  ctx.arc(screen.x, screen.y, PHASE_SHIFTER.ringRadius, 0, Math.PI * 2)
+  ctx.stroke()
+
+  ctx.restore()
+}
+
 export const PHASE_SHIFTER_BOSS: BossDefinition = {
   kind: EnemyKind.phaseShifter,
   hpBarLabel: 'PHASE SHIFTER',
+
+  // Mid-shift the boss is phasing out of reality — a faint ghost, no bubble.
+  spriteAlpha: (boss) => (isMidShift(boss) ? 0.35 : 1),
+  hideShieldBubble: isMidShift,
+  renderBack: renderTelegraph,
 
   initialState: () => ({
     phase: 1,

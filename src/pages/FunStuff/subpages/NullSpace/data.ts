@@ -271,6 +271,17 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.18.1',
+    date: '2026-06-11',
+    changes: {
+      architecture: [
+        'Effects are registry-driven: each ability/weapon file owns its effect’s full lifecycle (factory, per-tick simulation, world-layer drawing) and registers a single EffectDefinition — the effects system and renderer dispatch generically, so adding an effect never touches them.',
+        'Bosses declare their own rendering: BossDefinition gained renderBack (the Phase Shifter telegraph), spriteAlpha (the mid-shift ghost), and a hideShieldBubble predicate — the renderer no longer hard-codes any boss.',
+        'Hold abilities declare their own overlays (renderBack/renderFront on the hold config): the Solar Flare haze and Telekinesis ripple moved into their ability files, so a new hold ability needs zero renderer edits.',
+      ],
+    },
+  },
+  {
     version: '0.18.0',
     date: '2026-06-11',
     changes: {

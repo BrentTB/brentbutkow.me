@@ -1,5 +1,5 @@
 import { COMET_SHOWER, METEORITE_STRIKE } from './ability-data'
-import { createMeteoriteEffect } from '../systems/effects'
+import { createMeteoriteEffect } from './meteor-strike'
 import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
 import type { UpgradeDefinition } from '../types'
 import { applyCostReduction, applyTierSum, type AbilityDefinition } from './ability-definition'

@@ -20,7 +20,8 @@ import {
   tryCollectSpaceMetal,
   updateCollectibles,
 } from './systems/collectibles'
-import { applyShieldConstraints, updateActiveEffects } from './systems/effects'
+import { applyShieldConstraints } from './abilities/shield'
+import { updateActiveEffects } from './systems/effects'
 import { MAX_DT } from './world/time'
 import { processSpawnQueue } from './systems/spawner'
 import {

@@ -71,7 +71,7 @@ export const VOID_WORM_BOSS: BossDefinition = {
   // The body shields the head — destroy every segment to expose it.
   canTakeDamage: (boss, enemies) => !hasAliveLinked(boss, enemies),
   // The trailing body already says "kill that first" — no bubble needed.
-  hideShieldBubble: true,
+  hideShieldBubble: () => true,
 
   positionLinked: positionChain,
 

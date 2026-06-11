@@ -1,4 +1,5 @@
 import type { BossRuntimeState, Enemy, EnemyKind, Vec2 } from '../types'
+import type { Camera } from '../../renderer/camera'
 
 export type SpawnSpec = { kind: EnemyKind; pos: Vec2 }
 // Loot drop spec — position + initial velocity. Caller creates the Collectible.
@@ -29,8 +30,15 @@ export type BossDefinition = {
   // Gates projectile damage. Return false to absorb the hit without dealing damage.
   canTakeDamage?: (boss: Enemy, enemies: Enemy[]) => boolean
   // Suppresses the cyan damage-gate bubble the renderer draws while
-  // canTakeDamage is false. The worm hides it — its body IS the shield.
-  hideShieldBubble?: boolean
+  // canTakeDamage is false. The worm always hides it (its body IS the shield);
+  // the Phase Shifter hides it mid-shift (the ghost sprite carries
+  // "untouchable" there).
+  hideShieldBubble?: (boss: Enemy) => boolean
+  // Alpha the boss sprite is drawn with — e.g. the Phase Shifter's 0.35 ghost
+  // mid-shift. Absent → fully opaque.
+  spriteAlpha?: (boss: Enemy) => number
+  // Boss-specific world-layer drawing beneath entities (telegraphs, auras).
+  renderBack?: (ctx: CanvasRenderingContext2D, boss: Enemy, camera: Camera) => void
   // Computes position + facing (vel sets sprite rotation) for the boss's alive
   // linked entities each tick. `linked` arrives in linkedIds order (the worm
   // chain depends on it). The Dreadnought pins its generator ring here; the

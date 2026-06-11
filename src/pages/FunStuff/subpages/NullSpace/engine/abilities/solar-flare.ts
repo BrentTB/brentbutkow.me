@@ -5,6 +5,7 @@ import { createParticle, spawnExplosionParticles } from '../entities/entity-crea
 import { rng } from '../math/random'
 import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
 import type { Enemy, UpgradeDefinition } from '../types'
+import { worldToScreen } from '../../renderer/camera'
 import { applyCostReduction, applyTierSum, type AbilityDefinition } from './ability-definition'
 import { IconName } from '../../icon-names'
 import type { HoldAbilityConfig } from './hold-runtime'
@@ -131,6 +132,23 @@ const solarFlareHold: HoldAbilityConfig = {
       particles,
       killedEnemies: [...bag.killedEnemies, ...newKills],
     }
+  },
+  // Soft heat haze under the particle spawn area. Particles do the bulk of the
+  // visual; this just hints at the affected zone.
+  renderBack: (ctx, ability, target, _state, camera) => {
+    const center = worldToScreen(target, camera)
+    const radius = ability.aoeRadius * camera.zoom
+
+    ctx.save()
+    const gradient = ctx.createRadialGradient(center.x, center.y, 0, center.x, center.y, radius)
+    gradient.addColorStop(0, 'rgba(255, 220, 120, 0.18)')
+    gradient.addColorStop(0.6, 'rgba(255, 150, 60, 0.08)')
+    gradient.addColorStop(1, 'rgba(255, 100, 30, 0)')
+    ctx.fillStyle = gradient
+    ctx.beginPath()
+    ctx.arc(center.x, center.y, radius, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.restore()
   },
 }
 

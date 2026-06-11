@@ -1,5 +1,5 @@
 import { METEOR_SHOWER, METEOR_STRIKE } from './ability-data'
-import { createMeteorEffect } from '../systems/effects'
+import { createMeteorEffect } from './meteor-strike'
 import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
 import type { UpgradeDefinition } from '../types'
 import { applyTierSum, type AbilityDefinition } from './ability-definition'

@@ -180,19 +180,20 @@ src/pages/FunStuff/subpages/NullSpace/
 src/pages/FunStuff/subpages/NullSpace/engine/abilities/
   ability-data.ts                            METEORITE_STRIKE, METEOR_STRIKE, COMET_SHOWER, METEOR_SHOWER, BLACK_HOLE, ROCKET, SHIELD, SUN, HELPER, TELEKINESIS, SOLAR_FLARE
   ability-definition.ts                      AbilityActivation, UltimateCost, UltimateContext, UltimatePrerequisite, UltimateDescriptor, AbilityDefinition, applyTierSum, applyCostReduction
-  black-hole.ts                              blackHole
+  black-hole.ts                              createBlackHoleEffect, blackHoleEffect, blackHole
   comet-shower.ts                            cometShower
   helper.ts                                  helper
-  hold-runtime.ts                            INACTIVE_HOLD_STATE, HoldBag, HoldAbilityConfig, runHoldAbility
+  hold-runtime.ts                            HoldRenderFn, INACTIVE_HOLD_STATE, HoldBag, HoldAbilityConfig, runHoldAbility
   index.ts                                   ABILITY_DEFINITIONS, ABILITY_LIST, ABILITY_META, HOLD_ABILITIES, EFFECT_FACTORY, ALLY_FACTORY, WEAPON_UNLOCK_UPGRADE, ULTIMATE_DEFINITIONS, ULTIMATE_KIND_OF, BASE_KIND_OF, ABILITY_UPGRADE_DEFINITIONS, createAbilities, applyTierSum, applyCostReduction, tryUseAbility, updateAbilityCooldowns, resolveAbilityInput, type AbilityResult
   meteor-shower.ts                           meteorShower
+  meteor-strike.ts                           createMeteoriteEffect, createMeteorEffect, meteorStrikeEffect
   meteor.ts                                  meteor
   meteorite.ts                               meteorite
   resolution.ts                              AbilityResult, tryUseAbility, updateAbilityCooldowns, resolveAbilityInput
-  rocket.ts                                  rocket
-  shield.ts                                  shield
+  rocket.ts                                  createRocketEffect, rocketEffect, rocket
+  shield.ts                                  createShieldEffect, applyShieldConstraints, shieldEffect, shield
   solar-flare.ts                             solarFlare
-  sun.ts                                     sun
+  sun.ts                                     createSunEffect, sunEffect, sun
   telekinesis.ts                             telekinesis
 
 src/pages/FunStuff/subpages/NullSpace/engine/bosses/
@@ -227,7 +228,7 @@ src/pages/FunStuff/subpages/NullSpace/engine/ship/
   index.ts                                   SHIP_WEAPON_DEFINITIONS, SHIP_WEAPON_LIST, SHIP_WEAPON_ORDER, SHIP_WEAPON_META, SHIP_WEAPON_UNLOCK_UPGRADE, SHIP_WEAPON_UPGRADE_DEFINITIONS, getShipWeaponForUnlockUpgrade, buildShipProjectile
   laser.ts                                   laser
   missile.ts                                 missile
-  nuke.ts                                    nuke
+  nuke.ts                                    createNuclearWasteEffect, getNuclearWasteCurrentRadius, nuclearWasteEffect, nuke
   ricochet.ts                                ricochet
   ship-data.ts                               ShipVariantStats, ShipVariantConfig, STAT_MAX, SHIP_ORDER, SHIP_VARIANTS
   ship-weapon-data.ts                        BULLET, LASER, MISSILE, RICOCHET, NUKE
@@ -243,7 +244,8 @@ src/pages/FunStuff/subpages/NullSpace/engine/systems/
   collectibles.ts                            spawnCollectiblesFromKills, updateCollectibles, tryCollectSpaceMetal
   combat.ts                                  updateProjectiles, resolveProjectileEnemyCollisions, resolveEnemyProjectileShipCollisions, resolveEnemyProjectileAllyCollisions, resolveEnemyShipCollisions, resolveEnemyAllyMeleeCollisions, resolveDeathEffects
   economy.ts                                 computeCurrencyFromKills
-  effects.ts                                 EffectTickContext, EffectTickResult, updateActiveEffects, getNuclearWasteCurrentRadius, createMeteoriteEffect, createMeteorEffect, createBlackHoleEffect, createRocketEffect, createShieldEffect, applyShieldConstraints, createSunEffect, createNuclearWasteEffect
+  effect-definition.ts                       EffectTickContext, EffectTickResult, EffectTickFn, EffectRenderFn, EffectDefinition, passThroughTick
+  effects.ts                                 EFFECT_DEFINITIONS, updateActiveEffects
   spawner.ts                                 spawnPositionNearShip, processSpawnQueue
 
 src/pages/FunStuff/subpages/NullSpace/engine/
