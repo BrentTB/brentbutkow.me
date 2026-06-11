@@ -65,8 +65,9 @@ export const rocket: AbilityDefinition = {
     damage: ROCKET.damage,
     aoeRadius: ROCKET.aoeRadius,
   }),
-  effectFactory: (ability, pos, ship) =>
+  effectFactory: (ability, pos, ship) => [
     createRocketEffect(ship.pos, pos, ability.damage, ability.aoeRadius, ROCKET.speed),
+  ],
   applyUpgrades: (_ability, upgrades) => ({
     unlocked: upgrades[UpgradeId.unlockRocket].currentTier > 0,
     damage: applyTierSum(ROCKET.damage, upgrades, damageUpgrade),

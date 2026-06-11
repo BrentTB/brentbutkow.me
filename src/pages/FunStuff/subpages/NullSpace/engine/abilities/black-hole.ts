@@ -67,7 +67,7 @@ export const blackHole: AbilityDefinition = {
     aoeRadius: BLACK_HOLE.radius,
     duration: BLACK_HOLE.duration,
   }),
-  effectFactory: (ability, pos) =>
+  effectFactory: (ability, pos) => [
     createBlackHoleEffect(
       pos,
       ability.aoeRadius,
@@ -75,6 +75,7 @@ export const blackHole: AbilityDefinition = {
       ability.damage,
       ability.duration ?? BLACK_HOLE.duration
     ),
+  ],
   applyUpgrades: (_ability, upgrades) => ({
     unlocked: upgrades[UpgradeId.unlockBlackHole].currentTier > 0,
     damage: applyTierSum(BLACK_HOLE.damage, upgrades, damageUpgrade),

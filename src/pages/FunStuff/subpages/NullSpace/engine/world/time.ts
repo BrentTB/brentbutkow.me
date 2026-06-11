@@ -38,3 +38,11 @@ export function resumeGameTime(time: GameTime, nowMs: number): GameTime {
 export function setGameSpeed(time: GameTime, speed: number): GameTime {
   return { ...time, speed }
 }
+
+// Restart the frame clock for a (re)started game: unpaused and re-initialising
+// (so the first frame reports dt 0, not a huge jump), keeping the chosen speed.
+// Without this, restarting from the pause menu leaves the clock paused and the
+// new game never advances.
+export function resetGameClock(time: GameTime): GameTime {
+  return { ...time, paused: false, initialized: false, lastFrameMs: 0 }
+}

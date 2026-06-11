@@ -1,5 +1,8 @@
+import { useState } from 'react'
+import { ABILITY_META, BASE_KIND_OF, ULTIMATE_KIND_OF } from '../../engine/abilities'
 import { BOSS_KINDS, getBossDefinition } from '../../engine/bosses/index'
 import { SHIP_ORDER, SHIP_VARIANTS } from '../../engine/ship/ship-data'
+import { WEAPON_ORDER } from '../../data'
 import { GamePhase, ShipKind } from '../../engine/types'
 import type { DevPatch, GameUIState } from '../../useNullSpace'
 import styles from './DevConsole.module.scss'
@@ -12,6 +15,9 @@ type DevConsoleProps = {
   onQuickStart: (kind: ShipKind) => void
 }
 
+// Base abilities only (ultimates are reached by clicking their already-unlocked base).
+const BASE_ABILITIES = WEAPON_ORDER.filter((kind) => BASE_KIND_OF[kind] === undefined)
+
 export function DevConsole({
   uiState,
   onPatch,
@@ -20,6 +26,7 @@ export function DevConsole({
   onQuickStart,
 }: DevConsoleProps) {
   const inGame = uiState.phase !== GamePhase.menu && uiState.phase !== GamePhase.shipSelection
+  const [showAdvanced, setShowAdvanced] = useState(false)
 
   return (
     <aside className={styles.console}>
@@ -90,93 +97,183 @@ export function DevConsole({
             </button>
           ))}
         </div>
-        <p className={styles.hint}>One-shot: applies to the next boss wave, then random resumes.</p>
       </Section>
 
-      <Section label="Currency">
-        <NumField
-          label="Score"
-          value={uiState.score}
-          onCommit={(v) => onPatch({ score: v })}
-          disabled={!inGame}
-        />
-        <NumField
-          label="Stardust"
-          value={uiState.currency}
-          onCommit={(v) => onPatch({ currency: v })}
-          disabled={!inGame}
-        />
-        <NumField
-          label="Space Metal"
-          value={uiState.spaceMetal}
-          onCommit={(v) => onPatch({ spaceMetal: v })}
-          disabled={!inGame}
-        />
+      <Section label="Quick Actions">
+        <div className={styles.shipGrid}>
+          <button
+            type="button"
+            className={styles.shipBtn}
+            disabled={!inGame}
+            onClick={() => onPatch({ currency: 9999, spaceMetal: 9999, singularityShard: 9999 })}
+          >
+            Max Currencies
+          </button>
+          <button
+            type="button"
+            className={styles.shipBtn}
+            disabled={!inGame}
+            onClick={() => onPatch({ power: uiState.maxPower })}
+          >
+            Full Power
+          </button>
+          <button
+            type="button"
+            className={styles.shipBtn}
+            disabled={!inGame}
+            onClick={() =>
+              onPatch({
+                shipDamage: uiState.shipDamage * 5,
+                shipFireRate: uiState.shipFireRate * 5,
+              })
+            }
+          >
+            Make Ship OP
+          </button>
+          <button
+            type="button"
+            className={styles.shipBtn}
+            disabled={!inGame}
+            onClick={() => onPatch({ shipShield: 5000, shipMaxShield: 5000 })}
+          >
+            Super Shield
+          </button>
+        </div>
       </Section>
 
-      <Section label="Ship Health">
-        <NumField
-          label="HP"
-          value={uiState.shipHp}
-          onCommit={(v) => onPatch({ shipHp: v })}
-          disabled={!inGame}
-        />
-        <NumField
-          label="Max HP"
-          value={uiState.shipMaxHp}
-          onCommit={(v) => onPatch({ shipMaxHp: v })}
-          disabled={!inGame}
-        />
-        <NumField
-          label="Shield"
-          value={uiState.shipShield}
-          onCommit={(v) => onPatch({ shipShield: v })}
-          disabled={!inGame}
-        />
-        <NumField
-          label="Max Shield"
-          value={uiState.shipMaxShield}
-          onCommit={(v) => onPatch({ shipMaxShield: v })}
-          disabled={!inGame}
-        />
+      <Section label="Abilities">
+        <div className={styles.shipGrid}>
+          {BASE_ABILITIES.map((kind) => {
+            const ability = uiState.abilities.find((a) => a.kind === kind)
+            const unlocked = ability?.unlocked ?? false
+            const ultimateKind = ULTIMATE_KIND_OF[kind]
+            const ultimateOwned = ultimateKind
+              ? uiState.ultimatesOwned.includes(ultimateKind)
+              : false
+            // Locked → unlock. Unlocked with an ultimate → grant it. Otherwise done.
+            const done = unlocked && (!ultimateKind || ultimateOwned)
+            const suffix = ultimateOwned ? ' ★' : unlocked ? ' ✓' : ''
+            return (
+              <button
+                key={kind}
+                type="button"
+                className={`${styles.shipBtn} ${unlocked ? styles.shipBtnActive : ''}`}
+                disabled={!inGame || done}
+                title={
+                  !unlocked ? 'Unlock' : ultimateKind && !ultimateOwned ? 'Grant ultimate' : 'Owned'
+                }
+                onClick={() => {
+                  if (!unlocked) onPatch({ unlockWeapon: kind })
+                  else if (ultimateKind && !ultimateOwned) onPatch({ grantUltimate: kind })
+                }}
+              >
+                {ABILITY_META[kind].label}
+                {suffix}
+              </button>
+            )
+          })}
+        </div>
+        <p className={styles.hint}>Click to unlock; click again to grant its ultimate (★).</p>
       </Section>
 
-      <Section label="Combat Stats">
-        <NumField
-          label="Damage"
-          value={uiState.shipDamage}
-          onCommit={(v) => onPatch({ shipDamage: v })}
-          disabled={!inGame}
-        />
-        <NumField
-          label="Fire Rate"
-          value={uiState.shipFireRate}
-          onCommit={(v) => onPatch({ shipFireRate: v })}
-          disabled={!inGame}
-          step="0.1"
-        />
-        <NumField
-          label="Speed"
-          value={uiState.shipSpeed}
-          onCommit={(v) => onPatch({ shipSpeed: v })}
-          disabled={!inGame}
-        />
-      </Section>
+      <button type="button" className={styles.actionBtn} onClick={() => setShowAdvanced((v) => !v)}>
+        {showAdvanced ? '▾ Hide detailed values' : '▸ Show detailed values'}
+      </button>
 
-      <Section label="Power">
-        <NumField
-          label="Power"
-          value={uiState.power}
-          onCommit={(v) => onPatch({ power: v })}
-          disabled={!inGame}
-        />
-        <NumField
-          label="Max Power"
-          value={uiState.maxPower}
-          onCommit={(v) => onPatch({ maxPower: v })}
-          disabled={!inGame}
-        />
-      </Section>
+      {showAdvanced && (
+        <>
+          <Section label="Currency">
+            <NumField
+              label="Score"
+              value={uiState.score}
+              onCommit={(v) => onPatch({ score: v })}
+              disabled={!inGame}
+            />
+            <NumField
+              label="Stardust"
+              value={uiState.currency}
+              onCommit={(v) => onPatch({ currency: v })}
+              disabled={!inGame}
+            />
+            <NumField
+              label="Space Metal"
+              value={uiState.spaceMetal}
+              onCommit={(v) => onPatch({ spaceMetal: v })}
+              disabled={!inGame}
+            />
+            <NumField
+              label="Singularity Shard"
+              value={uiState.singularityShard}
+              onCommit={(v) => onPatch({ singularityShard: v })}
+              disabled={!inGame}
+            />
+          </Section>
+
+          <Section label="Ship Health">
+            <NumField
+              label="HP"
+              value={uiState.shipHp}
+              onCommit={(v) => onPatch({ shipHp: v })}
+              disabled={!inGame}
+            />
+            <NumField
+              label="Max HP"
+              value={uiState.shipMaxHp}
+              onCommit={(v) => onPatch({ shipMaxHp: v })}
+              disabled={!inGame}
+            />
+            <NumField
+              label="Shield"
+              value={uiState.shipShield}
+              onCommit={(v) => onPatch({ shipShield: v })}
+              disabled={!inGame}
+            />
+            <NumField
+              label="Max Shield"
+              value={uiState.shipMaxShield}
+              onCommit={(v) => onPatch({ shipMaxShield: v })}
+              disabled={!inGame}
+            />
+          </Section>
+
+          <Section label="Combat Stats">
+            <NumField
+              label="Damage"
+              value={uiState.shipDamage}
+              onCommit={(v) => onPatch({ shipDamage: v })}
+              disabled={!inGame}
+            />
+            <NumField
+              label="Fire Rate"
+              value={uiState.shipFireRate}
+              onCommit={(v) => onPatch({ shipFireRate: v })}
+              disabled={!inGame}
+              step="0.1"
+            />
+            <NumField
+              label="Speed"
+              value={uiState.shipSpeed}
+              onCommit={(v) => onPatch({ shipSpeed: v })}
+              disabled={!inGame}
+            />
+          </Section>
+
+          <Section label="Power">
+            <NumField
+              label="Power"
+              value={uiState.power}
+              onCommit={(v) => onPatch({ power: v })}
+              disabled={!inGame}
+            />
+            <NumField
+              label="Max Power"
+              value={uiState.maxPower}
+              onCommit={(v) => onPatch({ maxPower: v })}
+              disabled={!inGame}
+            />
+          </Section>
+        </>
+      )}
     </aside>
   )
 }

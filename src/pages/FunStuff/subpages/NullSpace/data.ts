@@ -49,6 +49,10 @@ export const WEAPON_ORDER: readonly AbilityKind[] = [
   AbilityKind.helper,
   AbilityKind.telekinesis,
   AbilityKind.solarFlare,
+  // Ultimates sit at the end — their hotbar slot is inherited from the base
+  // they replace, so this position only governs row creation, not display.
+  AbilityKind.cometShower,
+  AbilityKind.meteorShower,
 ]
 
 export const ENEMY_STATS = {
@@ -192,6 +196,20 @@ export const POWER_ORB = {
   lifetime: 12,
 } as const
 
+// Run-scoped boss material that gates Ultimate purchases. Change this one
+// constant to rename it everywhere (HUD, shop, dev console).
+export const SINGULARITY_SHARD_NAME = 'Singularity Shard'
+// Shards awarded per boss kill.
+export const SHARDS_PER_BOSS = 1
+
+// Singularity Shard pickup — drops on boss death and auto-homes like a power
+// orb (floats briefly, then flies to the ship; no click needed).
+export const SINGULARITY_SHARD = {
+  radius: 9,
+  floatDuration: 0.5,
+  lifetime: 12,
+} as const
+
 export const SPACE_METAL = {
   radius: 10,
   lifetime: 12,
@@ -248,6 +266,32 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.18.0',
+    date: '2026-06-11',
+    changes: {
+      features: [
+        'Ultimate abilities — upgraded variants of your weapons, forged with a new currency: the Singularity Shard. Every boss you defeat drops one (it floats free and homes to your ship automatically).',
+        'Buy an ultimate from a weapon’s shop page once you own the base weapon. It costs stardust + space metal + Singularity Shards, and the shard price climbs with each ultimate you buy this run (1, then 2, then 3 …). The ultimate replaces its base in your hotbar (keeping the same slot).',
+        'Meteorite → Comet Shower: a single tap rains meteorites — one dead-center on your aim, the rest scattered and staggered around it. Upgrade Comet Count for more meteorites, or Comet Cadence to make them fall in quicker succession.',
+        'Meteor → Meteor Shower: a center hit plus a ring of meteors that land together a beat later. The Meteor Count upgrade adds another to the ring, closing the angle between them.',
+        'New Power upgrades: Life Regen (slowly heal ship HP), Stardust Yield (multiply the Stardust earned from kills), Metal Detector (raise the chance enemies drop Space Metal), and Energy Siphon (gain more power from each kill).',
+      ],
+      ui: [
+        'Owned ultimates are marked in the ability bar — and their upgrade cards in the shop — with a purple tint, so they stand apart from your base weapons.',
+        'The three shop currencies now read as distinct coloured symbols (Stardust, Space Metal, Singularity Shard).',
+        'Ship tab: the four Slingshot upgrades are tucked behind a “Slingshot” entry you drill into, keeping the tab tidy.',
+        'Meteor strike telegraphs (the falling-meteor markers) now appear in the order the meteors will land, instead of all at once.',
+        'An overheated ship now shows it — the hull washes red (fading as it cools) and vents smoke and embers.',
+      ],
+      fixes: [
+        'Restarting from the pause menu works again — the new game no longer freezes in place after you pick a ship.',
+      ],
+      architecture: [
+        'Ultimates are registry-driven (one `ultimate` block per ability) so any weapon can gain one in future without touching the shop, hotbar, or purchase flow.',
+      ],
+    },
+  },
   {
     version: '0.17.0',
     date: '2026-06-10',

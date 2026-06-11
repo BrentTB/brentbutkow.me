@@ -2,6 +2,8 @@ import { SLINGSHOT, WAVES_PER_LEVEL } from '../data'
 import {
   ABILITY_DEFINITIONS,
   ABILITY_UPGRADE_DEFINITIONS,
+  BASE_KIND_OF,
+  ULTIMATE_DEFINITIONS,
   WEAPON_UNLOCK_UPGRADE,
   applyTierSum,
 } from './abilities'
@@ -147,6 +149,59 @@ const shipAndPowerUpgrades: UpgradeDefinition[] = [
       { cost: 120, value: 3 },
     ],
   },
+  {
+    id: UpgradeId.lifeRegen,
+    category: UpgradeCategory.powers,
+    label: 'Life Regen',
+    description: 'Slowly regenerate ship HP over time (none by default)',
+    tiers: [
+      { cost: 12, value: 1 },
+      { cost: 48, value: 1 },
+      { cost: 160, value: 2 },
+    ],
+  },
+  {
+    id: UpgradeId.stardustMultiplier,
+    category: UpgradeCategory.powers,
+    label: 'Stardust Yield',
+    description: 'Multiplies the Stardust earned from every kill',
+    tiers: [
+      { cost: 20, value: 0.25 },
+      { cost: 80, value: 0.25 },
+      { cost: 240, value: 0.5 },
+    ],
+  },
+  {
+    id: UpgradeId.spaceMetalChance,
+    category: UpgradeCategory.powers,
+    label: 'Metal Detector',
+    description: 'Increases the chance enemies drop Space Metal',
+    tiers: [
+      { cost: 20, value: 0.5 },
+      { cost: 80, value: 0.5 },
+      { cost: 240, value: 1 },
+    ],
+  },
+  {
+    id: UpgradeId.powerPerKill,
+    category: UpgradeCategory.powers,
+    label: 'Energy Siphon',
+    description: 'Multiplies the power gained from each enemy kill',
+    tiers: [
+      { cost: 20, value: 0.25 },
+      { cost: 80, value: 0.25 },
+      { cost: 240, value: 0.5 },
+    ],
+  },
+]
+
+// Ship upgrades grouped under the Slingshot drill-down in the shop. The rest of
+// the ship-category upgrades stay at the top level.
+export const SLINGSHOT_UPGRADE_IDS: readonly UpgradeId[] = [
+  UpgradeId.slingPower,
+  UpgradeId.slingAccuracy,
+  UpgradeId.slingCooldown,
+  UpgradeId.slingHeatSink,
 ]
 
 export const UPGRADE_DEFINITIONS: Record<UpgradeId, UpgradeDefinition> = Object.fromEntries(
@@ -155,9 +210,30 @@ export const UPGRADE_DEFINITIONS: Record<UpgradeId, UpgradeDefinition> = Object.
   )
 ) as Record<UpgradeId, UpgradeDefinition>
 
-// True when every modifier upgrade for `weapon` is at its max tier.
+// Modifier upgrades shown on a weapon's shop detail page. For an ultimate, this
+// also folds in its BASE ability's modifiers — the ultimate inherits them
+// (e.g. Comet Shower's per-meteor damage tracks Meteorite's Damage upgrade), so
+// they stay buyable after the base is replaced in the hotbar.
+export function getWeaponModifierUpgrades(weapon: AbilityKind): UpgradeDefinition[] {
+  const baseKind = BASE_KIND_OF[weapon]
+  return Object.values(UPGRADE_DEFINITIONS).filter(
+    (def) =>
+      def.category === UpgradeCategory.weapons &&
+      (def.weapon === weapon || def.weapon === baseKind) &&
+      !UNLOCK_UPGRADE_IDS.has(def.id)
+  )
+}
+
+// True when there's nothing left to buy for `weapon`. A base ability that still
+// offers an unpurchased ultimate is never "maxed" — the shop list only shows the
+// base while its ultimate is unowned, so there's always the ultimate to buy. For
+// everything else, every modifier (an ultimate also folds in its inherited base
+// modifiers) must be at max tier.
 export function isWeaponFullyMaxed(weapon: AbilityKind, upgrades: PlayerUpgrades): boolean {
-  return isModifierSetFullyMaxed(weapon, UpgradeCategory.weapons, upgrades)
+  if (ULTIMATE_DEFINITIONS[weapon]) return false
+  const modifiers = getWeaponModifierUpgrades(weapon)
+  if (modifiers.length === 0) return false
+  return modifiers.every((def) => upgrades[def.id].currentTier >= def.tiers.length)
 }
 
 // Parallel of isWeaponFullyMaxed for ship weapons (category: loadout).
@@ -240,6 +316,28 @@ export function applyUpgradesToAbilities(
   })
 }
 
+// Syncs ownership of ultimates onto the runtime ability rows: an owned
+// ultimate becomes unlocked and inherits its base's hotbar slot (so it takes
+// the base's hotkey); an unowned ultimate stays locked. Run after
+// applyUpgradesToAbilities, whenever abilities or ownership change.
+export function syncUltimateAbilities(
+  abilities: Ability[],
+  ultimatesOwned: AbilityKind[]
+): Ability[] {
+  const owned = new Set(ultimatesOwned)
+  return abilities.map((ability) => {
+    const baseKind = BASE_KIND_OF[ability.kind]
+    if (baseKind === undefined) return ability // not an ultimate row
+    if (owned.has(ability.kind)) {
+      const baseRow = abilities.find((b) => b.kind === baseKind)
+      return { ...ability, unlocked: true, unlockedAt: baseRow?.unlockedAt ?? ability.unlockedAt }
+    }
+    return ability.unlocked || ability.unlockedAt !== null
+      ? { ...ability, unlocked: false, unlockedAt: null }
+      : ability
+  })
+}
+
 export function applyUpgradesToShip(ship: Ship, upgrades: PlayerUpgrades): Ship {
   const base = SHIP_VARIANTS[ship.kind].stats
   const maxHp = applyTierSum(base.maxHp, upgrades, UPGRADE_DEFINITIONS[UpgradeId.shipMaxHp])
@@ -278,6 +376,8 @@ export function applyUpgradesToShip(ship: Ship, upgrades: PlayerUpgrades): Ship 
     applyTierSum(SLINGSHOT.baseCoolRate, upgrades, UPGRADE_DEFINITIONS[UpgradeId.slingHeatSink])
   )
 
+  const hpRegen = applyTierSum(0, upgrades, UPGRADE_DEFINITIONS[UpgradeId.lifeRegen])
+
   const hpGain = maxHp - ship.maxHp
   const shieldGain = maxShield - ship.maxShield
   return {
@@ -286,6 +386,7 @@ export function applyUpgradesToShip(ship: Ship, upgrades: PlayerUpgrades): Ship 
     hp: Math.min(ship.hp + Math.max(0, hpGain), maxHp),
     maxShield,
     shield: Math.min(ship.shield + Math.max(0, shieldGain), maxShield),
+    hpRegen,
     damage,
     fireRate,
     speed,
@@ -298,6 +399,21 @@ export function applyUpgradesToShip(ship: Ship, upgrades: PlayerUpgrades): Ship 
 
 export function applyUpgradesToPowerRegen(baseRegen: number, upgrades: PlayerUpgrades): number {
   return applyTierSum(baseRegen, upgrades, UPGRADE_DEFINITIONS[UpgradeId.powerRegen])
+}
+
+// Multiplier (≥1) applied to Stardust earned from kills. 1 with no upgrade.
+export function getStardustMultiplier(upgrades: PlayerUpgrades): number {
+  return applyTierSum(1, upgrades, UPGRADE_DEFINITIONS[UpgradeId.stardustMultiplier])
+}
+
+// Multiplier (≥1) applied to enemy Space Metal drop chances. 1 with no upgrade.
+export function getSpaceMetalDropMultiplier(upgrades: PlayerUpgrades): number {
+  return applyTierSum(1, upgrades, UPGRADE_DEFINITIONS[UpgradeId.spaceMetalChance])
+}
+
+// Multiplier (≥1) applied to the power a kill drops (power orb value). 1 with no upgrade.
+export function getPowerOrbMultiplier(upgrades: PlayerUpgrades): number {
+  return applyTierSum(1, upgrades, UPGRADE_DEFINITIONS[UpgradeId.powerPerKill])
 }
 
 export function getLevel(wave: number): number {

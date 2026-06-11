@@ -1,20 +1,26 @@
 import { describe, it, expect } from 'vitest'
-import { WAVES_PER_LEVEL } from '../data'
+import { WAVES_PER_LEVEL, WORLD_SIZE } from '../data'
 import {
   createInitialUpgrades,
   canPurchaseUpgrade,
   purchaseUpgrade,
   applyUpgradesToAbilities,
   applyUpgradesToPowerRegen,
+  applyUpgradesToShip,
   getLevel,
+  getPowerOrbMultiplier,
+  getSpaceMetalDropMultiplier,
+  getStardustMultiplier,
+  getWeaponModifierUpgrades,
   isUpgradeWave,
   isWeaponFullyMaxed,
   UPGRADE_DEFINITIONS,
   UNLOCK_UPGRADE_IDS,
   WEAPON_UNLOCK_UPGRADE,
 } from './upgrades'
-import { createAbilities } from './entities/entity-creator'
-import { AbilityKind, UpgradeCategory, UpgradeId } from './types'
+import { createAbilities, createShip } from './entities/entity-creator'
+import { BASE_KIND_OF } from './abilities'
+import { AbilityKind, ShipKind, UpgradeCategory, UpgradeId } from './types'
 
 describe('createInitialUpgrades', () => {
   it('all tiers start at 0', () => {
@@ -144,55 +150,115 @@ describe('WEAPON_UNLOCK_UPGRADE', () => {
     }
   })
 
-  it('every ability except meteorite has an unlock entry', () => {
+  it('every base ability except meteorite has an unlock entry', () => {
     for (const kind of Object.values(AbilityKind)) {
       if (kind === AbilityKind.meteorite) continue
+      // Ultimates are bought via the shard economy, not a tier-shop unlock.
+      if (BASE_KIND_OF[kind] !== undefined) continue
       expect(WEAPON_UNLOCK_UPGRADE[kind]).toBeDefined()
     }
   })
 })
 
-describe('isWeaponFullyMaxed', () => {
-  it('false when no modifier upgrades purchased', () => {
-    const upgrades = createInitialUpgrades()
-    expect(isWeaponFullyMaxed(AbilityKind.meteorite, upgrades)).toBe(false)
+describe('getWeaponModifierUpgrades', () => {
+  // Regression: after an ultimate replaced its base, the base's upgrades vanished
+  // from the shop. The ultimate's detail must surface its base modifiers (which
+  // it inherits) plus its own.
+  it('an ultimate shows its base modifiers AND its own', () => {
+    const ids = getWeaponModifierUpgrades(AbilityKind.cometShower).map((d) => d.id)
+    expect(ids).toContain(UpgradeId.meteoriteDamage)
+    expect(ids).toContain(UpgradeId.meteoriteCostReduction)
+    expect(ids).toContain(UpgradeId.cometShowerCount)
   })
 
-  it('true when every modifier upgrade for the weapon is at max tier', () => {
+  it('a base ability does NOT show its ultimate-only upgrades', () => {
+    const ids = getWeaponModifierUpgrades(AbilityKind.meteorite).map((d) => d.id)
+    expect(ids).toContain(UpgradeId.meteoriteDamage)
+    expect(ids).not.toContain(UpgradeId.cometShowerCount)
+  })
+
+  it('excludes unlock upgrades', () => {
+    const ids = getWeaponModifierUpgrades(AbilityKind.meteor).map((d) => d.id)
+    expect(ids).not.toContain(UpgradeId.unlockMeteor)
+  })
+})
+
+describe('Life Regen upgrade', () => {
+  it('ship hpRegen is 0 with no upgrades and rises per tier', () => {
+    const ship = createShip(ShipKind.fighter, WORLD_SIZE)
+    const upgrades = createInitialUpgrades()
+    expect(applyUpgradesToShip(ship, upgrades).hpRegen).toBe(0)
+    upgrades[UpgradeId.lifeRegen] = { currentTier: 1 }
+    expect(applyUpgradesToShip(ship, upgrades).hpRegen).toBe(1)
+  })
+})
+
+describe('isWeaponFullyMaxed', () => {
+  // Max every modifier returned by getWeaponModifierUpgrades for a weapon.
+  function maxAll(weapon: AbilityKind) {
     let upgrades = createInitialUpgrades()
-    const modifiers = Object.values(UPGRADE_DEFINITIONS).filter(
-      (def) =>
-        def.category === UpgradeCategory.weapons &&
-        def.weapon === AbilityKind.meteorite &&
-        !UNLOCK_UPGRADE_IDS.has(def.id)
-    )
-    for (const def of modifiers) {
+    for (const def of getWeaponModifierUpgrades(weapon)) {
       upgrades = { ...upgrades, [def.id]: { currentTier: def.tiers.length } }
     }
-    expect(isWeaponFullyMaxed(AbilityKind.meteorite, upgrades)).toBe(true)
+    return upgrades
+  }
+
+  it('false when no modifier upgrades purchased', () => {
+    expect(isWeaponFullyMaxed(AbilityKind.rocket, createInitialUpgrades())).toBe(false)
+  })
+
+  it('true when every modifier upgrade for a weapon (no ultimate) is at max tier', () => {
+    expect(isWeaponFullyMaxed(AbilityKind.rocket, maxAll(AbilityKind.rocket))).toBe(true)
   })
 
   it('false when one modifier still has room to grow', () => {
     let upgrades = createInitialUpgrades()
-    const modifiers = Object.values(UPGRADE_DEFINITIONS).filter(
-      (def) =>
-        def.category === UpgradeCategory.weapons &&
-        def.weapon === AbilityKind.meteor &&
-        !UNLOCK_UPGRADE_IDS.has(def.id)
-    )
-    // Max everything except the first
+    const modifiers = getWeaponModifierUpgrades(AbilityKind.blackHole)
     for (let i = 1; i < modifiers.length; i++) {
       upgrades = { ...upgrades, [modifiers[i].id]: { currentTier: modifiers[i].tiers.length } }
     }
-    expect(isWeaponFullyMaxed(AbilityKind.meteor, upgrades)).toBe(false)
+    expect(isWeaponFullyMaxed(AbilityKind.blackHole, upgrades)).toBe(false)
   })
 
   it('ignores the unlock upgrade — a freshly-unlocked weapon is not "maxed"', () => {
     const upgrades = {
       ...createInitialUpgrades(),
-      [UpgradeId.unlockMeteor]: { currentTier: 1 },
+      [UpgradeId.unlockBlackHole]: { currentTier: 1 },
     }
-    expect(isWeaponFullyMaxed(AbilityKind.meteor, upgrades)).toBe(false)
+    expect(isWeaponFullyMaxed(AbilityKind.blackHole, upgrades)).toBe(false)
+  })
+
+  // Regression: maxing a base ability's normal upgrades used to show MAX even
+  // though its ultimate was still available to buy.
+  it('a base ability with an unpurchased ultimate is never MAX', () => {
+    expect(isWeaponFullyMaxed(AbilityKind.meteorite, maxAll(AbilityKind.meteorite))).toBe(false)
+  })
+
+  it('an owned ultimate is MAX once its own + inherited base modifiers are maxed', () => {
+    expect(isWeaponFullyMaxed(AbilityKind.cometShower, maxAll(AbilityKind.cometShower))).toBe(true)
+  })
+})
+
+describe('economy multipliers', () => {
+  it('stardust multiplier is 1 by default and rises with tiers', () => {
+    const upgrades = createInitialUpgrades()
+    expect(getStardustMultiplier(upgrades)).toBe(1)
+    upgrades[UpgradeId.stardustMultiplier] = { currentTier: 1 }
+    expect(getStardustMultiplier(upgrades)).toBeCloseTo(1.25, 5)
+  })
+
+  it('space metal drop multiplier is 1 by default and rises with tiers', () => {
+    const upgrades = createInitialUpgrades()
+    expect(getSpaceMetalDropMultiplier(upgrades)).toBe(1)
+    upgrades[UpgradeId.spaceMetalChance] = { currentTier: 1 }
+    expect(getSpaceMetalDropMultiplier(upgrades)).toBeCloseTo(1.5, 5)
+  })
+
+  it('power-per-kill multiplier is 1 by default and rises with tiers', () => {
+    const upgrades = createInitialUpgrades()
+    expect(getPowerOrbMultiplier(upgrades)).toBe(1)
+    upgrades[UpgradeId.powerPerKill] = { currentTier: 1 }
+    expect(getPowerOrbMultiplier(upgrades)).toBeCloseTo(1.25, 5)
   })
 })
 

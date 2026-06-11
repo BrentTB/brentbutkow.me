@@ -3,6 +3,7 @@ import type {
   AbilityKind,
   ActiveEffect,
   Ally,
+  GameState,
   PlayerUpgrades,
   Ship,
   UpgradeDefinition,
@@ -13,6 +14,25 @@ import type { IconName } from '../../icon-names'
 
 export type AbilityActivation = 'click' | 'hold'
 
+// Fixed currency cost of an Ultimate purchase. The Singularity Shard portion is
+// dynamic (= ultimatesOwned.length + 1 at purchase time) so it lives in the
+// purchase logic, not here.
+export type UltimateCost = { stardust: number; spaceMetal: number }
+
+// Optional gate beyond "base ability unlocked". Absent → the default
+// (base unlocked) applies.
+export type UltimatePrerequisite = (state: GameState) => boolean
+
+// Describes the Ultimate a base ability offers. Absent → no ultimate (yet).
+export type UltimateDescriptor = {
+  // The ultimate AbilityKind this base unlocks (its own registered definition).
+  kind: AbilityKind
+  label: string
+  description: string
+  cost: UltimateCost
+  prerequisite?: UltimatePrerequisite
+}
+
 export type AbilityDefinition = {
   kind: AbilityKind
   meta: { icon: IconName; label: string }
@@ -22,9 +42,10 @@ export type AbilityDefinition = {
   startsUnlocked?: boolean
   // Base stats — used by createAbilities() at the start of a run.
   base: () => Omit<Ability, 'cooldownRemaining' | 'unlocked' | 'unlockedAt'>
-  // Click abilities that spawn a stationary or kinetic effect (meteorite,
-  // rocket, sun, etc.).
-  effectFactory?: (ability: Ability, targetPos: Vec2, ship: Ship) => ActiveEffect
+  // Click abilities that spawn one or more stationary/kinetic effects
+  // (meteorite, rocket, sun, etc.). Returns an array so multi-strike ultimates
+  // (Comet Shower, Meteor Shower) can spawn several staggered impacts.
+  effectFactory?: (ability: Ability, targetPos: Vec2, ship: Ship) => ActiveEffect[]
   // Click abilities that spawn an ally entity (helper). Receives the upgraded
   // ability so the factory can read fields like damage and maxHp.
   allyFactory?: (pos: Vec2, ability: Ability) => Ally
@@ -35,6 +56,12 @@ export type AbilityDefinition = {
   unlockUpgrade?: UpgradeDefinition
   // Tiered upgrades for damage, duration, radius, efficiency, etc.
   modifierUpgrades?: UpgradeDefinition[]
+  // The Ultimate this base ability offers. Absent on abilities without one
+  // (yet) and on ultimate definitions themselves.
+  ultimate?: UltimateDescriptor
+  // Set on an ultimate's own definition: the base ability it upgrades. Absent
+  // on base abilities.
+  ultimateOf?: AbilityKind
   // Hold-activation runtime config. Present iff `activation === 'hold'`. Drives
   // the generic hold runner (arm gate, drain, deactivation)
   hold?: HoldAbilityConfig

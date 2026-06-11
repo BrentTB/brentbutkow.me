@@ -55,6 +55,9 @@ export type Ship = Entity & {
   maxShield: number
   shieldRegen: number
   shieldCooldownRemaining: number
+  // HP regenerated per second. 0 by default; the Life Regeneration power upgrade
+  // raises it. Heals up to maxHp while alive.
+  hpRegen: number
   weaponSlots: number
   // The weapon equipped in each slot. Length equals weaponSlots. Carrier
   // (weaponSlots=3) holds 3 distinct weapons; everything else holds one.
@@ -203,6 +206,10 @@ export const AbilityKind = {
   helper: 'helper',
   telekinesis: 'telekinesis',
   solarFlare: 'solarFlare',
+  // Ultimates — upgraded variants of a base ability, purchased with the
+  // Singularity Shard economy. Each links to its base via `ultimateOf`.
+  cometShower: 'cometShower',
+  meteorShower: 'meteorShower',
 } as const
 export type AbilityKind = (typeof AbilityKind)[keyof typeof AbilityKind]
 
@@ -226,6 +233,12 @@ export type Ability = {
   // Telekinesis-only: peak force per second applied to enemies inside the
   // plateau. Upgradable so the player can shove enemies harder over time.
   force?: number
+  // Multi-projectile abilities (Comet Shower): how many strikes a single
+  // activation spawns. Upgradable. Absent for single-strike abilities.
+  count?: number
+  // Comet Shower: seconds between successive comets landing. Upgradable
+  // (smaller = faster volley). Absent for abilities without a staggered volley.
+  staggerStep?: number
 }
 
 export const EffectKind = {
@@ -307,6 +320,7 @@ export type ActiveEffect =
 export const CollectibleKind = {
   powerOrb: 'powerOrb',
   spaceMetal: 'spaceMetal',
+  singularityShard: 'singularityShard',
 } as const
 export type CollectibleKind = (typeof CollectibleKind)[keyof typeof CollectibleKind]
 
@@ -376,6 +390,10 @@ export const UpgradeId = {
   meteorDamage: 'meteorDamage',
   meteorCostReduction: 'meteorCostReduction',
   meteorRadius: 'meteorRadius',
+  // Ultimate-specific modifier upgrades (category: weapons, weapon = ultimate kind).
+  cometShowerCount: 'cometShowerCount',
+  cometShowerStagger: 'cometShowerStagger',
+  meteorShowerCount: 'meteorShowerCount',
   unlockBlackHole: 'unlockBlackHole',
   blackHoleDamage: 'blackHoleDamage',
   blackHoleDuration: 'blackHoleDuration',
@@ -414,6 +432,10 @@ export const UpgradeId = {
   slingCooldown: 'slingCooldown',
   slingHeatSink: 'slingHeatSink',
   powerRegen: 'powerRegen',
+  lifeRegen: 'lifeRegen',
+  stardustMultiplier: 'stardustMultiplier',
+  spaceMetalChance: 'spaceMetalChance',
+  powerPerKill: 'powerPerKill',
   // Ship-weapon unlocks + per-weapon modifiers (category: loadout).
   unlockLaser: 'unlockLaser',
   laserDamage: 'laserDamage',
@@ -472,6 +494,9 @@ export type GameState = {
   isNewHighScore: boolean
   currency: number
   spaceMetal: number
+  // Run-scoped boss material — the gating currency for Ultimate purchases.
+  // Earned 1 per boss kill, spent (with stardust + space metal) on ultimates.
+  singularityShard: number
   power: number
   maxPower: number
   powerRegen: number
@@ -492,6 +517,10 @@ export type GameState = {
   // Ship-weapon kinds the player has purchased this run. Starts with bullet;
   // every successful ship-weapon unlock pushes its kind here. Resets per run.
   unlockedWeapons: ShipWeaponKind[]
+  // Ultimate ability kinds purchased this run. Drives the escalating shard cost
+  // (N = ultimatesOwned.length + 1) and replaces the base in the hotbar/shop.
+  // Resets per run.
+  ultimatesOwned: AbilityKind[]
   // Accumulator that drives Escape Mode's flame-trail particle emission. Resets
   // to 0 when escape ends.
   escapeTrailAccumulator: number

@@ -16,27 +16,27 @@ export function tryUseAbility(
   ship: Ship
 ): {
   abilities: Ability[]
-  effect: ActiveEffect | null
+  effects: ActiveEffect[]
   ally: Ally | null
   powerSpent: number
 } {
   const idx = abilities.findIndex((a) => a.kind === kind && a.unlocked && a.cooldownRemaining <= 0)
-  if (idx === -1) return { abilities, effect: null, ally: null, powerSpent: 0 }
+  if (idx === -1) return { abilities, effects: [], ally: null, powerSpent: 0 }
 
   const ability = abilities[idx]
   if (currentPower < ability.powerCost) {
-    return { abilities, effect: null, ally: null, powerSpent: 0 }
+    return { abilities, effects: [], ally: null, powerSpent: 0 }
   }
 
   const updated = abilities.map((a, i) => (i === idx ? { ...a, cooldownRemaining: a.cooldown } : a))
 
   const effectFactory = EFFECT_FACTORY[kind]
-  const effect = effectFactory ? effectFactory(ability, targetPos, ship) : null
+  const effects = effectFactory ? effectFactory(ability, targetPos, ship) : []
 
   const allyFactory = ALLY_FACTORY[kind]
   const ally = allyFactory ? allyFactory(targetPos, ability) : null
 
-  return { abilities: updated, effect, ally, powerSpent: ability.powerCost }
+  return { abilities: updated, effects, ally, powerSpent: ability.powerCost }
 }
 
 export function updateAbilityCooldowns(abilities: Ability[], dt: number): Ability[] {
@@ -66,7 +66,7 @@ export function resolveAbilityInput(
     abilities = result.abilities
     remainingPower -= result.powerSpent
     totalPowerSpent += result.powerSpent
-    if (result.effect) newEffects.push(result.effect)
+    newEffects.push(...result.effects)
     if (result.ally) newAllies.push(result.ally)
   }
 

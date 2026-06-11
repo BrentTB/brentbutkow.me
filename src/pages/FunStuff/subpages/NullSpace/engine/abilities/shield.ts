@@ -65,8 +65,9 @@ export const shield: AbilityDefinition = {
     aoeRadius: SHIELD.radius,
     duration: SHIELD.duration,
   }),
-  effectFactory: (ability, pos) =>
+  effectFactory: (ability, pos) => [
     createShieldEffect(pos, ability.aoeRadius, ability.duration ?? SHIELD.duration),
+  ],
   applyUpgrades: (_ability, upgrades) => ({
     unlocked: upgrades[UpgradeId.unlockShield].currentTier > 0,
     aoeRadius: applyTierSum(SHIELD.radius, upgrades, radiusUpgrade),

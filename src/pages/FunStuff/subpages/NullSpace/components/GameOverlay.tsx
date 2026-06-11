@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { GamePhase, ShipKind, ShipWeaponKind, UpgradeId } from '../engine/types'
+import { AbilityKind, GamePhase, ShipKind, ShipWeaponKind, UpgradeId } from '../engine/types'
 import type { GameUIState } from '../useNullSpace'
 import styles from './GameOverlay.module.scss'
 import { HelpScreen } from './PauseMenu/HelpScreen'
@@ -18,6 +18,7 @@ type GameOverlayProps = {
   onNextWave: () => void
   onRestart: () => void
   onPurchaseUpgrade: (upgradeId: UpgradeId) => void
+  onPurchaseUltimate: (baseKind: AbilityKind) => void
   onFinishUpgrades: () => void
   onResume: () => void
   onSetSpeed: (speed: number) => void
@@ -35,6 +36,7 @@ export function GameOverlay({
   onNextWave,
   onRestart,
   onPurchaseUpgrade,
+  onPurchaseUltimate,
   onFinishUpgrades,
   onResume,
   onSetSpeed,
@@ -97,6 +99,7 @@ export function GameOverlay({
           <UpgradeScreen
             uiState={uiState}
             onPurchase={onPurchaseUpgrade}
+            onPurchaseUltimate={onPurchaseUltimate}
             onContinue={onFinishUpgrades}
             onEquipShipWeapon={onEquipShipWeapon}
           />

@@ -12,7 +12,8 @@ type SpaceMetalRailProps = {
 export function SpaceMetalRail({ uiState, onUseSpaceMetalAbility }: SpaceMetalRailProps) {
   return (
     <div className={styles.spaceMetalRail}>
-      <span className={styles.spaceMetalCounter}>⬡ {uiState.spaceMetal}</span>
+      <span className={styles.spaceMetalCounter}>⬢ {uiState.spaceMetal}</span>
+      <span className={styles.shardCounter}>◆ {uiState.singularityShard}</span>
       {SPACE_METAL_ABILITIES.map((ability) => {
         const canUse = ability.canUse(uiState)
         return (
@@ -29,7 +30,7 @@ export function SpaceMetalRail({ uiState, onUseSpaceMetalAbility }: SpaceMetalRa
               <Icon name={ability.meta.icon} />
             </span>
             <span className={sharedStyles.abilityLabel}>{ability.meta.label}</span>
-            <span className={styles.spaceMetalCost}>⬡ {ability.cost}</span>
+            <span className={styles.spaceMetalCost}>⬢ {ability.cost}</span>
           </button>
         )
       })}

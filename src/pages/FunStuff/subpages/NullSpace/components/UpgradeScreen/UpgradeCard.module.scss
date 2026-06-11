@@ -33,6 +33,18 @@
   opacity: 0.45;
 }
 
+// Upgrades that belong to an ultimate get the same purple treatment as the
+// ultimate ability itself.
+.upgradeUltimate {
+  border-color: rgba(200, 168, 255, 0.5);
+  background: rgba(150, 90, 230, 0.12);
+}
+
+.upgradeUltimate.upgradeCardBtn:hover:not(:disabled) {
+  background: rgba(150, 90, 230, 0.2);
+  border-color: rgba(200, 168, 255, 0.7);
+}
+
 .upgradeInfo {
   flex: 1;
   min-width: 0;

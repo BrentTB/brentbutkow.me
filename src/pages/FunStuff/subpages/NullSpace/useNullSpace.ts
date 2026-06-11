@@ -8,8 +8,13 @@ import {
   startNextWave,
   updateGameState,
   applyUpgradeToState,
+  applyUltimatePurchaseToState,
+  devUnlockWeapon,
+  devGrantUltimate,
   finishUpgradeScreen,
 } from './engine/game-loop'
+import { isBaseReplacedByUltimate } from './engine/ultimates'
+import { ULTIMATE_KIND_OF } from './engine/abilities'
 import { AbilityKind, EnemyKind, GamePhase, ShipKind, ShipWeaponKind } from './engine/types'
 import type { GameState, PlayerInput, Vec2, UpgradeId, PlayerUpgrades } from './engine/types'
 import { getBossDefinition } from './engine/bosses/index'
@@ -29,6 +34,7 @@ import {
   tickGameTime,
   pauseGameTime,
   resumeGameTime,
+  resetGameClock,
   setGameSpeed,
   type GameTime,
 } from './engine/world/time'
@@ -84,6 +90,8 @@ export type GameUIState = {
   maxPower: number
   currency: number
   spaceMetal: number
+  singularityShard: number
+  ultimatesOwned: GameState['ultimatesOwned']
   abilities: GameState['abilities']
   upgrades: PlayerUpgrades
   selectedAbility: GameState['abilities'][number]['kind']
@@ -113,32 +121,39 @@ export type DevPatch = {
   score?: number
   currency?: number
   spaceMetal?: number
+  singularityShard?: number
   power?: number
   maxPower?: number
   wave?: number
   // One-shot: overrides the upcoming boss wave's boss, then selection resumes.
   nextBoss?: EnemyKind
+  // Unlock a base ability (no cost). Grant a base ability's ultimate (no cost).
+  unlockWeapon?: AbilityKind
+  grantUltimate?: AbilityKind
 }
 
 // Hotkey number = position in unlock order. The HUD renders only unlocked
 // abilities, sorted by unlockedAt, so badge "2" always selects whatever was
-// unlocked second.
+// unlocked second. A base whose ultimate is owned is hidden — the ultimate
+// occupies its slot instead.
 export function getUnlockedAbilitiesInOrder(
-  abilities: GameState['abilities']
+  abilities: GameState['abilities'],
+  ultimatesOwned: GameState['ultimatesOwned'] = []
 ): GameState['abilities'] {
   return abilities
-    .filter((a) => a.unlockedAt !== null)
+    .filter((a) => a.unlockedAt !== null && !isBaseReplacedByUltimate(a.kind, ultimatesOwned))
     .slice()
     .sort((a, b) => (a.unlockedAt as number) - (b.unlockedAt as number))
 }
 
 export function abilityKindForHotkey(
   abilities: GameState['abilities'],
-  key: string
+  key: string,
+  ultimatesOwned: GameState['ultimatesOwned'] = []
 ): GameState['abilities'][number]['kind'] | null {
   const index = Number(key) - 1
   if (!Number.isInteger(index) || index < 0) return null
-  const ordered = getUnlockedAbilitiesInOrder(abilities)
+  const ordered = getUnlockedAbilitiesInOrder(abilities, ultimatesOwned)
   return ordered[index]?.kind ?? null
 }
 
@@ -165,6 +180,8 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     maxPower: 100,
     currency: 0,
     spaceMetal: 0,
+    singularityShard: 0,
+    ultimatesOwned: [],
     abilities: [],
     upgrades: {} as PlayerUpgrades,
     selectedAbility: AbilityKind.meteorite,
@@ -226,6 +243,8 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       maxPower: state.maxPower,
       currency: state.currency,
       spaceMetal: state.spaceMetal,
+      singularityShard: state.singularityShard,
+      ultimatesOwned: state.ultimatesOwned,
       abilities: state.abilities,
       upgrades: state.upgrades,
       selectedAbility: selectedAbilityRef.current,
@@ -260,6 +279,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     (kind: ShipKind) => {
       gameStateRef.current = startGame(gameStateRef.current, kind)
       gameStateRef.current = startNextWave(gameStateRef.current)
+      gameTimeRef.current = resetGameClock(gameTimeRef.current)
       selectedAbilityRef.current = AbilityKind.meteorite
       cameraRef.current = centerCameraOn(
         cameraRef.current,
@@ -317,13 +337,14 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       if (patch.shipSpeed !== undefined) ship = { ...ship, speed: patch.shipSpeed }
 
       const wave = patch.wave ?? state.wave
-      gameStateRef.current = {
+      let next: GameState = {
         ...state,
         ship,
         shipKind,
         score: patch.score ?? state.score,
         currency: patch.currency ?? state.currency,
         spaceMetal: patch.spaceMetal ?? state.spaceMetal,
+        singularityShard: patch.singularityShard ?? state.singularityShard,
         power: patch.power ?? state.power,
         maxPower: patch.maxPower ?? state.maxPower,
         wave,
@@ -335,6 +356,9 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
             ? { ...state.bossSelection, nextBoss: patch.nextBoss }
             : state.bossSelection,
       }
+      if (patch.unlockWeapon !== undefined) next = devUnlockWeapon(next, patch.unlockWeapon)
+      if (patch.grantUltimate !== undefined) next = devGrantUltimate(next, patch.grantUltimate)
+      gameStateRef.current = next
       syncUI(gameStateRef.current)
     }
 
@@ -389,6 +413,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     handleDevQuickStart = (kind: ShipKind) => {
       gameStateRef.current = startGame(gameStateRef.current, kind)
       gameStateRef.current = startNextWave(gameStateRef.current)
+      gameTimeRef.current = resetGameClock(gameTimeRef.current)
       selectedAbilityRef.current = AbilityKind.meteorite
       cameraRef.current = centerCameraOn(
         cameraRef.current,
@@ -413,6 +438,26 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
   const handlePurchaseUpgrade = useCallback(
     (upgradeId: UpgradeId) => {
       gameStateRef.current = applyUpgradeToState(gameStateRef.current, upgradeId)
+      syncUI(gameStateRef.current)
+    },
+    [syncUI]
+  )
+
+  const handlePurchaseUltimate = useCallback(
+    (baseKind: AbilityKind) => {
+      const before = gameStateRef.current.ultimatesOwned.length
+      gameStateRef.current = applyUltimatePurchaseToState(gameStateRef.current, baseKind)
+      // If the player had the now-replaced base selected, point selection at the
+      // ultimate — otherwise they'd keep firing the (hidden) base until they
+      // manually picked another ability.
+      const ultimateKind = ULTIMATE_KIND_OF[baseKind]
+      if (
+        gameStateRef.current.ultimatesOwned.length > before &&
+        ultimateKind &&
+        selectedAbilityRef.current === baseKind
+      ) {
+        selectedAbilityRef.current = ultimateKind
+      }
       syncUI(gameStateRef.current)
     },
     [syncUI]
@@ -599,7 +644,11 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
         handleUseSpaceMetalAbility(spaceMetalAbility.kind)
         return
       }
-      const kind = abilityKindForHotkey(gameStateRef.current.abilities, e.key)
+      const kind = abilityKindForHotkey(
+        gameStateRef.current.abilities,
+        e.key,
+        gameStateRef.current.ultimatesOwned
+      )
       if (kind) {
         selectedAbilityRef.current = kind
         syncUI(gameStateRef.current)
@@ -703,6 +752,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     handleRestart,
     setSelectedAbility,
     handlePurchaseUpgrade,
+    handlePurchaseUltimate,
     handleFinishUpgrades,
     handleEquipShipWeapon,
     handlePause,
