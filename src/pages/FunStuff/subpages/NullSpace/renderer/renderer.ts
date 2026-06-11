@@ -5,6 +5,7 @@ import {
   EnemyKind,
   GamePhase,
   ProjectileOwner,
+  ShifterStage,
   ShipKind,
 } from '../engine/types'
 import type {
@@ -12,6 +13,7 @@ import type {
   Ally,
   BlackHoleEffect,
   Collectible,
+  Enemy,
   GameState,
   MeteorStrikeEffect,
   NuclearWasteEffect,
@@ -24,6 +26,7 @@ import type {
 import { POWER_ORB, SPACE_METAL } from '../data'
 import { getNuclearWasteCurrentRadius } from '../engine/systems/effects'
 import { getBossDefinition } from '../engine/bosses/index'
+import { PHASE_SHIFTER } from '../engine/bosses/phase-shifter'
 import type { Camera } from './camera'
 import { isWithinView, worldToScreen } from './camera'
 import type { SpriteCache } from './sprite-cache'
@@ -40,6 +43,15 @@ const ENEMY_SPRITE: Record<EnemyKind, SpriteKey> = {
   [EnemyKind.bomber]: SpriteKey.bomber,
   [EnemyKind.dreadnought]: SpriteKey.dreadnoughtBoss,
   [EnemyKind.shieldGenerator]: SpriteKey.shieldGenerator,
+  [EnemyKind.voidWorm]: SpriteKey.voidWormBoss,
+  [EnemyKind.wormSegment]: SpriteKey.wormSegment,
+  [EnemyKind.phaseShifter]: SpriteKey.phaseShifterBoss,
+}
+
+// True while the Phase Shifter is mid-shift — it renders as a ghost (no shield
+// bubble) and the telegraph X marks its destination.
+function isPhasing(enemy: Enemy): boolean {
+  return enemy.boss?.shifter?.stage === ShifterStage.telegraph
 }
 
 export const SHIP_SPRITE_KEY: Record<ShipKind, SpriteKey> = {
@@ -72,6 +84,7 @@ export function renderFrame(
 
   renderStarfield(ctx, stars, camera)
   renderActiveEffectsBack(ctx, state.activeEffects, camera)
+  renderShifterTelegraphs(ctx, state, camera)
   renderSolarFlare(ctx, state, camera)
   renderCollectibles(ctx, state.collectibles, camera)
   renderParticles(ctx, state.particles, camera)
@@ -142,19 +155,28 @@ function renderEnemies(
 
     const spriteKey = ENEMY_SPRITE[enemy.kind]
     const size = getSpriteSize(spriteKey)
+    const phasing = isPhasing(enemy)
 
     ctx.save()
     ctx.translate(screen.x, screen.y)
-    const angle = Math.atan2(enemy.vel.y, enemy.vel.x) + Math.PI / 2
+    // Stationary enemies (vel = 0) draw upright — atan2(0, 0) is 0 in JS, so
+    // the +π/2 facing offset would otherwise tilt them 90° for no reason.
+    const stationary = enemy.vel.x === 0 && enemy.vel.y === 0
+    const angle = stationary ? 0 : Math.atan2(enemy.vel.y, enemy.vel.x) + Math.PI / 2
     ctx.rotate(angle)
+    // Mid-shift the boss is phasing out of reality — a faint ghost.
+    if (phasing) ctx.globalAlpha = 0.35
     ctx.drawImage(sprites[spriteKey], -size.w / 2, -size.h / 2)
     ctx.restore()
 
-    // Boss shield bubble — visible while its generators keep it damage-gated.
-    // Drawn outside the sprite's rotation so the ring never spins with the boss.
-    if (enemy.boss) {
+    // Boss shield bubble — visible while the boss is damage-gated. Drawn
+    // outside the sprite's rotation so the ring never spins with the boss.
+    // Suppressed mid-shift (the ghost sprite carries "untouchable" there) and
+    // for bosses that opt out via hideShieldBubble (the worm's body is its tell).
+    if (enemy.boss && !phasing) {
       const def = getBossDefinition(enemy.kind)
-      const shielded = def?.canTakeDamage?.(enemy, state.enemies) === false
+      const shielded =
+        !def?.hideShieldBubble && def?.canTakeDamage?.(enemy, state.enemies) === false
       if (shielded) {
         ctx.save()
         ctx.translate(screen.x, screen.y)
@@ -319,6 +341,44 @@ function renderMeteorWarning(
   ctx.stroke()
 
   ctx.restore()
+}
+
+// Big red X + dashed swarm-ring circle at the Phase Shifter's teleport
+// destination, sharpening as the jump nears (same ramp as the meteor warning).
+function renderShifterTelegraphs(
+  ctx: CanvasRenderingContext2D,
+  state: GameState,
+  camera: Camera
+): void {
+  for (const enemy of state.enemies) {
+    const shifter = enemy.boss?.shifter
+    if (shifter?.stage !== ShifterStage.telegraph || !shifter.targetPos) continue
+    const screen = worldToScreen(shifter.targetPos, camera)
+    if (!isWithinView(screen, camera, PHASE_SHIFTER.ringRadius + 20)) continue
+    const progress = 1 - shifter.stageTimer / PHASE_SHIFTER.telegraphDuration
+
+    ctx.save()
+    ctx.globalAlpha = 0.3 + progress * 0.5
+    ctx.strokeStyle = '#ff5050'
+
+    const arm = 40
+    ctx.lineWidth = 3
+    ctx.beginPath()
+    ctx.moveTo(screen.x - arm, screen.y - arm)
+    ctx.lineTo(screen.x + arm, screen.y + arm)
+    ctx.moveTo(screen.x - arm, screen.y + arm)
+    ctx.lineTo(screen.x + arm, screen.y - arm)
+    ctx.stroke()
+
+    // Where the swarm ring will materialise.
+    ctx.lineWidth = 1.5
+    ctx.setLineDash([6, 6])
+    ctx.beginPath()
+    ctx.arc(screen.x, screen.y, PHASE_SHIFTER.ringRadius, 0, Math.PI * 2)
+    ctx.stroke()
+
+    ctx.restore()
+  }
 }
 
 function renderMeteorProjectile(

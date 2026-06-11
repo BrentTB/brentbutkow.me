@@ -26,6 +26,9 @@ beforeEach(() => {
 })
 
 const CENTER = { x: 1500, y: 1500 }
+// Ship parked far away — the dreadnought's hooks don't read it, so any fixed
+// position keeps these suites focused on linked-entity behavior.
+const CTX = { shipPos: { x: 9999, y: 9999 }, worldSize: WORLD_SIZE }
 
 describe('createEnemy — dreadnought boss initialises runtime state', () => {
   it('populates boss field with phase 1, empty linkedIds, hasSpawned false', () => {
@@ -45,7 +48,7 @@ describe('createEnemy — dreadnought boss initialises runtime state', () => {
 describe('updateBossAI — onSpawn fires once', () => {
   it('spawns 3 shield generators on first tick and marks hasSpawned', () => {
     const boss = createEnemy(EnemyKind.dreadnought, CENTER)
-    const result = updateBossAI([boss], 0.016)
+    const result = updateBossAI([boss], 0.016, CTX)
 
     const updatedBoss = result.enemies.find((e) => e.kind === EnemyKind.dreadnought)
     expect(updatedBoss).toBeDefined()
@@ -57,9 +60,9 @@ describe('updateBossAI — onSpawn fires once', () => {
 
   it('does not re-fire onSpawn on subsequent ticks', () => {
     const boss = createEnemy(EnemyKind.dreadnought, CENTER)
-    const first = updateBossAI([boss], 0.016)
+    const first = updateBossAI([boss], 0.016, CTX)
     const updatedBoss = first.enemies.find((e) => e.kind === EnemyKind.dreadnought)!
-    const second = updateBossAI([updatedBoss], 0.016)
+    const second = updateBossAI([updatedBoss], 0.016, CTX)
     expect(second.newEnemies.filter((e) => e.kind === EnemyKind.shieldGenerator)).toHaveLength(0)
   })
 })
@@ -67,7 +70,7 @@ describe('updateBossAI — onSpawn fires once', () => {
 describe('updateBossAI — phase advance', () => {
   it('stays phase 1 above 50% HP', () => {
     const boss = createEnemy(EnemyKind.dreadnought, CENTER)
-    const result = updateBossAI([boss], 0.016)
+    const result = updateBossAI([boss], 0.016, CTX)
     const updated = result.enemies.find((e) => e.kind === EnemyKind.dreadnought)!
     expect(updated.boss!.phase).toBe(1)
   })
@@ -76,7 +79,7 @@ describe('updateBossAI — phase advance', () => {
     const boss = createEnemy(EnemyKind.dreadnought, CENTER)
     // Simulate taking damage to exactly 50% HP
     const damagedBoss = { ...boss, hp: Math.floor(boss.maxHp * 0.5) }
-    const result = updateBossAI([damagedBoss], 0.016)
+    const result = updateBossAI([damagedBoss], 0.016, CTX)
     const updated = result.enemies.find((e) => e.kind === EnemyKind.dreadnought)!
     expect(updated.boss!.phase).toBe(2)
   })
@@ -190,7 +193,7 @@ describe('updateBossAI — shield generators hold a fixed ring distance', () => 
     const boss = createEnemy(EnemyKind.dreadnought, CENTER)
     boss.boss = { ...boss.boss!, linkedIds: [gen.id], hasSpawned: true }
 
-    const result = updateBossAI([boss, gen], 0.1)
+    const result = updateBossAI([boss, gen], 0.1, CTX)
     const pinned = result.enemies.find((e) => e.id === gen.id)!
     // Pinned to the 90px ring along its current direction (+x).
     expect(pinned.pos.x).toBeCloseTo(CENTER.x + 90)
@@ -204,7 +207,7 @@ describe('updateBossAI — shield generators hold a fixed ring distance', () => 
     const boss = createEnemy(EnemyKind.dreadnought, CENTER)
     boss.boss = { ...boss.boss!, linkedIds: [g1.id, g2.id], hasSpawned: true }
 
-    const result = updateBossAI([boss, g1, g2], 0.1)
+    const result = updateBossAI([boss, g1, g2], 0.1, CTX)
     const p1 = result.enemies.find((e) => e.id === g1.id)!
     const p2 = result.enemies.find((e) => e.id === g2.id)!
     const ringDist = (p: typeof p1) => Math.hypot(p.pos.x - CENTER.x, p.pos.y - CENTER.y)
@@ -222,7 +225,7 @@ describe('updateBossAI — shield generators hold a fixed ring distance', () => 
   it('keeps the ring spread as the boss travels instead of clustering', () => {
     const boss = createEnemy(EnemyKind.dreadnought, { ...CENTER })
     // First tick spawns the 3 generators.
-    const spawnTick = updateBossAI([boss], 0.016)
+    const spawnTick = updateBossAI([boss], 0.016, CTX)
     let enemies = [...spawnTick.enemies, ...spawnTick.newEnemies]
     expect(enemies.filter((e) => e.kind === EnemyKind.shieldGenerator)).toHaveLength(3)
 
@@ -233,7 +236,7 @@ describe('updateBossAI — shield generators hold a fixed ring distance', () => 
       enemies = enemies.map((e) =>
         e.boss ? { ...e, pos: { x: e.pos.x + 50 * dt, y: e.pos.y } } : e
       )
-      enemies = updateBossAI(enemies, dt).enemies
+      enemies = updateBossAI(enemies, dt, CTX).enemies
     }
 
     const bossNow = enemies.find((e) => e.boss)!
@@ -264,7 +267,7 @@ describe('updateBossAI — phase-2 shield regeneration', () => {
     boss.boss = { ...boss.boss!, phase: 1, linkedIds: [], hasSpawned: true }
     boss.hp = Math.floor(boss.maxHp * 0.5)
 
-    const result = updateBossAI([boss], 0.016)
+    const result = updateBossAI([boss], 0.016, CTX)
     const updatedBoss = result.enemies.find((e) => e.kind === EnemyKind.dreadnought)!
     const regen = result.newEnemies.filter((e) => e.kind === EnemyKind.shieldGenerator)
 
@@ -278,7 +281,7 @@ describe('updateBossAI — phase-2 shield regeneration', () => {
     boss.boss = { ...boss.boss!, phase: 2, linkedIds: [], hasSpawned: true }
     boss.hp = Math.floor(boss.maxHp * 0.3)
 
-    const result = updateBossAI([boss], 0.016)
+    const result = updateBossAI([boss], 0.016, CTX)
     const regen = result.newEnemies.filter((e) => e.kind === EnemyKind.shieldGenerator)
     expect(regen).toHaveLength(0)
   })

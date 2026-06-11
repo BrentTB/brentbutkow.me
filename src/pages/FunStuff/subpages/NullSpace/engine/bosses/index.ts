@@ -2,8 +2,14 @@ import { EnemyKind } from '../types'
 import type { Enemy } from '../types'
 import type { BossDefinition } from './boss-definition'
 import { DREADNOUGHT_BOSS } from './dreadnought'
+import { VOID_WORM_BOSS } from './void-worm'
+import { PHASE_SHIFTER_BOSS } from './phase-shifter'
 
-const BOSS_DEFINITIONS: BossDefinition[] = [DREADNOUGHT_BOSS]
+const BOSS_DEFINITIONS: BossDefinition[] = [DREADNOUGHT_BOSS, VOID_WORM_BOSS, PHASE_SHIFTER_BOSS]
+
+// Registered boss kinds, in registry order. Drives boss-wave selection and the
+// dev-console picker.
+export const BOSS_KINDS: readonly EnemyKind[] = BOSS_DEFINITIONS.map((d) => d.kind)
 
 const BOSS_MAP: Partial<Record<EnemyKind, BossDefinition>> = Object.fromEntries(
   BOSS_DEFINITIONS.map((d) => [d.kind, d])

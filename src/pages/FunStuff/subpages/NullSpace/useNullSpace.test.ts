@@ -3,6 +3,7 @@ import { renderHook, act } from '@testing-library/react'
 import { abilityKindForHotkey, useNullSpace } from './useNullSpace'
 import { createRef } from 'react'
 import { createAbilities } from './engine/entities/entity-creator'
+import { BOSS_KINDS } from './engine/bosses/index'
 import { AbilityKind, GamePhase, ShipKind } from './engine/types'
 import { WEAPON_ORDER } from './data'
 
@@ -16,6 +17,25 @@ describe('useNullSpace', () => {
     expect(result.current.uiState.currency).toBe(0)
     expect(result.current.uiState.spaceMetal).toBe(0)
     expect(result.current.uiState.selectedAbility).toBe(AbilityKind.meteorite)
+  })
+
+  it('seeds nextBoss from the pre-rolled boss selection at mount, not a hardcoded default', () => {
+    // Regression: the hook used to initialise uiState.nextBoss to a literal
+    // EnemyKind.dreadnought, so the dev-console readout was misleading at
+    // menu time even though the engine had already pre-rolled a random boss.
+    const canvasRef = createRef<HTMLCanvasElement>()
+    const { result } = renderHook(() => useNullSpace(canvasRef))
+    expect(BOSS_KINDS).toContain(result.current.uiState.nextBoss)
+  })
+
+  it('exposes the pre-rolled next boss once a game starts', () => {
+    const canvasRef = createRef<HTMLCanvasElement>()
+    const { result } = renderHook(() => useNullSpace(canvasRef))
+    act(() => {
+      result.current.handleStart()
+      result.current.handleSelectShip(ShipKind.fighter)
+    })
+    expect(BOSS_KINDS).toContain(result.current.uiState.nextBoss)
   })
 
   it('exposes action callbacks', () => {
@@ -201,6 +221,24 @@ describe('useNullSpace — slingshot', () => {
 
       expect(result.current.uiState.slingHeat).toBeGreaterThan(0)
       expect(result.current.uiState.slingOverheated).toBe(false)
+    })
+
+    // Regression: a press on the ship used to be swallowed by the slingshot
+    // grab, making enemies near the ship untargetable. A sub-threshold release
+    // must fall through to a normal ability tap (and never fling).
+    it('a tap on the ship (no drag) fires the selected ability instead of flinging', () => {
+      const canvasRef = { current: canvas }
+      const { result } = renderHook(() => useNullSpace(canvasRef))
+      startPlaying(result)
+
+      const powerBefore = result.current.uiState.power
+      pointer(canvas, 'pointerdown', 0, 0)
+      pointer(window, 'pointerup', 0, 0)
+      step(16) // consume the queued tap
+
+      expect(result.current.uiState.slingHeat).toBe(0)
+      // The starting meteorite costs power — proof the tap reached the resolver.
+      expect(result.current.uiState.power).toBeLessThan(powerBefore)
     })
 
     // Regression: releasing a grab after a pause must NOT queue a flick that

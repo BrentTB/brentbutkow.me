@@ -20,6 +20,9 @@ const ENEMY_MOVEMENT: Record<EnemyKind, MovementBehavior> = {
   [EnemyKind.bomber]: MovementBehavior.chase,
   [EnemyKind.dreadnought]: MovementBehavior.approach,
   [EnemyKind.shieldGenerator]: MovementBehavior.stationary,
+  [EnemyKind.voidWorm]: MovementBehavior.none,
+  [EnemyKind.wormSegment]: MovementBehavior.none,
+  [EnemyKind.phaseShifter]: MovementBehavior.stationary,
 }
 
 const ENEMY_DEATH: Record<EnemyKind, DeathBehavior> = {
@@ -30,6 +33,9 @@ const ENEMY_DEATH: Record<EnemyKind, DeathBehavior> = {
   [EnemyKind.bomber]: DeathBehavior.explode,
   [EnemyKind.dreadnought]: DeathBehavior.boss,
   [EnemyKind.shieldGenerator]: DeathBehavior.none,
+  [EnemyKind.voidWorm]: DeathBehavior.boss,
+  [EnemyKind.wormSegment]: DeathBehavior.none,
+  [EnemyKind.phaseShifter]: DeathBehavior.boss,
 }
 
 // IDs must be unique across the whole session — including across Vite HMR

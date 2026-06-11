@@ -103,6 +103,10 @@ function moveStationary(enemy: Enemy): Enemy {
   return { ...enemy, vel: { x: 0, y: 0 } }
 }
 
+// Boss-tick-driven enemies (worm head/segments): position and velocity are
+// owned by updateBossAI, so movement leaves them untouched.
+const moveNone: MoveFn = (enemy) => enemy
+
 // Pursues the target like chase, but stops once within `attackRange` so the
 // enemy parks at a fixed standoff instead of ramming. Used by the boss so the
 // player can engage it without chasing it across the map.
@@ -119,6 +123,7 @@ const MOVEMENT_FN: Record<MovementBehavior, MoveFn> = {
   [MovementBehavior.zigzag]: moveZigzag,
   [MovementBehavior.stationary]: moveStationary,
   [MovementBehavior.approach]: moveApproach,
+  [MovementBehavior.none]: moveNone,
 }
 
 export function updateEnemyMovement(

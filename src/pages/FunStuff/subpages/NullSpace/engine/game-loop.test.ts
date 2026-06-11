@@ -22,6 +22,7 @@ import {
   UpgradeId,
 } from './types'
 import { isUpgradeWave } from './upgrades'
+import { BOSS_KINDS } from './bosses/index'
 import { ENEMY_STATS, POWER_DEFAULTS, WAVES_PER_LEVEL } from '../data'
 import { TELEKINESIS, SOLAR_FLARE } from './abilities/ability-data'
 
@@ -64,6 +65,37 @@ describe('startNextWave', () => {
     expect(state.totalWaveEnemies).toBe(state.spawnQueue.length)
     expect(state.spawnedInWave).toBe(0)
     expect(state.level).toBe(1)
+  })
+})
+
+describe('startNextWave — boss selection', () => {
+  it('boss wave queues the pre-rolled nextBoss last and advances the selection', () => {
+    let state = startGame(createInitialState(), ShipKind.fighter)
+    const expected = state.bossSelection.nextBoss
+    state = startNextWave({ ...state, wave: 8 })
+
+    expect(state.wave).toBe(9)
+    expect(state.spawnQueue[state.spawnQueue.length - 1]).toBe(expected)
+    expect(BOSS_KINDS).toContain(state.bossSelection.nextBoss)
+  })
+
+  it('non-boss waves leave the selection untouched', () => {
+    let state = startGame(createInitialState(), ShipKind.fighter)
+    const before = state.bossSelection
+    state = startNextWave(state)
+    expect(state.bossSelection).toBe(before)
+  })
+
+  it('the first boss waves of a run spawn every boss once before any repeat', () => {
+    const state = startGame(createInitialState(), ShipKind.fighter)
+    const consumed: EnemyKind[] = []
+    let current = state
+    for (let i = 0; i < BOSS_KINDS.length; i++) {
+      const bossWave = (i + 1) * 9
+      current = startNextWave({ ...current, wave: bossWave - 1 })
+      consumed.push(current.spawnQueue[current.spawnQueue.length - 1])
+    }
+    expect(consumed.slice().sort()).toEqual([...BOSS_KINDS].sort())
   })
 })
 
@@ -568,6 +600,18 @@ describe('updateGameState — state field round-trip persistence', () => {
 
     state = updateGameState(state, 1 / 60, { clicks: [], selectedAbility: null })
     expect(state.spaceMetal).toBe(7)
+  })
+
+  it('state.bossSelection survives many frames unchanged', () => {
+    let state = startGame(createInitialState(), ShipKind.fighter)
+    state = startNextWave(state)
+    const sentinel = { nextBoss: EnemyKind.phaseShifter, pool: [EnemyKind.voidWorm] }
+    state = { ...state, bossSelection: sentinel }
+
+    for (let i = 0; i < 60; i++) {
+      state = updateGameState(state, 1 / 60, { clicks: [], selectedAbility: null })
+    }
+    expect(state.bossSelection).toEqual(sentinel)
   })
 
   it('scalar field invariant: spaceMetal only increases when a metal is collected', () => {
