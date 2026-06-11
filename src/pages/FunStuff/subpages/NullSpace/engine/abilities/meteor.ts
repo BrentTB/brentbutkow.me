@@ -65,8 +65,9 @@ export const meteor: AbilityDefinition = {
     damage: METEOR_STRIKE.damage,
     aoeRadius: METEOR_STRIKE.aoeRadius,
   }),
-  effectFactory: (ability, pos) =>
+  effectFactory: (ability, pos) => [
     createMeteorEffect(pos, ability.damage, ability.aoeRadius, METEOR_STRIKE.delay),
+  ],
   applyUpgrades: (_ability, upgrades) => ({
     unlocked: upgrades[UpgradeId.unlockMeteor].currentTier > 0,
     damage: applyTierSum(METEOR_STRIKE.damage, upgrades, damageUpgrade),
@@ -75,4 +76,10 @@ export const meteor: AbilityDefinition = {
   }),
   unlockUpgrade,
   modifierUpgrades: [damageUpgrade, costUpgrade, radiusUpgrade],
+  ultimate: {
+    kind: AbilityKind.meteorShower,
+    label: 'Meteor Shower',
+    description: 'A center strike plus a ring of meteors around it (upgrade to add more).',
+    cost: { stardust: 400, spaceMetal: 15 },
+  },
 }

@@ -48,4 +48,14 @@ describe('orderWeaponsForShop', () => {
       order.indexOf(AbilityKind.telekinesis)
     )
   })
+
+  it('replaces a base with its owned ultimate (base hidden, ultimate shown)', () => {
+    let abilities = createAbilities()
+    abilities = setAbility(abilities, AbilityKind.meteorite, { unlocked: true, unlockedAt: 0 })
+    // Owning the ultimate makes its row unlocked, inheriting the base's slot.
+    abilities = setAbility(abilities, AbilityKind.cometShower, { unlocked: true, unlockedAt: 0 })
+    const order = orderWeaponsForShop(abilities, [], [AbilityKind.cometShower])
+    expect(order).toContain(AbilityKind.cometShower)
+    expect(order).not.toContain(AbilityKind.meteorite)
+  })
 })

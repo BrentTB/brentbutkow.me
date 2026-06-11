@@ -31,6 +31,7 @@ export function NullSpace() {
     handleRestart,
     setSelectedAbility,
     handlePurchaseUpgrade,
+    handlePurchaseUltimate,
     handleFinishUpgrades,
     handleEquipShipWeapon,
     handlePause,
@@ -148,6 +149,7 @@ export function NullSpace() {
             onNextWave={handleNextWave}
             onRestart={handleRestart}
             onPurchaseUpgrade={handlePurchaseUpgrade}
+            onPurchaseUltimate={handlePurchaseUltimate}
             onFinishUpgrades={handleFinishUpgrades}
             onEquipShipWeapon={handleEquipShipWeapon}
             onResume={handleResume}

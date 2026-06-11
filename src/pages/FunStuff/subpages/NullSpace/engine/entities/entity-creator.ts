@@ -65,6 +65,7 @@ export function createShip(kind: ShipKind, worldSize: Vec2): Ship {
     maxShield: s.maxShield,
     shieldRegen: s.shieldRegen,
     shieldCooldownRemaining: 0,
+    hpRegen: 0,
     fireRate: s.fireRate,
     fireCooldowns: Array(s.weaponSlots).fill(0),
     damage: s.damage,

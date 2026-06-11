@@ -14,7 +14,7 @@ type WeaponsListProps = {
 
 export function WeaponsList({ uiState, onSelect, onPurchase }: WeaponsListProps) {
   const offers = uiState.levelUpWeaponOffers
-  const order = orderWeaponsForShop(uiState.abilities, offers)
+  const order = orderWeaponsForShop(uiState.abilities, offers, uiState.ultimatesOwned)
 
   return (
     <>

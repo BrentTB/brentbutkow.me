@@ -24,6 +24,13 @@
   font-weight: 600;
 }
 
+.shardCounter {
+  font-size: calc(0.85rem * var(--hud-scale, 1));
+  color: #d8b4ff;
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
 .spaceMetalBtn {
   position: relative;
   display: flex;

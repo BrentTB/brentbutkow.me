@@ -8,7 +8,7 @@ import { createShip, createEnemy } from '../entities/entity-creator'
 import { rng } from '../math/random'
 import { CollectibleKind, EnemyKind, ShipKind } from '../types'
 import type { Collectible } from '../types'
-import { WORLD_SIZE, POWER_ORB, SPACE_METAL } from '../../data'
+import { WORLD_SIZE, POWER_ORB, SINGULARITY_SHARD, SPACE_METAL } from '../../data'
 
 beforeEach(() => {
   rng.reseed(42)
@@ -37,6 +37,20 @@ function makeMetal(overrides: Partial<Collectible> = {}): Collectible {
     value: 1,
     elapsed: 0,
     lifetime: SPACE_METAL.lifetime,
+    homing: false,
+    ...overrides,
+  }
+}
+
+function makeShard(overrides: Partial<Collectible> = {}): Collectible {
+  return {
+    id: 'shard',
+    kind: CollectibleKind.singularityShard,
+    pos: { x: 0, y: 0 },
+    vel: { x: 0, y: 0 },
+    value: 1,
+    elapsed: 0,
+    lifetime: SINGULARITY_SHARD.lifetime,
     homing: false,
     ...overrides,
   }
@@ -79,6 +93,36 @@ describe('spawnCollectiblesFromKills', () => {
     const metals = collectibles.filter((c) => c.kind === CollectibleKind.spaceMetal)
     expect(metals.length).toBeGreaterThan(0)
     expect(metals.length).toBeLessThan(100)
+  })
+
+  it('a boss kill drops exactly one singularity shard', () => {
+    const boss = createEnemy(EnemyKind.dreadnought, { x: 100, y: 100 })
+    const collectibles = spawnCollectiblesFromKills([boss])
+    const shards = collectibles.filter((c) => c.kind === CollectibleKind.singularityShard)
+    expect(shards.length).toBe(1)
+  })
+
+  it('regular enemy kills drop no singularity shards', () => {
+    const enemies = Array.from({ length: 50 }, () => createEnemy(EnemyKind.tank, { x: 0, y: 0 }))
+    const collectibles = spawnCollectiblesFromKills(enemies)
+    expect(collectibles.some((c) => c.kind === CollectibleKind.singularityShard)).toBe(false)
+  })
+
+  it('the space-metal drop multiplier raises drop chance (guaranteed at large multipliers)', () => {
+    // tank base chance 0.12 × 100 ≥ 1 → every kill drops.
+    const enemies = Array.from({ length: 10 }, () => createEnemy(EnemyKind.tank, { x: 0, y: 0 }))
+    const metals = spawnCollectiblesFromKills(enemies, 100).filter(
+      (c) => c.kind === CollectibleKind.spaceMetal
+    )
+    expect(metals.length).toBe(10)
+  })
+
+  it('the power-orb multiplier scales the power gained per kill', () => {
+    const enemy = createEnemy(EnemyKind.tank, { x: 0, y: 0 })
+    const orb = spawnCollectiblesFromKills([enemy], 1, 2).find(
+      (c) => c.kind === CollectibleKind.powerOrb
+    )!
+    expect(orb.value).toBe(enemy.powerReward * 2)
   })
 })
 
@@ -149,6 +193,22 @@ describe('updateCollectibles', () => {
     })
     const result = updateCollectibles([metal], ship, 0.016)
     expect(result.spaceMetalGained).toBe(1)
+    expect(result.collectibles.length).toBe(0)
+  })
+
+  it('singularity shards auto-transition to homing after the float duration (no click)', () => {
+    const shard = makeShard({
+      pos: { x: ship.pos.x + 200, y: ship.pos.y },
+      elapsed: SINGULARITY_SHARD.floatDuration,
+    })
+    const result = updateCollectibles([shard], ship, 0.016)
+    expect(result.collectibles[0]?.homing).toBe(true)
+  })
+
+  it('homing singularity shards credit the counter when they reach the ship', () => {
+    const shard = makeShard({ pos: { x: ship.pos.x + 1, y: ship.pos.y }, homing: true })
+    const result = updateCollectibles([shard], ship, 0.016)
+    expect(result.singularityShardGained).toBe(1)
     expect(result.collectibles.length).toBe(0)
   })
 

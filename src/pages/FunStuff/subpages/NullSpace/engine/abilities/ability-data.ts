@@ -19,6 +19,31 @@ export const METEOR_STRIKE = {
   aoeRadius: 100,
 } as const
 
+// Comet Shower (Meteorite ultimate). One meteorite always lands dead-center;
+// the rest scatter within `scatterRadius` and fall staggered by `staggerStep`
+// (+ up to `staggerJitter` of randomness) so they don't all hit at once.
+export const COMET_SHOWER = {
+  baseCount: 10,
+  scatterRadius: 110,
+  staggerStep: 0.1,
+  // Floor the Comet Cadence upgrade reduces staggerStep toward (faster volley).
+  minStaggerStep: 0.03,
+  staggerJitter: 0.05,
+  costMultiplier: 5,
+} as const
+
+// Meteor Shower (Meteor ultimate). The center meteor lands first (METEOR_STRIKE
+// delay); a ring of meteors lands `ringDelay` seconds later, all together, evenly
+// spaced around the aimed point at `ringRadius`. The Meteor Count upgrade adds
+// ring meteors (+1 per tier) and the angle between them recomputes (360 / count).
+// `baseRingCount` 4 at the diagonal start angle reproduces the original NE/SE/SW/NW.
+export const METEOR_SHOWER = {
+  baseRingCount: 4,
+  ringRadius: 146,
+  ringDelay: 0.5,
+  costMultiplier: 3,
+} as const
+
 export const BLACK_HOLE = {
   cooldown: 2,
   powerCost: 30,

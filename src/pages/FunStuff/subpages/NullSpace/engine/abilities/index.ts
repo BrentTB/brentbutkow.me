@@ -19,10 +19,12 @@ import { sun } from './sun'
 import { helper } from './helper'
 import { telekinesis } from './telekinesis'
 import { solarFlare } from './solar-flare'
-import type { AbilityDefinition } from './ability-definition'
+import { cometShower } from './comet-shower'
+import { meteorShower } from './meteor-shower'
+import type { AbilityDefinition, UltimateDescriptor } from './ability-definition'
 import type { IconName } from '../../icon-names'
 
-export type { AbilityDefinition } from './ability-definition'
+export type { AbilityDefinition, UltimateContext } from './ability-definition'
 export { applyTierSum, applyCostReduction } from './ability-definition'
 
 // Runtime helpers (turning input into state changes). Re-exported so any file
@@ -48,6 +50,8 @@ export const ABILITY_DEFINITIONS: Record<AbilityKind, AbilityDefinition> = {
   [AbilityKind.helper]: helper,
   [AbilityKind.telekinesis]: telekinesis,
   [AbilityKind.solarFlare]: solarFlare,
+  [AbilityKind.cometShower]: cometShower,
+  [AbilityKind.meteorShower]: meteorShower,
 }
 
 export const ABILITY_LIST: AbilityDefinition[] = Object.values(ABILITY_DEFINITIONS)
@@ -64,7 +68,7 @@ export const HOLD_ABILITIES: ReadonlySet<AbilityKind> = new Set(
   ABILITY_LIST.filter((d) => d.activation === 'hold').map((d) => d.kind)
 )
 
-type EffectFactory = (ability: Ability, targetPos: Vec2, ship: Ship) => ActiveEffect
+type EffectFactory = (ability: Ability, targetPos: Vec2, ship: Ship) => ActiveEffect[]
 type AllyFactory = (pos: Vec2, ability: Ability) => Ally
 
 export const EFFECT_FACTORY: Partial<Record<AbilityKind, EffectFactory>> = Object.fromEntries(
@@ -77,6 +81,23 @@ export const ALLY_FACTORY: Partial<Record<AbilityKind, AllyFactory>> = Object.fr
 
 export const WEAPON_UNLOCK_UPGRADE: Partial<Record<AbilityKind, UpgradeId>> = Object.fromEntries(
   ABILITY_LIST.filter((d) => d.unlockUpgrade).map((d) => [d.kind, d.unlockUpgrade!.id])
+)
+
+// --- Ultimate maps (derived from the `ultimate` / `ultimateOf` fields) ---
+
+// Base ability kind → its Ultimate descriptor. Present only for abilities that
+// offer an ultimate.
+export const ULTIMATE_DEFINITIONS: Partial<Record<AbilityKind, UltimateDescriptor>> =
+  Object.fromEntries(ABILITY_LIST.filter((d) => d.ultimate).map((d) => [d.kind, d.ultimate!]))
+
+// Base ability kind → its Ultimate's AbilityKind.
+export const ULTIMATE_KIND_OF: Partial<Record<AbilityKind, AbilityKind>> = Object.fromEntries(
+  ABILITY_LIST.filter((d) => d.ultimate).map((d) => [d.kind, d.ultimate!.kind])
+)
+
+// Ultimate AbilityKind → the base ability kind it upgrades.
+export const BASE_KIND_OF: Partial<Record<AbilityKind, AbilityKind>> = Object.fromEntries(
+  ABILITY_LIST.filter((d) => d.ultimateOf).map((d) => [d.kind, d.ultimateOf!])
 )
 
 // Every upgrade contributed by an ability file (unlock + modifiers), flat.

@@ -40,11 +40,11 @@ export function HelpScreen({ onClose }: HelpScreenProps) {
 
       <section className={styles.section}>
         <h3 className={styles.heading}>Space metal abilities</h3>
-        <p>Some enemies drop ⬡ space metal. Use it for emergency moves:</p>
+        <p>Some enemies drop ⬢ space metal. Use it for emergency moves:</p>
         <ul className={styles.list}>
           {SPACE_METAL_ABILITIES.map((a) => (
             <li key={a.kind}>
-              <kbd>{a.hotkey}</kbd> {a.meta.label} — costs ⬡ {a.cost}
+              <kbd>{a.hotkey}</kbd> {a.meta.label} — costs ⬢ {a.cost}
             </li>
           ))}
         </ul>

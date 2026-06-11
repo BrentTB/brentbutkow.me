@@ -23,7 +23,7 @@ import type {
   ShieldEffect,
   SunEffect,
 } from '../engine/types'
-import { POWER_ORB, SPACE_METAL } from '../data'
+import { POWER_ORB, SINGULARITY_SHARD, SPACE_METAL } from '../data'
 import { getNuclearWasteCurrentRadius } from '../engine/systems/effects'
 import { getBossDefinition } from '../engine/bosses/index'
 import { PHASE_SHIFTER } from '../engine/bosses/phase-shifter'
@@ -139,7 +139,41 @@ function renderShip(
   }
 
   ctx.drawImage(sprites[spriteKey], -size.w / 2, -size.h / 2)
+
+  // Overheated: wash the ship red. Tint on a scratch canvas so source-atop
+  // clips to the sprite's own pixels — doing it on the main ctx would tint the
+  // whole bounding box (the space background counts as destination).
+  if (state.ship.slingOverheated) {
+    const heatRatio = Math.max(0, Math.min(1, state.ship.slingHeat - 0.5))
+    const tintColor = `rgba(255, 70, 40, ${heatRatio})`
+    drawSpriteTint(ctx, sprites[spriteKey], size.w, size.h, tintColor)
+  }
   ctx.restore()
+}
+
+// Reused scratch buffer for sprite-masked tints (e.g. the overheat wash).
+let tintScratch: HTMLCanvasElement | null = null
+
+function drawSpriteTint(
+  ctx: CanvasRenderingContext2D,
+  sprite: CanvasImageSource,
+  w: number,
+  h: number,
+  color: string
+): void {
+  if (!tintScratch) tintScratch = document.createElement('canvas')
+  tintScratch.width = w
+  tintScratch.height = h
+  const sctx = tintScratch.getContext('2d')
+  if (!sctx) return
+  sctx.imageSmoothingEnabled = false
+  sctx.drawImage(sprite, 0, 0)
+  // source-atop here only sees the sprite (the scratch starts empty), so the
+  // fill lands solely on the sprite's opaque pixels.
+  sctx.globalCompositeOperation = 'source-atop'
+  sctx.fillStyle = color
+  sctx.fillRect(0, 0, w, h)
+  ctx.drawImage(tintScratch, -w / 2, -h / 2)
 }
 
 function renderEnemies(
@@ -314,14 +348,31 @@ function renderLaserBeam(
   ctx.restore()
 }
 
+// Seconds before impact that a meteor's warning + falling sprite appear. With a
+// staggered volley (Comet/Meteor Shower) each strike has a different delay, so
+// capping the visible lead makes the telegraphs pop in the order the meteors
+// land instead of all at once. Single strikes (delay ≤ lead) are unaffected.
+const METEOR_TELEGRAPH_LEAD = 0.6
+
+// Telegraph visibility + a 0→1 ramp over the lead window (or the full delay when
+// the delay is shorter than the lead).
+function meteorTelegraph(strike: MeteorStrikeEffect): { visible: boolean; progress: number } {
+  if (strike.elapsed >= strike.delay) return { visible: false, progress: 1 }
+  const window = Math.min(strike.delay, METEOR_TELEGRAPH_LEAD)
+  const start = strike.delay - window
+  if (strike.elapsed < start) return { visible: false, progress: 0 }
+  return { visible: true, progress: (strike.elapsed - start) / window }
+}
+
 function renderMeteorWarning(
   ctx: CanvasRenderingContext2D,
   strike: MeteorStrikeEffect,
   camera: Camera
 ): void {
-  if (strike.elapsed >= strike.delay) return
+  const telegraph = meteorTelegraph(strike)
+  if (!telegraph.visible) return
   const screen = worldToScreen(strike.pos, camera)
-  const progress = strike.elapsed / strike.delay
+  const progress = telegraph.progress
 
   ctx.save()
   ctx.globalAlpha = 0.3 + progress * 0.4
@@ -387,9 +438,10 @@ function renderMeteorProjectile(
   camera: Camera,
   sprites: SpriteCache
 ): void {
-  if (strike.elapsed >= strike.delay) return
+  const telegraph = meteorTelegraph(strike)
+  if (!telegraph.visible) return
   const screen = worldToScreen(strike.pos, camera)
-  const progress = strike.elapsed / strike.delay
+  const progress = telegraph.progress
 
   const spriteKey =
     strike.kind === EffectKind.meteoriteStrike ? SpriteKey.meteorite : SpriteKey.meteor
@@ -457,6 +509,33 @@ function renderCollectibles(
       ctx.beginPath()
       ctx.arc(screen.x, screen.y, POWER_ORB.radius * 0.6, 0, Math.PI * 2)
       ctx.fill()
+      ctx.restore()
+    } else if (c.kind === CollectibleKind.singularityShard) {
+      // Violet diamond with a soft glow — reads apart from the gold metal hexagon.
+      const pulse = 0.7 + Math.sin(c.elapsed * 5) * 0.3
+      const r = SINGULARITY_SHARD.radius
+      ctx.save()
+      ctx.globalAlpha = pulse
+      const glow = ctx.createRadialGradient(screen.x, screen.y, 0, screen.x, screen.y, r * 2)
+      glow.addColorStop(0, 'rgba(190, 130, 255, 0.85)')
+      glow.addColorStop(0.5, 'rgba(140, 80, 230, 0.35)')
+      glow.addColorStop(1, 'rgba(110, 60, 210, 0)')
+      ctx.fillStyle = glow
+      ctx.beginPath()
+      ctx.arc(screen.x, screen.y, r * 2, 0, Math.PI * 2)
+      ctx.fill()
+
+      ctx.fillStyle = SINGULARITY_SHARD.fill
+      ctx.strokeStyle = SINGULARITY_SHARD.stroke
+      ctx.lineWidth = 1.5
+      ctx.beginPath()
+      ctx.moveTo(screen.x, screen.y - r)
+      ctx.lineTo(screen.x + r * 0.7, screen.y)
+      ctx.lineTo(screen.x, screen.y + r)
+      ctx.lineTo(screen.x - r * 0.7, screen.y)
+      ctx.closePath()
+      ctx.fill()
+      ctx.stroke()
       ctx.restore()
     } else {
       const fadeAlpha = c.elapsed > c.lifetime - 2 ? Math.max(0, (c.lifetime - c.elapsed) / 2) : 1

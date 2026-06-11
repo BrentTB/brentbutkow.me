@@ -66,8 +66,9 @@ export const sun: AbilityDefinition = {
     aoeRadius: SUN.radius,
     duration: SUN.duration,
   }),
-  effectFactory: (ability, pos) =>
+  effectFactory: (ability, pos) => [
     createSunEffect(pos, ability.aoeRadius, ability.damage, ability.duration ?? SUN.duration),
+  ],
   applyUpgrades: (_ability, upgrades) => ({
     unlocked: upgrades[UpgradeId.unlockSun].currentTier > 0,
     damage: applyTierSum(SUN.damagePerSec, upgrades, damageUpgrade),

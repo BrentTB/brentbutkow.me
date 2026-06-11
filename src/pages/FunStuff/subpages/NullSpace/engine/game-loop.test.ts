@@ -2,12 +2,15 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import {
   createInitialState,
   equipShipWeapon,
+  rollLevelUpWeaponOffers,
   startGame,
   startNextWave,
   updateGameState,
   applyUpgradeToState,
+  devUnlockWeapon,
+  devGrantUltimate,
 } from './game-loop'
-import { createEnemy, createProjectile } from './entities/entity-creator'
+import { createAbilities, createEnemy, createProjectile } from './entities/entity-creator'
 import { tickEscapeMode } from './entities/ship'
 import {
   AbilityKind,
@@ -104,6 +107,27 @@ describe('updateGameState', () => {
     const state = createInitialState()
     const updated = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
     expect(updated.phase).toBe(GamePhase.menu)
+  })
+
+  it('regenerates ship HP when hpRegen > 0, capped at maxHp', () => {
+    let state = startGame(createInitialState(), ShipKind.fighter)
+    state = startNextWave(state)
+    state = { ...state, ship: { ...state.ship, hp: 50, maxHp: 100, hpRegen: 10 } }
+    const healed = updateGameState(state, 0.1, { clicks: [], selectedAbility: null })
+    expect(healed.ship.hp).toBeGreaterThan(50)
+    expect(healed.ship.hp).toBeLessThanOrEqual(100)
+
+    const full = { ...state, ship: { ...state.ship, hp: 100, maxHp: 100, hpRegen: 10 } }
+    const stillFull = updateGameState(full, 0.1, { clicks: [], selectedAbility: null })
+    expect(stillFull.ship.hp).toBe(100)
+  })
+
+  it('does not regenerate HP when hpRegen is 0 (default)', () => {
+    let state = startGame(createInitialState(), ShipKind.fighter)
+    state = startNextWave(state)
+    state = { ...state, ship: { ...state.ship, hp: 50, maxHp: 100, hpRegen: 0 } }
+    const next = updateGameState(state, 0.1, { clicks: [], selectedAbility: null })
+    expect(next.ship.hp).toBe(50)
   })
 
   it('moves enemies toward ship over time', () => {
@@ -277,6 +301,38 @@ describe('applyUpgradeToState', () => {
     // A non-unlock modifier purchase doesn't disturb existing indices.
     state = applyUpgradeToState(state, UpgradeId.meteoriteDamage)
     expect(state.abilities.find((a) => a.kind === AbilityKind.rocket)!.unlockedAt).toBe(1)
+  })
+})
+
+describe('dev unlock helpers', () => {
+  it('devUnlockWeapon unlocks a locked base ability (no cost)', () => {
+    const state = createInitialState()
+    expect(state.abilities.find((a) => a.kind === AbilityKind.meteor)!.unlocked).toBe(false)
+    const next = devUnlockWeapon(state, AbilityKind.meteor)
+    expect(next.abilities.find((a) => a.kind === AbilityKind.meteor)!.unlocked).toBe(true)
+  })
+
+  it('devGrantUltimate grants the ultimate and unlocks its row (no cost)', () => {
+    const next = devGrantUltimate(createInitialState(), AbilityKind.meteorite)
+    expect(next.ultimatesOwned).toContain(AbilityKind.cometShower)
+    expect(next.abilities.find((a) => a.kind === AbilityKind.cometShower)!.unlocked).toBe(true)
+  })
+
+  it('devGrantUltimate is a no-op for an ability without an ultimate', () => {
+    const state = createInitialState()
+    expect(devGrantUltimate(state, AbilityKind.blackHole)).toBe(state)
+  })
+})
+
+describe('rollLevelUpWeaponOffers', () => {
+  // Regression: ultimate rows start locked, so they used to be eligible as
+  // level-up weapon offers — but ultimates are bought via the shard economy and
+  // must never appear in the unlock offers.
+  it('never offers ultimate abilities', () => {
+    const offers = rollLevelUpWeaponOffers(createAbilities(), 99)
+    expect(offers).not.toContain(AbilityKind.cometShower)
+    expect(offers).not.toContain(AbilityKind.meteorShower)
+    expect(offers.length).toBeGreaterThan(0)
   })
 })
 

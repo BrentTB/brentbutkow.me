@@ -1,8 +1,9 @@
 import { ABILITY_META } from '../../engine/abilities'
-import { UNLOCK_UPGRADE_IDS, UPGRADE_DEFINITIONS } from '../../engine/upgrades'
-import { AbilityKind, UpgradeCategory, UpgradeId } from '../../engine/types'
+import { getWeaponModifierUpgrades } from '../../engine/upgrades'
+import { AbilityKind, UpgradeId } from '../../engine/types'
 import type { GameUIState } from '../../useNullSpace'
 import { UpgradeCard } from './UpgradeCard'
+import { UltimateCard } from './UltimateCard'
 import styles from './WeaponDetail.module.scss'
 
 type WeaponDetailProps = {
@@ -10,15 +11,17 @@ type WeaponDetailProps = {
   uiState: GameUIState
   onBack: () => void
   onPurchase: (upgradeId: UpgradeId) => void
+  onPurchaseUltimate: (baseKind: AbilityKind) => void
 }
 
-export function WeaponDetail({ weapon, uiState, onBack, onPurchase }: WeaponDetailProps) {
-  const subUpgrades = Object.values(UPGRADE_DEFINITIONS).filter(
-    (def) =>
-      def.category === UpgradeCategory.weapons &&
-      def.weapon === weapon &&
-      !UNLOCK_UPGRADE_IDS.has(def.id)
-  )
+export function WeaponDetail({
+  weapon,
+  uiState,
+  onBack,
+  onPurchase,
+  onPurchaseUltimate,
+}: WeaponDetailProps) {
+  const subUpgrades = getWeaponModifierUpgrades(weapon)
 
   return (
     <>
@@ -35,6 +38,7 @@ export function WeaponDetail({ weapon, uiState, onBack, onPurchase }: WeaponDeta
           onPurchase={onPurchase}
         />
       ))}
+      <UltimateCard weapon={weapon} uiState={uiState} onPurchaseUltimate={onPurchaseUltimate} />
     </>
   )
 }

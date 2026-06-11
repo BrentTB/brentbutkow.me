@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
-import { abilityKindForHotkey, useNullSpace } from './useNullSpace'
+import {
+  abilityKindForHotkey,
+  getUnlockedAbilitiesInOrder,
+  selectionAfterUltimatePurchase,
+  useNullSpace,
+} from './useNullSpace'
 import { createRef } from 'react'
 import { createAbilities } from './engine/entities/entity-creator'
 import { BOSS_KINDS } from './engine/bosses/index'
@@ -126,6 +131,68 @@ describe('abilityKindForHotkey', () => {
     expect(abilityKindForHotkey(abilities, '9')).toBeNull()
     expect(abilityKindForHotkey(abilities, 'a')).toBeNull()
     expect(abilityKindForHotkey(abilities, ' ')).toBeNull()
+  })
+
+  it('an owned ultimate takes its base hotkey slot', () => {
+    const owned = abilities.map((a) => {
+      if (a.kind === AbilityKind.meteorite) return { ...a, unlocked: true, unlockedAt: 0 }
+      if (a.kind === AbilityKind.cometShower) return { ...a, unlocked: true, unlockedAt: 0 }
+      return a
+    })
+    expect(abilityKindForHotkey(owned, '1', [AbilityKind.cometShower])).toBe(
+      AbilityKind.cometShower
+    )
+  })
+})
+
+describe('getUnlockedAbilitiesInOrder — ultimate replacement', () => {
+  it('hides the base and surfaces the ultimate in its slot when owned', () => {
+    const abilities = createAbilities().map((a) => {
+      if (a.kind === AbilityKind.meteorite) return { ...a, unlocked: true, unlockedAt: 0 }
+      if (a.kind === AbilityKind.cometShower) return { ...a, unlocked: true, unlockedAt: 0 }
+      return a
+    })
+    const kinds = getUnlockedAbilitiesInOrder(abilities, [AbilityKind.cometShower]).map(
+      (a) => a.kind
+    )
+    expect(kinds).toContain(AbilityKind.cometShower)
+    expect(kinds).not.toContain(AbilityKind.meteorite)
+  })
+
+  it('keeps the base when its ultimate is not owned', () => {
+    const abilities = createAbilities().map((a) =>
+      a.kind === AbilityKind.meteorite ? { ...a, unlocked: true, unlockedAt: 0 } : a
+    )
+    const kinds = getUnlockedAbilitiesInOrder(abilities).map((a) => a.kind)
+    expect(kinds).toContain(AbilityKind.meteorite)
+    expect(kinds).not.toContain(AbilityKind.cometShower)
+  })
+})
+
+describe('selectionAfterUltimatePurchase', () => {
+  it('redirects selection to the ultimate when the purchased base was selected', () => {
+    expect(selectionAfterUltimatePurchase(AbilityKind.meteorite, AbilityKind.meteorite, true)).toBe(
+      AbilityKind.cometShower
+    )
+  })
+
+  it('leaves selection alone when a different ability was selected', () => {
+    expect(selectionAfterUltimatePurchase(AbilityKind.blackHole, AbilityKind.meteorite, true)).toBe(
+      AbilityKind.blackHole
+    )
+  })
+
+  it('leaves selection alone when the purchase did not go through', () => {
+    expect(
+      selectionAfterUltimatePurchase(AbilityKind.meteorite, AbilityKind.meteorite, false)
+    ).toBe(AbilityKind.meteorite)
+  })
+
+  it('leaves selection alone for a base with no ultimate', () => {
+    // telekinesis has no ultimate — ULTIMATE_KIND_OF lookup is undefined.
+    expect(
+      selectionAfterUltimatePurchase(AbilityKind.telekinesis, AbilityKind.telekinesis, true)
+    ).toBe(AbilityKind.telekinesis)
   })
 })
 
@@ -256,6 +323,26 @@ describe('useNullSpace — slingshot', () => {
       step(16)
 
       expect(result.current.uiState.slingHeat).toBe(0)
+    })
+
+    // Regression: restarting from the (paused) pause menu used to leave the game
+    // clock paused, so after picking a ship the new game never advanced (dt=0).
+    it('restarting from a paused game resumes the clock so the new game advances', () => {
+      const canvasRef = { current: canvas }
+      const { result } = renderHook(() => useNullSpace(canvasRef))
+      startPlaying(result)
+
+      act(() => result.current.handlePause())
+      act(() => result.current.handleRestart()) // → ship selection
+      act(() => result.current.handleSelectShip(ShipKind.fighter)) // → playing
+      expect(result.current.uiState.phase).toBe(GamePhase.playing)
+
+      step(0) // initialise the clock
+      const powerStart = result.current.uiState.power
+      step(60)
+      step(120)
+      // Power only regenerates when dt > 0 — proof the clock un-paused.
+      expect(result.current.uiState.power).toBeGreaterThan(powerStart)
     })
   })
 })

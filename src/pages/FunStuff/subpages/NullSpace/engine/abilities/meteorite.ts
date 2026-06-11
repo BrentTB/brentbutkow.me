@@ -1,4 +1,4 @@
-import { METEORITE_STRIKE } from './ability-data'
+import { COMET_SHOWER, METEORITE_STRIKE } from './ability-data'
 import { createMeteoriteEffect } from '../systems/effects'
 import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
 import type { UpgradeDefinition } from '../types'
@@ -45,11 +45,18 @@ export const meteorite: AbilityDefinition = {
     damage: METEORITE_STRIKE.damage,
     aoeRadius: METEORITE_STRIKE.aoeRadius,
   }),
-  effectFactory: (ability, pos) =>
+  effectFactory: (ability, pos) => [
     createMeteoriteEffect(pos, ability.damage, ability.aoeRadius, METEORITE_STRIKE.delay),
+  ],
   applyUpgrades: (_ability, upgrades) => ({
     damage: applyTierSum(METEORITE_STRIKE.damage, upgrades, damageUpgrade),
     powerCost: applyCostReduction(METEORITE_STRIKE.powerCost, upgrades, costUpgrade),
   }),
   modifierUpgrades: [damageUpgrade, costUpgrade],
+  ultimate: {
+    kind: AbilityKind.cometShower,
+    label: 'Comet Shower',
+    description: `Rain ${COMET_SHOWER.baseCount} meteorites — one dead-center, the rest scattered around it.`,
+    cost: { stardust: 250, spaceMetal: 10 },
+  },
 }

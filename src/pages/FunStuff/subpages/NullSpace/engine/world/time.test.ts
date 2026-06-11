@@ -4,6 +4,7 @@ import {
   tickGameTime,
   pauseGameTime,
   resumeGameTime,
+  resetGameClock,
   setGameSpeed,
   MAX_DT,
 } from './time'
@@ -104,5 +105,29 @@ describe('setGameSpeed', () => {
     const t = setGameSpeed(createGameTime(), 2)
     expect(t.speed).toBe(2)
     expect(t.paused).toBe(false)
+  })
+})
+
+describe('resetGameClock', () => {
+  // Regression: restarting from the (paused) pause menu left the clock paused,
+  // so the new game's frames all reported dt=0 and it never advanced.
+  it('unpauses and re-initialises so the next tick is dt=0 and the clock then advances', () => {
+    // The clock state right after a pause-menu restart: initialised, sped up,
+    // and paused.
+    let t = createGameTime()
+    t = tickGameTime(t, 1000).time
+    t = setGameSpeed(t, 2)
+    t = pauseGameTime(t)
+
+    const reset = resetGameClock(t)
+    expect(reset.paused).toBe(false)
+    expect(reset.initialized).toBe(false)
+    expect(reset.lastFrameMs).toBe(0)
+    expect(reset.speed).toBe(2) // chosen speed survives the reset
+
+    // First frame after reset is dt=0 (no huge jump); the next one advances.
+    const first = tickGameTime(reset, 9000)
+    expect(first.dt).toBe(0)
+    expect(tickGameTime(first.time, 9016).dt).toBeGreaterThan(0)
   })
 })

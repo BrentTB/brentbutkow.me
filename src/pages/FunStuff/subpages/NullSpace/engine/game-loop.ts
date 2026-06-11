@@ -1,7 +1,14 @@
 import { WORLD_SIZE, PARTICLE_DEFAULTS, POWER_DEFAULTS } from '../data'
-import { createAbilities, createShip, updateParticles } from './entities/entity-creator'
+import {
+  createAbilities,
+  createParticle,
+  createShip,
+  updateParticles,
+} from './entities/entity-creator'
 import {
   ABILITY_LIST,
+  BASE_KIND_OF,
+  ULTIMATE_KIND_OF,
   WEAPON_UNLOCK_UPGRADE,
   resolveAbilityInput,
   updateAbilityCooldowns,
@@ -44,9 +51,14 @@ import {
   canPurchaseUpgrade,
   createInitialUpgrades,
   getLevel,
+  getPowerOrbMultiplier,
+  getSpaceMetalDropMultiplier,
+  getStardustMultiplier,
   isUpgradeWave,
   purchaseUpgrade,
+  syncUltimateAbilities,
 } from './upgrades'
+import { purchaseUltimate } from './ultimates'
 import { getWave, getWaveDelay, isBossWave } from './world/waves'
 import { advanceBossSelection, createBossSelection } from './bosses/boss-selection'
 import { updateBossAI } from './bosses/boss-ai'
@@ -82,6 +94,7 @@ export function createInitialState(): GameState {
     isNewHighScore: false,
     currency: 0,
     spaceMetal: 0,
+    singularityShard: 0,
     power: POWER_DEFAULTS.startingPower,
     maxPower: POWER_DEFAULTS.max,
     powerRegen: POWER_DEFAULTS.regenRate,
@@ -95,6 +108,7 @@ export function createInitialState(): GameState {
     holdStates: {},
     levelUpWeaponOffers: [],
     unlockedWeapons: [...INITIAL_UNLOCKED_WEAPONS],
+    ultimatesOwned: [],
     escapeTrailAccumulator: 0,
     bossSelection: createBossSelection(),
   }
@@ -125,6 +139,7 @@ export function startGame(state: GameState, shipKind: ShipKind): GameState {
     score: 0,
     currency: 0,
     spaceMetal: 0,
+    singularityShard: 0,
     power: POWER_DEFAULTS.startingPower,
     maxPower: POWER_DEFAULTS.max,
     powerRegen: POWER_DEFAULTS.regenRate,
@@ -139,6 +154,7 @@ export function startGame(state: GameState, shipKind: ShipKind): GameState {
     holdStates: {},
     levelUpWeaponOffers: [],
     unlockedWeapons: [...INITIAL_UNLOCKED_WEAPONS],
+    ultimatesOwned: [],
     escapeTrailAccumulator: 0,
     // Fresh unique window — every boss appears once before repeats this run.
     bossSelection: createBossSelection(),
@@ -152,7 +168,11 @@ export function rollLevelUpWeaponOffers(
   abilities: GameState['abilities'],
   count = 2
 ): GameState['levelUpWeaponOffers'] {
-  const locked = abilities.filter((a) => !a.unlocked).map((a) => a.kind)
+  // Ultimate rows start locked too, but they're bought via the shard economy,
+  // never offered as a level-up weapon — exclude them here.
+  const locked = abilities
+    .filter((a) => !a.unlocked && BASE_KIND_OF[a.kind] === undefined)
+    .map((a) => a.kind)
   const offers: GameState['levelUpWeaponOffers'] = []
   for (let i = 0; i < count && locked.length > 0; i++) {
     const idx = Math.floor(Math.random() * locked.length)
@@ -187,7 +207,10 @@ export function startNextWave(state: GameState): GameState {
 export function applyUpgradeToState(state: GameState, upgradeId: UpgradeId): GameState {
   if (!canPurchaseUpgrade(state.upgrades, upgradeId, state.currency)) return state
   const { upgrades, currencySpent } = purchaseUpgrade(state.upgrades, upgradeId)
-  const abilities = applyUpgradesToAbilities(state.abilities, upgrades)
+  const abilities = syncUltimateAbilities(
+    applyUpgradesToAbilities(state.abilities, upgrades),
+    state.ultimatesOwned
+  )
   let ship = applyUpgradesToShip(state.ship, upgrades)
   const powerRegen = applyUpgradesToPowerRegen(POWER_DEFAULTS.regenRate, upgrades)
 
@@ -264,6 +287,46 @@ export function equipShipWeapon(
   return { ...state, ship: { ...state.ship, equippedWeapons: next } }
 }
 
+// Buys the ultimate for `baseKind` (deducts stardust + space metal + shards),
+// then re-syncs the ability rows so the ultimate goes live in the base's hotbar
+// slot immediately.
+export function applyUltimatePurchaseToState(state: GameState, baseKind: AbilityKind): GameState {
+  const purchased = purchaseUltimate(state, baseKind)
+  if (purchased === state) return state
+  return {
+    ...purchased,
+    abilities: syncUltimateAbilities(
+      applyUpgradesToAbilities(purchased.abilities, purchased.upgrades),
+      purchased.ultimatesOwned
+    ),
+  }
+}
+
+// Dev-only: unlock a base ability without paying, by forcing its unlock upgrade
+// to tier 1 and re-deriving the ability rows. Starter abilities (no unlock
+// upgrade) are already unlocked.
+export function devUnlockWeapon(state: GameState, kind: AbilityKind): GameState {
+  const unlockId = WEAPON_UNLOCK_UPGRADE[kind]
+  const upgrades = unlockId ? { ...state.upgrades, [unlockId]: { currentTier: 1 } } : state.upgrades
+  const abilities = syncUltimateAbilities(
+    applyUpgradesToAbilities(state.abilities, upgrades),
+    state.ultimatesOwned
+  )
+  return { ...state, upgrades, abilities }
+}
+
+// Dev-only: grant a base ability's ultimate for free (bypasses the shard cost).
+export function devGrantUltimate(state: GameState, baseKind: AbilityKind): GameState {
+  const ultimateKind = ULTIMATE_KIND_OF[baseKind]
+  if (!ultimateKind || state.ultimatesOwned.includes(ultimateKind)) return state
+  const ultimatesOwned = [...state.ultimatesOwned, ultimateKind]
+  const abilities = syncUltimateAbilities(
+    applyUpgradesToAbilities(state.abilities, state.upgrades),
+    ultimatesOwned
+  )
+  return { ...state, ultimatesOwned, abilities }
+}
+
 function getWeaponForUnlockUpgrade(upgradeId: UpgradeId): AbilityKind | null {
   for (const kind of Object.keys(WEAPON_UNLOCK_UPGRADE) as AbilityKind[]) {
     if (WEAPON_UNLOCK_UPGRADE[kind] === upgradeId) return kind
@@ -295,6 +358,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     power,
     currency,
     spaceMetal,
+    singularityShard,
     spawnQueue,
     spawnTimer,
     spawnedInWave,
@@ -302,6 +366,11 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   let { waveTimer } = state
   const { maxPower, powerRegen } = state
   let holdStates = state.holdStates
+
+  // Upgrade-derived economy multipliers (constant across the frame).
+  const stardustMultiplier = getStardustMultiplier(state.upgrades)
+  const spaceMetalDropMultiplier = getSpaceMetalDropMultiplier(state.upgrades)
+  const powerOrbMultiplier = getPowerOrbMultiplier(state.upgrades)
 
   // Wave delay only gates enemy spawning — the rest of the simulation
   // (in-flight meteors, homing power orbs, projectiles, ship attacks against
@@ -361,7 +430,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   projectiles = effectResult.projectiles
   particles = [...particles, ...effectResult.particles]
   score += effectResult.scoreGained
-  currency += computeCurrencyFromKills(effectResult.killedEnemies)
+  currency += computeCurrencyFromKills(effectResult.killedEnemies, stardustMultiplier)
 
   // --- Ship movement ---
   // Priority: Escape Mode (invincible dash) > slingshot coast > patrol.
@@ -439,14 +508,14 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   power = holdBag.power
   const holdKilledEnemies = holdBag.killedEnemies
   score += holdKilledEnemies.reduce((sum, e) => sum + e.scoreValue, 0)
-  currency += computeCurrencyFromKills(holdKilledEnemies)
+  currency += computeCurrencyFromKills(holdKilledEnemies, stardustMultiplier)
 
   // --- Collision: ship projectiles vs enemies ---
   const projCollision = resolveProjectileEnemyCollisions(projectiles, enemies)
   projectiles = projCollision.projectiles
   enemies = projCollision.enemies
   score += projCollision.scoreGained
-  currency += computeCurrencyFromKills(projCollision.killedEnemies)
+  currency += computeCurrencyFromKills(projCollision.killedEnemies, stardustMultiplier)
   particles = [...particles, ...projCollision.particles]
   // Nuke detonations spawn lingering "nuclear waste" effects here.
   if (projCollision.newEffects.length > 0) {
@@ -504,7 +573,14 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     ...holdKilledEnemies,
   ]
   if (killedForCollectibles.length > 0) {
-    collectibles = [...collectibles, ...spawnCollectiblesFromKills(killedForCollectibles)]
+    collectibles = [
+      ...collectibles,
+      ...spawnCollectiblesFromKills(
+        killedForCollectibles,
+        spaceMetalDropMultiplier,
+        powerOrbMultiplier
+      ),
+    ]
   }
 
   // --- Update collectibles (power orbs + clicked metals home toward ship) ---
@@ -512,6 +588,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   collectibles = collectibleResult.collectibles
   power += collectibleResult.powerGained
   spaceMetal += collectibleResult.spaceMetalGained
+  singularityShard += collectibleResult.singularityShardGained
 
   // --- Ability cooldowns ---
   abilities = updateAbilityCooldowns(abilities, dt)
@@ -526,11 +603,32 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     ship = { ...ship, shield: Math.min(ship.maxShield, ship.shield + ship.shieldRegen * dt) }
   }
 
+  // --- HP regen (Life Regen upgrade; 0 by default) ---
+  if (ship.hpRegen > 0 && ship.hp < ship.maxHp) {
+    ship = { ...ship, hp: Math.min(ship.maxHp, ship.hp + ship.hpRegen * dt) }
+  }
+
   // --- Slingshot cooldown + heat ---
   if (ship.slingCooldownRemaining > 0) {
     ship = { ...ship, slingCooldownRemaining: Math.max(0, ship.slingCooldownRemaining - dt) }
   }
   ship = tickSlingHeat(ship, dt)
+
+  // Overheated ship vents smoke + red embers so the lockout reads on the ship itself.
+  if (ship.slingOverheated && rng.next() < 0.7) {
+    particles.push(
+      createParticle(
+        {
+          x: ship.pos.x + rng.range(-ship.radius, ship.radius),
+          y: ship.pos.y + rng.range(-ship.radius, ship.radius),
+        },
+        { x: rng.range(-20, 20), y: rng.range(-55, -20) },
+        rng.next() < 0.35 ? '#e0552b' : '#888888',
+        0.9,
+        rng.range(3, 6)
+      )
+    )
+  }
 
   // --- Particles ---
   particles = updateParticles(particles, dt)
@@ -557,6 +655,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       power,
       currency,
       spaceMetal,
+      singularityShard,
       highScore: Math.max(state.highScore, score),
       isNewHighScore,
       waveTimer: 0,
@@ -590,6 +689,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       power,
       currency,
       spaceMetal,
+      singularityShard,
       waveTimer: 0,
       spawnQueue,
       spawnTimer,
@@ -614,6 +714,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     power,
     currency,
     spaceMetal,
+    singularityShard,
     waveTimer,
     spawnQueue,
     spawnTimer,

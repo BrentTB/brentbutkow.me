@@ -1,11 +1,13 @@
 import { useState } from 'react'
-import { CURRENCY_NAME } from '../../data'
+import { CURRENCY_NAME, SINGULARITY_SHARD_NAME } from '../../data'
+import { ULTIMATE_KIND_OF } from '../../engine/abilities'
 import { AbilityKind, ShipWeaponKind, UpgradeCategory, UpgradeId } from '../../engine/types'
 import type { GameUIState } from '../../useNullSpace'
 import { UPGRADE_CATEGORY_LABELS, UPGRADE_DEFINITIONS } from '../../engine/upgrades'
 import { UpgradeCard } from './UpgradeCard'
 import { WeaponDetail } from './WeaponDetail'
 import { WeaponsList } from './WeaponsList'
+import { ShipTab } from './ShipTab'
 import { ShipWeaponsList } from './ShipWeaponsList'
 import { ShipWeaponDetail } from './ShipWeaponDetail'
 import styles from './UpgradeScreen.module.scss'
@@ -21,6 +23,7 @@ const CATEGORY_ORDER: UpgradeCategory[] = [
 type UpgradeScreenProps = {
   uiState: GameUIState
   onPurchase: (upgradeId: UpgradeId) => void
+  onPurchaseUltimate: (baseKind: AbilityKind) => void
   onContinue: () => void
   onEquipShipWeapon: (slotIndex: number, weapon: ShipWeaponKind) => void
 }
@@ -28,12 +31,22 @@ type UpgradeScreenProps = {
 export function UpgradeScreen({
   uiState,
   onPurchase,
+  onPurchaseUltimate,
   onContinue,
   onEquipShipWeapon,
 }: UpgradeScreenProps) {
   const [activeTab, setActiveTab] = useState<UpgradeCategory>(UpgradeCategory.weapons)
   const [selectedWeapon, setSelectedWeapon] = useState<AbilityKind | null>(null)
   const [selectedShipWeapon, setSelectedShipWeapon] = useState<ShipWeaponKind | null>(null)
+
+  // Buying an ultimate replaces its base; jump the detail view straight to the
+  // ultimate so its own upgrades (and the inherited base upgrades) show without
+  // having to back out and re-enter.
+  const handlePurchaseUltimate = (baseKind: AbilityKind) => {
+    onPurchaseUltimate(baseKind)
+    const ultimateKind = ULTIMATE_KIND_OF[baseKind]
+    if (ultimateKind) setSelectedWeapon(ultimateKind)
+  }
 
   const upgradesByCategory = CATEGORY_ORDER.map((cat) => ({
     category: cat,
@@ -44,7 +57,10 @@ export function UpgradeScreen({
     <div className={styles.upgradeLayout}>
       <h2 className={sharedStyles.title}>Level {uiState.level} Complete</h2>
       <p className={styles.currencyDisplay}>
-        {CURRENCY_NAME}: <span className={styles.currencyValue}>{uiState.currency}</span>
+        {CURRENCY_NAME}: <span className={styles.stardustValue}>✦ {uiState.currency}</span>
+        {' · '}
+        {SINGULARITY_SHARD_NAME}:{' '}
+        <span className={styles.shardValue}>◆ {uiState.singularityShard}</span>
       </p>
 
       <div className={styles.tabBar}>
@@ -73,6 +89,7 @@ export function UpgradeScreen({
             uiState={uiState}
             onBack={() => setSelectedWeapon(null)}
             onPurchase={onPurchase}
+            onPurchaseUltimate={handlePurchaseUltimate}
           />
         )}
         {activeTab === UpgradeCategory.loadout && !selectedShipWeapon && (
@@ -91,8 +108,10 @@ export function UpgradeScreen({
             onPurchase={onPurchase}
           />
         )}
-        {activeTab !== UpgradeCategory.weapons &&
-          activeTab !== UpgradeCategory.loadout &&
+        {activeTab === UpgradeCategory.ship && (
+          <ShipTab uiState={uiState} onPurchase={onPurchase} />
+        )}
+        {activeTab === UpgradeCategory.powers &&
           Object.values(UPGRADE_DEFINITIONS)
             .filter((def) => def.category === activeTab)
             .map((def) => (
