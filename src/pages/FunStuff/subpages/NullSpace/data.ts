@@ -283,6 +283,9 @@ export const CHANGELOG: ChangelogEntry[] = [
         'Sun → Supernova: the sun holds, then collapses and shifts blue before detonating in a brief, devastating blast. Upgrade Critical Mass to widen the explosion.',
         'Shield → Force Field: a dome that grows to twice its size then vanishes, flinging enemies away on contact and burning them. Upgrade Repulsor to throw them harder.',
       ],
+      ui: [
+        'Abilities you can’t afford now stay dimmed the whole time, instead of only darkening once they finish recharging.',
+      ],
     },
   },
   {

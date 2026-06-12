@@ -19,7 +19,7 @@ export function Abilities({ uiState, onAbilitySelect }: AbilitiesProps) {
           const meta = ABILITY_META[ability.kind]
           const hotkey = String(index + 1)
           const isSelected = uiState.selectedAbility === ability.kind
-          const isReady = ability.cooldownRemaining <= 0 && uiState.power >= ability.powerCost
+          const canAfford = uiState.power >= ability.powerCost
           const onCooldown = ability.cooldownRemaining > 0
           const cdPercent = onCooldown ? ability.cooldownRemaining / ability.cooldown : 0
 
@@ -51,7 +51,10 @@ export function Abilities({ uiState, onAbilitySelect }: AbilitiesProps) {
                 <div className={styles.cooldownOverlay} style={{ height: `${cdPercent * 100}%` }} />
               )}
               {onCooldown && <RechargeRing readyPercent={1 - cdPercent} />}
-              {!isReady && !onCooldown && (
+              {/* Affordability dim is independent of cooldown — an ability you
+                  can't afford reads as dimmed the whole time, not only once it
+                  finishes recharging. */}
+              {!canAfford && (
                 <div className={styles.cooldownOverlay} style={{ height: '100%', opacity: 0.3 }} />
               )}
             </button>
