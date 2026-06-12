@@ -26,12 +26,12 @@ EXCEPTION — Game Code
 
 The following directories and all their contents are expressly EXCLUDED from
 the MIT License above and are instead governed by the proprietary license at
-src/pages/fun-stuff/subpages/LICENSE:
+src/pages/FunStuff/subpages/LICENSE:
 
-  src/pages/fun-stuff/subpages/GulagSort/
-  src/pages/fun-stuff/subpages/NullSpace/
+  src/pages/FunStuff/subpages/GulagSort/
+  src/pages/FunStuff/subpages/NullSpace/
 
-Any future game directories added under src/pages/fun-stuff/subpages/ (other
+Any future game directories added under src/pages/FunStuff/subpages/ (other
 than CourseProjects/ and Games/) are also excluded from the MIT License and
 fall under the same proprietary license, unless a different license file is
 placed in that directory.
