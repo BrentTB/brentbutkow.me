@@ -1,12 +1,19 @@
 import { METEOR_STRIKE } from './ability-data'
 import { createMeteorEffect } from './meteor-strike'
-import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
+import { AbilityKind, UpgradeCategory } from '../types'
 import type { UpgradeDefinition } from '../types'
 import { applyCostReduction, applyTierSum, type AbilityDefinition } from './ability-definition'
 import { IconName } from '../../icon-names'
 
+export const METEOR_UPGRADE_IDS = {
+  unlockMeteor: 'unlockMeteor',
+  meteorDamage: 'meteorDamage',
+  meteorCostReduction: 'meteorCostReduction',
+  meteorRadius: 'meteorRadius',
+} as const
+
 const unlockUpgrade: UpgradeDefinition = {
-  id: UpgradeId.unlockMeteor,
+  id: METEOR_UPGRADE_IDS.unlockMeteor,
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.meteor,
   label: 'Unlock Meteor',
@@ -15,7 +22,7 @@ const unlockUpgrade: UpgradeDefinition = {
 }
 
 const damageUpgrade: UpgradeDefinition = {
-  id: UpgradeId.meteorDamage,
+  id: METEOR_UPGRADE_IDS.meteorDamage,
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.meteor,
   label: 'Damage',
@@ -30,7 +37,7 @@ const damageUpgrade: UpgradeDefinition = {
 }
 
 const costUpgrade: UpgradeDefinition = {
-  id: UpgradeId.meteorCostReduction,
+  id: METEOR_UPGRADE_IDS.meteorCostReduction,
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.meteor,
   label: 'Efficiency',
@@ -42,7 +49,7 @@ const costUpgrade: UpgradeDefinition = {
 }
 
 const radiusUpgrade: UpgradeDefinition = {
-  id: UpgradeId.meteorRadius,
+  id: METEOR_UPGRADE_IDS.meteorRadius,
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.meteor,
   label: 'Blast Radius',
@@ -69,7 +76,7 @@ export const meteor: AbilityDefinition = {
     createMeteorEffect(pos, ability.damage, ability.aoeRadius, METEOR_STRIKE.delay),
   ],
   applyUpgrades: (_ability, upgrades) => ({
-    unlocked: upgrades[UpgradeId.unlockMeteor].currentTier > 0,
+    unlocked: upgrades[METEOR_UPGRADE_IDS.unlockMeteor].currentTier > 0,
     damage: applyTierSum(METEOR_STRIKE.damage, upgrades, damageUpgrade),
     powerCost: applyCostReduction(METEOR_STRIKE.powerCost, upgrades, costUpgrade),
     aoeRadius: applyTierSum(METEOR_STRIKE.aoeRadius, upgrades, radiusUpgrade),

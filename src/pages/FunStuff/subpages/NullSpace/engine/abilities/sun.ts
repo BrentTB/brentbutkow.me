@@ -1,7 +1,7 @@
 import { SUN } from './ability-data'
 import { damageEnemiesInRadius } from '../math/aoe'
 import { uid } from '../entities/entity-creator'
-import { AbilityKind, EffectKind, UpgradeCategory, UpgradeId } from '../types'
+import { AbilityKind, EffectKind, UpgradeCategory } from '../types'
 import type { SunEffect, UpgradeDefinition, Vec2 } from '../types'
 import type { Camera } from '../../renderer/camera'
 import { worldToScreen } from '../../renderer/camera'
@@ -14,8 +14,15 @@ import type {
 import { passThroughTick } from '../systems/effect-definition'
 import { IconName } from '../../icon-names'
 
+export const SUN_UPGRADE_IDS = {
+  unlockSun: 'unlockSun',
+  sunDamage: 'sunDamage',
+  sunDuration: 'sunDuration',
+  sunRadius: 'sunRadius',
+} as const
+
 const unlockUpgrade: UpgradeDefinition = {
-  id: UpgradeId.unlockSun,
+  id: SUN_UPGRADE_IDS.unlockSun,
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.sun,
   label: 'Unlock Sun',
@@ -24,7 +31,7 @@ const unlockUpgrade: UpgradeDefinition = {
 }
 
 const damageUpgrade: UpgradeDefinition = {
-  id: UpgradeId.sunDamage,
+  id: SUN_UPGRADE_IDS.sunDamage,
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.sun,
   label: 'Damage',
@@ -39,7 +46,7 @@ const damageUpgrade: UpgradeDefinition = {
 }
 
 const durationUpgrade: UpgradeDefinition = {
-  id: UpgradeId.sunDuration,
+  id: SUN_UPGRADE_IDS.sunDuration,
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.sun,
   label: 'Duration',
@@ -51,7 +58,7 @@ const durationUpgrade: UpgradeDefinition = {
 }
 
 const radiusUpgrade: UpgradeDefinition = {
-  id: UpgradeId.sunRadius,
+  id: SUN_UPGRADE_IDS.sunRadius,
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.sun,
   label: 'Range',
@@ -165,7 +172,7 @@ export const sun: AbilityDefinition = {
     createSunEffect(pos, ability.aoeRadius, ability.damage, ability.duration ?? SUN.duration),
   ],
   applyUpgrades: (_ability, upgrades) => ({
-    unlocked: upgrades[UpgradeId.unlockSun].currentTier > 0,
+    unlocked: upgrades[SUN_UPGRADE_IDS.unlockSun].currentTier > 0,
     damage: applyTierSum(SUN.damagePerSec, upgrades, damageUpgrade),
     duration: applyTierSum(SUN.duration, upgrades, durationUpgrade),
     aoeRadius: applyTierSum(SUN.radius, upgrades, radiusUpgrade),

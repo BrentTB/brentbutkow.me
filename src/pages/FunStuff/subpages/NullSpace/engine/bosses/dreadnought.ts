@@ -1,10 +1,16 @@
-import { EnemyKind } from '../types'
+import { EnemyKind, MovementBehavior } from '../types'
 import type { Enemy, Vec2 } from '../types'
 import { rng } from '../math/random'
-import { unitToward } from '../math/vec'
-import { hasAliveLinked } from './boss-definition'
-import type { BossDefinition, DropSpec, SpawnSpec } from './boss-definition'
+import { ringPositions, unitToward } from '../math/vec'
+import { bossPhase, getBossRuntime, hasAliveLinked } from './boss-definition'
+import type { BossDefinition, BossRuntimeBase, DropSpec, SpawnSpec } from './boss-definition'
 import { metalBurst } from './loot'
+
+// Dreadnought runtime: the drone-spawn cadence on top of the shared fields.
+export type DreadnoughtRuntime = BossRuntimeBase & {
+  kind: typeof EnemyKind.dreadnought
+  droneSpawnTimer: number
+}
 
 // Phase 1 (HP > 50%): drone pair every 10s. Phase 2 (HP ≤ 50%): every 5s.
 const DRONE_INTERVAL_P1 = 10
@@ -22,18 +28,10 @@ const GEN_REPEL_PUSH = 18
 
 // Evenly-spaced shield generator spawn specs around the boss.
 function ringSpecs(boss: Enemy, count: number): SpawnSpec[] {
-  const specs: SpawnSpec[] = []
-  for (let i = 0; i < count; i++) {
-    const angle = Math.PI / 2 + (i * 2 * Math.PI) / count
-    specs.push({
-      kind: EnemyKind.shieldGenerator,
-      pos: {
-        x: boss.pos.x + Math.cos(angle) * SHIELD_RING_DIST,
-        y: boss.pos.y + Math.sin(angle) * SHIELD_RING_DIST,
-      },
-    })
-  }
-  return specs
+  return ringPositions(boss.pos, SHIELD_RING_DIST, count, Math.PI / 2).map((pos) => ({
+    kind: EnemyKind.shieldGenerator,
+    pos,
+  }))
 }
 
 // Pins each generator to the ring radius (fixed standoff) while repelling its
@@ -81,8 +79,11 @@ function positionGeneratorRing(boss: Enemy, gens: Enemy[]): Map<string, { pos: V
 export const DREADNOUGHT_BOSS: BossDefinition = {
   kind: EnemyKind.dreadnought,
   hpBarLabel: 'DREADNOUGHT',
+  // Pursues the ship, then holds at attackRange and lets the generators fight.
+  movement: MovementBehavior.approach,
 
-  initialState: () => ({
+  initialState: (): DreadnoughtRuntime => ({
+    kind: EnemyKind.dreadnought,
     phase: 1,
     droneSpawnTimer: DRONE_INTERVAL_P1,
     linkedIds: [],
@@ -96,9 +97,9 @@ export const DREADNOUGHT_BOSS: BossDefinition = {
   positionLinked: positionGeneratorRing,
 
   onUpdate: (boss, dt) => {
-    // boss-ai only invokes onUpdate on confirmed boss enemies, so boss.boss is set.
-    const runtime = boss.boss!
-    const newPhase = boss.hp <= boss.maxHp * 0.5 ? 2 : 1
+    // boss-ai only invokes onUpdate on this boss's own enemies.
+    const runtime = getBossRuntime(boss, EnemyKind.dreadnought)!
+    const newPhase = bossPhase(boss)
     const interval = newPhase === 2 ? DRONE_INTERVAL_P2 : DRONE_INTERVAL_P1
     let droneSpawnTimer = runtime.droneSpawnTimer - dt
     const spawns: SpawnSpec[] = []

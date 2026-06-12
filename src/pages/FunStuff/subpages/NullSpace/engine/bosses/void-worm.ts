@@ -1,12 +1,32 @@
-import { EnemyKind, WormStage } from '../types'
-import type { Enemy, Vec2, WormRuntime } from '../types'
+import { EnemyKind, MovementBehavior } from '../types'
+import type { Enemy, Vec2 } from '../types'
 import { ENEMY_STATS } from '../../data'
-import { clamp } from '../math/utils'
+import { clampToWorld } from '../math/utils'
 import { homeTowardTarget } from '../math/homing'
 import { unitToward } from '../math/vec'
-import { hasAliveLinked } from './boss-definition'
-import type { BossDefinition, BossUpdateResult, DropSpec, SpawnSpec } from './boss-definition'
+import { getBossRuntime, hasAliveLinked } from './boss-definition'
+import type {
+  BossDefinition,
+  BossRuntimeBase,
+  BossUpdateResult,
+  DropSpec,
+  SpawnSpec,
+} from './boss-definition'
 import { metalBurst } from './loot'
+
+export const WormStage = { cruise: 'cruise', windup: 'windup', charge: 'charge' } as const
+export type WormStage = (typeof WormStage)[keyof typeof WormStage]
+
+// Void Worm runtime: attack cycle + the lunge direction (locked while charging).
+export type VoidWormRuntime = BossRuntimeBase & {
+  kind: typeof EnemyKind.voidWorm
+  stage: WormStage
+  stageTimer: number
+  heading: Vec2
+}
+
+// The per-tick slice of the runtime the attack cycle rewrites.
+type WormCycle = Pick<VoidWormRuntime, 'stage' | 'stageTimer' | 'heading'>
 
 export const VOID_WORM = {
   segmentCount: 8,
@@ -43,17 +63,18 @@ function positionChain(boss: Enemy, linked: Enemy[]): Map<string, { pos: Vec2; v
 export const VOID_WORM_BOSS: BossDefinition = {
   kind: EnemyKind.voidWorm,
   hpBarLabel: 'VOID WORM',
+  // The attack cycle owns position and velocity; the movement system leaves
+  // the head untouched.
+  movement: MovementBehavior.none,
 
-  initialState: () => ({
+  initialState: (): VoidWormRuntime => ({
+    kind: EnemyKind.voidWorm,
     phase: 1,
-    droneSpawnTimer: 0,
     linkedIds: [],
     hasSpawned: false,
-    worm: {
-      stage: WormStage.cruise,
-      stageTimer: VOID_WORM.cruiseDuration,
-      heading: { x: 1, y: 0 },
-    },
+    stage: WormStage.cruise,
+    stageTimer: VOID_WORM.cruiseDuration,
+    heading: { x: 1, y: 0 },
   }),
 
   // Segments trail off to one side; the chain pin rearranges them next tick.
@@ -76,12 +97,11 @@ export const VOID_WORM_BOSS: BossDefinition = {
   positionLinked: positionChain,
 
   onUpdate: (boss, dt, ctx): BossUpdateResult => {
-    // boss-ai only invokes onUpdate on confirmed boss enemies, so boss.boss is set.
-    const runtime = boss.boss!
-    const worm = runtime.worm!
+    // boss-ai only invokes onUpdate on this boss's own enemies.
+    const worm = getBossRuntime(boss, EnemyKind.voidWorm)!
     const stageTimer = worm.stageTimer - dt
 
-    let next: WormRuntime
+    let next: WormCycle
     let self: BossUpdateResult['self']
 
     if (worm.stage === WormStage.cruise) {
@@ -90,13 +110,7 @@ export const VOID_WORM_BOSS: BossDefinition = {
       // otherwise drag the head off the playfield (MovementBehavior.none
       // never bounds it).
       const homed = homeTowardTarget(boss.pos, ctx.shipPos, VOID_WORM.cruiseSpeed, dt)
-      self = {
-        pos: {
-          x: clamp(homed.pos.x, 0, ctx.worldSize.x),
-          y: clamp(homed.pos.y, 0, ctx.worldSize.y),
-        },
-        vel: homed.vel,
-      }
+      self = { pos: clampToWorld(homed.pos, ctx.worldSize), vel: homed.vel }
       const heading = unitToward(boss.pos, ctx.shipPos)
       next =
         stageTimer <= 0
@@ -114,10 +128,13 @@ export const VOID_WORM_BOSS: BossDefinition = {
           : { ...worm, stageTimer, heading }
     } else {
       // Lunge along the locked heading — the ship has to dodge, not outrun.
-      const pos = {
-        x: clamp(boss.pos.x + worm.heading.x * VOID_WORM.chargeSpeed * dt, 0, ctx.worldSize.x),
-        y: clamp(boss.pos.y + worm.heading.y * VOID_WORM.chargeSpeed * dt, 0, ctx.worldSize.y),
-      }
+      const pos = clampToWorld(
+        {
+          x: boss.pos.x + worm.heading.x * VOID_WORM.chargeSpeed * dt,
+          y: boss.pos.y + worm.heading.y * VOID_WORM.chargeSpeed * dt,
+        },
+        ctx.worldSize
+      )
       self = {
         pos,
         vel: {
@@ -131,7 +148,7 @@ export const VOID_WORM_BOSS: BossDefinition = {
           : { ...worm, stageTimer }
     }
 
-    return { updatedRuntime: { ...runtime, worm: next }, spawns: [], self }
+    return { updatedRuntime: { ...worm, ...next }, spawns: [], self }
   },
 
   // Combined head + body HP so the bar moves while the head is damage-gated.

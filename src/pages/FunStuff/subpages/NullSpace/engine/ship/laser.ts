@@ -1,12 +1,18 @@
 import { applyTierSum } from '../abilities/ability-definition'
-import { ShipWeaponKind, UpgradeCategory, UpgradeId } from '../types'
+import { ShipWeaponKind, UpgradeCategory } from '../types'
 import type { UpgradeDefinition } from '../types'
 import { IconName } from '../../icon-names'
 import { LASER } from './ship-weapon-data'
 import { buildShipProjectile, type ShipWeaponDefinition } from './ship-weapon-definition'
 
+export const LASER_UPGRADE_IDS = {
+  unlockLaser: 'unlockLaser',
+  laserDamage: 'laserDamage',
+  laserPierce: 'laserPierce',
+} as const
+
 const unlockUpgrade: UpgradeDefinition = {
-  id: UpgradeId.unlockLaser,
+  id: LASER_UPGRADE_IDS.unlockLaser,
   category: UpgradeCategory.loadout,
   weapon: ShipWeaponKind.laser,
   label: 'Unlock Laser',
@@ -15,7 +21,7 @@ const unlockUpgrade: UpgradeDefinition = {
 }
 
 const damageUpgrade: UpgradeDefinition = {
-  id: UpgradeId.laserDamage,
+  id: LASER_UPGRADE_IDS.laserDamage,
   category: UpgradeCategory.loadout,
   weapon: ShipWeaponKind.laser,
   label: 'Damage',
@@ -28,7 +34,7 @@ const damageUpgrade: UpgradeDefinition = {
 }
 
 const pierceUpgrade: UpgradeDefinition = {
-  id: UpgradeId.laserPierce,
+  id: LASER_UPGRADE_IDS.laserPierce,
   category: UpgradeCategory.loadout,
   weapon: ShipWeaponKind.laser,
   label: 'Pierce',

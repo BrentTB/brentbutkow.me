@@ -5,7 +5,7 @@ import {
   isShipWeaponFullyMaxed,
 } from '../../engine/upgrades'
 import { ShipWeaponKind } from '../../engine/types'
-import type { UpgradeId } from '../../engine/types'
+import type { UpgradeId } from '../../engine/upgrade-ids'
 import type { GameUIState } from '../../useNullSpace'
 import sharedStyles from '../OverlayShared.module.scss'
 import styles from './WeaponsList.module.scss'

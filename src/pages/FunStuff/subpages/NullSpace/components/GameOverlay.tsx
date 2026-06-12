@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { AbilityKind, GamePhase, ShipKind, ShipWeaponKind, UpgradeId } from '../engine/types'
+import { AbilityKind, GamePhase, ShipKind, ShipWeaponKind } from '../engine/types'
+import type { UpgradeId } from '../engine/upgrade-ids'
 import type { GameUIState } from '../useNullSpace'
 import styles from './GameOverlay.module.scss'
 import { HelpScreen } from './PauseMenu/HelpScreen'

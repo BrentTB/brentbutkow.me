@@ -1,7 +1,7 @@
 import { SHIP_WEAPON_META } from '../../engine/ship'
 import { UNLOCK_UPGRADE_IDS, UPGRADE_DEFINITIONS } from '../../engine/upgrades'
 import { ShipWeaponKind, UpgradeCategory } from '../../engine/types'
-import type { UpgradeId } from '../../engine/types'
+import type { UpgradeId } from '../../engine/upgrade-ids'
 import type { GameUIState } from '../../useNullSpace'
 import { UpgradeCard } from './UpgradeCard'
 import styles from './WeaponDetail.module.scss'

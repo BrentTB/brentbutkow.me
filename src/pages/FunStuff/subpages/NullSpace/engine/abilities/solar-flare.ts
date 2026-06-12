@@ -3,15 +3,22 @@ import { canEnemyTakeDamage } from '../bosses/index'
 import { distance } from '../math/collision'
 import { createParticle, spawnExplosionParticles } from '../entities/entity-creator'
 import { rng } from '../math/random'
-import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
+import { AbilityKind, UpgradeCategory } from '../types'
 import type { Enemy, UpgradeDefinition } from '../types'
 import { worldToScreen } from '../../renderer/camera'
 import { applyCostReduction, applyTierSum, type AbilityDefinition } from './ability-definition'
 import { IconName } from '../../icon-names'
 import type { HoldAbilityConfig } from './hold-runtime'
 
+export const SOLAR_FLARE_UPGRADE_IDS = {
+  unlockSolarFlare: 'unlockSolarFlare',
+  solarFlareDamage: 'solarFlareDamage',
+  solarFlareEfficiency: 'solarFlareEfficiency',
+  solarFlareRadius: 'solarFlareRadius',
+} as const
+
 const unlockUpgrade: UpgradeDefinition = {
-  id: UpgradeId.unlockSolarFlare,
+  id: SOLAR_FLARE_UPGRADE_IDS.unlockSolarFlare,
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.solarFlare,
   label: 'Unlock Solar Flare',
@@ -20,7 +27,7 @@ const unlockUpgrade: UpgradeDefinition = {
 }
 
 const damageUpgrade: UpgradeDefinition = {
-  id: UpgradeId.solarFlareDamage,
+  id: SOLAR_FLARE_UPGRADE_IDS.solarFlareDamage,
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.solarFlare,
   label: 'Damage',
@@ -35,7 +42,7 @@ const damageUpgrade: UpgradeDefinition = {
 }
 
 const efficiencyUpgrade: UpgradeDefinition = {
-  id: UpgradeId.solarFlareEfficiency,
+  id: SOLAR_FLARE_UPGRADE_IDS.solarFlareEfficiency,
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.solarFlare,
   label: 'Efficiency',
@@ -47,7 +54,7 @@ const efficiencyUpgrade: UpgradeDefinition = {
 }
 
 const radiusUpgrade: UpgradeDefinition = {
-  id: UpgradeId.solarFlareRadius,
+  id: SOLAR_FLARE_UPGRADE_IDS.solarFlareRadius,
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.solarFlare,
   label: 'Range',
@@ -164,7 +171,7 @@ export const solarFlare: AbilityDefinition = {
     aoeRadius: SOLAR_FLARE.beamWidth,
   }),
   applyUpgrades: (_ability, upgrades) => ({
-    unlocked: upgrades[UpgradeId.unlockSolarFlare].currentTier > 0,
+    unlocked: upgrades[SOLAR_FLARE_UPGRADE_IDS.unlockSolarFlare].currentTier > 0,
     damage: applyTierSum(SOLAR_FLARE.damagePerTick, upgrades, damageUpgrade),
     powerCost: applyCostReduction(SOLAR_FLARE.powerPerSec, upgrades, efficiencyUpgrade),
     aoeRadius: applyTierSum(SOLAR_FLARE.beamWidth, upgrades, radiusUpgrade),

@@ -1,6 +1,6 @@
 import { SHIELD } from './ability-data'
 import { spawnExplosionParticles, uid } from '../entities/entity-creator'
-import { AbilityKind, EffectKind, ProjectileOwner, UpgradeCategory, UpgradeId } from '../types'
+import { AbilityKind, EffectKind, ProjectileOwner, UpgradeCategory } from '../types'
 import type {
   ActiveEffect,
   Enemy,
@@ -21,8 +21,15 @@ import type {
 import { passThroughTick } from '../systems/effect-definition'
 import { IconName } from '../../icon-names'
 
+export const SHIELD_UPGRADE_IDS = {
+  unlockShield: 'unlockShield',
+  shieldDuration: 'shieldDuration',
+  shieldRadius: 'shieldRadius',
+  shieldCostReduction: 'shieldCostReduction',
+} as const
+
 const unlockUpgrade: UpgradeDefinition = {
-  id: UpgradeId.unlockShield,
+  id: SHIELD_UPGRADE_IDS.unlockShield,
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.shield,
   label: 'Unlock Shield',
@@ -31,7 +38,7 @@ const unlockUpgrade: UpgradeDefinition = {
 }
 
 const durationUpgrade: UpgradeDefinition = {
-  id: UpgradeId.shieldDuration,
+  id: SHIELD_UPGRADE_IDS.shieldDuration,
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.shield,
   label: 'Duration',
@@ -44,7 +51,7 @@ const durationUpgrade: UpgradeDefinition = {
 }
 
 const radiusUpgrade: UpgradeDefinition = {
-  id: UpgradeId.shieldRadius,
+  id: SHIELD_UPGRADE_IDS.shieldRadius,
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.shield,
   label: 'Size',
@@ -57,7 +64,7 @@ const radiusUpgrade: UpgradeDefinition = {
 }
 
 const costUpgrade: UpgradeDefinition = {
-  id: UpgradeId.shieldCostReduction,
+  id: SHIELD_UPGRADE_IDS.shieldCostReduction,
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.shield,
   label: 'Efficiency',
@@ -246,7 +253,7 @@ export const shield: AbilityDefinition = {
     createShieldEffect(pos, ability.aoeRadius, ability.duration ?? SHIELD.duration),
   ],
   applyUpgrades: (_ability, upgrades) => ({
-    unlocked: upgrades[UpgradeId.unlockShield].currentTier > 0,
+    unlocked: upgrades[SHIELD_UPGRADE_IDS.unlockShield].currentTier > 0,
     aoeRadius: applyTierSum(SHIELD.radius, upgrades, radiusUpgrade),
     duration: applyTierSum(SHIELD.duration, upgrades, durationUpgrade),
     powerCost: applyCostReduction(SHIELD.powerCost, upgrades, costUpgrade),

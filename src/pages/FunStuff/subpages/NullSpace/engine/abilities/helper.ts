@@ -1,12 +1,19 @@
 import { HELPER } from './ability-data'
 import { createAlly } from '../entities/entity-creator'
-import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
+import { AbilityKind, UpgradeCategory } from '../types'
 import type { UpgradeDefinition } from '../types'
 import { applyCostReduction, applyTierSum, type AbilityDefinition } from './ability-definition'
 import { IconName } from '../../icon-names'
 
+export const HELPER_UPGRADE_IDS = {
+  unlockHelper: 'unlockHelper',
+  helperMaxHp: 'helperMaxHp',
+  helperDamage: 'helperDamage',
+  helperCostReduction: 'helperCostReduction',
+} as const
+
 const unlockUpgrade: UpgradeDefinition = {
-  id: UpgradeId.unlockHelper,
+  id: HELPER_UPGRADE_IDS.unlockHelper,
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.helper,
   label: 'Unlock Helper',
@@ -15,7 +22,7 @@ const unlockUpgrade: UpgradeDefinition = {
 }
 
 const maxHpUpgrade: UpgradeDefinition = {
-  id: UpgradeId.helperMaxHp,
+  id: HELPER_UPGRADE_IDS.helperMaxHp,
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.helper,
   label: 'Max Health',
@@ -28,7 +35,7 @@ const maxHpUpgrade: UpgradeDefinition = {
 }
 
 const damageUpgrade: UpgradeDefinition = {
-  id: UpgradeId.helperDamage,
+  id: HELPER_UPGRADE_IDS.helperDamage,
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.helper,
   label: 'Damage',
@@ -43,7 +50,7 @@ const damageUpgrade: UpgradeDefinition = {
 }
 
 const costUpgrade: UpgradeDefinition = {
-  id: UpgradeId.helperCostReduction,
+  id: HELPER_UPGRADE_IDS.helperCostReduction,
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.helper,
   label: 'Efficiency',
@@ -68,7 +75,7 @@ export const helper: AbilityDefinition = {
   }),
   allyFactory: (pos, ability) => createAlly(pos, ability.maxHp ?? HELPER.hp, ability.damage),
   applyUpgrades: (_ability, upgrades) => ({
-    unlocked: upgrades[UpgradeId.unlockHelper].currentTier > 0,
+    unlocked: upgrades[HELPER_UPGRADE_IDS.unlockHelper].currentTier > 0,
     maxHp: applyTierSum(HELPER.hp, upgrades, maxHpUpgrade),
     damage: applyTierSum(HELPER.damage, upgrades, damageUpgrade),
     powerCost: applyCostReduction(HELPER.powerCost, upgrades, costUpgrade),

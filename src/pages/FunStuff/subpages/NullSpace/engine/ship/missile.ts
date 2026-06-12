@@ -1,12 +1,19 @@
 import { applyTierSum } from '../abilities/ability-definition'
-import { ShipWeaponKind, UpgradeCategory, UpgradeId } from '../types'
+import { ShipWeaponKind, UpgradeCategory } from '../types'
 import type { UpgradeDefinition } from '../types'
 import { IconName } from '../../icon-names'
 import { MISSILE } from './ship-weapon-data'
 import { buildShipProjectile, type ShipWeaponDefinition } from './ship-weapon-definition'
 
+export const MISSILE_UPGRADE_IDS = {
+  unlockMissile: 'unlockMissile',
+  missileDamage: 'missileDamage',
+  missileSpeed: 'missileSpeed',
+  missileSplash: 'missileSplash',
+} as const
+
 const unlockUpgrade: UpgradeDefinition = {
-  id: UpgradeId.unlockMissile,
+  id: MISSILE_UPGRADE_IDS.unlockMissile,
   category: UpgradeCategory.loadout,
   weapon: ShipWeaponKind.missile,
   label: 'Unlock Missile',
@@ -15,7 +22,7 @@ const unlockUpgrade: UpgradeDefinition = {
 }
 
 const damageUpgrade: UpgradeDefinition = {
-  id: UpgradeId.missileDamage,
+  id: MISSILE_UPGRADE_IDS.missileDamage,
   category: UpgradeCategory.loadout,
   weapon: ShipWeaponKind.missile,
   label: 'Damage',
@@ -28,7 +35,7 @@ const damageUpgrade: UpgradeDefinition = {
 }
 
 const speedUpgrade: UpgradeDefinition = {
-  id: UpgradeId.missileSpeed,
+  id: MISSILE_UPGRADE_IDS.missileSpeed,
   category: UpgradeCategory.loadout,
   weapon: ShipWeaponKind.missile,
   label: 'Tracking',
@@ -40,7 +47,7 @@ const speedUpgrade: UpgradeDefinition = {
 }
 
 const splashUpgrade: UpgradeDefinition = {
-  id: UpgradeId.missileSplash,
+  id: MISSILE_UPGRADE_IDS.missileSplash,
   category: UpgradeCategory.loadout,
   weapon: ShipWeaponKind.missile,
   label: 'Splash',

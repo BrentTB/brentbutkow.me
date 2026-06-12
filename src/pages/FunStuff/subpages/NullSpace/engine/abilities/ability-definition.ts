@@ -76,6 +76,22 @@ export type AbilityDefinition = {
   hold?: HoldAbilityConfig
 }
 
+// Builds an ultimate's applyUpgrades on top of its base ability's. The base's
+// full upgrade patch flows through — a field the base starts upgrading later
+// can't be silently dropped — minus `unlocked`: an ultimate unlocks via
+// ownership (syncUltimateAbilities), never via the base's unlock upgrade.
+// The ultimate's own overrides merge last and may read the base patch.
+export function composeUltimateUpgrades(
+  base: AbilityDefinition,
+  overrides: (basePatch: Partial<Ability>, upgrades: PlayerUpgrades) => Partial<Ability>
+): NonNullable<AbilityDefinition['applyUpgrades']> {
+  return (ability, upgrades) => {
+    const basePatch = { ...base.applyUpgrades?.(ability, upgrades) }
+    delete basePatch.unlocked
+    return { ...basePatch, ...overrides(basePatch, upgrades) }
+  }
+}
+
 // Helper: sum the values of the first N tiers of an upgrade onto a base value.
 // `sign` lets cost-reduction upgrades subtract their tier values instead of
 // adding them. Returns base when the player hasn't purchased any tier.

@@ -1,13 +1,20 @@
 import { TELEKINESIS } from './ability-data'
-import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
+import { AbilityKind, UpgradeCategory } from '../types'
 import type { UpgradeDefinition } from '../types'
 import { worldToScreen } from '../../renderer/camera'
 import { applyCostReduction, applyTierSum, type AbilityDefinition } from './ability-definition'
 import { IconName } from '../../icon-names'
 import type { HoldAbilityConfig } from './hold-runtime'
 
+export const TELEKINESIS_UPGRADE_IDS = {
+  unlockTelekinesis: 'unlockTelekinesis',
+  telekinesisRadius: 'telekinesisRadius',
+  telekinesisCostReduction: 'telekinesisCostReduction',
+  telekinesisForce: 'telekinesisForce',
+} as const
+
 const unlockUpgrade: UpgradeDefinition = {
-  id: UpgradeId.unlockTelekinesis,
+  id: TELEKINESIS_UPGRADE_IDS.unlockTelekinesis,
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.telekinesis,
   label: 'Unlock Telekinesis',
@@ -16,7 +23,7 @@ const unlockUpgrade: UpgradeDefinition = {
 }
 
 const radiusUpgrade: UpgradeDefinition = {
-  id: UpgradeId.telekinesisRadius,
+  id: TELEKINESIS_UPGRADE_IDS.telekinesisRadius,
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.telekinesis,
   label: 'Radius',
@@ -28,7 +35,7 @@ const radiusUpgrade: UpgradeDefinition = {
 }
 
 const costUpgrade: UpgradeDefinition = {
-  id: UpgradeId.telekinesisCostReduction,
+  id: TELEKINESIS_UPGRADE_IDS.telekinesisCostReduction,
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.telekinesis,
   label: 'Efficiency',
@@ -40,7 +47,7 @@ const costUpgrade: UpgradeDefinition = {
 }
 
 const forceUpgrade: UpgradeDefinition = {
-  id: UpgradeId.telekinesisForce,
+  id: TELEKINESIS_UPGRADE_IDS.telekinesisForce,
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.telekinesis,
   label: 'Force',
@@ -138,7 +145,7 @@ export const telekinesis: AbilityDefinition = {
     force: TELEKINESIS.force,
   }),
   applyUpgrades: (_ability, upgrades) => ({
-    unlocked: upgrades[UpgradeId.unlockTelekinesis].currentTier > 0,
+    unlocked: upgrades[TELEKINESIS_UPGRADE_IDS.unlockTelekinesis].currentTier > 0,
     aoeRadius: applyTierSum(TELEKINESIS.radius, upgrades, radiusUpgrade),
     powerCost: applyCostReduction(TELEKINESIS.powerPerSec, upgrades, costUpgrade),
     force: applyTierSum(TELEKINESIS.force, upgrades, forceUpgrade),

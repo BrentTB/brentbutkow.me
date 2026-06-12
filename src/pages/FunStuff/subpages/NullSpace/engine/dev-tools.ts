@@ -1,0 +1,123 @@
+import { BOSS_LEVEL_INTERVAL, WAVES_PER_LEVEL } from '../data'
+import { devGrantUltimate, devUnlockWeapon, rollLevelUpWeaponOffers } from './game-loop'
+import { advanceBossSelection } from './bosses/boss-selection'
+import { createShip } from './entities/entity-creator'
+import { getLevel } from './upgrades'
+import { AbilityKind, EnemyKind, GamePhase, ShipKind } from './types'
+import type { GameState } from './types'
+
+// Dev-console state manipulation — every mutation the console offers, as pure
+// GameState → GameState functions so they're testable without React. Only the
+// dev build wires these up; production tree-shakes the module away.
+
+// Patch shape for the dev console — every field optional, undefined means
+// "leave alone." devPatchState merges this onto the live GameState in one shot.
+export type DevPatch = {
+  shipKind?: ShipKind
+  shipHp?: number
+  shipMaxHp?: number
+  shipShield?: number
+  shipMaxShield?: number
+  shipDamage?: number
+  shipFireRate?: number
+  shipSpeed?: number
+  score?: number
+  currency?: number
+  spaceMetal?: number
+  singularityShard?: number
+  power?: number
+  maxPower?: number
+  wave?: number
+  // One-shot: overrides the upcoming boss wave's boss, then selection resumes.
+  nextBoss?: EnemyKind
+  // Unlock a base ability (no cost). Grant a base ability's ultimate (no cost).
+  unlockWeapon?: AbilityKind
+  grantUltimate?: AbilityKind
+}
+
+export function devPatchState(state: GameState, patch: DevPatch): GameState {
+  let ship = state.ship
+  let shipKind = state.shipKind
+
+  if (patch.shipKind !== undefined && patch.shipKind !== state.shipKind) {
+    const fresh = createShip(patch.shipKind, state.worldSize)
+    ship = { ...fresh, pos: ship.pos, vel: ship.vel, patrolAngle: ship.patrolAngle }
+    shipKind = patch.shipKind
+  }
+  if (patch.shipMaxHp !== undefined) ship = { ...ship, maxHp: patch.shipMaxHp }
+  if (patch.shipHp !== undefined) ship = { ...ship, hp: patch.shipHp }
+  if (patch.shipMaxShield !== undefined) ship = { ...ship, maxShield: patch.shipMaxShield }
+  if (patch.shipShield !== undefined) ship = { ...ship, shield: patch.shipShield }
+  if (patch.shipDamage !== undefined) ship = { ...ship, damage: patch.shipDamage }
+  if (patch.shipFireRate !== undefined) ship = { ...ship, fireRate: patch.shipFireRate }
+  if (patch.shipSpeed !== undefined) ship = { ...ship, speed: patch.shipSpeed }
+
+  const wave = patch.wave ?? state.wave
+  let next: GameState = {
+    ...state,
+    ship,
+    shipKind,
+    score: patch.score ?? state.score,
+    currency: patch.currency ?? state.currency,
+    spaceMetal: patch.spaceMetal ?? state.spaceMetal,
+    singularityShard: patch.singularityShard ?? state.singularityShard,
+    power: patch.power ?? state.power,
+    maxPower: patch.maxPower ?? state.maxPower,
+    wave,
+    level: patch.wave !== undefined ? getLevel(wave) : state.level,
+    // One-shot by construction: only nextBoss changes — the pool is left
+    // alone, and consuming the boss wave advances selection as usual.
+    bossSelection:
+      patch.nextBoss !== undefined
+        ? { ...state.bossSelection, nextBoss: patch.nextBoss }
+        : state.bossSelection,
+  }
+  if (patch.unlockWeapon !== undefined) next = devUnlockWeapon(next, patch.unlockWeapon)
+  if (patch.grantUltimate !== undefined) next = devGrantUltimate(next, patch.grantUltimate)
+  return next
+}
+
+// Jump straight to the next upgrade screen, clearing the field.
+export function devJumpToUpgrades(state: GameState): GameState {
+  const base = state.wave > 0 ? state.wave : 1
+  const nextUpgradeWave = Math.ceil(base / WAVES_PER_LEVEL) * WAVES_PER_LEVEL
+  return {
+    ...state,
+    phase: GamePhase.upgradeScreen,
+    wave: nextUpgradeWave,
+    level: getLevel(nextUpgradeWave),
+    enemies: [],
+    projectiles: [],
+    activeEffects: [],
+    spawnQueue: [],
+    spawnTimer: 0,
+    spawnedInWave: 1,
+    totalWaveEnemies: 1,
+    waveTimer: 0,
+    levelUpWeaponOffers: rollLevelUpWeaponOffers(state.abilities),
+  }
+}
+
+// Jump to the next boss wave after the current one. Spawns only the boss (no
+// escort) so the fight is reachable instantly for testing. Consumes nextBoss
+// exactly like a real boss wave so the readout stays ahead.
+export function devJumpToBoss(state: GameState): GameState {
+  const bossInterval = WAVES_PER_LEVEL * BOSS_LEVEL_INTERVAL
+  const bossWave = Math.floor(state.wave / bossInterval) * bossInterval + bossInterval
+  return {
+    ...state,
+    phase: GamePhase.playing,
+    wave: bossWave,
+    level: getLevel(bossWave),
+    enemies: [],
+    projectiles: [],
+    activeEffects: [],
+    collectibles: [],
+    spawnQueue: [state.bossSelection.nextBoss],
+    spawnTimer: 0,
+    totalWaveEnemies: 1,
+    spawnedInWave: 0,
+    waveTimer: 0,
+    bossSelection: advanceBossSelection(state.bossSelection),
+  }
+}

@@ -1,7 +1,7 @@
 import { BLACK_HOLE } from './ability-data'
 import { canEnemyTakeDamage } from '../bosses/index'
 import { spawnExplosionParticles, uid } from '../entities/entity-creator'
-import { AbilityKind, EffectKind, UpgradeCategory, UpgradeId } from '../types'
+import { AbilityKind, EffectKind, UpgradeCategory } from '../types'
 import type { BlackHoleEffect, Enemy, Particle, UpgradeDefinition, Vec2 } from '../types'
 import type { Camera } from '../../renderer/camera'
 import { worldToScreen } from '../../renderer/camera'
@@ -14,8 +14,15 @@ import type {
 import { passThroughTick } from '../systems/effect-definition'
 import { IconName } from '../../icon-names'
 
+export const BLACK_HOLE_UPGRADE_IDS = {
+  unlockBlackHole: 'unlockBlackHole',
+  blackHoleDamage: 'blackHoleDamage',
+  blackHoleDuration: 'blackHoleDuration',
+  blackHoleRadius: 'blackHoleRadius',
+} as const
+
 const unlockUpgrade: UpgradeDefinition = {
-  id: UpgradeId.unlockBlackHole,
+  id: BLACK_HOLE_UPGRADE_IDS.unlockBlackHole,
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.blackHole,
   label: 'Unlock Black Hole',
@@ -24,7 +31,7 @@ const unlockUpgrade: UpgradeDefinition = {
 }
 
 const damageUpgrade: UpgradeDefinition = {
-  id: UpgradeId.blackHoleDamage,
+  id: BLACK_HOLE_UPGRADE_IDS.blackHoleDamage,
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.blackHole,
   label: 'Damage',
@@ -39,7 +46,7 @@ const damageUpgrade: UpgradeDefinition = {
 }
 
 const durationUpgrade: UpgradeDefinition = {
-  id: UpgradeId.blackHoleDuration,
+  id: BLACK_HOLE_UPGRADE_IDS.blackHoleDuration,
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.blackHole,
   label: 'Duration',
@@ -52,7 +59,7 @@ const durationUpgrade: UpgradeDefinition = {
 }
 
 const radiusUpgrade: UpgradeDefinition = {
-  id: UpgradeId.blackHoleRadius,
+  id: BLACK_HOLE_UPGRADE_IDS.blackHoleRadius,
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.blackHole,
   label: 'Range',
@@ -250,7 +257,7 @@ export const blackHole: AbilityDefinition = {
     ),
   ],
   applyUpgrades: (_ability, upgrades) => ({
-    unlocked: upgrades[UpgradeId.unlockBlackHole].currentTier > 0,
+    unlocked: upgrades[BLACK_HOLE_UPGRADE_IDS.unlockBlackHole].currentTier > 0,
     damage: applyTierSum(BLACK_HOLE.damage, upgrades, damageUpgrade),
     duration: applyTierSum(BLACK_HOLE.duration, upgrades, durationUpgrade),
     aoeRadius: applyTierSum(BLACK_HOLE.radius, upgrades, radiusUpgrade),

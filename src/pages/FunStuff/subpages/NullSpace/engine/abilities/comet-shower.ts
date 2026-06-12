@@ -1,14 +1,19 @@
 import { COMET_SHOWER, METEORITE_STRIKE } from './ability-data'
 import { createMeteoriteEffect } from './meteor-strike'
 import { rng } from '../math/random'
-import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
+import { AbilityKind, UpgradeCategory } from '../types'
 import type { UpgradeDefinition } from '../types'
-import { applyTierSum, type AbilityDefinition } from './ability-definition'
+import { applyTierSum, composeUltimateUpgrades, type AbilityDefinition } from './ability-definition'
 import { meteorite } from './meteorite'
 import { IconName } from '../../icon-names'
 
+export const COMET_SHOWER_UPGRADE_IDS = {
+  cometShowerCount: 'cometShowerCount',
+  cometShowerStagger: 'cometShowerStagger',
+} as const
+
 const countUpgrade: UpgradeDefinition = {
-  id: UpgradeId.cometShowerCount,
+  id: COMET_SHOWER_UPGRADE_IDS.cometShowerCount,
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.cometShower,
   label: 'Comet Count',
@@ -23,7 +28,7 @@ const countUpgrade: UpgradeDefinition = {
 // Reduces staggerStep (the gap between comets landing). Tier values subtract
 // from the base 0.1, bottoming out at COMET_SHOWER.minStaggerStep (0.03).
 const staggerUpgrade: UpgradeDefinition = {
-  id: UpgradeId.cometShowerStagger,
+  id: COMET_SHOWER_UPGRADE_IDS.cometShowerStagger,
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.cometShower,
   label: 'Comet Cadence',
@@ -69,17 +74,13 @@ export const cometShower: AbilityDefinition = {
     }
     return effects
   },
-  applyUpgrades: (ability, upgrades) => {
-    const base = meteorite.applyUpgrades?.(ability, upgrades) ?? {}
-    return {
-      damage: base.damage ?? METEORITE_STRIKE.damage,
-      powerCost: (base.powerCost ?? METEORITE_STRIKE.powerCost) * COMET_SHOWER.costMultiplier,
-      count: applyTierSum(COMET_SHOWER.baseCount, upgrades, countUpgrade),
-      staggerStep: Math.max(
-        COMET_SHOWER.minStaggerStep,
-        applyTierSum(COMET_SHOWER.staggerStep, upgrades, staggerUpgrade, -1)
-      ),
-    }
-  },
+  applyUpgrades: composeUltimateUpgrades(meteorite, (basePatch, upgrades) => ({
+    powerCost: (basePatch.powerCost ?? METEORITE_STRIKE.powerCost) * COMET_SHOWER.costMultiplier,
+    count: applyTierSum(COMET_SHOWER.baseCount, upgrades, countUpgrade),
+    staggerStep: Math.max(
+      COMET_SHOWER.minStaggerStep,
+      applyTierSum(COMET_SHOWER.staggerStep, upgrades, staggerUpgrade, -1)
+    ),
+  })),
   modifierUpgrades: [countUpgrade, staggerUpgrade],
 }

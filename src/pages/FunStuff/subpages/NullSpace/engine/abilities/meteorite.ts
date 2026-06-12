@@ -1,12 +1,17 @@
 import { COMET_SHOWER, METEORITE_STRIKE } from './ability-data'
 import { createMeteoriteEffect } from './meteor-strike'
-import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
+import { AbilityKind, UpgradeCategory } from '../types'
 import type { UpgradeDefinition } from '../types'
 import { applyCostReduction, applyTierSum, type AbilityDefinition } from './ability-definition'
 import { IconName } from '../../icon-names'
 
+export const METEORITE_UPGRADE_IDS = {
+  meteoriteDamage: 'meteoriteDamage',
+  meteoriteCostReduction: 'meteoriteCostReduction',
+} as const
+
 const damageUpgrade: UpgradeDefinition = {
-  id: UpgradeId.meteoriteDamage,
+  id: METEORITE_UPGRADE_IDS.meteoriteDamage,
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.meteorite,
   label: 'Damage',
@@ -21,7 +26,7 @@ const damageUpgrade: UpgradeDefinition = {
 }
 
 const costUpgrade: UpgradeDefinition = {
-  id: UpgradeId.meteoriteCostReduction,
+  id: METEORITE_UPGRADE_IDS.meteoriteCostReduction,
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.meteorite,
   label: 'Efficiency',

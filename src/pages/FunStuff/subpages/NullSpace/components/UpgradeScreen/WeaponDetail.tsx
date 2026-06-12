@@ -1,6 +1,7 @@
 import { ABILITY_META } from '../../engine/abilities'
 import { getWeaponModifierUpgrades } from '../../engine/upgrades'
-import { AbilityKind, UpgradeId } from '../../engine/types'
+import { AbilityKind } from '../../engine/types'
+import type { UpgradeId } from '../../engine/upgrade-ids'
 import type { GameUIState } from '../../useNullSpace'
 import { UpgradeCard } from './UpgradeCard'
 import { UltimateCard } from './UltimateCard'

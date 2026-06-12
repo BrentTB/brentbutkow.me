@@ -1,7 +1,7 @@
 import { ROCKET } from './ability-data'
 import { damageEnemiesInRadiusFlat } from '../math/aoe'
 import { createParticle, spawnExplosionParticles, uid } from '../entities/entity-creator'
-import { AbilityKind, EffectKind, UpgradeCategory, UpgradeId } from '../types'
+import { AbilityKind, EffectKind, UpgradeCategory } from '../types'
 import type { Particle, RocketEffect, UpgradeDefinition, Vec2 } from '../types'
 import type { Camera } from '../../renderer/camera'
 import { worldToScreen } from '../../renderer/camera'
@@ -16,8 +16,15 @@ import type {
 } from '../systems/effect-definition'
 import { IconName } from '../../icon-names'
 
+export const ROCKET_UPGRADE_IDS = {
+  unlockRocket: 'unlockRocket',
+  rocketDamage: 'rocketDamage',
+  rocketRadius: 'rocketRadius',
+  rocketCostReduction: 'rocketCostReduction',
+} as const
+
 const unlockUpgrade: UpgradeDefinition = {
-  id: UpgradeId.unlockRocket,
+  id: ROCKET_UPGRADE_IDS.unlockRocket,
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.rocket,
   label: 'Unlock Rocket',
@@ -26,7 +33,7 @@ const unlockUpgrade: UpgradeDefinition = {
 }
 
 const damageUpgrade: UpgradeDefinition = {
-  id: UpgradeId.rocketDamage,
+  id: ROCKET_UPGRADE_IDS.rocketDamage,
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.rocket,
   label: 'Damage',
@@ -41,7 +48,7 @@ const damageUpgrade: UpgradeDefinition = {
 }
 
 const radiusUpgrade: UpgradeDefinition = {
-  id: UpgradeId.rocketRadius,
+  id: ROCKET_UPGRADE_IDS.rocketRadius,
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.rocket,
   label: 'Blast Radius',
@@ -54,7 +61,7 @@ const radiusUpgrade: UpgradeDefinition = {
 }
 
 const costUpgrade: UpgradeDefinition = {
-  id: UpgradeId.rocketCostReduction,
+  id: ROCKET_UPGRADE_IDS.rocketCostReduction,
   category: UpgradeCategory.weapons,
   weapon: AbilityKind.rocket,
   label: 'Efficiency',
@@ -207,7 +214,7 @@ export const rocket: AbilityDefinition = {
     createRocketEffect(ship.pos, pos, ability.damage, ability.aoeRadius, ROCKET.speed),
   ],
   applyUpgrades: (_ability, upgrades) => ({
-    unlocked: upgrades[UpgradeId.unlockRocket].currentTier > 0,
+    unlocked: upgrades[ROCKET_UPGRADE_IDS.unlockRocket].currentTier > 0,
     damage: applyTierSum(ROCKET.damage, upgrades, damageUpgrade),
     aoeRadius: applyTierSum(ROCKET.aoeRadius, upgrades, radiusUpgrade),
     powerCost: applyCostReduction(ROCKET.powerCost, upgrades, costUpgrade),

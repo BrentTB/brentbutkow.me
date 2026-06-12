@@ -1,5 +1,6 @@
 import { ShipWeaponKind } from '../types'
-import type { UpgradeDefinition, UpgradeId } from '../types'
+import type { UpgradeDefinition } from '../types'
+import type { UpgradeId } from '../upgrade-ids'
 
 import { bullet } from './bullet'
 import { laser } from './laser'

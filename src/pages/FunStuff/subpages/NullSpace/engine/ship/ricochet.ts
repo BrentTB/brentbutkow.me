@@ -1,12 +1,18 @@
 import { applyTierSum } from '../abilities/ability-definition'
-import { ShipWeaponKind, UpgradeCategory, UpgradeId } from '../types'
+import { ShipWeaponKind, UpgradeCategory } from '../types'
 import type { UpgradeDefinition } from '../types'
 import { IconName } from '../../icon-names'
 import { RICOCHET } from './ship-weapon-data'
 import { buildShipProjectile, type ShipWeaponDefinition } from './ship-weapon-definition'
 
+export const RICOCHET_UPGRADE_IDS = {
+  unlockRicochet: 'unlockRicochet',
+  ricochetDamage: 'ricochetDamage',
+  ricochetBounces: 'ricochetBounces',
+} as const
+
 const unlockUpgrade: UpgradeDefinition = {
-  id: UpgradeId.unlockRicochet,
+  id: RICOCHET_UPGRADE_IDS.unlockRicochet,
   category: UpgradeCategory.loadout,
   weapon: ShipWeaponKind.ricochet,
   label: 'Unlock Ricochet',
@@ -15,7 +21,7 @@ const unlockUpgrade: UpgradeDefinition = {
 }
 
 const damageUpgrade: UpgradeDefinition = {
-  id: UpgradeId.ricochetDamage,
+  id: RICOCHET_UPGRADE_IDS.ricochetDamage,
   category: UpgradeCategory.loadout,
   weapon: ShipWeaponKind.ricochet,
   label: 'Damage',
@@ -28,7 +34,7 @@ const damageUpgrade: UpgradeDefinition = {
 }
 
 const bouncesUpgrade: UpgradeDefinition = {
-  id: UpgradeId.ricochetBounces,
+  id: RICOCHET_UPGRADE_IDS.ricochetBounces,
   category: UpgradeCategory.loadout,
   weapon: ShipWeaponKind.ricochet,
   label: 'Bounces',

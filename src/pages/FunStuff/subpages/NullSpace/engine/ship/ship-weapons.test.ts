@@ -7,7 +7,8 @@ import {
   getShipWeaponForUnlockUpgrade,
 } from './index'
 import { createInitialUpgrades } from '../upgrades'
-import { ShipWeaponKind, UpgradeId } from '../types'
+import { ShipWeaponKind } from '../types'
+import { UpgradeId } from '../upgrade-ids'
 
 // Registry integrity — adding a new weapon kind to types.ts without wiring it
 // here would silently leave the lookup tables empty for that kind. These tests

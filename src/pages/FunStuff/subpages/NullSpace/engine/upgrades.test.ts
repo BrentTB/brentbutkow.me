@@ -20,7 +20,8 @@ import {
 } from './upgrades'
 import { createAbilities, createShip } from './entities/entity-creator'
 import { BASE_KIND_OF, WEAPON_UNLOCK_UPGRADE } from './abilities'
-import { AbilityKind, ShipKind, UpgradeCategory, UpgradeId } from './types'
+import { AbilityKind, ShipKind, UpgradeCategory } from './types'
+import { UpgradeId } from './upgrade-ids'
 
 describe('createInitialUpgrades', () => {
   it('all tiers start at 0', () => {

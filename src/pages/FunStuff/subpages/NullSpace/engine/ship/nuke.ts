@@ -1,7 +1,7 @@
 import { applyTierSum } from '../abilities/ability-definition'
 import { damageEnemiesInRadius } from '../math/aoe'
 import { uid } from '../entities/entity-creator'
-import { EffectKind, ShipWeaponKind, UpgradeCategory, UpgradeId } from '../types'
+import { EffectKind, ShipWeaponKind, UpgradeCategory } from '../types'
 import type { NuclearWasteEffect, UpgradeDefinition, Vec2 } from '../types'
 import type { Camera } from '../../renderer/camera'
 import { worldToScreen } from '../../renderer/camera'
@@ -15,8 +15,15 @@ import { IconName } from '../../icon-names'
 import { NUKE } from './ship-weapon-data'
 import { buildShipProjectile, type ShipWeaponDefinition } from './ship-weapon-definition'
 
+export const NUKE_UPGRADE_IDS = {
+  unlockNuke: 'unlockNuke',
+  nukeDamage: 'nukeDamage',
+  nukeBlastRadius: 'nukeBlastRadius',
+  nukeWasteDuration: 'nukeWasteDuration',
+} as const
+
 const unlockUpgrade: UpgradeDefinition = {
-  id: UpgradeId.unlockNuke,
+  id: NUKE_UPGRADE_IDS.unlockNuke,
   category: UpgradeCategory.loadout,
   weapon: ShipWeaponKind.nuke,
   label: 'Unlock Nuke',
@@ -25,7 +32,7 @@ const unlockUpgrade: UpgradeDefinition = {
 }
 
 const damageUpgrade: UpgradeDefinition = {
-  id: UpgradeId.nukeDamage,
+  id: NUKE_UPGRADE_IDS.nukeDamage,
   category: UpgradeCategory.loadout,
   weapon: ShipWeaponKind.nuke,
   label: 'Damage',
@@ -38,7 +45,7 @@ const damageUpgrade: UpgradeDefinition = {
 }
 
 const radiusUpgrade: UpgradeDefinition = {
-  id: UpgradeId.nukeBlastRadius,
+  id: NUKE_UPGRADE_IDS.nukeBlastRadius,
   category: UpgradeCategory.loadout,
   weapon: ShipWeaponKind.nuke,
   label: 'Blast Radius',
@@ -50,7 +57,7 @@ const radiusUpgrade: UpgradeDefinition = {
 }
 
 const wasteDurationUpgrade: UpgradeDefinition = {
-  id: UpgradeId.nukeWasteDuration,
+  id: NUKE_UPGRADE_IDS.nukeWasteDuration,
   category: UpgradeCategory.loadout,
   weapon: ShipWeaponKind.nuke,
   label: 'Fallout',
