@@ -71,8 +71,8 @@ export const SHIELD = {
 
 // Force Field (Shield ultimate). Grows from the base shield radius to
 // `maxRadiusScale`× over `growDuration` then vanishes. Bumps shove enemies out
-// at `knockback` (≈5× a base shield bounce — enemy speeds are 40–100) and burn
-// them for `bumpDamage`/sec of contact, raised by the Overload upgrade.
+// at `knockback` (≈5× a base shield bounce — enemy speeds are 40–100), raised by
+// the Repulsor upgrade, and burn them for a flat `bumpDamage`/sec of contact.
 export const FORCE_FIELD = {
   costMultiplier: 2,
   maxRadiusScale: 2,
@@ -119,14 +119,16 @@ export const HELPER = {
 } as const
 
 // Helper Factory (Helper ultimate). A tanky ally (`hpMultiplier`× a helper's HP)
-// that deals no damage but spawns a fresh helper every `spawnInterval` seconds.
-// Its HP still decays, so its lifetime (and total spawns) is bounded. The
-// Assembly Line upgrade shortens the interval, floored at `minSpawnInterval`.
+// that deals no damage but spawns a fresh helper every `spawnInterval` seconds —
+// the first after just `firstSpawnDelay` so it gets to work right away. Its HP
+// still decays, so its lifetime (and total spawns) is bounded. The Assembly Line
+// upgrade shortens the interval, floored at `minSpawnInterval`.
 export const HELPER_FACTORY = {
   costMultiplier: 3,
   hpMultiplier: 6,
   spawnInterval: 4,
   minSpawnInterval: 1.5,
+  firstSpawnDelay: 1,
 } as const
 
 // Toggle until we decide: 'pull' draws enemies toward the cursor, 'push'

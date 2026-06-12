@@ -39,6 +39,8 @@ describe('helperFactory', () => {
     expect(ally.damage).toBe(0)
     expect(ally.maxHp).toBe(HELPER.hp * HELPER_FACTORY.hpMultiplier)
     expect(ally.spawnInterval).toBe(HELPER_FACTORY.spawnInterval)
+    // First spawn fires after the short delay, not a full interval.
+    expect(ally.spawnTimer).toBe(HELPER_FACTORY.firstSpawnDelay)
     expect(ally.radius).toBeGreaterThan(HELPER.radius)
   })
 
@@ -53,11 +55,11 @@ describe('helperFactory', () => {
     )
   })
 
-  it('builds a helper once the spawn interval elapses, and never shoots', () => {
+  it('builds its first helper shortly after spawning, and never shoots', () => {
     const factory = helperFactory.allyFactory!({ x: 0, y: 0 }, makeAbility())
-    // Big step pushes the spawn timer past 0 — a fresh helper appears, and no
-    // projectile is fired even with the factory present.
-    const dt = HELPER_FACTORY.spawnInterval + 0.1
+    // Just past the first-spawn delay a fresh helper already appears (no waiting
+    // a full interval), and no projectile is fired even with the factory present.
+    const dt = HELPER_FACTORY.firstSpawnDelay + 0.1
     const result = updateAllies([factory], [], ship, [], dt)
     expect(result.projectiles.length).toBe(0)
     const spawnedHelpers = result.allies.filter((a) => a.spawnInterval === undefined)

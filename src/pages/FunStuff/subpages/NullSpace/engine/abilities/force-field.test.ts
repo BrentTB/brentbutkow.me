@@ -38,7 +38,8 @@ describe('forceField', () => {
       { x: 0, y: 0 },
       SHIELD.radius,
       FORCE_FIELD.growDuration,
-      FORCE_FIELD.bumpDamage
+      FORCE_FIELD.bumpDamage,
+      FORCE_FIELD.knockback
     )
     expect(getForceFieldCurrentRadius({ ...field, elapsed: 0 })).toBe(SHIELD.radius)
     expect(getForceFieldCurrentRadius({ ...field, elapsed: FORCE_FIELD.growDuration })).toBeCloseTo(
@@ -56,7 +57,8 @@ describe('forceField', () => {
       { x: 0, y: 0 },
       SHIELD.radius,
       FORCE_FIELD.growDuration,
-      FORCE_FIELD.bumpDamage
+      FORCE_FIELD.bumpDamage,
+      FORCE_FIELD.knockback
     )
     const enemy = { ...createEnemy(EnemyKind.drone, { x: 10, y: 0 }), vel: { x: -100, y: 0 } }
     const res = applyShieldConstraints([field], [enemy], DT)
@@ -75,7 +77,8 @@ describe('forceField', () => {
       { x: 0, y: 0 },
       SHIELD.radius,
       FORCE_FIELD.growDuration,
-      FORCE_FIELD.bumpDamage
+      FORCE_FIELD.bumpDamage,
+      FORCE_FIELD.knockback
     )
     const enemy = {
       ...createEnemy(EnemyKind.drone, { x: 10, y: 0 }),
@@ -89,12 +92,12 @@ describe('forceField', () => {
     expect(res.scoreGained).toBe(enemy.scoreValue)
   })
 
-  it('the Overload upgrade raises contact damage', () => {
+  it('the Repulsor upgrade raises knockback', () => {
     const upgrades = createInitialUpgrades()
-    expect(forceField.applyUpgrades!(makeAbility(), upgrades).damage).toBe(FORCE_FIELD.bumpDamage)
-    upgrades[UpgradeId.forceFieldDamage] = { currentTier: 1 }
+    expect(forceField.applyUpgrades!(makeAbility(), upgrades).force).toBe(FORCE_FIELD.knockback)
+    upgrades[UpgradeId.forceFieldKnockback] = { currentTier: 1 }
     const patch = forceField.applyUpgrades!(makeAbility(), upgrades)
-    expect(patch.damage).toBeGreaterThan(FORCE_FIELD.bumpDamage)
+    expect(patch.force).toBeGreaterThan(FORCE_FIELD.knockback)
   })
 
   // Regression: the base shield must keep reflecting and dealing zero damage —

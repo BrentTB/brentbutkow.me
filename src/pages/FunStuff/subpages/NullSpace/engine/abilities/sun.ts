@@ -176,7 +176,7 @@ export const sun: AbilityDefinition = {
   ultimate: {
     kind: AbilityKind.supernova,
     label: 'Supernova',
-    description: 'The sun collapses, then detonates — a brief blast for 5× damage.',
+    description: 'The sun collapsed… and then the sky split open.',
     cost: { stardust: 450, spaceMetal: 16 },
   },
 }

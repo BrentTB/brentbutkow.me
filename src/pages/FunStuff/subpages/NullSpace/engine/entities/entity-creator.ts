@@ -5,7 +5,7 @@ import {
   ENEMY_STATS,
   SLINGSHOT,
 } from '../../data'
-import { HELPER } from '../abilities/ability-data'
+import { HELPER, HELPER_FACTORY } from '../abilities/ability-data'
 import { DeathBehavior, EnemyKind, MovementBehavior, ShipKind, ShipWeaponKind } from '../types'
 import type { Ship, Enemy, Projectile, Vec2, Ally, Particle } from '../types'
 import { rng } from '../math/random'
@@ -166,13 +166,14 @@ export function createAlly(
 
 // A Helper Factory ally (Helper ultimate): bigger, tankier, deals no damage —
 // `spawnInterval`/`spawnTimer` mark it as a factory so updateAllies spawns
-// helpers from it on a timer instead of shooting.
+// helpers from it on a timer instead of shooting. The first spawn fires after a
+// short `firstSpawnDelay` so the factory gets to work almost immediately.
 export function createHelperFactory(pos: Vec2, maxHp: number, spawnInterval: number): Ally {
   return {
     ...createAlly(pos, maxHp, 0),
     radius: HELPER.radius * 2,
     spawnInterval,
-    spawnTimer: spawnInterval,
+    spawnTimer: Math.min(HELPER_FACTORY.firstSpawnDelay, spawnInterval),
   }
 }
 

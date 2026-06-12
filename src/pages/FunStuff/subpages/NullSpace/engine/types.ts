@@ -221,8 +221,8 @@ export type Ability = {
   // player bump this — allies no longer expire on a timer; they take HP decay
   // over time and die when hp ≤ 0, so maxHp directly controls survivability.
   maxHp?: number
-  // Telekinesis-only: peak force per second applied to enemies inside the
-  // plateau. Upgradable so the player can shove enemies harder over time.
+  // Telekinesis: peak force per second applied to enemies inside the plateau.
+  // Force Field: the outward knockback speed of a bump. Upgradable for both.
   force?: number
   // Multi-projectile abilities (Comet Shower): how many strikes a single
   // activation spawns. Upgradable. Absent for single-strike abilities.

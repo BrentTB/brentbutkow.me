@@ -280,8 +280,8 @@ export const CHANGELOG: ChangelogEntry[] = [
       features: [
         'Three more ultimates, each bought with the Singularity Shard economy and replacing its base weapon in the hotbar.',
         'Helper → Helper Factory: a tanky factory that deals no damage but builds a steady stream of helpers on a timer. Upgrade Assembly Line to build them faster.',
-        'Sun → Supernova: the sun slowly collapses and shifts blue, then detonates in a brief blast for 5× damage. Upgrade Critical Mass to widen the explosion.',
-        'Shield → Force Field: a dome that grows to twice its size then vanishes, flinging enemies far and burning them on contact. Upgrade Overload for more contact damage.',
+        'Sun → Supernova: the sun holds, then collapses and shifts blue before detonating in a brief, devastating blast. Upgrade Critical Mass to widen the explosion.',
+        'Shield → Force Field: a dome that grows to twice its size then vanishes, flinging enemies away on contact and burning them. Upgrade Repulsor to throw them harder.',
       ],
     },
   },

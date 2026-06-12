@@ -302,7 +302,7 @@ export const shield: AbilityDefinition = {
   ultimate: {
     kind: AbilityKind.forceField,
     label: 'Force Field',
-    description: 'A growing dome that flings enemies far and burns them on contact.',
+    description: 'Space bends, then snaps - and nothing stays close for long.',
     cost: { stardust: 350, spaceMetal: 14 },
   },
 }

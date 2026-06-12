@@ -20,19 +20,19 @@ import { passThroughTick } from '../systems/effect-definition'
 import { IconName } from '../../icon-names'
 
 export const FORCE_FIELD_UPGRADE_IDS = {
-  forceFieldDamage: 'forceFieldDamage',
+  forceFieldKnockback: 'forceFieldKnockback',
 } as const
 
 const upgrade = makeAbilityUpgrade(AbilityKind.forceField)
 
-const overloadUpgrade = upgrade({
-  id: FORCE_FIELD_UPGRADE_IDS.forceFieldDamage,
-  label: 'Overload',
-  description: 'Force field burns harder on contact',
+const repulsorUpgrade = upgrade({
+  id: FORCE_FIELD_UPGRADE_IDS.forceFieldKnockback,
+  label: 'Repulsor',
+  description: 'Force field hurls enemies away harder',
   tiers: [
-    { cost: 70, value: 15 },
-    { cost: 200, value: 20 },
-    { cost: 460, value: 30 },
+    { cost: 70, value: 250 },
+    { cost: 200, value: 300 },
+    { cost: 460, value: 350 },
   ],
 })
 
@@ -40,7 +40,8 @@ export function createForceFieldEffect(
   pos: Vec2,
   startRadius: number,
   growDuration: number,
-  bumpDamage: number
+  bumpDamage: number,
+  knockback: number
 ): ForceFieldEffect {
   return {
     id: uid(),
@@ -52,7 +53,7 @@ export function createForceFieldEffect(
     startRadius,
     maxRadius: startRadius * FORCE_FIELD.maxRadiusScale,
     growDuration,
-    knockback: FORCE_FIELD.knockback,
+    knockback,
     bumpDamage,
     grandfatheredEnemyIds: null,
   }
@@ -169,21 +170,24 @@ export const forceField: AbilityDefinition = {
     kind: AbilityKind.forceField,
     cooldown: SHIELD.cooldown,
     powerCost: SHIELD.powerCost * FORCE_FIELD.costMultiplier,
+    // Flat contact burn; `force` carries the (upgradable) knockback.
     damage: FORCE_FIELD.bumpDamage,
     aoeRadius: SHIELD.radius,
     duration: FORCE_FIELD.growDuration,
+    force: FORCE_FIELD.knockback,
   }),
   effectFactory: (ability, pos) => [
     createForceFieldEffect(
       pos,
       ability.aoeRadius,
       ability.duration ?? FORCE_FIELD.growDuration,
-      ability.damage
+      ability.damage,
+      ability.force ?? FORCE_FIELD.knockback
     ),
   ],
   applyUpgrades: composeUltimateUpgrades(shield, (basePatch, upgrades) => ({
     powerCost: (basePatch.powerCost ?? SHIELD.powerCost) * FORCE_FIELD.costMultiplier,
-    damage: applyTierSum(FORCE_FIELD.bumpDamage, upgrades, overloadUpgrade),
+    force: applyTierSum(FORCE_FIELD.knockback, upgrades, repulsorUpgrade),
   })),
-  modifierUpgrades: [overloadUpgrade],
+  modifierUpgrades: [repulsorUpgrade],
 }
