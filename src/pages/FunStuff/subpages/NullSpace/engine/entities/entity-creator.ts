@@ -164,6 +164,18 @@ export function createAlly(
   }
 }
 
+// A Helper Factory ally (Helper ultimate): bigger, tankier, deals no damage —
+// `spawnInterval`/`spawnTimer` mark it as a factory so updateAllies spawns
+// helpers from it on a timer instead of shooting.
+export function createHelperFactory(pos: Vec2, maxHp: number, spawnInterval: number): Ally {
+  return {
+    ...createAlly(pos, maxHp, 0),
+    radius: HELPER.radius * 2,
+    spawnInterval,
+    spawnTimer: spawnInterval,
+  }
+}
+
 // Ability creation lives in engine/abilities/ to keep all per-ability logic in
 // one folder. Re-exported here so existing callers don't break.
 export { createAbilities } from '../abilities'

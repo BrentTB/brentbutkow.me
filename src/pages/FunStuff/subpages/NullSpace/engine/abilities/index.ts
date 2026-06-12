@@ -13,6 +13,9 @@ import { telekinesis } from './telekinesis'
 import { solarFlare } from './solar-flare'
 import { cometShower } from './comet-shower'
 import { meteorShower } from './meteor-shower'
+import { helperFactory } from './helper-factory'
+import { supernova } from './supernova'
+import { forceField } from './force-field'
 import type { UpgradeId } from '../upgrade-ids'
 import type { AbilityDefinition, UltimateDescriptor } from './ability-definition'
 import type { IconName } from '../../icon-names'
@@ -45,6 +48,9 @@ export const ABILITY_DEFINITIONS: Record<AbilityKind, AbilityDefinition> = {
   [AbilityKind.solarFlare]: solarFlare,
   [AbilityKind.cometShower]: cometShower,
   [AbilityKind.meteorShower]: meteorShower,
+  [AbilityKind.helperFactory]: helperFactory,
+  [AbilityKind.supernova]: supernova,
+  [AbilityKind.forceField]: forceField,
 }
 
 export const ABILITY_LIST: AbilityDefinition[] = Object.values(ABILITY_DEFINITIONS)

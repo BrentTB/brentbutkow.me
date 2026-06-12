@@ -178,10 +178,12 @@ src/pages/FunStuff/subpages/NullSpace/
   data.ts                                    GAME_NAME, WORLD_SIZE, SHIELD_COOLDOWN, SLINGSHOT, POWER_DEFAULTS, WEAPON_ORDER, ENEMY_STATS, CURRENCY_DROPS, CURRENCY_NAME, POWER_ORB, SINGULARITY_SHARD_NAME, SHARDS_PER_BOSS, SINGULARITY_SHARD, SPACE_METAL, WAVES_PER_LEVEL, BOSS_LEVEL_INTERVAL, BOSS_WAVE_ENEMY_MULTIPLIER, SPAWN_DELAY, SPAWN_DISTANCE, SWARM_SPAWN_SPREAD, PROJECTILE_SPEED, PROJECTILE_LIFETIME, PROJECTILE_RADIUS, PARTICLE_DEFAULTS, ChangelogEntry, CHANGELOG, GAME_VERSION
 
 src/pages/FunStuff/subpages/NullSpace/engine/abilities/
-  ability-data.ts                            METEORITE_STRIKE, METEOR_STRIKE, COMET_SHOWER, METEOR_SHOWER, BLACK_HOLE, ROCKET, SHIELD, SUN, HELPER, TELEKINESIS, SOLAR_FLARE
+  ability-data.ts                            METEORITE_STRIKE, METEOR_STRIKE, COMET_SHOWER, METEOR_SHOWER, BLACK_HOLE, ROCKET, SHIELD, FORCE_FIELD, SUN, SUPERNOVA, HELPER, HELPER_FACTORY, TELEKINESIS, SOLAR_FLARE
   ability-definition.ts                      AbilityActivation, UltimateCost, UltimateContext, UltimatePrerequisite, UltimateDescriptor, AbilityDefinition, composeUltimateUpgrades, makeAbilityUpgrade, applyTierSum, applyCostReduction
   black-hole.ts                              BLACK_HOLE_UPGRADE_IDS, createBlackHoleEffect, blackHoleEffect, blackHole
   comet-shower.ts                            COMET_SHOWER_UPGRADE_IDS, cometShower
+  force-field.ts                             FORCE_FIELD_UPGRADE_IDS, createForceFieldEffect, getForceFieldCurrentRadius, forceFieldEffect, forceField
+  helper-factory.ts                          HELPER_FACTORY_UPGRADE_IDS, helperFactory
   helper.ts                                  HELPER_UPGRADE_IDS, helper
   hold-runtime.ts                            HoldRenderFn, INACTIVE_HOLD_STATE, HoldBag, HoldAbilityConfig, runHoldAbility
   index.ts                                   ABILITY_DEFINITIONS, ABILITY_LIST, ABILITY_META, HOLD_ABILITIES, EFFECT_FACTORY, ALLY_FACTORY, WEAPON_UNLOCK_UPGRADE, ULTIMATE_DEFINITIONS, ULTIMATE_KIND_OF, BASE_KIND_OF, ABILITY_UPGRADE_DEFINITIONS, createAbilities, applyTierSum, applyCostReduction, tryUseAbility, updateAbilityCooldowns, resolveAbilityInput, type AbilityResult
@@ -191,9 +193,10 @@ src/pages/FunStuff/subpages/NullSpace/engine/abilities/
   meteorite.ts                               METEORITE_UPGRADE_IDS, meteorite
   resolution.ts                              AbilityResult, tryUseAbility, updateAbilityCooldowns, resolveAbilityInput
   rocket.ts                                  ROCKET_UPGRADE_IDS, createRocketEffect, rocketEffect, rocket
-  shield.ts                                  SHIELD_UPGRADE_IDS, createShieldEffect, applyShieldConstraints, shieldEffect, shield
+  shield.ts                                  SHIELD_UPGRADE_IDS, createShieldEffect, ShieldConstraintResult, applyShieldConstraints, shieldEffect, shield
   solar-flare.ts                             SOLAR_FLARE_UPGRADE_IDS, solarFlare
   sun.ts                                     SUN_UPGRADE_IDS, createSunEffect, sunEffect, sun
+  supernova.ts                               SUPERNOVA_UPGRADE_IDS, createSupernovaEffect, getSupernovaState, supernovaEffect, supernova
   telekinesis.ts                             TELEKINESIS_UPGRADE_IDS, telekinesis
 
 src/pages/FunStuff/subpages/NullSpace/engine/bosses/
@@ -212,7 +215,7 @@ src/pages/FunStuff/subpages/NullSpace/engine/
 src/pages/FunStuff/subpages/NullSpace/engine/entities/
   ally.ts                                    updateAllies
   enemy.ts                                   findNearestTarget, updateEnemyMovement, updateEnemyShooting
-  entity-creator.ts                          uid, createShip, createEnemy, createProjectile, createAlly, createParticle, spawnExplosionParticles, updateParticles, createAbilities
+  entity-creator.ts                          uid, createShip, createEnemy, createProjectile, createAlly, createHelperFactory, createParticle, spawnExplosionParticles, updateParticles, createAbilities
   ship.ts                                    applySlingshot, tickSlingHeat, tickFling, applyDamageToShip, tickEscapeMode, updateShipPatrol, updateShipAttack
 
 src/pages/FunStuff/subpages/NullSpace/engine/
@@ -252,7 +255,7 @@ src/pages/FunStuff/subpages/NullSpace/engine/systems/
   spawner.ts                                 spawnPositionNearShip, processSpawnQueue
 
 src/pages/FunStuff/subpages/NullSpace/engine/
-  types.ts                                   Vec2, Entity, ShipKind, ShipWeaponKind, EscapeModePhase, EscapeModeState, Ship, EnemyKind, MovementBehavior, DeathBehavior, Enemy, ProjectileOwner, Projectile, AbilityKind, Ability, EffectKind, EffectBase, MeteorStrikeEffect, BlackHoleEffect, RocketEffect, ShieldEffect, SunEffect, NuclearWasteEffect, ActiveEffect, CollectibleKind, Collectible, Ally, Particle, GamePhase, UpgradeCategory, UpgradeTier, UpgradeDefinition, PlayerUpgrades, BossSelection, GameState, HoldRuntimeState, PlayerInput
+  types.ts                                   Vec2, Entity, ShipKind, ShipWeaponKind, EscapeModePhase, EscapeModeState, Ship, EnemyKind, MovementBehavior, DeathBehavior, Enemy, ProjectileOwner, Projectile, AbilityKind, Ability, EffectKind, EffectBase, MeteorStrikeEffect, BlackHoleEffect, RocketEffect, ShieldEffect, SunEffect, NuclearWasteEffect, SupernovaEffect, ForceFieldEffect, ActiveEffect, CollectibleKind, Collectible, Ally, Particle, GamePhase, UpgradeCategory, UpgradeTier, UpgradeDefinition, PlayerUpgrades, BossSelection, GameState, HoldRuntimeState, PlayerInput
   ultimates.ts                               COEXIST_ULTIMATES, ultimateShardCost, canPurchaseUltimate, purchaseUltimate, isBaseReplacedByUltimate
   upgrade-ids.ts                             UpgradeId
   upgrades.ts                                SHIP_AND_POWER_UPGRADE_IDS, UNLOCK_UPGRADE_IDS, SLINGSHOT_UPGRADE_IDS, UPGRADE_DEFINITIONS, getWeaponModifierUpgrades, isWeaponFullyMaxed, isShipWeaponFullyMaxed, UPGRADE_CATEGORY_LABELS, createInitialUpgrades, canPurchaseUpgrade, purchaseUpgrade, applyUpgradesToAbilities, syncUltimateAbilities, applyUpgradesToShip, applyUpgradesToPowerRegen, getStardustMultiplier, getSpaceMetalDropMultiplier, getPowerOrbMultiplier, getLevel, isUpgradeWave

@@ -173,4 +173,10 @@ export const sun: AbilityDefinition = {
   }),
   unlockUpgrade,
   modifierUpgrades: [damageUpgrade, durationUpgrade, radiusUpgrade],
+  ultimate: {
+    kind: AbilityKind.supernova,
+    label: 'Supernova',
+    description: 'The sun collapses, then detonates — a brief blast for 5× damage.',
+    cost: { stardust: 450, spaceMetal: 16 },
+  },
 }

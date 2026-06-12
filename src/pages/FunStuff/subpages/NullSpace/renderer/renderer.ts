@@ -518,13 +518,31 @@ function renderAllies(
     const screen = worldToScreen(ally.pos, camera)
     if (!isWithinView(screen, camera, 20)) continue
     const size = getSpriteSize(SpriteKey.ally)
+    // The Helper Factory (spawnInterval set) renders larger with a violet ring
+    // so it reads as the ultimate that builds helpers.
+    const isFactory = ally.spawnInterval !== undefined
+    const scale = isFactory ? 2 : 1
     // Rotate so the triangle tip faces the direction of movement (or up if idle)
     const angle =
       ally.vel.x !== 0 || ally.vel.y !== 0 ? Math.atan2(ally.vel.y, ally.vel.x) + Math.PI / 2 : 0
     ctx.save()
     ctx.translate(screen.x, screen.y)
+    if (isFactory) {
+      const pulse = 0.7 + Math.sin(ally.elapsed * 4) * 0.15
+      ctx.strokeStyle = `rgba(200, 160, 255, ${pulse})`
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.arc(0, 0, (size.w / 2) * scale + 4, 0, Math.PI * 2)
+      ctx.stroke()
+    }
     ctx.rotate(angle)
-    ctx.drawImage(sprites.ally, -size.w / 2, -size.h / 2)
+    ctx.drawImage(
+      sprites.ally,
+      (-size.w / 2) * scale,
+      (-size.h / 2) * scale,
+      size.w * scale,
+      size.h * scale
+    )
     ctx.restore()
 
     // HP bar — below the sprite, mirrors the ship's bar style but smaller
@@ -533,7 +551,7 @@ function renderAllies(
       const barWidth = 18
       const barHeight = 3
       const barX = screen.x - barWidth / 2
-      const barY = screen.y + size.h / 2 + 8
+      const barY = screen.y + (size.h / 2) * scale + 8
       ctx.fillStyle = 'rgba(0, 0, 0, 0.6)'
       ctx.fillRect(barX, barY, barWidth, barHeight)
       ctx.fillStyle = hpPct > 0.5 ? '#44dd44' : hpPct > 0.25 ? '#dddd44' : '#dd4444'

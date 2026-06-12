@@ -270,7 +270,9 @@ describe('updateActiveEffects', () => {
 
       // Now the enemy moves back inside — apply the shield constraint.
       const reentry = { ...inside, pos: { x: 30, y: 0 } }
-      const [pushed] = applyShieldConstraints(r2.activeEffects, [reentry])
+      const {
+        enemies: [pushed],
+      } = applyShieldConstraints(r2.activeEffects, [reentry], 0.016)
       // Snapped to the edge (radius 100 in +x direction).
       expect(pushed.pos.x).toBe(100)
     })
@@ -284,7 +286,9 @@ describe('updateActiveEffects', () => {
 
       // Now a DIFFERENT drone (B) walks into the shield (different ID, same kind).
       const droneB = createEnemy(EnemyKind.drone, { x: 40, y: 0 })
-      const [aAfter, bAfter] = applyShieldConstraints(r1.activeEffects, [droneA, droneB])
+      const {
+        enemies: [aAfter, bAfter],
+      } = applyShieldConstraints(r1.activeEffects, [droneA, droneB], 0.016)
       // A stays put (grandfathered); B gets pushed.
       expect(aAfter.pos).toEqual({ x: 30, y: 0 })
       expect(bAfter.pos.x).toBe(100)
@@ -410,7 +414,7 @@ describe('updateActiveEffects', () => {
 describe('applyShieldConstraints', () => {
   it('no-op when there are no shields', () => {
     const enemy = createEnemy(EnemyKind.drone, { x: 100, y: 100 })
-    expect(applyShieldConstraints([], [enemy])).toEqual([enemy])
+    expect(applyShieldConstraints([], [enemy], 0.016).enemies).toEqual([enemy])
   })
 
   it('pushes non-grandfathered enemies inside a shield to the edge', () => {
@@ -419,7 +423,9 @@ describe('applyShieldConstraints', () => {
       grandfatheredEnemyIds: [], // empty — no one is grandfathered
     }
     const inside = createEnemy(EnemyKind.tank, { x: 30, y: 0 })
-    const [pushed] = applyShieldConstraints([shield], [inside])
+    const {
+      enemies: [pushed],
+    } = applyShieldConstraints([shield], [inside], 0.016)
     // Snapped to the shield's right edge (radius=100 in +x direction)
     expect(pushed.pos.x).toBe(100)
     expect(pushed.pos.y).toBe(0)
@@ -431,7 +437,9 @@ describe('applyShieldConstraints', () => {
       grandfatheredEnemyIds: [],
     }
     const outside = createEnemy(EnemyKind.drone, { x: 200, y: 0 })
-    const [unchanged] = applyShieldConstraints([shield], [outside])
+    const {
+      enemies: [unchanged],
+    } = applyShieldConstraints([shield], [outside], 0.016)
     expect(unchanged.pos).toEqual({ x: 200, y: 0 })
   })
 
@@ -441,7 +449,9 @@ describe('applyShieldConstraints', () => {
       ...createShieldEffect({ x: 0, y: 0 }, 100, SHIELD.duration),
       grandfatheredEnemyIds: [inside.id],
     }
-    const [free] = applyShieldConstraints([shield], [inside])
+    const {
+      enemies: [free],
+    } = applyShieldConstraints([shield], [inside], 0.016)
     expect(free.pos).toEqual({ x: 30, y: 0 })
   })
 
@@ -451,7 +461,9 @@ describe('applyShieldConstraints', () => {
     // pushing — the null is just "not yet snapshotted". Anyone inside is
     // treated as not-grandfathered.
     const inside = createEnemy(EnemyKind.tank, { x: 30, y: 0 })
-    const [pushed] = applyShieldConstraints([shield], [inside])
+    const {
+      enemies: [pushed],
+    } = applyShieldConstraints([shield], [inside], 0.016)
     // Since grandfatheredEnemyIds?.includes returns undefined (falsy), the
     // enemy gets pushed.
     expect(pushed.pos.x).toBe(100)
@@ -467,7 +479,9 @@ describe('applyShieldConstraints', () => {
       ...createEnemy(EnemyKind.tank, { x: 90, y: 0 }),
       vel: { x: -50, y: 0 },
     }
-    const [bounced] = applyShieldConstraints([shield], [inbound])
+    const {
+      enemies: [bounced],
+    } = applyShieldConstraints([shield], [inbound], 0.016)
     // Snapped to the edge AND velocity reflected outward.
     expect(bounced.pos.x).toBe(100)
     expect(bounced.vel.x).toBe(50)
@@ -483,7 +497,9 @@ describe('applyShieldConstraints', () => {
       ...createEnemy(EnemyKind.tank, { x: 50, y: 0 }),
       vel: { x: 30, y: 0 },
     }
-    const [unchanged] = applyShieldConstraints([shield], [outbound])
+    const {
+      enemies: [unchanged],
+    } = applyShieldConstraints([shield], [outbound], 0.016)
     expect(unchanged.vel.x).toBe(30)
   })
 
@@ -497,7 +513,9 @@ describe('applyShieldConstraints', () => {
       ...createEnemy(EnemyKind.tank, { x: 90, y: 0 }),
       vel: { x: 0, y: 40 },
     }
-    const [b] = applyShieldConstraints([shield], [tangential])
+    const {
+      enemies: [b],
+    } = applyShieldConstraints([shield], [tangential], 0.016)
     // No inward velocity ⇒ no bounce.
     expect(b.vel).toEqual({ x: 0, y: 40 })
 
@@ -506,7 +524,9 @@ describe('applyShieldConstraints', () => {
       ...createEnemy(EnemyKind.tank, { x: 90, y: 0 }),
       vel: { x: -30, y: 40 },
     }
-    const [d] = applyShieldConstraints([shield], [diagonal])
+    const {
+      enemies: [d],
+    } = applyShieldConstraints([shield], [diagonal], 0.016)
     expect(d.vel.x).toBe(30) // x flipped
     expect(d.vel.y).toBe(40) // y preserved
   })

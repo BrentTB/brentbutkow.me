@@ -9,6 +9,9 @@ import { TELEKINESIS_UPGRADE_IDS } from './abilities/telekinesis'
 import { SOLAR_FLARE_UPGRADE_IDS } from './abilities/solar-flare'
 import { COMET_SHOWER_UPGRADE_IDS } from './abilities/comet-shower'
 import { METEOR_SHOWER_UPGRADE_IDS } from './abilities/meteor-shower'
+import { HELPER_FACTORY_UPGRADE_IDS } from './abilities/helper-factory'
+import { SUPERNOVA_UPGRADE_IDS } from './abilities/supernova'
+import { FORCE_FIELD_UPGRADE_IDS } from './abilities/force-field'
 import { LASER_UPGRADE_IDS } from './ship/laser'
 import { MISSILE_UPGRADE_IDS } from './ship/missile'
 import { RICOCHET_UPGRADE_IDS } from './ship/ricochet'
@@ -32,6 +35,9 @@ export const UpgradeId = {
   ...SOLAR_FLARE_UPGRADE_IDS,
   ...COMET_SHOWER_UPGRADE_IDS,
   ...METEOR_SHOWER_UPGRADE_IDS,
+  ...HELPER_FACTORY_UPGRADE_IDS,
+  ...SUPERNOVA_UPGRADE_IDS,
+  ...FORCE_FIELD_UPGRADE_IDS,
   ...LASER_UPGRADE_IDS,
   ...MISSILE_UPGRADE_IDS,
   ...RICOCHET_UPGRADE_IDS,

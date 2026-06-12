@@ -80,4 +80,10 @@ export const helper: AbilityDefinition = {
   }),
   unlockUpgrade,
   modifierUpgrades: [maxHpUpgrade, damageUpgrade, costUpgrade],
+  ultimate: {
+    kind: AbilityKind.helperFactory,
+    label: 'Helper Factory',
+    description: 'A tanky factory that deals no damage but builds a steady stream of helpers.',
+    cost: { stardust: 300, spaceMetal: 12 },
+  },
 }
