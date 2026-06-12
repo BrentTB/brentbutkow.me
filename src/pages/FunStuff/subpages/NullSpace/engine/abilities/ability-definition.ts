@@ -9,6 +9,7 @@ import type {
   UpgradeDefinition,
   Vec2,
 } from '../types'
+import { UpgradeCategory } from '../types'
 import type { HoldAbilityConfig } from './hold-runtime'
 import type { IconName } from '../../icon-names'
 
@@ -74,6 +75,31 @@ export type AbilityDefinition = {
   // Hold-activation runtime config. Present iff `activation === 'hold'`. Drives
   // the generic hold runner (arm gate, drain, deactivation)
   hold?: HoldAbilityConfig
+}
+
+// Builds an ultimate's applyUpgrades on top of its base ability's. The base's
+// full upgrade patch flows through — a field the base starts upgrading later
+// can't be silently dropped — minus `unlocked`: an ultimate unlocks via
+// ownership (syncUltimateAbilities), never via the base's unlock upgrade.
+// The ultimate's own overrides merge last and may read the base patch.
+export function composeUltimateUpgrades(
+  base: AbilityDefinition,
+  overrides: (basePatch: Partial<Ability>, upgrades: PlayerUpgrades) => Partial<Ability>
+): NonNullable<AbilityDefinition['applyUpgrades']> {
+  return (ability, upgrades) => {
+    const basePatch = { ...base.applyUpgrades?.(ability, upgrades) }
+    delete basePatch.unlocked
+    return { ...basePatch, ...overrides(basePatch, upgrades) }
+  }
+}
+
+// Binds an ability so each of its upgrades declares only id/label/description/
+// tiers — the shared category + weapon fields are injected once per file. Cuts
+// the per-upgrade boilerplate and the copy-paste risk of a stale weapon tag.
+export function makeAbilityUpgrade(
+  weapon: AbilityKind
+): (def: Omit<UpgradeDefinition, 'category' | 'weapon'>) => UpgradeDefinition {
+  return (def) => ({ ...def, category: UpgradeCategory.weapons, weapon })
 }
 
 // Helper: sum the values of the first N tiers of an upgrade onto a base value.

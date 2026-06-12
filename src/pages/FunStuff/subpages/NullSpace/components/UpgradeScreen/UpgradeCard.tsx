@@ -1,4 +1,5 @@
-import type { UpgradeDefinition, UpgradeId } from '../../engine/types'
+import type { UpgradeDefinition } from '../../engine/types'
+import type { UpgradeId } from '../../engine/upgrade-ids'
 import type { GameUIState } from '../../useNullSpace'
 import { BASE_KIND_OF } from '../../engine/abilities'
 import { canPurchaseUpgrade } from '../../engine/upgrades'

@@ -1,15 +1,24 @@
 import { METEOR_SHOWER, METEOR_STRIKE } from './ability-data'
-import { createMeteorEffect } from '../systems/effects'
-import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
-import type { UpgradeDefinition } from '../types'
-import { applyTierSum, type AbilityDefinition } from './ability-definition'
+import { createMeteorEffect } from './meteor-strike'
+import { ringPositions } from '../math/vec'
+import { AbilityKind } from '../types'
+import {
+  makeAbilityUpgrade,
+  applyTierSum,
+  composeUltimateUpgrades,
+  type AbilityDefinition,
+} from './ability-definition'
 import { meteor } from './meteor'
 import { IconName } from '../../icon-names'
 
-const countUpgrade: UpgradeDefinition = {
-  id: UpgradeId.meteorShowerCount,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.meteorShower,
+export const METEOR_SHOWER_UPGRADE_IDS = {
+  meteorShowerCount: 'meteorShowerCount',
+} as const
+
+const upgrade = makeAbilityUpgrade(AbilityKind.meteorShower)
+
+const countUpgrade = upgrade({
+  id: METEOR_SHOWER_UPGRADE_IDS.meteorShowerCount,
   label: 'Meteor Count',
   description: 'Add another meteor to the ring',
   tiers: [
@@ -17,7 +26,7 @@ const countUpgrade: UpgradeDefinition = {
     { cost: 220, value: 1 },
     { cost: 500, value: 1 },
   ],
-}
+})
 
 // First ring meteor sits on a diagonal so the base 4 reproduce NE/SE/SW/NW.
 const RING_START_ANGLE = Math.PI / 4
@@ -42,28 +51,14 @@ export const meteorShower: AbilityDefinition = {
     const ringCount = ability.count ?? METEOR_SHOWER.baseRingCount
     const center = createMeteorEffect(pos, ability.damage, ability.aoeRadius, METEOR_STRIKE.delay)
     const ringDelay = METEOR_STRIKE.delay + METEOR_SHOWER.ringDelay
-    const ring = Array.from({ length: ringCount }, (_, i) => {
-      const angle = RING_START_ANGLE + (i * Math.PI * 2) / ringCount
-      return createMeteorEffect(
-        {
-          x: pos.x + Math.cos(angle) * METEOR_SHOWER.ringRadius,
-          y: pos.y + Math.sin(angle) * METEOR_SHOWER.ringRadius,
-        },
-        ability.damage,
-        ability.aoeRadius,
-        ringDelay
-      )
-    })
+    const ring = ringPositions(pos, METEOR_SHOWER.ringRadius, ringCount, RING_START_ANGLE).map(
+      (ringPos) => createMeteorEffect(ringPos, ability.damage, ability.aoeRadius, ringDelay)
+    )
     return [center, ...ring]
   },
-  applyUpgrades: (ability, upgrades) => {
-    const base = meteor.applyUpgrades?.(ability, upgrades) ?? {}
-    return {
-      damage: base.damage ?? METEOR_STRIKE.damage,
-      aoeRadius: base.aoeRadius ?? METEOR_STRIKE.aoeRadius,
-      powerCost: (base.powerCost ?? METEOR_STRIKE.powerCost) * METEOR_SHOWER.costMultiplier,
-      count: applyTierSum(METEOR_SHOWER.baseRingCount, upgrades, countUpgrade),
-    }
-  },
+  applyUpgrades: composeUltimateUpgrades(meteor, (basePatch, upgrades) => ({
+    powerCost: (basePatch.powerCost ?? METEOR_STRIKE.powerCost) * METEOR_SHOWER.costMultiplier,
+    count: applyTierSum(METEOR_SHOWER.baseRingCount, upgrades, countUpgrade),
+  })),
   modifierUpgrades: [countUpgrade],
 }

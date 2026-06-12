@@ -1,4 +1,36 @@
-import type { BossRuntimeState, Enemy, EnemyKind, Vec2 } from '../types'
+import type { Enemy, EnemyKind, MovementBehavior, Vec2 } from '../types'
+import type { Camera } from '../../renderer/camera'
+import type { DreadnoughtRuntime } from './dreadnought'
+import type { VoidWormRuntime } from './void-worm'
+import type { PhaseShifterRuntime } from './phase-shifter'
+
+// Fields every boss runtime shares. Each boss extends them with its own
+// kind-tagged fields, declared in its own file.
+export type BossRuntimeBase = {
+  phase: number
+  linkedIds: string[]
+  hasSpawned: boolean
+}
+
+// Discriminated union of per-boss runtime state — narrowing on `kind` gives a
+// boss's own fields with no casts. Each variant lives in its boss's file; a
+// new boss adds its variant here (the one central line it needs).
+export type BossRuntimeState = DreadnoughtRuntime | VoidWormRuntime | PhaseShifterRuntime
+
+// Enemy kinds that are bosses, derived from the runtime union.
+export type BossEnemyKind = BossRuntimeState['kind']
+
+// Narrows an enemy's boss runtime to one boss's variant; undefined when the
+// enemy isn't that boss. Hooks invoked by boss-ai always receive their own
+// boss, so they may assert the result with `!`.
+export function getBossRuntime<K extends BossEnemyKind>(
+  boss: Enemy,
+  kind: K
+): Extract<BossRuntimeState, { kind: K }> | undefined {
+  return boss.boss?.kind === kind
+    ? (boss.boss as Extract<BossRuntimeState, { kind: K }>)
+    : undefined
+}
 
 export type SpawnSpec = { kind: EnemyKind; pos: Vec2 }
 // Loot drop spec — position + initial velocity. Caller creates the Collectible.
@@ -22,6 +54,9 @@ export type BossUpdateResult = {
 export type BossDefinition = {
   kind: EnemyKind
   hpBarLabel: string
+  // How the movement system steers this boss (entity-creator reads it at
+  // spawn, so boss movement isn't hard-coded in a central table).
+  movement: MovementBehavior
   initialState: () => BossRuntimeState
   // Called once the tick after the boss spawns (when hasSpawned is false).
   // Returns spawn specs for shield generators / linked entities.
@@ -29,8 +64,15 @@ export type BossDefinition = {
   // Gates projectile damage. Return false to absorb the hit without dealing damage.
   canTakeDamage?: (boss: Enemy, enemies: Enemy[]) => boolean
   // Suppresses the cyan damage-gate bubble the renderer draws while
-  // canTakeDamage is false. The worm hides it — its body IS the shield.
-  hideShieldBubble?: boolean
+  // canTakeDamage is false. The worm always hides it (its body IS the shield);
+  // the Phase Shifter hides it mid-shift (the ghost sprite carries
+  // "untouchable" there).
+  hideShieldBubble?: (boss: Enemy) => boolean
+  // Alpha the boss sprite is drawn with — e.g. the Phase Shifter's 0.35 ghost
+  // mid-shift. Absent → fully opaque.
+  spriteAlpha?: (boss: Enemy) => number
+  // Boss-specific world-layer drawing beneath entities (telegraphs, auras).
+  renderBack?: (ctx: CanvasRenderingContext2D, boss: Enemy, camera: Camera) => void
   // Computes position + facing (vel sets sprite rotation) for the boss's alive
   // linked entities each tick. `linked` arrives in linkedIds order (the worm
   // chain depends on it). The Dreadnought pins its generator ring here; the
@@ -50,4 +92,9 @@ export type BossDefinition = {
 export function hasAliveLinked(boss: Enemy, enemies: Enemy[]): boolean {
   if (!boss.boss) return false
   return boss.boss.linkedIds.some((id) => enemies.some((e) => e.id === id && e.hp > 0))
+}
+
+// The shared two-phase pattern: phase 1 above half HP, phase 2 at or below.
+export function bossPhase(boss: Enemy): number {
+  return boss.hp <= boss.maxHp * 0.5 ? 2 : 1
 }

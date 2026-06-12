@@ -1,23 +1,30 @@
 import { applyTierSum } from '../abilities/ability-definition'
-import { ShipWeaponKind, UpgradeCategory, UpgradeId } from '../types'
-import type { UpgradeDefinition } from '../types'
+import { ShipWeaponKind } from '../types'
 import { IconName } from '../../icon-names'
 import { LASER } from './ship-weapon-data'
-import { buildShipProjectile, type ShipWeaponDefinition } from './ship-weapon-definition'
+import {
+  makeLoadoutUpgrade,
+  buildShipProjectile,
+  type ShipWeaponDefinition,
+} from './ship-weapon-definition'
 
-const unlockUpgrade: UpgradeDefinition = {
-  id: UpgradeId.unlockLaser,
-  category: UpgradeCategory.loadout,
-  weapon: ShipWeaponKind.laser,
+export const LASER_UPGRADE_IDS = {
+  unlockLaser: 'unlockLaser',
+  laserDamage: 'laserDamage',
+  laserPierce: 'laserPierce',
+} as const
+
+const upgrade = makeLoadoutUpgrade(ShipWeaponKind.laser)
+
+const unlockUpgrade = upgrade({
+  id: LASER_UPGRADE_IDS.unlockLaser,
   label: 'Unlock Laser',
   description: 'A piercing beam that punches through enemies in a line',
   tiers: [{ cost: 60, value: 1 }],
-}
+})
 
-const damageUpgrade: UpgradeDefinition = {
-  id: UpgradeId.laserDamage,
-  category: UpgradeCategory.loadout,
-  weapon: ShipWeaponKind.laser,
+const damageUpgrade = upgrade({
+  id: LASER_UPGRADE_IDS.laserDamage,
   label: 'Damage',
   description: 'Increase laser damage per hit',
   tiers: [
@@ -25,19 +32,17 @@ const damageUpgrade: UpgradeDefinition = {
     { cost: 80, value: 3 },
     { cost: 200, value: 5 },
   ],
-}
+})
 
-const pierceUpgrade: UpgradeDefinition = {
-  id: UpgradeId.laserPierce,
-  category: UpgradeCategory.loadout,
-  weapon: ShipWeaponKind.laser,
+const pierceUpgrade = upgrade({
+  id: LASER_UPGRADE_IDS.laserPierce,
   label: 'Pierce',
   description: 'Beam pierces through one additional enemy',
   tiers: [
     { cost: 40, value: 1 },
     { cost: 160, value: 1 },
   ],
-}
+})
 
 export const laser: ShipWeaponDefinition = {
   kind: ShipWeaponKind.laser,

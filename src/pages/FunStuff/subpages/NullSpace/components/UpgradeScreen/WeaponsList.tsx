@@ -1,6 +1,7 @@
 import { ABILITY_META, WEAPON_UNLOCK_UPGRADE } from '../../engine/abilities'
 import { UPGRADE_DEFINITIONS, canPurchaseUpgrade, isWeaponFullyMaxed } from '../../engine/upgrades'
-import type { AbilityKind, UpgradeId } from '../../engine/types'
+import type { AbilityKind } from '../../engine/types'
+import type { UpgradeId } from '../../engine/upgrade-ids'
 import type { GameUIState } from '../../useNullSpace'
 import { orderWeaponsForShop } from './weapons-list-order'
 import sharedStyles from '../OverlayShared.module.scss'

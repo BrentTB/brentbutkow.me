@@ -2,9 +2,10 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { createEnemy, createProjectile } from '../entities/entity-creator'
 import { updateBossAI } from './boss-ai'
 import { getBossDefinition } from './index'
-import { VOID_WORM, VOID_WORM_BOSS } from './void-worm'
+import { VOID_WORM, VOID_WORM_BOSS, WormStage } from './void-worm'
+import { getBossRuntime } from './boss-definition'
 import { resolveProjectileEnemyCollisions } from '../systems/combat'
-import { EnemyKind, ProjectileOwner, WormStage } from '../types'
+import { EnemyKind, ProjectileOwner } from '../types'
 import type { Enemy } from '../types'
 import { ENEMY_STATS, WORLD_SIZE } from '../../data'
 import { rng } from '../math/random'
@@ -28,12 +29,14 @@ function dist(a: { x: number; y: number }, b: { x: number; y: number }): number 
   return Math.hypot(a.x - b.x, a.y - b.y)
 }
 
+// Narrowed worm runtime — these tests only build void-worm bosses.
+const wormState = (e: Enemy) => getBossRuntime(e, EnemyKind.voidWorm)!
+
 describe('Void Worm — spawn', () => {
   it('initialises worm runtime in the cruise stage', () => {
     const head = createEnemy(EnemyKind.voidWorm, CENTER)
     expect(head.boss).toBeDefined()
-    expect(head.boss!.worm).toBeDefined()
-    expect(head.boss!.worm!.stage).toBe(WormStage.cruise)
+    expect(wormState(head).stage).toBe(WormStage.cruise)
   })
 
   it('first tick spawns the full segment chain, linked in order', () => {
@@ -149,10 +152,10 @@ describe('Void Worm — attack cycle', () => {
 
   it('cruise hands off to windup, which stalls the head while keeping it aimed', () => {
     let { head } = spawnedWorm()
-    head = { ...head, boss: { ...head.boss!, worm: { ...head.boss!.worm!, stageTimer: 0.001 } } }
+    head = { ...head, boss: { ...wormState(head), stageTimer: 0.001 } }
     const result = updateBossAI([head], 0.016, CTX)
     const moved = result.enemies.find((e) => e.kind === EnemyKind.voidWorm)!
-    expect(moved.boss!.worm!.stage).toBe(WormStage.windup)
+    expect(wormState(moved).stage).toBe(WormStage.windup)
 
     const stalled = updateBossAI([moved], 0.016, CTX).enemies[0]
     // Tiny vel along the aim — the head sprite uses vel to face the ship
@@ -166,21 +169,23 @@ describe('Void Worm — attack cycle', () => {
     head = {
       ...head,
       boss: {
-        ...head.boss!,
-        worm: { stage: WormStage.windup, stageTimer: 0.001, heading: { x: 1, y: 0 } },
+        ...wormState(head),
+        stage: WormStage.windup,
+        stageTimer: 0.001,
+        heading: { x: 1, y: 0 },
       },
     }
     // Windup expires: heading re-aims at the ship (due +x) and the charge begins.
     let result = updateBossAI([head], 0.016, CTX)
     let moved = result.enemies.find((e) => e.kind === EnemyKind.voidWorm)!
-    expect(moved.boss!.worm!.stage).toBe(WormStage.charge)
-    const lockedHeading = moved.boss!.worm!.heading
+    expect(wormState(moved).stage).toBe(WormStage.charge)
+    const lockedHeading = wormState(moved).heading
 
     // Ship dodges hard mid-charge — the heading must not follow it.
     const dodgedCtx = { ...CTX, shipPos: { x: 1500, y: 300 } }
     result = updateBossAI([moved], 0.05, dodgedCtx)
     moved = result.enemies.find((e) => e.kind === EnemyKind.voidWorm)!
-    expect(moved.boss!.worm!.heading).toEqual(lockedHeading)
+    expect(wormState(moved).heading).toEqual(lockedHeading)
     expect(Math.hypot(moved.vel.x, moved.vel.y)).toBeCloseTo(VOID_WORM.chargeSpeed)
   })
 
@@ -189,13 +194,15 @@ describe('Void Worm — attack cycle', () => {
     head = {
       ...head,
       boss: {
-        ...head.boss!,
-        worm: { stage: WormStage.charge, stageTimer: 0.001, heading: { x: 1, y: 0 } },
+        ...wormState(head),
+        stage: WormStage.charge,
+        stageTimer: 0.001,
+        heading: { x: 1, y: 0 },
       },
     }
     const result = updateBossAI([head], 0.016, CTX)
     const moved = result.enemies.find((e) => e.kind === EnemyKind.voidWorm)!
-    expect(moved.boss!.worm!.stage).toBe(WormStage.cruise)
+    expect(wormState(moved).stage).toBe(WormStage.cruise)
   })
 })
 

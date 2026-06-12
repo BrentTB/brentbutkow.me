@@ -1,32 +1,16 @@
-import {
-  AbilityKind,
-  CollectibleKind,
-  EffectKind,
-  EnemyKind,
-  GamePhase,
-  ProjectileOwner,
-  ShifterStage,
-  ShipKind,
-} from '../engine/types'
+import { CollectibleKind, EnemyKind, GamePhase, ProjectileOwner, ShipKind } from '../engine/types'
 import type {
   ActiveEffect,
   Ally,
-  BlackHoleEffect,
   Collectible,
-  Enemy,
   GameState,
-  MeteorStrikeEffect,
-  NuclearWasteEffect,
   Particle,
   Projectile,
-  RocketEffect,
-  ShieldEffect,
-  SunEffect,
 } from '../engine/types'
 import { POWER_ORB, SINGULARITY_SHARD, SPACE_METAL } from '../data'
-import { getNuclearWasteCurrentRadius } from '../engine/systems/effects'
-import { getBossDefinition } from '../engine/bosses/index'
-import { PHASE_SHIFTER } from '../engine/bosses/phase-shifter'
+import { EFFECT_DEFINITIONS } from '../engine/systems/effects'
+import { ABILITY_LIST } from '../engine/abilities'
+import { getBossDefinition } from '../engine/bosses'
 import type { Camera } from './camera'
 import { isWithinView, worldToScreen } from './camera'
 import type { SpriteCache } from './sprite-cache'
@@ -46,12 +30,6 @@ const ENEMY_SPRITE: Record<EnemyKind, SpriteKey> = {
   [EnemyKind.voidWorm]: SpriteKey.voidWormBoss,
   [EnemyKind.wormSegment]: SpriteKey.wormSegment,
   [EnemyKind.phaseShifter]: SpriteKey.phaseShifterBoss,
-}
-
-// True while the Phase Shifter is mid-shift — it renders as a ghost (no shield
-// bubble) and the telegraph X marks its destination.
-function isPhasing(enemy: Enemy): boolean {
-  return enemy.boss?.shifter?.stage === ShifterStage.telegraph
 }
 
 export const SHIP_SPRITE_KEY: Record<ShipKind, SpriteKey> = {
@@ -83,9 +61,9 @@ export function renderFrame(
   ctx.scale(camera.zoom, camera.zoom)
 
   renderStarfield(ctx, stars, camera)
-  renderActiveEffectsBack(ctx, state.activeEffects, camera)
-  renderShifterTelegraphs(ctx, state, camera)
-  renderSolarFlare(ctx, state, camera)
+  renderActiveEffects(ctx, state.activeEffects, camera, sprites, 'renderBack')
+  renderBossOverlays(ctx, state, camera)
+  renderHoldOverlays(ctx, state, camera, 'renderBack')
   renderCollectibles(ctx, state.collectibles, camera)
   renderParticles(ctx, state.particles, camera)
   renderEnemies(ctx, state, camera, sprites)
@@ -94,11 +72,54 @@ export function renderFrame(
   // No ship is in the world before the player has chosen one.
   const shipInWorld = state.phase !== GamePhase.menu && state.phase !== GamePhase.shipSelection
   if (shipInWorld) renderShip(ctx, state, camera, sprites)
-  renderActiveEffectsFront(ctx, state.activeEffects, camera, sprites)
-  renderTelekinesis(ctx, state, camera)
+  renderActiveEffects(ctx, state.activeEffects, camera, sprites, 'renderFront')
+  renderHoldOverlays(ctx, state, camera, 'renderFront')
   if (shipInWorld) renderShipHealthBar(ctx, state, camera)
 
   ctx.restore()
+}
+
+// Generic dispatch: every active effect draws via the renderBack/renderFront
+// hooks its EffectDefinition declares (registered in systems/effects.ts), so
+// adding an effect never touches this file.
+function renderActiveEffects(
+  ctx: CanvasRenderingContext2D,
+  effects: ActiveEffect[],
+  camera: Camera,
+  sprites: SpriteCache,
+  layer: 'renderBack' | 'renderFront'
+): void {
+  for (const effect of effects) {
+    EFFECT_DEFINITIONS[effect.kind][layer]?.(ctx, effect, camera, sprites)
+  }
+}
+
+// Generic dispatch for hold-ability overlays (telekinesis ripple, solar-flare
+// haze) — each hold ability declares its own renderBack/renderFront.
+function renderHoldOverlays(
+  ctx: CanvasRenderingContext2D,
+  state: GameState,
+  camera: Camera,
+  layer: 'renderBack' | 'renderFront'
+): void {
+  for (const def of ABILITY_LIST) {
+    const render = def.hold?.[layer]
+    if (!render) continue
+    const hold = state.holdStates[def.kind]
+    if (!hold?.active || !hold.target) continue
+    const ability = state.abilities.find((a) => a.kind === def.kind)
+    if (!ability) continue
+    render(ctx, ability, hold.target, state, camera)
+  }
+}
+
+// Generic dispatch for boss world-layer drawing (e.g. the Phase Shifter's
+// teleport telegraph) — each boss declares its own renderBack.
+function renderBossOverlays(ctx: CanvasRenderingContext2D, state: GameState, camera: Camera): void {
+  for (const enemy of state.enemies) {
+    if (!enemy.boss) continue
+    getBossDefinition(enemy.kind)?.renderBack?.(ctx, enemy, camera)
+  }
 }
 
 // Cyan shared by every defensive layer — ship shield ring, ship shield bar, and
@@ -189,7 +210,9 @@ function renderEnemies(
 
     const spriteKey = ENEMY_SPRITE[enemy.kind]
     const size = getSpriteSize(spriteKey)
-    const phasing = isPhasing(enemy)
+    const def = enemy.boss ? getBossDefinition(enemy.kind) : undefined
+    // Boss-declared sprite alpha — e.g. the Phase Shifter's mid-shift ghost.
+    const spriteAlpha = def?.spriteAlpha?.(enemy) ?? 1
 
     ctx.save()
     ctx.translate(screen.x, screen.y)
@@ -198,19 +221,17 @@ function renderEnemies(
     const stationary = enemy.vel.x === 0 && enemy.vel.y === 0
     const angle = stationary ? 0 : Math.atan2(enemy.vel.y, enemy.vel.x) + Math.PI / 2
     ctx.rotate(angle)
-    // Mid-shift the boss is phasing out of reality — a faint ghost.
-    if (phasing) ctx.globalAlpha = 0.35
+    if (spriteAlpha < 1) ctx.globalAlpha = spriteAlpha
     ctx.drawImage(sprites[spriteKey], -size.w / 2, -size.h / 2)
     ctx.restore()
 
     // Boss shield bubble — visible while the boss is damage-gated. Drawn
     // outside the sprite's rotation so the ring never spins with the boss.
-    // Suppressed mid-shift (the ghost sprite carries "untouchable" there) and
-    // for bosses that opt out via hideShieldBubble (the worm's body is its tell).
-    if (enemy.boss && !phasing) {
-      const def = getBossDefinition(enemy.kind)
+    // Bosses opt out via hideShieldBubble (always for the worm — its body is
+    // its tell; mid-shift for the Phase Shifter).
+    if (def) {
       const shielded =
-        !def?.hideShieldBubble && def?.canTakeDamage?.(enemy, state.enemies) === false
+        !def.hideShieldBubble?.(enemy) && def.canTakeDamage?.(enemy, state.enemies) === false
       if (shielded) {
         ctx.save()
         ctx.translate(screen.x, screen.y)
@@ -345,112 +366,6 @@ function renderLaserBeam(
   ctx.moveTo(from.x, from.y)
   ctx.lineTo(to.x, to.y)
   ctx.stroke()
-  ctx.restore()
-}
-
-// Seconds before impact that a meteor's warning + falling sprite appear. With a
-// staggered volley (Comet/Meteor Shower) each strike has a different delay, so
-// capping the visible lead makes the telegraphs pop in the order the meteors
-// land instead of all at once. Single strikes (delay ≤ lead) are unaffected.
-const METEOR_TELEGRAPH_LEAD = 0.6
-
-// Telegraph visibility + a 0→1 ramp over the lead window (or the full delay when
-// the delay is shorter than the lead).
-function meteorTelegraph(strike: MeteorStrikeEffect): { visible: boolean; progress: number } {
-  if (strike.elapsed >= strike.delay) return { visible: false, progress: 1 }
-  const window = Math.min(strike.delay, METEOR_TELEGRAPH_LEAD)
-  const start = strike.delay - window
-  if (strike.elapsed < start) return { visible: false, progress: 0 }
-  return { visible: true, progress: (strike.elapsed - start) / window }
-}
-
-function renderMeteorWarning(
-  ctx: CanvasRenderingContext2D,
-  strike: MeteorStrikeEffect,
-  camera: Camera
-): void {
-  const telegraph = meteorTelegraph(strike)
-  if (!telegraph.visible) return
-  const screen = worldToScreen(strike.pos, camera)
-  const progress = telegraph.progress
-
-  ctx.save()
-  ctx.globalAlpha = 0.3 + progress * 0.4
-
-  ctx.strokeStyle = '#ff6633'
-  ctx.lineWidth = 2
-  ctx.beginPath()
-  ctx.arc(screen.x, screen.y, strike.aoeRadius * (1 - progress * 0.3), 0, Math.PI * 2)
-  ctx.stroke()
-
-  const crossSize = 12
-  ctx.beginPath()
-  ctx.moveTo(screen.x - crossSize, screen.y)
-  ctx.lineTo(screen.x + crossSize, screen.y)
-  ctx.moveTo(screen.x, screen.y - crossSize)
-  ctx.lineTo(screen.x, screen.y + crossSize)
-  ctx.stroke()
-
-  ctx.restore()
-}
-
-// Big red X + dashed swarm-ring circle at the Phase Shifter's teleport
-// destination, sharpening as the jump nears (same ramp as the meteor warning).
-function renderShifterTelegraphs(
-  ctx: CanvasRenderingContext2D,
-  state: GameState,
-  camera: Camera
-): void {
-  for (const enemy of state.enemies) {
-    const shifter = enemy.boss?.shifter
-    if (shifter?.stage !== ShifterStage.telegraph || !shifter.targetPos) continue
-    const screen = worldToScreen(shifter.targetPos, camera)
-    if (!isWithinView(screen, camera, PHASE_SHIFTER.ringRadius + 20)) continue
-    const progress = 1 - shifter.stageTimer / PHASE_SHIFTER.telegraphDuration
-
-    ctx.save()
-    ctx.globalAlpha = 0.3 + progress * 0.5
-    ctx.strokeStyle = '#ff5050'
-
-    const arm = 40
-    ctx.lineWidth = 3
-    ctx.beginPath()
-    ctx.moveTo(screen.x - arm, screen.y - arm)
-    ctx.lineTo(screen.x + arm, screen.y + arm)
-    ctx.moveTo(screen.x - arm, screen.y + arm)
-    ctx.lineTo(screen.x + arm, screen.y - arm)
-    ctx.stroke()
-
-    // Where the swarm ring will materialise.
-    ctx.lineWidth = 1.5
-    ctx.setLineDash([6, 6])
-    ctx.beginPath()
-    ctx.arc(screen.x, screen.y, PHASE_SHIFTER.ringRadius, 0, Math.PI * 2)
-    ctx.stroke()
-
-    ctx.restore()
-  }
-}
-
-function renderMeteorProjectile(
-  ctx: CanvasRenderingContext2D,
-  strike: MeteorStrikeEffect,
-  camera: Camera,
-  sprites: SpriteCache
-): void {
-  const telegraph = meteorTelegraph(strike)
-  if (!telegraph.visible) return
-  const screen = worldToScreen(strike.pos, camera)
-  const progress = telegraph.progress
-
-  const spriteKey =
-    strike.kind === EffectKind.meteoriteStrike ? SpriteKey.meteorite : SpriteKey.meteor
-  const size = getSpriteSize(spriteKey)
-  const meteorY = screen.y - 400 * (1 - progress)
-
-  ctx.save()
-  ctx.globalAlpha = 0.5 + progress * 0.5
-  ctx.drawImage(sprites[spriteKey], screen.x - size.w / 2, meteorY - size.h / 2)
   ctx.restore()
 }
 
@@ -593,249 +508,6 @@ function renderShipHealthBar(
   ctx.fillRect(x, hpY, barWidth * hpRatio, barHeight)
 }
 
-// Black hole core gradients are static (colors + radius), so cache one per radius
-// per context rather than rebuilding every frame. Painted under a translate so the
-// origin-centered gradient follows the hole's screen position.
-const blackHoleGradients = new WeakMap<CanvasRenderingContext2D, Map<number, CanvasGradient>>()
-
-function getBlackHoleGradient(ctx: CanvasRenderingContext2D, radius: number): CanvasGradient {
-  let byRadius = blackHoleGradients.get(ctx)
-  if (!byRadius) {
-    byRadius = new Map()
-    blackHoleGradients.set(ctx, byRadius)
-  }
-  let gradient = byRadius.get(radius)
-  if (!gradient) {
-    gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, radius)
-    gradient.addColorStop(0, 'rgba(20, 0, 40, 0.9)')
-    gradient.addColorStop(0.3, 'rgba(40, 10, 80, 0.6)')
-    gradient.addColorStop(0.7, 'rgba(80, 30, 160, 0.2)')
-    gradient.addColorStop(1, 'rgba(100, 50, 200, 0)')
-    byRadius.set(radius, gradient)
-  }
-  return gradient
-}
-
-function renderBlackHole(
-  ctx: CanvasRenderingContext2D,
-  hole: BlackHoleEffect,
-  camera: Camera
-): void {
-  const screen = worldToScreen(hole.pos, camera)
-  const fadeIn = Math.min(3, hole.duration * 0.3)
-  const fadeOut = Math.min(8, hole.duration * 0.6)
-  const fadeOutStart = hole.duration - fadeOut
-  let alpha: number
-  if (hole.elapsed < fadeIn) {
-    alpha = hole.elapsed / fadeIn
-  } else if (hole.elapsed > fadeOutStart) {
-    alpha = Math.max(0, (hole.duration - hole.elapsed) / fadeOut)
-  } else {
-    alpha = 1
-  }
-
-  ctx.save()
-  ctx.globalAlpha = alpha
-  ctx.translate(screen.x, screen.y)
-
-  ctx.fillStyle = getBlackHoleGradient(ctx, hole.radius)
-  ctx.beginPath()
-  ctx.arc(0, 0, hole.radius, 0, Math.PI * 2)
-  ctx.fill()
-
-  ctx.strokeStyle = 'rgba(130, 80, 200, 0.4)'
-  ctx.lineWidth = 1.5
-  for (let ring = 0; ring < 3; ring++) {
-    const ringRadius = hole.radius * (0.3 + ring * 0.25)
-    const rotAngle = hole.elapsed * (2 + ring) + ring * 2
-    ctx.beginPath()
-    ctx.arc(0, 0, ringRadius, rotAngle, rotAngle + Math.PI * 1.2)
-    ctx.stroke()
-  }
-
-  ctx.restore()
-}
-
-function renderActiveEffectsBack(
-  ctx: CanvasRenderingContext2D,
-  effects: ActiveEffect[],
-  camera: Camera
-): void {
-  for (const effect of effects) {
-    switch (effect.kind) {
-      case EffectKind.blackHole:
-        renderBlackHole(ctx, effect, camera)
-        break
-      case EffectKind.sun:
-        renderSun(ctx, effect, camera)
-        break
-      case EffectKind.nuclearWaste:
-        renderNuclearWaste(ctx, effect, camera)
-        break
-      case EffectKind.shield:
-        renderShield(ctx, effect, camera)
-        break
-      case EffectKind.meteoriteStrike:
-      case EffectKind.meteorStrike:
-        renderMeteorWarning(ctx, effect, camera)
-        break
-    }
-  }
-}
-
-function renderNuclearWaste(
-  ctx: CanvasRenderingContext2D,
-  waste: NuclearWasteEffect,
-  camera: Camera
-): void {
-  const screen = worldToScreen(waste.pos, camera)
-  // Radius shares the damage helper so visual and damage circle match exactly.
-  const r = getNuclearWasteCurrentRadius(waste)
-  if (r <= 0.5) return
-
-  ctx.save()
-  ctx.translate(screen.x, screen.y)
-
-  // Sickly green DOT field — flatter than the sun corona; reads as "ground"
-  // contamination rather than a star.
-  const fill = ctx.createRadialGradient(0, 0, 0, 0, 0, r)
-  fill.addColorStop(0, 'rgba(136, 255, 68, 0.30)')
-  fill.addColorStop(0.7, 'rgba(96, 200, 50, 0.20)')
-  fill.addColorStop(1, 'rgba(60, 130, 30, 0)')
-  ctx.fillStyle = fill
-  ctx.beginPath()
-  ctx.arc(0, 0, r, 0, Math.PI * 2)
-  ctx.fill()
-
-  // Static dashed rim to signal a damage zone. No pulse — the size schedule
-  // (grow then shrink) carries the motion.
-  ctx.strokeStyle = 'rgba(180, 255, 100, 0.55)'
-  ctx.lineWidth = 1.5
-  ctx.setLineDash([4, 6])
-  ctx.beginPath()
-  ctx.arc(0, 0, r, 0, Math.PI * 2)
-  ctx.stroke()
-  ctx.setLineDash([])
-
-  ctx.restore()
-}
-
-function renderActiveEffectsFront(
-  ctx: CanvasRenderingContext2D,
-  effects: ActiveEffect[],
-  camera: Camera,
-  sprites: SpriteCache
-): void {
-  for (const effect of effects) {
-    switch (effect.kind) {
-      case EffectKind.meteoriteStrike:
-      case EffectKind.meteorStrike:
-        renderMeteorProjectile(ctx, effect, camera, sprites)
-        break
-      case EffectKind.rocket:
-        renderRocket(ctx, effect, camera, sprites)
-        break
-    }
-  }
-}
-
-function renderRocket(
-  ctx: CanvasRenderingContext2D,
-  rocket: RocketEffect,
-  camera: Camera,
-  sprites: SpriteCache
-): void {
-  const screen = worldToScreen(rocket.pos, camera)
-  const size = getSpriteSize(SpriteKey.rocket)
-  // Rocket sprite is drawn with the nose pointing UP at rotation 0; rotate so
-  // the nose tracks the velocity direction.
-  const angle = Math.atan2(rocket.vel.y, rocket.vel.x) + Math.PI / 2
-
-  ctx.save()
-  ctx.translate(screen.x, screen.y)
-  ctx.rotate(angle)
-  ctx.drawImage(sprites.rocket, -size.w / 2, -size.h / 2)
-  ctx.restore()
-}
-
-function renderShield(ctx: CanvasRenderingContext2D, shield: ShieldEffect, camera: Camera): void {
-  const screen = worldToScreen(shield.pos, camera)
-  const fadeIn = Math.min(0.4, shield.duration * 0.15)
-  const fadeOut = Math.min(0.8, shield.duration * 0.3)
-  const fadeOutStart = shield.duration - fadeOut
-  let alpha: number
-  if (shield.elapsed < fadeIn) alpha = shield.elapsed / fadeIn
-  else if (shield.elapsed > fadeOutStart)
-    alpha = Math.max(0, (shield.duration - shield.elapsed) / fadeOut)
-  else alpha = 1
-
-  const pulse = 0.85 + Math.sin(shield.elapsed * 5) * 0.15
-
-  ctx.save()
-  ctx.globalAlpha = alpha
-  ctx.translate(screen.x, screen.y)
-
-  // Translucent dome fill
-  const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, shield.radius)
-  gradient.addColorStop(0, 'rgba(120, 200, 255, 0.05)')
-  gradient.addColorStop(0.6, 'rgba(120, 200, 255, 0.1)')
-  gradient.addColorStop(1, 'rgba(60, 180, 255, 0.25)')
-  ctx.fillStyle = gradient
-  ctx.beginPath()
-  ctx.arc(0, 0, shield.radius, 0, Math.PI * 2)
-  ctx.fill()
-
-  // Pulsing rim
-  ctx.strokeStyle = `rgba(120, 220, 255, ${0.6 * pulse})`
-  ctx.lineWidth = 2
-  ctx.beginPath()
-  ctx.arc(0, 0, shield.radius, 0, Math.PI * 2)
-  ctx.stroke()
-
-  ctx.restore()
-}
-
-function renderSun(ctx: CanvasRenderingContext2D, sun: SunEffect, camera: Camera): void {
-  const screen = worldToScreen(sun.pos, camera)
-  const fadeIn = Math.min(0.5, sun.duration * 0.15)
-  const fadeOut = Math.min(1.0, sun.duration * 0.3)
-  const fadeOutStart = sun.duration - fadeOut
-  let alpha: number
-  if (sun.elapsed < fadeIn) alpha = sun.elapsed / fadeIn
-  else if (sun.elapsed > fadeOutStart) alpha = Math.max(0, (sun.duration - sun.elapsed) / fadeOut)
-  else alpha = 1
-
-  const pulse = 1 + Math.sin(sun.elapsed * 4) * 0.04
-  const r = sun.radius * pulse
-
-  ctx.save()
-  ctx.globalAlpha = alpha
-  ctx.translate(screen.x, screen.y)
-
-  // Corona — outer glow
-  const corona = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 1.4)
-  corona.addColorStop(0, 'rgba(255, 220, 120, 0.35)')
-  corona.addColorStop(0.5, 'rgba(255, 140, 60, 0.18)')
-  corona.addColorStop(1, 'rgba(255, 100, 40, 0)')
-  ctx.fillStyle = corona
-  ctx.beginPath()
-  ctx.arc(0, 0, r * 1.4, 0, Math.PI * 2)
-  ctx.fill()
-
-  // Core — bright center
-  const core = ctx.createRadialGradient(0, 0, 0, 0, 0, r)
-  core.addColorStop(0, 'rgba(255, 250, 230, 1)')
-  core.addColorStop(0.4, 'rgba(255, 220, 120, 0.9)')
-  core.addColorStop(0.8, 'rgba(255, 140, 60, 0.5)')
-  core.addColorStop(1, 'rgba(255, 100, 40, 0)')
-  ctx.fillStyle = core
-  ctx.beginPath()
-  ctx.arc(0, 0, r, 0, Math.PI * 2)
-  ctx.fill()
-
-  ctx.restore()
-}
-
 function renderAllies(
   ctx: CanvasRenderingContext2D,
   allies: Ally[],
@@ -868,64 +540,4 @@ function renderAllies(
       ctx.fillRect(barX, barY, barWidth * hpPct, barHeight)
     }
   }
-}
-
-function renderSolarFlare(ctx: CanvasRenderingContext2D, state: GameState, camera: Camera): void {
-  const hold = state.holdStates[AbilityKind.solarFlare]
-  if (!hold?.active || !hold.target) return
-  // Soft heat haze under the particle spawn area. Particles do the bulk of the
-  // visual; this just hints at the affected zone.
-  const center = worldToScreen(hold.target, camera)
-  const sfAbility = state.abilities.find((a) => a.kind === AbilityKind.solarFlare)
-  if (!sfAbility) return
-  const radius = sfAbility.aoeRadius * camera.zoom
-
-  ctx.save()
-  const gradient = ctx.createRadialGradient(center.x, center.y, 0, center.x, center.y, radius)
-  gradient.addColorStop(0, 'rgba(255, 220, 120, 0.18)')
-  gradient.addColorStop(0.6, 'rgba(255, 150, 60, 0.08)')
-  gradient.addColorStop(1, 'rgba(255, 100, 30, 0)')
-  ctx.fillStyle = gradient
-  ctx.beginPath()
-  ctx.arc(center.x, center.y, radius, 0, Math.PI * 2)
-  ctx.fill()
-  ctx.restore()
-}
-
-function renderTelekinesis(ctx: CanvasRenderingContext2D, state: GameState, camera: Camera): void {
-  const hold = state.holdStates[AbilityKind.telekinesis]
-  if (!hold?.active || !hold.target) return
-  const center = worldToScreen(hold.target, camera)
-  const tkAbility = state.abilities.find((a) => a.kind === AbilityKind.telekinesis)
-  if (!tkAbility) return
-  const screenRadius = tkAbility.aoeRadius * camera.zoom
-
-  ctx.save()
-
-  // Ripple circle
-  ctx.strokeStyle = 'rgba(80, 220, 255, 0.5)'
-  ctx.lineWidth = 2
-  ctx.setLineDash([6, 4])
-  ctx.beginPath()
-  ctx.arc(center.x, center.y, screenRadius, 0, Math.PI * 2)
-  ctx.stroke()
-  ctx.setLineDash([])
-
-  // Force lines to affected enemies
-  for (const enemy of state.enemies) {
-    const eScreen = worldToScreen(enemy.pos, camera)
-    const dx = eScreen.x - center.x
-    const dy = eScreen.y - center.y
-    const dist = Math.sqrt(dx * dx + dy * dy)
-    if (dist >= screenRadius) continue
-    const alpha = (1 - dist / screenRadius) * 0.6
-    ctx.strokeStyle = `rgba(80, 220, 255, ${alpha.toFixed(2)})`
-    ctx.lineWidth = 1
-    ctx.beginPath()
-    ctx.moveTo(center.x, center.y)
-    ctx.lineTo(eScreen.x, eScreen.y)
-    ctx.stroke()
-  }
-
-  ctx.restore()
 }

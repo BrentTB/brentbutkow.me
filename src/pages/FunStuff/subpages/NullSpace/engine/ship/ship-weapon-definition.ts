@@ -1,6 +1,6 @@
 import { PROJECTILE_RADIUS } from '../../data'
 import { uid } from '../entities/entity-creator'
-import { ProjectileOwner } from '../types'
+import { ProjectileOwner, UpgradeCategory } from '../types'
 import type { PlayerUpgrades, Projectile, ShipWeaponKind, UpgradeDefinition, Vec2 } from '../types'
 import type { IconName } from '../../icon-names'
 
@@ -32,6 +32,15 @@ export type ShipWeaponDefinition = {
   unlockUpgrade?: UpgradeDefinition
   // Tiered upgrades (damage, special stats).
   modifierUpgrades?: UpgradeDefinition[]
+}
+
+// Binds a ship weapon so each of its upgrades declares only id/label/
+// description/tiers — the shared loadout category + weapon fields are injected
+// once per file. Loadout parallel of makeAbilityUpgrade.
+export function makeLoadoutUpgrade(
+  weapon: ShipWeaponKind
+): (def: Omit<UpgradeDefinition, 'category' | 'weapon'>) => UpgradeDefinition {
+  return (def) => ({ ...def, category: UpgradeCategory.loadout, weapon })
 }
 
 // Per-weapon options for building a ship projectile beyond the bullet defaults.

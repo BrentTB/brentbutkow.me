@@ -2,8 +2,9 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { createEnemy } from '../entities/entity-creator'
 import { updateBossAI } from './boss-ai'
 import { getBossDefinition } from './index'
-import { PHASE_SHIFTER, PHASE_SHIFTER_BOSS } from './phase-shifter'
-import { EnemyKind, ShifterStage } from '../types'
+import { PHASE_SHIFTER, PHASE_SHIFTER_BOSS, ShifterStage } from './phase-shifter'
+import { getBossRuntime } from './boss-definition'
+import { EnemyKind } from '../types'
 import type { Enemy } from '../types'
 import { WORLD_SIZE } from '../../data'
 import { rng } from '../math/random'
@@ -15,19 +16,20 @@ beforeEach(() => {
 const CENTER = { x: 1500, y: 1500 }
 const CTX = { shipPos: { x: 1800, y: 1500 }, worldSize: WORLD_SIZE }
 
+// Narrowed shifter runtime — these tests only build phase-shifter bosses.
+const shifterState = (e: Enemy) => getBossRuntime(e, EnemyKind.phaseShifter)!
+
 function shifterWith(stage: ShifterStage, stageTimer: number, hp?: number): Enemy {
   const boss = createEnemy(EnemyKind.phaseShifter, CENTER)
   return {
     ...boss,
     hp: hp ?? boss.hp,
     boss: {
-      ...boss.boss!,
+      ...shifterState(boss),
       hasSpawned: true,
-      shifter: {
-        stage,
-        stageTimer,
-        targetPos: stage === ShifterStage.telegraph ? { x: 1750, y: 1450 } : null,
-      },
+      stage,
+      stageTimer,
+      targetPos: stage === ShifterStage.telegraph ? { x: 1750, y: 1450 } : null,
     },
   }
 }
@@ -57,7 +59,7 @@ describe('Phase Shifter — damage gate', () => {
 describe('Phase Shifter — teleport cycle', () => {
   it('idle expiry starts a telegraph with a target near the ship, inside margins', () => {
     const { boss } = tick([shifterWith(ShifterStage.idle, 0.001)])
-    const shifter = boss.boss!.shifter!
+    const shifter = shifterState(boss)
     expect(shifter.stage).toBe(ShifterStage.telegraph)
     expect(shifter.stageTimer).toBeCloseTo(PHASE_SHIFTER.telegraphDuration, 1)
     expect(shifter.targetPos).not.toBeNull()
@@ -73,20 +75,20 @@ describe('Phase Shifter — teleport cycle', () => {
   it('telegraph target clamps to the world margins when the ship hugs the edge', () => {
     const edgeCtx = { ...CTX, shipPos: { x: 5, y: 5 } }
     const { boss } = tick([shifterWith(ShifterStage.idle, 0.001)], 0.016, edgeCtx)
-    const target = boss.boss!.shifter!.targetPos!
+    const target = shifterState(boss).targetPos!
     expect(target.x).toBeGreaterThanOrEqual(PHASE_SHIFTER.worldMargin)
     expect(target.y).toBeGreaterThanOrEqual(PHASE_SHIFTER.worldMargin)
   })
 
   it('arrival teleports the boss, spawns the swarm ring, and returns to idle', () => {
     const boss = shifterWith(ShifterStage.telegraph, 0.001)
-    const target = boss.boss!.shifter!.targetPos!
+    const target = shifterState(boss).targetPos!
     const { boss: arrived, spawned } = tick([boss])
 
     expect(arrived.pos).toEqual(target)
-    expect(arrived.boss!.shifter!.stage).toBe(ShifterStage.idle)
-    expect(arrived.boss!.shifter!.stageTimer).toBeCloseTo(PHASE_SHIFTER.idleDurationP1, 1)
-    expect(arrived.boss!.shifter!.targetPos).toBeNull()
+    expect(shifterState(arrived).stage).toBe(ShifterStage.idle)
+    expect(shifterState(arrived).stageTimer).toBeCloseTo(PHASE_SHIFTER.idleDurationP1, 1)
+    expect(shifterState(arrived).targetPos).toBeNull()
 
     expect(spawned).toHaveLength(PHASE_SHIFTER.ringCountP1)
     expect(spawned.every((e) => e.kind === EnemyKind.swarm)).toBe(true)
@@ -103,7 +105,7 @@ describe('Phase Shifter — teleport cycle', () => {
 
     expect(arrived.boss!.phase).toBe(2)
     expect(spawned).toHaveLength(PHASE_SHIFTER.ringCountP2)
-    expect(arrived.boss!.shifter!.stageTimer).toBeCloseTo(PHASE_SHIFTER.idleDurationP2, 1)
+    expect(shifterState(arrived).stageTimer).toBeCloseTo(PHASE_SHIFTER.idleDurationP2, 1)
   })
 
   it('damageability flips off at telegraph start and back on at arrival', () => {

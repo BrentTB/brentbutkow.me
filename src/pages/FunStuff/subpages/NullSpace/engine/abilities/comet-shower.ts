@@ -1,16 +1,25 @@
 import { COMET_SHOWER, METEORITE_STRIKE } from './ability-data'
-import { createMeteoriteEffect } from '../systems/effects'
+import { createMeteoriteEffect } from './meteor-strike'
 import { rng } from '../math/random'
-import { AbilityKind, UpgradeCategory, UpgradeId } from '../types'
-import type { UpgradeDefinition } from '../types'
-import { applyTierSum, type AbilityDefinition } from './ability-definition'
+import { AbilityKind } from '../types'
+import {
+  makeAbilityUpgrade,
+  applyTierSum,
+  composeUltimateUpgrades,
+  type AbilityDefinition,
+} from './ability-definition'
 import { meteorite } from './meteorite'
 import { IconName } from '../../icon-names'
 
-const countUpgrade: UpgradeDefinition = {
-  id: UpgradeId.cometShowerCount,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.cometShower,
+export const COMET_SHOWER_UPGRADE_IDS = {
+  cometShowerCount: 'cometShowerCount',
+  cometShowerStagger: 'cometShowerStagger',
+} as const
+
+const upgrade = makeAbilityUpgrade(AbilityKind.cometShower)
+
+const countUpgrade = upgrade({
+  id: COMET_SHOWER_UPGRADE_IDS.cometShowerCount,
   label: 'Comet Count',
   description: 'Drop more comets per shower',
   tiers: [
@@ -18,14 +27,12 @@ const countUpgrade: UpgradeDefinition = {
     { cost: 180, value: 2 },
     { cost: 420, value: 2 },
   ],
-}
+})
 
 // Reduces staggerStep (the gap between comets landing). Tier values subtract
 // from the base 0.1, bottoming out at COMET_SHOWER.minStaggerStep (0.03).
-const staggerUpgrade: UpgradeDefinition = {
-  id: UpgradeId.cometShowerStagger,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.cometShower,
+const staggerUpgrade = upgrade({
+  id: COMET_SHOWER_UPGRADE_IDS.cometShowerStagger,
   label: 'Comet Cadence',
   description: 'Comets fall in quicker succession',
   tiers: [
@@ -33,7 +40,7 @@ const staggerUpgrade: UpgradeDefinition = {
     { cost: 150, value: 0.02 },
     { cost: 400, value: 0.02 },
   ],
-}
+})
 
 // Meteorite ultimate. One meteorite hits the aimed spot; the rest scatter
 // nearby and fall staggered. Damage tracks Meteorite's upgrades; cost is the
@@ -69,17 +76,13 @@ export const cometShower: AbilityDefinition = {
     }
     return effects
   },
-  applyUpgrades: (ability, upgrades) => {
-    const base = meteorite.applyUpgrades?.(ability, upgrades) ?? {}
-    return {
-      damage: base.damage ?? METEORITE_STRIKE.damage,
-      powerCost: (base.powerCost ?? METEORITE_STRIKE.powerCost) * COMET_SHOWER.costMultiplier,
-      count: applyTierSum(COMET_SHOWER.baseCount, upgrades, countUpgrade),
-      staggerStep: Math.max(
-        COMET_SHOWER.minStaggerStep,
-        applyTierSum(COMET_SHOWER.staggerStep, upgrades, staggerUpgrade, -1)
-      ),
-    }
-  },
+  applyUpgrades: composeUltimateUpgrades(meteorite, (basePatch, upgrades) => ({
+    powerCost: (basePatch.powerCost ?? METEORITE_STRIKE.powerCost) * COMET_SHOWER.costMultiplier,
+    count: applyTierSum(COMET_SHOWER.baseCount, upgrades, countUpgrade),
+    staggerStep: Math.max(
+      COMET_SHOWER.minStaggerStep,
+      applyTierSum(COMET_SHOWER.staggerStep, upgrades, staggerUpgrade, -1)
+    ),
+  })),
   modifierUpgrades: [countUpgrade, staggerUpgrade],
 }

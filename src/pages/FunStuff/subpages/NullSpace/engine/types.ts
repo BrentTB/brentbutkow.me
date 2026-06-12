@@ -1,3 +1,11 @@
+// Type-only import — erased at compile time, so although boss files import
+// values from types.ts, there is no runtime cycle. The union itself lives with
+// the bosses so each boss declares its own runtime state in its own file.
+import type { BossRuntimeState } from './bosses/boss-definition'
+// Same type-only pattern: each feature file owns its upgrade ids and
+// engine/upgrade-ids.ts assembles the union.
+import type { UpgradeId } from './upgrade-ids'
+
 export type Vec2 = { x: number; y: number }
 
 export type Entity = {
@@ -119,26 +127,6 @@ export const DeathBehavior = {
 } as const
 export type DeathBehavior = (typeof DeathBehavior)[keyof typeof DeathBehavior]
 
-export const WormStage = { cruise: 'cruise', windup: 'windup', charge: 'charge' } as const
-export type WormStage = (typeof WormStage)[keyof typeof WormStage]
-
-export const ShifterStage = { idle: 'idle', telegraph: 'telegraph' } as const
-export type ShifterStage = (typeof ShifterStage)[keyof typeof ShifterStage]
-
-// Void Worm head: attack cycle + the lunge direction (locked while charging).
-export type WormRuntime = { stage: WormStage; stageTimer: number; heading: Vec2 }
-// Phase Shifter: teleport cycle. targetPos is set only while telegraphing.
-export type ShifterRuntime = { stage: ShifterStage; stageTimer: number; targetPos: Vec2 | null }
-
-export type BossRuntimeState = {
-  phase: number
-  droneSpawnTimer: number
-  linkedIds: string[]
-  hasSpawned: boolean
-  worm?: WormRuntime
-  shifter?: ShifterRuntime
-}
-
 export type Enemy = Entity & {
   kind: EnemyKind
   speed: number
@@ -153,7 +141,7 @@ export type Enemy = Entity & {
   // Seconds this enemy has been simulated; advances with the (speed-scaled) dt
   // so time-based movement like the swarm weave stays in sync with game speed.
   age: number
-  // Present only on boss enemies. Tracks phase, linked entity IDs, drone timer.
+  // Present only on boss enemies — the boss's kind-tagged runtime state.
   boss?: BossRuntimeState
 }
 
@@ -382,77 +370,6 @@ export const UpgradeCategory = {
   powers: 'powers',
 } as const
 export type UpgradeCategory = (typeof UpgradeCategory)[keyof typeof UpgradeCategory]
-
-export const UpgradeId = {
-  unlockMeteor: 'unlockMeteor',
-  meteoriteDamage: 'meteoriteDamage',
-  meteoriteCostReduction: 'meteoriteCostReduction',
-  meteorDamage: 'meteorDamage',
-  meteorCostReduction: 'meteorCostReduction',
-  meteorRadius: 'meteorRadius',
-  // Ultimate-specific modifier upgrades (category: weapons, weapon = ultimate kind).
-  cometShowerCount: 'cometShowerCount',
-  cometShowerStagger: 'cometShowerStagger',
-  meteorShowerCount: 'meteorShowerCount',
-  unlockBlackHole: 'unlockBlackHole',
-  blackHoleDamage: 'blackHoleDamage',
-  blackHoleDuration: 'blackHoleDuration',
-  blackHoleRadius: 'blackHoleRadius',
-  unlockRocket: 'unlockRocket',
-  rocketDamage: 'rocketDamage',
-  rocketRadius: 'rocketRadius',
-  rocketCostReduction: 'rocketCostReduction',
-  unlockShield: 'unlockShield',
-  shieldDuration: 'shieldDuration',
-  shieldRadius: 'shieldRadius',
-  shieldCostReduction: 'shieldCostReduction',
-  unlockSun: 'unlockSun',
-  sunDamage: 'sunDamage',
-  sunDuration: 'sunDuration',
-  sunRadius: 'sunRadius',
-  unlockHelper: 'unlockHelper',
-  helperMaxHp: 'helperMaxHp',
-  helperDamage: 'helperDamage',
-  helperCostReduction: 'helperCostReduction',
-  unlockTelekinesis: 'unlockTelekinesis',
-  telekinesisRadius: 'telekinesisRadius',
-  telekinesisCostReduction: 'telekinesisCostReduction',
-  telekinesisForce: 'telekinesisForce',
-  unlockSolarFlare: 'unlockSolarFlare',
-  solarFlareDamage: 'solarFlareDamage',
-  solarFlareEfficiency: 'solarFlareEfficiency',
-  solarFlareRadius: 'solarFlareRadius',
-  shipMaxHp: 'shipMaxHp',
-  shipDamage: 'shipDamage',
-  shipFireRate: 'shipFireRate',
-  shipShieldStrength: 'shipShieldStrength',
-  shipSpeed: 'shipSpeed',
-  slingPower: 'slingPower',
-  slingAccuracy: 'slingAccuracy',
-  slingCooldown: 'slingCooldown',
-  slingHeatSink: 'slingHeatSink',
-  powerRegen: 'powerRegen',
-  lifeRegen: 'lifeRegen',
-  stardustMultiplier: 'stardustMultiplier',
-  spaceMetalChance: 'spaceMetalChance',
-  powerPerKill: 'powerPerKill',
-  // Ship-weapon unlocks + per-weapon modifiers (category: loadout).
-  unlockLaser: 'unlockLaser',
-  laserDamage: 'laserDamage',
-  laserPierce: 'laserPierce',
-  unlockMissile: 'unlockMissile',
-  missileDamage: 'missileDamage',
-  missileSpeed: 'missileSpeed',
-  missileSplash: 'missileSplash',
-  unlockRicochet: 'unlockRicochet',
-  ricochetDamage: 'ricochetDamage',
-  ricochetBounces: 'ricochetBounces',
-  unlockNuke: 'unlockNuke',
-  nukeDamage: 'nukeDamage',
-  nukeBlastRadius: 'nukeBlastRadius',
-  nukeWasteDuration: 'nukeWasteDuration',
-} as const
-export type UpgradeId = (typeof UpgradeId)[keyof typeof UpgradeId]
 
 export type UpgradeTier = {
   cost: number

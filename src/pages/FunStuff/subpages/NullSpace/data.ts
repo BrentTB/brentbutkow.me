@@ -271,6 +271,25 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.18.1',
+    date: '2026-06-11',
+    changes: {
+      architecture: [
+        'Effects are registry-driven: each ability/weapon file owns its effect’s full lifecycle (factory, per-tick simulation, world-layer drawing) and registers a single EffectDefinition — the effects system and renderer dispatch generically, so adding an effect never touches them.',
+        'Bosses declare their own rendering: BossDefinition gained renderBack (the Phase Shifter telegraph), spriteAlpha (the mid-shift ghost), and a hideShieldBubble predicate — the renderer no longer hard-codes any boss.',
+        'Hold abilities declare their own overlays (renderBack/renderFront on the hold config): the Solar Flare haze and Telekinesis ripple moved into their ability files, so a new hold ability needs zero renderer edits.',
+        'Bosses declare their movement behaviour on their BossDefinition and bosses always die as bosses — the per-kind movement/death tables in entity-creator now cover only regular enemies.',
+        'Boss runtime state is a kind-tagged discriminated union: each boss declares its own state type in its own file (the Dreadnought’s drone timer, the worm’s attack cycle, the shifter’s teleport cycle) and TypeScript narrows it without casts.',
+        'Upgrade ids live next to the upgrades they belong to: every ability/weapon file owns its id block and engine/upgrade-ids.ts assembles the global UpgradeId — adding content no longer edits a central 70-entry enum.',
+        'Ultimates build their upgrade math through composeUltimateUpgrades — the base ability’s full upgrade patch flows through automatically, so a base gaining a new upgradable field can never be silently dropped by its ultimate.',
+        'Shared geometry helpers: ringPositions (generator/swarm/meteor rings), clampToWorld (boss movement and teleport targeting), and bossPhase (the two-phase HP threshold) replace three near-identical copies.',
+        'Dev-console state manipulation moved out of the React hook into engine/dev-tools.ts, and slingshot press/drag/release decoding into input/sling-gesture.ts — both pure and unit-tested; a guard test also keeps WEAPON_ORDER covering every ability.',
+        'Each ability/weapon file binds its upgrades once via makeAbilityUpgrade / makeLoadoutUpgrade, so every upgrade declares only id/label/description/tiers — the repeated category + weapon fields (and the copy-paste risk of a stale weapon tag) are gone.',
+        'The in-game help text for channelled abilities is derived from the ability registry instead of a hand-maintained list.',
+      ],
+    },
+  },
+  {
     version: '0.18.0',
     date: '2026-06-11',
     changes: {

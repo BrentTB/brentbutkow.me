@@ -9,7 +9,8 @@ import {
 } from './abilities'
 import { SHIP_WEAPON_UNLOCK_UPGRADE, SHIP_WEAPON_UPGRADE_DEFINITIONS } from './ship'
 import { SHIP_VARIANTS } from './ship/ship-data'
-import { UpgradeCategory, UpgradeId } from './types'
+import { UpgradeCategory } from './types'
+import type { UpgradeId } from './upgrade-ids'
 import type {
   Ability,
   AbilityKind,
@@ -18,6 +19,23 @@ import type {
   ShipWeaponKind,
   UpgradeDefinition,
 } from './types'
+
+export const SHIP_AND_POWER_UPGRADE_IDS = {
+  shipMaxHp: 'shipMaxHp',
+  shipDamage: 'shipDamage',
+  shipFireRate: 'shipFireRate',
+  shipShieldStrength: 'shipShieldStrength',
+  shipSpeed: 'shipSpeed',
+  slingPower: 'slingPower',
+  slingAccuracy: 'slingAccuracy',
+  slingCooldown: 'slingCooldown',
+  slingHeatSink: 'slingHeatSink',
+  powerRegen: 'powerRegen',
+  lifeRegen: 'lifeRegen',
+  stardustMultiplier: 'stardustMultiplier',
+  spaceMetalChance: 'spaceMetalChance',
+  powerPerKill: 'powerPerKill',
+} as const
 
 // Set of upgrade IDs that unlock a weapon (ability OR ship weapon). Used to
 // filter unlock upgrades out of per-weapon upgrade lists so detail / max
@@ -32,7 +50,7 @@ export const UNLOCK_UPGRADE_IDS: ReadonlySet<UpgradeId> = new Set([
 // and merged into UPGRADE_DEFINITIONS below.
 const shipAndPowerUpgrades: UpgradeDefinition[] = [
   {
-    id: UpgradeId.shipMaxHp,
+    id: SHIP_AND_POWER_UPGRADE_IDS.shipMaxHp,
     category: UpgradeCategory.ship,
     label: 'Hull Plating',
     description: 'Increase maximum ship HP',
@@ -43,7 +61,7 @@ const shipAndPowerUpgrades: UpgradeDefinition[] = [
     ],
   },
   {
-    id: UpgradeId.shipDamage,
+    id: SHIP_AND_POWER_UPGRADE_IDS.shipDamage,
     category: UpgradeCategory.ship,
     label: 'Auto-Turret',
     description: 'Increase ship auto-attack damage',
@@ -56,7 +74,7 @@ const shipAndPowerUpgrades: UpgradeDefinition[] = [
     ],
   },
   {
-    id: UpgradeId.shipFireRate,
+    id: SHIP_AND_POWER_UPGRADE_IDS.shipFireRate,
     category: UpgradeCategory.ship,
     label: 'Fire Rate',
     description: 'Increase auto-turret fire rate',
@@ -69,7 +87,7 @@ const shipAndPowerUpgrades: UpgradeDefinition[] = [
     ],
   },
   {
-    id: UpgradeId.shipShieldStrength,
+    id: SHIP_AND_POWER_UPGRADE_IDS.shipShieldStrength,
     category: UpgradeCategory.ship,
     label: 'Shield Capacitor',
     description: 'Increase maximum shield capacity',
@@ -80,7 +98,7 @@ const shipAndPowerUpgrades: UpgradeDefinition[] = [
     ],
   },
   {
-    id: UpgradeId.shipSpeed,
+    id: SHIP_AND_POWER_UPGRADE_IDS.shipSpeed,
     category: UpgradeCategory.ship,
     label: 'Engine Boost',
     description: 'Increase ship movement speed',
@@ -91,7 +109,7 @@ const shipAndPowerUpgrades: UpgradeDefinition[] = [
     ],
   },
   {
-    id: UpgradeId.slingPower,
+    id: SHIP_AND_POWER_UPGRADE_IDS.slingPower,
     category: UpgradeCategory.ship,
     label: 'Slingshot Power',
     description: 'Slingshot the ship farther and faster',
@@ -102,7 +120,7 @@ const shipAndPowerUpgrades: UpgradeDefinition[] = [
     ],
   },
   {
-    id: UpgradeId.slingAccuracy,
+    id: SHIP_AND_POWER_UPGRADE_IDS.slingAccuracy,
     category: UpgradeCategory.ship,
     label: 'Slingshot Control',
     description: 'Tighten the slingshot — less random scatter',
@@ -113,7 +131,7 @@ const shipAndPowerUpgrades: UpgradeDefinition[] = [
     ],
   },
   {
-    id: UpgradeId.slingCooldown,
+    id: SHIP_AND_POWER_UPGRADE_IDS.slingCooldown,
     category: UpgradeCategory.ship,
     label: 'Slingshot Cadence',
     description: 'Shorten the cooldown between slingshots',
@@ -124,7 +142,7 @@ const shipAndPowerUpgrades: UpgradeDefinition[] = [
     ],
   },
   {
-    id: UpgradeId.slingHeatSink,
+    id: SHIP_AND_POWER_UPGRADE_IDS.slingHeatSink,
     category: UpgradeCategory.ship,
     label: 'Slingshot Heat Sink',
     description: 'Cool slingshot heat faster, so you can sling more before overheating',
@@ -135,7 +153,7 @@ const shipAndPowerUpgrades: UpgradeDefinition[] = [
     ],
   },
   {
-    id: UpgradeId.powerRegen,
+    id: SHIP_AND_POWER_UPGRADE_IDS.powerRegen,
     category: UpgradeCategory.powers,
     label: 'Power Regen',
     description: 'Increase passive power regeneration',
@@ -146,7 +164,7 @@ const shipAndPowerUpgrades: UpgradeDefinition[] = [
     ],
   },
   {
-    id: UpgradeId.lifeRegen,
+    id: SHIP_AND_POWER_UPGRADE_IDS.lifeRegen,
     category: UpgradeCategory.powers,
     label: 'Life Regen',
     description: 'Slowly regenerate ship HP over time (none by default)',
@@ -157,7 +175,7 @@ const shipAndPowerUpgrades: UpgradeDefinition[] = [
     ],
   },
   {
-    id: UpgradeId.stardustMultiplier,
+    id: SHIP_AND_POWER_UPGRADE_IDS.stardustMultiplier,
     category: UpgradeCategory.powers,
     label: 'Stardust Yield',
     description: 'Multiplies the Stardust earned from every kill',
@@ -168,7 +186,7 @@ const shipAndPowerUpgrades: UpgradeDefinition[] = [
     ],
   },
   {
-    id: UpgradeId.spaceMetalChance,
+    id: SHIP_AND_POWER_UPGRADE_IDS.spaceMetalChance,
     category: UpgradeCategory.powers,
     label: 'Metal Detector',
     description: 'Increases the chance enemies drop Space Metal',
@@ -179,7 +197,7 @@ const shipAndPowerUpgrades: UpgradeDefinition[] = [
     ],
   },
   {
-    id: UpgradeId.powerPerKill,
+    id: SHIP_AND_POWER_UPGRADE_IDS.powerPerKill,
     category: UpgradeCategory.powers,
     label: 'Energy Siphon',
     description: 'Multiplies the power gained from each enemy kill',
@@ -194,10 +212,10 @@ const shipAndPowerUpgrades: UpgradeDefinition[] = [
 // Ship upgrades grouped under the Slingshot drill-down in the shop. The rest of
 // the ship-category upgrades stay at the top level.
 export const SLINGSHOT_UPGRADE_IDS: readonly UpgradeId[] = [
-  UpgradeId.slingPower,
-  UpgradeId.slingAccuracy,
-  UpgradeId.slingCooldown,
-  UpgradeId.slingHeatSink,
+  SHIP_AND_POWER_UPGRADE_IDS.slingPower,
+  SHIP_AND_POWER_UPGRADE_IDS.slingAccuracy,
+  SHIP_AND_POWER_UPGRADE_IDS.slingCooldown,
+  SHIP_AND_POWER_UPGRADE_IDS.slingHeatSink,
 ]
 
 export const UPGRADE_DEFINITIONS: Record<UpgradeId, UpgradeDefinition> = Object.fromEntries(
@@ -262,7 +280,7 @@ export const UPGRADE_CATEGORY_LABELS: Record<UpgradeCategory, string> = {
 
 export function createInitialUpgrades(): PlayerUpgrades {
   const upgrades = {} as PlayerUpgrades
-  for (const id of Object.values(UpgradeId)) {
+  for (const id of Object.keys(UPGRADE_DEFINITIONS) as UpgradeId[]) {
     upgrades[id] = { currentTier: 0 }
   }
   return upgrades
@@ -340,19 +358,31 @@ export function syncUltimateAbilities(
 
 export function applyUpgradesToShip(ship: Ship, upgrades: PlayerUpgrades): Ship {
   const base = SHIP_VARIANTS[ship.kind].stats
-  const maxHp = applyTierSum(base.maxHp, upgrades, UPGRADE_DEFINITIONS[UpgradeId.shipMaxHp])
-  const damage = applyTierSum(base.damage, upgrades, UPGRADE_DEFINITIONS[UpgradeId.shipDamage])
+  const maxHp = applyTierSum(
+    base.maxHp,
+    upgrades,
+    UPGRADE_DEFINITIONS[SHIP_AND_POWER_UPGRADE_IDS.shipMaxHp]
+  )
+  const damage = applyTierSum(
+    base.damage,
+    upgrades,
+    UPGRADE_DEFINITIONS[SHIP_AND_POWER_UPGRADE_IDS.shipDamage]
+  )
   const fireRate = applyTierSum(
     base.fireRate,
     upgrades,
-    UPGRADE_DEFINITIONS[UpgradeId.shipFireRate]
+    UPGRADE_DEFINITIONS[SHIP_AND_POWER_UPGRADE_IDS.shipFireRate]
   )
   const maxShield = applyTierSum(
     base.maxShield,
     upgrades,
-    UPGRADE_DEFINITIONS[UpgradeId.shipShieldStrength]
+    UPGRADE_DEFINITIONS[SHIP_AND_POWER_UPGRADE_IDS.shipShieldStrength]
   )
-  const speed = applyTierSum(base.speed, upgrades, UPGRADE_DEFINITIONS[UpgradeId.shipSpeed])
+  const speed = applyTierSum(
+    base.speed,
+    upgrades,
+    UPGRADE_DEFINITIONS[SHIP_AND_POWER_UPGRADE_IDS.shipSpeed]
+  )
 
   // Slingshot: Power adds coast speed (bounded only by its tier data), while
   // Control trims jitter, Cadence trims the cooldown, and Heat Sink adds
@@ -361,22 +391,40 @@ export function applyUpgradesToShip(ship: Ship, upgrades: PlayerUpgrades): Ship 
   const slingMaxSpeed = applyTierSum(
     SLINGSHOT.baseSpeed,
     upgrades,
-    UPGRADE_DEFINITIONS[UpgradeId.slingPower]
+    UPGRADE_DEFINITIONS[SHIP_AND_POWER_UPGRADE_IDS.slingPower]
   )
   const slingJitter = Math.max(
     SLINGSHOT.minJitter,
-    applyTierSum(SLINGSHOT.baseJitter, upgrades, UPGRADE_DEFINITIONS[UpgradeId.slingAccuracy], -1)
+    applyTierSum(
+      SLINGSHOT.baseJitter,
+      upgrades,
+      UPGRADE_DEFINITIONS[SHIP_AND_POWER_UPGRADE_IDS.slingAccuracy],
+      -1
+    )
   )
   const slingCooldown = Math.max(
     SLINGSHOT.minCooldown,
-    applyTierSum(SLINGSHOT.baseCooldown, upgrades, UPGRADE_DEFINITIONS[UpgradeId.slingCooldown], -1)
+    applyTierSum(
+      SLINGSHOT.baseCooldown,
+      upgrades,
+      UPGRADE_DEFINITIONS[SHIP_AND_POWER_UPGRADE_IDS.slingCooldown],
+      -1
+    )
   )
   const slingCoolRate = Math.min(
     SLINGSHOT.maxCoolRate,
-    applyTierSum(SLINGSHOT.baseCoolRate, upgrades, UPGRADE_DEFINITIONS[UpgradeId.slingHeatSink])
+    applyTierSum(
+      SLINGSHOT.baseCoolRate,
+      upgrades,
+      UPGRADE_DEFINITIONS[SHIP_AND_POWER_UPGRADE_IDS.slingHeatSink]
+    )
   )
 
-  const hpRegen = applyTierSum(0, upgrades, UPGRADE_DEFINITIONS[UpgradeId.lifeRegen])
+  const hpRegen = applyTierSum(
+    0,
+    upgrades,
+    UPGRADE_DEFINITIONS[SHIP_AND_POWER_UPGRADE_IDS.lifeRegen]
+  )
 
   const hpGain = maxHp - ship.maxHp
   const shieldGain = maxShield - ship.maxShield
@@ -398,22 +446,30 @@ export function applyUpgradesToShip(ship: Ship, upgrades: PlayerUpgrades): Ship 
 }
 
 export function applyUpgradesToPowerRegen(baseRegen: number, upgrades: PlayerUpgrades): number {
-  return applyTierSum(baseRegen, upgrades, UPGRADE_DEFINITIONS[UpgradeId.powerRegen])
+  return applyTierSum(
+    baseRegen,
+    upgrades,
+    UPGRADE_DEFINITIONS[SHIP_AND_POWER_UPGRADE_IDS.powerRegen]
+  )
 }
 
 // Multiplier (≥1) applied to Stardust earned from kills. 1 with no upgrade.
 export function getStardustMultiplier(upgrades: PlayerUpgrades): number {
-  return applyTierSum(1, upgrades, UPGRADE_DEFINITIONS[UpgradeId.stardustMultiplier])
+  return applyTierSum(
+    1,
+    upgrades,
+    UPGRADE_DEFINITIONS[SHIP_AND_POWER_UPGRADE_IDS.stardustMultiplier]
+  )
 }
 
 // Multiplier (≥1) applied to enemy Space Metal drop chances. 1 with no upgrade.
 export function getSpaceMetalDropMultiplier(upgrades: PlayerUpgrades): number {
-  return applyTierSum(1, upgrades, UPGRADE_DEFINITIONS[UpgradeId.spaceMetalChance])
+  return applyTierSum(1, upgrades, UPGRADE_DEFINITIONS[SHIP_AND_POWER_UPGRADE_IDS.spaceMetalChance])
 }
 
 // Multiplier (≥1) applied to the power a kill drops (power orb value). 1 with no upgrade.
 export function getPowerOrbMultiplier(upgrades: PlayerUpgrades): number {
-  return applyTierSum(1, upgrades, UPGRADE_DEFINITIONS[UpgradeId.powerPerKill])
+  return applyTierSum(1, upgrades, UPGRADE_DEFINITIONS[SHIP_AND_POWER_UPGRADE_IDS.powerPerKill])
 }
 
 export function getLevel(wave: number): number {

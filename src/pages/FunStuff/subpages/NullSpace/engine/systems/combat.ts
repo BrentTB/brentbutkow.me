@@ -3,7 +3,7 @@ import { checkCollision, distance, segmentIntersectsCircle } from '../math/colli
 import { homeTowardTarget } from '../math/homing'
 import { spawnExplosionParticles } from '../entities/entity-creator'
 import { applyDamageToShip } from '../entities/ship'
-import { createNuclearWasteEffect } from './effects'
+import { createNuclearWasteEffect } from '../ship/nuke'
 import { canEnemyTakeDamage } from '../bosses/index'
 import { DeathBehavior, EffectKind, ProjectileOwner } from '../types'
 import type { ActiveEffect, Ally, Enemy, Particle, Projectile, Ship, Vec2 } from '../types'

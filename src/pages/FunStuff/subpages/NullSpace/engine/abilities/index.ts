@@ -1,14 +1,6 @@
 import { WEAPON_ORDER } from '../../data'
 import { AbilityKind } from '../types'
-import type {
-  Ability,
-  ActiveEffect,
-  Ally,
-  Ship,
-  UpgradeDefinition,
-  UpgradeId,
-  Vec2,
-} from '../types'
+import type { Ability, ActiveEffect, Ally, Ship, UpgradeDefinition, Vec2 } from '../types'
 
 import { meteorite } from './meteorite'
 import { meteor } from './meteor'
@@ -21,6 +13,7 @@ import { telekinesis } from './telekinesis'
 import { solarFlare } from './solar-flare'
 import { cometShower } from './comet-shower'
 import { meteorShower } from './meteor-shower'
+import type { UpgradeId } from '../upgrade-ids'
 import type { AbilityDefinition, UltimateDescriptor } from './ability-definition'
 import type { IconName } from '../../icon-names'
 

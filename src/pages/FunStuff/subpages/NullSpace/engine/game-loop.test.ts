@@ -22,8 +22,8 @@ import {
   ProjectileOwner,
   ShipKind,
   ShipWeaponKind,
-  UpgradeId,
 } from './types'
+import { UpgradeId } from './upgrade-ids'
 import { isUpgradeWave } from './upgrades'
 import { BOSS_KINDS } from './bosses/index'
 import { ENEMY_STATS, POWER_DEFAULTS, WAVES_PER_LEVEL } from '../data'

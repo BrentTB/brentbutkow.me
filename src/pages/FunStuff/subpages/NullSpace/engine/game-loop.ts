@@ -20,7 +20,8 @@ import {
   tryCollectSpaceMetal,
   updateCollectibles,
 } from './systems/collectibles'
-import { applyShieldConstraints, updateActiveEffects } from './systems/effects'
+import { applyShieldConstraints } from './abilities/shield'
+import { updateActiveEffects } from './systems/effects'
 import { MAX_DT } from './world/time'
 import { processSpawnQueue } from './systems/spawner'
 import {
@@ -66,7 +67,8 @@ import { loadHighScore, saveHighScore } from './world/persistence'
 import { rng } from './math/random'
 import { getShipWeaponForUnlockUpgrade, SHIP_WEAPON_LIST } from './ship'
 import { GamePhase, ShipKind, ShipWeaponKind } from './types'
-import type { AbilityKind, GameState, PlayerInput, UpgradeId } from './types'
+import type { AbilityKind, GameState, PlayerInput } from './types'
+import type { UpgradeId } from './upgrade-ids'
 
 // Weapons a fresh run starts with — derived from each weapon's startsUnlocked
 // flag so the registry stays the single source of truth.

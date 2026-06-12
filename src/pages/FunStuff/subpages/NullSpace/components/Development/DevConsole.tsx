@@ -4,7 +4,8 @@ import { BOSS_KINDS, getBossDefinition } from '../../engine/bosses/index'
 import { SHIP_ORDER, SHIP_VARIANTS } from '../../engine/ship/ship-data'
 import { WEAPON_ORDER } from '../../data'
 import { GamePhase, ShipKind } from '../../engine/types'
-import type { DevPatch, GameUIState } from '../../useNullSpace'
+import type { DevPatch } from '../../engine/dev-tools'
+import type { GameUIState } from '../../useNullSpace'
 import styles from './DevConsole.module.scss'
 
 type DevConsoleProps = {

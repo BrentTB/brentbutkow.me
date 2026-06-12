@@ -10,32 +10,31 @@ import { DeathBehavior, EnemyKind, MovementBehavior, ShipKind, ShipWeaponKind } 
 import type { Ship, Enemy, Projectile, Vec2, Ally, Particle } from '../types'
 import { rng } from '../math/random'
 import { SHIP_VARIANTS } from '../ship/ship-data'
-import { getBossDefinition, isBoss } from '../bosses/index'
+import { getBossDefinition } from '../bosses/index'
+import type { BossEnemyKind } from '../bosses/boss-definition'
 
-const ENEMY_MOVEMENT: Record<EnemyKind, MovementBehavior> = {
+// Bosses aren't listed here — they declare movement on their BossDefinition
+// and always die with DeathBehavior.boss. Exhaustive over the remaining kinds.
+type NonBossEnemyKind = Exclude<EnemyKind, BossEnemyKind>
+
+const ENEMY_MOVEMENT: Record<NonBossEnemyKind, MovementBehavior> = {
   [EnemyKind.drone]: MovementBehavior.chase,
   [EnemyKind.tank]: MovementBehavior.chase,
   [EnemyKind.shooter]: MovementBehavior.keepRange,
   [EnemyKind.swarm]: MovementBehavior.zigzag,
   [EnemyKind.bomber]: MovementBehavior.chase,
-  [EnemyKind.dreadnought]: MovementBehavior.approach,
   [EnemyKind.shieldGenerator]: MovementBehavior.stationary,
-  [EnemyKind.voidWorm]: MovementBehavior.none,
   [EnemyKind.wormSegment]: MovementBehavior.none,
-  [EnemyKind.phaseShifter]: MovementBehavior.stationary,
 }
 
-const ENEMY_DEATH: Record<EnemyKind, DeathBehavior> = {
+const ENEMY_DEATH: Record<NonBossEnemyKind, DeathBehavior> = {
   [EnemyKind.drone]: DeathBehavior.none,
   [EnemyKind.tank]: DeathBehavior.none,
   [EnemyKind.shooter]: DeathBehavior.none,
   [EnemyKind.swarm]: DeathBehavior.none,
   [EnemyKind.bomber]: DeathBehavior.explode,
-  [EnemyKind.dreadnought]: DeathBehavior.boss,
   [EnemyKind.shieldGenerator]: DeathBehavior.none,
-  [EnemyKind.voidWorm]: DeathBehavior.boss,
   [EnemyKind.wormSegment]: DeathBehavior.none,
-  [EnemyKind.phaseShifter]: DeathBehavior.boss,
 }
 
 // IDs must be unique across the whole session — including across Vite HMR
@@ -89,6 +88,9 @@ export function createShip(kind: ShipKind, worldSize: Vec2): Ship {
 
 export function createEnemy(kind: Enemy['kind'], pos: Vec2): Enemy {
   const stats = ENEMY_STATS[kind]
+  // bossDef === undefined means `kind` is a non-boss kind; TypeScript can't
+  // correlate the two, hence the casts on the table lookups.
+  const bossDef = getBossDefinition(kind)
   const base: Enemy = {
     id: uid(),
     pos: { ...pos },
@@ -104,14 +106,11 @@ export function createEnemy(kind: Enemy['kind'], pos: Vec2): Enemy {
     fireRate: 'fireRate' in stats ? stats.fireRate : 0,
     fireCooldown: 0,
     attackRange: 'attackRange' in stats ? stats.attackRange : 0,
-    movementBehavior: ENEMY_MOVEMENT[kind],
-    deathBehavior: ENEMY_DEATH[kind],
+    movementBehavior: bossDef?.movement ?? ENEMY_MOVEMENT[kind as NonBossEnemyKind],
+    deathBehavior: bossDef ? DeathBehavior.boss : ENEMY_DEATH[kind as NonBossEnemyKind],
     age: 0,
   }
-  if (isBoss(kind)) {
-    const def = getBossDefinition(kind)
-    if (def) base.boss = def.initialState()
-  }
+  if (bossDef) base.boss = bossDef.initialState()
   return base
 }
 

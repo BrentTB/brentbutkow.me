@@ -1,6 +1,13 @@
+import { ABILITY_LIST } from '../../engine/abilities'
 import { SPACE_METAL_ABILITIES } from '../../engine/spaceMetalAbilities'
 import sharedStyles from '../OverlayShared.module.scss'
 import styles from './HelpScreen.module.scss'
+
+// Names of the channelled (hold-to-cast) abilities, derived from the registry
+// so the help text never drifts when a hold ability is added or renamed.
+const holdAbilityNames = ABILITY_LIST.filter((a) => a.activation === 'hold')
+  .map((a) => a.meta.label)
+  .join(', ')
 
 type HelpScreenProps = {
   onClose: () => void
@@ -26,7 +33,7 @@ export function HelpScreen({ onClose }: HelpScreenProps) {
             <kbd>Click</kbd> anywhere in space to cast the selected ability at that spot.
           </li>
           <li>
-            <kbd>Hold</kbd> click for channelled abilities (Telekinesis, Solar Flare).
+            <kbd>Hold</kbd> click for channelled abilities ({holdAbilityNames}).
           </li>
           <li>
             <kbd>1</kbd>&nbsp;<kbd>2</kbd>&nbsp;<kbd>3</kbd>&nbsp;… switch ability. Slots fill in

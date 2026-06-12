@@ -1,11 +1,35 @@
-import { EnemyKind, ShifterStage } from '../types'
-import type { ShifterRuntime, Vec2 } from '../types'
+import { EnemyKind, MovementBehavior } from '../types'
+import type { Enemy, Vec2 } from '../types'
 import { rng } from '../math/random'
-import { clamp } from '../math/utils'
-import type { BossDefinition, BossUpdateResult, DropSpec, SpawnSpec } from './boss-definition'
+import { clampToWorld } from '../math/utils'
+import { ringPositions } from '../math/vec'
+import type { Camera } from '../../renderer/camera'
+import { isWithinView, worldToScreen } from '../../renderer/camera'
+import { bossPhase, getBossRuntime } from './boss-definition'
+import type {
+  BossDefinition,
+  BossRuntimeBase,
+  BossUpdateResult,
+  DropSpec,
+  SpawnSpec,
+} from './boss-definition'
 import { metalBurst } from './loot'
 
-// Exported — the renderer scales the telegraph X's alpha by telegraphDuration.
+export const ShifterStage = { idle: 'idle', telegraph: 'telegraph' } as const
+export type ShifterStage = (typeof ShifterStage)[keyof typeof ShifterStage]
+
+// Phase Shifter runtime: the teleport cycle. targetPos is set only while
+// telegraphing.
+export type PhaseShifterRuntime = BossRuntimeBase & {
+  kind: typeof EnemyKind.phaseShifter
+  stage: ShifterStage
+  stageTimer: number
+  targetPos: Vec2 | null
+}
+
+// The per-tick slice of the runtime the teleport cycle rewrites.
+type ShifterCycle = Pick<PhaseShifterRuntime, 'stage' | 'stageTimer' | 'targetPos'>
+
 export const PHASE_SHIFTER = {
   telegraphDuration: 2.5,
   // Phase 2 (HP ≤ 50%) teleports on a tighter cycle with a bigger ring.
@@ -24,64 +48,91 @@ export const PHASE_SHIFTER = {
 function rollTeleportTarget(shipPos: Vec2, worldSize: Vec2): Vec2 {
   const angle = rng.range(0, Math.PI * 2)
   const dist = rng.range(PHASE_SHIFTER.arrivalMin, PHASE_SHIFTER.arrivalMax)
-  return {
-    x: clamp(
-      shipPos.x + Math.cos(angle) * dist,
-      PHASE_SHIFTER.worldMargin,
-      worldSize.x - PHASE_SHIFTER.worldMargin
-    ),
-    y: clamp(
-      shipPos.y + Math.sin(angle) * dist,
-      PHASE_SHIFTER.worldMargin,
-      worldSize.y - PHASE_SHIFTER.worldMargin
-    ),
-  }
+  return clampToWorld(
+    { x: shipPos.x + Math.cos(angle) * dist, y: shipPos.y + Math.sin(angle) * dist },
+    worldSize,
+    PHASE_SHIFTER.worldMargin
+  )
 }
 
 // Evenly-spaced swarm ring around the arrival point.
 function ringSpecs(center: Vec2, count: number): SpawnSpec[] {
-  const specs: SpawnSpec[] = []
-  for (let i = 0; i < count; i++) {
-    const angle = (i * 2 * Math.PI) / count
-    specs.push({
-      kind: EnemyKind.swarm,
-      pos: {
-        x: center.x + Math.cos(angle) * PHASE_SHIFTER.ringRadius,
-        y: center.y + Math.sin(angle) * PHASE_SHIFTER.ringRadius,
-      },
-    })
-  }
-  return specs
+  return ringPositions(center, PHASE_SHIFTER.ringRadius, count).map((pos) => ({
+    kind: EnemyKind.swarm,
+    pos,
+  }))
+}
+
+// True while the boss is mid-shift — it renders as a ghost (no shield bubble)
+// and the telegraph X marks its destination.
+function isMidShift(boss: Enemy): boolean {
+  return getBossRuntime(boss, EnemyKind.phaseShifter)?.stage === ShifterStage.telegraph
+}
+
+// Big red X + dashed swarm-ring circle at the teleport destination, sharpening
+// as the jump nears (same ramp as the meteor warning).
+function renderTelegraph(ctx: CanvasRenderingContext2D, boss: Enemy, camera: Camera): void {
+  const shifter = getBossRuntime(boss, EnemyKind.phaseShifter)
+  if (shifter?.stage !== ShifterStage.telegraph || !shifter.targetPos) return
+  const screen = worldToScreen(shifter.targetPos, camera)
+  if (!isWithinView(screen, camera, PHASE_SHIFTER.ringRadius + 20)) return
+  const progress = 1 - shifter.stageTimer / PHASE_SHIFTER.telegraphDuration
+
+  ctx.save()
+  ctx.globalAlpha = 0.3 + progress * 0.5
+  ctx.strokeStyle = '#ff5050'
+
+  const arm = 40
+  ctx.lineWidth = 3
+  ctx.beginPath()
+  ctx.moveTo(screen.x - arm, screen.y - arm)
+  ctx.lineTo(screen.x + arm, screen.y + arm)
+  ctx.moveTo(screen.x - arm, screen.y + arm)
+  ctx.lineTo(screen.x + arm, screen.y - arm)
+  ctx.stroke()
+
+  // Where the swarm ring will materialise.
+  ctx.lineWidth = 1.5
+  ctx.setLineDash([6, 6])
+  ctx.beginPath()
+  ctx.arc(screen.x, screen.y, PHASE_SHIFTER.ringRadius, 0, Math.PI * 2)
+  ctx.stroke()
+
+  ctx.restore()
 }
 
 export const PHASE_SHIFTER_BOSS: BossDefinition = {
   kind: EnemyKind.phaseShifter,
   hpBarLabel: 'PHASE SHIFTER',
+  // Parked between teleports; the teleport cycle moves it.
+  movement: MovementBehavior.stationary,
 
-  initialState: () => ({
+  // Mid-shift the boss is phasing out of reality — a faint ghost, no bubble.
+  spriteAlpha: (boss) => (isMidShift(boss) ? 0.35 : 1),
+  hideShieldBubble: isMidShift,
+  renderBack: renderTelegraph,
+
+  initialState: (): PhaseShifterRuntime => ({
+    kind: EnemyKind.phaseShifter,
     phase: 1,
-    droneSpawnTimer: 0,
     linkedIds: [],
     hasSpawned: false,
-    shifter: {
-      stage: ShifterStage.idle,
-      stageTimer: PHASE_SHIFTER.idleDurationP1,
-      targetPos: null,
-    },
+    stage: ShifterStage.idle,
+    stageTimer: PHASE_SHIFTER.idleDurationP1,
+    targetPos: null,
   }),
 
   // Untouchable for the whole shift — telegraph start through arrival.
-  canTakeDamage: (boss) => boss.boss?.shifter?.stage !== ShifterStage.telegraph,
+  canTakeDamage: (boss) => !isMidShift(boss),
 
   onUpdate: (boss, dt, ctx): BossUpdateResult => {
-    // boss-ai only invokes onUpdate on confirmed boss enemies, so boss.boss is set.
-    const runtime = boss.boss!
-    const shifter = runtime.shifter!
-    const phase = boss.hp <= boss.maxHp * 0.5 ? 2 : 1
+    // boss-ai only invokes onUpdate on this boss's own enemies.
+    const shifter = getBossRuntime(boss, EnemyKind.phaseShifter)!
+    const phase = bossPhase(boss)
     const idleDuration = phase === 2 ? PHASE_SHIFTER.idleDurationP2 : PHASE_SHIFTER.idleDurationP1
     const stageTimer = shifter.stageTimer - dt
 
-    let next: ShifterRuntime = { ...shifter, stageTimer }
+    let next: ShifterCycle = { stage: shifter.stage, stageTimer, targetPos: shifter.targetPos }
     let self: BossUpdateResult['self']
     let spawns: SpawnSpec[] = []
 
@@ -103,7 +154,7 @@ export const PHASE_SHIFTER_BOSS: BossDefinition = {
       next = { stage: ShifterStage.idle, stageTimer: idleDuration, targetPos: null }
     }
 
-    return { updatedRuntime: { ...runtime, phase, shifter: next }, spawns, self }
+    return { updatedRuntime: { ...shifter, phase, ...next }, spawns, self }
   },
 
   onDeath: (boss): DropSpec[] => metalBurst(boss.pos, 1, 4),

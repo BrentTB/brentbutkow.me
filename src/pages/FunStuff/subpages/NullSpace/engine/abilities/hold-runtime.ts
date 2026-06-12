@@ -1,6 +1,18 @@
-import type { Ability, Enemy, HoldRuntimeState, Particle, Vec2 } from '../types'
+import type { Ability, Enemy, GameState, HoldRuntimeState, Particle, Vec2 } from '../types'
+import type { Camera } from '../../renderer/camera'
 
 export type { HoldRuntimeState } from '../types'
+
+// World-layer drawing while the hold is active (target set). The renderer
+// calls these generically for every hold ability — renderBack draws beneath
+// entities, renderFront on top of them.
+export type HoldRenderFn = (
+  ctx: CanvasRenderingContext2D,
+  ability: Ability,
+  target: Vec2,
+  state: GameState,
+  camera: Camera
+) => void
 
 export const INACTIVE_HOLD_STATE: HoldRuntimeState = {
   active: false,
@@ -28,6 +40,9 @@ export type HoldAbilityConfig = {
   onFrame?: (bag: HoldBag, ability: Ability, holdPos: Vec2, dt: number) => HoldBag
   // Fires on each drain tick (tick-based abilities only).
   onTick?: (bag: HoldBag, ability: Ability, holdPos: Vec2) => HoldBag
+  // Drawn while the hold is active — beneath / on top of entities.
+  renderBack?: HoldRenderFn
+  renderFront?: HoldRenderFn
 }
 
 export function runHoldAbility(params: {
