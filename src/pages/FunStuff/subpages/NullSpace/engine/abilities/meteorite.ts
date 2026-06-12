@@ -1,8 +1,12 @@
 import { COMET_SHOWER, METEORITE_STRIKE } from './ability-data'
 import { createMeteoriteEffect } from './meteor-strike'
-import { AbilityKind, UpgradeCategory } from '../types'
-import type { UpgradeDefinition } from '../types'
-import { applyCostReduction, applyTierSum, type AbilityDefinition } from './ability-definition'
+import { AbilityKind } from '../types'
+import {
+  makeAbilityUpgrade,
+  applyCostReduction,
+  applyTierSum,
+  type AbilityDefinition,
+} from './ability-definition'
 import { IconName } from '../../icon-names'
 
 export const METEORITE_UPGRADE_IDS = {
@@ -10,10 +14,10 @@ export const METEORITE_UPGRADE_IDS = {
   meteoriteCostReduction: 'meteoriteCostReduction',
 } as const
 
-const damageUpgrade: UpgradeDefinition = {
+const upgrade = makeAbilityUpgrade(AbilityKind.meteorite)
+
+const damageUpgrade = upgrade({
   id: METEORITE_UPGRADE_IDS.meteoriteDamage,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.meteorite,
   label: 'Damage',
   description: 'Increase meteorite strike damage',
   tiers: [
@@ -23,12 +27,10 @@ const damageUpgrade: UpgradeDefinition = {
     { cost: 160, value: 15 },
     { cost: 320, value: 25 },
   ],
-}
+})
 
-const costUpgrade: UpgradeDefinition = {
+const costUpgrade = upgrade({
   id: METEORITE_UPGRADE_IDS.meteoriteCostReduction,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.meteorite,
   label: 'Efficiency',
   description: 'Reduce meteorite power cost',
   tiers: [
@@ -36,7 +38,7 @@ const costUpgrade: UpgradeDefinition = {
     { cost: 32, value: 1 },
     { cost: 128, value: 1 },
   ],
-}
+})
 
 export const meteorite: AbilityDefinition = {
   kind: AbilityKind.meteorite,

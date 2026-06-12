@@ -1,8 +1,12 @@
 import { TELEKINESIS } from './ability-data'
-import { AbilityKind, UpgradeCategory } from '../types'
-import type { UpgradeDefinition } from '../types'
+import { AbilityKind } from '../types'
 import { worldToScreen } from '../../renderer/camera'
-import { applyCostReduction, applyTierSum, type AbilityDefinition } from './ability-definition'
+import {
+  makeAbilityUpgrade,
+  applyCostReduction,
+  applyTierSum,
+  type AbilityDefinition,
+} from './ability-definition'
 import { IconName } from '../../icon-names'
 import type { HoldAbilityConfig } from './hold-runtime'
 
@@ -13,43 +17,37 @@ export const TELEKINESIS_UPGRADE_IDS = {
   telekinesisForce: 'telekinesisForce',
 } as const
 
-const unlockUpgrade: UpgradeDefinition = {
+const upgrade = makeAbilityUpgrade(AbilityKind.telekinesis)
+
+const unlockUpgrade = upgrade({
   id: TELEKINESIS_UPGRADE_IDS.unlockTelekinesis,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.telekinesis,
   label: 'Unlock Telekinesis',
   description: 'Hold to push enemies away with a force field',
   tiers: [{ cost: 35, value: 1 }],
-}
+})
 
-const radiusUpgrade: UpgradeDefinition = {
+const radiusUpgrade = upgrade({
   id: TELEKINESIS_UPGRADE_IDS.telekinesisRadius,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.telekinesis,
   label: 'Radius',
   description: 'Increase telekinesis field radius',
   tiers: [
     { cost: 15, value: 30 },
     { cost: 60, value: 50 },
   ],
-}
+})
 
-const costUpgrade: UpgradeDefinition = {
+const costUpgrade = upgrade({
   id: TELEKINESIS_UPGRADE_IDS.telekinesisCostReduction,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.telekinesis,
   label: 'Efficiency',
   description: 'Reduce telekinesis power drain per second',
   tiers: [
     { cost: 12, value: 3 },
     { cost: 48, value: 4 },
   ],
-}
+})
 
-const forceUpgrade: UpgradeDefinition = {
+const forceUpgrade = upgrade({
   id: TELEKINESIS_UPGRADE_IDS.telekinesisForce,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.telekinesis,
   label: 'Force',
   description: 'Increase telekinesis push strength',
   tiers: [
@@ -57,7 +55,7 @@ const forceUpgrade: UpgradeDefinition = {
     { cost: 60, value: 125 },
     { cost: 200, value: 200 },
   ],
-}
+})
 
 // Plateau falloff: full force inside ~25% of the radius, smooth cosine drop
 // to zero at the edge. Fine-positioning the cursor isn't required to apply

@@ -1,11 +1,11 @@
 import { SUN } from './ability-data'
 import { damageEnemiesInRadius } from '../math/aoe'
 import { uid } from '../entities/entity-creator'
-import { AbilityKind, EffectKind, UpgradeCategory } from '../types'
-import type { SunEffect, UpgradeDefinition, Vec2 } from '../types'
+import { AbilityKind, EffectKind } from '../types'
+import type { SunEffect, Vec2 } from '../types'
 import type { Camera } from '../../renderer/camera'
 import { worldToScreen } from '../../renderer/camera'
-import { applyTierSum, type AbilityDefinition } from './ability-definition'
+import { makeAbilityUpgrade, applyTierSum, type AbilityDefinition } from './ability-definition'
 import type {
   EffectDefinition,
   EffectTickContext,
@@ -21,19 +21,17 @@ export const SUN_UPGRADE_IDS = {
   sunRadius: 'sunRadius',
 } as const
 
-const unlockUpgrade: UpgradeDefinition = {
+const upgrade = makeAbilityUpgrade(AbilityKind.sun)
+
+const unlockUpgrade = upgrade({
   id: SUN_UPGRADE_IDS.unlockSun,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.sun,
   label: 'Unlock Sun',
   description: 'Unlock the devastating Sun',
   tiers: [{ cost: 50, value: 1 }],
-}
+})
 
-const damageUpgrade: UpgradeDefinition = {
+const damageUpgrade = upgrade({
   id: SUN_UPGRADE_IDS.sunDamage,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.sun,
   label: 'Damage',
   description: 'Increase sun damage per second',
   tiers: [
@@ -43,24 +41,20 @@ const damageUpgrade: UpgradeDefinition = {
     { cost: 400, value: 18 },
     { cost: 800, value: 25 },
   ],
-}
+})
 
-const durationUpgrade: UpgradeDefinition = {
+const durationUpgrade = upgrade({
   id: SUN_UPGRADE_IDS.sunDuration,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.sun,
   label: 'Duration',
   description: 'Increase sun duration',
   tiers: [
     { cost: 20, value: 1 },
     { cost: 80, value: 2 },
   ],
-}
+})
 
-const radiusUpgrade: UpgradeDefinition = {
+const radiusUpgrade = upgrade({
   id: SUN_UPGRADE_IDS.sunRadius,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.sun,
   label: 'Range',
   description: 'Increase sun radiation radius',
   tiers: [
@@ -68,7 +62,7 @@ const radiusUpgrade: UpgradeDefinition = {
     { cost: 60, value: 50 },
     { cost: 200, value: 80 },
   ],
-}
+})
 
 export function createSunEffect(
   pos: Vec2,

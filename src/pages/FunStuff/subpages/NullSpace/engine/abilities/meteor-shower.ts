@@ -1,9 +1,13 @@
 import { METEOR_SHOWER, METEOR_STRIKE } from './ability-data'
 import { createMeteorEffect } from './meteor-strike'
 import { ringPositions } from '../math/vec'
-import { AbilityKind, UpgradeCategory } from '../types'
-import type { UpgradeDefinition } from '../types'
-import { applyTierSum, composeUltimateUpgrades, type AbilityDefinition } from './ability-definition'
+import { AbilityKind } from '../types'
+import {
+  makeAbilityUpgrade,
+  applyTierSum,
+  composeUltimateUpgrades,
+  type AbilityDefinition,
+} from './ability-definition'
 import { meteor } from './meteor'
 import { IconName } from '../../icon-names'
 
@@ -11,10 +15,10 @@ export const METEOR_SHOWER_UPGRADE_IDS = {
   meteorShowerCount: 'meteorShowerCount',
 } as const
 
-const countUpgrade: UpgradeDefinition = {
+const upgrade = makeAbilityUpgrade(AbilityKind.meteorShower)
+
+const countUpgrade = upgrade({
   id: METEOR_SHOWER_UPGRADE_IDS.meteorShowerCount,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.meteorShower,
   label: 'Meteor Count',
   description: 'Add another meteor to the ring',
   tiers: [
@@ -22,7 +26,7 @@ const countUpgrade: UpgradeDefinition = {
     { cost: 220, value: 1 },
     { cost: 500, value: 1 },
   ],
-}
+})
 
 // First ring meteor sits on a diagonal so the base 4 reproduce NE/SE/SW/NW.
 const RING_START_ANGLE = Math.PI / 4

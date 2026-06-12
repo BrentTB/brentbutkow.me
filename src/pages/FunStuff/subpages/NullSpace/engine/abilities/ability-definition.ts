@@ -9,6 +9,7 @@ import type {
   UpgradeDefinition,
   Vec2,
 } from '../types'
+import { UpgradeCategory } from '../types'
 import type { HoldAbilityConfig } from './hold-runtime'
 import type { IconName } from '../../icon-names'
 
@@ -90,6 +91,15 @@ export function composeUltimateUpgrades(
     delete basePatch.unlocked
     return { ...basePatch, ...overrides(basePatch, upgrades) }
   }
+}
+
+// Binds an ability so each of its upgrades declares only id/label/description/
+// tiers — the shared category + weapon fields are injected once per file. Cuts
+// the per-upgrade boilerplate and the copy-paste risk of a stale weapon tag.
+export function makeAbilityUpgrade(
+  weapon: AbilityKind
+): (def: Omit<UpgradeDefinition, 'category' | 'weapon'>) => UpgradeDefinition {
+  return (def) => ({ ...def, category: UpgradeCategory.weapons, weapon })
 }
 
 // Helper: sum the values of the first N tiers of an upgrade onto a base value.

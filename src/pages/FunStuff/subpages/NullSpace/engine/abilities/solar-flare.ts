@@ -3,10 +3,15 @@ import { canEnemyTakeDamage } from '../bosses/index'
 import { distance } from '../math/collision'
 import { createParticle, spawnExplosionParticles } from '../entities/entity-creator'
 import { rng } from '../math/random'
-import { AbilityKind, UpgradeCategory } from '../types'
-import type { Enemy, UpgradeDefinition } from '../types'
+import { AbilityKind } from '../types'
+import type { Enemy } from '../types'
 import { worldToScreen } from '../../renderer/camera'
-import { applyCostReduction, applyTierSum, type AbilityDefinition } from './ability-definition'
+import {
+  makeAbilityUpgrade,
+  applyCostReduction,
+  applyTierSum,
+  type AbilityDefinition,
+} from './ability-definition'
 import { IconName } from '../../icon-names'
 import type { HoldAbilityConfig } from './hold-runtime'
 
@@ -17,19 +22,17 @@ export const SOLAR_FLARE_UPGRADE_IDS = {
   solarFlareRadius: 'solarFlareRadius',
 } as const
 
-const unlockUpgrade: UpgradeDefinition = {
+const upgrade = makeAbilityUpgrade(AbilityKind.solarFlare)
+
+const unlockUpgrade = upgrade({
   id: SOLAR_FLARE_UPGRADE_IDS.unlockSolarFlare,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.solarFlare,
   label: 'Unlock Solar Flare',
   description: 'Hold to emit a continuous damage beam toward your cursor',
   tiers: [{ cost: 40, value: 1 }],
-}
+})
 
-const damageUpgrade: UpgradeDefinition = {
+const damageUpgrade = upgrade({
   id: SOLAR_FLARE_UPGRADE_IDS.solarFlareDamage,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.solarFlare,
   label: 'Damage',
   description: 'Increase solar flare damage per tick',
   tiers: [
@@ -39,24 +42,20 @@ const damageUpgrade: UpgradeDefinition = {
     { cost: 400, value: 15 },
     { cost: 800, value: 20 },
   ],
-}
+})
 
-const efficiencyUpgrade: UpgradeDefinition = {
+const efficiencyUpgrade = upgrade({
   id: SOLAR_FLARE_UPGRADE_IDS.solarFlareEfficiency,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.solarFlare,
   label: 'Efficiency',
   description: 'Reduce solar flare power drain per second',
   tiers: [
     { cost: 20, value: 2 },
     { cost: 80, value: 2 },
   ],
-}
+})
 
-const radiusUpgrade: UpgradeDefinition = {
+const radiusUpgrade = upgrade({
   id: SOLAR_FLARE_UPGRADE_IDS.solarFlareRadius,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.solarFlare,
   label: 'Range',
   description: 'Increase solar flare beam width',
   tiers: [
@@ -64,7 +63,7 @@ const radiusUpgrade: UpgradeDefinition = {
     { cost: 60, value: 25 },
     { cost: 200, value: 35 },
   ],
-}
+})
 
 const HOT_COLORS = ['#ffffff', '#fff2b0', '#ffe066', '#ffc24a']
 const OUTER_COLORS = ['#ff8833', '#ff6622', '#ffaa44']

@@ -179,7 +179,7 @@ src/pages/FunStuff/subpages/NullSpace/
 
 src/pages/FunStuff/subpages/NullSpace/engine/abilities/
   ability-data.ts                            METEORITE_STRIKE, METEOR_STRIKE, COMET_SHOWER, METEOR_SHOWER, BLACK_HOLE, ROCKET, SHIELD, SUN, HELPER, TELEKINESIS, SOLAR_FLARE
-  ability-definition.ts                      AbilityActivation, UltimateCost, UltimateContext, UltimatePrerequisite, UltimateDescriptor, AbilityDefinition, composeUltimateUpgrades, applyTierSum, applyCostReduction
+  ability-definition.ts                      AbilityActivation, UltimateCost, UltimateContext, UltimatePrerequisite, UltimateDescriptor, AbilityDefinition, composeUltimateUpgrades, makeAbilityUpgrade, applyTierSum, applyCostReduction
   black-hole.ts                              BLACK_HOLE_UPGRADE_IDS, createBlackHoleEffect, blackHoleEffect, blackHole
   comet-shower.ts                            COMET_SHOWER_UPGRADE_IDS, cometShower
   helper.ts                                  HELPER_UPGRADE_IDS, helper
@@ -235,7 +235,7 @@ src/pages/FunStuff/subpages/NullSpace/engine/ship/
   ricochet.ts                                RICOCHET_UPGRADE_IDS, ricochet
   ship-data.ts                               ShipVariantStats, ShipVariantConfig, STAT_MAX, SHIP_ORDER, SHIP_VARIANTS
   ship-weapon-data.ts                        BULLET, LASER, MISSILE, RICOCHET, NUKE
-  ship-weapon-definition.ts                  ShipWeaponDefinition, WeaponProjectileOpts, buildShipProjectile
+  ship-weapon-definition.ts                  ShipWeaponDefinition, makeLoadoutUpgrade, WeaponProjectileOpts, buildShipProjectile
 
 src/pages/FunStuff/subpages/NullSpace/engine/spaceMetalAbilities/
   escape-mode.ts                             ESCAPE_MODE, escapeDash

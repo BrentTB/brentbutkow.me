@@ -1,8 +1,12 @@
 import { HELPER } from './ability-data'
 import { createAlly } from '../entities/entity-creator'
-import { AbilityKind, UpgradeCategory } from '../types'
-import type { UpgradeDefinition } from '../types'
-import { applyCostReduction, applyTierSum, type AbilityDefinition } from './ability-definition'
+import { AbilityKind } from '../types'
+import {
+  makeAbilityUpgrade,
+  applyCostReduction,
+  applyTierSum,
+  type AbilityDefinition,
+} from './ability-definition'
 import { IconName } from '../../icon-names'
 
 export const HELPER_UPGRADE_IDS = {
@@ -12,19 +16,17 @@ export const HELPER_UPGRADE_IDS = {
   helperCostReduction: 'helperCostReduction',
 } as const
 
-const unlockUpgrade: UpgradeDefinition = {
+const upgrade = makeAbilityUpgrade(AbilityKind.helper)
+
+const unlockUpgrade = upgrade({
   id: HELPER_UPGRADE_IDS.unlockHelper,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.helper,
   label: 'Unlock Helper',
   description: 'Summon a ranged ally to fight alongside your ship',
   tiers: [{ cost: 30, value: 1 }],
-}
+})
 
-const maxHpUpgrade: UpgradeDefinition = {
+const maxHpUpgrade = upgrade({
   id: HELPER_UPGRADE_IDS.helperMaxHp,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.helper,
   label: 'Max Health',
   description: 'Increase ally maximum health',
   tiers: [
@@ -32,12 +34,10 @@ const maxHpUpgrade: UpgradeDefinition = {
     { cost: 70, value: 20 },
     { cost: 200, value: 30 },
   ],
-}
+})
 
-const damageUpgrade: UpgradeDefinition = {
+const damageUpgrade = upgrade({
   id: HELPER_UPGRADE_IDS.helperDamage,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.helper,
   label: 'Damage',
   description: 'Increase ally attack damage',
   tiers: [
@@ -47,19 +47,17 @@ const damageUpgrade: UpgradeDefinition = {
     { cost: 400, value: 4 },
     { cost: 800, value: 5 },
   ],
-}
+})
 
-const costUpgrade: UpgradeDefinition = {
+const costUpgrade = upgrade({
   id: HELPER_UPGRADE_IDS.helperCostReduction,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.helper,
   label: 'Efficiency',
   description: 'Reduce helper power cost',
   tiers: [
     { cost: 15, value: 8 },
     { cost: 60, value: 10 },
   ],
-}
+})
 
 export const helper: AbilityDefinition = {
   kind: AbilityKind.helper,

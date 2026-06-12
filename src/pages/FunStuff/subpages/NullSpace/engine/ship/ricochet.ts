@@ -1,9 +1,12 @@
 import { applyTierSum } from '../abilities/ability-definition'
-import { ShipWeaponKind, UpgradeCategory } from '../types'
-import type { UpgradeDefinition } from '../types'
+import { ShipWeaponKind } from '../types'
 import { IconName } from '../../icon-names'
 import { RICOCHET } from './ship-weapon-data'
-import { buildShipProjectile, type ShipWeaponDefinition } from './ship-weapon-definition'
+import {
+  makeLoadoutUpgrade,
+  buildShipProjectile,
+  type ShipWeaponDefinition,
+} from './ship-weapon-definition'
 
 export const RICOCHET_UPGRADE_IDS = {
   unlockRicochet: 'unlockRicochet',
@@ -11,19 +14,17 @@ export const RICOCHET_UPGRADE_IDS = {
   ricochetBounces: 'ricochetBounces',
 } as const
 
-const unlockUpgrade: UpgradeDefinition = {
+const upgrade = makeLoadoutUpgrade(ShipWeaponKind.ricochet)
+
+const unlockUpgrade = upgrade({
   id: RICOCHET_UPGRADE_IDS.unlockRicochet,
-  category: UpgradeCategory.loadout,
-  weapon: ShipWeaponKind.ricochet,
   label: 'Unlock Ricochet',
   description: 'Rounds that bounce between nearby enemies on hit',
   tiers: [{ cost: 70, value: 1 }],
-}
+})
 
-const damageUpgrade: UpgradeDefinition = {
+const damageUpgrade = upgrade({
   id: RICOCHET_UPGRADE_IDS.ricochetDamage,
-  category: UpgradeCategory.loadout,
-  weapon: ShipWeaponKind.ricochet,
   label: 'Damage',
   description: 'Increase ricochet damage per hit',
   tiers: [
@@ -31,19 +32,17 @@ const damageUpgrade: UpgradeDefinition = {
     { cost: 80, value: 3 },
     { cost: 200, value: 5 },
   ],
-}
+})
 
-const bouncesUpgrade: UpgradeDefinition = {
+const bouncesUpgrade = upgrade({
   id: RICOCHET_UPGRADE_IDS.ricochetBounces,
-  category: UpgradeCategory.loadout,
-  weapon: ShipWeaponKind.ricochet,
   label: 'Bounces',
   description: 'Increase how many times each round can ricochet',
   tiers: [
     { cost: 50, value: 1 },
     { cost: 180, value: 2 },
   ],
-}
+})
 
 export const ricochet: ShipWeaponDefinition = {
   kind: ShipWeaponKind.ricochet,

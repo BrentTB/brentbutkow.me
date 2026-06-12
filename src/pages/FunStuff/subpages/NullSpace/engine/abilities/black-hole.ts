@@ -1,11 +1,11 @@
 import { BLACK_HOLE } from './ability-data'
 import { canEnemyTakeDamage } from '../bosses/index'
 import { spawnExplosionParticles, uid } from '../entities/entity-creator'
-import { AbilityKind, EffectKind, UpgradeCategory } from '../types'
-import type { BlackHoleEffect, Enemy, Particle, UpgradeDefinition, Vec2 } from '../types'
+import { AbilityKind, EffectKind } from '../types'
+import type { BlackHoleEffect, Enemy, Particle, Vec2 } from '../types'
 import type { Camera } from '../../renderer/camera'
 import { worldToScreen } from '../../renderer/camera'
-import { applyTierSum, type AbilityDefinition } from './ability-definition'
+import { makeAbilityUpgrade, applyTierSum, type AbilityDefinition } from './ability-definition'
 import type {
   EffectDefinition,
   EffectTickContext,
@@ -21,19 +21,17 @@ export const BLACK_HOLE_UPGRADE_IDS = {
   blackHoleRadius: 'blackHoleRadius',
 } as const
 
-const unlockUpgrade: UpgradeDefinition = {
+const upgrade = makeAbilityUpgrade(AbilityKind.blackHole)
+
+const unlockUpgrade = upgrade({
   id: BLACK_HOLE_UPGRADE_IDS.unlockBlackHole,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.blackHole,
   label: 'Unlock Black Hole',
   description: 'Unlock the gravity-warping Black Hole',
   tiers: [{ cost: 20, value: 1 }],
-}
+})
 
-const damageUpgrade: UpgradeDefinition = {
+const damageUpgrade = upgrade({
   id: BLACK_HOLE_UPGRADE_IDS.blackHoleDamage,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.blackHole,
   label: 'Damage',
   description: 'Increase black hole damage over time',
   tiers: [
@@ -43,12 +41,10 @@ const damageUpgrade: UpgradeDefinition = {
     { cost: 280, value: 4 },
     { cost: 560, value: 5 },
   ],
-}
+})
 
-const durationUpgrade: UpgradeDefinition = {
+const durationUpgrade = upgrade({
   id: BLACK_HOLE_UPGRADE_IDS.blackHoleDuration,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.blackHole,
   label: 'Duration',
   description: 'Increase black hole duration',
   tiers: [
@@ -56,12 +52,10 @@ const durationUpgrade: UpgradeDefinition = {
     { cost: 48, value: 1.5 },
     { cost: 192, value: 2 },
   ],
-}
+})
 
-const radiusUpgrade: UpgradeDefinition = {
+const radiusUpgrade = upgrade({
   id: BLACK_HOLE_UPGRADE_IDS.blackHoleRadius,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.blackHole,
   label: 'Range',
   description: 'Increase black hole pull radius',
   tiers: [
@@ -69,7 +63,7 @@ const radiusUpgrade: UpgradeDefinition = {
     { cost: 48, value: 40 },
     { cost: 192, value: 70 },
   ],
-}
+})
 
 export function createBlackHoleEffect(
   pos: Vec2,

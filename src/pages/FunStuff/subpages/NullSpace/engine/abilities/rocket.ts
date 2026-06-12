@@ -1,14 +1,19 @@
 import { ROCKET } from './ability-data'
 import { damageEnemiesInRadiusFlat } from '../math/aoe'
 import { createParticle, spawnExplosionParticles, uid } from '../entities/entity-creator'
-import { AbilityKind, EffectKind, UpgradeCategory } from '../types'
-import type { Particle, RocketEffect, UpgradeDefinition, Vec2 } from '../types'
+import { AbilityKind, EffectKind } from '../types'
+import type { Particle, RocketEffect, Vec2 } from '../types'
 import type { Camera } from '../../renderer/camera'
 import { worldToScreen } from '../../renderer/camera'
 import type { SpriteCache } from '../../renderer/sprite-cache'
 import { getSpriteSize } from '../../renderer/sprite-cache'
 import { SpriteKey } from '../../renderer/sprites'
-import { applyCostReduction, applyTierSum, type AbilityDefinition } from './ability-definition'
+import {
+  makeAbilityUpgrade,
+  applyCostReduction,
+  applyTierSum,
+  type AbilityDefinition,
+} from './ability-definition'
 import type {
   EffectDefinition,
   EffectTickContext,
@@ -23,19 +28,17 @@ export const ROCKET_UPGRADE_IDS = {
   rocketCostReduction: 'rocketCostReduction',
 } as const
 
-const unlockUpgrade: UpgradeDefinition = {
+const upgrade = makeAbilityUpgrade(AbilityKind.rocket)
+
+const unlockUpgrade = upgrade({
   id: ROCKET_UPGRADE_IDS.unlockRocket,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.rocket,
   label: 'Unlock Rocket',
   description: 'Unlock the homing Rocket strike',
   tiers: [{ cost: 25, value: 1 }],
-}
+})
 
-const damageUpgrade: UpgradeDefinition = {
+const damageUpgrade = upgrade({
   id: ROCKET_UPGRADE_IDS.rocketDamage,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.rocket,
   label: 'Damage',
   description: 'Increase rocket explosion damage',
   tiers: [
@@ -45,12 +48,10 @@ const damageUpgrade: UpgradeDefinition = {
     { cost: 280, value: 30 },
     { cost: 560, value: 40 },
   ],
-}
+})
 
-const radiusUpgrade: UpgradeDefinition = {
+const radiusUpgrade = upgrade({
   id: ROCKET_UPGRADE_IDS.rocketRadius,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.rocket,
   label: 'Blast Radius',
   description: 'Increase rocket explosion radius',
   tiers: [
@@ -58,19 +59,17 @@ const radiusUpgrade: UpgradeDefinition = {
     { cost: 48, value: 25 },
     { cost: 192, value: 35 },
   ],
-}
+})
 
-const costUpgrade: UpgradeDefinition = {
+const costUpgrade = upgrade({
   id: ROCKET_UPGRADE_IDS.rocketCostReduction,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.rocket,
   label: 'Efficiency',
   description: 'Reduce rocket power cost',
   tiers: [
     { cost: 12, value: 4 },
     { cost: 48, value: 5 },
   ],
-}
+})
 
 export function createRocketEffect(
   shipPos: Vec2,

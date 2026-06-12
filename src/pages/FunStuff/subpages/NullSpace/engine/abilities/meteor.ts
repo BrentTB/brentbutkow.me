@@ -1,8 +1,12 @@
 import { METEOR_STRIKE } from './ability-data'
 import { createMeteorEffect } from './meteor-strike'
-import { AbilityKind, UpgradeCategory } from '../types'
-import type { UpgradeDefinition } from '../types'
-import { applyCostReduction, applyTierSum, type AbilityDefinition } from './ability-definition'
+import { AbilityKind } from '../types'
+import {
+  makeAbilityUpgrade,
+  applyCostReduction,
+  applyTierSum,
+  type AbilityDefinition,
+} from './ability-definition'
 import { IconName } from '../../icon-names'
 
 export const METEOR_UPGRADE_IDS = {
@@ -12,19 +16,17 @@ export const METEOR_UPGRADE_IDS = {
   meteorRadius: 'meteorRadius',
 } as const
 
-const unlockUpgrade: UpgradeDefinition = {
+const upgrade = makeAbilityUpgrade(AbilityKind.meteor)
+
+const unlockUpgrade = upgrade({
   id: METEOR_UPGRADE_IDS.unlockMeteor,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.meteor,
   label: 'Unlock Meteor',
   description: 'Unlock the devastating Meteor strike',
   tiers: [{ cost: 15, value: 1 }],
-}
+})
 
-const damageUpgrade: UpgradeDefinition = {
+const damageUpgrade = upgrade({
   id: METEOR_UPGRADE_IDS.meteorDamage,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.meteor,
   label: 'Damage',
   description: 'Increase meteor strike damage',
   tiers: [
@@ -34,24 +36,20 @@ const damageUpgrade: UpgradeDefinition = {
     { cost: 280, value: 25 },
     { cost: 560, value: 35 },
   ],
-}
+})
 
-const costUpgrade: UpgradeDefinition = {
+const costUpgrade = upgrade({
   id: METEOR_UPGRADE_IDS.meteorCostReduction,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.meteor,
   label: 'Efficiency',
   description: 'Reduce meteor power cost',
   tiers: [
     { cost: 12, value: 5 },
     { cost: 48, value: 5 },
   ],
-}
+})
 
-const radiusUpgrade: UpgradeDefinition = {
+const radiusUpgrade = upgrade({
   id: METEOR_UPGRADE_IDS.meteorRadius,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.meteor,
   label: 'Blast Radius',
   description: 'Increase meteor blast radius',
   tiers: [
@@ -59,7 +57,7 @@ const radiusUpgrade: UpgradeDefinition = {
     { cost: 48, value: 30 },
     { cost: 192, value: 40 },
   ],
-}
+})
 
 export const meteor: AbilityDefinition = {
   kind: AbilityKind.meteor,

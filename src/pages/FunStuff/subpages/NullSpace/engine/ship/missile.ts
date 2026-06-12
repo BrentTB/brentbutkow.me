@@ -1,9 +1,12 @@
 import { applyTierSum } from '../abilities/ability-definition'
-import { ShipWeaponKind, UpgradeCategory } from '../types'
-import type { UpgradeDefinition } from '../types'
+import { ShipWeaponKind } from '../types'
 import { IconName } from '../../icon-names'
 import { MISSILE } from './ship-weapon-data'
-import { buildShipProjectile, type ShipWeaponDefinition } from './ship-weapon-definition'
+import {
+  makeLoadoutUpgrade,
+  buildShipProjectile,
+  type ShipWeaponDefinition,
+} from './ship-weapon-definition'
 
 export const MISSILE_UPGRADE_IDS = {
   unlockMissile: 'unlockMissile',
@@ -12,19 +15,17 @@ export const MISSILE_UPGRADE_IDS = {
   missileSplash: 'missileSplash',
 } as const
 
-const unlockUpgrade: UpgradeDefinition = {
+const upgrade = makeLoadoutUpgrade(ShipWeaponKind.missile)
+
+const unlockUpgrade = upgrade({
   id: MISSILE_UPGRADE_IDS.unlockMissile,
-  category: UpgradeCategory.loadout,
-  weapon: ShipWeaponKind.missile,
   label: 'Unlock Missile',
   description: 'A slow homing projectile that tracks enemies and explodes on impact',
   tiers: [{ cost: 80, value: 1 }],
-}
+})
 
-const damageUpgrade: UpgradeDefinition = {
+const damageUpgrade = upgrade({
   id: MISSILE_UPGRADE_IDS.missileDamage,
-  category: UpgradeCategory.loadout,
-  weapon: ShipWeaponKind.missile,
   label: 'Damage',
   description: 'Increase missile damage',
   tiers: [
@@ -32,31 +33,27 @@ const damageUpgrade: UpgradeDefinition = {
     { cost: 100, value: 6 },
     { cost: 240, value: 10 },
   ],
-}
+})
 
-const speedUpgrade: UpgradeDefinition = {
+const speedUpgrade = upgrade({
   id: MISSILE_UPGRADE_IDS.missileSpeed,
-  category: UpgradeCategory.loadout,
-  weapon: ShipWeaponKind.missile,
   label: 'Tracking',
   description: 'Increase missile travel speed',
   tiers: [
     { cost: 30, value: 50 },
     { cost: 120, value: 80 },
   ],
-}
+})
 
-const splashUpgrade: UpgradeDefinition = {
+const splashUpgrade = upgrade({
   id: MISSILE_UPGRADE_IDS.missileSplash,
-  category: UpgradeCategory.loadout,
-  weapon: ShipWeaponKind.missile,
   label: 'Splash',
   description: 'Increase missile splash radius',
   tiers: [
     { cost: 40, value: 20 },
     { cost: 160, value: 35 },
   ],
-}
+})
 
 export const missile: ShipWeaponDefinition = {
   kind: ShipWeaponKind.missile,

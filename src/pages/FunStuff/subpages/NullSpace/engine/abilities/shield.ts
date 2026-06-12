@@ -1,18 +1,15 @@
 import { SHIELD } from './ability-data'
 import { spawnExplosionParticles, uid } from '../entities/entity-creator'
-import { AbilityKind, EffectKind, ProjectileOwner, UpgradeCategory } from '../types'
-import type {
-  ActiveEffect,
-  Enemy,
-  Particle,
-  Projectile,
-  ShieldEffect,
-  UpgradeDefinition,
-  Vec2,
-} from '../types'
+import { AbilityKind, EffectKind, ProjectileOwner } from '../types'
+import type { ActiveEffect, Enemy, Particle, Projectile, ShieldEffect, Vec2 } from '../types'
 import type { Camera } from '../../renderer/camera'
 import { worldToScreen } from '../../renderer/camera'
-import { applyCostReduction, applyTierSum, type AbilityDefinition } from './ability-definition'
+import {
+  makeAbilityUpgrade,
+  applyCostReduction,
+  applyTierSum,
+  type AbilityDefinition,
+} from './ability-definition'
 import type {
   EffectDefinition,
   EffectTickContext,
@@ -28,19 +25,17 @@ export const SHIELD_UPGRADE_IDS = {
   shieldCostReduction: 'shieldCostReduction',
 } as const
 
-const unlockUpgrade: UpgradeDefinition = {
+const upgrade = makeAbilityUpgrade(AbilityKind.shield)
+
+const unlockUpgrade = upgrade({
   id: SHIELD_UPGRADE_IDS.unlockShield,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.shield,
   label: 'Unlock Shield',
   description: 'Unlock the Shield barrier',
   tiers: [{ cost: 30, value: 1 }],
-}
+})
 
-const durationUpgrade: UpgradeDefinition = {
+const durationUpgrade = upgrade({
   id: SHIELD_UPGRADE_IDS.shieldDuration,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.shield,
   label: 'Duration',
   description: 'Increase shield duration',
   tiers: [
@@ -48,12 +43,10 @@ const durationUpgrade: UpgradeDefinition = {
     { cost: 48, value: 2.5 },
     { cost: 192, value: 3.5 },
   ],
-}
+})
 
-const radiusUpgrade: UpgradeDefinition = {
+const radiusUpgrade = upgrade({
   id: SHIELD_UPGRADE_IDS.shieldRadius,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.shield,
   label: 'Size',
   description: 'Increase shield radius',
   tiers: [
@@ -61,19 +54,17 @@ const radiusUpgrade: UpgradeDefinition = {
     { cost: 40, value: 25 },
     { cost: 140, value: 40 },
   ],
-}
+})
 
-const costUpgrade: UpgradeDefinition = {
+const costUpgrade = upgrade({
   id: SHIELD_UPGRADE_IDS.shieldCostReduction,
-  category: UpgradeCategory.weapons,
-  weapon: AbilityKind.shield,
   label: 'Efficiency',
   description: 'Reduce shield power cost',
   tiers: [
     { cost: 12, value: 5 },
     { cost: 48, value: 5 },
   ],
-}
+})
 
 export function createShieldEffect(pos: Vec2, radius: number, duration: number): ShieldEffect {
   return {

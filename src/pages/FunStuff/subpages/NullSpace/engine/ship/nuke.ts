@@ -1,8 +1,8 @@
 import { applyTierSum } from '../abilities/ability-definition'
 import { damageEnemiesInRadius } from '../math/aoe'
 import { uid } from '../entities/entity-creator'
-import { EffectKind, ShipWeaponKind, UpgradeCategory } from '../types'
-import type { NuclearWasteEffect, UpgradeDefinition, Vec2 } from '../types'
+import { EffectKind, ShipWeaponKind } from '../types'
+import type { NuclearWasteEffect, Vec2 } from '../types'
 import type { Camera } from '../../renderer/camera'
 import { worldToScreen } from '../../renderer/camera'
 import type {
@@ -13,7 +13,11 @@ import type {
 import { passThroughTick } from '../systems/effect-definition'
 import { IconName } from '../../icon-names'
 import { NUKE } from './ship-weapon-data'
-import { buildShipProjectile, type ShipWeaponDefinition } from './ship-weapon-definition'
+import {
+  makeLoadoutUpgrade,
+  buildShipProjectile,
+  type ShipWeaponDefinition,
+} from './ship-weapon-definition'
 
 export const NUKE_UPGRADE_IDS = {
   unlockNuke: 'unlockNuke',
@@ -22,19 +26,17 @@ export const NUKE_UPGRADE_IDS = {
   nukeWasteDuration: 'nukeWasteDuration',
 } as const
 
-const unlockUpgrade: UpgradeDefinition = {
+const upgrade = makeLoadoutUpgrade(ShipWeaponKind.nuke)
+
+const unlockUpgrade = upgrade({
   id: NUKE_UPGRADE_IDS.unlockNuke,
-  category: UpgradeCategory.loadout,
-  weapon: ShipWeaponKind.nuke,
   label: 'Unlock Nuke',
   description: 'A very slow shell with a massive blast that leaves radioactive waste',
   tiers: [{ cost: 140, value: 1 }],
-}
+})
 
-const damageUpgrade: UpgradeDefinition = {
+const damageUpgrade = upgrade({
   id: NUKE_UPGRADE_IDS.nukeDamage,
-  category: UpgradeCategory.loadout,
-  weapon: ShipWeaponKind.nuke,
   label: 'Damage',
   description: 'Increase nuke blast damage',
   tiers: [
@@ -42,31 +44,27 @@ const damageUpgrade: UpgradeDefinition = {
     { cost: 200, value: 20 },
     { cost: 480, value: 35 },
   ],
-}
+})
 
-const radiusUpgrade: UpgradeDefinition = {
+const radiusUpgrade = upgrade({
   id: NUKE_UPGRADE_IDS.nukeBlastRadius,
-  category: UpgradeCategory.loadout,
-  weapon: ShipWeaponKind.nuke,
   label: 'Blast Radius',
   description: 'Increase nuke blast radius',
   tiers: [
     { cost: 40, value: 25 },
     { cost: 160, value: 40 },
   ],
-}
+})
 
-const wasteDurationUpgrade: UpgradeDefinition = {
+const wasteDurationUpgrade = upgrade({
   id: NUKE_UPGRADE_IDS.nukeWasteDuration,
-  category: UpgradeCategory.loadout,
-  weapon: ShipWeaponKind.nuke,
   label: 'Fallout',
   description: 'Radioactive waste lingers longer',
   tiers: [
     { cost: 40, value: 2 },
     { cost: 160, value: 3 },
   ],
-}
+})
 
 export function createNuclearWasteEffect(
   pos: Vec2,

@@ -284,6 +284,8 @@ export const CHANGELOG: ChangelogEntry[] = [
         'Ultimates build their upgrade math through composeUltimateUpgrades — the base ability’s full upgrade patch flows through automatically, so a base gaining a new upgradable field can never be silently dropped by its ultimate.',
         'Shared geometry helpers: ringPositions (generator/swarm/meteor rings), clampToWorld (boss movement and teleport targeting), and bossPhase (the two-phase HP threshold) replace three near-identical copies.',
         'Dev-console state manipulation moved out of the React hook into engine/dev-tools.ts, and slingshot press/drag/release decoding into input/sling-gesture.ts — both pure and unit-tested; a guard test also keeps WEAPON_ORDER covering every ability.',
+        'Each ability/weapon file binds its upgrades once via makeAbilityUpgrade / makeLoadoutUpgrade, so every upgrade declares only id/label/description/tiers — the repeated category + weapon fields (and the copy-paste risk of a stale weapon tag) are gone.',
+        'The in-game help text for channelled abilities is derived from the ability registry instead of a hand-maintained list.',
       ],
     },
   },
