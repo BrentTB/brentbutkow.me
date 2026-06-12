@@ -201,7 +201,7 @@ src/pages/FunStuff/subpages/NullSpace/engine/bosses/
   boss-definition.ts                         BossRuntimeBase, BossRuntimeState, BossEnemyKind, getBossRuntime, SpawnSpec, DropSpec, BossTickContext, BossUpdateResult, BossDefinition, hasAliveLinked, bossPhase
   boss-selection.ts                          createBossSelection, advanceBossSelection
   dreadnought.ts                             DreadnoughtRuntime, DREADNOUGHT_BOSS
-  index.ts                                   BOSS_KINDS, isBoss, getBossDefinition, canEnemyTakeDamage
+  index.ts                                   BOSS_KINDS, getBossDefinition, canEnemyTakeDamage
   loot.ts                                    metalBurst
   phase-shifter.ts                           ShifterStage, PhaseShifterRuntime, PHASE_SHIFTER, PHASE_SHIFTER_BOSS
   void-worm.ts                               WormStage, VoidWormRuntime, VOID_WORM, VOID_WORM_BOSS

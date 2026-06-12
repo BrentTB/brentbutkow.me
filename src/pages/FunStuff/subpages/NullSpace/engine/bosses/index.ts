@@ -15,10 +15,6 @@ const BOSS_MAP: Partial<Record<EnemyKind, BossDefinition>> = Object.fromEntries(
   BOSS_DEFINITIONS.map((d) => [d.kind, d])
 )
 
-export function isBoss(kind: EnemyKind): boolean {
-  return kind in BOSS_MAP
-}
-
 export function getBossDefinition(kind: EnemyKind): BossDefinition | undefined {
   return BOSS_MAP[kind]
 }

@@ -140,19 +140,27 @@ const solarFlareHold: HoldAbilityConfig = {
     }
   },
   // Soft heat haze under the particle spawn area. Particles do the bulk of the
-  // visual; this just hints at the affected zone.
+  // visual; this just hints at the affected zone. Radius is in world units —
+  // the render transform applies the camera zoom — so it matches the beam's
+  // particle spray and damage radius.
   renderBack: (ctx, ability, target, _state, camera) => {
     const center = worldToScreen(target, camera)
-    const radius = ability.aoeRadius * camera.zoom
 
     ctx.save()
-    const gradient = ctx.createRadialGradient(center.x, center.y, 0, center.x, center.y, radius)
+    const gradient = ctx.createRadialGradient(
+      center.x,
+      center.y,
+      0,
+      center.x,
+      center.y,
+      ability.aoeRadius
+    )
     gradient.addColorStop(0, 'rgba(255, 220, 120, 0.18)')
     gradient.addColorStop(0.6, 'rgba(255, 150, 60, 0.08)')
     gradient.addColorStop(1, 'rgba(255, 100, 30, 0)')
     ctx.fillStyle = gradient
     ctx.beginPath()
-    ctx.arc(center.x, center.y, radius, 0, Math.PI * 2)
+    ctx.arc(center.x, center.y, ability.aoeRadius, 0, Math.PI * 2)
     ctx.fill()
     ctx.restore()
   },

@@ -147,7 +147,7 @@ export const VOID_WORM_BOSS: BossDefinition = {
           ? { stage: WormStage.cruise, stageTimer: VOID_WORM.cruiseDuration, heading: worm.heading }
           : { ...worm, stageTimer }
     }
-
+    // Phase is not set here since the worm doesn't change behavior or spawn patterns on phase shifts
     return { updatedRuntime: { ...worm, ...next }, spawns: [], self }
   },
 

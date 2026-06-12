@@ -1,7 +1,7 @@
 import { SHIELD_COOLDOWN, SLINGSHOT } from '../../data'
 import { canEnemyTakeDamage } from '../bosses/index'
 import { distance } from '../math/collision'
-import { clamp } from '../math/utils'
+import { clamp, clampToWorld } from '../math/utils'
 import { rng } from '../math/random'
 import { createParticle } from './entity-creator'
 import { ESCAPE_MODE } from '../spaceMetalAbilities/escape-mode'
@@ -66,8 +66,8 @@ export function tickFling(
   }
   const pos = clampToWorld(
     { x: ship.pos.x + ship.flingVel.x * dt, y: ship.pos.y + ship.flingVel.y * dt },
-    ship.radius,
-    worldSize
+    worldSize,
+    ship.radius
   )
   const decay = Math.exp(-SLING_DECAY * dt)
   return {
@@ -79,16 +79,6 @@ export function tickFling(
       lastHeading: { x: ship.flingVel.x / speed, y: ship.flingVel.y / speed },
     },
     active: true,
-  }
-}
-
-// Keeps the ship's centre fully inside the world rect (accounting for its
-// radius). Escape Mode moves the ship directly instead of via patrol, so it
-// has to enforce the bounds patrol would otherwise keep it within.
-function clampToWorld(pos: Vec2, radius: number, world: Vec2): Vec2 {
-  return {
-    x: clamp(pos.x, radius, world.x - radius),
-    y: clamp(pos.y, radius, world.y - radius),
   }
 }
 
@@ -130,8 +120,8 @@ export function tickEscapeMode(
     const vel = { x: e.heading.x * speed, y: e.heading.y * speed }
     const pos = clampToWorld(
       { x: ship.pos.x + vel.x * dt, y: ship.pos.y + vel.y * dt },
-      ship.radius,
-      worldSize
+      worldSize,
+      ship.radius
     )
     if (timer <= 0) {
       return {
@@ -162,8 +152,8 @@ export function tickEscapeMode(
   const vel = { x: e.heading.x * speed, y: e.heading.y * speed }
   const pos = clampToWorld(
     { x: ship.pos.x + vel.x * dt, y: ship.pos.y + vel.y * dt },
-    ship.radius,
-    worldSize
+    worldSize,
+    ship.radius
   )
 
   nextAcc += dt

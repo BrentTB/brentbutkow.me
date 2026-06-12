@@ -95,9 +95,11 @@ const telekinesisHold: HoldAbilityConfig = {
     return { ...bag, enemies }
   },
   // Dashed ripple ring at the field edge + force lines to affected enemies.
+  // Radius is in world units — the render transform applies the camera zoom, so
+  // the ring matches the engine's world-space push radius exactly.
   renderFront: (ctx, ability, target, state, camera) => {
     const center = worldToScreen(target, camera)
-    const screenRadius = ability.aoeRadius * camera.zoom
+    const radius = ability.aoeRadius
 
     ctx.save()
 
@@ -106,7 +108,7 @@ const telekinesisHold: HoldAbilityConfig = {
     ctx.lineWidth = 2
     ctx.setLineDash([6, 4])
     ctx.beginPath()
-    ctx.arc(center.x, center.y, screenRadius, 0, Math.PI * 2)
+    ctx.arc(center.x, center.y, radius, 0, Math.PI * 2)
     ctx.stroke()
     ctx.setLineDash([])
 
@@ -116,8 +118,8 @@ const telekinesisHold: HoldAbilityConfig = {
       const dx = eScreen.x - center.x
       const dy = eScreen.y - center.y
       const dist = Math.sqrt(dx * dx + dy * dy)
-      if (dist >= screenRadius) continue
-      const alpha = (1 - dist / screenRadius) * 0.6
+      if (dist >= radius) continue
+      const alpha = (1 - dist / radius) * 0.6
       ctx.strokeStyle = `rgba(80, 220, 255, ${alpha.toFixed(2)})`
       ctx.lineWidth = 1
       ctx.beginPath()
