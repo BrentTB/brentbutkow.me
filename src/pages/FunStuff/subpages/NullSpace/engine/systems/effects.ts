@@ -6,6 +6,8 @@ import { blackHoleEffect } from '../abilities/black-hole'
 import { rocketEffect } from '../abilities/rocket'
 import { shieldEffect } from '../abilities/shield'
 import { sunEffect } from '../abilities/sun'
+import { supernovaEffect } from '../abilities/supernova'
+import { forceFieldEffect } from '../abilities/force-field'
 import { nuclearWasteEffect } from '../ship/nuke'
 
 // Registry: each effect's owner file (ability or ship weapon) declares an
@@ -21,6 +23,8 @@ export const EFFECT_DEFINITIONS: Record<EffectKind, EffectDefinition> = {
   [EffectKind.rocket]: rocketEffect,
   [EffectKind.shield]: shieldEffect,
   [EffectKind.sun]: sunEffect,
+  [EffectKind.supernova]: supernovaEffect,
+  [EffectKind.forceField]: forceFieldEffect,
   [EffectKind.nuclearWaste]: nuclearWasteEffect,
 }
 

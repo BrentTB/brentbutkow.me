@@ -100,7 +100,7 @@ Highest-value — changes in one place that should have rippled elsewhere:
 - **Paired strings**: a label changed but its `aria-label`, mobile counterpart, or fun-mode twin left stale.
 - **Design tokens**: a color/font hard-coded where the system reads a CSS custom property from `index.scss`.
 - **Game changelog**: if changed files belong to a game subsystem (e.g.
-  `src/pages/fun-stuff/subpages/NullSpace/`), check the game's `data.ts` `CHANGELOG` array and version
+  `src/pages/FunStuff/subpages/NullSpace/`), check the game's `data.ts` `CHANGELOG` array and version
   reflect the changes. Every game maintains a changelog — missing entries are a propagation gap.
 
 Confirm each finding with a grep before reporting — "searched `src/`, found 3 stale references" is a

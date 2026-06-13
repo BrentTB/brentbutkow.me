@@ -53,6 +53,9 @@ export const WEAPON_ORDER: readonly AbilityKind[] = [
   // they replace, so this position only governs row creation, not display.
   AbilityKind.cometShower,
   AbilityKind.meteorShower,
+  AbilityKind.helperFactory,
+  AbilityKind.supernova,
+  AbilityKind.forceField,
 ]
 
 export const ENEMY_STATS = {
@@ -270,6 +273,21 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.19.0',
+    date: '2026-06-12',
+    changes: {
+      features: [
+        'Three more ultimates, each bought with the Singularity Shard economy and replacing its base weapon in the hotbar.',
+        'Helper → Helper Factory: a tanky factory that deals no damage but builds a steady stream of helpers on a timer. Upgrade Assembly Line to build them faster.',
+        'Sun → Supernova: the sun holds, then collapses and shifts blue before detonating in a brief, devastating blast. Upgrade Critical Mass to widen the explosion.',
+        'Shield → Force Field: a dome that grows to twice its size then vanishes, flinging enemies away on contact and burning them. Upgrade Repulsor to throw them harder.',
+      ],
+      ui: [
+        'Abilities you can’t afford now stay dimmed the whole time, instead of only darkening once they finish recharging.',
+      ],
+    },
+  },
   {
     version: '0.18.1',
     date: '2026-06-11',

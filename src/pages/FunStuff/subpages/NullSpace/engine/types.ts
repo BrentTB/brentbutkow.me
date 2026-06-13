@@ -198,6 +198,9 @@ export const AbilityKind = {
   // Singularity Shard economy. Each links to its base via `ultimateOf`.
   cometShower: 'cometShower',
   meteorShower: 'meteorShower',
+  helperFactory: 'helperFactory',
+  supernova: 'supernova',
+  forceField: 'forceField',
 } as const
 export type AbilityKind = (typeof AbilityKind)[keyof typeof AbilityKind]
 
@@ -218,8 +221,8 @@ export type Ability = {
   // player bump this — allies no longer expire on a timer; they take HP decay
   // over time and die when hp ≤ 0, so maxHp directly controls survivability.
   maxHp?: number
-  // Telekinesis-only: peak force per second applied to enemies inside the
-  // plateau. Upgradable so the player can shove enemies harder over time.
+  // Telekinesis: peak force per second applied to enemies inside the plateau.
+  // Force Field: the outward knockback speed of a bump. Upgradable for both.
   force?: number
   // Multi-projectile abilities (Comet Shower): how many strikes a single
   // activation spawns. Upgradable. Absent for single-strike abilities.
@@ -227,6 +230,12 @@ export type Ability = {
   // Comet Shower: seconds between successive comets landing. Upgradable
   // (smaller = faster volley). Absent for abilities without a staggered volley.
   staggerStep?: number
+  // Supernova-only: burst radius = base sun radius × this. Upgradable so the
+  // explosion grows. Absent for abilities without a burst phase.
+  burstScale?: number
+  // Helper Factory-only: seconds between helper spawns. Upgradable (smaller =
+  // faster line). Absent for abilities that don't spawn on a timer.
+  spawnInterval?: number
 }
 
 export const EffectKind = {
@@ -237,6 +246,8 @@ export const EffectKind = {
   shield: 'shield',
   sun: 'sun',
   nuclearWaste: 'nuclearWaste',
+  supernova: 'supernova',
+  forceField: 'forceField',
 } as const
 export type EffectKind = (typeof EffectKind)[keyof typeof EffectKind]
 
@@ -297,6 +308,36 @@ export type NuclearWasteEffect = EffectBase & {
   damagePerSec: number
 }
 
+// The Sun ultimate. Holds at full `baseRadius` (base damage) for most of its
+// life, then over the final `collapseDuration` shrinks and shifts blue, then
+// over `burstDuration` rapidly expands to `burstRadius` for `burstDamagePerSec`
+// (6× base). The current radius/damage are derived from `elapsed` by
+// getSupernovaState().
+export type SupernovaEffect = EffectBase & {
+  kind: typeof EffectKind.supernova
+  baseRadius: number
+  baseDamagePerSec: number
+  collapseDuration: number
+  burstDuration: number
+  burstRadius: number
+  burstDamagePerSec: number
+}
+
+// The Shield ultimate. A dome that grows from `startRadius` to `maxRadius` (2×)
+// over its lifetime then disappears. Bumps shove enemies out at `knockback`
+// (far harder than a base shield bounce) and burn them for `bumpDamage`/sec.
+// `radius` is the live size, recomputed each tick so the collision pass reads it.
+export type ForceFieldEffect = EffectBase & {
+  kind: typeof EffectKind.forceField
+  radius: number
+  startRadius: number
+  maxRadius: number
+  growDuration: number
+  knockback: number
+  bumpDamage: number
+  grandfatheredEnemyIds: string[] | null
+}
+
 export type ActiveEffect =
   | MeteorStrikeEffect
   | BlackHoleEffect
@@ -304,6 +345,8 @@ export type ActiveEffect =
   | ShieldEffect
   | SunEffect
   | NuclearWasteEffect
+  | SupernovaEffect
+  | ForceFieldEffect
 
 export const CollectibleKind = {
   powerOrb: 'powerOrb',
@@ -340,6 +383,12 @@ export type Ally = {
   attackRange: number
   // Time alive — drives orbit-phase drift so allies fan around the ship.
   elapsed: number
+  // Helper Factory only: seconds between helper spawns. Present → this ally is a
+  // factory (deals no damage, never shoots; spawns helpers instead). Absent on a
+  // normal helper.
+  spawnInterval?: number
+  // Factory countdown to the next spawn; reset to `spawnInterval` on each spawn.
+  spawnTimer?: number
 }
 
 export type Particle = {

@@ -173,4 +173,10 @@ export const sun: AbilityDefinition = {
   }),
   unlockUpgrade,
   modifierUpgrades: [damageUpgrade, durationUpgrade, radiusUpgrade],
+  ultimate: {
+    kind: AbilityKind.supernova,
+    label: 'Supernova',
+    description: 'The sun collapsed… and then the sky split open.',
+    cost: { stardust: 450, spaceMetal: 16 },
+  },
 }

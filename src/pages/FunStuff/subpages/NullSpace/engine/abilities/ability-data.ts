@@ -69,12 +69,39 @@ export const SHIELD = {
   duration: 6,
 } as const
 
+// Force Field (Shield ultimate). Grows from the base shield radius to
+// `maxRadiusScale`× over `growDuration` then vanishes. Bumps shove enemies out
+// at `knockback` (≈5× a base shield bounce — enemy speeds are 40–100), raised by
+// the Repulsor upgrade, and burn them for a flat `bumpDamage`/sec of contact.
+export const FORCE_FIELD = {
+  costMultiplier: 2,
+  maxRadiusScale: 2,
+  growDuration: 6,
+  knockback: 600,
+  bumpDamage: 30,
+} as const
+
 export const SUN = {
   cooldown: 12,
   powerCost: 100,
   radius: 180,
   damagePerSec: 15,
   duration: 8,
+} as const
+
+// Supernova (Sun ultimate). The sun holds at full size (base damage) for most
+// of its life, then in the final stretch rapidly collapses to `collapseMinScale`
+// over `collapseDuration`, then detonates over `burstDuration` — expanding to
+// `burstRadiusScale`× and dealing `burstDamageMultiplier`× damage. Collapse +
+// burst are fixed, so the Sun's duration upgrades extend only the full-size hold.
+// The Critical Mass upgrade enlarges the burst.
+export const SUPERNOVA = {
+  costMultiplier: 3,
+  collapseMinScale: 1 / 3,
+  burstRadiusScale: 4,
+  burstDamageMultiplier: 6,
+  collapseDuration: 2.5,
+  burstDuration: 1,
 } as const
 
 export const HELPER = {
@@ -89,6 +116,19 @@ export const HELPER = {
   // HP drained per second. With base hp=20, an untouched ally lives ~20s
   // (matching the old duration). Upgrading maxHp extends survival.
   hpDecayPerSec: 1,
+} as const
+
+// Helper Factory (Helper ultimate). A tanky ally (`hpMultiplier`× a helper's HP)
+// that deals no damage but spawns a fresh helper every `spawnInterval` seconds —
+// the first after just `firstSpawnDelay` so it gets to work right away. Its HP
+// still decays, so its lifetime (and total spawns) is bounded. The Assembly Line
+// upgrade shortens the interval, floored at `minSpawnInterval`.
+export const HELPER_FACTORY = {
+  costMultiplier: 3,
+  hpMultiplier: 6,
+  spawnInterval: 4,
+  minSpawnInterval: 1.5,
+  firstSpawnDelay: 1,
 } as const
 
 // Toggle until we decide: 'pull' draws enemies toward the cursor, 'push'

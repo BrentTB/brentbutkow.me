@@ -80,4 +80,10 @@ export const helper: AbilityDefinition = {
   }),
   unlockUpgrade,
   modifierUpgrades: [maxHpUpgrade, damageUpgrade, costUpgrade],
+  ultimate: {
+    kind: AbilityKind.helperFactory,
+    label: 'Helper Factory',
+    description: 'One forge, and from it, an endless tide.',
+    cost: { stardust: 300, spaceMetal: 12 },
+  },
 }

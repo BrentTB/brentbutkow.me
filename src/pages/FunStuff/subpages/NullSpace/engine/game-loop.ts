@@ -467,8 +467,12 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   // --- Enemy movement (pursues nearest of ship or ally) ---
   enemies = updateEnemyMovement(enemies, ship, allies, dt)
   // Shields block new entries — bounce non-grandfathered enemies back to the
-  // boundary after they've moved this frame.
-  enemies = applyShieldConstraints(activeEffects, enemies)
+  // boundary after they've moved this frame. Force fields also burn on contact.
+  const shieldResult = applyShieldConstraints(activeEffects, enemies, dt)
+  enemies = shieldResult.enemies
+  score += shieldResult.scoreGained
+  currency += computeCurrencyFromKills(shieldResult.killedEnemies, stardustMultiplier)
+  particles = [...particles, ...shieldResult.particles]
 
   // --- Ally update (movement + shooting) ---
   const allyResult = updateAllies(allies, enemies, ship, projectiles, dt)

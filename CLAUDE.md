@@ -16,7 +16,7 @@ Scoped instructions live in nested `CLAUDE.md` files — load on demand when you
 - [src/CLAUDE.md](src/CLAUDE.md) — architecture, routing, folder/casing conventions, the Fun toggle
 - [src/styles/CLAUDE.md](src/styles/CLAUDE.md) — design tokens, shared SCSS, responsive, a11y
 - [src/pages/CLAUDE.md](src/pages/CLAUDE.md) — page layout language (editorial rows, cards/ atoms)
-- [src/pages/fun-stuff/subpages/NullSpace/CLAUDE.md](src/pages/fun-stuff/subpages/NullSpace/CLAUDE.md) — Null Space game changelog/semver rule
+- [src/pages/FunStuff/subpages/NullSpace/CLAUDE.md](src/pages/FunStuff/subpages/NullSpace/CLAUDE.md) — Null Space game changelog/semver rule
 
 ## Skills
 

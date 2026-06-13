@@ -1,5 +1,5 @@
 import { distance } from '../math/collision'
-import { createProjectile } from './entity-creator'
+import { createAlly, createProjectile } from './entity-creator'
 import { canEnemyTakeDamage } from '../bosses/index'
 import { rng } from '../math/random'
 import { ProjectileOwner } from '../types'
@@ -35,6 +35,7 @@ export function updateAllies(
   dt: number
 ): { allies: Ally[]; projectiles: Projectile[] } {
   const surviving: Ally[] = []
+  const spawned: Ally[] = []
   let newProjectiles = projectiles
 
   for (const ally of allies) {
@@ -49,22 +50,34 @@ export function updateAllies(
       fireCooldown: Math.max(0, ally.fireCooldown - dt),
     }
 
-    // --- Targeting / shooting ---
-    let nearestEnemy: Enemy | null = null
-    let nearestDist = Infinity
-    for (const enemy of enemies) {
-      // Skip invincible enemies (shielded boss) — don't waste shots on them.
-      if (!canEnemyTakeDamage(enemy, enemies)) continue
-      const d = distance(ally.pos, enemy.pos)
-      if (d < nearestDist) {
-        nearestDist = d
-        nearestEnemy = enemy
+    if (ally.spawnInterval !== undefined) {
+      // --- Factory: spawns helpers on a timer, never shoots ---
+      const spawnTimer = (ally.spawnTimer ?? ally.spawnInterval) - dt
+      if (spawnTimer <= 0) {
+        spawned.push(createAlly(ally.pos))
+        // Carry the overshoot so cadence doesn't drift on long frames.
+        updated = { ...updated, spawnTimer: ally.spawnInterval + spawnTimer }
+      } else {
+        updated = { ...updated, spawnTimer }
       }
-    }
-    if (nearestEnemy && nearestDist <= ally.attackRange && updated.fireCooldown <= 0) {
-      const proj = createProjectile(ally.pos, nearestEnemy.pos, ProjectileOwner.ship, ally.damage)
-      newProjectiles = [...newProjectiles, proj]
-      updated = { ...updated, fireCooldown: 1 / ally.fireRate }
+    } else {
+      // --- Targeting / shooting ---
+      let nearestEnemy: Enemy | null = null
+      let nearestDist = Infinity
+      for (const enemy of enemies) {
+        // Skip invincible enemies (shielded boss) — don't waste shots on them.
+        if (!canEnemyTakeDamage(enemy, enemies)) continue
+        const d = distance(ally.pos, enemy.pos)
+        if (d < nearestDist) {
+          nearestDist = d
+          nearestEnemy = enemy
+        }
+      }
+      if (nearestEnemy && nearestDist <= ally.attackRange && updated.fireCooldown <= 0) {
+        const proj = createProjectile(ally.pos, nearestEnemy.pos, ProjectileOwner.ship, ally.damage)
+        newProjectiles = [...newProjectiles, proj]
+        updated = { ...updated, fireCooldown: 1 / ally.fireRate }
+      }
     }
 
     // --- Steering: orbit a per-ally point near the ship, weak avoid + noise ---
@@ -110,5 +123,5 @@ export function updateAllies(
     surviving.push(updated)
   }
 
-  return { allies: surviving, projectiles: newProjectiles }
+  return { allies: [...surviving, ...spawned], projectiles: newProjectiles }
 }

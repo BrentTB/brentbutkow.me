@@ -1,7 +1,9 @@
 import { SHIELD } from './ability-data'
 import { spawnExplosionParticles, uid } from '../entities/entity-creator'
-import { AbilityKind, EffectKind, ProjectileOwner } from '../types'
-import type { ActiveEffect, Enemy, Particle, Projectile, ShieldEffect, Vec2 } from '../types'
+import { canEnemyTakeDamage } from '../bosses/index'
+import { AbilityKind, EffectKind } from '../types'
+import type { ActiveEffect, Enemy, ForceFieldEffect, Particle, ShieldEffect, Vec2 } from '../types'
+import { tickDomeAbsorption } from './dome-absorption'
 import type { Camera } from '../../renderer/camera'
 import { worldToScreen } from '../../renderer/camera'
 import {
@@ -82,107 +84,100 @@ function tickShield(zone: ShieldEffect, ctx: EffectTickContext): EffectTickResul
   if (zone.elapsed >= zone.duration) {
     return passThroughTick(null, ctx)
   }
+  return tickDomeAbsorption(zone, ctx, zone.radius, '#88ccff')
+}
 
-  // Grandfathered list = enemies that have been inside the shield CONTINUOUSLY
-  // since it spawned. The shield only blocks NEW entries — anyone caught
-  // inside at spawn time gets to wander out freely, BUT once they leave they
-  // can't come back. Recompute the list every tick to enforce that.
-  const radiusSq = zone.radius * zone.radius
-  const insideThisTick = new Set<string>()
-  for (const enemy of ctx.enemies) {
-    const dx = enemy.pos.x - zone.pos.x
-    const dy = enemy.pos.y - zone.pos.y
-    if (dx * dx + dy * dy < radiusSq) insideThisTick.add(enemy.id)
-  }
-  let grandfathered: string[]
-  if (zone.grandfatheredEnemyIds === null) {
-    // First tick — everyone currently inside gets grandfathered.
-    grandfathered = [...insideThisTick]
-  } else {
-    // Subsequent ticks — keep only the IDs that are STILL inside. An enemy
-    // that has moved outside drops off the list and is treated as a newcomer
-    // on any future re-entry attempt.
-    grandfathered = zone.grandfatheredEnemyIds.filter((id) => insideThisTick.has(id))
-  }
-
-  // Absorb enemy projectiles inside the shield; leave ship projectiles alone.
-  // Bullets fired from inside (by grandfathered enemies) are still absorbed.
-  const remainingProjectiles: Projectile[] = []
-  const absorbParticles: Particle[] = []
-  for (const p of ctx.projectiles) {
-    if (p.owner === ProjectileOwner.enemy) {
-      const dx = p.pos.x - zone.pos.x
-      const dy = p.pos.y - zone.pos.y
-      if (dx * dx + dy * dy < radiusSq) {
-        absorbParticles.push(...spawnExplosionParticles(p.pos, 3, '#88ccff'))
-        continue
-      }
-    }
-    remainingProjectiles.push(p)
-  }
-
-  return {
-    effect: { ...zone, grandfatheredEnemyIds: grandfathered },
-    enemies: ctx.enemies,
-    projectiles: remainingProjectiles,
-    particles: absorbParticles,
-    scoreGained: 0,
-    killedEnemies: [],
-  }
+export type ShieldConstraintResult = {
+  enemies: Enemy[]
+  killedEnemies: Enemy[]
+  scoreGained: number
+  particles: Particle[]
 }
 
 /**
- * Push non-grandfathered enemies that are inside any active shield out to the
- * edge of that shield. Called AFTER enemy movement so an enemy that just
- * walked into a shield this frame gets bounced back to the boundary.
+ * Push non-grandfathered enemies that are inside any active shield or force
+ * field out to the edge. Called AFTER enemy movement so an enemy that just
+ * walked into one this frame gets bounced back to the boundary.
+ *
+ * A base shield reflects the inward velocity and deals no damage. A Force Field
+ * (the shield ultimate) shoves the enemy out hard at its `knockback` speed and
+ * burns it for `bumpDamage`/sec of contact, returning any kills so the loop can
+ * award score/currency. Shielded bosses are immune to the contact damage.
  *
  * Shape: similar to homing — pure geometry, no allocations on the hot path
  * when no shields are active.
  */
-export function applyShieldConstraints(effects: ActiveEffect[], enemies: Enemy[]): Enemy[] {
-  let active: ShieldEffect[] | null = null
+export function applyShieldConstraints(
+  effects: ActiveEffect[],
+  enemies: Enemy[],
+  dt: number
+): ShieldConstraintResult {
+  let active: (ShieldEffect | ForceFieldEffect)[] | null = null
   for (const e of effects) {
-    if (e.kind === EffectKind.shield) {
+    if (e.kind === EffectKind.shield || e.kind === EffectKind.forceField) {
       if (!active) active = []
       active.push(e)
     }
   }
-  if (!active) return enemies
+  if (!active) return { enemies, killedEnemies: [], scoreGained: 0, particles: [] }
 
-  return enemies.map((enemy) => {
+  const surviving: Enemy[] = []
+  const killedEnemies: Enemy[] = []
+  const particles: Particle[] = []
+  let scoreGained = 0
+
+  for (const enemy of enemies) {
     let pos = enemy.pos
     let vel = enemy.vel
+    let contactDamage = 0
     let bumped = false
-    for (const zone of active!) {
+    for (const zone of active) {
       if (zone.grandfatheredEnemyIds?.includes(enemy.id)) continue
       const dx = pos.x - zone.pos.x
       const dy = pos.y - zone.pos.y
       const distSq = dx * dx + dy * dy
       if (distSq < zone.radius * zone.radius) {
         const dist = Math.sqrt(distSq)
-        // Outward unit normal from shield center to enemy.
+        // Outward unit normal from the dome center to the enemy.
         const nx = dist > 0.01 ? dx / dist : 1
         const ny = dist > 0.01 ? dy / dist : 0
-        // Snap to the edge so we never have an enemy genuinely inside the shield.
-        pos = {
-          x: zone.pos.x + nx * zone.radius,
-          y: zone.pos.y + ny * zone.radius,
-        }
-        // Bounce: reflect the inward velocity component, keep the tangential
-        // component. Enemies moving outward (vDotN >= 0) aren't bounced —
-        // they're already leaving on their own.
-        const vDotN = vel.x * nx + vel.y * ny
-        if (vDotN < 0) {
-          vel = {
-            x: vel.x - 2 * vDotN * nx,
-            y: vel.y - 2 * vDotN * ny,
+        // Snap to the edge so we never have an enemy genuinely inside the dome.
+        pos = { x: zone.pos.x + nx * zone.radius, y: zone.pos.y + ny * zone.radius }
+        if (zone.kind === EffectKind.forceField) {
+          // Force field: hurl the enemy straight out, far harder than a bounce,
+          // and burn it while it touches the field.
+          vel = { x: nx * zone.knockback, y: ny * zone.knockback }
+          contactDamage += zone.bumpDamage * dt
+        } else {
+          // Base shield: reflect the inward velocity component, keep the
+          // tangential. Enemies already leaving (vDotN >= 0) aren't bounced.
+          const vDotN = vel.x * nx + vel.y * ny
+          if (vDotN < 0) {
+            vel = { x: vel.x - 2 * vDotN * nx, y: vel.y - 2 * vDotN * ny }
           }
         }
         bumped = true
       }
     }
-    return bumped ? { ...enemy, pos, vel } : enemy
-  })
+    if (!bumped) {
+      surviving.push(enemy)
+      continue
+    }
+    if (contactDamage > 0 && canEnemyTakeDamage(enemy, enemies)) {
+      const hp = enemy.hp - contactDamage
+      if (hp <= 0) {
+        killedEnemies.push(enemy)
+        scoreGained += enemy.scoreValue
+        particles.push(...spawnExplosionParticles(enemy.pos, 8, '#c8a8ff'))
+        continue
+      }
+      surviving.push({ ...enemy, pos, vel, hp })
+      continue
+    }
+    surviving.push({ ...enemy, pos, vel })
+  }
+
+  return { enemies: surviving, killedEnemies, scoreGained, particles }
 }
 
 function renderShield(ctx: CanvasRenderingContext2D, dome: ShieldEffect, camera: Camera): void {
@@ -251,4 +246,10 @@ export const shield: AbilityDefinition = {
   }),
   unlockUpgrade,
   modifierUpgrades: [durationUpgrade, radiusUpgrade, costUpgrade],
+  ultimate: {
+    kind: AbilityKind.forceField,
+    label: 'Force Field',
+    description: 'Space bends, then snaps - and nothing stays close for long.',
+    cost: { stardust: 350, spaceMetal: 14 },
+  },
 }
