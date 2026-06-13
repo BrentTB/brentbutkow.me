@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { BackButton } from '../../../../components/PageFormatting/BackButton'
-import { ToggleableSection } from '../../../../components/ToggleableSection/ToggleableSection'
+import { BackButton } from '../../components/PageFormatting/BackButton'
+import { ToggleableSection } from '../../components/ToggleableSection/ToggleableSection'
 import { useNullSpace } from './useNullSpace'
 import { usePseudoFullscreenChrome } from './usePseudoFullscreenChrome'
 import { GameHUD } from './components/GameHUD/GameHUD'

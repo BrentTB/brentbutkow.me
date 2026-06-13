@@ -27,7 +27,7 @@ const GamesPage = lazy(() =>
   }))
 )
 const NullSpace = lazy(() =>
-  import('../pages/FunStuff/subpages/NullSpace/NullSpace').then((module) => ({
+  import('../projects/NullSpace/NullSpace').then((module) => ({
     default: module.NullSpace,
   }))
 )

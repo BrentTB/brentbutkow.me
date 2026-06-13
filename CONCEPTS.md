@@ -48,7 +48,7 @@ Atomic colors, fonts, spacing live in CSS custom properties — never hard-code.
 
 ## Null Space (canvas game inside the portfolio)
 
-Full HTML5 game with engine, systems, abilities, semver changelog. Lives at [src/pages/FunStuff/subpages/NullSpace/](src/pages/FunStuff/subpages/NullSpace/).
+Full HTML5 game with engine, systems, abilities, semver changelog. Lives at [src/projects/NullSpace/](src/projects/NullSpace/).
 
 - Game loop: `engine/game-loop.ts` (`createInitialState`, `updateGameState`, …)
 - Subsystems: `engine/abilities/`, `engine/entities/`, `engine/systems/`, `engine/world/`, `spaceMetalAbilities/`

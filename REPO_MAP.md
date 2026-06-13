@@ -123,16 +123,32 @@ src/pages/FunStuff/subpages/GulagSort/
   gulag-sort.ts                              GulagBlock, AnimationFrame, parseInput, generateRandomNumbers, isSorted, removeRemovedFromGulags, removeEmptyFinalGulag, moveBlockBetweenGulags, performGulagSort
   useGulagSort.ts                            useGulagSort
 
-src/pages/FunStuff/subpages/NullSpace/
+src/pages/Home/
+  HomePage.tsx                               HomePage
+
+src/pages/Home/components/
+  About.tsx                                  About
+  CurrentWork.tsx                            CurrentWork
+  Hero.tsx                                   Hero
+
+src/pages/Home/
+  data.ts                                    cvPath, cvDownloadEnabled, heroContent, aboutSectionEnabled, aboutParagraphs
+  useJokes.ts                                ALL_CATEGORY, JokeCategory, useJokes
+
+src/pages/NotFound/
+  NotFoundPage.tsx                           NotFoundPage
+  useParticleField.ts                        useParticleField
+
+src/projects/NullSpace/
   NullSpace.tsx                              NullSpace
 
-src/pages/FunStuff/subpages/NullSpace/components/ChangelogFilters/
+src/projects/NullSpace/components/ChangelogFilters/
   ChangelogFilters.tsx                       ChangelogFilters
 
-src/pages/FunStuff/subpages/NullSpace/components/Development/
+src/projects/NullSpace/components/Development/
   DevConsole.tsx                             DevConsole
 
-src/pages/FunStuff/subpages/NullSpace/components/GameHUD/
+src/projects/NullSpace/components/GameHUD/
   Abilities.tsx                              Abilities
   BossHpBar.tsx                              BossHpBar
   GameHUD.tsx                                GameHUD
@@ -141,26 +157,26 @@ src/pages/FunStuff/subpages/NullSpace/components/GameHUD/
   SpaceMetalRail.tsx                         SpaceMetalRail
   TopBar.tsx                                 TopBar
 
-src/pages/FunStuff/subpages/NullSpace/components/
+src/projects/NullSpace/components/
   GameOverScreen.tsx                         GameOverScreen
   GameOverlay.tsx                            GameOverlay
 
-src/pages/FunStuff/subpages/NullSpace/components/Icon/
+src/projects/NullSpace/components/Icon/
   Icon.tsx                                   Icon, IconName
   gallery-entry.tsx                          (no named exports)
 
-src/pages/FunStuff/subpages/NullSpace/components/PauseMenu/
+src/projects/NullSpace/components/PauseMenu/
   HelpScreen.tsx                             HelpScreen
   PauseMenu.tsx                              PauseMenu
   SettingsScreen.tsx                         SettingsScreen
 
-src/pages/FunStuff/subpages/NullSpace/components/StartScreen/
+src/projects/NullSpace/components/StartScreen/
   MenuScreen.tsx                             MenuScreen
   ShipSelectionScreen.tsx                    ShipSelectionScreen
   ShipSpritePreview.tsx                      ShipSpritePreview
   StatBar.tsx                                StatBar
 
-src/pages/FunStuff/subpages/NullSpace/components/UpgradeScreen/
+src/projects/NullSpace/components/UpgradeScreen/
   ShipTab.tsx                                ShipTab
   ShipWeaponDetail.tsx                       ShipWeaponDetail
   ShipWeaponsList.tsx                        ShipWeaponsList
@@ -171,13 +187,13 @@ src/pages/FunStuff/subpages/NullSpace/components/UpgradeScreen/
   WeaponsList.tsx                            WeaponsList
   weapons-list-order.ts                      orderWeaponsForShop
 
-src/pages/FunStuff/subpages/NullSpace/components/
+src/projects/NullSpace/components/
   WaveCompleteScreen.tsx                     WaveCompleteScreen
 
-src/pages/FunStuff/subpages/NullSpace/
+src/projects/NullSpace/
   data.ts                                    GAME_NAME, WORLD_SIZE, SHIELD_COOLDOWN, SLINGSHOT, POWER_DEFAULTS, WEAPON_ORDER, ENEMY_STATS, CURRENCY_DROPS, CURRENCY_NAME, POWER_ORB, SINGULARITY_SHARD_NAME, SHARDS_PER_BOSS, SINGULARITY_SHARD, SPACE_METAL, WAVES_PER_LEVEL, BOSS_LEVEL_INTERVAL, BOSS_WAVE_ENEMY_MULTIPLIER, SPAWN_DELAY, SPAWN_DISTANCE, SWARM_SPAWN_SPREAD, FORWARD_DIR, SECTOR, WARP_DURATION, SPAWN_CONE, HAZARD, PORTAL, PROJECTILE_SPEED, PROJECTILE_LIFETIME, PROJECTILE_RADIUS, PARTICLE_DEFAULTS, ChangelogEntry, CHANGELOG, GAME_VERSION
 
-src/pages/FunStuff/subpages/NullSpace/engine/abilities/
+src/projects/NullSpace/engine/abilities/
   ability-data.ts                            METEORITE_STRIKE, METEOR_STRIKE, COMET_SHOWER, METEOR_SHOWER, BLACK_HOLE, ROCKET, SHIELD, FORCE_FIELD, SUN, SUPERNOVA, HELPER, HELPER_FACTORY, TELEKINESIS, SOLAR_FLARE, FIREWORKS, EVENT_HORIZON, SOLAR_PLAGUE, SINGULARITY
   ability-definition.ts                      AbilityActivation, UltimateCost, UltimateContext, UltimatePrerequisite, UltimateDescriptor, AbilityDefinition, composeUltimateUpgrades, makeAbilityUpgrade, applyTierSum, applyCostReduction
   beam-damage.ts                             BeamDamageResult, damageEnemiesInBeam
@@ -208,7 +224,7 @@ src/pages/FunStuff/subpages/NullSpace/engine/abilities/
   supernova.ts                               SUPERNOVA_UPGRADE_IDS, createSupernovaEffect, getSupernovaState, supernovaEffect, supernova
   telekinesis.ts                             TELEKINESIS_UPGRADE_IDS, telekinesis
 
-src/pages/FunStuff/subpages/NullSpace/engine/bosses/
+src/projects/NullSpace/engine/bosses/
   boss-ai.ts                                 updateBossAI
   boss-definition.ts                         BossRuntimeBase, BossRuntimeState, BossEnemyKind, getBossRuntime, SpawnSpec, DropSpec, BossTickContext, BossUpdateResult, BossDefinition, hasAliveLinked, bossPhase
   boss-selection.ts                          createBossSelection, advanceBossSelection
@@ -218,19 +234,19 @@ src/pages/FunStuff/subpages/NullSpace/engine/bosses/
   phase-shifter.ts                           ShifterStage, PhaseShifterRuntime, PHASE_SHIFTER, PHASE_SHIFTER_BOSS
   void-worm.ts                               WormStage, VoidWormRuntime, VOID_WORM, VOID_WORM_BOSS
 
-src/pages/FunStuff/subpages/NullSpace/engine/
+src/projects/NullSpace/engine/
   dev-tools.ts                               DevPatch, devPatchState, devJumpToUpgrades, devJumpToBoss
 
-src/pages/FunStuff/subpages/NullSpace/engine/entities/
+src/projects/NullSpace/engine/entities/
   ally.ts                                    updateAllies
   enemy.ts                                   findNearestTarget, updateEnemyMovement, updateEnemyShooting
   entity-creator.ts                          uid, createShip, createEnemy, createProjectile, createAlly, createHelperFactory, createParticle, spawnExplosionParticles, updateParticles, createAbilities
   ship.ts                                    applySlingshot, tickSlingHeat, tickFling, applyDamageToShip, tickEscapeMode, updateShipDrift, updateShipAttack
 
-src/pages/FunStuff/subpages/NullSpace/engine/
+src/projects/NullSpace/engine/
   game-loop.ts                               createInitialState, moveToShipSelection, startGame, rollLevelUpWeaponOffers, resetForSector, startNextWave, applyUpgradeToState, equipShipWeapon, applyUltimatePurchaseToState, devUnlockWeapon, devGrantUltimate, beginWarp, completeWarp, advanceWarp, finishUpgradeScreen, updateGameState
 
-src/pages/FunStuff/subpages/NullSpace/engine/math/
+src/projects/NullSpace/engine/math/
   aoe.ts                                     AoeResult, damageEnemiesInRadiusFlat, damageEnemiesInRadius
   collision.ts                               checkCollision, distance, segmentIntersectsCircle
   homing.ts                                  homeTowardTarget
@@ -239,7 +255,7 @@ src/pages/FunStuff/subpages/NullSpace/engine/math/
   utils.ts                                   clamp, clampToWorld
   vec.ts                                     ringPositions, unitToward
 
-src/pages/FunStuff/subpages/NullSpace/engine/ship/
+src/projects/NullSpace/engine/ship/
   bullet.ts                                  bullet
   index.ts                                   SHIP_WEAPON_DEFINITIONS, SHIP_WEAPON_LIST, SHIP_WEAPON_ORDER, SHIP_WEAPON_META, SHIP_WEAPON_UNLOCK_UPGRADE, SHIP_WEAPON_UPGRADE_DEFINITIONS, getShipWeaponForUnlockUpgrade, buildShipProjectile
   laser.ts                                   LASER_UPGRADE_IDS, laser
@@ -250,13 +266,13 @@ src/pages/FunStuff/subpages/NullSpace/engine/ship/
   ship-weapon-data.ts                        BULLET, LASER, MISSILE, RICOCHET, NUKE
   ship-weapon-definition.ts                  ShipWeaponDefinition, makeLoadoutUpgrade, WeaponProjectileOpts, buildShipProjectile
 
-src/pages/FunStuff/subpages/NullSpace/engine/spaceMetalAbilities/
+src/projects/NullSpace/engine/spaceMetalAbilities/
   escape-mode.ts                             ESCAPE_MODE, escapeDash
   index.ts                                   SPACE_METAL_ABILITIES, getSpaceMetalAbility, findSpaceMetalAbilityByKey, tryActivateSpaceMetalAbility, SpaceMetalAbilityKind, type SpaceMetalAbility
   shield-regen.ts                            shieldRegen
   space-metal-ability-definition.ts          SpaceMetalAbilityKind, SpaceMetalAbilityUIState, SpaceMetalAbility
 
-src/pages/FunStuff/subpages/NullSpace/engine/systems/
+src/projects/NullSpace/engine/systems/
   burning.ts                                 BurningResult, updateBurningEnemies
   collectibles.ts                            spawnCollectiblesFromKills, updateCollectibles, tryCollectSpaceMetal
   combat.ts                                  updateProjectiles, resolveProjectileEnemyCollisions, resolveEnemyProjectileShipCollisions, resolveEnemyProjectileAllyCollisions, resolveEnemyShipCollisions, resolveEnemyAllyMeleeCollisions, resolveDeathEffects
@@ -266,24 +282,24 @@ src/pages/FunStuff/subpages/NullSpace/engine/systems/
   hazards.ts                                 generateHazardLane, updateHazards
   spawner.ts                                 spawnPositionNearShip, processSpawnQueue
 
-src/pages/FunStuff/subpages/NullSpace/engine/
+src/projects/NullSpace/engine/
   types.ts                                   Vec2, Entity, ShipKind, ShipWeaponKind, EscapeModePhase, EscapeModeState, Ship, EnemyKind, MovementBehavior, DeathBehavior, BurningState, Enemy, ProjectileOwner, Projectile, AbilityKind, Ability, EffectKind, EffectBase, MeteorStrikeEffect, BlackHoleEffect, RocketEffect, ShieldEffect, SunEffect, NuclearWasteEffect, SupernovaEffect, ForceFieldEffect, EventHorizonEffect, ActiveEffect, CollectibleKind, Collectible, HazardKind, Hazard, Ally, Particle, GamePhase, UpgradeCategory, UpgradeTier, UpgradeDefinition, PlayerUpgrades, BossSelection, GameState, HoldRuntimeState, PlayerInput
   ultimates.ts                               COEXIST_ULTIMATES, ultimateShardCost, canPurchaseUltimate, purchaseUltimate, isBaseReplacedByUltimate
   upgrade-ids.ts                             UpgradeId
   upgrades.ts                                SHIP_AND_POWER_UPGRADE_IDS, UNLOCK_UPGRADE_IDS, SLINGSHOT_UPGRADE_IDS, UPGRADE_DEFINITIONS, getWeaponModifierUpgrades, isWeaponFullyMaxed, isShipWeaponFullyMaxed, UPGRADE_CATEGORY_LABELS, createInitialUpgrades, canPurchaseUpgrade, purchaseUpgrade, applyUpgradesToAbilities, syncUltimateAbilities, applyUpgradesToShip, applyUpgradesToPowerRegen, getStardustMultiplier, getSpaceMetalDropMultiplier, getPowerOrbMultiplier, getLevel, isUpgradeWave
 
-src/pages/FunStuff/subpages/NullSpace/engine/world/
+src/projects/NullSpace/engine/world/
   persistence.ts                             loadHighScore, saveHighScore, ChangelogCategory, ChangelogFilters, DEFAULT_CHANGELOG_FILTERS, CHANGELOG_CATEGORIES, loadChangelogFilters, saveChangelogFilters
   time.ts                                    MAX_DT, GameTime, createGameTime, tickGameTime, pauseGameTime, resumeGameTime, setGameSpeed, resetGameClock
   waves.ts                                   isBossWave, getWave, getWaveDelay, sectorProgress
 
-src/pages/FunStuff/subpages/NullSpace/
+src/projects/NullSpace/
   icon-names.ts                              IconName
 
-src/pages/FunStuff/subpages/NullSpace/input/
+src/projects/NullSpace/input/
   sling-gesture.ts                           SLING_MAX_DRAG_PX, SlingGesture, tryGrabShip, moveGesture, releaseGesture
 
-src/pages/FunStuff/subpages/NullSpace/renderer/
+src/projects/NullSpace/renderer/
   camera.ts                                  REFERENCE_VIEW, DEFAULT_GAME_ZOOM, Camera, createCamera, computeZoom, HUD_SCALE_MIN, HUD_SCALE_MAX, computeHudScale, isWithinView, clampCameraAxis, updateCamera, centerCameraOn, worldToScreen, screenToWorld
   corridor.ts                                renderCorridor
   draw.ts                                    fillRadialGlow
@@ -296,25 +312,9 @@ src/pages/FunStuff/subpages/NullSpace/renderer/
   starfield.ts                               Star, generateStarfield, renderStarfield
   warp.ts                                    renderWarpTransition
 
-src/pages/FunStuff/subpages/NullSpace/
+src/projects/NullSpace/
   useNullSpace.ts                            GameUIState, getUnlockedAbilitiesInOrder, abilityKindForHotkey, selectionAfterUltimatePurchase, useNullSpace
   usePseudoFullscreenChrome.ts               usePseudoFullscreenChrome
-
-src/pages/Home/
-  HomePage.tsx                               HomePage
-
-src/pages/Home/components/
-  About.tsx                                  About
-  CurrentWork.tsx                            CurrentWork
-  Hero.tsx                                   Hero
-
-src/pages/Home/
-  data.ts                                    cvPath, cvDownloadEnabled, heroContent, aboutSectionEnabled, aboutParagraphs
-  useJokes.ts                                ALL_CATEGORY, JokeCategory, useJokes
-
-src/pages/NotFound/
-  NotFoundPage.tsx                           NotFoundPage
-  useParticleField.ts                        useParticleField
 
 src/routes/
   Router.tsx                                 Router

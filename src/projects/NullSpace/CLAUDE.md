@@ -1,6 +1,6 @@
 # NullSpace/CLAUDE.md
 
-Null Space game changelog rule. See [root CLAUDE.md](../../../../../CLAUDE.md) for global rules.
+Null Space game changelog rule. See [root CLAUDE.md](../../../CLAUDE.md) for global rules.
 
 When changing the Null Space game, update `CHANGELOG` and `GAME_VERSION` in [data.ts](data.ts). Semver:
 
