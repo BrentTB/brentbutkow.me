@@ -56,6 +56,10 @@ export const WEAPON_ORDER: readonly AbilityKind[] = [
   AbilityKind.helperFactory,
   AbilityKind.supernova,
   AbilityKind.forceField,
+  AbilityKind.fireworks,
+  AbilityKind.eventHorizon,
+  AbilityKind.solarPlague,
+  AbilityKind.singularity,
 ]
 
 export const ENEMY_STATS = {
@@ -273,6 +277,25 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.20.0',
+    date: '2026-06-13',
+    changes: {
+      features: [
+        'Four more ultimates, bought with the Singularity Shard economy and replacing their base weapon in the hotbar.',
+        'Rocket → Fireworks: the rocket bursts into three rockets, each bursting into three more — a cascading cluster. Upgrade Finale to add a rocket to every second-wave burst.',
+        'Black Hole → Event Horizon: a wider, stronger well that zaps enemies at the core and banishes them far from your ship. Upgrade Spaghettification to drag them in harder.',
+        'Solar Flare → Solar Plague: the beam still burns enemies directly, but now also sets them ablaze — the fire keeps dealing damage over time and leaps between enemies that touch. Upgrade Wildfire to make it jump further.',
+        'Telekinesis → Singularity: pulls enemies into a crushing core that hurts more the more it holds, then detonates on release — the longer you hold (up to 2s), the bigger the blast. Its core darkens toward deep purple as the blast charges. Upgrade Collapse to make it bigger still.',
+      ],
+      architecture: [
+        'Effects can spawn child effects (Fireworks’ cascading rockets), hold abilities can fire a release burst (Singularity’s detonation), and enemies carry a generic fire status driven by a new burning system (Solar Plague). Gravity-pull and radial-force helpers are now shared between base abilities and their ultimates.',
+      ],
+      fixes: [
+        'The Next Wave button (and other overlay buttons) no longer shrink when hovered in fullscreen.',
+      ],
+    },
+  },
   {
     version: '0.19.0',
     date: '2026-06-12',

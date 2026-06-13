@@ -12,6 +12,10 @@ import { METEOR_SHOWER_UPGRADE_IDS } from './abilities/meteor-shower'
 import { HELPER_FACTORY_UPGRADE_IDS } from './abilities/helper-factory'
 import { SUPERNOVA_UPGRADE_IDS } from './abilities/supernova'
 import { FORCE_FIELD_UPGRADE_IDS } from './abilities/force-field'
+import { FIREWORKS_UPGRADE_IDS } from './abilities/fireworks'
+import { EVENT_HORIZON_UPGRADE_IDS } from './abilities/event-horizon'
+import { SOLAR_PLAGUE_UPGRADE_IDS } from './abilities/solar-plague'
+import { SINGULARITY_UPGRADE_IDS } from './abilities/singularity'
 import { LASER_UPGRADE_IDS } from './ship/laser'
 import { MISSILE_UPGRADE_IDS } from './ship/missile'
 import { RICOCHET_UPGRADE_IDS } from './ship/ricochet'
@@ -38,6 +42,10 @@ export const UpgradeId = {
   ...HELPER_FACTORY_UPGRADE_IDS,
   ...SUPERNOVA_UPGRADE_IDS,
   ...FORCE_FIELD_UPGRADE_IDS,
+  ...FIREWORKS_UPGRADE_IDS,
+  ...EVENT_HORIZON_UPGRADE_IDS,
+  ...SOLAR_PLAGUE_UPGRADE_IDS,
+  ...SINGULARITY_UPGRADE_IDS,
   ...LASER_UPGRADE_IDS,
   ...MISSILE_UPGRADE_IDS,
   ...RICOCHET_UPGRADE_IDS,

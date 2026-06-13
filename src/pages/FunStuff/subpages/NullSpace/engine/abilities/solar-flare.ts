@@ -186,4 +186,10 @@ export const solarFlare: AbilityDefinition = {
   unlockUpgrade,
   modifierUpgrades: [damageUpgrade, efficiencyUpgrade, radiusUpgrade],
   hold: solarFlareHold,
+  ultimate: {
+    kind: AbilityKind.solarPlague,
+    label: 'Solar Plague',
+    description: 'One ember, and the swarm burns as one.',
+    cost: { stardust: 420, spaceMetal: 16 },
+  },
 }

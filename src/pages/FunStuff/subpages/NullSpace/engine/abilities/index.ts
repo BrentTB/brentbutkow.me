@@ -16,6 +16,10 @@ import { meteorShower } from './meteor-shower'
 import { helperFactory } from './helper-factory'
 import { supernova } from './supernova'
 import { forceField } from './force-field'
+import { fireworks } from './fireworks'
+import { eventHorizon } from './event-horizon'
+import { solarPlague } from './solar-plague'
+import { singularity } from './singularity'
 import type { UpgradeId } from '../upgrade-ids'
 import type { AbilityDefinition, UltimateDescriptor } from './ability-definition'
 import type { IconName } from '../../icon-names'
@@ -51,6 +55,10 @@ export const ABILITY_DEFINITIONS: Record<AbilityKind, AbilityDefinition> = {
   [AbilityKind.helperFactory]: helperFactory,
   [AbilityKind.supernova]: supernova,
   [AbilityKind.forceField]: forceField,
+  [AbilityKind.fireworks]: fireworks,
+  [AbilityKind.eventHorizon]: eventHorizon,
+  [AbilityKind.solarPlague]: solarPlague,
+  [AbilityKind.singularity]: singularity,
 }
 
 export const ABILITY_LIST: AbilityDefinition[] = Object.values(ABILITY_DEFINITIONS)

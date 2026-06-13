@@ -155,3 +155,57 @@ export const SOLAR_FLARE = {
   // firing until power runs out.
   armSeconds: 1,
 } as const
+
+// Fireworks (Rocket ultimate). The launched rocket bursts into `firstSplit`
+// children (120° apart for 3); each of those bursts into `baseFinalCount`
+// (+1 per Finale tier); that final generation is terminal. Damage divides by
+// `damageFalloff` each generation (full → 1/3 → 1/9). Children hop
+// `childFlightDistance` at `childSpeed` before exploding.
+export const FIREWORKS = {
+  costMultiplier: 3,
+  firstSplit: 3,
+  baseFinalCount: 3,
+  damageFalloff: 3,
+  childFlightDistance: 100,
+  childSpeed: 250,
+} as const
+
+// Event Horizon (Black Hole ultimate). A wider (`radiusScale`×), stronger
+// (`pullScale`× suction) gravity well. Enemies reaching the core (inner
+// `coreRadiusFraction` of the radius) take `coreDamage` and are banished —
+// relocated `banishDistance` further from the ship. Spaghettification raises the
+// pull strength further.
+export const EVENT_HORIZON = {
+  costMultiplier: 2,
+  radiusScale: 1.5,
+  pullScale: 2,
+  coreRadiusFraction: 0.18,
+  coreDamage: 20,
+  banishDistance: 260,
+} as const
+
+// Solar Plague (Solar Flare ultimate). The beam deals Solar Flare's direct
+// damage AND ignites: the fire burns for `burnDuration`s at `dpsMultiplier` of
+// the beam's per-second rate (damage-per-tick ÷ drainInterval), so holding
+// stacks both (≈150% of Flare), and the fire spreads to non-burning enemies
+// within `baseSpreadRange` (edge gap). Wildfire widens the spread.
+export const SOLAR_PLAGUE = {
+  costMultiplier: 3,
+  burnDuration: 3,
+  dpsMultiplier: 0.5,
+  baseSpreadRange: 10,
+} as const
+
+// Singularity (Telekinesis ultimate). Pulls enemies inward (vs push). Enemies in
+// the core (inner `coreRadiusFraction` of the radius) take `(count − 1) ×
+// perEnemyDps` per second — a lone enemy takes none, a crowd takes a lot.
+// Releasing the hold detonates a flat AoE burst that charges with hold time:
+// linear from 0 to the full `baseExplosionDamage` (raised by Collapse) over
+// `maxChargeSeconds` (so a ~1s hold ≈ 1/5 damage).
+export const SINGULARITY = {
+  costMultiplier: 3,
+  coreRadiusFraction: 0.45,
+  perEnemyDps: 7,
+  baseExplosionDamage: 60,
+  maxChargeSeconds: 2,
+} as const

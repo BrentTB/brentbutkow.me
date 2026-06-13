@@ -319,8 +319,9 @@ describe('dev unlock helpers', () => {
   })
 
   it('devGrantUltimate is a no-op for an ability without an ultimate', () => {
+    // Every base now offers an ultimate, so the no-op case is an ultimate itself.
     const state = createInitialState()
-    expect(devGrantUltimate(state, AbilityKind.blackHole)).toBe(state)
+    expect(devGrantUltimate(state, AbilityKind.cometShower)).toBe(state)
   })
 })
 

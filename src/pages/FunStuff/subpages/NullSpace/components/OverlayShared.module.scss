@@ -56,16 +56,21 @@
   margin-top: 8px;
   transition:
     background-color 0.15s ease,
-    transform 0.1s ease;
+    box-shadow 0.15s ease;
   letter-spacing: 0.02em;
 
+  // No transform-based hover: this button renders both inside GameOverlay's
+  // `.content > *` (which sets `transform: scale(var(--hud-scale))` as the base)
+  // and in the shop (no such base). A hover transform would either clobber that
+  // scale (shrink) or add one where there is none (grow) in fullscreen — so the
+  // lift is a box-shadow instead, which never collides with the scale.
   &:hover {
     background: var(--accent-strong);
-    transform: translateY(-1px);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
   }
 
   &:active {
-    transform: translateY(0);
+    box-shadow: none;
   }
 }
 

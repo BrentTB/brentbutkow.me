@@ -254,8 +254,10 @@ describe('isWeaponFullyMaxed', () => {
     expect(isWeaponFullyMaxed(AbilityKind.rocket, createInitialUpgrades())).toBe(false)
   })
 
-  it('true when every modifier upgrade for a weapon (no ultimate) is at max tier', () => {
-    expect(isWeaponFullyMaxed(AbilityKind.rocket, maxAll(AbilityKind.rocket))).toBe(true)
+  it('true when every modifier upgrade for a weapon with no further ultimate is at max tier', () => {
+    // Every base now offers an ultimate, so the "nothing left to buy" case is an
+    // ultimate ability itself (it has no ultimate of its own).
+    expect(isWeaponFullyMaxed(AbilityKind.cometShower, maxAll(AbilityKind.cometShower))).toBe(true)
   })
 
   it('false when one modifier still has room to grow', () => {
