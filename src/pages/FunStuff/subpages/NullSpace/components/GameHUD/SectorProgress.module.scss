@@ -1,0 +1,111 @@
+.sectorProgress {
+  display: flex;
+  align-items: center;
+  gap: calc(10px * var(--hud-scale, 1));
+  padding: calc(10px * var(--hud-scale, 1)) calc(16px * var(--hud-scale, 1)) 0;
+  transition: opacity 0.6s ease;
+}
+
+.dimmed {
+  opacity: 0;
+}
+
+.sectorLabel {
+  font-size: calc(0.75rem * var(--hud-scale, 1));
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.track {
+  position: relative;
+  flex: 1;
+  height: calc(4px * var(--hud-scale, 1));
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  // Leaves room for the portal end-cap to sit just past the track end.
+  margin-right: calc(14px * var(--hud-scale, 1));
+}
+
+.fill {
+  position: absolute;
+  inset: 0;
+  width: 0;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+.dot {
+  position: absolute;
+  top: 50%;
+  width: calc(10px * var(--hud-scale, 1));
+  height: calc(10px * var(--hud-scale, 1));
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  transform: translate(-50%, -50%);
+  transition:
+    background 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.dotFilled {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+// Right-pointing triangle (border trick) that rides the fill toward the portal.
+.shipMarker {
+  position: absolute;
+  top: 50%;
+  width: 0;
+  height: 0;
+  border-top: calc(5px * var(--hud-scale, 1)) solid transparent;
+  border-bottom: calc(5px * var(--hud-scale, 1)) solid transparent;
+  border-left: calc(8px * var(--hud-scale, 1)) solid #fff;
+  transform: translate(-40%, -50%);
+  filter: drop-shadow(0 0 2px var(--accent));
+  transition: left 0.4s ease;
+}
+
+// Portal ring at the far end of the track.
+.endCap {
+  position: absolute;
+  top: 50%;
+  left: 100%;
+  width: calc(12px * var(--hud-scale, 1));
+  height: calc(12px * var(--hud-scale, 1));
+  border-radius: 50%;
+  border: 2px solid rgba(176, 130, 255, 0.7);
+  background: rgba(176, 130, 255, 0.15);
+  transform: translate(-50%, -50%);
+}
+
+.endCapBoss {
+  border-color: #ff6b6b;
+  background: rgba(255, 80, 80, 0.18);
+}
+
+// Fun mode: glow the fill and pulse the portal.
+:global(html.fun-mode) {
+  .fill {
+    box-shadow: 0 0 calc(6px * var(--hud-scale, 1)) var(--accent);
+  }
+
+  .endCap {
+    animation: portalPulse 1.6s ease-in-out infinite;
+  }
+}
+
+@keyframes portalPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 calc(3px * var(--hud-scale, 1)) rgba(176, 130, 255, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 calc(9px * var(--hud-scale, 1)) rgba(176, 130, 255, 0.95);
+  }
+}

@@ -35,12 +35,13 @@ describe('devPatchState', () => {
 })
 
 describe('devJumpToUpgrades', () => {
-  it('opens the upgrade screen on the next upgrade wave with a cleared field', () => {
+  it('opens the between-sector shop in a fresh corridor with a cleared field', () => {
     const state = devJumpToUpgrades(playingState())
     expect(state.phase).toBe(GamePhase.upgradeScreen)
     expect(state.enemies).toEqual([])
     expect(state.spawnQueue).toEqual([])
-    expect(state.wave % WAVES_PER_LEVEL).toBe(0)
+    // Post-warp: the first wave of a sector (one past an upgrade boundary).
+    expect((state.wave - 1) % WAVES_PER_LEVEL).toBe(0)
   })
 })
 

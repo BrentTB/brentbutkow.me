@@ -34,6 +34,7 @@ function makeUiState(phase: GameUIState['phase']): GameUIState {
     selectedAbility: AbilityKind.meteorite,
     spawnedInWave: 0,
     totalWaveEnemies: 0,
+    enemiesAlive: 0,
     levelUpWeaponOffers: [],
     unlockedWeapons: [ShipWeaponKind.bullet],
     equippedWeapons: [ShipWeaponKind.bullet],

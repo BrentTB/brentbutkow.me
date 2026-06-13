@@ -18,7 +18,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  // Children scale up by --hud-scale via transform (below), which doesn't reserve
+  // layout space — so the row gap must scale too (and start larger), else the
+  // scaled buttons overlap in fullscreen.
+  gap: calc(20px * var(--hud-scale, 1));
   text-align: center;
   padding: 40px;
   max-width: 480px;

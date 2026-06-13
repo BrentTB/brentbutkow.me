@@ -253,6 +253,56 @@ export const SPAWN_DISTANCE = { min: 650, max: 1050 } as const
 // Half-width of the box swarm members scatter into around their shared spawn center.
 export const SWARM_SPAWN_SPREAD = 60
 
+// Each level is a finite corridor the ship advances up toward a portal. "Forward"
+// is stored as a vector so the math is direction-agnostic; every sector uses -y
+// (up the screen). The ship enters at the bottom; the portal sits at the top.
+export const FORWARD_DIR = { x: 0, y: -1 } as const
+export const SECTOR = {
+  width: 1400, // corridor width (lateral, X) — soft-tethered
+  length: 6000, // corridor length (forward, Y)
+  shipStartOffset: 700, // ship entry is this far up from the bottom (high Y)
+  portalInset: 500, // portal sits this far down from the top (low Y)
+  driftSpeed: 75, // gentle forward drift when no enemies (world units/sec)
+  weaveAmplitude: 90, // lateral weave half-width during idle drift
+  weaveFrequency: 0.5, // weave cycles/sec
+  momentumWindow: 0.6, // seconds the resumed drift inherits the fling heading
+  orbitRangeFraction: 0.55, // hunt orbit radius = attackRange × this
+  orbitSpeedFraction: 0.7, // tangential (circling) speed = ship speed × this
+  steerRate: 3, // how fast velocity eases toward the desired heading (flowy turns)
+  lateralMargin: 120, // soft-tether margin inside each wall (before the hard clamp)
+  lateralTetherStrength: 4, // restoring accel past the soft corridor edge
+} as const
+
+// Seconds the portal warp transition runs between sectors.
+export const WARP_DURATION = 1.6
+
+// Enemy spawn angle bias. Most spawns arrive ahead of the ship; the forward cone
+// tightens as waves climb (sets up the Phase 7.5 difficulty curve).
+export const SPAWN_CONE = {
+  forwardFraction: 0.7, // fraction spawning within the forward cone
+  forwardHalfAngle: Math.PI / 3, // ±60° around forward at wave 1
+  tightenPerWave: 0.012, // half-angle shrinks per wave
+  minHalfAngle: Math.PI / 6, // floor at ±30°
+} as const
+
+// Mid-corridor mine clusters — a timed slingshot dash (or Escape Mode) crosses them.
+export const HAZARD = {
+  minesPerCluster: 5,
+  mineRadius: 26,
+  mineDamage: 35,
+  clusterSpread: 280, // half-box the cluster scatters into
+  laneEveryWaves: 2, // a lane appears every N non-boss sectors
+  hitCooldown: 1, // seconds before a mine can re-hit the ship
+  color: '#d6533a',
+} as const
+
+// The portal at the far end of each corridor. Dormant until the sector clears.
+export const PORTAL = {
+  radius: 120,
+  dormantColor: 'rgba(120, 90, 200, 0.22)',
+  activeColor: 'rgba(176, 130, 255, 0.9)',
+} as const
+
 export const PROJECTILE_SPEED = 400
 export const PROJECTILE_LIFETIME = 3
 export const PROJECTILE_RADIUS = 4
@@ -277,6 +327,32 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.21.0',
+    date: '2026-06-13',
+    changes: {
+      features: [
+        'Sector corridors: each level is now a finite corridor your ship flies up toward a portal — clear the sector, then warp through to a fresh one. Boss sectors put the boss at the gate as the final blockade.',
+        'Your ship now auto-pilots up the corridor and hunts the nearest enemy — closing in to orbit and strafe it rather than sitting still. Clear a sector and you warp to a fresh corridor, then refit at the shop. Progress is gated by clearing waves, so the slingshot stays a pure dodge/positioning tool and can never skip a level.',
+        'Hazard mines sit mid-corridor on some sectors — dash across the gap (Escape Mode passes through unharmed).',
+      ],
+      ui: [
+        'The level bar is now a sector progress bar: a ship marker advances toward the portal as waves clear (a boss marker caps boss sectors).',
+        'New auto-pilot framing — the ship threads sector after sector on its own; you guard the path ahead (start-screen and help copy updated).',
+      ],
+      balance: [
+        'Enemies now spawn mostly ahead of the ship, in a forward cone that tightens as waves climb.',
+      ],
+      fixes: [
+        'Slinging into a corridor wall now bounces you straight back (with an impact spark) instead of pinning you against it while the momentum bleeds off.',
+        'Space metal and Singularity Shards dropped by a boss are auto-collected when you warp out — a kill right before the portal is no longer wasted.',
+        'The corridor entry and far walls now get the same glowing border as the sides.',
+      ],
+      architecture: [
+        'Ship movement is now hunt-and-drift (replacing the fixed-arena orbit), which also fixes the post-fling snap-back. A new "warping" phase drives the portal transition, and per-sector world bounds, forward direction, and portal position are first-class game-state fields shared by the engine, renderer, and HUD.',
+      ],
+    },
+  },
   {
     version: '0.20.0',
     date: '2026-06-13',

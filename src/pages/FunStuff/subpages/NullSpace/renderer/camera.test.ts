@@ -8,6 +8,7 @@ import {
   HUD_SCALE_MAX,
   createCamera,
   centerCameraOn,
+  clampCameraAxis,
   worldToScreen,
   screenToWorld,
   isWithinView,
@@ -158,5 +159,20 @@ describe('worldToScreen / screenToWorld', () => {
     const cam = { ...createCamera(W, H), x: 0, y: 0, zoom: 2 }
     const world = screenToWorld({ x: 100, y: 0 }, cam)
     expect(world.x).toBe(50)
+  })
+})
+
+describe('clampCameraAxis', () => {
+  it('clamps within range when the world is larger than the viewport', () => {
+    expect(clampCameraAxis(-50, 3000, 1000)).toBe(0)
+    expect(clampCameraAxis(5000, 3000, 1000)).toBe(2000)
+    expect(clampCameraAxis(500, 3000, 1000)).toBe(500)
+  })
+
+  it('centers the world when it is narrower than the viewport (corridor case)', () => {
+    // A 1400-wide corridor in an 1800-wide viewport → centered, not pinned to 0.
+    const centered = (1400 - 1800) / 2
+    expect(clampCameraAxis(0, 1400, 1800)).toBe(centered)
+    expect(clampCameraAxis(999, 1400, 1800)).toBe(centered)
   })
 })

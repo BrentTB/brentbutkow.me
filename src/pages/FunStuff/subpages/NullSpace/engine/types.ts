@@ -58,7 +58,11 @@ export type Ship = Entity & {
   damage: number
   speed: number
   attackRange: number
-  patrolAngle: number
+  // Seconds left in the post-fling window where the resumed forward-drift still
+  // inherits the fling heading (eases back to forward) instead of snapping. 0 = pure drift.
+  driftMomentum: number
+  // Accumulated lateral-weave phase, advanced by dt during forward drift.
+  weavePhase: number
   shield: number
   maxShield: number
   shieldRegen: number
@@ -412,6 +416,21 @@ export type Collectible = {
   homing: boolean
 }
 
+// Static mid-corridor hazard. Damages the ship on overlap (per-hazard debounce),
+// but is NOT an enemy — it never blocks wave completion.
+export const HazardKind = { mine: 'mine' } as const
+export type HazardKind = (typeof HazardKind)[keyof typeof HazardKind]
+
+export type Hazard = {
+  id: string
+  kind: HazardKind
+  pos: Vec2
+  radius: number
+  damage: number
+  // Seconds until this hazard can hit the ship again (0 = ready).
+  hitCooldown: number
+}
+
 export type Ally = {
   id: string
   pos: Vec2
@@ -451,6 +470,8 @@ export const GamePhase = {
   paused: 'paused',
   waveComplete: 'waveComplete',
   upgradeScreen: 'upgradeScreen',
+  // Timed, non-interactive portal jump between sectors — sim frozen, animation runs.
+  warping: 'warping',
   gameOver: 'gameOver',
 } as const
 export type GamePhase = (typeof GamePhase)[keyof typeof GamePhase]
@@ -510,7 +531,16 @@ export type GameState = {
   maxPower: number
   powerRegen: number
   upgrades: PlayerUpgrades
+  // Active corridor bounds — set to the sector dimensions on each sector reset.
   worldSize: Vec2
+  // Sector "forward" unit axis (fixed to FORWARD_DIR this version).
+  forwardDir: Vec2
+  // Portal centre at the far end of the corridor (the warp-out point).
+  portalPos: Vec2
+  // Seconds left in the warp transition; 0 outside the `warping` phase.
+  warpTimer: number
+  // Mid-corridor mine clusters. Not part of the kill/wave economy.
+  hazards: Hazard[]
   waveTimer: number
   spawnQueue: EnemyKind[]
   spawnTimer: number

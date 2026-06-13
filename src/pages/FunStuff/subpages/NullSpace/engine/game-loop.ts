@@ -1,4 +1,13 @@
-import { WORLD_SIZE, PARTICLE_DEFAULTS, POWER_DEFAULTS } from '../data'
+import {
+  BOSS_LEVEL_INTERVAL,
+  FORWARD_DIR,
+  HAZARD,
+  PARTICLE_DEFAULTS,
+  POWER_DEFAULTS,
+  SECTOR,
+  WARP_DURATION,
+  WORLD_SIZE,
+} from '../data'
 import {
   createAbilities,
   createParticle,
@@ -32,7 +41,7 @@ import {
   tickFling,
   tickSlingHeat,
   updateShipAttack,
-  updateShipPatrol,
+  updateShipDrift,
 } from './entities/ship'
 import { updateEnemyMovement, updateEnemyShooting } from './entities/enemy'
 import { updateAllies } from './entities/ally'
@@ -62,13 +71,14 @@ import {
 } from './upgrades'
 import { purchaseUltimate } from './ultimates'
 import { getWave, getWaveDelay, isBossWave } from './world/waves'
+import { generateHazardLane, updateHazards } from './systems/hazards'
 import { advanceBossSelection, createBossSelection } from './bosses/boss-selection'
 import { updateBossAI } from './bosses/boss-ai'
 import { loadHighScore, saveHighScore } from './world/persistence'
 import { rng } from './math/random'
 import { getShipWeaponForUnlockUpgrade, SHIP_WEAPON_LIST } from './ship'
-import { GamePhase, ShipKind, ShipWeaponKind } from './types'
-import type { AbilityKind, GameState, PlayerInput } from './types'
+import { CollectibleKind, GamePhase, ShipKind, ShipWeaponKind } from './types'
+import type { AbilityKind, GameState, PlayerInput, Vec2 } from './types'
 import type { UpgradeId } from './upgrade-ids'
 
 // Weapons a fresh run starts with — derived from each weapon's startsUnlocked
@@ -103,6 +113,10 @@ export function createInitialState(): GameState {
     powerRegen: POWER_DEFAULTS.regenRate,
     upgrades: createInitialUpgrades(),
     worldSize: WORLD_SIZE,
+    forwardDir: { ...FORWARD_DIR },
+    portalPos: { x: WORLD_SIZE.x / 2, y: WORLD_SIZE.y },
+    warpTimer: 0,
+    hazards: [],
     waveTimer: 0,
     spawnQueue: [],
     spawnTimer: 0,
@@ -147,6 +161,11 @@ export function startGame(state: GameState, shipKind: ShipKind): GameState {
     maxPower: POWER_DEFAULTS.max,
     powerRegen: POWER_DEFAULTS.regenRate,
     upgrades,
+    worldSize: WORLD_SIZE,
+    forwardDir: { ...FORWARD_DIR },
+    portalPos: { x: WORLD_SIZE.x / 2, y: WORLD_SIZE.y },
+    warpTimer: 0,
+    hazards: [],
     waveTimer: 0,
     spawnQueue: [],
     spawnTimer: 0,
@@ -185,26 +204,71 @@ export function rollLevelUpWeaponOffers(
   return offers
 }
 
-export function startNextWave(state: GameState): GameState {
-  const nextWave = state.wave + 1
-  const bossWave = isBossWave(nextWave)
-  const queue = getWave(nextWave, bossWave ? state.bossSelection.nextBoss : undefined)
-  const delay = getWaveDelay(nextWave)
+// Lays out a fresh corridor for the sector `state.level` belongs to: resizes the
+// world to the corridor, drops the ship at the entry (bottom), places the portal
+// at the far end (top), and seeds a hazard lane on eligible (non-boss) sectors.
+export function resetForSector(state: GameState): GameState {
+  const worldSize: Vec2 = { x: SECTOR.width, y: SECTOR.length }
+  const corridorCenterX = worldSize.x / 2
+  // Forward is up (-y): ship enters near the bottom, portal sits near the top.
+  const shipEntryY = worldSize.y - SECTOR.shipStartOffset
+  const portalY = SECTOR.portalInset
+  const bossSector = state.level > 0 && state.level % BOSS_LEVEL_INTERVAL === 0
+  const seedLane = !bossSector && state.level % HAZARD.laneEveryWaves === 0
+  return {
+    ...state,
+    worldSize,
+    forwardDir: { ...FORWARD_DIR },
+    portalPos: { x: corridorCenterX, y: portalY },
+    warpTimer: 0,
+    hazards: seedLane
+      ? generateHazardLane({
+          corridorCenterX,
+          corridorHalfWidth: corridorCenterX - SECTOR.lateralMargin,
+          laneY: (shipEntryY + portalY) / 2,
+        })
+      : [],
+    ship: {
+      ...state.ship,
+      pos: { x: corridorCenterX, y: shipEntryY },
+      vel: { x: 0, y: 0 },
+      flingVel: { x: 0, y: 0 },
+      driftMomentum: 0,
+      weavePhase: 0,
+      lastHeading: { ...FORWARD_DIR },
+    },
+  }
+}
 
+// Advances the wave/level counters; when crossing into a new sector (level change,
+// including game start 0→1) it lays out a fresh corridor with the ship at the entry.
+// Does NOT spawn the wave — see beginWave.
+function advanceWave(state: GameState): GameState {
+  const nextWave = state.wave + 1
+  const base: GameState = { ...state, wave: nextWave, level: getLevel(nextWave) }
+  return getLevel(nextWave) !== getLevel(state.wave) ? resetForSector(base) : base
+}
+
+// Populates the current wave's spawn queue and goes live. A boss wave consumes
+// nextBoss and rolls the following one (keeping the dev-console readout ahead).
+function beginWave(state: GameState): GameState {
+  const bossWave = isBossWave(state.wave)
+  const queue = getWave(state.wave, bossWave ? state.bossSelection.nextBoss : undefined)
   return {
     ...state,
     phase: GamePhase.playing,
-    wave: nextWave,
-    level: getLevel(nextWave),
-    waveTimer: delay,
+    waveTimer: getWaveDelay(state.wave),
     spawnQueue: queue,
     spawnTimer: 0,
     totalWaveEnemies: queue.length,
     spawnedInWave: 0,
-    // Consuming nextBoss rolls the following one, keeping the dev-console
-    // readout one boss wave ahead.
     bossSelection: bossWave ? advanceBossSelection(state.bossSelection) : state.bossSelection,
   }
+}
+
+// Advances one wave and starts it — the within-sector path (and game start).
+export function startNextWave(state: GameState): GameState {
+  return beginWave(advanceWave(state))
 }
 
 export function applyUpgradeToState(state: GameState, upgradeId: UpgradeId): GameState {
@@ -337,8 +401,46 @@ function getWeaponForUnlockUpgrade(upgradeId: UpgradeId): AbilityKind | null {
   return null
 }
 
+// Suspends the sim and clears the corridor for the warp animation. The hook ticks
+// `warpTimer` (updateGameState early-returns while not playing), then calls completeWarp.
+export function beginWarp(state: GameState): GameState {
+  // Auto-collect every dropped collectible so a boss's space metal / shards aren't
+  // lost to the warp, then clear the field for the animation.
+  let { power, spaceMetal, singularityShard } = state
+  for (const c of state.collectibles) {
+    if (c.kind === CollectibleKind.spaceMetal) spaceMetal += c.value
+    else if (c.kind === CollectibleKind.singularityShard) singularityShard += c.value
+    else power = Math.min(state.maxPower, power + c.value)
+  }
+  return {
+    ...state,
+    phase: GamePhase.warping,
+    warpTimer: WARP_DURATION,
+    power,
+    spaceMetal,
+    singularityShard,
+    enemies: [],
+    projectiles: [],
+    activeEffects: [],
+    collectibles: [],
+    particles: [],
+  }
+}
+
+// Ends the warp in the next sector's fresh corridor, then opens the shop. The
+// wave itself isn't spawned until the player leaves the shop (finishUpgradeScreen).
+export function completeWarp(state: GameState): GameState {
+  const advanced = advanceWave(state)
+  return {
+    ...advanced,
+    phase: GamePhase.upgradeScreen,
+    levelUpWeaponOffers: rollLevelUpWeaponOffers(advanced.abilities),
+  }
+}
+
+// Leaves the shop and spawns the wave in the corridor the warp already laid out.
 export function finishUpgradeScreen(state: GameState): GameState {
-  return startNextWave({ ...state, levelUpWeaponOffers: [] })
+  return beginWave({ ...state, levelUpWeaponOffers: [] })
 }
 
 export function updateGameState(state: GameState, dt: number, input: PlayerInput): GameState {
@@ -362,6 +464,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     currency,
     spaceMetal,
     singularityShard,
+    hazards,
     spawnQueue,
     spawnTimer,
     spawnedInWave,
@@ -391,6 +494,8 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     spawnedInWave,
     shipPos: ship.pos,
     worldSize: state.worldSize,
+    forwardDir: state.forwardDir,
+    waveNumber: state.wave,
     dt,
   })
   spawnQueue = spawnResult.spawnQueue
@@ -442,10 +547,24 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   score += effectResult.scoreGained
   currency += computeCurrencyFromKills(effectResult.killedEnemies, stardustMultiplier)
 
+  // --- Hunt target: the nearest enemy the ship's movement steers toward. The
+  // attack system decides what's actually damageable; movement just engages. ---
+  let huntTarget: Vec2 | null = null
+  let huntBest = Infinity
+  for (const e of enemies) {
+    const d = (e.pos.x - ship.pos.x) ** 2 + (e.pos.y - ship.pos.y) ** 2
+    if (d < huntBest) {
+      huntBest = d
+      huntTarget = e.pos
+    }
+  }
+  const corridorCenterX = state.worldSize.x / 2
+  const corridorHalfWidth = state.worldSize.x / 2 - SECTOR.lateralMargin
+
   // --- Ship movement ---
-  // Priority: Escape Mode (invincible dash) > slingshot coast > patrol.
-  // A fresh slingshot flick sets the coast velocity; it then overrides patrol
-  // until it decays. Escape Mode still trumps everything while active.
+  // Priority: Escape Mode (invincible dash) > slingshot coast > auto-movement.
+  // A flick sets the coast velocity; while it lasts the ship overrides its
+  // auto-movement, then resumes hunting/drifting from wherever it landed.
   if (input.fling && ship.escapeMode === null) {
     ship = applySlingshot(ship, input.fling)
   }
@@ -457,8 +576,19 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   if (ship.escapeMode === null) {
     const flung = tickFling(ship, dt, state.worldSize)
     ship = flung.ship
-    if (!flung.active) {
-      ship = updateShipPatrol(ship, dt, state.worldSize)
+    particles = [...particles, ...flung.particles]
+    if (flung.active) {
+      // Coasting: arm the momentum window so the drift that resumes after the
+      // coast inherits this heading instead of snapping back toward forward.
+      ship = { ...ship, driftMomentum: SECTOR.momentumWindow }
+    } else {
+      ship = updateShipDrift(ship, dt, {
+        worldSize: state.worldSize,
+        forwardDir: state.forwardDir,
+        target: huntTarget,
+        corridorCenterX,
+        corridorHalfWidth,
+      })
     }
   }
 
@@ -561,6 +691,14 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   enemies = shipCollision.enemies
   ship = shipCollision.ship
   particles = [...particles, ...shipCollision.particles]
+
+  // --- Hazards (mid-corridor mines) ---
+  // Routed through applyDamageToShip, so an Escape-Mode dash across is free.
+  const hazardResult = updateHazards(hazards, ship, dt)
+  hazards = hazardResult.hazards
+  if (hazardResult.shipDamage > 0) {
+    ship = applyDamageToShip(ship, hazardResult.shipDamage)
+  }
 
   // --- Collision: enemies vs allies (melee — enemy dies, ally takes damage) ---
   const allyMeleeResult = resolveEnemyAllyMeleeCollisions(enemies, allies)
@@ -682,6 +820,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       singularityShard,
       highScore: Math.max(state.highScore, score),
       isNewHighScore,
+      hazards,
       waveTimer: 0,
       spawnQueue,
       spawnTimer,
@@ -693,14 +832,9 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
 
   // --- Check wave complete ---
   if (spawnQueue.length === 0 && enemies.length === 0 && state.totalWaveEnemies > 0) {
-    const enteringUpgrade = isUpgradeWave(state.wave)
-    const nextPhase = enteringUpgrade ? GamePhase.upgradeScreen : GamePhase.waveComplete
-    const levelUpWeaponOffers = enteringUpgrade
-      ? rollLevelUpWeaponOffers(abilities)
-      : state.levelUpWeaponOffers
-    return {
+    const cleared: GameState = {
       ...state,
-      phase: nextPhase,
+      phase: GamePhase.waveComplete,
       ship,
       enemies,
       projectiles,
@@ -719,9 +853,12 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       spawnTimer,
       spawnedInWave,
       holdStates: {},
-      levelUpWeaponOffers,
+      hazards,
       escapeTrailAccumulator,
     }
+    // Sector cleared (every 3rd wave) → warp first; the shop opens once the warp
+    // lands the next corridor. Mid-sector waves just wait for the Next Wave button.
+    return isUpgradeWave(state.wave) ? beginWarp(cleared) : cleared
   }
 
   return {
@@ -744,6 +881,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     spawnTimer,
     spawnedInWave,
     holdStates,
+    hazards,
     escapeTrailAccumulator,
   }
 }

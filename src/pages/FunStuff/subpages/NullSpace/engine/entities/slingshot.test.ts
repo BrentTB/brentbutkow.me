@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { createShip } from './entity-creator'
-import { applySlingshot, tickFling, tickSlingHeat, updateShipPatrol } from './ship'
+import { applySlingshot, tickFling, tickSlingHeat, updateShipDrift } from './ship'
 import { applyUpgradesToShip, createInitialUpgrades } from '../upgrades'
 import { ShipKind } from '../types'
 import { UpgradeId } from '../upgrade-ids'
@@ -81,6 +81,17 @@ describe('tickFling', () => {
     const r = tickFling(ship, 0.1, WORLD_SIZE)
     expect(r.active).toBe(false)
     expect(r.ship).toBe(ship)
+  })
+
+  it('bounces off a wall (reflects velocity + sparks) instead of stalling against it', () => {
+    const base = createShip(ShipKind.fighter, WORLD_SIZE)
+    // Hard against the left wall, flung further into it (−x).
+    const ship = { ...base, pos: { x: base.radius + 5, y: 1500 }, flingVel: { x: -400, y: 0 } }
+    const r = tickFling(ship, 0.1, WORLD_SIZE)
+    expect(r.active).toBe(true)
+    expect(r.ship.flingVel.x).toBeGreaterThan(0) // reflected — now heading away from the wall
+    expect(r.ship.pos.x).toBeGreaterThanOrEqual(base.radius) // never crosses the wall
+    expect(r.particles.length).toBeGreaterThan(0) // impact spark
   })
 })
 
@@ -169,18 +180,68 @@ describe('slingshot heat', () => {
 
   it('slows the ship while overheated', () => {
     const base = createShip(ShipKind.fighter, WORLD_SIZE)
-    // Park both well away from the patrol target so they coast at full max speed.
-    const far = { x: base.pos.x + 500, y: base.pos.y }
-    const normal = updateShipPatrol({ ...base, pos: { ...far } }, 0.1, WORLD_SIZE)
-    const overheated = updateShipPatrol(
-      { ...base, pos: { ...far }, slingOverheated: true },
-      0.1,
-      WORLD_SIZE
-    )
+    // No target + a wide corridor so only the idle drift speed is under test —
+    // isolating the overheat slowdown.
+    const ctx = {
+      worldSize: WORLD_SIZE,
+      forwardDir: { x: 0, y: -1 },
+      target: null,
+      corridorCenterX: base.pos.x,
+      corridorHalfWidth: 1000,
+    }
+    const normal = updateShipDrift(base, 0.1, ctx)
+    const overheated = updateShipDrift({ ...base, slingOverheated: true }, 0.1, ctx)
     const moved = (a: typeof base, b: typeof base) =>
       Math.hypot(b.pos.x - a.pos.x, b.pos.y - a.pos.y)
-    expect(moved({ ...base, pos: far }, overheated)).toBeLessThan(
-      moved({ ...base, pos: far }, normal)
-    )
+    expect(moved(base, overheated)).toBeLessThan(moved(base, normal))
+  })
+})
+
+describe('forward drift (post-slingshot)', () => {
+  // No target (lane clear) + wide corridor so only the idle-drift heading is under
+  // test. Forward is up (−y).
+  const ctx = {
+    worldSize: WORLD_SIZE,
+    forwardDir: { x: 0, y: -1 },
+    target: null,
+    corridorCenterX: WORLD_SIZE.x / 2,
+    corridorHalfWidth: WORLD_SIZE.x / 2,
+  }
+
+  it('does not snap back after a fling — keeps going the way it was flung', () => {
+    const base = createShip(ShipKind.fighter, WORLD_SIZE)
+    // The frame the coast ends: landed heading backward (down, +y), momentum armed.
+    const flung = {
+      ...base,
+      pos: { x: WORLD_SIZE.x / 2, y: 1500 },
+      lastHeading: { x: 0, y: 1 },
+      driftMomentum: 0.6,
+    }
+    const after = updateShipDrift(flung, 0.1, ctx)
+    // Continues in the flung direction (down) — the old patrol would reverse to forward.
+    expect(after.pos.y).toBeGreaterThan(flung.pos.y)
+  })
+
+  it('eases the momentum window down to zero', () => {
+    const base = createShip(ShipKind.fighter, WORLD_SIZE)
+    const flung = { ...base, lastHeading: { x: 0, y: 1 }, driftMomentum: 0.05 }
+    expect(updateShipDrift(flung, 0.1, ctx).driftMomentum).toBe(0)
+  })
+
+  it('drifts up (forward) when no momentum is armed and no enemies', () => {
+    const base = createShip(ShipKind.fighter, WORLD_SIZE)
+    const ship = { ...base, pos: { x: WORLD_SIZE.x / 2, y: 1500 }, driftMomentum: 0 }
+    expect(updateShipDrift(ship, 0.1, ctx).pos.y).toBeLessThan(ship.pos.y)
+  })
+
+  it('hunts toward a target when one is present', () => {
+    const base = createShip(ShipKind.fighter, WORLD_SIZE)
+    const ship = { ...base, pos: { x: WORLD_SIZE.x / 2, y: 1500 } }
+    // Target far to the right → the ship steers toward it (x increases).
+    const after = updateShipDrift(ship, 0.1, {
+      ...ctx,
+      target: { x: ship.pos.x + 1500, y: ship.pos.y },
+    })
+    expect(after.pos.x).toBeGreaterThan(ship.pos.x)
   })
 })

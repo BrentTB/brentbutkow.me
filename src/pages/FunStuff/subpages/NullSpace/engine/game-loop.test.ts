@@ -9,6 +9,8 @@ import {
   applyUpgradeToState,
   devUnlockWeapon,
   devGrantUltimate,
+  finishUpgradeScreen,
+  completeWarp,
 } from './game-loop'
 import { createAbilities, createEnemy, createProjectile } from './entities/entity-creator'
 import { tickEscapeMode } from './entities/ship'
@@ -19,6 +21,7 @@ import {
   EnemyKind,
   EscapeModePhase,
   GamePhase,
+  HazardKind,
   ProjectileOwner,
   ShipKind,
   ShipWeaponKind,
@@ -26,7 +29,7 @@ import {
 import { UpgradeId } from './upgrade-ids'
 import { isUpgradeWave } from './upgrades'
 import { BOSS_KINDS } from './bosses/index'
-import { ENEMY_STATS, POWER_DEFAULTS, WAVES_PER_LEVEL } from '../data'
+import { ENEMY_STATS, POWER_DEFAULTS, SECTOR, WAVES_PER_LEVEL } from '../data'
 import { TELEKINESIS, SOLAR_FLARE } from './abilities/ability-data'
 
 beforeEach(() => {
@@ -137,12 +140,12 @@ describe('updateGameState', () => {
     state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
     expect(state.enemies.length).toBeGreaterThan(0)
 
-    // Place enemy far from ship so patrol movement doesn't dominate
+    // Place the enemy far down the corridor (forward axis) so drift doesn't dominate.
     state = {
       ...state,
       enemies: state.enemies.map((e) => ({
         ...e,
-        pos: { x: state.ship.pos.x + 800, y: state.ship.pos.y },
+        pos: { x: state.ship.pos.x, y: state.ship.pos.y + 800 },
       })),
     }
 
@@ -220,7 +223,7 @@ describe('updateGameState', () => {
     expect(tied.isNewHighScore).toBe(false)
   })
 
-  it('shows upgrade screen after completing the 3rd wave', () => {
+  it('warps then shows the upgrade screen after completing the 3rd wave', () => {
     let state = startGame(createInitialState(), ShipKind.fighter)
     state = { ...state, wave: WAVES_PER_LEVEL, phase: GamePhase.playing }
     state = {
@@ -232,7 +235,8 @@ describe('updateGameState', () => {
       waveTimer: 0,
     }
     state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
-    expect(state.phase).toBe(GamePhase.upgradeScreen)
+    expect(state.phase).toBe(GamePhase.warping) // warp first
+    expect(completeWarp(state).phase).toBe(GamePhase.upgradeScreen) // then the shop
   })
 
   it('shows correct phase after wave completion', () => {
@@ -246,7 +250,7 @@ describe('updateGameState', () => {
       waveTimer: 0,
     }
     state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
-    const expected = isUpgradeWave(state.wave) ? GamePhase.upgradeScreen : GamePhase.waveComplete
+    const expected = isUpgradeWave(state.wave) ? GamePhase.warping : GamePhase.waveComplete
     expect(state.phase).toBe(expected)
   })
 })
@@ -353,12 +357,15 @@ describe('levelUpWeaponOffers', () => {
       totalWaveEnemies: 1,
       spawnedInWave: 1,
     }
-    return updateGameState(state, 0.016, {
+    // Clearing an upgrade wave warps first; completing the warp opens the shop
+    // (which is where the offers are rolled).
+    const cleared = updateGameState(state, 0.016, {
       clicks: [],
       selectedAbility: AbilityKind.meteorite,
       holdPos: null,
       isHolding: false,
     })
+    return completeWarp(cleared)
   }
 
   it('rolls 2 distinct locked-weapon offers on entering upgrade screen', () => {
@@ -546,7 +553,7 @@ describe('updateGameState — state field round-trip persistence', () => {
     state = injectCollectible(state, {
       id: 'metal-1',
       kind: CollectibleKind.spaceMetal,
-      pos: { x: 1500, y: 1500 },
+      pos: { ...state.ship.pos },
       vel: { x: 0, y: 0 },
       value: 1,
       elapsed: 0,
@@ -556,7 +563,7 @@ describe('updateGameState — state field round-trip persistence', () => {
 
     const before = state.spaceMetal
     state = updateGameState(state, 1 / 60, {
-      clicks: [{ x: 1500, y: 1500 }],
+      clicks: [{ ...state.ship.pos }],
       selectedAbility: null,
     })
 
@@ -569,7 +576,7 @@ describe('updateGameState — state field round-trip persistence', () => {
     state = injectCollectible(state, {
       id: 'metal-1',
       kind: CollectibleKind.spaceMetal,
-      pos: { x: 1500, y: 1500 },
+      pos: { ...state.ship.pos },
       vel: { x: 0, y: 0 },
       value: 1,
       elapsed: 0,
@@ -578,7 +585,7 @@ describe('updateGameState — state field round-trip persistence', () => {
     })
 
     state = updateGameState(state, 1 / 60, {
-      clicks: [{ x: 1500, y: 1500 }],
+      clicks: [{ ...state.ship.pos }],
       selectedAbility: null,
     })
 
@@ -591,7 +598,7 @@ describe('updateGameState — state field round-trip persistence', () => {
     state = injectCollectible(state, {
       id: 'metal-1',
       kind: CollectibleKind.spaceMetal,
-      pos: { x: 1500, y: 1500 },
+      pos: { ...state.ship.pos },
       vel: { x: 0, y: 0 },
       value: 1,
       elapsed: 0,
@@ -600,7 +607,7 @@ describe('updateGameState — state field round-trip persistence', () => {
     })
 
     state = updateGameState(state, 1 / 60, {
-      clicks: [{ x: 1500, y: 1500 }],
+      clicks: [{ ...state.ship.pos }],
       selectedAbility: null,
     })
     expect(state.spaceMetal).toBe(1)
@@ -772,16 +779,16 @@ describe('updateGameState — chase-movement smoothing (tank behaviour)', () => 
       ...state,
       enemies: state.enemies.map((e) => ({
         ...e,
-        pos: { x: state.ship.pos.x + 800, y: state.ship.pos.y },
+        pos: { x: state.ship.pos.x, y: state.ship.pos.y + 800 },
         vel: { x: 0, y: 0 },
       })),
     }
 
-    const distBefore = Math.abs(state.enemies[0].pos.x - state.ship.pos.x)
+    const distBefore = Math.abs(state.enemies[0].pos.y - state.ship.pos.y)
     const next = updateGameState(state, 0.5, { clicks: [], selectedAbility: null })
     const after = next.enemies.find((e) => e.id === state.enemies[0].id)
     if (after) {
-      const distAfter = Math.abs(after.pos.x - next.ship.pos.x)
+      const distAfter = Math.abs(after.pos.y - next.ship.pos.y)
       expect(distAfter).toBeLessThan(distBefore)
     }
   })
@@ -1558,5 +1565,158 @@ describe('Enemy melee damages allies', () => {
     expect(allyDamaged).toBe(true)
     // Drone survives the bump (bombers are the only kind that suicide on contact).
     expect(state.enemies.find((e) => e.id === enemy.id)).toBeDefined()
+  })
+})
+
+describe('updateGameState — sector corridor progression', () => {
+  const noInput = { clicks: [], selectedAbility: null }
+  const playing = () => startNextWave(startGame(createInitialState(), ShipKind.fighter))
+  const mine = (pos: { x: number; y: number }) => ({
+    id: 'h1',
+    kind: HazardKind.mine,
+    pos,
+    radius: 26,
+    damage: 35,
+    hitCooldown: 0,
+  })
+
+  it('threads hazards through the normal return', () => {
+    let state = playing()
+    state = {
+      ...state,
+      hazards: [mine({ x: state.ship.pos.x + 9999, y: state.ship.pos.y })],
+      enemies: [createEnemy(EnemyKind.drone, { x: 0, y: 0 })],
+    }
+    expect(updateGameState(state, 0.016, noInput).hazards).toHaveLength(1)
+  })
+
+  it('threads hazards through the wave-complete early return', () => {
+    let state = playing()
+    state = {
+      ...state,
+      hazards: [mine({ x: state.ship.pos.x + 9999, y: state.ship.pos.y })],
+      enemies: [],
+      spawnQueue: [],
+      totalWaveEnemies: 1,
+      spawnedInWave: 1,
+      waveTimer: 0,
+    }
+    const next = updateGameState(state, 0.016, noInput)
+    expect(next.phase).not.toBe(GamePhase.playing)
+    expect(next.hazards).toHaveLength(1)
+  })
+
+  it('hazards do not block wave completion (they are not enemies)', () => {
+    let state = playing()
+    state = {
+      ...state,
+      hazards: [mine({ x: state.ship.pos.x, y: state.ship.pos.y })],
+      enemies: [],
+      spawnQueue: [],
+      totalWaveEnemies: 3,
+      spawnedInWave: 3,
+      waveTimer: 0,
+    }
+    const next = updateGameState(state, 0.016, noInput)
+    expect([GamePhase.waveComplete, GamePhase.upgradeScreen]).toContain(next.phase)
+  })
+
+  it('hunts toward a nearby enemy instead of ignoring it', () => {
+    // Gate spawning so only the planted (stationary, un-killable) enemy is present.
+    let state = { ...playing(), waveTimer: 100 }
+    const startPos = { ...state.ship.pos }
+    const enemyPos = { x: startPos.x, y: startPos.y - 1500 } // up the corridor
+    state = {
+      ...state,
+      enemies: [{ ...createEnemy(EnemyKind.drone, enemyPos), speed: 0, hp: 1e6, maxHp: 1e6 }],
+    }
+    const distBefore = Math.hypot(enemyPos.x - startPos.x, enemyPos.y - startPos.y)
+    for (let i = 0; i < 20; i++) state = updateGameState(state, 0.1, noInput)
+    const distAfter = Math.hypot(enemyPos.x - state.ship.pos.x, enemyPos.y - state.ship.pos.y)
+    expect(distAfter).toBeLessThan(distBefore)
+    expect(state.ship.pos.y).toBeLessThan(startPos.y) // moved up toward the enemy
+  })
+
+  it('auto-collects dropped collectibles when warping after a sector clear', () => {
+    let state = playing()
+    state = {
+      ...state,
+      wave: WAVES_PER_LEVEL, // last wave of sector 1 → clearing it warps
+      enemies: [],
+      spawnQueue: [],
+      totalWaveEnemies: 1,
+      spawnedInWave: 1,
+      waveTimer: 0,
+      spaceMetal: 0,
+      singularityShard: 0,
+      collectibles: [
+        {
+          id: 'm',
+          kind: CollectibleKind.spaceMetal,
+          pos: { x: 0, y: 0 },
+          vel: { x: 0, y: 0 },
+          value: 2,
+          elapsed: 0,
+          lifetime: 12,
+          homing: false,
+        },
+        {
+          id: 's',
+          kind: CollectibleKind.singularityShard,
+          pos: { x: 0, y: 0 },
+          vel: { x: 0, y: 0 },
+          value: 1,
+          elapsed: 0,
+          lifetime: 12,
+          homing: false,
+        },
+      ],
+    }
+    const next = updateGameState(state, 0.016, noInput)
+    expect(next.phase).toBe(GamePhase.warping)
+    expect(next.spaceMetal).toBe(2) // banked, not lost to the warp
+    expect(next.singularityShard).toBe(1)
+    expect(next.collectibles).toEqual([])
+  })
+
+  it('warps into a fresh corridor, then opens the shop, then starts the wave', () => {
+    // Sit on the last wave of sector 1 with the field cleared.
+    let state = playing()
+    state = {
+      ...state,
+      wave: WAVES_PER_LEVEL,
+      enemies: [],
+      spawnQueue: [],
+      totalWaveEnemies: 1,
+      spawnedInWave: 1,
+      waveTimer: 0,
+    }
+    state = updateGameState(state, 0.016, noInput)
+    expect(state.phase).toBe(GamePhase.warping) // warp comes first
+    expect(state.warpTimer).toBeGreaterThan(0)
+
+    // Warp lands in the next sector's corridor and opens the shop — wave not spawned yet.
+    const warped = completeWarp(state)
+    expect(warped.phase).toBe(GamePhase.upgradeScreen)
+    expect(warped.wave).toBe(WAVES_PER_LEVEL + 1)
+    expect(warped.worldSize).toEqual({ x: SECTOR.width, y: SECTOR.length })
+    // Forward is up, so the ship enters near the bottom of the corridor.
+    expect(warped.ship.pos.y).toBeCloseTo(SECTOR.length - SECTOR.shipStartOffset, 5)
+    expect(warped.spawnQueue).toEqual([])
+
+    // Leaving the shop spawns the wave in the corridor already laid out.
+    const live = finishUpgradeScreen(warped)
+    expect(live.phase).toBe(GamePhase.playing)
+    expect(live.wave).toBe(WAVES_PER_LEVEL + 1) // not advanced again
+    expect(live.spawnQueue.length).toBeGreaterThan(0)
+  })
+
+  it('makes the same forward progress at 2x sub-steps as one full step', () => {
+    const setup = () => ({ ...playing(), waveTimer: 100 })
+    const once = updateGameState(setup(), 0.1, noInput)
+    let twice = setup()
+    twice = updateGameState(twice, 0.05, noInput)
+    twice = updateGameState(twice, 0.05, noInput)
+    expect(twice.ship.pos.y).toBeCloseTo(once.ship.pos.y, 3)
   })
 })
