@@ -1,0 +1,41 @@
+.figure {
+  margin: 0;
+  width: 100%;
+}
+
+.svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.bar {
+  fill: var(--accent);
+  transition: fill 0.15s ease;
+}
+
+.bar:hover {
+  fill: var(--accent-strong);
+}
+
+.axis {
+  stroke: var(--border-strong);
+  stroke-width: 1;
+}
+
+.grid {
+  stroke: var(--border);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+}
+
+.label {
+  fill: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.empty {
+  color: var(--muted);
+  font-size: 0.9rem;
+}

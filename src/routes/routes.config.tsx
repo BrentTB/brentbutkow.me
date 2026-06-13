@@ -31,12 +31,18 @@ const NullSpace = lazy(() =>
     default: module.NullSpace,
   }))
 )
+const RecallRadar = lazy(() =>
+  import('../projects/RecallRadar/RecallRadar').then((module) => ({
+    default: module.RecallRadar,
+  }))
+)
 
 export const routePaths = {
   home: '/',
   experience: '/experience',
   education: '/education',
   achievements: '/achievements',
+  recallRadar: '/recall-radar',
   funStuff: '/fun-stuff',
   contact: '/contact',
   notFound: '*',
@@ -97,6 +103,12 @@ export const routes: AppRoute[] = [
     element: <AchievementsPage />,
     label: 'Achievements',
     title: 'Achievements — Brent Butkow',
+  },
+  {
+    path: routePaths.recallRadar,
+    element: <RecallRadar />,
+    label: 'Recall Radar',
+    title: 'Recall Radar — Brent Butkow',
   },
   {
     path: routePaths.funStuff,
