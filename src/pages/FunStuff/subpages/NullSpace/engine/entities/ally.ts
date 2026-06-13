@@ -55,7 +55,8 @@ export function updateAllies(
       const spawnTimer = (ally.spawnTimer ?? ally.spawnInterval) - dt
       if (spawnTimer <= 0) {
         spawned.push(createAlly(ally.pos))
-        updated = { ...updated, spawnTimer: ally.spawnInterval }
+        // Carry the overshoot so cadence doesn't drift on long frames.
+        updated = { ...updated, spawnTimer: ally.spawnInterval + spawnTimer }
       } else {
         updated = { ...updated, spawnTimer }
       }

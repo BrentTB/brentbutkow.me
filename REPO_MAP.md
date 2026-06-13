@@ -182,6 +182,7 @@ src/pages/FunStuff/subpages/NullSpace/engine/abilities/
   ability-definition.ts                      AbilityActivation, UltimateCost, UltimateContext, UltimatePrerequisite, UltimateDescriptor, AbilityDefinition, composeUltimateUpgrades, makeAbilityUpgrade, applyTierSum, applyCostReduction
   black-hole.ts                              BLACK_HOLE_UPGRADE_IDS, createBlackHoleEffect, blackHoleEffect, blackHole
   comet-shower.ts                            COMET_SHOWER_UPGRADE_IDS, cometShower
+  dome-absorption.ts                         tickDomeAbsorption
   force-field.ts                             FORCE_FIELD_UPGRADE_IDS, createForceFieldEffect, getForceFieldCurrentRadius, forceFieldEffect, forceField
   helper-factory.ts                          HELPER_FACTORY_UPGRADE_IDS, helperFactory
   helper.ts                                  HELPER_UPGRADE_IDS, helper

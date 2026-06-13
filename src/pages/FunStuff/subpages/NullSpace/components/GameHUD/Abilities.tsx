@@ -39,7 +39,7 @@ export function Abilities({ uiState, onAbilitySelect }: AbilitiesProps) {
               onClick={() => onAbilitySelect(ability.kind)}
               aria-label={`${meta.label} (${ability.powerCost} power)${
                 onCooldown ? ` — ${Math.ceil(ability.cooldownRemaining)}s cooldown` : ''
-              }`}
+              }${!canAfford ? ' — not enough power' : ''}`}
             >
               <span className={sharedStyles.hotkeyBadge}>{hotkey}</span>
               <span className={sharedStyles.abilityIcon}>

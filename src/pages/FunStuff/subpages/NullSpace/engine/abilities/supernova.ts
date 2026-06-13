@@ -70,7 +70,7 @@ export function createSupernovaEffect(
 // and the renderer so the burning circle and the visual always match. Three
 // phases: HOLD (full radius, base damage, warm) until the final collapse+burst
 // window; COLLAPSE (shrink baseRadius → collapseMinScale linearly, base damage,
-// `blueT` ramps 0→1 warm→blue); BURST (rapidly expand to burstRadius for 5×).
+// `blueT` ramps 0→1 warm→blue); BURST (rapidly expand to burstRadius for 6×).
 export function getSupernovaState(s: SupernovaEffect): {
   radius: number
   damagePerSec: number

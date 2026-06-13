@@ -1,16 +1,9 @@
 import { SHIELD } from './ability-data'
 import { spawnExplosionParticles, uid } from '../entities/entity-creator'
 import { canEnemyTakeDamage } from '../bosses/index'
-import { AbilityKind, EffectKind, ProjectileOwner } from '../types'
-import type {
-  ActiveEffect,
-  Enemy,
-  ForceFieldEffect,
-  Particle,
-  Projectile,
-  ShieldEffect,
-  Vec2,
-} from '../types'
+import { AbilityKind, EffectKind } from '../types'
+import type { ActiveEffect, Enemy, ForceFieldEffect, Particle, ShieldEffect, Vec2 } from '../types'
+import { tickDomeAbsorption } from './dome-absorption'
 import type { Camera } from '../../renderer/camera'
 import { worldToScreen } from '../../renderer/camera'
 import {
@@ -91,53 +84,7 @@ function tickShield(zone: ShieldEffect, ctx: EffectTickContext): EffectTickResul
   if (zone.elapsed >= zone.duration) {
     return passThroughTick(null, ctx)
   }
-
-  // Grandfathered list = enemies that have been inside the shield CONTINUOUSLY
-  // since it spawned. The shield only blocks NEW entries — anyone caught
-  // inside at spawn time gets to wander out freely, BUT once they leave they
-  // can't come back. Recompute the list every tick to enforce that.
-  const radiusSq = zone.radius * zone.radius
-  const insideThisTick = new Set<string>()
-  for (const enemy of ctx.enemies) {
-    const dx = enemy.pos.x - zone.pos.x
-    const dy = enemy.pos.y - zone.pos.y
-    if (dx * dx + dy * dy < radiusSq) insideThisTick.add(enemy.id)
-  }
-  let grandfathered: string[]
-  if (zone.grandfatheredEnemyIds === null) {
-    // First tick — everyone currently inside gets grandfathered.
-    grandfathered = [...insideThisTick]
-  } else {
-    // Subsequent ticks — keep only the IDs that are STILL inside. An enemy
-    // that has moved outside drops off the list and is treated as a newcomer
-    // on any future re-entry attempt.
-    grandfathered = zone.grandfatheredEnemyIds.filter((id) => insideThisTick.has(id))
-  }
-
-  // Absorb enemy projectiles inside the shield; leave ship projectiles alone.
-  // Bullets fired from inside (by grandfathered enemies) are still absorbed.
-  const remainingProjectiles: Projectile[] = []
-  const absorbParticles: Particle[] = []
-  for (const p of ctx.projectiles) {
-    if (p.owner === ProjectileOwner.enemy) {
-      const dx = p.pos.x - zone.pos.x
-      const dy = p.pos.y - zone.pos.y
-      if (dx * dx + dy * dy < radiusSq) {
-        absorbParticles.push(...spawnExplosionParticles(p.pos, 3, '#88ccff'))
-        continue
-      }
-    }
-    remainingProjectiles.push(p)
-  }
-
-  return {
-    effect: { ...zone, grandfatheredEnemyIds: grandfathered },
-    enemies: ctx.enemies,
-    projectiles: remainingProjectiles,
-    particles: absorbParticles,
-    scoreGained: 0,
-    killedEnemies: [],
-  }
+  return tickDomeAbsorption(zone, ctx, zone.radius, '#88ccff')
 }
 
 export type ShieldConstraintResult = {

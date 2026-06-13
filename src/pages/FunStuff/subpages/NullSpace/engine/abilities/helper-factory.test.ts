@@ -39,8 +39,10 @@ describe('helperFactory', () => {
     expect(ally.damage).toBe(0)
     expect(ally.maxHp).toBe(HELPER.hp * HELPER_FACTORY.hpMultiplier)
     expect(ally.spawnInterval).toBe(HELPER_FACTORY.spawnInterval)
-    // First spawn fires after the short delay, not a full interval.
-    expect(ally.spawnTimer).toBe(HELPER_FACTORY.firstSpawnDelay)
+    // First spawn fires after the short delay, never longer than one interval.
+    expect(ally.spawnTimer).toBe(
+      Math.min(HELPER_FACTORY.firstSpawnDelay, HELPER_FACTORY.spawnInterval)
+    )
     expect(ally.radius).toBeGreaterThan(HELPER.radius)
   })
 

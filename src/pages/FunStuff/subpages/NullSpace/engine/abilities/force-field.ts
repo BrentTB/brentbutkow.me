@@ -1,7 +1,7 @@
 import { FORCE_FIELD, SHIELD } from './ability-data'
-import { spawnExplosionParticles, uid } from '../entities/entity-creator'
-import { AbilityKind, EffectKind, ProjectileOwner } from '../types'
-import type { ForceFieldEffect, Particle, Projectile, Vec2 } from '../types'
+import { uid } from '../entities/entity-creator'
+import { AbilityKind, EffectKind } from '../types'
+import type { ForceFieldEffect, Vec2 } from '../types'
 import type { Camera } from '../../renderer/camera'
 import { worldToScreen } from '../../renderer/camera'
 import {
@@ -11,6 +11,7 @@ import {
   type AbilityDefinition,
 } from './ability-definition'
 import { shield } from './shield'
+import { tickDomeAbsorption } from './dome-absorption'
 import type {
   EffectDefinition,
   EffectTickContext,
@@ -29,6 +30,7 @@ const repulsorUpgrade = upgrade({
   id: FORCE_FIELD_UPGRADE_IDS.forceFieldKnockback,
   label: 'Repulsor',
   description: 'Force field hurls enemies away harder',
+  // Values add onto the base knockback (FORCE_FIELD.knockback 600) via applyTierSum.
   tiers: [
     { cost: 70, value: 250 },
     { cost: 200, value: 300 },
@@ -72,47 +74,9 @@ function tickForceField(field: ForceFieldEffect, ctx: EffectTickContext): Effect
   if (field.elapsed >= field.duration) {
     return passThroughTick(null, ctx)
   }
-
-  const radius = getForceFieldCurrentRadius(field)
-  const radiusSq = radius * radius
-
-  // Same grandfathering as the base shield: only NEW entrants are blocked;
-  // anyone caught inside at spawn (or as the field grows over them) gets a free
-  // pass until they leave, then can't re-enter.
-  const insideThisTick = new Set<string>()
-  for (const enemy of ctx.enemies) {
-    const dx = enemy.pos.x - field.pos.x
-    const dy = enemy.pos.y - field.pos.y
-    if (dx * dx + dy * dy < radiusSq) insideThisTick.add(enemy.id)
-  }
-  const grandfathered =
-    field.grandfatheredEnemyIds === null
-      ? [...insideThisTick]
-      : field.grandfatheredEnemyIds.filter((id) => insideThisTick.has(id))
-
-  // Absorb enemy projectiles inside the field; leave ship projectiles alone.
-  const remainingProjectiles: Projectile[] = []
-  const absorbParticles: Particle[] = []
-  for (const p of ctx.projectiles) {
-    if (p.owner === ProjectileOwner.enemy) {
-      const dx = p.pos.x - field.pos.x
-      const dy = p.pos.y - field.pos.y
-      if (dx * dx + dy * dy < radiusSq) {
-        absorbParticles.push(...spawnExplosionParticles(p.pos, 3, '#c8a8ff'))
-        continue
-      }
-    }
-    remainingProjectiles.push(p)
-  }
-
-  return {
-    effect: { ...field, radius, grandfatheredEnemyIds: grandfathered },
-    enemies: ctx.enemies,
-    projectiles: remainingProjectiles,
-    particles: absorbParticles,
-    scoreGained: 0,
-    killedEnemies: [],
-  }
+  // Live radius grows over the field's life; stored back onto the effect so
+  // applyShieldConstraints reads the same size the renderer draws.
+  return tickDomeAbsorption(field, ctx, getForceFieldCurrentRadius(field), '#c8a8ff')
 }
 
 function renderForceField(

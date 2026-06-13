@@ -311,7 +311,7 @@ export type NuclearWasteEffect = EffectBase & {
 // The Sun ultimate. Holds at full `baseRadius` (base damage) for most of its
 // life, then over the final `collapseDuration` shrinks and shifts blue, then
 // over `burstDuration` rapidly expands to `burstRadius` for `burstDamagePerSec`
-// (5× base). The current radius/damage are derived from `elapsed` by
+// (6× base). The current radius/damage are derived from `elapsed` by
 // getSupernovaState().
 export type SupernovaEffect = EffectBase & {
   kind: typeof EffectKind.supernova
