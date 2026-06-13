@@ -1,10 +1,8 @@
 import { SOLAR_FLARE } from './ability-data'
-import { canEnemyTakeDamage } from '../bosses/index'
-import { distance } from '../math/collision'
-import { createParticle, spawnExplosionParticles } from '../entities/entity-creator'
+import { createParticle } from '../entities/entity-creator'
 import { rng } from '../math/random'
 import { AbilityKind } from '../types'
-import type { Enemy } from '../types'
+import { damageEnemiesInBeam } from './beam-damage'
 import { worldToScreen } from '../../renderer/camera'
 import {
   makeAbilityUpgrade,
@@ -110,33 +108,22 @@ const solarFlareHold: HoldAbilityConfig = {
   // currency for kills are tallied by the game loop from killedEnemies, same as
   // every other kill source.
   onTick: (bag, ability, holdPos) => {
-    const radius = ability.aoeRadius
-    const updatedEnemies: Enemy[] = []
-    let particles = bag.particles
-    const newKills: Enemy[] = []
-    for (const enemy of bag.enemies) {
-      // Invincible enemies (shielded boss) take no damage from the flare.
-      if (
-        distance(holdPos, enemy.pos) < radius + enemy.radius &&
-        canEnemyTakeDamage(enemy, bag.enemies)
-      ) {
-        const damaged = { ...enemy, hp: enemy.hp - ability.damage }
-        if (damaged.hp <= 0) {
-          newKills.push(enemy)
-          particles = [...particles, ...spawnExplosionParticles(enemy.pos, 12, '#ffaa33')]
-        } else {
-          updatedEnemies.push(damaged)
-          particles = [...particles, ...spawnExplosionParticles(enemy.pos, 4, '#ffdd66')]
-        }
-      } else {
-        updatedEnemies.push(enemy)
+    const result = damageEnemiesInBeam(
+      bag.enemies,
+      bag.particles,
+      holdPos,
+      ability.aoeRadius,
+      ability.damage,
+      {
+        killBurst: { count: 12, color: '#ffaa33' },
+        surviveBurst: { count: 4, color: '#ffdd66' },
       }
-    }
+    )
     return {
       ...bag,
-      enemies: updatedEnemies,
-      particles,
-      killedEnemies: [...bag.killedEnemies, ...newKills],
+      enemies: result.enemies,
+      particles: result.particles,
+      killedEnemies: [...bag.killedEnemies, ...result.killedEnemies],
     }
   },
   // Soft heat haze under the particle spawn area. Particles do the bulk of the
@@ -186,4 +173,10 @@ export const solarFlare: AbilityDefinition = {
   unlockUpgrade,
   modifierUpgrades: [damageUpgrade, efficiencyUpgrade, radiusUpgrade],
   hold: solarFlareHold,
+  ultimate: {
+    kind: AbilityKind.solarPlague,
+    label: 'Solar Plague',
+    description: 'One ember, and the swarm burns as one.',
+    cost: { stardust: 420, spaceMetal: 16 },
+  },
 }

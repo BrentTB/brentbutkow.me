@@ -22,7 +22,7 @@ describe('updateActiveEffects', () => {
         METEORITE_STRIKE.aoeRadius,
         METEORITE_STRIKE.delay
       )
-      const result = updateActiveEffects([strike], [], [], ship, 0.1)
+      const result = updateActiveEffects([strike], [], [], ship, WORLD_SIZE, 0.1)
       expect(result.activeEffects.length).toBe(1)
       expect(result.activeEffects[0].elapsed).toBeGreaterThan(0)
     })
@@ -34,7 +34,14 @@ describe('updateActiveEffects', () => {
         METEORITE_STRIKE.aoeRadius,
         METEORITE_STRIKE.delay
       )
-      const result = updateActiveEffects([strike], [], [], ship, METEORITE_STRIKE.delay + 0.1)
+      const result = updateActiveEffects(
+        [strike],
+        [],
+        [],
+        ship,
+        WORLD_SIZE,
+        METEORITE_STRIKE.delay + 0.1
+      )
       expect(result.activeEffects.length).toBe(0)
       expect(result.particles.length).toBeGreaterThan(0)
     })
@@ -47,7 +54,14 @@ describe('updateActiveEffects', () => {
         METEORITE_STRIKE.delay
       )
       const enemy = createEnemy(EnemyKind.drone, { x: 110, y: 100 })
-      const result = updateActiveEffects([strike], [enemy], [], ship, METEORITE_STRIKE.delay + 0.1)
+      const result = updateActiveEffects(
+        [strike],
+        [enemy],
+        [],
+        ship,
+        WORLD_SIZE,
+        METEORITE_STRIKE.delay + 0.1
+      )
       const surviving = result.enemies.find((e) => e.id === enemy.id)
       if (surviving) {
         expect(surviving.hp).toBeLessThan(enemy.hp)
@@ -59,7 +73,7 @@ describe('updateActiveEffects', () => {
     it('awards score and reports kills (power now flows via collectible orbs)', () => {
       const strike = createMeteoriteEffect({ x: 100, y: 100 }, 9999, 200, 0.01)
       const enemy = createEnemy(EnemyKind.drone, { x: 100, y: 100 })
-      const result = updateActiveEffects([strike], [enemy], [], ship, 0.02)
+      const result = updateActiveEffects([strike], [enemy], [], ship, WORLD_SIZE, 0.02)
       expect(result.scoreGained).toBeGreaterThan(0)
       expect(result.killedEnemies.length).toBe(1)
     })
@@ -75,7 +89,7 @@ describe('updateActiveEffects', () => {
         BLACK_HOLE.duration
       )
       const enemy = createEnemy(EnemyKind.drone, { x: 550, y: 500 })
-      const result = updateActiveEffects([hole], [enemy], [], ship, 0.1)
+      const result = updateActiveEffects([hole], [enemy], [], ship, WORLD_SIZE, 0.1)
       expect(result.activeEffects.length).toBe(1)
 
       const movedEnemy = result.enemies.find((e) => e.id === enemy.id)
@@ -94,7 +108,14 @@ describe('updateActiveEffects', () => {
         BLACK_HOLE.damage,
         BLACK_HOLE.duration
       )
-      const result = updateActiveEffects([hole], [], [], ship, BLACK_HOLE.duration + 0.1)
+      const result = updateActiveEffects(
+        [hole],
+        [],
+        [],
+        ship,
+        WORLD_SIZE,
+        BLACK_HOLE.duration + 0.1
+      )
       expect(result.activeEffects.length).toBe(0)
     })
 
@@ -107,7 +128,7 @@ describe('updateActiveEffects', () => {
         BLACK_HOLE.duration
       )
       const enemy = createEnemy(EnemyKind.tank, { x: 520, y: 500 })
-      const result = updateActiveEffects([hole], [enemy], [], ship, 0.5)
+      const result = updateActiveEffects([hole], [enemy], [], ship, WORLD_SIZE, 0.5)
       const after = result.enemies.find((e) => e.id === enemy.id)
       if (after) {
         expect(after.hp).toBeLessThan(enemy.hp)
@@ -123,7 +144,7 @@ describe('updateActiveEffects', () => {
         BLACK_HOLE.duration
       )
       const enemy = createEnemy(EnemyKind.drone, { x: 900, y: 500 })
-      const result = updateActiveEffects([hole], [enemy], [], ship, 0.1)
+      const result = updateActiveEffects([hole], [enemy], [], ship, WORLD_SIZE, 0.1)
       const after = result.enemies.find((e) => e.id === enemy.id)
       expect(after).toBeDefined()
       expect(after!.hp).toBe(enemy.hp)
@@ -135,7 +156,7 @@ describe('updateActiveEffects', () => {
     const strike = createMeteoriteEffect({ x: 100, y: 100 }, 9999, 200, 0.01)
     const enemy = createEnemy(EnemyKind.drone, { x: 110, y: 100 })
 
-    const result = updateActiveEffects([hole, strike], [enemy], [], ship, 0.02)
+    const result = updateActiveEffects([hole, strike], [enemy], [], ship, WORLD_SIZE, 0.02)
     expect(result.killedEnemies.length).toBe(1)
   })
 
@@ -149,7 +170,7 @@ describe('updateActiveEffects', () => {
         ROCKET.speed
       )
       const startX = rocket.pos.x
-      const result = updateActiveEffects([rocket], [], [], ship, 0.1)
+      const result = updateActiveEffects([rocket], [], [], ship, WORLD_SIZE, 0.1)
       const moved = result.activeEffects[0]
       if (moved) {
         expect(moved.pos.x).toBeGreaterThan(startX)
@@ -166,7 +187,7 @@ describe('updateActiveEffects', () => {
         ROCKET.speed
       )
       // First tick will trigger the trail (trailTimer starts at 0).
-      const result = updateActiveEffects([rocket], [], [], ship, 0.05)
+      const result = updateActiveEffects([rocket], [], [], ship, WORLD_SIZE, 0.05)
       expect(result.particles.length).toBeGreaterThan(0)
     })
 
@@ -181,7 +202,14 @@ describe('updateActiveEffects', () => {
       )
       const enemyAt = createEnemy(EnemyKind.tank, { x: 500, y: 0 })
       // Run a step bigger than the rocket's planned flight time to force detonation.
-      const result = updateActiveEffects([rocket], [enemyAt], [], ship, rocket.duration + 0.1)
+      const result = updateActiveEffects(
+        [rocket],
+        [enemyAt],
+        [],
+        ship,
+        WORLD_SIZE,
+        rocket.duration + 0.1
+      )
       expect(result.activeEffects.length).toBe(0)
       const after = result.enemies.find((e) => e.id === enemyAt.id)
       if (after) {
@@ -210,7 +238,7 @@ describe('updateActiveEffects', () => {
       let state = [rocket] as ActiveEffect[]
       let enemies = [enemyInPath]
       for (let i = 0; i < 12; i++) {
-        const r = updateActiveEffects(state, enemies, [], ship, 0.1)
+        const r = updateActiveEffects(state, enemies, [], ship, WORLD_SIZE, 0.1)
         state = r.activeEffects
         enemies = r.enemies
         if (state.length === 0) break
@@ -230,7 +258,7 @@ describe('updateActiveEffects', () => {
     it('does NOT damage enemies inside the dome — shield is a barrier, not a weapon', () => {
       const shield = createShieldEffect({ x: 0, y: 0 }, SHIELD.radius, SHIELD.duration)
       const inside = createEnemy(EnemyKind.tank, { x: 20, y: 0 })
-      const result = updateActiveEffects([shield], [inside], [], ship, 0.5)
+      const result = updateActiveEffects([shield], [inside], [], ship, WORLD_SIZE, 0.5)
       const after = result.enemies.find((e) => e.id === inside.id)
       expect(after?.hp).toBe(inside.hp)
     })
@@ -240,7 +268,7 @@ describe('updateActiveEffects', () => {
       expect(shield.grandfatheredEnemyIds).toBeNull()
       const inside = createEnemy(EnemyKind.tank, { x: 20, y: 0 })
       const outside = createEnemy(EnemyKind.drone, { x: 500, y: 0 })
-      const result = updateActiveEffects([shield], [inside, outside], [], ship, 0.016)
+      const result = updateActiveEffects([shield], [inside, outside], [], ship, WORLD_SIZE, 0.016)
       const ticked = result.activeEffects[0] as typeof shield
       expect(ticked.grandfatheredEnemyIds).toEqual([inside.id])
     })
@@ -249,12 +277,12 @@ describe('updateActiveEffects', () => {
       // Tick 1: shield initialized with `inside` (at x=20) grandfathered.
       const shield = createShieldEffect({ x: 0, y: 0 }, SHIELD.radius, SHIELD.duration)
       const inside = createEnemy(EnemyKind.tank, { x: 20, y: 0 })
-      const r1 = updateActiveEffects([shield], [inside], [], ship, 0.016)
+      const r1 = updateActiveEffects([shield], [inside], [], ship, WORLD_SIZE, 0.016)
       expect((r1.activeEffects[0] as typeof shield).grandfatheredEnemyIds).toEqual([inside.id])
 
       // Tick 2: same enemy is now WELL outside the shield. The list should drop them.
       const moved = { ...inside, pos: { x: 500, y: 0 } }
-      const r2 = updateActiveEffects(r1.activeEffects, [moved], [], ship, 0.016)
+      const r2 = updateActiveEffects(r1.activeEffects, [moved], [], ship, WORLD_SIZE, 0.016)
       expect((r2.activeEffects[0] as typeof shield).grandfatheredEnemyIds).toEqual([])
     })
 
@@ -262,11 +290,11 @@ describe('updateActiveEffects', () => {
       // Tick 1: grandfather an enemy.
       const shield = createShieldEffect({ x: 0, y: 0 }, 100, SHIELD.duration)
       const inside = createEnemy(EnemyKind.tank, { x: 30, y: 0 })
-      const r1 = updateActiveEffects([shield], [inside], [], ship, 0.016)
+      const r1 = updateActiveEffects([shield], [inside], [], ship, WORLD_SIZE, 0.016)
 
       // Tick 2: enemy steps outside; grandfathered list now empty.
       const stepped = { ...inside, pos: { x: 200, y: 0 } }
-      const r2 = updateActiveEffects(r1.activeEffects, [stepped], [], ship, 0.016)
+      const r2 = updateActiveEffects(r1.activeEffects, [stepped], [], ship, WORLD_SIZE, 0.016)
 
       // Now the enemy moves back inside — apply the shield constraint.
       const reentry = { ...inside, pos: { x: 30, y: 0 } }
@@ -281,7 +309,7 @@ describe('updateActiveEffects', () => {
       // Shield with one drone (A) grandfathered inside.
       const shield = createShieldEffect({ x: 0, y: 0 }, 100, SHIELD.duration)
       const droneA = createEnemy(EnemyKind.drone, { x: 30, y: 0 })
-      const r1 = updateActiveEffects([shield], [droneA], [], ship, 0.016)
+      const r1 = updateActiveEffects([shield], [droneA], [], ship, WORLD_SIZE, 0.016)
       expect((r1.activeEffects[0] as typeof shield).grandfatheredEnemyIds).toEqual([droneA.id])
 
       // Now a DIFFERENT drone (B) walks into the shield (different ID, same kind).
@@ -302,20 +330,20 @@ describe('updateActiveEffects', () => {
         ProjectileOwner.enemy,
         5
       )
-      const result = updateActiveEffects([shield], [], [enemyProj], ship, 0.05)
+      const result = updateActiveEffects([shield], [], [enemyProj], ship, WORLD_SIZE, 0.05)
       expect(result.projectiles.find((p) => p.id === enemyProj.id)).toBeUndefined()
     })
 
     it('does NOT absorb ship projectiles (only enemy ones)', () => {
       const shield = createShieldEffect({ x: 0, y: 0 }, SHIELD.radius, SHIELD.duration)
       const shipProj = createProjectile({ x: 30, y: 0 }, { x: 100, y: 0 }, ProjectileOwner.ship, 5)
-      const result = updateActiveEffects([shield], [], [shipProj], ship, 0.05)
+      const result = updateActiveEffects([shield], [], [shipProj], ship, WORLD_SIZE, 0.05)
       expect(result.projectiles.find((p) => p.id === shipProj.id)).toBeDefined()
     })
 
     it('expires after duration', () => {
       const shield = createShieldEffect({ x: 0, y: 0 }, SHIELD.radius, SHIELD.duration)
-      const result = updateActiveEffects([shield], [], [], ship, SHIELD.duration + 0.1)
+      const result = updateActiveEffects([shield], [], [], ship, WORLD_SIZE, SHIELD.duration + 0.1)
       expect(result.activeEffects.length).toBe(0)
     })
   })
@@ -324,7 +352,7 @@ describe('updateActiveEffects', () => {
     it('damages enemies inside its radius', () => {
       const sun = createSunEffect({ x: 0, y: 0 }, SUN.radius, SUN.damagePerSec, SUN.duration)
       const inside = createEnemy(EnemyKind.tank, { x: 50, y: 0 })
-      const result = updateActiveEffects([sun], [inside], [], ship, 1.0)
+      const result = updateActiveEffects([sun], [inside], [], ship, WORLD_SIZE, 1.0)
       const after = result.enemies.find((e) => e.id === inside.id)
       if (after) {
         expect(after.hp).toBeLessThan(inside.hp)
@@ -334,21 +362,21 @@ describe('updateActiveEffects', () => {
     it('does not damage enemies outside its radius', () => {
       const sun = createSunEffect({ x: 0, y: 0 }, SUN.radius, SUN.damagePerSec, SUN.duration)
       const outside = createEnemy(EnemyKind.drone, { x: 500, y: 0 })
-      const result = updateActiveEffects([sun], [outside], [], ship, 1.0)
+      const result = updateActiveEffects([sun], [outside], [], ship, WORLD_SIZE, 1.0)
       expect(result.enemies[0]?.hp).toBe(outside.hp)
     })
 
     it('does NOT move enemies (no attraction — pure stationary AoE)', () => {
       const sun = createSunEffect({ x: 0, y: 0 }, SUN.radius, SUN.damagePerSec, SUN.duration)
       const inside = { ...createEnemy(EnemyKind.tank, { x: 50, y: 0 }), hp: 9999, maxHp: 9999 }
-      const result = updateActiveEffects([sun], [inside], [], ship, 0.5)
+      const result = updateActiveEffects([sun], [inside], [], ship, WORLD_SIZE, 0.5)
       const after = result.enemies.find((e) => e.id === inside.id)
       expect(after?.pos).toEqual({ x: 50, y: 0 })
     })
 
     it('expires after duration', () => {
       const sun = createSunEffect({ x: 0, y: 0 }, SUN.radius, SUN.damagePerSec, SUN.duration)
-      const result = updateActiveEffects([sun], [], [], ship, SUN.duration + 0.1)
+      const result = updateActiveEffects([sun], [], [], ship, WORLD_SIZE, SUN.duration + 0.1)
       expect(result.activeEffects.length).toBe(0)
     })
   })
@@ -365,7 +393,7 @@ describe('updateActiveEffects', () => {
       const inside = createEnemy(EnemyKind.tank, { x: 30, y: 0 })
       let enemies = [inside]
       for (let i = 0; i < 3; i++) {
-        const r = updateActiveEffects(state, enemies, [], ship, 0.2)
+        const r = updateActiveEffects(state, enemies, [], ship, WORLD_SIZE, 0.2)
         state = r.activeEffects
         enemies = r.enemies
       }
@@ -398,14 +426,14 @@ describe('updateActiveEffects', () => {
       const { createNuclearWasteEffect } = await import('../ship/nuke')
       const waste = createNuclearWasteEffect({ x: 0, y: 0 }, 100, 5, 4, 0.4)
       const outside = createEnemy(EnemyKind.drone, { x: 500, y: 0 })
-      const result = updateActiveEffects([waste], [outside], [], ship, 1.0)
+      const result = updateActiveEffects([waste], [outside], [], ship, WORLD_SIZE, 1.0)
       expect(result.enemies[0]?.hp).toBe(outside.hp)
     })
 
     it('expires after duration', async () => {
       const { createNuclearWasteEffect } = await import('../ship/nuke')
       const waste = createNuclearWasteEffect({ x: 0, y: 0 }, 100, 5, 2, 0.3)
-      const result = updateActiveEffects([waste], [], [], ship, 2.5)
+      const result = updateActiveEffects([waste], [], [], ship, WORLD_SIZE, 2.5)
       expect(result.activeEffects.length).toBe(0)
     })
   })

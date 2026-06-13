@@ -22,6 +22,7 @@ import {
 } from './systems/collectibles'
 import { applyShieldConstraints } from './abilities/shield'
 import { updateActiveEffects } from './systems/effects'
+import { updateBurningEnemies } from './systems/burning'
 import { MAX_DT } from './world/time'
 import { processSpawnQueue } from './systems/spawner'
 import {
@@ -426,7 +427,14 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   power -= abilityResult.powerSpent
 
   // --- Active effects (meteor strikes, black holes, rockets, shield, sun) ---
-  const effectResult = updateActiveEffects(activeEffects, enemies, projectiles, ship, dt)
+  const effectResult = updateActiveEffects(
+    activeEffects,
+    enemies,
+    projectiles,
+    ship,
+    state.worldSize,
+    dt
+  )
   activeEffects = effectResult.activeEffects
   enemies = effectResult.enemies
   projectiles = effectResult.projectiles
@@ -516,6 +524,14 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   score += holdKilledEnemies.reduce((sum, e) => sum + e.scoreValue, 0)
   currency += computeCurrencyFromKills(holdKilledEnemies, stardustMultiplier)
 
+  // --- Burning enemies (Solar Plague fire: DOT + spread to neighbours) ---
+  const burnResult = updateBurningEnemies(enemies, dt)
+  enemies = burnResult.enemies
+  particles = [...particles, ...burnResult.particles]
+  score += burnResult.scoreGained
+  const burnKilledEnemies = burnResult.killedEnemies
+  currency += computeCurrencyFromKills(burnKilledEnemies, stardustMultiplier)
+
   // --- Collision: ship projectiles vs enemies ---
   const projCollision = resolveProjectileEnemyCollisions(projectiles, enemies)
   projectiles = projCollision.projectiles
@@ -561,6 +577,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     ...shipCollision.killedEnemies,
     ...allyMeleeResult.killedEnemies,
     ...holdKilledEnemies,
+    ...burnKilledEnemies,
   ]
   if (killedForDeathEffects.length > 0) {
     const deathResult = resolveDeathEffects(killedForDeathEffects, ship, allies, activeEffects)
@@ -577,6 +594,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     ...effectResult.killedEnemies,
     ...projCollision.killedEnemies,
     ...holdKilledEnemies,
+    ...burnKilledEnemies,
   ]
   if (killedForCollectibles.length > 0) {
     collectibles = [

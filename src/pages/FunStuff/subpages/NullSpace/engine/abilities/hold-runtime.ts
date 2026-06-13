@@ -40,6 +40,10 @@ export type HoldAbilityConfig = {
   onFrame?: (bag: HoldBag, ability: Ability, holdPos: Vec2, dt: number) => HoldBag
   // Fires on each drain tick (tick-based abilities only).
   onTick?: (bag: HoldBag, ability: Ability, holdPos: Vec2) => HoldBag
+  // Fires once on the active→inactive edge (player let go, or power ran out) at
+  // the last hold position, given how many seconds the hold stayed active — for a
+  // release burst that charges with hold time (Singularity's explosion).
+  onRelease?: (bag: HoldBag, ability: Ability, releasePos: Vec2, heldSeconds: number) => HoldBag
   // Drawn while the hold is active — beneath / on top of entities.
   renderBack?: HoldRenderFn
   renderFront?: HoldRenderFn
@@ -58,8 +62,23 @@ export function runHoldAbility(params: {
   const { state } = params
   let { bag } = params
 
+  const wasActive = state.active
+  // Deactivate, firing the release burst once on the active→inactive edge at the
+  // last known hold position (current holdPos if still down, else state.target).
+  // state.timer carries the accumulated active seconds for continuous abilities.
+  const deactivate = (b: HoldBag): { state: HoldRuntimeState; bag: HoldBag } => {
+    if (wasActive && config.onRelease) {
+      const releasePos = holdPos ?? state.target
+      // Only continuous holds accumulate hold-seconds in `timer`; tick-based holds
+      // use it as a drain-tick countdown, so their elapsed hold time is 0 here.
+      const heldSeconds = config.drainInterval === undefined ? state.timer : 0
+      if (releasePos) b = config.onRelease(b, ability, releasePos, heldSeconds)
+    }
+    return { state: INACTIVE_HOLD_STATE, bag: b }
+  }
+
   if (!requested || !holdPos) {
-    return { state: INACTIVE_HOLD_STATE, bag }
+    return deactivate(bag)
   }
 
   let active = state.active
@@ -75,7 +94,7 @@ export function runHoldAbility(params: {
     // the beam keep going with stuttering damage.
     if (active && bag.power < perTickCost) active = false
 
-    if (!active) return { state: INACTIVE_HOLD_STATE, bag }
+    if (!active) return deactivate(bag)
 
     if (config.onFrame) bag = config.onFrame(bag, ability, holdPos, dt)
     timer -= dt
@@ -88,12 +107,14 @@ export function runHoldAbility(params: {
   }
 
   // Continuous (Telekinesis style) — drain every frame, no tick gating.
-  if (!active) return { state: INACTIVE_HOLD_STATE, bag }
+  if (!active) return deactivate(bag)
 
   const drain = ability.powerCost * dt
   bag = { ...bag, power: Math.max(0, bag.power - drain) }
-  if (bag.power <= 0) return { state: INACTIVE_HOLD_STATE, bag }
+  if (bag.power <= 0) return deactivate(bag)
 
   if (config.onFrame) bag = config.onFrame(bag, ability, holdPos, dt)
-  return { state: { active, timer: 0, target: holdPos }, bag }
+  // Continuous abilities have no drain-tick countdown, so timer accumulates the
+  // active hold time — onRelease reads it to charge a hold-scaled burst.
+  return { state: { active, timer: state.timer + dt, target: holdPos }, bag }
 }

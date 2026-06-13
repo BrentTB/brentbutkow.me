@@ -7,6 +7,8 @@ import {
   applyTierSum,
   type AbilityDefinition,
 } from './ability-definition'
+import { applyRadialForce } from './radial-force'
+import { drawForceField } from './force-field-render'
 import { IconName } from '../../icon-names'
 import type { HoldAbilityConfig } from './hold-runtime'
 
@@ -57,41 +59,18 @@ const forceUpgrade = upgrade({
   ],
 })
 
-// Plateau falloff: full force inside ~25% of the radius, smooth cosine drop
-// to zero at the edge. Fine-positioning the cursor isn't required to apply
-// full force.
-const TELEKINESIS_PLATEAU = 0.25
-
 const telekinesisHold: HoldAbilityConfig = {
   armSeconds: TELEKINESIS.armSeconds,
   // No drainInterval → continuous drain + onFrame every frame.
   onFrame: (bag, ability, holdPos, dt) => {
-    const radius = ability.aoeRadius
-    const peakForce = ability.force ?? TELEKINESIS.force
-    const forceAt = (dist: number) => {
-      if (dist >= radius) return 0
-      const x = dist / radius
-      if (x <= TELEKINESIS_PLATEAU) return peakForce
-      const t = (x - TELEKINESIS_PLATEAU) / (1 - TELEKINESIS_PLATEAU)
-      return peakForce * 0.5 * (Math.cos(Math.PI * t) + 1)
-    }
-    const sign = TELEKINESIS.mode === 'pull' ? 1 : -1
-    const enemies = bag.enemies.map((enemy) => {
-      const dx = holdPos.x - enemy.pos.x
-      const dy = holdPos.y - enemy.pos.y
-      const dist = Math.sqrt(dx * dx + dy * dy)
-      if (dist < 0.01) return enemy
-      const f = forceAt(dist)
-      if (f === 0) return enemy
-      const step = f * dt * sign
-      return {
-        ...enemy,
-        pos: {
-          x: enemy.pos.x + (dx / dist) * step,
-          y: enemy.pos.y + (dy / dist) * step,
-        },
-      }
-    })
+    const enemies = applyRadialForce(
+      bag.enemies,
+      holdPos,
+      ability.aoeRadius,
+      ability.force ?? TELEKINESIS.force,
+      TELEKINESIS.mode,
+      dt
+    )
     return { ...bag, enemies }
   },
   // Dashed ripple ring at the field edge + force lines to affected enemies.
@@ -99,35 +78,11 @@ const telekinesisHold: HoldAbilityConfig = {
   // the ring matches the engine's world-space push radius exactly.
   renderFront: (ctx, ability, target, state, camera) => {
     const center = worldToScreen(target, camera)
-    const radius = ability.aoeRadius
-
     ctx.save()
-
-    // Ripple circle
-    ctx.strokeStyle = 'rgba(80, 220, 255, 0.5)'
-    ctx.lineWidth = 2
-    ctx.setLineDash([6, 4])
-    ctx.beginPath()
-    ctx.arc(center.x, center.y, radius, 0, Math.PI * 2)
-    ctx.stroke()
-    ctx.setLineDash([])
-
-    // Force lines to affected enemies
-    for (const enemy of state.enemies) {
-      const eScreen = worldToScreen(enemy.pos, camera)
-      const dx = eScreen.x - center.x
-      const dy = eScreen.y - center.y
-      const dist = Math.sqrt(dx * dx + dy * dy)
-      if (dist >= radius) continue
-      const alpha = (1 - dist / radius) * 0.6
-      ctx.strokeStyle = `rgba(80, 220, 255, ${alpha.toFixed(2)})`
-      ctx.lineWidth = 1
-      ctx.beginPath()
-      ctx.moveTo(center.x, center.y)
-      ctx.lineTo(eScreen.x, eScreen.y)
-      ctx.stroke()
-    }
-
+    drawForceField(ctx, center, ability.aoeRadius, state.enemies, camera, {
+      ring: 'rgba(80, 220, 255, 0.5)',
+      lineRgb: '80, 220, 255',
+    })
     ctx.restore()
   },
 }
@@ -153,4 +108,10 @@ export const telekinesis: AbilityDefinition = {
   unlockUpgrade,
   modifierUpgrades: [radiusUpgrade, costUpgrade, forceUpgrade],
   hold: telekinesisHold,
+  ultimate: {
+    kind: AbilityKind.singularity,
+    label: 'Singularity',
+    description: 'All things fall to one point — then you let go.',
+    cost: { stardust: 400, spaceMetal: 15 },
+  },
 }

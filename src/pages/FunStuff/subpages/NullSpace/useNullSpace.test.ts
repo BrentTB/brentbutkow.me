@@ -188,11 +188,11 @@ describe('selectionAfterUltimatePurchase', () => {
     ).toBe(AbilityKind.meteorite)
   })
 
-  it('leaves selection alone for a base with no ultimate', () => {
-    // telekinesis has no ultimate — ULTIMATE_KIND_OF lookup is undefined.
+  it('leaves selection alone for an ability with no ultimate', () => {
+    // cometShower is itself an ultimate — ULTIMATE_KIND_OF lookup is undefined.
     expect(
-      selectionAfterUltimatePurchase(AbilityKind.telekinesis, AbilityKind.telekinesis, true)
-    ).toBe(AbilityKind.telekinesis)
+      selectionAfterUltimatePurchase(AbilityKind.cometShower, AbilityKind.cometShower, true)
+    ).toBe(AbilityKind.cometShower)
   })
 })
 

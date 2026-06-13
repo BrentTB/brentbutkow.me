@@ -1,4 +1,4 @@
-import type { ActiveEffect, Enemy, Particle, Projectile, Ship } from '../types'
+import type { ActiveEffect, Enemy, Particle, Projectile, Ship, Vec2 } from '../types'
 import type { Camera } from '../../renderer/camera'
 import type { SpriteCache } from '../../renderer/sprite-cache'
 
@@ -6,6 +6,7 @@ export type EffectTickContext = {
   enemies: Enemy[]
   projectiles: Projectile[]
   ship: Ship
+  worldSize: Vec2
   dt: number
 }
 
@@ -16,6 +17,10 @@ export type EffectTickResult = {
   particles: Particle[]
   scoreGained: number
   killedEnemies: Enemy[]
+  // Child effects spawned this tick (e.g. a Fireworks rocket bursting into more
+  // rockets). Collected by updateActiveEffects alongside the surviving effect.
+  // Absent/empty when the effect spawns nothing.
+  spawnedEffects?: ActiveEffect[]
 }
 
 export type EffectTickFn = (effect: ActiveEffect, ctx: EffectTickContext) => EffectTickResult

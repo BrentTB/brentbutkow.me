@@ -1,8 +1,8 @@
 import { BLACK_HOLE } from './ability-data'
-import { canEnemyTakeDamage } from '../bosses/index'
-import { spawnExplosionParticles, uid } from '../entities/entity-creator'
+import { uid } from '../entities/entity-creator'
+import { applyGravityWell } from './gravity-pull'
 import { AbilityKind, EffectKind } from '../types'
-import type { BlackHoleEffect, Enemy, Particle, Vec2 } from '../types'
+import type { BlackHoleEffect, Vec2 } from '../types'
 import type { Camera } from '../../renderer/camera'
 import { worldToScreen } from '../../renderer/camera'
 import { makeAbilityUpgrade, applyTierSum, type AbilityDefinition } from './ability-definition'
@@ -89,7 +89,7 @@ function tickBlackHole(hole: BlackHoleEffect, ctx: EffectTickContext): EffectTic
     return passThroughTick(null, ctx)
   }
 
-  const r = applyBlackHoleEffect(ctx.enemies, hole, ctx.dt)
+  const r = applyGravityWell(ctx.enemies, hole, ctx.dt, { particleColor: '#6644cc' })
   return {
     effect: hole,
     enemies: r.enemies,
@@ -98,67 +98,6 @@ function tickBlackHole(hole: BlackHoleEffect, ctx: EffectTickContext): EffectTic
     scoreGained: r.scoreGained,
     killedEnemies: r.killedEnemies,
   }
-}
-
-function applyBlackHoleEffect(
-  enemies: Enemy[],
-  hole: BlackHoleEffect,
-  dt: number
-): {
-  enemies: Enemy[]
-  scoreGained: number
-  killedEnemies: Enemy[]
-  particles: Particle[]
-} {
-  let scoreGained = 0
-  const surviving: Enemy[] = []
-  const killedEnemies: Enemy[] = []
-  const particles: Particle[] = []
-
-  for (const enemy of enemies) {
-    const dx = hole.pos.x - enemy.pos.x
-    const dy = hole.pos.y - enemy.pos.y
-    const dist = Math.sqrt(dx * dx + dy * dy)
-
-    if (dist > hole.radius) {
-      surviving.push(enemy)
-      continue
-    }
-
-    const nx = dist > 1 ? dx / dist : 0
-    const ny = dist > 1 ? dy / dist : 0
-
-    const strength = (1 - dist / hole.radius) * hole.pullStrength * dt
-    const radial = 0.25
-    const tangential = 0.85
-    const spiralX = nx * strength * radial - ny * strength * tangential
-    const spiralY = ny * strength * radial + nx * strength * tangential
-
-    const distRatio = Math.max(0, 1 - dist / hole.radius)
-    // Still pulled in, but invincible enemies (shielded boss) take no damage.
-    const damageThisTick = canEnemyTakeDamage(enemy, enemies)
-      ? hole.damage * (0.5 + distRatio * 1.5) * dt
-      : 0
-
-    const moved = {
-      ...enemy,
-      pos: {
-        x: enemy.pos.x + spiralX,
-        y: enemy.pos.y + spiralY,
-      },
-      hp: enemy.hp - damageThisTick,
-    }
-
-    if (moved.hp <= 0) {
-      scoreGained += enemy.scoreValue
-      killedEnemies.push(enemy)
-      particles.push(...spawnExplosionParticles(enemy.pos, 8, '#6644cc'))
-    } else {
-      surviving.push(moved)
-    }
-  }
-
-  return { enemies: surviving, scoreGained, killedEnemies, particles }
 }
 
 // Core gradients are static (colors + radius), so cache one per radius per
@@ -258,4 +197,10 @@ export const blackHole: AbilityDefinition = {
   }),
   unlockUpgrade,
   modifierUpgrades: [damageUpgrade, durationUpgrade, radiusUpgrade],
+  ultimate: {
+    kind: AbilityKind.eventHorizon,
+    label: 'Event Horizon',
+    description: 'Cross the edge, and the void flings you back into the dark.',
+    cost: { stardust: 350, spaceMetal: 14 },
+  },
 }

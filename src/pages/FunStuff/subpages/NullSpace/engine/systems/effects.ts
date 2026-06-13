@@ -1,8 +1,9 @@
 import { EffectKind } from '../types'
-import type { ActiveEffect, Enemy, Particle, Projectile, Ship } from '../types'
+import type { ActiveEffect, Enemy, Particle, Projectile, Ship, Vec2 } from '../types'
 import type { EffectDefinition } from './effect-definition'
 import { meteorStrikeEffect } from '../abilities/meteor-strike'
 import { blackHoleEffect } from '../abilities/black-hole'
+import { eventHorizonEffect } from '../abilities/event-horizon'
 import { rocketEffect } from '../abilities/rocket'
 import { shieldEffect } from '../abilities/shield'
 import { sunEffect } from '../abilities/sun'
@@ -20,6 +21,7 @@ export const EFFECT_DEFINITIONS: Record<EffectKind, EffectDefinition> = {
   [EffectKind.meteoriteStrike]: meteorStrikeEffect,
   [EffectKind.meteorStrike]: meteorStrikeEffect,
   [EffectKind.blackHole]: blackHoleEffect,
+  [EffectKind.eventHorizon]: eventHorizonEffect,
   [EffectKind.rocket]: rocketEffect,
   [EffectKind.shield]: shieldEffect,
   [EffectKind.sun]: sunEffect,
@@ -33,6 +35,7 @@ export function updateActiveEffects(
   enemies: Enemy[],
   projectiles: Projectile[],
   ship: Ship,
+  worldSize: Vec2,
   dt: number
 ): {
   activeEffects: ActiveEffect[]
@@ -55,6 +58,7 @@ export function updateActiveEffects(
       enemies: currentEnemies,
       projectiles: currentProjectiles,
       ship,
+      worldSize,
       dt,
     })
 
@@ -65,6 +69,8 @@ export function updateActiveEffects(
     allParticles.push(...result.particles)
 
     if (result.effect) surviving.push(result.effect)
+    // Children (e.g. Fireworks rockets) join the pool; they tick next frame.
+    if (result.spawnedEffects) surviving.push(...result.spawnedEffects)
   }
 
   return {

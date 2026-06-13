@@ -1,6 +1,7 @@
-import { ROCKET } from './ability-data'
+import { FIREWORKS, ROCKET } from './ability-data'
 import { damageEnemiesInRadiusFlat } from '../math/aoe'
 import { createParticle, spawnExplosionParticles, uid } from '../entities/entity-creator'
+import { rng } from '../math/random'
 import { AbilityKind, EffectKind } from '../types'
 import type { Particle, RocketEffect, Vec2 } from '../types'
 import type { Camera } from '../../renderer/camera'
@@ -98,6 +99,38 @@ export function createRocketEffect(
   }
 }
 
+// Fireworks ultimate: on detonation, burst into the next generation of rockets.
+// Each child flies a short hop outward at an evenly-spaced angle (random base
+// offset for variety), carries the remaining split schedule, and deals the
+// parent's damage divided by the falloff. Returns [] for a plain/terminal rocket.
+function spawnFireworksChildren(detonatePos: Vec2, parent: RocketEffect): RocketEffect[] {
+  const fw = parent.fireworks
+  if (!fw || fw.splits.length === 0) return []
+  const childCount = fw.splits[0]
+  const childSplits = fw.splits.slice(1)
+  const childDamage = parent.damage / fw.damageFalloff
+  const baseAngle = rng.next() * Math.PI * 2
+  const children: RocketEffect[] = []
+  for (let i = 0; i < childCount; i++) {
+    const angle = baseAngle + (i * Math.PI * 2) / childCount
+    const target = {
+      x: detonatePos.x + Math.cos(angle) * FIREWORKS.childFlightDistance,
+      y: detonatePos.y + Math.sin(angle) * FIREWORKS.childFlightDistance,
+    }
+    children.push({
+      ...createRocketEffect(
+        detonatePos,
+        target,
+        childDamage,
+        parent.aoeRadius,
+        FIREWORKS.childSpeed
+      ),
+      fireworks: { splits: childSplits, damageFalloff: fw.damageFalloff },
+    })
+  }
+  return children
+}
+
 // Radius around the rocket sprite that counts as "contact" with an enemy
 // during flight. Decoupled from aoeRadius so the explosion is bigger than
 // the rocket-as-projectile collision check.
@@ -134,13 +167,21 @@ function tickRocket(missile: RocketEffect, ctx: EffectTickContext): EffectTickRe
       missile.aoeRadius,
       missile.damage
     )
+    const spawnedEffects = missile.fireworks
+      ? spawnFireworksChildren(detonatePos, missile)
+      : undefined
     return {
       effect: null,
       enemies,
       projectiles: ctx.projectiles,
-      particles: spawnExplosionParticles(detonatePos, 18, '#ff7733'),
+      particles: spawnExplosionParticles(
+        detonatePos,
+        18,
+        missile.fireworks ? '#ffcc44' : '#ff7733'
+      ),
       scoreGained,
       killedEnemies,
+      spawnedEffects,
     }
   }
 
@@ -220,4 +261,10 @@ export const rocket: AbilityDefinition = {
   }),
   unlockUpgrade,
   modifierUpgrades: [damageUpgrade, radiusUpgrade, costUpgrade],
+  ultimate: {
+    kind: AbilityKind.fireworks,
+    label: 'Fireworks',
+    description: 'One spark — and the sky blooms, and blooms again.',
+    cost: { stardust: 360, spaceMetal: 14 },
+  },
 }

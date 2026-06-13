@@ -127,6 +127,17 @@ export const DeathBehavior = {
 } as const
 export type DeathBehavior = (typeof DeathBehavior)[keyof typeof DeathBehavior]
 
+// Solar Plague fire status. Ticks DOT each frame and spreads to touching
+// non-burning enemies; cleared when `remaining` reaches 0. Spread copies these
+// values (resetting `remaining` to `duration`) so a chain keeps consistent
+// damage, reach, and a full burn on each fresh catch.
+export type BurningState = {
+  remaining: number
+  duration: number
+  dps: number
+  spreadRange: number
+}
+
 export type Enemy = Entity & {
   kind: EnemyKind
   speed: number
@@ -143,6 +154,8 @@ export type Enemy = Entity & {
   age: number
   // Present only on boss enemies — the boss's kind-tagged runtime state.
   boss?: BossRuntimeState
+  // Solar Plague fire. Present while alight; absent otherwise.
+  burning?: BurningState
 }
 
 export const ProjectileOwner = { ship: 'ship', enemy: 'enemy' } as const
@@ -201,6 +214,10 @@ export const AbilityKind = {
   helperFactory: 'helperFactory',
   supernova: 'supernova',
   forceField: 'forceField',
+  fireworks: 'fireworks',
+  eventHorizon: 'eventHorizon',
+  solarPlague: 'solarPlague',
+  singularity: 'singularity',
 } as const
 export type AbilityKind = (typeof AbilityKind)[keyof typeof AbilityKind]
 
@@ -236,6 +253,12 @@ export type Ability = {
   // Helper Factory-only: seconds between helper spawns. Upgradable (smaller =
   // faster line). Absent for abilities that don't spawn on a timer.
   spawnInterval?: number
+  // Solar Plague-only: edge-gap a non-burning enemy must be within to catch fire
+  // from a burning one. Upgradable (Wildfire). Absent elsewhere.
+  spreadRange?: number
+  // Singularity-only: flat AoE damage of the burst dealt when the hold is
+  // released. Upgradable (Collapse). Absent on abilities without a release burst.
+  explosionDamage?: number
 }
 
 export const EffectKind = {
@@ -248,6 +271,7 @@ export const EffectKind = {
   nuclearWaste: 'nuclearWaste',
   supernova: 'supernova',
   forceField: 'forceField',
+  eventHorizon: 'eventHorizon',
 } as const
 export type EffectKind = (typeof EffectKind)[keyof typeof EffectKind]
 
@@ -280,6 +304,10 @@ export type RocketEffect = EffectBase & {
   damage: number
   aoeRadius: number
   trailTimer: number
+  // Fireworks ultimate only: on detonation, spawn `splits[0]` child rockets
+  // (each carrying `splits.slice(1)`) at evenly-spaced angles, dividing damage by
+  // `damageFalloff` per generation. Absent on a plain rocket — it just explodes.
+  fireworks?: { splits: number[]; damageFalloff: number }
 }
 
 export type ShieldEffect = EffectBase & {
@@ -338,6 +366,20 @@ export type ForceFieldEffect = EffectBase & {
   grandfatheredEnemyIds: string[] | null
 }
 
+// The Black Hole ultimate. A wider, stronger gravity well that pulls enemies in
+// like a black hole, but an enemy reaching the core takes `coreDamage` and is
+// banished — relocated `banishDistance` further from the ship. `radius`/
+// `pullStrength`/`damage` mirror BlackHoleEffect; the core fields drive the zap.
+export type EventHorizonEffect = EffectBase & {
+  kind: typeof EffectKind.eventHorizon
+  radius: number
+  pullStrength: number
+  damage: number
+  coreRadius: number
+  coreDamage: number
+  banishDistance: number
+}
+
 export type ActiveEffect =
   | MeteorStrikeEffect
   | BlackHoleEffect
@@ -347,6 +389,7 @@ export type ActiveEffect =
   | NuclearWasteEffect
   | SupernovaEffect
   | ForceFieldEffect
+  | EventHorizonEffect
 
 export const CollectibleKind = {
   powerOrb: 'powerOrb',
@@ -499,6 +542,8 @@ export type GameState = {
 // trivial.
 export type HoldRuntimeState = {
   active: boolean
+  // Tick-based holds count this DOWN to the next drain tick; continuous holds
+  // accumulate active hold-seconds in it (read by onRelease to charge a burst).
   timer: number
   target: Vec2 | null
 }

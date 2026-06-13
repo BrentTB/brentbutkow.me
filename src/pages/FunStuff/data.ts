@@ -9,7 +9,7 @@ export const funStuffSubRoutes = {
 export const funStuff: FunItem[] = [
   {
     title: 'Games',
-    description: 'Space games and other interactive experiments — playable right in your browser',
+    description: 'Space games and other interactive experiments (playable right in your browser)',
     link: funStuffSubRoutes.games,
   },
   {
