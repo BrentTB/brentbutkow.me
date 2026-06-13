@@ -180,11 +180,13 @@ src/pages/FunStuff/subpages/NullSpace/
 src/pages/FunStuff/subpages/NullSpace/engine/abilities/
   ability-data.ts                            METEORITE_STRIKE, METEOR_STRIKE, COMET_SHOWER, METEOR_SHOWER, BLACK_HOLE, ROCKET, SHIELD, FORCE_FIELD, SUN, SUPERNOVA, HELPER, HELPER_FACTORY, TELEKINESIS, SOLAR_FLARE, FIREWORKS, EVENT_HORIZON, SOLAR_PLAGUE, SINGULARITY
   ability-definition.ts                      AbilityActivation, UltimateCost, UltimateContext, UltimatePrerequisite, UltimateDescriptor, AbilityDefinition, composeUltimateUpgrades, makeAbilityUpgrade, applyTierSum, applyCostReduction
+  beam-damage.ts                             BeamDamageResult, damageEnemiesInBeam
   black-hole.ts                              BLACK_HOLE_UPGRADE_IDS, createBlackHoleEffect, blackHoleEffect, blackHole
   comet-shower.ts                            COMET_SHOWER_UPGRADE_IDS, cometShower
   dome-absorption.ts                         tickDomeAbsorption
   event-horizon.ts                           EVENT_HORIZON_UPGRADE_IDS, createEventHorizonEffect, eventHorizonEffect, eventHorizon
   fireworks.ts                               FIREWORKS_UPGRADE_IDS, fireworks
+  force-field-render.ts                      drawForceField
   force-field.ts                             FORCE_FIELD_UPGRADE_IDS, createForceFieldEffect, getForceFieldCurrentRadius, forceFieldEffect, forceField
   gravity-pull.ts                            GravityWell, BanishConfig, GravityWellResult, applyGravityWell
   helper-factory.ts                          HELPER_FACTORY_UPGRADE_IDS, helperFactory
@@ -195,7 +197,7 @@ src/pages/FunStuff/subpages/NullSpace/engine/abilities/
   meteor-strike.ts                           createMeteoriteEffect, createMeteorEffect, meteorStrikeEffect
   meteor.ts                                  METEOR_UPGRADE_IDS, meteor
   meteorite.ts                               METEORITE_UPGRADE_IDS, meteorite
-  radial-force.ts                            applyRadialForce
+  radial-force.ts                            RadialForceMode, applyRadialForce
   resolution.ts                              AbilityResult, tryUseAbility, updateAbilityCooldowns, resolveAbilityInput
   rocket.ts                                  ROCKET_UPGRADE_IDS, createRocketEffect, rocketEffect, rocket
   shield.ts                                  SHIELD_UPGRADE_IDS, createShieldEffect, ShieldConstraintResult, applyShieldConstraints, shieldEffect, shield

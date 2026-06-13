@@ -289,7 +289,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         'Telekinesis → Singularity: pulls enemies into a crushing core that hurts more the more it holds, then detonates on release — the longer you hold (up to 2s), the bigger the blast. Its core darkens toward deep purple as the blast charges. Upgrade Collapse to make it bigger still.',
       ],
       architecture: [
-        'Effects can spawn child effects (Fireworks’ cascading rockets), hold abilities can fire a release burst (Singularity’s detonation), and enemies carry a generic fire status driven by a new burning system (Solar Plague). Gravity-pull and radial-force helpers are now shared between base abilities and their ultimates.',
+        'Effects can spawn child effects (Fireworks’ cascading rockets), hold abilities can fire a release burst (Singularity’s detonation), and enemies carry a generic fire status driven by a new burning system (Solar Plague). Gravity-pull, radial-force, force-field rendering, and solar beam-damage helpers are now shared between base abilities and their ultimates.',
       ],
       fixes: [
         'The Next Wave button (and other overlay buttons) no longer shrink when hovered in fullscreen.',

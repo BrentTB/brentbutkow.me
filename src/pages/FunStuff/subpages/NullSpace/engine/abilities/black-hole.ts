@@ -89,12 +89,7 @@ function tickBlackHole(hole: BlackHoleEffect, ctx: EffectTickContext): EffectTic
     return passThroughTick(null, ctx)
   }
 
-  const r = applyGravityWell(
-    ctx.enemies,
-    { pos: hole.pos, radius: hole.radius, pullStrength: hole.pullStrength, damage: hole.damage },
-    ctx.dt,
-    { particleColor: '#6644cc' }
-  )
+  const r = applyGravityWell(ctx.enemies, hole, ctx.dt, { particleColor: '#6644cc' })
   return {
     effect: hole,
     enemies: r.enemies,

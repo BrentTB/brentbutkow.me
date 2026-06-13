@@ -1,10 +1,8 @@
 import { SOLAR_FLARE, SOLAR_PLAGUE } from './ability-data'
-import { canEnemyTakeDamage } from '../bosses/index'
-import { distance } from '../math/collision'
-import { createParticle, spawnExplosionParticles } from '../entities/entity-creator'
+import { createParticle } from '../entities/entity-creator'
 import { rng } from '../math/random'
 import { AbilityKind } from '../types'
-import type { Enemy } from '../types'
+import { damageEnemiesInBeam } from './beam-damage'
 import { worldToScreen } from '../../renderer/camera'
 import {
   makeAbilityUpgrade,
@@ -74,46 +72,37 @@ const solarPlagueHold: HoldAbilityConfig = {
   },
   // Beam deals Solar Flare's direct damage per tick AND ignites: the fire burns
   // at `dpsMultiplier` of the beam's per-second rate on top, so holding stacks
-  // both (≈180% of Flare). The fire then lingers and spreads after you move off.
+  // both (≈150% of Flare). The fire then lingers and spreads after you move off.
   onTick: (bag, ability, holdPos) => {
-    const radius = ability.aoeRadius
     // Fire rate is a fraction of the beam's per-second rate (damage-per-tick ÷
     // drainInterval), not of the per-tick number — so it stacks meaningfully.
     const dps = (ability.damage / SOLAR_FLARE.drainInterval) * SOLAR_PLAGUE.dpsMultiplier
     const spreadRange = ability.spreadRange ?? SOLAR_PLAGUE.baseSpreadRange
-    const updatedEnemies: Enemy[] = []
-    let particles = bag.particles
-    const newKills: Enemy[] = []
-    for (const enemy of bag.enemies) {
-      if (
-        distance(holdPos, enemy.pos) < radius + enemy.radius &&
-        canEnemyTakeDamage(enemy, bag.enemies)
-      ) {
-        const damaged = {
+    const result = damageEnemiesInBeam(
+      bag.enemies,
+      bag.particles,
+      holdPos,
+      ability.aoeRadius,
+      ability.damage,
+      {
+        killBurst: { count: 12, color: '#a6f24a' },
+        // Survivors catch fire — the burning status drives the DOT + spread.
+        onSurvive: (enemy) => ({
           ...enemy,
-          hp: enemy.hp - ability.damage,
           burning: {
             remaining: SOLAR_PLAGUE.burnDuration,
             duration: SOLAR_PLAGUE.burnDuration,
             dps,
             spreadRange,
           },
-        }
-        if (damaged.hp <= 0) {
-          newKills.push(enemy)
-          particles = [...particles, ...spawnExplosionParticles(enemy.pos, 12, '#a6f24a')]
-        } else {
-          updatedEnemies.push(damaged)
-        }
-      } else {
-        updatedEnemies.push(enemy)
+        }),
       }
-    }
+    )
     return {
       ...bag,
-      enemies: updatedEnemies,
-      particles,
-      killedEnemies: [...bag.killedEnemies, ...newKills],
+      enemies: result.enemies,
+      particles: result.particles,
+      killedEnemies: [...bag.killedEnemies, ...result.killedEnemies],
     }
   },
   renderBack: (ctx, ability, target, _state, camera) => {

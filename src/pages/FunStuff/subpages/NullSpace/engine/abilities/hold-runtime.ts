@@ -69,7 +69,10 @@ export function runHoldAbility(params: {
   const deactivate = (b: HoldBag): { state: HoldRuntimeState; bag: HoldBag } => {
     if (wasActive && config.onRelease) {
       const releasePos = holdPos ?? state.target
-      if (releasePos) b = config.onRelease(b, ability, releasePos, state.timer)
+      // Only continuous holds accumulate hold-seconds in `timer`; tick-based holds
+      // use it as a drain-tick countdown, so their elapsed hold time is 0 here.
+      const heldSeconds = config.drainInterval === undefined ? state.timer : 0
+      if (releasePos) b = config.onRelease(b, ability, releasePos, heldSeconds)
     }
     return { state: INACTIVE_HOLD_STATE, bag: b }
   }

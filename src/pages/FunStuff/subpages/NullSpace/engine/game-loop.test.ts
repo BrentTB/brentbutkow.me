@@ -1307,7 +1307,7 @@ describe('Telekinesis ability', () => {
     return { ...state, power: 500 }
   }
 
-  it('moves enemies inside the radius radially (pull or push) and leaves far enemies alone', () => {
+  it('pushes enemies inside the radius radially and leaves far enemies alone', () => {
     let state = makeTKState()
     const cursorPos = { x: state.ship.pos.x + 100, y: state.ship.pos.y }
     // Stationary enemies so chase movement doesn't pollute the assertion.
@@ -1332,12 +1332,8 @@ describe('Telekinesis ability', () => {
     })
     const nearAfter = state.enemies.find((e) => e.id === nearEnemy.id)!
     const farAfter = state.enemies.find((e) => e.id === farEnemy.id)!
-    // Near enemy (east of cursor): pull → moves west, push → moves east.
-    if (TELEKINESIS.mode === 'pull') {
-      expect(nearAfter.pos.x).toBeLessThan(before[0])
-    } else {
-      expect(nearAfter.pos.x).toBeGreaterThan(before[0])
-    }
+    // Telekinesis pushes: the near enemy (east of cursor) moves further east.
+    expect(nearAfter.pos.x).toBeGreaterThan(before[0])
     // Far enemy is outside the radius — untouched.
     expect(farAfter.pos.x).toBeCloseTo(before[1], 1)
   })

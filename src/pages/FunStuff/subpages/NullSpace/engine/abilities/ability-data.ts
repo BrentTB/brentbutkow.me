@@ -3,6 +3,8 @@
 // inside engine/abilities/. Older code may still re-export these from data.ts
 // for back-compat; new code should import from this file directly.
 
+import { RadialForceMode } from './radial-force'
+
 export const METEORITE_STRIKE = {
   delay: 0.3,
   cooldown: 0.2,
@@ -131,9 +133,9 @@ export const HELPER_FACTORY = {
   firstSpawnDelay: 1,
 } as const
 
-// Toggle until we decide: 'pull' draws enemies toward the cursor, 'push'
-// shoves them away. Force scales with the same plateau-cosine curve (full
-// inside ~25% of radius, smooth falloff to 0 at the edge).
+// Telekinesis shoves enemies away; its ultimate Singularity pulls them in.
+// Force scales with a plateau-cosine curve (full inside ~25% of radius, smooth
+// falloff to 0 at the edge).
 export const TELEKINESIS = {
   powerPerSec: 20,
   radius: 160,
@@ -141,7 +143,7 @@ export const TELEKINESIS = {
   force: 250,
   // Minimum seconds-of-power required to START a field. Matches solar flare.
   armSeconds: 1,
-  mode: 'push' as 'pull' | 'push',
+  mode: RadialForceMode.push,
 } as const
 
 export const SOLAR_FLARE = {

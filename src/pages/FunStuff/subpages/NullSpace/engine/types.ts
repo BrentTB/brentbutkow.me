@@ -542,6 +542,8 @@ export type GameState = {
 // trivial.
 export type HoldRuntimeState = {
   active: boolean
+  // Tick-based holds count this DOWN to the next drain tick; continuous holds
+  // accumulate active hold-seconds in it (read by onRelease to charge a burst).
   timer: number
   target: Vec2 | null
 }

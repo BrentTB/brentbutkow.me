@@ -8,6 +8,7 @@ import {
   type AbilityDefinition,
 } from './ability-definition'
 import { applyRadialForce } from './radial-force'
+import { drawForceField } from './force-field-render'
 import { IconName } from '../../icon-names'
 import type { HoldAbilityConfig } from './hold-runtime'
 
@@ -77,35 +78,11 @@ const telekinesisHold: HoldAbilityConfig = {
   // the ring matches the engine's world-space push radius exactly.
   renderFront: (ctx, ability, target, state, camera) => {
     const center = worldToScreen(target, camera)
-    const radius = ability.aoeRadius
-
     ctx.save()
-
-    // Ripple circle
-    ctx.strokeStyle = 'rgba(80, 220, 255, 0.5)'
-    ctx.lineWidth = 2
-    ctx.setLineDash([6, 4])
-    ctx.beginPath()
-    ctx.arc(center.x, center.y, radius, 0, Math.PI * 2)
-    ctx.stroke()
-    ctx.setLineDash([])
-
-    // Force lines to affected enemies
-    for (const enemy of state.enemies) {
-      const eScreen = worldToScreen(enemy.pos, camera)
-      const dx = eScreen.x - center.x
-      const dy = eScreen.y - center.y
-      const dist = Math.sqrt(dx * dx + dy * dy)
-      if (dist >= radius) continue
-      const alpha = (1 - dist / radius) * 0.6
-      ctx.strokeStyle = `rgba(80, 220, 255, ${alpha.toFixed(2)})`
-      ctx.lineWidth = 1
-      ctx.beginPath()
-      ctx.moveTo(center.x, center.y)
-      ctx.lineTo(eScreen.x, eScreen.y)
-      ctx.stroke()
-    }
-
+    drawForceField(ctx, center, ability.aoeRadius, state.enemies, camera, {
+      ring: 'rgba(80, 220, 255, 0.5)',
+      lineRgb: '80, 220, 255',
+    })
     ctx.restore()
   },
 }

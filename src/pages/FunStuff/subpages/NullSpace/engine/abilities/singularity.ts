@@ -3,7 +3,8 @@ import { canEnemyTakeDamage } from '../bosses/index'
 import { distance } from '../math/collision'
 import { spawnExplosionParticles } from '../entities/entity-creator'
 import { damageEnemiesInRadiusFlat } from '../math/aoe'
-import { applyRadialForce } from './radial-force'
+import { applyRadialForce, RadialForceMode } from './radial-force'
+import { drawForceField } from './force-field-render'
 import { AbilityKind } from '../types'
 import type { Enemy } from '../types'
 import { worldToScreen } from '../../renderer/camera'
@@ -45,7 +46,7 @@ const singularityHold: HoldAbilityConfig = {
       holdPos,
       radius,
       ability.force ?? TELEKINESIS.force,
-      'pull',
+      RadialForceMode.pull,
       dt
     )
 
@@ -115,28 +116,10 @@ const singularityHold: HoldAbilityConfig = {
     const charge = Math.min(1, held / SINGULARITY.maxChargeSeconds)
 
     ctx.save()
-    ctx.strokeStyle = 'rgba(180, 120, 255, 0.5)'
-    ctx.lineWidth = 2
-    ctx.setLineDash([6, 4])
-    ctx.beginPath()
-    ctx.arc(center.x, center.y, radius, 0, Math.PI * 2)
-    ctx.stroke()
-    ctx.setLineDash([])
-
-    for (const enemy of state.enemies) {
-      const eScreen = worldToScreen(enemy.pos, camera)
-      const dx = eScreen.x - center.x
-      const dy = eScreen.y - center.y
-      const dist = Math.sqrt(dx * dx + dy * dy)
-      if (dist >= radius) continue
-      const alpha = (1 - dist / radius) * 0.6
-      ctx.strokeStyle = `rgba(190, 130, 255, ${alpha.toFixed(2)})`
-      ctx.lineWidth = 1
-      ctx.beginPath()
-      ctx.moveTo(eScreen.x, eScreen.y)
-      ctx.lineTo(center.x, center.y)
-      ctx.stroke()
-    }
+    drawForceField(ctx, center, radius, state.enemies, camera, {
+      ring: 'rgba(180, 120, 255, 0.5)',
+      lineRgb: '190, 130, 255',
+    })
 
     // Core — light lavender when uncharged, deepening to a dark purple as the
     // blast charges (the only charge tell).

@@ -67,21 +67,16 @@ function tickEventHorizon(hole: EventHorizonEffect, ctx: EffectTickContext): Eff
     return passThroughTick(null, ctx)
   }
 
-  const r = applyGravityWell(
-    ctx.enemies,
-    { pos: hole.pos, radius: hole.radius, pullStrength: hole.pullStrength, damage: hole.damage },
-    ctx.dt,
-    {
-      particleColor: '#a060ff',
-      banish: {
-        coreRadius: hole.coreRadius,
-        coreDamage: hole.coreDamage,
-        banishDistance: hole.banishDistance,
-        shipPos: ctx.ship.pos,
-        worldSize: ctx.worldSize,
-      },
-    }
-  )
+  const r = applyGravityWell(ctx.enemies, hole, ctx.dt, {
+    particleColor: '#a060ff',
+    banish: {
+      coreRadius: hole.coreRadius,
+      coreDamage: hole.coreDamage,
+      banishDistance: hole.banishDistance,
+      shipPos: ctx.ship.pos,
+      worldSize: ctx.worldSize,
+    },
+  })
   return {
     effect: hole,
     enemies: r.enemies,

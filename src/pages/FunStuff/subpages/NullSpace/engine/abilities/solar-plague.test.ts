@@ -50,13 +50,13 @@ describe('solarPlague', () => {
     expect(lit.burning!.remaining).toBe(SOLAR_PLAGUE.burnDuration)
   })
 
-  it('deals Solar Flare’s direct damage per tick, with fire stacked on top (≈180% held)', () => {
+  it('deals Solar Flare’s direct damage per tick, with fire stacked on top (≈150% held)', () => {
     const ability = makeAbility()
     const enemy = { ...createEnemy(EnemyKind.tank, { x: 0, y: 0 }), hp: 1000, maxHp: 1000 }
     const lit = solarPlague.hold!.onTick!(bagWith([enemy]), ability, { x: 0, y: 0 }).enemies[0]
     // Direct hit per tick is exactly Solar Flare's (ability.damage).
     expect(lit.hp).toBe(1000 - ability.damage)
-    // Held DPS = direct beam rate + fire = 180% of Solar Flare's rate.
+    // Held DPS = direct beam rate + fire = 150% of Solar Flare's rate.
     const flareDps = ability.damage / SOLAR_FLARE.drainInterval
     expect((flareDps + lit.burning!.dps) / flareDps).toBeCloseTo(1 + SOLAR_PLAGUE.dpsMultiplier, 5)
   })
