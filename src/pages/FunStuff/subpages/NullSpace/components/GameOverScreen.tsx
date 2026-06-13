@@ -24,7 +24,7 @@ export function GameOverScreen({
     <>
       <h2 className={sharedStyles.title}>Game Over</h2>
       <p className={sharedStyles.stat}>
-        Reached Level {level}, Wave {waveInLevel}/{WAVES_PER_LEVEL}
+        Reached Sector {level}, Wave {waveInLevel}/{WAVES_PER_LEVEL}
       </p>
       <p className={sharedStyles.stat}>Score: {score}</p>
       {isNewHighScore && <p className={sharedStyles.highScoreNew}>New High Score!</p>}

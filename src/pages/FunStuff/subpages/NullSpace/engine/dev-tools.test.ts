@@ -2,7 +2,12 @@ import { describe, it, expect } from 'vitest'
 import { devJumpToBoss, devJumpToUpgrades, devPatchState } from './dev-tools'
 import { createInitialState, startGame, startNextWave } from './game-loop'
 import { EnemyKind, GamePhase, ShipKind } from './types'
-import { WAVES_PER_LEVEL } from '../data'
+import { SECTOR, WAVES_PER_LEVEL } from '../data'
+
+const corridorEntry = {
+  x: SECTOR.width / 2,
+  y: SECTOR.length - SECTOR.shipStartOffset,
+}
 
 function playingState() {
   return startNextWave(startGame(createInitialState(), ShipKind.fighter))
@@ -32,6 +37,20 @@ describe('devPatchState', () => {
     expect(patched.bossSelection.nextBoss).toBe(EnemyKind.phaseShifter)
     expect(patched.bossSelection.pool).toEqual(state.bossSelection.pool)
   })
+
+  it('a wave jump re-lays the corridor — ship at the entry, portal placed', () => {
+    const state = playingState()
+    const patched = devPatchState(state, { wave: WAVES_PER_LEVEL * 2 })
+    expect(patched.wave).toBe(WAVES_PER_LEVEL * 2)
+    expect(patched.ship.pos).toEqual(corridorEntry)
+    expect(patched.portalPos).toEqual({ x: SECTOR.width / 2, y: SECTOR.portalInset })
+  })
+
+  it('a patch without a wave jump leaves the ship position untouched', () => {
+    const state = playingState()
+    const patched = devPatchState(state, { currency: 50 })
+    expect(patched.ship.pos).toEqual(state.ship.pos)
+  })
 })
 
 describe('devJumpToUpgrades', () => {
@@ -53,5 +72,12 @@ describe('devJumpToBoss', () => {
     expect(state.spawnQueue).toEqual([before.bossSelection.nextBoss])
     expect(state.totalWaveEnemies).toBe(1)
     expect(state.bossSelection.nextBoss).not.toBe(before.bossSelection.nextBoss)
+  })
+
+  it('re-lays a fresh boss corridor — ship at the entry, no hazard lane', () => {
+    const state = devJumpToBoss(playingState())
+    expect(state.ship.pos).toEqual(corridorEntry)
+    // Boss sectors never seed a mine lane — the boss is the gate.
+    expect(state.hazards).toEqual([])
   })
 })

@@ -11,6 +11,7 @@ import {
   devGrantUltimate,
   finishUpgradeScreen,
   completeWarp,
+  advanceWarp,
 } from './game-loop'
 import { createAbilities, createEnemy, createProjectile } from './entities/entity-creator'
 import { tickEscapeMode } from './entities/ship'
@@ -252,6 +253,37 @@ describe('updateGameState', () => {
     state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
     const expected = isUpgradeWave(state.wave) ? GamePhase.warping : GamePhase.waveComplete
     expect(state.phase).toBe(expected)
+  })
+})
+
+describe('advanceWarp', () => {
+  const warpingState = (warpTimer: number) => ({
+    ...startGame(createInitialState(), ShipKind.fighter),
+    phase: GamePhase.warping,
+    warpTimer,
+  })
+
+  it('decrements the timer and stays warping while time remains', () => {
+    const { state, landed } = advanceWarp(warpingState(1.0), 0.016)
+    expect(state.phase).toBe(GamePhase.warping)
+    expect(state.warpTimer).toBeCloseTo(0.984)
+    expect(landed).toBe(false)
+  })
+
+  it('completes the warp into the upgrade screen once the timer elapses', () => {
+    // Regression: the hook must land the warp (open the shop + reseed the
+    // corridor) exactly when warpTimer reaches 0 — not a frame early or late.
+    const { state, landed } = advanceWarp(warpingState(0.01), 0.016)
+    expect(state.phase).toBe(GamePhase.upgradeScreen)
+    expect(landed).toBe(true)
+  })
+
+  it('is a no-op outside the warping phase', () => {
+    const playing = { ...startGame(createInitialState(), ShipKind.fighter), warpTimer: 5 }
+    const { state, landed } = advanceWarp(playing, 0.5)
+    expect(state).toBe(playing)
+    expect(state.warpTimer).toBe(5)
+    expect(landed).toBe(false)
   })
 })
 

@@ -9,7 +9,7 @@ import {
   applyUpgradeToState,
   applyUltimatePurchaseToState,
   finishUpgradeScreen,
-  completeWarp,
+  advanceWarp,
 } from './engine/game-loop'
 import { devJumpToBoss, devJumpToUpgrades, devPatchState, type DevPatch } from './engine/dev-tools'
 import { isBaseReplacedByUltimate } from './engine/ultimates'
@@ -581,17 +581,10 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       const prevPhase = gameStateRef.current.phase
       gameStateRef.current = updateGameState(gameStateRef.current, dt, input)
 
-      // Warp transition: the sim is frozen (updateGameState early-returns while
-      // not playing), so tick the timer here and jump to the fresh corridor at 0.
-      if (gameStateRef.current.phase === GamePhase.warping) {
-        const warpTimer = gameStateRef.current.warpTimer - dt
-        if (warpTimer <= 0) {
-          gameStateRef.current = completeWarp(gameStateRef.current)
-          enterCorridor()
-        } else {
-          gameStateRef.current = { ...gameStateRef.current, warpTimer }
-        }
-      }
+      // Tick the warp animation; reseed the corridor when it lands.
+      const warp = advanceWarp(gameStateRef.current, dt)
+      gameStateRef.current = warp.state
+      if (warp.landed) enterCorridor()
 
       cameraRef.current = updateCamera(
         cameraRef.current,

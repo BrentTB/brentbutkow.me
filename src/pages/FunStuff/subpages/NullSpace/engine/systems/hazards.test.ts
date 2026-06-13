@@ -18,7 +18,8 @@ describe('generateHazardLane', () => {
     const mines = generateHazardLane({ corridorCenterX, corridorHalfWidth, laneY })
     expect(mines).toHaveLength(HAZARD.minesPerCluster)
     for (const m of mines) {
-      expect(Math.abs(m.pos.x - corridorCenterX)).toBeLessThanOrEqual(corridorHalfWidth)
+      // Inset to 0.6 of the half-width — the gap that keeps a lateral dash through.
+      expect(Math.abs(m.pos.x - corridorCenterX)).toBeLessThanOrEqual(corridorHalfWidth * 0.6)
       expect(Math.abs(m.pos.y - laneY)).toBeLessThanOrEqual(HAZARD.clusterSpread)
     }
   })
@@ -41,6 +42,20 @@ describe('updateHazards', () => {
 
     const second = updateHazards(first.hazards, ship, 0.016)
     expect(second.shipDamage).toBe(0)
+  })
+
+  it('stacks damage from every mine overlapping the ship in one tick', () => {
+    const ship = createShip(ShipKind.fighter, corridor)
+    const mineAt = (id: string): Hazard => ({
+      id,
+      kind: HazardKind.mine,
+      pos: { ...ship.pos },
+      radius: 26,
+      damage: 35,
+      hitCooldown: 0,
+    })
+    // A dense cluster overlap is intended to be punishing — damage sums, uncapped.
+    expect(updateHazards([mineAt('a'), mineAt('b')], ship, 0.016).shipDamage).toBe(70)
   })
 
   it('deals no damage when the ship is clear of every mine', () => {

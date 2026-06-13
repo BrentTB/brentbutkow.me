@@ -32,7 +32,7 @@ export function generateHazardLane(opts: {
 
 // Ticks hazard cooldowns and reports damage from any mine overlapping the ship
 // (each mine debounces via its own `hitCooldown`). The caller routes `shipDamage`
-// through applyDamageToShip, so Escape-Mode immunity makes a dash across free.
+// through applyDamageToShip, so Escape-Mode immunity drops a dash-through's damage.
 export function updateHazards(
   hazards: Hazard[],
   ship: Ship,

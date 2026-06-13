@@ -299,7 +299,6 @@ export const HAZARD = {
 // The portal at the far end of each corridor. Dormant until the sector clears.
 export const PORTAL = {
   radius: 120,
-  dormantColor: 'rgba(120, 90, 200, 0.22)',
   activeColor: 'rgba(176, 130, 255, 0.9)',
 } as const
 

@@ -438,6 +438,17 @@ export function completeWarp(state: GameState): GameState {
   }
 }
 
+// Advances the frozen warp animation by one frame. The sim is suspended during a
+// warp (updateGameState early-returns while not playing), so the timer is ticked
+// here. When it elapses the warp completes into the next sector; `landed` signals
+// the caller to reseed the camera/starfield for the fresh corridor.
+export function advanceWarp(state: GameState, dt: number): { state: GameState; landed: boolean } {
+  if (state.phase !== GamePhase.warping) return { state, landed: false }
+  const warpTimer = state.warpTimer - dt
+  if (warpTimer <= 0) return { state: completeWarp(state), landed: true }
+  return { state: { ...state, warpTimer }, landed: false }
+}
+
 // Leaves the shop and spawns the wave in the corridor the warp already laid out.
 export function finishUpgradeScreen(state: GameState): GameState {
   return beginWave({ ...state, levelUpWeaponOffers: [] })

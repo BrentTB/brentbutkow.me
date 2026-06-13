@@ -3,10 +3,8 @@ import { ContactPlatform } from '../../data/data.types'
 export const contactPlatforms: ContactPlatform[] = [
   {
     platform: 'Email',
-    shownName: 'butkowb@gmail.com',
-    url: 'mailto:butkowb@gmail.com',
-    // shownName: 'brent@butkow.com',
-    // url: 'mailto:brent@butkow.com',
+    shownName: 'brent@butkow.com',
+    url: 'mailto:brent@butkow.com',
     logoPath: '/logos/email-no-bg.png',
   },
   {

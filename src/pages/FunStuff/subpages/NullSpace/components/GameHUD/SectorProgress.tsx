@@ -1,4 +1,5 @@
 import { BOSS_LEVEL_INTERVAL, WAVES_PER_LEVEL } from '../../data'
+import { sectorProgress } from '../../engine/world/waves'
 import type { GameUIState } from '../../useNullSpace'
 import styles from './SectorProgress.module.scss'
 
@@ -8,23 +9,13 @@ type SectorProgressProps = {
   dimmed: boolean
 }
 
-// Kill-based progress through the current sector (0..1). Advances as enemies die,
-// reaching the next dot when a wave is cleared — mirrors the in-world hold line.
-function getSectorProgress(uiState: GameUIState): number {
-  if (uiState.wave <= 0) return 0
-  const waveInSector = (uiState.wave - 1) % WAVES_PER_LEVEL
-  const cleared =
-    uiState.totalWaveEnemies > 0
-      ? Math.max(
-          0,
-          Math.min(1, (uiState.spawnedInWave - uiState.enemiesAlive) / uiState.totalWaveEnemies)
-        )
-      : 0
-  return (waveInSector + cleared) / WAVES_PER_LEVEL
-}
-
 export function SectorProgress({ uiState, dimmed }: SectorProgressProps) {
-  const progress = getSectorProgress(uiState)
+  const progress = sectorProgress({
+    wave: uiState.wave,
+    spawnedInWave: uiState.spawnedInWave,
+    enemiesAlive: uiState.enemiesAlive,
+    totalWaveEnemies: uiState.totalWaveEnemies,
+  })
   const dots = Array.from({ length: WAVES_PER_LEVEL + 1 }, (_, i) => i)
   const isBossSector = uiState.level > 0 && uiState.level % BOSS_LEVEL_INTERVAL === 0
 

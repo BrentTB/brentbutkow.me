@@ -228,7 +228,7 @@ src/pages/FunStuff/subpages/NullSpace/engine/entities/
   ship.ts                                    applySlingshot, tickSlingHeat, tickFling, applyDamageToShip, tickEscapeMode, updateShipDrift, updateShipAttack
 
 src/pages/FunStuff/subpages/NullSpace/engine/
-  game-loop.ts                               createInitialState, moveToShipSelection, startGame, rollLevelUpWeaponOffers, resetForSector, startNextWave, applyUpgradeToState, equipShipWeapon, applyUltimatePurchaseToState, devUnlockWeapon, devGrantUltimate, beginWarp, completeWarp, finishUpgradeScreen, updateGameState
+  game-loop.ts                               createInitialState, moveToShipSelection, startGame, rollLevelUpWeaponOffers, resetForSector, startNextWave, applyUpgradeToState, equipShipWeapon, applyUltimatePurchaseToState, devUnlockWeapon, devGrantUltimate, beginWarp, completeWarp, advanceWarp, finishUpgradeScreen, updateGameState
 
 src/pages/FunStuff/subpages/NullSpace/engine/math/
   aoe.ts                                     AoeResult, damageEnemiesInRadiusFlat, damageEnemiesInRadius
@@ -275,7 +275,7 @@ src/pages/FunStuff/subpages/NullSpace/engine/
 src/pages/FunStuff/subpages/NullSpace/engine/world/
   persistence.ts                             loadHighScore, saveHighScore, ChangelogCategory, ChangelogFilters, DEFAULT_CHANGELOG_FILTERS, CHANGELOG_CATEGORIES, loadChangelogFilters, saveChangelogFilters
   time.ts                                    MAX_DT, GameTime, createGameTime, tickGameTime, pauseGameTime, resumeGameTime, setGameSpeed, resetGameClock
-  waves.ts                                   isBossWave, getWave, getWaveDelay
+  waves.ts                                   isBossWave, getWave, getWaveDelay, sectorProgress
 
 src/pages/FunStuff/subpages/NullSpace/
   icon-names.ts                              IconName
@@ -286,6 +286,7 @@ src/pages/FunStuff/subpages/NullSpace/input/
 src/pages/FunStuff/subpages/NullSpace/renderer/
   camera.ts                                  REFERENCE_VIEW, DEFAULT_GAME_ZOOM, Camera, createCamera, computeZoom, HUD_SCALE_MIN, HUD_SCALE_MAX, computeHudScale, isWithinView, clampCameraAxis, updateCamera, centerCameraOn, worldToScreen, screenToWorld
   corridor.ts                                renderCorridor
+  draw.ts                                    fillRadialGlow
   hazard-lanes.ts                            renderHazardLanes
   portal.ts                                  renderPortal
   renderer.ts                                SHIP_SPRITE_KEY, renderFrame

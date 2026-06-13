@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { getWave, getWaveDelay, isBossWave } from './waves'
+import { getWave, getWaveDelay, isBossWave, sectorProgress } from './waves'
 import { rng } from '../math/random'
 import { EnemyKind } from '../types'
+import { WAVES_PER_LEVEL } from '../../data'
 
 beforeEach(() => {
   rng.reseed(42)
@@ -110,5 +111,54 @@ describe('getWave — boss waves', () => {
     const regularCount = (queue: EnemyKind[]) =>
       queue.filter((k) => k !== EnemyKind.dreadnought && k !== EnemyKind.shieldGenerator).length
     expect(regularCount(wave9)).toBeLessThan(regularCount(wave8))
+  })
+})
+
+describe('sectorProgress', () => {
+  it('returns 0 before a game starts (wave 0)', () => {
+    expect(
+      sectorProgress({ wave: 0, spawnedInWave: 0, enemiesAlive: 0, totalWaveEnemies: 0 })
+    ).toBe(0)
+  })
+
+  it('advances within a wave as its enemies die', () => {
+    const half = sectorProgress({
+      wave: 1,
+      spawnedInWave: 10,
+      enemiesAlive: 5,
+      totalWaveEnemies: 10,
+    })
+    // First wave half-cleared → halfway through its 1/WAVES_PER_LEVEL segment.
+    expect(half).toBeCloseTo(0.5 / WAVES_PER_LEVEL)
+  })
+
+  it('fills one whole segment per cleared wave', () => {
+    // Second wave, none killed yet → exactly one segment filled.
+    const oneWaveCleared = sectorProgress({
+      wave: 2,
+      spawnedInWave: 0,
+      enemiesAlive: 0,
+      totalWaveEnemies: 8,
+    })
+    expect(oneWaveCleared).toBeCloseTo(1 / WAVES_PER_LEVEL)
+  })
+
+  it('clamps to 1 at most and never below 0', () => {
+    // Last wave of the sector fully cleared → bar full.
+    const full = sectorProgress({
+      wave: WAVES_PER_LEVEL,
+      spawnedInWave: 6,
+      enemiesAlive: 0,
+      totalWaveEnemies: 6,
+    })
+    expect(full).toBe(1)
+    // More alive than spawned (transient mid-frame) can't drive it negative.
+    const floored = sectorProgress({
+      wave: 1,
+      spawnedInWave: 0,
+      enemiesAlive: 3,
+      totalWaveEnemies: 6,
+    })
+    expect(floored).toBe(0)
   })
 })

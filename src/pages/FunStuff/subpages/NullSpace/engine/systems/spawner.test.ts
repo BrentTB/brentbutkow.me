@@ -27,7 +27,7 @@ describe('spawnPositionNearShip', () => {
       )
         inCone++
     }
-    expect(inCone / N).toBeGreaterThan(SPAWN_CONE.forwardFraction - 0.15)
+    expect(inCone / N).toBeGreaterThan(SPAWN_CONE.forwardFraction - 0.1)
   })
 
   it('tightens the forward cone as waves climb', () => {

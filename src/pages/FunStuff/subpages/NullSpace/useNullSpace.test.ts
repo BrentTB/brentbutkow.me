@@ -344,5 +344,18 @@ describe('useNullSpace — slingshot', () => {
       // Power only regenerates when dt > 0 — proof the clock un-paused.
       expect(result.current.uiState.power).toBeGreaterThan(powerStart)
     })
+
+    // enemiesAlive mirrors the live enemy count (state.enemies.length), not a
+    // static value — the HUD sector bar reads it to size the kill progress.
+    it('exposes the live enemy count once a wave starts spawning', () => {
+      const canvasRef = { current: canvas }
+      const { result } = renderHook(() => useNullSpace(canvasRef))
+      startPlaying(result)
+
+      step(16) // wave 1 has no spawn delay — at least one enemy is on the field
+      const { enemiesAlive, totalWaveEnemies } = result.current.uiState
+      expect(enemiesAlive).toBeGreaterThan(0)
+      expect(enemiesAlive).toBeLessThanOrEqual(totalWaveEnemies)
+    })
   })
 })
