@@ -42,4 +42,16 @@ describe('softTether1D', () => {
       Math.abs(softTether1D(110, 0, 100, 4))
     )
   })
+
+  // Regression: a soft fling that dies pinned against the wall used to be flung
+  // back at a depth-proportional (huge) speed. The cap eases it back instead.
+  it('clamps the restoring velocity to maxReturn', () => {
+    // Deep past the bound: uncapped this is (120 - 0) * 4 = 480.
+    expect(softTether1D(0, 120, 1280, 4)).toBeCloseTo(480, 6)
+    expect(softTether1D(0, 120, 1280, 4, 80)).toBe(80)
+    // Symmetric past the upper bound.
+    expect(softTether1D(1400, 120, 1280, 4, 80)).toBe(-80)
+    // Still 0 inside, cap or not.
+    expect(softTether1D(700, 120, 1280, 4, 80)).toBe(0)
+  })
 })

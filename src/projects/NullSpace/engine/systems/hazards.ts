@@ -5,22 +5,25 @@ import { rng } from '../math/random'
 import { HazardKind } from '../types'
 import type { Hazard, Ship } from '../types'
 
-// A mine cluster scattered laterally within the corridor at `laneY`, kept off the
-// edges so a lateral slingshot dash (or an Escape-Mode dash) always has a gap.
-export function generateHazardLane(opts: {
+// Mines scattered sparsely over the whole corridor (the `[minY, maxY]` stretch
+// the ship traverses), kept off the lateral edges so a slingshot dash always has
+// a gap. Thread between them as the ship advances — Escape Mode dashes through.
+export function generateHazardField(opts: {
   corridorCenterX: number
   corridorHalfWidth: number
-  laneY: number
+  minY: number
+  maxY: number
 }): Hazard[] {
-  const { corridorCenterX, corridorHalfWidth, laneY } = opts
+  const { corridorCenterX, corridorHalfWidth, minY, maxY } = opts
+  const lateral = corridorHalfWidth * HAZARD.lateralFraction
   const mines: Hazard[] = []
-  for (let i = 0; i < HAZARD.minesPerCluster; i++) {
+  for (let i = 0; i < HAZARD.mineCount; i++) {
     mines.push({
       id: uid(),
       kind: HazardKind.mine,
       pos: {
-        x: corridorCenterX + rng.range(-corridorHalfWidth * 0.6, corridorHalfWidth * 0.6),
-        y: laneY + rng.range(-HAZARD.clusterSpread, HAZARD.clusterSpread),
+        x: corridorCenterX + rng.range(-lateral, lateral),
+        y: rng.range(minY, maxY),
       },
       radius: HAZARD.mineRadius,
       damage: HAZARD.mineDamage,

@@ -247,6 +247,49 @@ export const BOSS_LEVEL_INTERVAL = 3
 // Fraction of normal enemy count on boss waves. Tune to adjust how crowded the boss fight feels.
 export const BOSS_WAVE_ENEMY_MULTIPLIER = 0.4
 
+// Per-wave enemy stat growth, applied at spawn. HP climbs steeply so enemies
+// survive the heavy AoE/abilities of late game; contact damage barely moves so
+// the player isn't one-shot. Count + harder mixes stay the primary difficulty lever.
+export const STAT_SCALING = {
+  hpPerWave: 0.1, // +10% max HP per wave past wave 1 → ~×3 by wave 20
+  hpMax: 6, // HP multiplier ceiling
+  damagePerWave: 0.026, // +2.6% contact damage per wave → ~×1.5 by wave 20
+  damageMax: 2, // damage multiplier ceiling
+} as const
+
+// Mixed-wave count caps. Past the cap, drone overflow converts into harder kinds
+// so high waves lean on composition (tanks/shooters/bombers) rather than a drone wall.
+export const WAVE_COMP = {
+  maxDrones: 22,
+} as const
+
+// Themed waves (all-tank, swarm-only, etc.) for mid/late-game texture. Only on
+// even waves past startWave (never back-to-back, never on boss/early waves).
+export const WAVE_THEME = {
+  startWave: 10,
+  chance: 0.5, // probability an eligible (even, past-start, non-boss) wave is themed
+} as const
+
+// Late-game enemy modifiers — appear only past startWave, on regular ships.
+export const ENEMY_MODIFIERS = {
+  startWave: 12,
+  baseChance: 0.1, // modifier chance at startWave
+  chancePerWave: 0.05, // chance growth per wave past startWave
+  maxChance: 0.6,
+  weights: { speed: 1, shield: 1, giant: 1 }, // relative pick weights once a modifier rolls
+  speedMult: 1.6, // speed modifier: movement speed ×
+  speedTint: 'rgba(255, 70, 40, 0.55)', // red sprite wash for the speed modifier
+  speedTrailColor: '#ff5a3c',
+  speedTrailChance: 0.4, // per-frame trail-particle spawn probability per speed enemy
+  speedTrailSize: 4,
+  speedTrailLifetime: 0.45,
+  shieldFraction: 0.5, // shield pool = scaled maxHp ×
+  shieldRegen: 6, // shield HP regenerated per second after the cooldown
+  giantSpeedMult: 0.5, // giant: slower
+  giantRadiusMult: 1.8, // giant: bigger (hitbox + sprite)
+  giantHpMult: 2.5, // giant: tankier (on top of wave HP scaling)
+} as const
+
 export const SPAWN_DELAY = { min: 0.1, max: 1.0 } as const
 export const SPAWN_DISTANCE = { min: 650, max: 1050 } as const
 
@@ -271,10 +314,20 @@ export const SECTOR = {
   steerRate: 3, // how fast velocity eases toward the desired heading (flowy turns)
   lateralMargin: 120, // soft-tether margin inside each wall (before the hard clamp)
   lateralTetherStrength: 4, // restoring accel past the soft corridor edge
+  lateralTetherMax: 80, // cap on the lateral restoring velocity — keeps a spent fling
+  // pinned at the wall from being flung back at a depth-proportional (and jarring) speed
 } as const
 
-// Seconds the portal warp transition runs between sectors.
-export const WARP_DURATION = 1.6
+// End-of-sector warp cutscene. The portal only appears once the sector clears:
+// it spawns `spawnAhead` units ahead of the ship (just offscreen), the ship flies
+// into it at `flySpeed` with no player control, and the jump completes when it
+// reaches within `arriveRadius`. `maxDuration` is a safety cap if it never lands.
+export const WARP = {
+  spawnAhead: 1100,
+  flySpeed: 1200,
+  arriveRadius: 70,
+  maxDuration: 3,
+} as const
 
 // Enemy spawn angle bias. Most spawns arrive ahead of the ship; the forward cone
 // tightens as waves climb (sets up the Phase 7.5 difficulty curve).
@@ -285,13 +338,15 @@ export const SPAWN_CONE = {
   minHalfAngle: Math.PI / 6, // floor at ±30°
 } as const
 
-// Mid-corridor mine clusters — a timed slingshot dash (or Escape Mode) crosses them.
+// Mines scattered sparsely across the whole corridor — thread between them as
+// the ship advances (Escape Mode dashes through unharmed).
 export const HAZARD = {
-  minesPerCluster: 5,
+  mineCount: 14, // mines spread across the corridor length (sparse)
   mineRadius: 26,
   mineDamage: 35,
-  clusterSpread: 280, // half-box the cluster scatters into
-  laneEveryWaves: 2, // a lane appears every N non-boss sectors
+  lateralFraction: 0.7, // mines stay within ±this × corridorHalfWidth — clear lateral gaps at the edges
+  forwardMargin: 500, // keep mines this far from the entry and portal ends
+  laneEveryWaves: 2, // a minefield appears every N non-boss sectors
   hitCooldown: 1, // seconds before a mine can re-hit the ship
   color: '#d6533a',
 } as const
@@ -326,6 +381,28 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.22.0',
+    date: '2026-06-13',
+    changes: {
+      features: [
+        'Enemy modifiers appear deeper into a run: Speed enemies are faster, washed red, and leave a trail; Shield enemies carry a regenerating shield like yours (it soaks a hit, then recharges after a pause); Giant enemies are slow, oversized, and very tanky.',
+        'Themed waves now break up the rotation past wave 10 — an all-tank push, a swarm of swarms, a shooter nest, or a bomber run — alongside the usual mixed waves.',
+      ],
+      balance: [
+        'Enemies gain a lot of HP but only a little contact damage as waves climb (about ×4 HP / ×1.5 damage by wave 20), so your late-game abilities have something to chew through without you getting one-shot.',
+        'High mixed waves cap their drone count and spend the overflow on tougher enemies, so deep waves get harder through composition rather than a wall of drones.',
+      ],
+      fixes: [
+        'The warp portal no longer sits unreached at the far end during play. Clear a sector and it appears just ahead of your ship, which flies into it for a brief hands-off jump to the next sector.',
+        'Hazard mines are scattered sparsely across the whole corridor instead of bunched into one band.',
+        'A soft slingshot into a corridor wall now eases back gently instead of springing you off it.',
+      ],
+      architecture: [
+        'All enemy damage funnels through a single applyDamageToEnemy helper, which is what lets the regenerating enemy shield work everywhere without touching each weapon. Per-wave stat scaling and the modifier roll both apply at spawn. The end-of-sector warp is a hands-off cutscene: the portal spawns ahead of the ship and advanceWarp flies it in (camera unclamped, corridor borders dropped) before the shop opens.',
+      ],
+    },
+  },
   {
     version: '0.21.0',
     date: '2026-06-13',

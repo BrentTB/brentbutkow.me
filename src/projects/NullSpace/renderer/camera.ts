@@ -120,15 +120,25 @@ export function clampCameraAxis(
   return Math.max(0, Math.min(worldExtent - viewportExtent, target))
 }
 
-export function updateCamera(camera: Camera, target: Vec2, dt: number, worldSize: Vec2): Camera {
+// `clampToBounds` keeps the camera inside the world; the warp cutscene passes
+// false so it can follow the ship past the corridor edge into the portal.
+export function updateCamera(
+  camera: Camera,
+  target: Vec2,
+  dt: number,
+  worldSize: Vec2,
+  clampToBounds = true
+): Camera {
   const vw = viewportWorldWidth(camera)
   const vh = viewportWorldHeight(camera)
   const targetX = target.x - vw / 2
   const targetY = target.y - vh / 2
   const lerp = 1 - Math.pow(0.01, dt)
 
-  const x = clampCameraAxis(camera.x + (targetX - camera.x) * lerp, worldSize.x, vw)
-  const y = clampCameraAxis(camera.y + (targetY - camera.y) * lerp, worldSize.y, vh)
+  const rawX = camera.x + (targetX - camera.x) * lerp
+  const rawY = camera.y + (targetY - camera.y) * lerp
+  const x = clampToBounds ? clampCameraAxis(rawX, worldSize.x, vw) : rawX
+  const y = clampToBounds ? clampCameraAxis(rawY, worldSize.y, vh) : rawY
 
   return { ...camera, x, y }
 }

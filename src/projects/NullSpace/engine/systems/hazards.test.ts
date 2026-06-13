@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { generateHazardLane, updateHazards } from './hazards'
+import { generateHazardField, updateHazards } from './hazards'
 import { HAZARD, SECTOR } from '../../data'
 import { createShip } from '../entities/entity-creator'
 import { HazardKind, ShipKind } from '../types'
@@ -10,18 +10,30 @@ const corridor = { x: SECTOR.width, y: SECTOR.length }
 
 beforeEach(() => rng.reseed(5))
 
-describe('generateHazardLane', () => {
-  it('places mines within the corridor band', () => {
-    const corridorCenterX = SECTOR.width / 2
-    const corridorHalfWidth = corridorCenterX - SECTOR.lateralMargin
-    const laneY = 3000
-    const mines = generateHazardLane({ corridorCenterX, corridorHalfWidth, laneY })
-    expect(mines).toHaveLength(HAZARD.minesPerCluster)
+describe('generateHazardField', () => {
+  const corridorCenterX = SECTOR.width / 2
+  const corridorHalfWidth = corridorCenterX - SECTOR.lateralMargin
+  const minY = 500
+  const maxY = 5500
+
+  it('keeps mines inside the corridor with a lateral gap at the edges', () => {
+    const mines = generateHazardField({ corridorCenterX, corridorHalfWidth, minY, maxY })
+    expect(mines).toHaveLength(HAZARD.mineCount)
+    const lateral = corridorHalfWidth * HAZARD.lateralFraction
     for (const m of mines) {
-      // Inset to 0.6 of the half-width — the gap that keeps a lateral dash through.
-      expect(Math.abs(m.pos.x - corridorCenterX)).toBeLessThanOrEqual(corridorHalfWidth * 0.6)
-      expect(Math.abs(m.pos.y - laneY)).toBeLessThanOrEqual(HAZARD.clusterSpread)
+      expect(Math.abs(m.pos.x - corridorCenterX)).toBeLessThanOrEqual(lateral)
+      expect(m.pos.y).toBeGreaterThanOrEqual(minY)
+      expect(m.pos.y).toBeLessThanOrEqual(maxY)
     }
+  })
+
+  // Regression: mines used to cluster around a single mid-corridor lane. They
+  // should now spread across the whole corridor length.
+  it('scatters mines across the corridor length, not one narrow band', () => {
+    const ys = generateHazardField({ corridorCenterX, corridorHalfWidth, minY, maxY }).map(
+      (m) => m.pos.y
+    )
+    expect(Math.max(...ys) - Math.min(...ys)).toBeGreaterThan((maxY - minY) * 0.5)
   })
 })
 

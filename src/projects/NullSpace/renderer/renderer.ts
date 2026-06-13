@@ -1,4 +1,11 @@
-import { CollectibleKind, EnemyKind, GamePhase, ProjectileOwner, ShipKind } from '../engine/types'
+import {
+  CollectibleKind,
+  EnemyKind,
+  EnemyModifier,
+  GamePhase,
+  ProjectileOwner,
+  ShipKind,
+} from '../engine/types'
 import type {
   ActiveEffect,
   Ally,
@@ -7,7 +14,7 @@ import type {
   Particle,
   Projectile,
 } from '../engine/types'
-import { POWER_ORB, SINGULARITY_SHARD, SPACE_METAL, WARP_DURATION } from '../data'
+import { ENEMY_MODIFIERS, POWER_ORB, SINGULARITY_SHARD, SPACE_METAL, WARP } from '../data'
 import { EFFECT_DEFINITIONS } from '../engine/systems/effects'
 import { ABILITY_LIST } from '../engine/abilities'
 import { getBossDefinition } from '../engine/bosses'
@@ -20,7 +27,7 @@ import type { Star } from './starfield'
 import { renderStarfield } from './starfield'
 import { renderCorridor } from './corridor'
 import { renderPortal } from './portal'
-import { renderHazardLanes } from './hazard-lanes'
+import { renderHazardField } from './hazard-field'
 import { renderWarpTransition } from './warp'
 
 const ENEMY_SPRITE: Record<EnemyKind, SpriteKey> = {
@@ -68,11 +75,14 @@ export function renderFrame(
   const shipInWorld = state.phase !== GamePhase.menu && state.phase !== GamePhase.shipSelection
 
   renderStarfield(ctx, stars, camera)
-  if (shipInWorld) {
+  const warping = state.phase === GamePhase.warping
+  // During the warp cutscene the corridor borders drop (so a ship near the top
+  // can fly past the edge into the portal cleanly) and only the portal shows.
+  if (shipInWorld && !warping) {
     renderCorridor(ctx, state, camera)
-    renderHazardLanes(ctx, state, camera)
-    renderPortal(ctx, state, camera)
+    renderHazardField(ctx, state, camera)
   }
+  if (warping) renderPortal(ctx, state, camera)
   renderActiveEffects(ctx, state.activeEffects, camera, sprites, 'renderBack')
   renderBossOverlays(ctx, state, camera)
   renderHoldOverlays(ctx, state, camera, 'renderBack')
@@ -88,9 +98,13 @@ export function renderFrame(
 
   ctx.restore()
 
-  // Warp flash lives in screen space, over the whole canvas.
-  if (state.phase === GamePhase.warping) {
-    renderWarpTransition(ctx, camera, 1 - state.warpTimer / WARP_DURATION)
+  // Warp flash lives in screen space, ramping as the ship nears the portal so it
+  // peaks as the ship is swallowed and the jump completes.
+  if (warping) {
+    const dx = state.portalPos.x - state.ship.pos.x
+    const dy = state.portalPos.y - state.ship.pos.y
+    const proximity = 1 - Math.min(1, Math.hypot(dx, dy) / WARP.spawnAhead)
+    renderWarpTransition(ctx, camera, proximity)
   }
 }
 
@@ -237,7 +251,15 @@ function renderEnemies(
     const angle = stationary ? 0 : Math.atan2(enemy.vel.y, enemy.vel.x) + Math.PI / 2
     ctx.rotate(angle)
     if (spriteAlpha < 1) ctx.globalAlpha = spriteAlpha
+    // Giant modifier draws the sprite oversized to match its enlarged hitbox.
+    if (enemy.modifier === EnemyModifier.giant) {
+      ctx.scale(ENEMY_MODIFIERS.giantRadiusMult, ENEMY_MODIFIERS.giantRadiusMult)
+    }
     ctx.drawImage(sprites[spriteKey], -size.w / 2, -size.h / 2)
+    // Speed modifier washes the sprite red (same masked tint as the ship overheat).
+    if (enemy.modifier === EnemyModifier.speed) {
+      drawSpriteTint(ctx, sprites[spriteKey], size.w, size.h, ENEMY_MODIFIERS.speedTint)
+    }
     ctx.restore()
 
     // Boss shield bubble — visible while the boss is damage-gated. Drawn
@@ -253,6 +275,15 @@ function renderEnemies(
         drawShieldRing(ctx, enemy.radius + 12, 0.6)
         ctx.restore()
       }
+    }
+
+    // Shield-modifier ring — fades with the shield's charge (mirrors the ship ring).
+    const es = enemy.enemyShield
+    if (es && es.shield > 0) {
+      ctx.save()
+      ctx.translate(screen.x, screen.y)
+      drawShieldRing(ctx, enemy.radius + 12, (es.shield / es.maxShield) * 0.65)
+      ctx.restore()
     }
 
     // Health bar for damaged enemies

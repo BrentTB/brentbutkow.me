@@ -111,6 +111,16 @@ export const EnemyKind = {
 } as const
 export type EnemyKind = (typeof EnemyKind)[keyof typeof EnemyKind]
 
+// Optional late-game enemy modifier. `speed` is a fast red-tinted trailing
+// enemy, `shield` wraps it in a player-style regenerating shield, `giant` makes
+// it slow, oversized, and high-HP. One per enemy.
+export const EnemyModifier = {
+  speed: 'speed',
+  shield: 'shield',
+  giant: 'giant',
+} as const
+export type EnemyModifier = (typeof EnemyModifier)[keyof typeof EnemyModifier]
+
 export const MovementBehavior = {
   chase: 'chase',
   keepRange: 'keepRange',
@@ -160,6 +170,11 @@ export type Enemy = Entity & {
   boss?: BossRuntimeState
   // Solar Plague fire. Present while alight; absent otherwise.
   burning?: BurningState
+  // Late-game modifier (absent on plain enemies). Set at spawn.
+  modifier?: EnemyModifier
+  // Present only on shield-modifier enemies — a player-style absorb-first pool
+  // that regenerates after a cooldown. Damage routes through applyDamageToEnemy.
+  enemyShield?: { shield: number; maxShield: number; regen: number; cooldownRemaining: number }
 }
 
 export const ProjectileOwner = { ship: 'ship', enemy: 'enemy' } as const

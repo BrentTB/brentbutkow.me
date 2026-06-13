@@ -1,4 +1,5 @@
 import { canEnemyTakeDamage } from '../bosses/index'
+import { applyDamageToEnemy } from '../entities/enemy-damage'
 import { spawnExplosionParticles } from '../entities/entity-creator'
 import { distance } from '../math/collision'
 import type { Enemy, Particle, Vec2 } from '../types'
@@ -40,7 +41,7 @@ export function damageEnemiesInBeam(
 
   for (const enemy of enemies) {
     if (distance(origin, enemy.pos) < radius + enemy.radius && canEnemyTakeDamage(enemy, enemies)) {
-      const damaged = { ...enemy, hp: enemy.hp - damage }
+      const damaged = applyDamageToEnemy(enemy, damage)
       if (damaged.hp <= 0) {
         killedEnemies.push(enemy)
         nextParticles = [

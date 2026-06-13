@@ -1,4 +1,5 @@
 import { canEnemyTakeDamage } from '../bosses/index'
+import { applyDamageToEnemy } from '../entities/enemy-damage'
 import type { Enemy, Vec2 } from '../types'
 
 export type AoeResult = {
@@ -57,7 +58,7 @@ function applyDamage(enemies: Enemy[], center: Vec2, radius: number, damage: num
       continue
     }
 
-    const next = { ...enemy, hp: enemy.hp - damage }
+    const next = applyDamageToEnemy(enemy, damage)
     if (next.hp <= 0) {
       killedEnemies.push(enemy)
       scoreGained += enemy.scoreValue

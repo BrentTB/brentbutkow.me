@@ -1,8 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { getWave, getWaveDelay, isBossWave, sectorProgress } from './waves'
+import {
+  getWave,
+  getWaveArchetype,
+  getWaveDelay,
+  isBossWave,
+  sectorProgress,
+  WaveArchetype,
+} from './waves'
 import { rng } from '../math/random'
 import { EnemyKind } from '../types'
-import { WAVES_PER_LEVEL } from '../../data'
+import { WAVES_PER_LEVEL, WAVE_COMP, WAVE_THEME } from '../../data'
 
 beforeEach(() => {
   rng.reseed(42)
@@ -111,6 +118,73 @@ describe('getWave — boss waves', () => {
     const regularCount = (queue: EnemyKind[]) =>
       queue.filter((k) => k !== EnemyKind.dreadnought && k !== EnemyKind.shieldGenerator).length
     expect(regularCount(wave9)).toBeLessThan(regularCount(wave8))
+  })
+})
+
+describe('getWaveArchetype', () => {
+  it('boss and early waves are always mixed', () => {
+    expect(getWaveArchetype(9)).toBe(WaveArchetype.mixed) // boss
+    expect(getWaveArchetype(2)).toBe(WaveArchetype.mixed) // early
+    expect(getWaveArchetype(WAVE_THEME.startWave - 1)).toBe(WaveArchetype.mixed)
+  })
+
+  it('never themes odd waves (so themed waves never run back-to-back)', () => {
+    for (let w = WAVE_THEME.startWave + 1; w < 40; w += 2) {
+      expect(getWaveArchetype(w)).toBe(WaveArchetype.mixed)
+    }
+  })
+
+  it('yields both mixed and themed waves on an even wave past startWave', () => {
+    // Reseed once, then draw repeatedly so the rng advances continuously (a fresh
+    // reseed per call biases the first draw, unlike a real run's single reseed).
+    rng.reseed(1)
+    const seen = new Set<WaveArchetype>()
+    for (let i = 0; i < 200; i++) seen.add(getWaveArchetype(WAVE_THEME.startWave))
+    expect(seen.has(WaveArchetype.mixed)).toBe(true)
+    expect([...seen].some((a) => a !== WaveArchetype.mixed)).toBe(true)
+  })
+})
+
+describe('getWave — themed composition', () => {
+  // getWave calls getWaveArchetype first, so re-seeding to the same value
+  // reproduces the archetype the queue was built from.
+  const findSeedFor = (archetype: WaveArchetype, wave: number): number | null => {
+    for (let s = 0; s < 300; s++) {
+      rng.reseed(s)
+      if (getWaveArchetype(wave) === archetype) return s
+    }
+    return null
+  }
+
+  it('swarmOnly waves contain only swarm', () => {
+    const seed = findSeedFor(WaveArchetype.swarmOnly, WAVE_THEME.startWave)
+    expect(seed).not.toBeNull()
+    rng.reseed(seed as number)
+    const q = getWave(WAVE_THEME.startWave)
+    expect(q.length).toBeGreaterThan(0)
+    expect(q.every((k) => k === EnemyKind.swarm)).toBe(true)
+  })
+
+  it('allTank waves contain only tanks', () => {
+    const seed = findSeedFor(WaveArchetype.allTank, WAVE_THEME.startWave)
+    expect(seed).not.toBeNull()
+    rng.reseed(seed as number)
+    const q = getWave(WAVE_THEME.startWave)
+    expect(q.length).toBeGreaterThan(0)
+    expect(q.every((k) => k === EnemyKind.tank)).toBe(true)
+  })
+})
+
+describe('getWave — late-game caps', () => {
+  it('caps drone count past the threshold and converts overflow to harder kinds', () => {
+    rng.reseed(7)
+    const wave41 = getWave(41) // odd → always mixed
+    expect(wave41.filter((k) => k === EnemyKind.drone).length).toBeLessThanOrEqual(
+      WAVE_COMP.maxDrones
+    )
+    // Drone overflow becomes tanks, so late mixed waves are tank-heavy.
+    expect(wave41.filter((k) => k === EnemyKind.tank).length).toBeGreaterThan(5)
+    expect(wave41.length).toBeGreaterThan(getWave(11).length)
   })
 })
 

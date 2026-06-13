@@ -1,4 +1,5 @@
 import { canEnemyTakeDamage } from '../bosses/index'
+import { applyDamageToEnemy } from '../entities/enemy-damage'
 import { spawnExplosionParticles } from '../entities/entity-creator'
 import { clampToWorld } from '../math/utils'
 import { rng } from '../math/random'
@@ -80,8 +81,7 @@ export function applyGravityWell(
     // to fling around, so they spiral like a plain well instead.
     if (opts.banish && dist <= opts.banish.coreRadius && damageable && !enemy.boss) {
       const next = {
-        ...enemy,
-        hp: enemy.hp - opts.banish.coreDamage,
+        ...applyDamageToEnemy(enemy, opts.banish.coreDamage),
         pos: banishPos(enemy.pos, opts.banish),
       }
       particles.push(...spawnExplosionParticles(enemy.pos, 10, opts.particleColor))
@@ -104,9 +104,8 @@ export function applyGravityWell(
     const damageThisTick = damageable ? well.damage * (0.5 + distRatio * 1.5) * dt : 0
 
     const moved = {
-      ...enemy,
+      ...applyDamageToEnemy(enemy, damageThisTick),
       pos: { x: enemy.pos.x + spiralX, y: enemy.pos.y + spiralY },
-      hp: enemy.hp - damageThisTick,
     }
 
     if (moved.hp <= 0) {

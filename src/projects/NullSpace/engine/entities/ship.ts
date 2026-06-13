@@ -300,12 +300,14 @@ export function updateShipDrift(
     velY = drift.vel.y
   }
 
-  // Soft lateral tether — a hard sideways fling curves back instead of hitting a wall.
+  // Soft lateral tether — a hard sideways fling curves back instead of hitting a
+  // wall. Capped so a spent fling pinned at the wall eases back, not springs.
   velX += softTether1D(
     ship.pos.x,
     corridorCenterX - corridorHalfWidth,
     corridorCenterX + corridorHalfWidth,
-    SECTOR.lateralTetherStrength
+    SECTOR.lateralTetherStrength,
+    SECTOR.lateralTetherMax
   )
 
   const pos = clampToWorld(

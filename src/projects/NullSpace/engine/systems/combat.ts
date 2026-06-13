@@ -2,6 +2,7 @@ import { ENEMY_STATS } from '../../data'
 import { checkCollision, distance, segmentIntersectsCircle } from '../math/collision'
 import { homeTowardTarget } from '../math/homing'
 import { spawnExplosionParticles } from '../entities/entity-creator'
+import { applyDamageToEnemy } from '../entities/enemy-damage'
 import { applyDamageToShip } from '../entities/ship'
 import { createNuclearWasteEffect } from '../ship/nuke'
 import { canEnemyTakeDamage } from '../bosses/index'
@@ -105,7 +106,7 @@ export function resolveProjectileEnemyCollisions(
           allParticles.push(...spawnExplosionParticles(enemy.pos, 3, '#4477aa'))
           continue
         }
-        updatedEnemies[i] = { ...enemy, hp: enemy.hp - proj.damage }
+        updatedEnemies[i] = applyDamageToEnemy(enemy, proj.damage)
         hitEnemyIds.push(enemy.id)
         allParticles.push(...spawnExplosionParticles(enemy.pos, 4, '#88ccff'))
         if (hitEnemyIds.length >= maxHits) {
@@ -148,7 +149,7 @@ export function resolveProjectileEnemyCollisions(
         const dx = e.pos.x - proj.pos.x
         const dy = e.pos.y - proj.pos.y
         if (dx * dx + dy * dy <= r2) {
-          updatedEnemies[i] = { ...e, hp: e.hp - d.blastDamage }
+          updatedEnemies[i] = applyDamageToEnemy(e, d.blastDamage)
         }
       }
       const hasWaste =
@@ -193,7 +194,7 @@ export function resolveProjectileEnemyCollisions(
           allParticles.push(...spawnExplosionParticles(enemy.pos, 3, '#4477aa'))
           break
         }
-        updatedEnemies[i] = { ...enemy, hp: enemy.hp - proj.damage }
+        updatedEnemies[i] = applyDamageToEnemy(enemy, proj.damage)
         bounce.hitEnemyIds.push(enemy.id)
         allParticles.push(...spawnExplosionParticles(enemy.pos, 6, '#ffaa44'))
         if (bounce.remaining <= 0) {
@@ -257,7 +258,7 @@ export function resolveProjectileEnemyCollisions(
         hitProjectiles.add(proj)
         // Shielded boss: consume the bullet but deal no damage.
         if (canEnemyTakeDamage(enemy, updatedEnemies)) {
-          updatedEnemies[i] = { ...enemy, hp: enemy.hp - proj.damage }
+          updatedEnemies[i] = applyDamageToEnemy(enemy, proj.damage)
           allParticles.push(...spawnExplosionParticles(enemy.pos, 6, '#ff4444'))
         } else {
           allParticles.push(...spawnExplosionParticles(enemy.pos, 3, '#4477aa'))

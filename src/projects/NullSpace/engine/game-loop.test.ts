@@ -30,7 +30,7 @@ import {
 import { UpgradeId } from './upgrade-ids'
 import { isUpgradeWave } from './upgrades'
 import { BOSS_KINDS } from './bosses/index'
-import { ENEMY_STATS, POWER_DEFAULTS, SECTOR, WAVES_PER_LEVEL } from '../data'
+import { ENEMY_STATS, POWER_DEFAULTS, SECTOR, WARP, WAVES_PER_LEVEL } from '../data'
 import { TELEKINESIS, SOLAR_FLARE } from './abilities/ability-data'
 
 beforeEach(() => {
@@ -284,6 +284,26 @@ describe('advanceWarp', () => {
     expect(state).toBe(playing)
     expect(state.warpTimer).toBe(5)
     expect(landed).toBe(false)
+  })
+
+  it('flies the ship toward the portal each frame', () => {
+    const s = warpingState(WARP.maxDuration)
+    const before = Math.hypot(s.portalPos.x - s.ship.pos.x, s.portalPos.y - s.ship.pos.y)
+    const { state } = advanceWarp(s, 0.1)
+    const after = Math.hypot(
+      state.portalPos.x - state.ship.pos.x,
+      state.portalPos.y - state.ship.pos.y
+    )
+    expect(after).toBeLessThan(before)
+  })
+
+  it('completes the warp once the ship reaches the portal', () => {
+    const s = warpingState(WARP.maxDuration)
+    // Park the ship right on the portal → the cutscene lands this frame.
+    const atPortal = { ...s, ship: { ...s.ship, pos: { ...s.portalPos } } }
+    const { state, landed } = advanceWarp(atPortal, 0.016)
+    expect(landed).toBe(true)
+    expect(state.phase).toBe(GamePhase.upgradeScreen)
   })
 })
 

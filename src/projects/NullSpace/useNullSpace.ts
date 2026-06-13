@@ -590,7 +590,9 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
         cameraRef.current,
         gameStateRef.current.ship.pos,
         dt,
-        gameStateRef.current.worldSize
+        gameStateRef.current.worldSize,
+        // Let the camera follow the ship past the world edge during the warp.
+        gameStateRef.current.phase !== GamePhase.warping
       )
 
       if (spritesRef.current) {
