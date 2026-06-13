@@ -1,7 +1,7 @@
 import { GamePhase } from '../../engine/types'
 import type { GameUIState } from '../../useNullSpace'
 import styles from './GameHUD.module.scss'
-import { LevelProgress } from './LevelProgress'
+import { SectorProgress } from './SectorProgress'
 import { TopBar } from './TopBar'
 import { BossHpBar } from './BossHpBar'
 import { SpaceMetalRail } from './SpaceMetalRail'
@@ -31,7 +31,7 @@ export function GameHUD({
 
   return (
     <div className={styles.hud}>
-      <LevelProgress uiState={uiState} dimmed={uiState.boss !== null} />
+      <SectorProgress uiState={uiState} dimmed={uiState.boss !== null} />
       <BossHpBar boss={uiState.boss} />
       <TopBar
         uiState={uiState}

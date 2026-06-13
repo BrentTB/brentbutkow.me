@@ -56,7 +56,7 @@ export function UpgradeScreen({
 
   return (
     <div className={styles.upgradeLayout}>
-      <h2 className={sharedStyles.title}>Level {uiState.level} Complete</h2>
+      <h2 className={sharedStyles.title}>Sector {uiState.level} Complete</h2>
       <p className={styles.currencyDisplay}>
         {CURRENCY_NAME}: <span className={styles.stardustValue}>✦ {uiState.currency}</span>
         {' · '}

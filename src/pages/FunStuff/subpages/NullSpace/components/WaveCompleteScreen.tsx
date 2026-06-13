@@ -25,7 +25,7 @@ export function WaveCompleteScreen({ wave, level, score, onNextWave }: WaveCompl
       <h2 className={sharedStyles.title}>
         Wave {waveInLevel}/{WAVES_PER_LEVEL} Complete
       </h2>
-      <p className={sharedStyles.stat}>Level {level}</p>
+      <p className={sharedStyles.stat}>Sector {level}</p>
       <p className={sharedStyles.stat}>Score: {score}</p>
       <button className={sharedStyles.primaryBtn} onClick={onNextWave}>
         Next Wave

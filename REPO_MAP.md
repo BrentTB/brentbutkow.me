@@ -136,8 +136,8 @@ src/pages/FunStuff/subpages/NullSpace/components/GameHUD/
   Abilities.tsx                              Abilities
   BossHpBar.tsx                              BossHpBar
   GameHUD.tsx                                GameHUD
-  LevelProgress.tsx                          LevelProgress
   RechargeRing.tsx                           RechargeRing
+  SectorProgress.tsx                         SectorProgress
   SpaceMetalRail.tsx                         SpaceMetalRail
   TopBar.tsx                                 TopBar
 
@@ -175,7 +175,7 @@ src/pages/FunStuff/subpages/NullSpace/components/
   WaveCompleteScreen.tsx                     WaveCompleteScreen
 
 src/pages/FunStuff/subpages/NullSpace/
-  data.ts                                    GAME_NAME, WORLD_SIZE, SHIELD_COOLDOWN, SLINGSHOT, POWER_DEFAULTS, WEAPON_ORDER, ENEMY_STATS, CURRENCY_DROPS, CURRENCY_NAME, POWER_ORB, SINGULARITY_SHARD_NAME, SHARDS_PER_BOSS, SINGULARITY_SHARD, SPACE_METAL, WAVES_PER_LEVEL, BOSS_LEVEL_INTERVAL, BOSS_WAVE_ENEMY_MULTIPLIER, SPAWN_DELAY, SPAWN_DISTANCE, SWARM_SPAWN_SPREAD, PROJECTILE_SPEED, PROJECTILE_LIFETIME, PROJECTILE_RADIUS, PARTICLE_DEFAULTS, ChangelogEntry, CHANGELOG, GAME_VERSION
+  data.ts                                    GAME_NAME, WORLD_SIZE, SHIELD_COOLDOWN, SLINGSHOT, POWER_DEFAULTS, WEAPON_ORDER, ENEMY_STATS, CURRENCY_DROPS, CURRENCY_NAME, POWER_ORB, SINGULARITY_SHARD_NAME, SHARDS_PER_BOSS, SINGULARITY_SHARD, SPACE_METAL, WAVES_PER_LEVEL, BOSS_LEVEL_INTERVAL, BOSS_WAVE_ENEMY_MULTIPLIER, SPAWN_DELAY, SPAWN_DISTANCE, SWARM_SPAWN_SPREAD, FORWARD_DIR, SECTOR, WARP_DURATION, SPAWN_CONE, HAZARD, PORTAL, PROJECTILE_SPEED, PROJECTILE_LIFETIME, PROJECTILE_RADIUS, PARTICLE_DEFAULTS, ChangelogEntry, CHANGELOG, GAME_VERSION
 
 src/pages/FunStuff/subpages/NullSpace/engine/abilities/
   ability-data.ts                            METEORITE_STRIKE, METEOR_STRIKE, COMET_SHOWER, METEOR_SHOWER, BLACK_HOLE, ROCKET, SHIELD, FORCE_FIELD, SUN, SUPERNOVA, HELPER, HELPER_FACTORY, TELEKINESIS, SOLAR_FLARE, FIREWORKS, EVENT_HORIZON, SOLAR_PLAGUE, SINGULARITY
@@ -225,16 +225,17 @@ src/pages/FunStuff/subpages/NullSpace/engine/entities/
   ally.ts                                    updateAllies
   enemy.ts                                   findNearestTarget, updateEnemyMovement, updateEnemyShooting
   entity-creator.ts                          uid, createShip, createEnemy, createProjectile, createAlly, createHelperFactory, createParticle, spawnExplosionParticles, updateParticles, createAbilities
-  ship.ts                                    applySlingshot, tickSlingHeat, tickFling, applyDamageToShip, tickEscapeMode, updateShipPatrol, updateShipAttack
+  ship.ts                                    applySlingshot, tickSlingHeat, tickFling, applyDamageToShip, tickEscapeMode, updateShipDrift, updateShipAttack
 
 src/pages/FunStuff/subpages/NullSpace/engine/
-  game-loop.ts                               createInitialState, moveToShipSelection, startGame, rollLevelUpWeaponOffers, startNextWave, applyUpgradeToState, equipShipWeapon, applyUltimatePurchaseToState, devUnlockWeapon, devGrantUltimate, finishUpgradeScreen, updateGameState
+  game-loop.ts                               createInitialState, moveToShipSelection, startGame, rollLevelUpWeaponOffers, resetForSector, startNextWave, applyUpgradeToState, equipShipWeapon, applyUltimatePurchaseToState, devUnlockWeapon, devGrantUltimate, beginWarp, completeWarp, advanceWarp, finishUpgradeScreen, updateGameState
 
 src/pages/FunStuff/subpages/NullSpace/engine/math/
   aoe.ts                                     AoeResult, damageEnemiesInRadiusFlat, damageEnemiesInRadius
   collision.ts                               checkCollision, distance, segmentIntersectsCircle
   homing.ts                                  homeTowardTarget
   random.ts                                  rng
+  steering.ts                                driftWithWeave, softTether1D
   utils.ts                                   clamp, clampToWorld
   vec.ts                                     ringPositions, unitToward
 
@@ -262,10 +263,11 @@ src/pages/FunStuff/subpages/NullSpace/engine/systems/
   economy.ts                                 computeCurrencyFromKills
   effect-definition.ts                       EffectTickContext, EffectTickResult, EffectTickFn, EffectRenderFn, EffectDefinition, passThroughTick
   effects.ts                                 EFFECT_DEFINITIONS, updateActiveEffects
+  hazards.ts                                 generateHazardLane, updateHazards
   spawner.ts                                 spawnPositionNearShip, processSpawnQueue
 
 src/pages/FunStuff/subpages/NullSpace/engine/
-  types.ts                                   Vec2, Entity, ShipKind, ShipWeaponKind, EscapeModePhase, EscapeModeState, Ship, EnemyKind, MovementBehavior, DeathBehavior, BurningState, Enemy, ProjectileOwner, Projectile, AbilityKind, Ability, EffectKind, EffectBase, MeteorStrikeEffect, BlackHoleEffect, RocketEffect, ShieldEffect, SunEffect, NuclearWasteEffect, SupernovaEffect, ForceFieldEffect, EventHorizonEffect, ActiveEffect, CollectibleKind, Collectible, Ally, Particle, GamePhase, UpgradeCategory, UpgradeTier, UpgradeDefinition, PlayerUpgrades, BossSelection, GameState, HoldRuntimeState, PlayerInput
+  types.ts                                   Vec2, Entity, ShipKind, ShipWeaponKind, EscapeModePhase, EscapeModeState, Ship, EnemyKind, MovementBehavior, DeathBehavior, BurningState, Enemy, ProjectileOwner, Projectile, AbilityKind, Ability, EffectKind, EffectBase, MeteorStrikeEffect, BlackHoleEffect, RocketEffect, ShieldEffect, SunEffect, NuclearWasteEffect, SupernovaEffect, ForceFieldEffect, EventHorizonEffect, ActiveEffect, CollectibleKind, Collectible, HazardKind, Hazard, Ally, Particle, GamePhase, UpgradeCategory, UpgradeTier, UpgradeDefinition, PlayerUpgrades, BossSelection, GameState, HoldRuntimeState, PlayerInput
   ultimates.ts                               COEXIST_ULTIMATES, ultimateShardCost, canPurchaseUltimate, purchaseUltimate, isBaseReplacedByUltimate
   upgrade-ids.ts                             UpgradeId
   upgrades.ts                                SHIP_AND_POWER_UPGRADE_IDS, UNLOCK_UPGRADE_IDS, SLINGSHOT_UPGRADE_IDS, UPGRADE_DEFINITIONS, getWeaponModifierUpgrades, isWeaponFullyMaxed, isShipWeaponFullyMaxed, UPGRADE_CATEGORY_LABELS, createInitialUpgrades, canPurchaseUpgrade, purchaseUpgrade, applyUpgradesToAbilities, syncUltimateAbilities, applyUpgradesToShip, applyUpgradesToPowerRegen, getStardustMultiplier, getSpaceMetalDropMultiplier, getPowerOrbMultiplier, getLevel, isUpgradeWave
@@ -273,7 +275,7 @@ src/pages/FunStuff/subpages/NullSpace/engine/
 src/pages/FunStuff/subpages/NullSpace/engine/world/
   persistence.ts                             loadHighScore, saveHighScore, ChangelogCategory, ChangelogFilters, DEFAULT_CHANGELOG_FILTERS, CHANGELOG_CATEGORIES, loadChangelogFilters, saveChangelogFilters
   time.ts                                    MAX_DT, GameTime, createGameTime, tickGameTime, pauseGameTime, resumeGameTime, setGameSpeed, resetGameClock
-  waves.ts                                   isBossWave, getWave, getWaveDelay
+  waves.ts                                   isBossWave, getWave, getWaveDelay, sectorProgress
 
 src/pages/FunStuff/subpages/NullSpace/
   icon-names.ts                              IconName
@@ -282,12 +284,17 @@ src/pages/FunStuff/subpages/NullSpace/input/
   sling-gesture.ts                           SLING_MAX_DRAG_PX, SlingGesture, tryGrabShip, moveGesture, releaseGesture
 
 src/pages/FunStuff/subpages/NullSpace/renderer/
-  camera.ts                                  REFERENCE_VIEW, DEFAULT_GAME_ZOOM, Camera, createCamera, computeZoom, HUD_SCALE_MIN, HUD_SCALE_MAX, computeHudScale, isWithinView, updateCamera, centerCameraOn, worldToScreen, screenToWorld
+  camera.ts                                  REFERENCE_VIEW, DEFAULT_GAME_ZOOM, Camera, createCamera, computeZoom, HUD_SCALE_MIN, HUD_SCALE_MAX, computeHudScale, isWithinView, clampCameraAxis, updateCamera, centerCameraOn, worldToScreen, screenToWorld
+  corridor.ts                                renderCorridor
+  draw.ts                                    fillRadialGlow
+  hazard-lanes.ts                            renderHazardLanes
+  portal.ts                                  renderPortal
   renderer.ts                                SHIP_SPRITE_KEY, renderFrame
   sling-aim.ts                               drawSlingAim
   sprite-cache.ts                            SpriteCache, buildSpriteCache, getSpriteSize
   sprites.ts                                 SpriteData, SHIP_SPRITE, DRONE_SPRITE, _OLD_DRONE_SPRITE, TANK_SPRITE, PROJECTILE_SPRITE, METEOR_SPRITE, METEORITE_SPRITE, SHOOTER_SPRITE, ENEMY_PROJECTILE_SPRITE, SWARM_SPRITE, _NEW_SWARM_SPRITE, BOMBER_SPRITE, ROCKET_SPRITE, INTERCEPTOR_SPRITE, DREADNOUGHT_SPRITE, CARRIER_SPRITE, ALLY_SPRITE, MISSILE_SPRITE, RICOCHET_SPRITE, NUKE_SPRITE, DREADNOUGHT_BOSS_SPRITE, SHIELD_GENERATOR_SPRITE, VOID_WORM_BOSS_SPRITE, WORM_SEGMENT_SPRITE, PHASE_SHIFTER_BOSS_SPRITE, SpriteKey, SPRITE_MAP
   starfield.ts                               Star, generateStarfield, renderStarfield
+  warp.ts                                    renderWarpTransition
 
 src/pages/FunStuff/subpages/NullSpace/
   useNullSpace.ts                            GameUIState, getUnlockedAbilitiesInOrder, abilityKindForHotkey, selectionAfterUltimatePurchase, useNullSpace

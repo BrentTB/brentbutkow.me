@@ -56,3 +56,21 @@ export function getWaveDelay(waveNumber: number): number {
   if (waveNumber <= 1) return 0
   return 1
 }
+
+// Kill-based progress through the current sector (0..1): each cleared wave fills
+// one segment, advancing within a wave as its enemies die. Shared by the HUD
+// sector bar and the in-world portal glow so both read the same value.
+export function sectorProgress(opts: {
+  wave: number
+  spawnedInWave: number
+  enemiesAlive: number
+  totalWaveEnemies: number
+}): number {
+  if (opts.wave <= 0) return 0
+  const waveInSector = (opts.wave - 1) % WAVES_PER_LEVEL
+  const cleared =
+    opts.totalWaveEnemies > 0
+      ? Math.max(0, Math.min(1, (opts.spawnedInWave - opts.enemiesAlive) / opts.totalWaveEnemies))
+      : 0
+  return (waveInSector + cleared) / WAVES_PER_LEVEL
+}

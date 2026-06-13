@@ -1,6 +1,7 @@
-import { SHIELD_COOLDOWN, SLINGSHOT } from '../../data'
+import { SECTOR, SHIELD_COOLDOWN, SLINGSHOT } from '../../data'
 import { canEnemyTakeDamage } from '../bosses/index'
 import { distance } from '../math/collision'
+import { driftWithWeave, softTether1D } from '../math/steering'
 import { clamp, clampToWorld } from '../math/utils'
 import { rng } from '../math/random'
 import { createParticle } from './entity-creator'
@@ -11,10 +12,12 @@ import type { Enemy, Particle, PlayerUpgrades, Projectile, Ship, Vec2 } from '..
 
 // --- Slingshot ---
 // Per-second exponential decay of the coast velocity — how long the ship drifts
-// after release before patrol resumes. Not upgradable (it's feel, not power).
+// after release before auto-movement resumes. Not upgradable (it's feel, not power).
 const SLING_DECAY = 1.7
-// Below this coast speed the fling is spent and normal patrol takes over.
+// Below this coast speed the fling is spent and normal auto-movement takes over.
 const SLING_MIN_SPEED = 60
+// Particles spat out where a coasting fling bounces off a corridor wall.
+const SLING_BOUNCE_PARTICLES = 8
 
 // Converts a release flick (unit dir + 0..1 charge) into a coast velocity using
 // the ship's upgraded power, accuracy, and cooldown. Scatter widens with heat
@@ -52,33 +55,75 @@ export function tickSlingHeat(ship: Ship, dt: number): Ship {
 }
 
 // Advances the slingshot coast: moves the ship by its fling velocity and decays
-// it. Returns `active: true` while the coast is meaningful (patrol is suppressed
-// that frame); once it fades the velocity is zeroed and patrol resumes.
+// it. A coast that reaches a corridor wall BOUNCES — the perpendicular velocity is
+// reflected (with an impact spark) rather than pinned to the edge, which would
+// otherwise stall the ship against the wall until the velocity decayed. Returns
+// `active: true` while the coast is meaningful; once it fades the velocity is
+// zeroed and normal auto-movement resumes.
 export function tickFling(
   ship: Ship,
   dt: number,
   worldSize: Vec2
-): { ship: Ship; active: boolean } {
+): { ship: Ship; active: boolean; particles: Particle[] } {
   const speed = Math.hypot(ship.flingVel.x, ship.flingVel.y)
   if (speed < SLING_MIN_SPEED) {
-    if (ship.flingVel.x === 0 && ship.flingVel.y === 0) return { ship, active: false }
-    return { ship: { ...ship, flingVel: { x: 0, y: 0 } }, active: false }
+    if (ship.flingVel.x === 0 && ship.flingVel.y === 0)
+      return { ship, active: false, particles: [] }
+    return { ship: { ...ship, flingVel: { x: 0, y: 0 } }, active: false, particles: [] }
   }
-  const pos = clampToWorld(
-    { x: ship.pos.x + ship.flingVel.x * dt, y: ship.pos.y + ship.flingVel.y * dt },
-    worldSize,
-    ship.radius
-  )
+
+  const r = ship.radius
+  let x = ship.pos.x + ship.flingVel.x * dt
+  let y = ship.pos.y + ship.flingVel.y * dt
+  let vx = ship.flingVel.x
+  let vy = ship.flingVel.y
+  let hit: Vec2 | null = null
+
+  if (x < r) {
+    x = r
+    vx = Math.abs(vx)
+    hit = { x: 0, y }
+  } else if (x > worldSize.x - r) {
+    x = worldSize.x - r
+    vx = -Math.abs(vx)
+    hit = { x: worldSize.x, y }
+  }
+  if (y < r) {
+    y = r
+    vy = Math.abs(vy)
+    hit = { x, y: 0 }
+  } else if (y > worldSize.y - r) {
+    y = worldSize.y - r
+    vy = -Math.abs(vy)
+    hit = { x, y: worldSize.y }
+  }
+
+  const particles: Particle[] = []
+  if (hit) {
+    for (let i = 0; i < SLING_BOUNCE_PARTICLES; i++) {
+      particles.push(
+        createParticle(
+          hit,
+          { x: rng.range(-70, 70), y: rng.range(-70, 70) },
+          '#9bc8ff',
+          0.5,
+          rng.range(2, 4)
+        )
+      )
+    }
+  }
+
   const decay = Math.exp(-SLING_DECAY * dt)
   return {
     ship: {
       ...ship,
-      pos,
-      vel: { ...ship.flingVel },
-      flingVel: { x: ship.flingVel.x * decay, y: ship.flingVel.y * decay },
-      lastHeading: { x: ship.flingVel.x / speed, y: ship.flingVel.y / speed },
+      pos: { x, y },
+      vel: { x: vx, y: vy },
+      flingVel: { x: vx * decay, y: vy * decay },
+      lastHeading: { x: vx / speed, y: vy / speed },
     },
     active: true,
+    particles,
   }
 }
 
@@ -184,25 +229,90 @@ export function tickEscapeMode(
   }
 }
 
-export function updateShipPatrol(ship: Ship, dt: number, worldSize: Vec2): Ship {
-  const angle = ship.patrolAngle + dt * 0.4
-  const cx = worldSize.x / 2
-  const cy = worldSize.y / 2
-  const orbitX = 200
-  const orbitY = 120
+// Drives the ship's auto-movement each tick. With an enemy around it HUNTS —
+// closes to attack range then strafes while the guns work. With the lane clear it
+// drifts gently forward (up the corridor). Softly tethered inside the walls; no
+// fixed centre to snap back to, so a spent slingshot resumes from where it landed.
+export function updateShipDrift(
+  ship: Ship,
+  dt: number,
+  ctx: {
+    worldSize: Vec2
+    forwardDir: Vec2
+    target: Vec2 | null
+    corridorCenterX: number
+    corridorHalfWidth: number
+  }
+): Ship {
+  const { worldSize, forwardDir, target, corridorCenterX, corridorHalfWidth } = ctx
 
-  const targetX = cx + Math.sin(angle) * orbitX
-  const targetY = cy + Math.sin(angle * 2) * orbitY
-
-  const dx = targetX - ship.pos.x
-  const dy = targetY - ship.pos.y
-  const dist = Math.sqrt(dx * dx + dy * dy)
+  const weavePhase = ship.weavePhase + dt * SECTOR.weaveFrequency
   // Overheating the slingshot saps engine power — the ship limps until it cools.
-  const maxSpeed = ship.slingOverheated ? ship.speed * SLINGSHOT.overheatSlowMult : ship.speed
-  const speed = Math.min(maxSpeed, dist / dt)
+  const overheatMult = ship.slingOverheated ? SLINGSHOT.overheatSlowMult : 1
+  const driftMomentum = Math.max(0, ship.driftMomentum - dt)
 
-  const velX = dist > 0.1 ? (dx / dist) * speed : 0
-  const velY = dist > 0.1 ? (dy / dist) * speed : 0
+  let velX: number
+  let velY: number
+
+  if (target) {
+    // Hunt by orbiting: a radial term holds the ship near `orbitRange` (closing in
+    // when far, easing off when too close) and a tangential term circles the enemy,
+    // so it engages from a ring instead of beelining or ramming. Steering toward
+    // the desired velocity (rather than snapping to it) keeps the path flowy.
+    const dx = target.x - ship.pos.x
+    const dy = target.y - ship.pos.y
+    const dist = Math.hypot(dx, dy) || 1
+    const dirX = dx / dist
+    const dirY = dy / dist
+    const speed = ship.speed * overheatMult
+    const orbitRange = ship.attackRange * SECTOR.orbitRangeFraction
+    const radial = clamp(dist - orbitRange, -speed, speed)
+    const tangent = speed * SECTOR.orbitSpeedFraction
+    let desiredX = dirX * radial - dirY * tangent
+    let desiredY = dirY * radial + dirX * tangent
+    const dmag = Math.hypot(desiredX, desiredY)
+    if (dmag > speed) {
+      desiredX = (desiredX / dmag) * speed
+      desiredY = (desiredY / dmag) * speed
+    }
+    const steer = 1 - Math.exp(-SECTOR.steerRate * dt)
+    velX = ship.vel.x + (desiredX - ship.vel.x) * steer
+    velY = ship.vel.y + (desiredY - ship.vel.y) * steer
+  } else {
+    // Lane clear — gentle forward drift with a weave. Momentum keeps a spent
+    // fling coasting its way instead of snapping back toward forward.
+    let fwd = forwardDir
+    if (ship.driftMomentum > 0) {
+      const t = 1 - ship.driftMomentum / SECTOR.momentumWindow
+      const bx = ship.lastHeading.x + (forwardDir.x - ship.lastHeading.x) * t
+      const by = ship.lastHeading.y + (forwardDir.y - ship.lastHeading.y) * t
+      const mag = Math.hypot(bx, by)
+      if (mag > 0.0001) fwd = { x: bx / mag, y: by / mag }
+    }
+    const drift = driftWithWeave(
+      ship.pos,
+      fwd,
+      SECTOR.driftSpeed * overheatMult,
+      { amplitude: SECTOR.weaveAmplitude, phase: weavePhase },
+      dt
+    )
+    velX = drift.vel.x
+    velY = drift.vel.y
+  }
+
+  // Soft lateral tether — a hard sideways fling curves back instead of hitting a wall.
+  velX += softTether1D(
+    ship.pos.x,
+    corridorCenterX - corridorHalfWidth,
+    corridorCenterX + corridorHalfWidth,
+    SECTOR.lateralTetherStrength
+  )
+
+  const pos = clampToWorld(
+    { x: ship.pos.x + velX * dt, y: ship.pos.y + velY * dt },
+    worldSize,
+    ship.radius
+  )
 
   const speedMag = Math.hypot(velX, velY)
   const lastHeading =
@@ -210,9 +320,10 @@ export function updateShipPatrol(ship: Ship, dt: number, worldSize: Vec2): Ship 
 
   return {
     ...ship,
-    pos: { x: ship.pos.x + velX * dt, y: ship.pos.y + velY * dt },
+    pos,
     vel: { x: velX, y: velY },
-    patrolAngle: angle,
+    weavePhase,
+    driftMomentum,
     lastHeading,
   }
 }

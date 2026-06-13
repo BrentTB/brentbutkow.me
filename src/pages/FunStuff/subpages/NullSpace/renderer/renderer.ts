@@ -7,7 +7,7 @@ import type {
   Particle,
   Projectile,
 } from '../engine/types'
-import { POWER_ORB, SINGULARITY_SHARD, SPACE_METAL } from '../data'
+import { POWER_ORB, SINGULARITY_SHARD, SPACE_METAL, WARP_DURATION } from '../data'
 import { EFFECT_DEFINITIONS } from '../engine/systems/effects'
 import { ABILITY_LIST } from '../engine/abilities'
 import { getBossDefinition } from '../engine/bosses'
@@ -18,6 +18,10 @@ import { getSpriteSize } from './sprite-cache'
 import { SpriteKey } from './sprites'
 import type { Star } from './starfield'
 import { renderStarfield } from './starfield'
+import { renderCorridor } from './corridor'
+import { renderPortal } from './portal'
+import { renderHazardLanes } from './hazard-lanes'
+import { renderWarpTransition } from './warp'
 
 const ENEMY_SPRITE: Record<EnemyKind, SpriteKey> = {
   [EnemyKind.drone]: SpriteKey.drone,
@@ -60,7 +64,15 @@ export function renderFrame(
   ctx.save()
   ctx.scale(camera.zoom, camera.zoom)
 
+  // No ship or corridor exists before the player has chosen a ship.
+  const shipInWorld = state.phase !== GamePhase.menu && state.phase !== GamePhase.shipSelection
+
   renderStarfield(ctx, stars, camera)
+  if (shipInWorld) {
+    renderCorridor(ctx, state, camera)
+    renderHazardLanes(ctx, state, camera)
+    renderPortal(ctx, state, camera)
+  }
   renderActiveEffects(ctx, state.activeEffects, camera, sprites, 'renderBack')
   renderBossOverlays(ctx, state, camera)
   renderHoldOverlays(ctx, state, camera, 'renderBack')
@@ -69,14 +81,17 @@ export function renderFrame(
   renderEnemies(ctx, state, camera, sprites)
   renderAllies(ctx, state.allies, camera, sprites)
   renderProjectiles(ctx, state, camera, sprites)
-  // No ship is in the world before the player has chosen one.
-  const shipInWorld = state.phase !== GamePhase.menu && state.phase !== GamePhase.shipSelection
   if (shipInWorld) renderShip(ctx, state, camera, sprites)
   renderActiveEffects(ctx, state.activeEffects, camera, sprites, 'renderFront')
   renderHoldOverlays(ctx, state, camera, 'renderFront')
   if (shipInWorld) renderShipHealthBar(ctx, state, camera)
 
   ctx.restore()
+
+  // Warp flash lives in screen space, over the whole canvas.
+  if (state.phase === GamePhase.warping) {
+    renderWarpTransition(ctx, camera, 1 - state.warpTimer / WARP_DURATION)
+  }
 }
 
 // Generic dispatch: every active effect draws via the renderBack/renderFront

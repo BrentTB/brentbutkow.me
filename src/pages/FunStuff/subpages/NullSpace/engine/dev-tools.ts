@@ -1,5 +1,10 @@
 import { BOSS_LEVEL_INTERVAL, WAVES_PER_LEVEL } from '../data'
-import { devGrantUltimate, devUnlockWeapon, rollLevelUpWeaponOffers } from './game-loop'
+import {
+  devGrantUltimate,
+  devUnlockWeapon,
+  resetForSector,
+  rollLevelUpWeaponOffers,
+} from './game-loop'
 import { advanceBossSelection } from './bosses/boss-selection'
 import { createShip } from './entities/entity-creator'
 import { getLevel } from './upgrades'
@@ -41,7 +46,13 @@ export function devPatchState(state: GameState, patch: DevPatch): GameState {
 
   if (patch.shipKind !== undefined && patch.shipKind !== state.shipKind) {
     const fresh = createShip(patch.shipKind, state.worldSize)
-    ship = { ...fresh, pos: ship.pos, vel: ship.vel, patrolAngle: ship.patrolAngle }
+    ship = {
+      ...fresh,
+      pos: ship.pos,
+      vel: ship.vel,
+      driftMomentum: ship.driftMomentum,
+      weavePhase: ship.weavePhase,
+    }
     shipKind = patch.shipKind
   }
   if (patch.shipMaxHp !== undefined) ship = { ...ship, maxHp: patch.shipMaxHp }
@@ -74,28 +85,31 @@ export function devPatchState(state: GameState, patch: DevPatch): GameState {
   }
   if (patch.unlockWeapon !== undefined) next = devUnlockWeapon(next, patch.unlockWeapon)
   if (patch.grantUltimate !== undefined) next = devGrantUltimate(next, patch.grantUltimate)
-  return next
+  // A wave jump crosses into a (possibly different) sector — re-lay the corridor.
+  return patch.wave !== undefined ? resetForSector(next) : next
 }
 
-// Jump straight to the next upgrade screen, clearing the field.
+// Jump to the between-sector shop as it appears in play: warped into the next
+// sector's fresh corridor with the field cleared. Continue then spawns that wave.
 export function devJumpToUpgrades(state: GameState): GameState {
   const base = state.wave > 0 ? state.wave : 1
-  const nextUpgradeWave = Math.ceil(base / WAVES_PER_LEVEL) * WAVES_PER_LEVEL
-  return {
+  const boundary = Math.ceil(base / WAVES_PER_LEVEL) * WAVES_PER_LEVEL
+  const upcomingWave = boundary + 1
+  return resetForSector({
     ...state,
     phase: GamePhase.upgradeScreen,
-    wave: nextUpgradeWave,
-    level: getLevel(nextUpgradeWave),
+    wave: upcomingWave,
+    level: getLevel(upcomingWave),
     enemies: [],
     projectiles: [],
     activeEffects: [],
     spawnQueue: [],
     spawnTimer: 0,
-    spawnedInWave: 1,
-    totalWaveEnemies: 1,
+    spawnedInWave: 0,
+    totalWaveEnemies: 0,
     waveTimer: 0,
     levelUpWeaponOffers: rollLevelUpWeaponOffers(state.abilities),
-  }
+  })
 }
 
 // Jump to the next boss wave after the current one. Spawns only the boss (no
@@ -104,7 +118,7 @@ export function devJumpToUpgrades(state: GameState): GameState {
 export function devJumpToBoss(state: GameState): GameState {
   const bossInterval = WAVES_PER_LEVEL * BOSS_LEVEL_INTERVAL
   const bossWave = Math.floor(state.wave / bossInterval) * bossInterval + bossInterval
-  return {
+  return resetForSector({
     ...state,
     phase: GamePhase.playing,
     wave: bossWave,
@@ -119,5 +133,5 @@ export function devJumpToBoss(state: GameState): GameState {
     spawnedInWave: 0,
     waveTimer: 0,
     bossSelection: advanceBossSelection(state.bossSelection),
-  }
+  })
 }

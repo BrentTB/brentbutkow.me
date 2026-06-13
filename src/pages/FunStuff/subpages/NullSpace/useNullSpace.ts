@@ -9,6 +9,7 @@ import {
   applyUpgradeToState,
   applyUltimatePurchaseToState,
   finishUpgradeScreen,
+  advanceWarp,
 } from './engine/game-loop'
 import { devJumpToBoss, devJumpToUpgrades, devPatchState, type DevPatch } from './engine/dev-tools'
 import { isBaseReplacedByUltimate } from './engine/ultimates'
@@ -57,6 +58,9 @@ import { WORLD_SIZE } from './data'
 // Build-time literal, same as in NullSpace.tsx
 const DEV_MODE = import.meta.env.VITE_NULL_SPACE_DEV_MODE === 'true'
 
+// Background star count — reseeded to the corridor dimensions on each sector entry.
+const STAR_COUNT = 250
+
 // Shared no-op stub returned in place of the dev handlers when DEV_MODE is
 // off. A single zero-arg arrow satisfies all three slots because TypeScript
 // permits assigning functions with fewer parameters where more are expected.
@@ -89,6 +93,7 @@ export type GameUIState = {
   selectedAbility: GameState['abilities'][number]['kind']
   spawnedInWave: number
   totalWaveEnemies: number
+  enemiesAlive: number
   levelUpWeaponOffers: GameState['levelUpWeaponOffers']
   unlockedWeapons: GameState['unlockedWeapons']
   equippedWeapons: GameState['ship']['equippedWeapons']
@@ -166,6 +171,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     selectedAbility: AbilityKind.meteorite,
     spawnedInWave: 0,
     totalWaveEnemies: 0,
+    enemiesAlive: 0,
     levelUpWeaponOffers: [],
     unlockedWeapons: [ShipWeaponKind.bullet],
     equippedWeapons: [ShipWeaponKind.bullet],
@@ -225,6 +231,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       selectedAbility: selectedAbilityRef.current,
       spawnedInWave: state.spawnedInWave,
       totalWaveEnemies: state.totalWaveEnemies,
+      enemiesAlive: state.enemies.length,
       levelUpWeaponOffers: state.levelUpWeaponOffers,
       unlockedWeapons: state.unlockedWeapons,
       equippedWeapons: state.ship.equippedWeapons,
@@ -245,6 +252,21 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     })
   }, [])
 
+  // Snap the camera onto the ship and reseed the starfield to the active corridor
+  // dimensions — called whenever a fresh corridor is laid out (game start, warp).
+  const enterCorridor = useCallback(() => {
+    cameraRef.current = centerCameraOn(
+      cameraRef.current,
+      gameStateRef.current.ship.pos,
+      gameStateRef.current.worldSize
+    )
+    starsRef.current = generateStarfield(
+      gameStateRef.current.worldSize.x,
+      gameStateRef.current.worldSize.y,
+      STAR_COUNT
+    )
+  }, [])
+
   const handleStart = useCallback(() => {
     gameStateRef.current = moveToShipSelection(gameStateRef.current)
     syncUI(gameStateRef.current)
@@ -256,14 +278,10 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       gameStateRef.current = startNextWave(gameStateRef.current)
       gameTimeRef.current = resetGameClock(gameTimeRef.current)
       selectedAbilityRef.current = AbilityKind.meteorite
-      cameraRef.current = centerCameraOn(
-        cameraRef.current,
-        gameStateRef.current.ship.pos,
-        gameStateRef.current.worldSize
-      )
+      enterCorridor()
       syncUI(gameStateRef.current)
     },
-    [syncUI]
+    [syncUI, enterCorridor]
   )
 
   const handleNextWave = useCallback(() => {
@@ -313,11 +331,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       gameStateRef.current = startNextWave(gameStateRef.current)
       gameTimeRef.current = resetGameClock(gameTimeRef.current)
       selectedAbilityRef.current = AbilityKind.meteorite
-      cameraRef.current = centerCameraOn(
-        cameraRef.current,
-        gameStateRef.current.ship.pos,
-        gameStateRef.current.worldSize
-      )
+      enterCorridor()
       syncUI(gameStateRef.current)
     }
   }
@@ -395,7 +409,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     if (!ctx) return
 
     spritesRef.current = buildSpriteCache()
-    starsRef.current = generateStarfield(WORLD_SIZE.x, WORLD_SIZE.y, 250)
+    starsRef.current = generateStarfield(WORLD_SIZE.x, WORLD_SIZE.y, STAR_COUNT)
 
     const resize = () => {
       const parent = canvas.parentElement
@@ -567,6 +581,11 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       const prevPhase = gameStateRef.current.phase
       gameStateRef.current = updateGameState(gameStateRef.current, dt, input)
 
+      // Tick the warp animation; reseed the corridor when it lands.
+      const warp = advanceWarp(gameStateRef.current, dt)
+      gameStateRef.current = warp.state
+      if (warp.landed) enterCorridor()
+
       cameraRef.current = updateCamera(
         cameraRef.current,
         gameStateRef.current.ship.pos,
@@ -619,7 +638,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       window.removeEventListener('keydown', handleKeyDown)
       resizeObserver.disconnect()
     }
-  }, [canvasRef, syncUI, handlePause, handleResume, handleUseSpaceMetalAbility])
+  }, [canvasRef, syncUI, handlePause, handleResume, handleUseSpaceMetalAbility, enterCorridor])
 
   return {
     uiState,

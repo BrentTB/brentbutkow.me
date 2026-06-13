@@ -106,6 +106,20 @@ export function isWithinView(screen: Vec2, camera: Camera, margin: number): bool
   )
 }
 
+/**
+ * Clamps a camera top-left coordinate to the world on one axis. When the world
+ * extent is smaller than the viewport (e.g. a 1400-wide corridor on a wide
+ * desktop), the world is centered instead of pinned to the 0 edge.
+ */
+export function clampCameraAxis(
+  target: number,
+  worldExtent: number,
+  viewportExtent: number
+): number {
+  if (worldExtent <= viewportExtent) return (worldExtent - viewportExtent) / 2
+  return Math.max(0, Math.min(worldExtent - viewportExtent, target))
+}
+
 export function updateCamera(camera: Camera, target: Vec2, dt: number, worldSize: Vec2): Camera {
   const vw = viewportWorldWidth(camera)
   const vh = viewportWorldHeight(camera)
@@ -113,11 +127,8 @@ export function updateCamera(camera: Camera, target: Vec2, dt: number, worldSize
   const targetY = target.y - vh / 2
   const lerp = 1 - Math.pow(0.01, dt)
 
-  let x = camera.x + (targetX - camera.x) * lerp
-  let y = camera.y + (targetY - camera.y) * lerp
-
-  x = Math.max(0, Math.min(worldSize.x - vw, x))
-  y = Math.max(0, Math.min(worldSize.y - vh, y))
+  const x = clampCameraAxis(camera.x + (targetX - camera.x) * lerp, worldSize.x, vw)
+  const y = clampCameraAxis(camera.y + (targetY - camera.y) * lerp, worldSize.y, vh)
 
   return { ...camera, x, y }
 }
@@ -126,10 +137,8 @@ export function updateCamera(camera: Camera, target: Vec2, dt: number, worldSize
 export function centerCameraOn(camera: Camera, target: Vec2, worldSize: Vec2): Camera {
   const vw = viewportWorldWidth(camera)
   const vh = viewportWorldHeight(camera)
-  const targetX = target.x - vw / 2
-  const targetY = target.y - vh / 2
-  const x = Math.max(0, Math.min(worldSize.x - vw, targetX))
-  const y = Math.max(0, Math.min(worldSize.y - vh, targetY))
+  const x = clampCameraAxis(target.x - vw / 2, worldSize.x, vw)
+  const y = clampCameraAxis(target.y - vh / 2, worldSize.y, vh)
   return { ...camera, x, y }
 }
 
