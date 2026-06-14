@@ -81,6 +81,7 @@ import { advanceBossSelection, createBossSelection } from './bosses/boss-selecti
 import { updateBossAI } from './bosses/boss-ai'
 import { loadHighScore, saveHighScore } from './world/persistence'
 import { rng } from './math/random'
+import { toroidalDelta, wrapPosition } from './math/toroid'
 import { getShipWeaponForUnlockUpgrade, SHIP_WEAPON_LIST } from './ship'
 import { CollectibleKind, GamePhase, ShipKind, ShipWeaponKind } from './types'
 import type { AbilityKind, GameState, PlayerInput, Vec2 } from './types'
@@ -229,35 +230,26 @@ export function rollLevelUpWeaponOffers(
   return offers
 }
 
-// Lays out a fresh corridor for the sector `state.level` belongs to: resizes the
-// world to the corridor, drops the ship at the entry (bottom), places the portal
-// at the far end (top), and seeds a hazard lane on eligible (non-boss) sectors.
+// Resets the wrapping world for the sector `state.level` belongs to: drops the
+// ship at the centre and scatters a hazard field (clear of the spawn) on eligible
+// (non-boss) sectors. The world is a fixed-size torus, so there are no bounds to
+// lay out — the portal is positioned later, by beginWarp, when the sector clears.
 export function resetForSector(state: GameState): GameState {
-  const worldSize: Vec2 = { x: SECTOR.width, y: SECTOR.length }
-  const corridorCenterX = worldSize.x / 2
-  // Forward is up (-y): ship enters near the bottom, portal sits near the top.
-  const shipEntryY = worldSize.y - SECTOR.shipStartOffset
-  const portalY = SECTOR.portalInset
+  const worldSize: Vec2 = { ...WORLD_SIZE }
+  const center = { x: worldSize.x / 2, y: worldSize.y / 2 }
   const bossSector = state.level > 0 && state.level % BOSS_LEVEL_INTERVAL === 0
   const seedField = !bossSector && state.level % HAZARD.laneEveryWaves === 0
   return {
     ...state,
     worldSize,
     forwardDir: { ...FORWARD_DIR },
-    portalPos: { x: corridorCenterX, y: portalY },
+    portalPos: { ...center }, // placeholder — beginWarp positions the real portal
     warpTimer: 0,
     warpFlashTimer: 0,
-    hazards: seedField
-      ? generateHazardField({
-          corridorCenterX,
-          corridorHalfWidth: corridorCenterX - SECTOR.lateralMargin,
-          minY: portalY + HAZARD.forwardMargin,
-          maxY: shipEntryY - HAZARD.forwardMargin,
-        })
-      : [],
+    hazards: seedField ? generateHazardField(worldSize, center) : [],
     ship: {
       ...state.ship,
-      pos: { x: corridorCenterX, y: shipEntryY },
+      pos: { ...center },
       vel: { x: 0, y: 0 },
       flingVel: { x: 0, y: 0 },
       driftMomentum: 0,
@@ -269,7 +261,7 @@ export function resetForSector(state: GameState): GameState {
 }
 
 // Advances the wave/level counters; when crossing into a new sector (level change,
-// including game start 0→1) it lays out a fresh corridor with the ship at the entry.
+// including game start 0→1) it lays out a fresh sector with the ship at the world centre.
 // Does NOT spawn the wave — see beginWave.
 function advanceWave(state: GameState): GameState {
   const nextWave = state.wave + 1
@@ -440,10 +432,11 @@ export function beginWarp(state: GameState): GameState {
     else if (c.kind === CollectibleKind.singularityShard) singularityShard += c.value
     else power = Math.min(state.maxPower, power + c.value)
   }
-  const portalPos = {
+  // Portal spawns ahead of the ship (offscreen), wrapped into the torus.
+  const portalPos = wrapPosition({
     x: state.ship.pos.x + state.forwardDir.x * WARP.spawnAhead,
     y: state.ship.pos.y + state.forwardDir.y * WARP.spawnAhead,
-  }
+  })
   return {
     ...state,
     phase: GamePhase.warping,
@@ -464,7 +457,7 @@ export function beginWarp(state: GameState): GameState {
   }
 }
 
-// Ends the warp in the next sector's fresh corridor, then opens the shop. The
+// Ends the warp in the next sector, then opens the shop. The
 // wave itself isn't spawned until the player leaves the shop (finishUpgradeScreen).
 export function completeWarp(state: GameState): GameState {
   const advanced = advanceWave(state)
@@ -479,9 +472,7 @@ export function completeWarp(state: GameState): GameState {
 // while warping — updateGameState early-returns — so it runs entirely here. Two
 // stages: (1) the ship flies into the portal with NO screen effect; (2) once it
 // arrives, the screen flash plays for `flashDuration`, then the jump completes.
-// `landed` signals the caller to reseed the camera/starfield for the fresh
-// corridor. No world clamp — the renderer drops the borders so a ship near the
-// top can fly past the edge into the portal without artifacts.
+// `landed` signals the caller to reseed the camera/starfield for the fresh sector.
 export function advanceWarp(state: GameState, dt: number): { state: GameState; landed: boolean } {
   if (state.phase !== GamePhase.warping) return { state, landed: false }
 
@@ -500,10 +491,11 @@ export function advanceWarp(state: GameState, dt: number): { state: GameState; l
     return { state: { ...animated, warpFlashTimer }, landed: false }
   }
 
-  // Stage 1 — flight.
+  // Stage 1 — flight. Head toward the portal along the shortest (wrapped) path,
+  // wrapping the position as it flies (the updateGameState wrap pass is skipped
+  // while warping, so do it here).
   const warpTimer = Math.max(0, state.warpTimer - dt)
-  const dx = state.portalPos.x - state.ship.pos.x
-  const dy = state.portalPos.y - state.ship.pos.y
+  const { x: dx, y: dy } = toroidalDelta(state.ship.pos, state.portalPos)
   const dist = Math.hypot(dx, dy)
   if (dist <= WARP.arriveRadius || warpTimer <= 0) {
     // Snap onto the portal and begin the flash — completion waits for it to end.
@@ -523,7 +515,7 @@ export function advanceWarp(state: GameState, dt: number): { state: GameState; l
   const ny = dy / dist
   const ship = {
     ...state.ship,
-    pos: { x: state.ship.pos.x + nx * step, y: state.ship.pos.y + ny * step },
+    pos: wrapPosition({ x: state.ship.pos.x + nx * step, y: state.ship.pos.y + ny * step }),
     vel: { x: nx * WARP.flySpeed, y: ny * WARP.flySpeed },
     lastHeading: { x: nx, y: ny },
   }
@@ -578,7 +570,7 @@ export function advanceDeathSequence(
   return { ...state, particles, deathAnims, deathTimer }
 }
 
-// Leaves the shop and spawns the wave in the corridor the warp already laid out.
+// Leaves the shop and spawns the wave in the sector the warp already laid out.
 export function finishUpgradeScreen(state: GameState): GameState {
   return beginWave({ ...state, levelUpWeaponOffers: [] })
 }
@@ -637,7 +629,6 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     waveTimer,
     spawnedInWave,
     shipPos: ship.pos,
-    worldSize: state.worldSize,
     forwardDir: state.forwardDir,
     waveNumber: state.wave,
     dt,
@@ -696,14 +687,13 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   let huntTarget: Vec2 | null = null
   let huntBest = Infinity
   for (const e of enemies) {
-    const d = (e.pos.x - ship.pos.x) ** 2 + (e.pos.y - ship.pos.y) ** 2
+    const { x: hdx, y: hdy } = toroidalDelta(ship.pos, e.pos)
+    const d = hdx * hdx + hdy * hdy
     if (d < huntBest) {
       huntBest = d
       huntTarget = e.pos
     }
   }
-  const corridorCenterX = state.worldSize.x / 2
-  const corridorHalfWidth = state.worldSize.x / 2 - SECTOR.lateralMargin
 
   // --- Ship movement ---
   // Priority: Escape Mode (invincible dash) > slingshot coast > auto-movement.
@@ -713,25 +703,21 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     ship = applySlingshot(ship, input.fling)
   }
   let escapeTrailAccumulator = state.escapeTrailAccumulator
-  const escape = tickEscapeMode(ship, dt, escapeTrailAccumulator, state.worldSize)
+  const escape = tickEscapeMode(ship, dt, escapeTrailAccumulator)
   ship = escape.ship
   particles = [...particles, ...escape.particles]
   escapeTrailAccumulator = escape.trailAccumulator
   if (ship.escapeMode === null) {
-    const flung = tickFling(ship, dt, state.worldSize)
+    const flung = tickFling(ship, dt)
     ship = flung.ship
-    particles = [...particles, ...flung.particles]
     if (flung.active) {
       // Coasting: arm the momentum window so the drift that resumes after the
       // coast inherits this heading instead of snapping back toward forward.
       ship = { ...ship, driftMomentum: SECTOR.momentumWindow }
     } else {
       ship = updateShipDrift(ship, dt, {
-        worldSize: state.worldSize,
         forwardDir: state.forwardDir,
         target: huntTarget,
-        corridorCenterX,
-        corridorHalfWidth,
       })
     }
   }
@@ -841,7 +827,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   ship = shipCollision.ship
   particles = [...particles, ...shipCollision.particles]
 
-  // --- Hazards (mid-corridor mines) ---
+  // --- Hazards (scattered mines) ---
   // Routed through applyDamageToShip, so an Escape-Mode dash across is free.
   const hazardResult = updateHazards(hazards, ship, dt)
   hazards = hazardResult.hazards
@@ -972,6 +958,15 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   }
   deathAnims = updateDeathAnims(deathAnims, dt)
 
+  // --- Wrap every entity back into the torus. Movement this frame may have
+  // pushed positions just past an edge; toroidal deltas stay correct only while
+  // positions are within one world span, so normalise them once here. ---
+  ship = { ...ship, pos: wrapPosition(ship.pos) }
+  enemies = enemies.map((e) => ({ ...e, pos: wrapPosition(e.pos) }))
+  projectiles = projectiles.map((p) => ({ ...p, pos: wrapPosition(p.pos) }))
+  allies = allies.map((a) => ({ ...a, pos: wrapPosition(a.pos) }))
+  collectibles = collectibles.map((c) => ({ ...c, pos: wrapPosition(c.pos) }))
+
   // --- Player death → dying sequence (the ship explodes, THEN gameOver) ---
   // High score is saved when the sequence ends (advanceDeathSequence), not here.
   if (ship.hp <= 0) {
@@ -1039,7 +1034,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       escapeTrailAccumulator,
     }
     // Sector cleared (every 3rd wave) → warp first; the shop opens once the warp
-    // lands the next corridor. Mid-sector waves just wait for the Next Wave button.
+    // lands the next sector. Mid-sector waves just wait for the Next Wave button.
     return isUpgradeWave(state.wave) ? beginWarp(cleared) : cleared
   }
 

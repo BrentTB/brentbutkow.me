@@ -1,7 +1,7 @@
 import { EnemyKind, MovementBehavior } from '../types'
 import type { Enemy, Vec2 } from '../types'
 import { ENEMY_STATS } from '../../data'
-import { clampToWorld } from '../math/utils'
+import { wrapPosition } from '../math/toroid'
 import { homeTowardTarget } from '../math/homing'
 import { unitToward } from '../math/vec'
 import { getBossRuntime, hasAliveLinked } from './boss-definition'
@@ -105,12 +105,10 @@ export const VOID_WORM_BOSS: BossDefinition = {
     let self: BossUpdateResult['self']
 
     if (worm.stage === WormStage.cruise) {
-      // Weave toward the ship at cruise speed, re-aiming every tick. Clamp
-      // matches the charge branch — a ship kited to a world edge would
-      // otherwise drag the head off the playfield (MovementBehavior.none
-      // never bounds it).
+      // Weave toward the ship at cruise speed, re-aiming every tick. Wrap the
+      // head onto the torus — MovementBehavior.none never bounds it.
       const homed = homeTowardTarget(boss.pos, ctx.shipPos, VOID_WORM.cruiseSpeed, dt)
-      self = { pos: clampToWorld(homed.pos, ctx.worldSize), vel: homed.vel }
+      self = { pos: wrapPosition(homed.pos), vel: homed.vel }
       const heading = unitToward(boss.pos, ctx.shipPos)
       next =
         stageTimer <= 0
@@ -128,13 +126,10 @@ export const VOID_WORM_BOSS: BossDefinition = {
           : { ...worm, stageTimer, heading }
     } else {
       // Lunge along the locked heading — the ship has to dodge, not outrun.
-      const pos = clampToWorld(
-        {
-          x: boss.pos.x + worm.heading.x * VOID_WORM.chargeSpeed * dt,
-          y: boss.pos.y + worm.heading.y * VOID_WORM.chargeSpeed * dt,
-        },
-        ctx.worldSize
-      )
+      const pos = wrapPosition({
+        x: boss.pos.x + worm.heading.x * VOID_WORM.chargeSpeed * dt,
+        y: boss.pos.y + worm.heading.y * VOID_WORM.chargeSpeed * dt,
+      })
       self = {
         pos,
         vel: {

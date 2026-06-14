@@ -39,7 +39,7 @@ import {
 import { UpgradeId } from './upgrade-ids'
 import { isUpgradeWave } from './upgrades'
 import { BOSS_KINDS } from './bosses/index'
-import { ANIMATION, ENEMY_STATS, POWER_DEFAULTS, SECTOR, WARP, WAVES_PER_LEVEL } from '../data'
+import { ANIMATION, ENEMY_STATS, POWER_DEFAULTS, WARP, WAVES_PER_LEVEL, WORLD_SIZE } from '../data'
 import { TELEKINESIS, SOLAR_FLARE } from './abilities/ability-data'
 
 beforeEach(() => {
@@ -174,7 +174,7 @@ describe('updateGameState', () => {
     state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
     expect(state.enemies.length).toBeGreaterThan(0)
 
-    // Place the enemy far down the corridor (forward axis) so drift doesn't dominate.
+    // Place the enemy far down the forward axis so drift doesn't dominate.
     state = {
       ...state,
       enemies: state.enemies.map((e) => ({
@@ -940,12 +940,7 @@ describe('updateGameState — state field round-trip persistence', () => {
     }
 
     const dt = 0.016
-    const expected = tickEscapeMode(
-      state.ship,
-      dt,
-      state.escapeTrailAccumulator,
-      state.worldSize
-    ).trailAccumulator
+    const expected = tickEscapeMode(state.ship, dt, state.escapeTrailAccumulator).trailAccumulator
     expect(expected).toBeGreaterThan(0) // guards against a vacuous test
 
     state = updateGameState(state, dt, { clicks: [], selectedAbility: null })
@@ -1758,7 +1753,7 @@ describe('Enemy melee damages allies', () => {
   })
 })
 
-describe('updateGameState — sector corridor progression', () => {
+describe('updateGameState — sector progression', () => {
   const noInput = { clicks: [], selectedAbility: null }
   const playing = () => startNextWave(startGame(createInitialState(), ShipKind.fighter))
   const mine = (pos: { x: number; y: number }) => ({
@@ -1815,7 +1810,7 @@ describe('updateGameState — sector corridor progression', () => {
     // Gate spawning so only the planted (stationary, un-killable) enemy is present.
     let state = { ...playing(), waveTimer: 100 }
     const startPos = { ...state.ship.pos }
-    const enemyPos = { x: startPos.x, y: startPos.y - 1500 } // up the corridor
+    const enemyPos = { x: startPos.x, y: startPos.y - 500 } // up, well within half a world
     state = {
       ...state,
       enemies: [{ ...createEnemy(EnemyKind.drone, enemyPos), speed: 0, hp: 1e6, maxHp: 1e6 }],
@@ -1869,7 +1864,7 @@ describe('updateGameState — sector corridor progression', () => {
     expect(next.collectibles).toEqual([])
   })
 
-  it('warps into a fresh corridor, then opens the shop, then starts the wave', () => {
+  it('warps into a fresh sector, then opens the shop, then starts the wave', () => {
     // Sit on the last wave of sector 1 with the field cleared.
     let state = playing()
     state = {
@@ -1885,16 +1880,16 @@ describe('updateGameState — sector corridor progression', () => {
     expect(state.phase).toBe(GamePhase.warping) // warp comes first
     expect(state.warpTimer).toBeGreaterThan(0)
 
-    // Warp lands in the next sector's corridor and opens the shop — wave not spawned yet.
+    // Warp lands in the next sector and opens the shop — wave not spawned yet.
     const warped = completeWarp(state)
     expect(warped.phase).toBe(GamePhase.upgradeScreen)
     expect(warped.wave).toBe(WAVES_PER_LEVEL + 1)
-    expect(warped.worldSize).toEqual({ x: SECTOR.width, y: SECTOR.length })
-    // Forward is up, so the ship enters near the bottom of the corridor.
-    expect(warped.ship.pos.y).toBeCloseTo(SECTOR.length - SECTOR.shipStartOffset, 5)
+    expect(warped.worldSize).toEqual(WORLD_SIZE)
+    // Every sector drops the ship at the centre of the torus.
+    expect(warped.ship.pos).toEqual({ x: WORLD_SIZE.x / 2, y: WORLD_SIZE.y / 2 })
     expect(warped.spawnQueue).toEqual([])
 
-    // Leaving the shop spawns the wave in the corridor already laid out.
+    // Leaving the shop spawns the wave in the sector already laid out.
     const live = finishUpgradeScreen(warped)
     expect(live.phase).toBe(GamePhase.playing)
     expect(live.wave).toBe(WAVES_PER_LEVEL + 1) // not advanced again

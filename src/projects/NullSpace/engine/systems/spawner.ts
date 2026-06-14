@@ -2,7 +2,6 @@ import { SPAWN_CONE, SPAWN_DELAY, SPAWN_DISTANCE, SWARM_SPAWN_SPREAD } from '../
 import { createEnemy } from '../entities/entity-creator'
 import { scaleEnemy } from '../world/enemy-scaling'
 import { applyModifier, rollEnemyModifier } from '../world/enemy-modifiers'
-import { clamp } from '../math/utils'
 import { rng } from '../math/random'
 import { EnemyKind } from '../types'
 import type { Enemy, Vec2 } from '../types'
@@ -20,12 +19,7 @@ function spawnEnemy(kind: EnemyKind, pos: Vec2, waveNumber: number): Enemy {
 // Picks a spawn point a random distance from the ship. Most spawns land in a cone
 // AHEAD of the ship (along forwardDir) so the pressure comes from the direction of
 // travel; the cone tightens as waves climb. The rest arrive from the rear arc.
-export function spawnPositionNearShip(
-  shipPos: Vec2,
-  worldSize: Vec2,
-  forwardDir: Vec2,
-  waveNumber: number
-): Vec2 {
+export function spawnPositionNearShip(shipPos: Vec2, forwardDir: Vec2, waveNumber: number): Vec2 {
   const forwardAngle = Math.atan2(forwardDir.y, forwardDir.x)
   let angle: number
   if (rng.next() < SPAWN_CONE.forwardFraction) {
@@ -39,9 +33,10 @@ export function spawnPositionNearShip(
     angle = forwardAngle + Math.PI + rng.range(-Math.PI / 2, Math.PI / 2)
   }
   const dist = rng.range(SPAWN_DISTANCE.min, SPAWN_DISTANCE.max)
+  // Unwrapped — the world-wrap pass in updateGameState normalises it into the torus.
   return {
-    x: clamp(shipPos.x + Math.cos(angle) * dist, 0, worldSize.x),
-    y: clamp(shipPos.y + Math.sin(angle) * dist, 0, worldSize.y),
+    x: shipPos.x + Math.cos(angle) * dist,
+    y: shipPos.y + Math.sin(angle) * dist,
   }
 }
 
@@ -55,7 +50,6 @@ export function processSpawnQueue(opts: {
   waveTimer: number
   spawnedInWave: number
   shipPos: Vec2
-  worldSize: Vec2
   forwardDir: Vec2
   waveNumber: number
   dt: number
@@ -66,7 +60,7 @@ export function processSpawnQueue(opts: {
   spawnedInWave: number
 } {
   let { spawnQueue, spawnTimer, enemies, spawnedInWave } = opts
-  const { waveTimer, shipPos, worldSize, forwardDir, waveNumber, dt } = opts
+  const { waveTimer, shipPos, forwardDir, waveNumber, dt } = opts
 
   if (spawnQueue.length === 0 || waveTimer > 0) {
     return { spawnQueue, spawnTimer, enemies, spawnedInWave }
@@ -77,7 +71,7 @@ export function processSpawnQueue(opts: {
     const kind = spawnQueue[0]
 
     if (kind === EnemyKind.swarm) {
-      const center = spawnPositionNearShip(shipPos, worldSize, forwardDir, waveNumber)
+      const center = spawnPositionNearShip(shipPos, forwardDir, waveNumber)
       while (spawnQueue.length > 0 && spawnQueue[0] === EnemyKind.swarm) {
         const pos = {
           x: center.x + rng.range(-SWARM_SPAWN_SPREAD, SWARM_SPAWN_SPREAD),
@@ -89,7 +83,7 @@ export function processSpawnQueue(opts: {
       }
     } else {
       spawnQueue = spawnQueue.slice(1)
-      const pos = spawnPositionNearShip(shipPos, worldSize, forwardDir, waveNumber)
+      const pos = spawnPositionNearShip(shipPos, forwardDir, waveNumber)
       enemies = [...enemies, spawnEnemy(kind, pos, waveNumber)]
       spawnedInWave++
     }

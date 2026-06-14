@@ -1,7 +1,7 @@
 import { canEnemyTakeDamage } from '../bosses/index'
 import { applyDamageToEnemy } from '../entities/enemy-damage'
 import { spawnExplosionParticles } from '../entities/entity-creator'
-import { clampToWorld } from '../math/utils'
+import { toroidalDelta, wrapPosition } from '../math/toroid'
 import { rng } from '../math/random'
 import type { Enemy, Particle, Vec2 } from '../types'
 
@@ -16,14 +16,13 @@ export type GravityWell = {
 
 // Event Horizon's core behaviour: an enemy reaching `coreRadius` takes
 // `coreDamage` (flat) and is relocated `banishDistance` further from `shipPos`
-// (clamped to `worldSize`). Bosses and invincible enemies are exempt — they
+// (wrapped onto the torus). Bosses and invincible enemies are exempt — they
 // keep spiralling like a plain black hole.
 export type BanishConfig = {
   coreRadius: number
   coreDamage: number
   banishDistance: number
   shipPos: Vec2
-  worldSize: Vec2
 }
 
 export type GravityWellResult = {
@@ -38,20 +37,16 @@ export type GravityWellResult = {
 const SPIRAL_RADIAL = 0.25
 const SPIRAL_TANGENTIAL = 0.85
 
-// Relocates an enemy radially outward from the ship by `banishDistance`, clamped
-// to the playfield. Past the well's reach, so it isn't instantly re-pulled.
+// Relocates an enemy radially outward from the ship by `banishDistance`, wrapped
+// onto the torus. Past the well's reach, so it isn't instantly re-pulled.
 function banishPos(enemyPos: Vec2, cfg: BanishConfig): Vec2 {
-  const dx = enemyPos.x - cfg.shipPos.x
-  const dy = enemyPos.y - cfg.shipPos.y
+  const { x: dx, y: dy } = toroidalDelta(cfg.shipPos, enemyPos)
   const dist = Math.sqrt(dx * dx + dy * dy)
   const angle = dist > 1 ? Math.atan2(dy, dx) : rng.next() * Math.PI * 2
   const nx = dist > 1 ? dx / dist : Math.cos(angle)
   const ny = dist > 1 ? dy / dist : Math.sin(angle)
   const newDist = dist + cfg.banishDistance
-  return clampToWorld(
-    { x: cfg.shipPos.x + nx * newDist, y: cfg.shipPos.y + ny * newDist },
-    cfg.worldSize
-  )
+  return wrapPosition({ x: cfg.shipPos.x + nx * newDist, y: cfg.shipPos.y + ny * newDist })
 }
 
 export function applyGravityWell(
@@ -66,8 +61,7 @@ export function applyGravityWell(
   const particles: Particle[] = []
 
   for (const enemy of enemies) {
-    const dx = well.pos.x - enemy.pos.x
-    const dy = well.pos.y - enemy.pos.y
+    const { x: dx, y: dy } = toroidalDelta(enemy.pos, well.pos)
     const dist = Math.sqrt(dx * dx + dy * dy)
 
     if (dist > well.radius) {

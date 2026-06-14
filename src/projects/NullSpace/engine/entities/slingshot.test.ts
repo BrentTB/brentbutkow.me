@@ -62,7 +62,7 @@ describe('tickFling', () => {
   it('coasts the ship along its fling velocity and decays it', () => {
     const base = createShip(ShipKind.fighter, WORLD_SIZE)
     const ship = { ...base, flingVel: { x: 400, y: 0 } }
-    const r = tickFling(ship, 0.1, WORLD_SIZE)
+    const r = tickFling(ship, 0.1)
     expect(r.active).toBe(true)
     expect(r.ship.pos.x).toBeGreaterThan(base.pos.x)
     expect(Math.hypot(r.ship.flingVel.x, r.ship.flingVel.y)).toBeLessThan(400)
@@ -71,27 +71,25 @@ describe('tickFling', () => {
   it('reports inactive and zeroes velocity once the coast is spent', () => {
     const base = createShip(ShipKind.fighter, WORLD_SIZE)
     const ship = { ...base, flingVel: { x: 5, y: 0 } } // below the min coast speed
-    const r = tickFling(ship, 0.1, WORLD_SIZE)
+    const r = tickFling(ship, 0.1)
     expect(r.active).toBe(false)
     expect(r.ship.flingVel).toEqual({ x: 0, y: 0 })
   })
 
   it('is an inactive no-op when there is no fling velocity', () => {
     const ship = createShip(ShipKind.fighter, WORLD_SIZE)
-    const r = tickFling(ship, 0.1, WORLD_SIZE)
+    const r = tickFling(ship, 0.1)
     expect(r.active).toBe(false)
     expect(r.ship).toBe(ship)
   })
 
-  it('bounces off a wall (reflects velocity + sparks) instead of stalling against it', () => {
+  it('coasts straight through an edge without bouncing (no walls on the torus)', () => {
     const base = createShip(ShipKind.fighter, WORLD_SIZE)
-    // Hard against the left wall, flung further into it (−x).
     const ship = { ...base, pos: { x: base.radius + 5, y: 1500 }, flingVel: { x: -400, y: 0 } }
-    const r = tickFling(ship, 0.1, WORLD_SIZE)
+    const r = tickFling(ship, 0.1)
     expect(r.active).toBe(true)
-    expect(r.ship.flingVel.x).toBeGreaterThan(0) // reflected — now heading away from the wall
-    expect(r.ship.pos.x).toBeGreaterThanOrEqual(base.radius) // never crosses the wall
-    expect(r.particles.length).toBeGreaterThan(0) // impact spark
+    expect(r.ship.flingVel.x).toBeLessThan(0) // NOT reflected — keeps its heading
+    expect(r.ship.pos.x).toBeLessThan(base.radius + 5) // passes the old wall freely
   })
 })
 
@@ -180,15 +178,9 @@ describe('slingshot heat', () => {
 
   it('slows the ship while overheated', () => {
     const base = createShip(ShipKind.fighter, WORLD_SIZE)
-    // No target + a wide corridor so only the idle drift speed is under test —
-    // isolating the overheat slowdown.
-    const ctx = {
-      worldSize: WORLD_SIZE,
-      forwardDir: { x: 0, y: -1 },
-      target: null,
-      corridorCenterX: base.pos.x,
-      corridorHalfWidth: 1000,
-    }
+    // No target so only the idle drift speed is under test — isolating the
+    // overheat slowdown.
+    const ctx = { forwardDir: { x: 0, y: -1 }, target: null }
     const normal = updateShipDrift(base, 0.1, ctx)
     const overheated = updateShipDrift({ ...base, slingOverheated: true }, 0.1, ctx)
     const moved = (a: typeof base, b: typeof base) =>
@@ -198,15 +190,9 @@ describe('slingshot heat', () => {
 })
 
 describe('forward drift (post-slingshot)', () => {
-  // No target (lane clear) + wide corridor so only the idle-drift heading is under
-  // test. Forward is up (−y).
-  const ctx = {
-    worldSize: WORLD_SIZE,
-    forwardDir: { x: 0, y: -1 },
-    target: null,
-    corridorCenterX: WORLD_SIZE.x / 2,
-    corridorHalfWidth: WORLD_SIZE.x / 2,
-  }
+  // No target (lane clear) so only the idle-drift heading is under test.
+  // Forward is up (−y).
+  const ctx = { forwardDir: { x: 0, y: -1 }, target: null }
 
   it('does not snap back after a fling — keeps going the way it was flung', () => {
     const base = createShip(ShipKind.fighter, WORLD_SIZE)
@@ -237,29 +223,25 @@ describe('forward drift (post-slingshot)', () => {
   it('hunts toward a target when one is present', () => {
     const base = createShip(ShipKind.fighter, WORLD_SIZE)
     const ship = { ...base, pos: { x: WORLD_SIZE.x / 2, y: 1500 } }
-    // Target far to the right → the ship steers toward it (x increases).
+    // Target to the right, within half a world → the ship steers toward it (x increases).
     const after = updateShipDrift(ship, 0.1, {
       ...ctx,
-      target: { x: ship.pos.x + 1500, y: ship.pos.y },
+      target: { x: ship.pos.x + 600, y: ship.pos.y },
     })
     expect(after.pos.x).toBeGreaterThan(ship.pos.x)
   })
 
-  // Regression: the hunt orbit used to always circle the same way, so every
-  // head-on engagement strafed the same direction. It now orbits toward the
-  // target's side, so mirror-image targets produce mirror-image strafing.
-  it('orbits toward the target side — no fixed strafe bias', () => {
+  // Regression: the hunt orbit used to pick its circling side from the target's
+  // position, which made a point directly below the target an attractor — the
+  // ship stalled there (and drifted down with the enemy). It now circles the way
+  // it's already moving, so a vertical target gets orbited, not hugged.
+  it('orbits a vertical target instead of getting pinned below it', () => {
     const base = createShip(ShipKind.fighter, WORLD_SIZE)
-    const ship = { ...base, pos: { x: WORLD_SIZE.x / 2, y: 1500 }, vel: { x: 0, y: 0 } }
-    const left = updateShipDrift(ship, 0.1, {
-      ...ctx,
-      target: { x: ship.pos.x - 300, y: ship.pos.y - 300 },
-    })
-    const right = updateShipDrift(ship, 0.1, {
-      ...ctx,
-      target: { x: ship.pos.x + 300, y: ship.pos.y - 300 },
-    })
-    expect(Math.sign(left.vel.x)).toBe(-Math.sign(right.vel.x))
-    expect(left.vel.x).toBeCloseTo(-right.vel.x, 5)
+    // Sitting below a target directly above it, already drifting sideways.
+    let ship = { ...base, pos: { x: WORLD_SIZE.x / 2, y: 1500 }, vel: { x: 30, y: 0 } }
+    const target = { x: WORLD_SIZE.x / 2, y: 1100 } // straight up (−y)
+    for (let i = 0; i < 50; i++) ship = updateShipDrift(ship, 0.05, { ...ctx, target })
+    // It swept well off the vertical axis (orbited) rather than oscillating on it.
+    expect(Math.abs(ship.pos.x - WORLD_SIZE.x / 2)).toBeGreaterThan(100)
   })
 })

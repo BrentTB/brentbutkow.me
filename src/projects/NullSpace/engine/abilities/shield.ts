@@ -7,6 +7,7 @@ import type { ActiveEffect, Enemy, ForceFieldEffect, Particle, ShieldEffect, Vec
 import { tickDomeAbsorption } from './dome-absorption'
 import type { Camera } from '../../renderer/camera'
 import { worldToScreen } from '../../renderer/camera'
+import { toroidalDelta, wrapPosition } from '../math/toroid'
 import {
   makeAbilityUpgrade,
   applyCostReduction,
@@ -134,8 +135,9 @@ export function applyShieldConstraints(
     let bumped = false
     for (const zone of active) {
       if (zone.grandfatheredEnemyIds?.includes(enemy.id)) continue
-      const dx = pos.x - zone.pos.x
-      const dy = pos.y - zone.pos.y
+      // Shortest vector from the dome centre to the enemy — wraps the seam, so a
+      // dome near a world edge still catches enemies on the far side.
+      const { x: dx, y: dy } = toroidalDelta(zone.pos, pos)
       const distSq = dx * dx + dy * dy
       if (distSq < zone.radius * zone.radius) {
         const dist = Math.sqrt(distSq)
@@ -143,7 +145,7 @@ export function applyShieldConstraints(
         const nx = dist > 0.01 ? dx / dist : 1
         const ny = dist > 0.01 ? dy / dist : 0
         // Snap to the edge so we never have an enemy genuinely inside the dome.
-        pos = { x: zone.pos.x + nx * zone.radius, y: zone.pos.y + ny * zone.radius }
+        pos = wrapPosition({ x: zone.pos.x + nx * zone.radius, y: zone.pos.y + ny * zone.radius })
         if (zone.kind === EffectKind.forceField) {
           // Force field: hurl the enemy straight out, far harder than a bounce,
           // and burn it while it touches the field.

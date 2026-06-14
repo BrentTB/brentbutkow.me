@@ -1,4 +1,5 @@
 import { distance } from '../math/collision'
+import { toroidalDelta } from '../math/toroid'
 import { createAlly, createProjectile } from './entity-creator'
 import { canEnemyTakeDamage } from '../bosses/index'
 import { rng } from '../math/random'
@@ -82,16 +83,16 @@ export function updateAllies(
 
     // --- Steering: orbit a per-ally point near the ship, weak avoid + noise ---
     const target = allyOrbitTarget(updated, ship)
-    let steerX = target.x - ally.pos.x
-    let steerY = target.y - ally.pos.y
+    const toTarget = toroidalDelta(ally.pos, target)
+    let steerX = toTarget.x
+    let steerY = toTarget.y
     const toTargetMag = Math.sqrt(steerX * steerX + steerY * steerY)
     if (toTargetMag > 0.01) {
       steerX /= toTargetMag
       steerY /= toTargetMag
     }
     for (const enemy of enemies) {
-      const ex = ally.pos.x - enemy.pos.x
-      const ey = ally.pos.y - enemy.pos.y
+      const { x: ex, y: ey } = toroidalDelta(enemy.pos, ally.pos)
       const d = Math.sqrt(ex * ex + ey * ey)
       if (d < ALLY_AVOID_RADIUS && d > 0.01) {
         const weight = (1 - d / ALLY_AVOID_RADIUS) * ALLY_AVOID_WEIGHT

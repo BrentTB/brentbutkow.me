@@ -1,7 +1,7 @@
 import { EnemyKind, MovementBehavior } from '../types'
 import type { Enemy, Vec2 } from '../types'
 import { rng } from '../math/random'
-import { clampToWorld } from '../math/utils'
+import { wrapPosition } from '../math/toroid'
 import { ringPositions } from '../math/vec'
 import type { Camera } from '../../renderer/camera'
 import { isWithinView, worldToScreen } from '../../renderer/camera'
@@ -41,18 +41,15 @@ export const PHASE_SHIFTER = {
   ringCountP1: 8,
   ringCountP2: 12,
   ringRadius: 80,
-  // Keeps telegraph targets (and the swarm ring) inside the playfield.
-  worldMargin: 60,
 } as const
 
-function rollTeleportTarget(shipPos: Vec2, worldSize: Vec2): Vec2 {
+function rollTeleportTarget(shipPos: Vec2): Vec2 {
   const angle = rng.range(0, Math.PI * 2)
   const dist = rng.range(PHASE_SHIFTER.arrivalMin, PHASE_SHIFTER.arrivalMax)
-  return clampToWorld(
-    { x: shipPos.x + Math.cos(angle) * dist, y: shipPos.y + Math.sin(angle) * dist },
-    worldSize,
-    PHASE_SHIFTER.worldMargin
-  )
+  return wrapPosition({
+    x: shipPos.x + Math.cos(angle) * dist,
+    y: shipPos.y + Math.sin(angle) * dist,
+  })
 }
 
 // Evenly-spaced swarm ring around the arrival point.
@@ -141,7 +138,7 @@ export const PHASE_SHIFTER_BOSS: BossDefinition = {
       next = {
         stage: ShifterStage.telegraph,
         stageTimer: PHASE_SHIFTER.telegraphDuration,
-        targetPos: rollTeleportTarget(ctx.shipPos, ctx.worldSize),
+        targetPos: rollTeleportTarget(ctx.shipPos),
       }
     } else if (shifter.stage === ShifterStage.telegraph && stageTimer <= 0) {
       // Arrive: jump to the marked spot and materialise the swarm ring.

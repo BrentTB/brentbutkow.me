@@ -1,30 +1,25 @@
 import { HAZARD } from '../../data'
 import { uid } from '../entities/entity-creator'
 import { distance } from '../math/collision'
+import { toroidalDistance } from '../math/toroid'
 import { rng } from '../math/random'
 import { HazardKind } from '../types'
-import type { Hazard, Ship } from '../types'
+import type { Hazard, Ship, Vec2 } from '../types'
 
-// Mines scattered sparsely over the whole corridor (the `[minY, maxY]` stretch
-// the ship traverses), kept off the lateral edges so a slingshot dash always has
-// a gap. Thread between them as the ship advances — Escape Mode dashes through.
-export function generateHazardField(opts: {
-  corridorCenterX: number
-  corridorHalfWidth: number
-  minY: number
-  maxY: number
-}): Hazard[] {
-  const { corridorCenterX, corridorHalfWidth, minY, maxY } = opts
-  const lateral = corridorHalfWidth * HAZARD.lateralFraction
+// Mines scattered sparsely across the torus, kept clear of the ship's spawn so a
+// fresh sector never drops one on the player. Thread between them as you fly —
+// Escape Mode dashes through.
+export function generateHazardField(worldSize: Vec2, safeCenter: Vec2): Hazard[] {
   const mines: Hazard[] = []
-  for (let i = 0; i < HAZARD.mineCount; i++) {
+  let attempts = 0
+  while (mines.length < HAZARD.mineCount && attempts < HAZARD.mineCount * 12) {
+    attempts++
+    const pos = { x: rng.range(0, worldSize.x), y: rng.range(0, worldSize.y) }
+    if (toroidalDistance(pos, safeCenter) < HAZARD.forwardMargin) continue
     mines.push({
       id: uid(),
       kind: HazardKind.mine,
-      pos: {
-        x: corridorCenterX + rng.range(-lateral, lateral),
-        y: rng.range(minY, maxY),
-      },
+      pos,
       radius: HAZARD.mineRadius,
       damage: HAZARD.mineDamage,
       hitCooldown: 0,

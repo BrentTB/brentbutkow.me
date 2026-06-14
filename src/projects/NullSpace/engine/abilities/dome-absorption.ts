@@ -1,5 +1,6 @@
 import { spawnExplosionParticles } from '../entities/entity-creator'
 import { ProjectileOwner } from '../types'
+import { toroidalDelta } from '../math/toroid'
 import type { ForceFieldEffect, Particle, Projectile, ShieldEffect } from '../types'
 import type { EffectTickContext, EffectTickResult } from '../systems/effect-definition'
 
@@ -18,8 +19,7 @@ export function tickDomeAbsorption(
   const radiusSq = radius * radius
   const insideThisTick = new Set<string>()
   for (const enemy of ctx.enemies) {
-    const dx = enemy.pos.x - zone.pos.x
-    const dy = enemy.pos.y - zone.pos.y
+    const { x: dx, y: dy } = toroidalDelta(zone.pos, enemy.pos)
     if (dx * dx + dy * dy < radiusSq) insideThisTick.add(enemy.id)
   }
   const grandfathered =
@@ -32,8 +32,7 @@ export function tickDomeAbsorption(
   const absorbParticles: Particle[] = []
   for (const p of ctx.projectiles) {
     if (p.owner === ProjectileOwner.enemy) {
-      const dx = p.pos.x - zone.pos.x
-      const dy = p.pos.y - zone.pos.y
+      const { x: dx, y: dy } = toroidalDelta(zone.pos, p.pos)
       if (dx * dx + dy * dy < radiusSq) {
         absorbParticles.push(...spawnExplosionParticles(p.pos, 3, absorbColor))
         continue

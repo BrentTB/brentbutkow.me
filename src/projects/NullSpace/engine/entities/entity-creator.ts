@@ -18,6 +18,7 @@ import {
 } from '../types'
 import type { DeathAnim, Ship, Enemy, Projectile, Vec2, Ally, Particle } from '../types'
 import { rng } from '../math/random'
+import { toroidalDelta } from '../math/toroid'
 import { SHIP_VARIANTS } from '../ship/ship-data'
 import { getBossDefinition } from '../bosses/index'
 import type { BossEnemyKind } from '../bosses/boss-definition'
@@ -84,7 +85,7 @@ export function createShip(kind: ShipKind, worldSize: Vec2): Ship {
     weavePhase: rng.next(),
     weaponSlots: s.weaponSlots,
     equippedWeapons: Array(s.weaponSlots).fill(ShipWeaponKind.bullet),
-    // Faces up the corridor (forward = +y) at spawn.
+    // Spawn heading; updated as the ship moves.
     lastHeading: { x: 0, y: 1 },
     escapeMode: null,
     flingVel: { x: 0, y: 0 },
@@ -139,8 +140,8 @@ export function createProjectile(
   damage: number,
   opts?: { speed?: number; beam?: boolean }
 ): Projectile {
-  const dx = targetPos.x - pos.x
-  const dy = targetPos.y - pos.y
+  // Aim along the shortest (wrapped) path to the target.
+  const { x: dx, y: dy } = toroidalDelta(pos, targetPos)
   const dist = Math.sqrt(dx * dx + dy * dy)
   const nx = dist > 0 ? dx / dist : 0
   const ny = dist > 0 ? dy / dist : 1

@@ -57,7 +57,7 @@ export function DevConsole({
           disabled={!inGame}
         />
         <div className={styles.readonlyRow}>
-          <span className={styles.readonlyLabel}>Level</span>
+          <span className={styles.readonlyLabel}>Sector</span>
           <span className={styles.readonlyValue}>{uiState.level}</span>
         </div>
         <button

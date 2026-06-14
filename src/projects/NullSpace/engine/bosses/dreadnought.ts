@@ -2,6 +2,7 @@ import { EnemyKind, MovementBehavior } from '../types'
 import type { Enemy, Vec2 } from '../types'
 import { rng } from '../math/random'
 import { ringPositions, unitToward } from '../math/vec'
+import { toroidalDelta } from '../math/toroid'
 import { bossPhase, getBossRuntime, hasAliveLinked } from './boss-definition'
 import type { BossDefinition, BossRuntimeBase, DropSpec, SpawnSpec } from './boss-definition'
 import { metalBurst } from './loot'
@@ -48,8 +49,7 @@ function positionGeneratorRing(boss: Enemy, gens: Enemy[]): Map<string, { pos: V
     let ry = 0
     for (const o of gens) {
       if (o.id === g.id) continue
-      const ex = g.pos.x - o.pos.x
-      const ey = g.pos.y - o.pos.y
+      const { x: ex, y: ey } = toroidalDelta(o.pos, g.pos)
       const ed = Math.sqrt(ex * ex + ey * ey)
       if (ed > 0 && ed < GEN_REPEL_RANGE) {
         const f = (GEN_REPEL_RANGE - ed) / GEN_REPEL_RANGE

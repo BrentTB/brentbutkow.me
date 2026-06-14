@@ -1,8 +1,9 @@
 import { ANIMATION, SECTOR, SHIELD_COOLDOWN, SLINGSHOT } from '../../data'
 import { canEnemyTakeDamage } from '../bosses/index'
 import { distance } from '../math/collision'
-import { driftWithWeave, softTether1D } from '../math/steering'
-import { clamp, clampToWorld } from '../math/utils'
+import { driftWithWeave } from '../math/steering'
+import { clamp } from '../math/utils'
+import { toroidalDelta } from '../math/toroid'
 import { rng } from '../math/random'
 import { createParticle } from './entity-creator'
 import { ESCAPE_MODE } from '../spaceMetalAbilities/escape-mode'
@@ -16,8 +17,6 @@ import type { Enemy, Particle, PlayerUpgrades, Projectile, Ship, Vec2 } from '..
 const SLING_DECAY = 1.7
 // Below this coast speed the fling is spent and normal auto-movement takes over.
 const SLING_MIN_SPEED = 60
-// Particles spat out where a coasting fling bounces off a corridor wall.
-const SLING_BOUNCE_PARTICLES = 8
 
 // Converts a release flick (unit dir + 0..1 charge) into a coast velocity using
 // the ship's upgraded power, accuracy, and cooldown. Scatter widens with heat
@@ -55,75 +54,27 @@ export function tickSlingHeat(ship: Ship, dt: number): Ship {
 }
 
 // Advances the slingshot coast: moves the ship by its fling velocity and decays
-// it. A coast that reaches a corridor wall BOUNCES — the perpendicular velocity is
-// reflected (with an impact spark) rather than pinned to the edge, which would
-// otherwise stall the ship against the wall until the velocity decayed. Returns
-// `active: true` while the coast is meaningful; once it fades the velocity is
-// zeroed and normal auto-movement resumes.
-export function tickFling(
-  ship: Ship,
-  dt: number,
-  worldSize: Vec2
-): { ship: Ship; active: boolean; particles: Particle[] } {
+// it. Returns `active: true` while the coast is meaningful; once it fades the
+// velocity is zeroed and normal auto-movement resumes.
+export function tickFling(ship: Ship, dt: number): { ship: Ship; active: boolean } {
   const speed = Math.hypot(ship.flingVel.x, ship.flingVel.y)
   if (speed < SLING_MIN_SPEED) {
-    if (ship.flingVel.x === 0 && ship.flingVel.y === 0)
-      return { ship, active: false, particles: [] }
-    return { ship: { ...ship, flingVel: { x: 0, y: 0 } }, active: false, particles: [] }
+    if (ship.flingVel.x === 0 && ship.flingVel.y === 0) return { ship, active: false }
+    return { ship: { ...ship, flingVel: { x: 0, y: 0 } }, active: false }
   }
 
-  const r = ship.radius
-  let x = ship.pos.x + ship.flingVel.x * dt
-  let y = ship.pos.y + ship.flingVel.y * dt
-  let vx = ship.flingVel.x
-  let vy = ship.flingVel.y
-  let hit: Vec2 | null = null
-
-  if (x < r) {
-    x = r
-    vx = Math.abs(vx)
-    hit = { x: 0, y }
-  } else if (x > worldSize.x - r) {
-    x = worldSize.x - r
-    vx = -Math.abs(vx)
-    hit = { x: worldSize.x, y }
-  }
-  if (y < r) {
-    y = r
-    vy = Math.abs(vy)
-    hit = { x, y: 0 }
-  } else if (y > worldSize.y - r) {
-    y = worldSize.y - r
-    vy = -Math.abs(vy)
-    hit = { x, y: worldSize.y }
-  }
-
-  const particles: Particle[] = []
-  if (hit) {
-    for (let i = 0; i < SLING_BOUNCE_PARTICLES; i++) {
-      particles.push(
-        createParticle(
-          hit,
-          { x: rng.range(-70, 70), y: rng.range(-70, 70) },
-          '#9bc8ff',
-          0.5,
-          rng.range(2, 4)
-        )
-      )
-    }
-  }
-
+  // No walls on the torus — the coast just carries the ship and the world-wrap
+  // pass brings it back around. Velocity decays so auto-movement resumes.
   const decay = Math.exp(-SLING_DECAY * dt)
   return {
     ship: {
       ...ship,
-      pos: { x, y },
-      vel: { x: vx, y: vy },
-      flingVel: { x: vx * decay, y: vy * decay },
-      lastHeading: { x: vx / speed, y: vy / speed },
+      pos: { x: ship.pos.x + ship.flingVel.x * dt, y: ship.pos.y + ship.flingVel.y * dt },
+      vel: { x: ship.flingVel.x, y: ship.flingVel.y },
+      flingVel: { x: ship.flingVel.x * decay, y: ship.flingVel.y * decay },
+      lastHeading: { x: ship.flingVel.x / speed, y: ship.flingVel.y / speed },
     },
     active: true,
-    particles,
   }
 }
 
@@ -150,8 +101,7 @@ export function applyDamageToShip(ship: Ship, damage: number): Ship {
 export function tickEscapeMode(
   ship: Ship,
   dt: number,
-  trailAccumulator: number,
-  worldSize: Vec2
+  trailAccumulator: number
 ): { ship: Ship; particles: Particle[]; trailAccumulator: number } {
   if (ship.escapeMode === null) {
     return { ship, particles: [], trailAccumulator: 0 }
@@ -165,11 +115,7 @@ export function tickEscapeMode(
   if (e.phase === EscapeModePhase.charge) {
     const speed = ship.speed * ESCAPE_MODE.chargeSpeedMultiplier
     const vel = { x: e.heading.x * speed, y: e.heading.y * speed }
-    const pos = clampToWorld(
-      { x: ship.pos.x + vel.x * dt, y: ship.pos.y + vel.y * dt },
-      worldSize,
-      ship.radius
-    )
+    const pos = { x: ship.pos.x + vel.x * dt, y: ship.pos.y + vel.y * dt }
     if (timer <= 0) {
       return {
         ship: {
@@ -197,11 +143,7 @@ export function tickEscapeMode(
   // Dash phase — fast straight line + flame trail.
   const speed = ship.speed * ESCAPE_MODE.dashSpeedMultiplier
   const vel = { x: e.heading.x * speed, y: e.heading.y * speed }
-  const pos = clampToWorld(
-    { x: ship.pos.x + vel.x * dt, y: ship.pos.y + vel.y * dt },
-    worldSize,
-    ship.radius
-  )
+  const pos = { x: ship.pos.x + vel.x * dt, y: ship.pos.y + vel.y * dt }
 
   nextAcc += dt
   while (nextAcc >= ESCAPE_MODE.trailInterval) {
@@ -233,20 +175,17 @@ export function tickEscapeMode(
 
 // Drives the ship's auto-movement each tick. With an enemy around it HUNTS —
 // closes to attack range then strafes while the guns work. With the lane clear it
-// drifts gently forward (up the corridor). Softly tethered inside the walls; no
-// fixed centre to snap back to, so a spent slingshot resumes from where it landed.
+// drifts gently forward, wrapping around the torus forever. No walls to tether
+// against — a spent slingshot just resumes drifting from where it coasted to.
 export function updateShipDrift(
   ship: Ship,
   dt: number,
   ctx: {
-    worldSize: Vec2
     forwardDir: Vec2
     target: Vec2 | null
-    corridorCenterX: number
-    corridorHalfWidth: number
   }
 ): Ship {
-  const { worldSize, forwardDir, target, corridorCenterX, corridorHalfWidth } = ctx
+  const { forwardDir, target } = ctx
 
   const weavePhase = ship.weavePhase + dt * SECTOR.weaveFrequency
   // Overheating the slingshot saps engine power — the ship limps until it cools.
@@ -261,8 +200,7 @@ export function updateShipDrift(
     // when far, easing off when too close) and a tangential term circles the enemy,
     // so it engages from a ring instead of beelining or ramming. Steering toward
     // the desired velocity (rather than snapping to it) keeps the path flowy.
-    const dx = target.x - ship.pos.x
-    const dy = target.y - ship.pos.y
+    const { x: dx, y: dy } = toroidalDelta(ship.pos, target)
     const dist = Math.hypot(dx, dy) || 1
     const dirX = dx / dist
     const dirY = dy / dist
@@ -270,10 +208,12 @@ export function updateShipDrift(
     const orbitRange = ship.attackRange * SECTOR.orbitRangeFraction
     const radial = clamp(dist - orbitRange, -speed, speed)
     const tangent = speed * SECTOR.orbitSpeedFraction
-    // Orbit toward the side the target sits on (its lateral offset) rather than
-    // always circling the same way — otherwise every head-on engagement strafes
-    // the same direction. A perfectly vertical target breaks the tie on fore/aft.
-    const hand = dirX > 0 || (dirX === 0 && dirY >= 0) ? 1 : -1
+    // Circle whichever way the ship is already moving around the target, so it
+    // sweeps a smooth ring instead of getting pinned oscillating on one side.
+    // (Picking the side from the target's position made a point directly below
+    // it an attractor — the ship would stall there and drift down with it.)
+    const tangentialVel = dirX * ship.vel.y - dirY * ship.vel.x
+    const hand = tangentialVel >= 0 ? 1 : -1
     let desiredX = dirX * radial - hand * dirY * tangent
     let desiredY = dirY * radial + hand * dirX * tangent
     const dmag = Math.hypot(desiredX, desiredY)
@@ -306,21 +246,8 @@ export function updateShipDrift(
     velY = drift.vel.y
   }
 
-  // Soft lateral tether — a hard sideways fling curves back instead of hitting a
-  // wall. Capped so a spent fling pinned at the wall eases back, not springs.
-  velX += softTether1D(
-    ship.pos.x,
-    corridorCenterX - corridorHalfWidth,
-    corridorCenterX + corridorHalfWidth,
-    SECTOR.lateralTetherStrength,
-    SECTOR.lateralTetherMax
-  )
-
-  const pos = clampToWorld(
-    { x: ship.pos.x + velX * dt, y: ship.pos.y + velY * dt },
-    worldSize,
-    ship.radius
-  )
+  // No walls on the torus — the world-wrap pass carries the ship around.
+  const pos = { x: ship.pos.x + velX * dt, y: ship.pos.y + velY * dt }
 
   const speedMag = Math.hypot(velX, velY)
   const lastHeading =

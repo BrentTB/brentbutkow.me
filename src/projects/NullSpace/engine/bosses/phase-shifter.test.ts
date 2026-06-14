@@ -7,6 +7,7 @@ import { getBossRuntime } from './boss-definition'
 import { EnemyKind } from '../types'
 import type { Enemy } from '../types'
 import { WORLD_SIZE } from '../../data'
+import { toroidalDistance } from '../math/toroid'
 import { rng } from '../math/random'
 
 beforeEach(() => {
@@ -57,7 +58,7 @@ describe('Phase Shifter — damage gate', () => {
 })
 
 describe('Phase Shifter — teleport cycle', () => {
-  it('idle expiry starts a telegraph with a target near the ship, inside margins', () => {
+  it('idle expiry starts a telegraph with a target near the ship', () => {
     const { boss } = tick([shifterWith(ShifterStage.idle, 0.001)])
     const shifter = shifterState(boss)
     expect(shifter.stage).toBe(ShifterStage.telegraph)
@@ -66,18 +67,21 @@ describe('Phase Shifter — teleport cycle', () => {
     const d = Math.hypot(shifter.targetPos!.x - CTX.shipPos.x, shifter.targetPos!.y - CTX.shipPos.y)
     expect(d).toBeGreaterThanOrEqual(PHASE_SHIFTER.arrivalMin)
     expect(d).toBeLessThanOrEqual(PHASE_SHIFTER.arrivalMax)
-    expect(shifter.targetPos!.x).toBeGreaterThanOrEqual(PHASE_SHIFTER.worldMargin)
-    expect(shifter.targetPos!.x).toBeLessThanOrEqual(WORLD_SIZE.x - PHASE_SHIFTER.worldMargin)
-    expect(shifter.targetPos!.y).toBeGreaterThanOrEqual(PHASE_SHIFTER.worldMargin)
-    expect(shifter.targetPos!.y).toBeLessThanOrEqual(WORLD_SIZE.y - PHASE_SHIFTER.worldMargin)
   })
 
-  it('telegraph target clamps to the world margins when the ship hugs the edge', () => {
+  it('wraps the telegraph target across the seam when the ship hugs an edge', () => {
     const edgeCtx = { ...CTX, shipPos: { x: 5, y: 5 } }
     const { boss } = tick([shifterWith(ShifterStage.idle, 0.001)], 0.016, edgeCtx)
     const target = shifterState(boss).targetPos!
-    expect(target.x).toBeGreaterThanOrEqual(PHASE_SHIFTER.worldMargin)
-    expect(target.y).toBeGreaterThanOrEqual(PHASE_SHIFTER.worldMargin)
+    // No clamping on the torus — the offset wraps, so the point stays in-bounds...
+    expect(target.x).toBeGreaterThanOrEqual(0)
+    expect(target.x).toBeLessThan(WORLD_SIZE.x)
+    expect(target.y).toBeGreaterThanOrEqual(0)
+    expect(target.y).toBeLessThan(WORLD_SIZE.y)
+    // ...and still lands the configured distance away, measured across the seam.
+    const d = toroidalDistance(target, edgeCtx.shipPos)
+    expect(d).toBeGreaterThanOrEqual(PHASE_SHIFTER.arrivalMin - 1e-6)
+    expect(d).toBeLessThanOrEqual(PHASE_SHIFTER.arrivalMax + 1e-6)
   })
 
   it('arrival teleports the boss, spawns the swarm ring, and returns to idle', () => {

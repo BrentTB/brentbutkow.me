@@ -1,5 +1,6 @@
 import { canEnemyTakeDamage } from '../bosses/index'
 import { applyDamageToEnemy } from '../entities/enemy-damage'
+import { toroidalDelta } from './toroid'
 import type { Enemy, Vec2 } from '../types'
 
 export type AoeResult = {
@@ -45,8 +46,7 @@ function applyDamage(enemies: Enemy[], center: Vec2, radius: number, damage: num
   const radiusSq = radius * radius
 
   for (const enemy of enemies) {
-    const dx = enemy.pos.x - center.x
-    const dy = enemy.pos.y - center.y
+    const { x: dx, y: dy } = toroidalDelta(center, enemy.pos)
     if (dx * dx + dy * dy > radiusSq) {
       surviving.push(enemy)
       continue

@@ -74,7 +74,6 @@ function tickEventHorizon(hole: EventHorizonEffect, ctx: EffectTickContext): Eff
       coreDamage: hole.coreDamage,
       banishDistance: hole.banishDistance,
       shipPos: ctx.ship.pos,
-      worldSize: ctx.worldSize,
     },
   })
   return {

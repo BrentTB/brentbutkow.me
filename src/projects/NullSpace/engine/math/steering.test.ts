@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { driftWithWeave, softTether1D } from './steering'
+import { driftWithWeave } from './steering'
 
 describe('driftWithWeave', () => {
   it('advances purely along forward when amplitude is 0', () => {
@@ -24,34 +24,5 @@ describe('driftWithWeave', () => {
     const pos = { x: 5, y: 5 }
     driftWithWeave(pos, { x: 0, y: 1 }, 100, { amplitude: 50, phase: 0.2 }, 0.1)
     expect(pos).toEqual({ x: 5, y: 5 })
-  })
-})
-
-describe('softTether1D', () => {
-  it('returns 0 inside the bounds', () => {
-    expect(softTether1D(50, 0, 100, 4)).toBe(0)
-  })
-
-  it('restores inward, scaled by overshoot and strength', () => {
-    expect(softTether1D(-10, 0, 100, 4)).toBeCloseTo(40, 6)
-    expect(softTether1D(110, 0, 100, 4)).toBeCloseTo(-40, 6)
-  })
-
-  it('grows with overshoot distance', () => {
-    expect(Math.abs(softTether1D(120, 0, 100, 4))).toBeGreaterThan(
-      Math.abs(softTether1D(110, 0, 100, 4))
-    )
-  })
-
-  // Regression: a soft fling that dies pinned against the wall used to be flung
-  // back at a depth-proportional (huge) speed. The cap eases it back instead.
-  it('clamps the restoring velocity to maxReturn', () => {
-    // Deep past the bound: uncapped this is (120 - 0) * 4 = 480.
-    expect(softTether1D(0, 120, 1280, 4)).toBeCloseTo(480, 6)
-    expect(softTether1D(0, 120, 1280, 4, 80)).toBe(80)
-    // Symmetric past the upper bound.
-    expect(softTether1D(1400, 120, 1280, 4, 80)).toBe(-80)
-    // Still 0 inside, cap or not.
-    expect(softTether1D(700, 120, 1280, 4, 80)).toBe(0)
   })
 })
