@@ -24,11 +24,26 @@ export function RecallFilters({
   onClear,
 }: RecallFiltersProps) {
   const hasActive = Boolean(
-    filters.category || filters.classification || filters.state || filters.company
+    filters.category ||
+    filters.classification ||
+    filters.state ||
+    filters.company ||
+    filters.search.trim()
   )
 
   return (
     <div className={styles.filters}>
+      <label className={`${styles.field} ${styles.searchField}`}>
+        <span className={styles.label}>Search</span>
+        <input
+          type="search"
+          className={styles.search}
+          placeholder="Search product, reason, or company…"
+          value={filters.search}
+          onChange={(event) => onChange({ search: event.target.value })}
+        />
+      </label>
+
       <label className={styles.field}>
         <span className={styles.label}>Category</span>
         <select

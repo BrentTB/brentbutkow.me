@@ -6,6 +6,7 @@ export type RecallFilters = {
   classification?: RecallClass
   state?: string
   company?: string
+  search?: string
   limit?: number
 }
 
@@ -15,6 +16,7 @@ export function buildRecallsPath(filters: RecallFilters): string {
   if (filters.classification) params.set('classification', filters.classification)
   if (filters.state) params.set('state', filters.state)
   if (filters.company) params.set('company', filters.company)
+  if (filters.search) params.set('search', filters.search)
   params.set('limit', String(filters.limit ?? 50))
   return `${apiRoutes.recalls.list}?${params.toString()}`
 }

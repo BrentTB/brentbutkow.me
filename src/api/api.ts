@@ -9,6 +9,7 @@ export const apiRoutes = {
     list: '/recalls',
     stats: '/recalls/stats',
   },
+  contact: '/contact',
 } as const
 
 export function apiUrl(path: string): string {
@@ -25,4 +26,14 @@ export async function fetchJson<T>(
   const raw: unknown = await res.json()
   if (validate && !validate(raw)) throw new Error('Unexpected response shape')
   return raw as T
+}
+
+// Fire-and-forget POST — caller cares only about success/failure, so the response body is ignored.
+export async function postJson(path: string, body: unknown): Promise<void> {
+  const res = await fetch(apiUrl(path), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) throw new Error(`Request failed (${res.status})`)
 }

@@ -1,21 +1,21 @@
 .row {
   display: flex;
   align-items: baseline;
-  gap: 28px;
+  gap: 18px;
 }
 
 .platform {
   flex: 0 0 auto;
-  min-width: 110px;
+  min-width: 84px;
   font-family: var(--font-mono);
-  font-size: 0.78rem;
-  letter-spacing: 0.14em;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--muted);
 }
 
 .value {
-  font-size: clamp(1.2rem, 3vw, 1.6rem);
+  font-size: clamp(1rem, 2vw, 1.25rem);
   font-weight: 500;
   color: var(--text);
 }

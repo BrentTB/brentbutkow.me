@@ -12,11 +12,13 @@ describe('buildRecallsPath', () => {
       category: RecallCategory.pathogen,
       classification: RecallClass.classI,
       state: 'CA',
+      search: 'listeria',
       limit: 25,
     })
     expect(path).toContain('category=pathogen')
     expect(path).toContain('classification=Class+I')
     expect(path).toContain('state=CA')
+    expect(path).toContain('search=listeria')
     expect(path).toContain('limit=25')
   })
 })

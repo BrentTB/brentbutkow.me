@@ -21,6 +21,7 @@ export type RecallFilterValues = {
   classification: RecallClass | ''
   state: string
   company: string
+  search: string
 }
 
 export type Recall = {
