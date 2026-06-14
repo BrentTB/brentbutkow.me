@@ -98,13 +98,10 @@ export function renderFrame(
 
   ctx.restore()
 
-  // Warp flash lives in screen space, ramping as the ship nears the portal so it
-  // peaks as the ship is swallowed and the jump completes.
-  if (warping) {
-    const dx = state.portalPos.x - state.ship.pos.x
-    const dy = state.portalPos.y - state.ship.pos.y
-    const proximity = 1 - Math.min(1, Math.hypot(dx, dy) / WARP.spawnAhead)
-    renderWarpTransition(ctx, camera, proximity)
+  // Warp flash lives in screen space. It plays ONLY after the ship reaches the
+  // portal (the flash stage) — never during the fly-in — then the shop opens.
+  if (warping && state.warpFlashTimer > 0) {
+    renderWarpTransition(ctx, camera, 1 - state.warpFlashTimer / WARP.flashDuration)
   }
 }
 

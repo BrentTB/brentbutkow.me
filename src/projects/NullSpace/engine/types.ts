@@ -550,10 +550,14 @@ export type GameState = {
   worldSize: Vec2
   // Sector "forward" unit axis (fixed to FORWARD_DIR this version).
   forwardDir: Vec2
-  // Portal centre at the far end of the corridor (the warp-out point).
+  // Portal the ship flies into during the end-of-sector warp (spawned just ahead
+  // of the ship when the sector clears).
   portalPos: Vec2
-  // Seconds left in the warp transition; 0 outside the `warping` phase.
+  // Safety cap (seconds) on the warp flight; 0 outside the `warping` phase.
   warpTimer: number
+  // Seconds left in the warp screen flash. 0 during the fly-into-portal flight;
+  // set once the ship reaches the portal, then the jump completes when it hits 0.
+  warpFlashTimer: number
   // Mid-corridor mine clusters. Not part of the kill/wave economy.
   hazards: Hazard[]
   waveTimer: number

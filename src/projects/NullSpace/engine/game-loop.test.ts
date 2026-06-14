@@ -263,19 +263,19 @@ describe('advanceWarp', () => {
     warpTimer,
   })
 
-  it('decrements the timer and stays warping while time remains', () => {
+  it('flies (no flash) while the safety timer has time remaining', () => {
     const { state, landed } = advanceWarp(warpingState(1.0), 0.016)
     expect(state.phase).toBe(GamePhase.warping)
     expect(state.warpTimer).toBeCloseTo(0.984)
+    expect(state.warpFlashTimer).toBe(0) // no screen effect during the flight
     expect(landed).toBe(false)
   })
 
-  it('completes the warp into the upgrade screen once the timer elapses', () => {
-    // Regression: the hook must land the warp (open the shop + reseed the
-    // corridor) exactly when warpTimer reaches 0 — not a frame early or late.
+  it('begins the flash (not completion) when the flight safety timer elapses', () => {
     const { state, landed } = advanceWarp(warpingState(0.01), 0.016)
-    expect(state.phase).toBe(GamePhase.upgradeScreen)
-    expect(landed).toBe(true)
+    expect(state.phase).toBe(GamePhase.warping)
+    expect(state.warpFlashTimer).toBeGreaterThan(0)
+    expect(landed).toBe(false)
   })
 
   it('is a no-op outside the warping phase', () => {
@@ -297,11 +297,19 @@ describe('advanceWarp', () => {
     expect(after).toBeLessThan(before)
   })
 
-  it('completes the warp once the ship reaches the portal', () => {
+  it('starts the flash (not completion) when the ship reaches the portal', () => {
     const s = warpingState(WARP.maxDuration)
-    // Park the ship right on the portal → the cutscene lands this frame.
+    // Park the ship right on the portal → the flash begins this frame.
     const atPortal = { ...s, ship: { ...s.ship, pos: { ...s.portalPos } } }
     const { state, landed } = advanceWarp(atPortal, 0.016)
+    expect(landed).toBe(false)
+    expect(state.phase).toBe(GamePhase.warping)
+    expect(state.warpFlashTimer).toBeCloseTo(WARP.flashDuration)
+  })
+
+  it('completes into the upgrade screen once the flash elapses', () => {
+    const s = { ...warpingState(WARP.maxDuration), warpFlashTimer: 0.01 }
+    const { state, landed } = advanceWarp(s, 0.05)
     expect(landed).toBe(true)
     expect(state.phase).toBe(GamePhase.upgradeScreen)
   })

@@ -117,6 +117,7 @@ export function createInitialState(): GameState {
     forwardDir: { ...FORWARD_DIR },
     portalPos: { x: WORLD_SIZE.x / 2, y: WORLD_SIZE.y },
     warpTimer: 0,
+    warpFlashTimer: 0,
     hazards: [],
     waveTimer: 0,
     spawnQueue: [],
@@ -166,6 +167,7 @@ export function startGame(state: GameState, shipKind: ShipKind): GameState {
     forwardDir: { ...FORWARD_DIR },
     portalPos: { x: WORLD_SIZE.x / 2, y: WORLD_SIZE.y },
     warpTimer: 0,
+    warpFlashTimer: 0,
     hazards: [],
     waveTimer: 0,
     spawnQueue: [],
@@ -222,6 +224,7 @@ export function resetForSector(state: GameState): GameState {
     forwardDir: { ...FORWARD_DIR },
     portalPos: { x: corridorCenterX, y: portalY },
     warpTimer: 0,
+    warpFlashTimer: 0,
     hazards: seedField
       ? generateHazardField({
           corridorCenterX,
@@ -236,7 +239,8 @@ export function resetForSector(state: GameState): GameState {
       vel: { x: 0, y: 0 },
       flingVel: { x: 0, y: 0 },
       driftMomentum: 0,
-      weavePhase: 0,
+      // Random start phase so each sector's idle weave doesn't always lead off right.
+      weavePhase: Math.random(),
       lastHeading: { ...FORWARD_DIR },
     },
   }
@@ -422,6 +426,7 @@ export function beginWarp(state: GameState): GameState {
     ...state,
     phase: GamePhase.warping,
     warpTimer: WARP.maxDuration,
+    warpFlashTimer: 0,
     portalPos,
     power,
     spaceMetal,
@@ -448,20 +453,40 @@ export function completeWarp(state: GameState): GameState {
   }
 }
 
-// Flies the ship into the portal each frame (no player control). The sim is
-// suspended while warping — updateGameState early-returns — so the cutscene runs
-// entirely here. Completes when the ship reaches the portal (or the safety cap
-// elapses); `landed` signals the caller to reseed the camera/starfield for the
-// fresh corridor. No world clamp here — the renderer drops the borders so a ship
-// near the top can fly past the edge into the portal without artifacts.
+// Drives the warp cutscene each frame (no player control). The sim is suspended
+// while warping — updateGameState early-returns — so it runs entirely here. Two
+// stages: (1) the ship flies into the portal with NO screen effect; (2) once it
+// arrives, the screen flash plays for `flashDuration`, then the jump completes.
+// `landed` signals the caller to reseed the camera/starfield for the fresh
+// corridor. No world clamp — the renderer drops the borders so a ship near the
+// top can fly past the edge into the portal without artifacts.
 export function advanceWarp(state: GameState, dt: number): { state: GameState; landed: boolean } {
   if (state.phase !== GamePhase.warping) return { state, landed: false }
+
+  // Stage 2 — flash: the ship has reached the portal; hold there while the
+  // screen flash plays, then open the shop.
+  if (state.warpFlashTimer > 0) {
+    const warpFlashTimer = state.warpFlashTimer - dt
+    if (warpFlashTimer <= 0) return { state: completeWarp(state), landed: true }
+    return { state: { ...state, warpFlashTimer }, landed: false }
+  }
+
+  // Stage 1 — flight.
   const warpTimer = Math.max(0, state.warpTimer - dt)
   const dx = state.portalPos.x - state.ship.pos.x
   const dy = state.portalPos.y - state.ship.pos.y
   const dist = Math.hypot(dx, dy)
   if (dist <= WARP.arriveRadius || warpTimer <= 0) {
-    return { state: completeWarp(state), landed: true }
+    // Snap onto the portal and begin the flash — completion waits for it to end.
+    return {
+      state: {
+        ...state,
+        ship: { ...state.ship, pos: { ...state.portalPos } },
+        warpTimer,
+        warpFlashTimer: WARP.flashDuration,
+      },
+      landed: false,
+    }
   }
   const step = Math.min(dist, WARP.flySpeed * dt)
   const nx = dx / dist

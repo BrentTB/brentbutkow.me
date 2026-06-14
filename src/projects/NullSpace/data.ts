@@ -327,6 +327,9 @@ export const WARP = {
   flySpeed: 1200,
   arriveRadius: 70,
   maxDuration: 3,
+  // Once the ship reaches the portal, the screen flash plays for this long
+  // (the only time the warp effect shows) before the shop opens.
+  flashDuration: 0.55,
 } as const
 
 // Enemy spawn angle bias. Most spawns arrive ahead of the ship; the forward cone

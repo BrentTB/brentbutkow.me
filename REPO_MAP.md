@@ -320,24 +320,6 @@ src/projects/NullSpace/
   useNullSpace.ts                            GameUIState, getUnlockedAbilitiesInOrder, abilityKindForHotkey, selectionAfterUltimatePurchase, useNullSpace
   usePseudoFullscreenChrome.ts               usePseudoFullscreenChrome
 
-src/projects/RecallRadar/
-  RecallRadar.tsx                            RecallRadar
-  api.ts                                     fetchJson, RecallFilters, buildRecallsPath
-  chart-format.ts                            formatMonthLabel, formatNumber, formatDate
-
-src/projects/RecallRadar/components/
-  RecallFeed.tsx                             RecallFeed
-  RecallFilters.tsx                          RecallFilters
-  RecallTrendsChart.tsx                      RecallTrendsChart
-  StatCard.tsx                               StatCard
-
-src/projects/RecallRadar/
-  data.ts                                    recallRadarCopy, categoryLabels, recallRadarLinks
-  recall.types.ts                            RecallCategory, RecallClass, Recall, RecallListResult, CategoryCount, MonthCount, RecallStats
-  useApiResource.ts                          ApiState, useApiResource
-  useRecallStats.ts                          useRecallStats
-  useRecalls.ts                              useRecalls
-
 src/routes/
   Router.tsx                                 Router
   routes.config.tsx                          routePaths, funStuffRoutes, routes
