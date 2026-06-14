@@ -20,6 +20,12 @@ function at(stepIndex: number, isTouch = false): TutorialState {
   return { ...createTutorialState(TutorialEntry.firstPlay, isTouch), stepIndex }
 }
 
+// Same, but parked at the step with the given id — survives reordering the script.
+function atId(id: string, isTouch = false): TutorialState {
+  const base = createTutorialState(TutorialEntry.firstPlay, isTouch)
+  return { ...base, stepIndex: base.steps.findIndex((s) => s.id === id) }
+}
+
 function currentId(state: TutorialState): string {
   return state.steps[state.stepIndex].id
 }
@@ -62,41 +68,50 @@ describe('advanceTutorial — triggers', () => {
   })
 
   it('advances the controls beat when a movement key is pressed', () => {
-    const { state } = advanceTutorial(at(1), signals({ realDt: 0.1, movementKeyPressed: true }))
+    const { state } = advanceTutorial(
+      atId('tryControls'),
+      signals({ realDt: 0.1, movementKeyPressed: true })
+    )
     expect(currentId(state)).toBe('controlsRejected')
   })
 
   it('advances the controls beat on the no-stuck fallback even without a key', () => {
-    const { state } = advanceTutorial(at(1), signals({ realDt: 4 }))
+    const { state } = advanceTutorial(atId('tryControls'), signals({ realDt: 4 }))
     expect(currentId(state)).toBe('controlsRejected')
   })
 
   it('advances an acknowledge beat only on a button press', () => {
-    const stay = advanceTutorial(at(2), signals({ realDt: 5 }))
+    const stay = advanceTutorial(atId('controlsRejected'), signals({ realDt: 5 }))
     expect(currentId(stay.state)).toBe('controlsRejected')
     expect(stay.awaitingAck).toBe(true)
     expect(stay.ackLabel).toBe('Next')
-    const { state } = advanceTutorial(at(2), signals({ acknowledged: true }))
+    const { state } = advanceTutorial(atId('controlsRejected'), signals({ acknowledged: true }))
     expect(currentId(state)).toBe('attackPrompt')
   })
 
   it('advances the attack beat on a click and freezes until then', () => {
-    const frozen = advanceTutorial(at(3), signals())
+    const frozen = advanceTutorial(atId('attackPrompt'), signals())
     expect(frozen.frozen).toBe(true)
     expect(frozen.spotlight).toBe('enemy')
-    const { state } = advanceTutorial(at(3), signals({ clicked: true }))
+    const { state } = advanceTutorial(atId('attackPrompt'), signals({ clicked: true }))
     expect(currentId(state)).toBe('attackResolve')
   })
 
   it('advances the fling beat on a fling', () => {
-    const { state } = advanceTutorial(at(5), signals({ flung: true }))
+    const { state } = advanceTutorial(atId('flingPrompt'), signals({ flung: true }))
     expect(currentId(state)).toBe('flingResolve')
   })
 
   it('advances the power beat when power drops to the low fraction', () => {
-    const stay = advanceTutorial(at(7), signals({ powerFraction: POWER_LOW_FRACTION + 0.1 }))
+    const stay = advanceTutorial(
+      atId('powerSpend'),
+      signals({ powerFraction: POWER_LOW_FRACTION + 0.1 })
+    )
     expect(currentId(stay.state)).toBe('powerSpend')
-    const { state } = advanceTutorial(at(7), signals({ powerFraction: POWER_LOW_FRACTION }))
+    const { state } = advanceTutorial(
+      atId('powerSpend'),
+      signals({ powerFraction: POWER_LOW_FRACTION })
+    )
     expect(currentId(state)).toBe('powerRecharge')
   })
 })

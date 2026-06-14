@@ -75,4 +75,14 @@ describe('applyDamageToEnemy', () => {
     const cooled = applyDamageToEnemy({ ...first, hitFlash: 0, hitFlashCooldown: 0 }, 5)
     expect(cooled.hitFlash).toBeCloseTo(ANIMATION.hitFlash)
   })
+
+  it('leaves a mid-decay flash untouched while the cooldown is live', () => {
+    const e = createEnemy(EnemyKind.tank, { x: 0, y: 0 })
+    // Flash still part-way through its decay, cooldown not yet elapsed.
+    const midDecay = { ...e, hitFlash: 0.04, hitFlashCooldown: 0.05 }
+    const again = applyDamageToEnemy(midDecay, 5)
+    expect(again.hp).toBe(e.hp - 5) // HP still drops
+    expect(again.hitFlash).toBe(0.04) // flash preserved, not re-pinned to solid
+    expect(again.hitFlashCooldown).toBe(0.05) // cooldown left to keep counting down
+  })
 })

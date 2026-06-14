@@ -64,6 +64,11 @@ export function NullSpace() {
     else handleStartTutorial(TutorialEntry.firstPlay)
   }, [handleStart, handleStartTutorial])
 
+  const handleReplayTutorial = useCallback(
+    () => handleStartTutorial(TutorialEntry.replay),
+    [handleStartTutorial]
+  )
+
   const [isRealFullscreen, setIsRealFullscreen] = useState(false)
   // Pseudo-fullscreen fallback for browsers without the Fullscreen API
   // (most notably iPhone Safari). Toggled when requestFullscreen is unavailable
@@ -200,7 +205,7 @@ export function NullSpace() {
             onEquipShipWeapon={handleEquipShipWeapon}
             onResume={handleResume}
             onSetSpeed={handleSetSpeedAndSync}
-            onReplayTutorial={() => handleStartTutorial(TutorialEntry.replay)}
+            onReplayTutorial={handleReplayTutorial}
             gameSpeed={gameSpeed}
           />
         </div>

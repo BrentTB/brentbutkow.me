@@ -65,7 +65,8 @@ function stepCopy(step: TutorialStep, isTouch: boolean): string {
 function isSatisfied(step: TutorialStep, elapsedInStep: number, signals: TutorialSignals): boolean {
   switch (step.trigger) {
     case TutorialTriggerKind.time:
-      return elapsedInStep >= (step.durationSeconds ?? 0)
+      // No duration → never auto-advance (don't satisfy on frame 0 with `?? 0`).
+      return elapsedInStep >= (step.durationSeconds ?? Infinity)
     case TutorialTriggerKind.click:
       return signals.clicked
     case TutorialTriggerKind.fling:

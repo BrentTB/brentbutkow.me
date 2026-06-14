@@ -54,4 +54,10 @@ describe('useCoarsePointer', () => {
     act(() => mm.emit(true))
     expect(result.current).toBe(true)
   })
+
+  it('returns false and does not throw where matchMedia is unavailable (SSR / old runtimes)', () => {
+    vi.stubGlobal('matchMedia', undefined)
+    const { result } = renderHook(() => useCoarsePointer())
+    expect(result.current).toBe(false)
+  })
 })

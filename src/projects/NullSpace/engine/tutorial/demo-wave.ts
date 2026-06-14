@@ -2,7 +2,7 @@ import { startGame } from '../game-loop'
 import { createEnemy } from '../entities/entity-creator'
 import { EnemyKind, MovementBehavior, ShipKind } from '../types'
 import type { Enemy, GameState, Vec2 } from '../types'
-import { toroidalDelta } from '../math/toroid'
+import { toroidalDelta, wrapPosition } from '../math/toroid'
 
 // Power pool for the tutorial — far below a real run (100/1000) so a couple of
 // meteorite casts (8 power each) visibly drain the bar for the "power runs low"
@@ -34,14 +34,15 @@ function demoDrone(pos: Vec2, hp: number): Enemy {
 }
 
 // A point `along` units ahead of the ship (along forwardDir) and `side` units
-// perpendicular — keeps demo drones in front of, and clear of, the ship.
+// perpendicular — keeps demo drones in front of, and clear of, the ship. Wrapped
+// back into world bounds so a near-edge ship still spawns on-torus.
 function aheadOfShip(state: GameState, along: number, side: number): Vec2 {
   const { pos } = state.ship
   const fwd = state.forwardDir
-  return {
+  return wrapPosition({
     x: pos.x + fwd.x * along - fwd.y * side,
     y: pos.y + fwd.y * along + fwd.x * side,
-  }
+  })
 }
 
 // Builds the guided demo wave: a fresh fighter run with a few harmless drones
