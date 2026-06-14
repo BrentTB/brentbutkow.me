@@ -135,9 +135,12 @@ export function centerCameraOn(camera: Camera, target: Vec2): Camera {
 
 /**
  * World coord → "render-space" coord. NOT canvas pixels — `renderFrame` sets up
- * `ctx.scale(camera.zoom, camera.zoom)` so the canvas applies the zoom. Torus-
- * aware: `pos` is placed at its image nearest the viewport centre, so an entity
- * just over a world seam still draws adjacent (no jump at the edge).
+ * `ctx.scale(camera.zoom, camera.zoom)`, so both position and drawn size scale
+ * by `zoom` (a 16px sprite renders at 16·zoom px). Torus-aware: `pos` is placed
+ * at its image nearest the viewport centre, so an entity just over a world seam
+ * still draws adjacent (no jump at the edge). Only that single nearest image is
+ * drawn — which assumes the viewport stays narrower than the world (true at all
+ * current zoom levels); a wider one would need the far side tiled in to fill it.
  */
 export function worldToScreen(pos: Vec2, camera: Camera): Vec2 {
   const vw = viewportWorldWidth(camera)

@@ -146,8 +146,7 @@ export function resolveProjectileEnemyCollisions(
         const e = updatedEnemies[i]
         if (e.hp <= 0) continue
         if (!canEnemyTakeDamage(e, updatedEnemies)) continue
-        const dx = e.pos.x - proj.pos.x
-        const dy = e.pos.y - proj.pos.y
+        const { x: dx, y: dy } = toroidalDelta(proj.pos, e.pos)
         if (dx * dx + dy * dy <= r2) {
           updatedEnemies[i] = applyDamageToEnemy(e, d.blastDamage)
         }
@@ -329,8 +328,7 @@ export function resolveEnemyProjectileAllyCollisions(
     for (let i = 0; i < updatedAllies.length; i++) {
       const ally = updatedAllies[i]
       if (ally.hp <= 0) continue
-      const dx = proj.pos.x - ally.pos.x
-      const dy = proj.pos.y - ally.pos.y
+      const { x: dx, y: dy } = toroidalDelta(ally.pos, proj.pos)
       if (dx * dx + dy * dy < (proj.radius + ally.radius) ** 2) {
         updatedAllies[i] = { ...ally, hp: ally.hp - proj.damage }
         allParticles.push(...spawnExplosionParticles(proj.pos, 4, '#88ff88'))
@@ -356,8 +354,7 @@ const MELEE_KNOCKBACK_DISTANCE = 30
 const MELEE_KNOCKBACK_SPEED = 180
 
 function bounceEnemyAway(enemy: Enemy, targetPos: Vec2, targetRadius: number): Enemy {
-  const dx = enemy.pos.x - targetPos.x
-  const dy = enemy.pos.y - targetPos.y
+  const { x: dx, y: dy } = toroidalDelta(targetPos, enemy.pos)
   const dist = Math.sqrt(dx * dx + dy * dy)
   // Dead-center hit (or floating-point dust) — pick an arbitrary direction
   // rather than divide by zero and stick the enemy to the target.
@@ -416,9 +413,7 @@ export function resolveEnemyAllyMeleeCollisions(
     for (let i = 0; i < updatedAllies.length; i++) {
       const ally = updatedAllies[i]
       if (ally.hp <= 0) continue
-      const dx = enemy.pos.x - ally.pos.x
-      const dy = enemy.pos.y - ally.pos.y
-      if (dx * dx + dy * dy < (enemy.radius + ally.radius) ** 2) {
+      if (checkCollision(enemy, ally)) {
         hitAllyIndex = i
         break
       }

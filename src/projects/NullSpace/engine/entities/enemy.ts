@@ -35,6 +35,10 @@ type MoveFn = (enemy: Enemy, ship: Ship, dt: number) => Enemy
 // instead of cancelling the bump on the spot.
 const KNOCKBACK_DECAY = 3
 
+// Park threshold: once a coasting bump slows below 1 px/s, zero it. Squared to
+// skip a sqrt.
+const KNOCKBACK_PARK_SPEED_SQ = 1
+
 // Hold station while any residual velocity (a bump) coasts out and decays — so a
 // knockback flings the enemy instead of being zeroed the instant it wants to
 // stop. Below a crawl it just parks.
@@ -42,7 +46,7 @@ function holdWithKnockback(enemy: Enemy, dt: number): Enemy {
   const decay = Math.exp(-KNOCKBACK_DECAY * dt)
   const vx = enemy.vel.x * decay
   const vy = enemy.vel.y * decay
-  if (vx * vx + vy * vy < 1) return { ...enemy, vel: { x: 0, y: 0 } }
+  if (vx * vx + vy * vy < KNOCKBACK_PARK_SPEED_SQ) return { ...enemy, vel: { x: 0, y: 0 } }
   return {
     ...enemy,
     pos: { x: enemy.pos.x + vx * dt, y: enemy.pos.y + vy * dt },

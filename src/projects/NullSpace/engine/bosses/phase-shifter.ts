@@ -41,8 +41,6 @@ export const PHASE_SHIFTER = {
   ringCountP1: 8,
   ringCountP2: 12,
   ringRadius: 80,
-  // Keeps telegraph targets (and the swarm ring) inside the playfield.
-  worldMargin: 60,
 } as const
 
 function rollTeleportTarget(shipPos: Vec2): Vec2 {

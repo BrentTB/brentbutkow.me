@@ -16,14 +16,13 @@ export type GravityWell = {
 
 // Event Horizon's core behaviour: an enemy reaching `coreRadius` takes
 // `coreDamage` (flat) and is relocated `banishDistance` further from `shipPos`
-// (clamped to `worldSize`). Bosses and invincible enemies are exempt — they
+// (wrapped onto the torus). Bosses and invincible enemies are exempt — they
 // keep spiralling like a plain black hole.
 export type BanishConfig = {
   coreRadius: number
   coreDamage: number
   banishDistance: number
   shipPos: Vec2
-  worldSize: Vec2
 }
 
 export type GravityWellResult = {
@@ -38,8 +37,8 @@ export type GravityWellResult = {
 const SPIRAL_RADIAL = 0.25
 const SPIRAL_TANGENTIAL = 0.85
 
-// Relocates an enemy radially outward from the ship by `banishDistance`, clamped
-// to the playfield. Past the well's reach, so it isn't instantly re-pulled.
+// Relocates an enemy radially outward from the ship by `banishDistance`, wrapped
+// onto the torus. Past the well's reach, so it isn't instantly re-pulled.
 function banishPos(enemyPos: Vec2, cfg: BanishConfig): Vec2 {
   const { x: dx, y: dy } = toroidalDelta(cfg.shipPos, enemyPos)
   const dist = Math.sqrt(dx * dx + dy * dy)

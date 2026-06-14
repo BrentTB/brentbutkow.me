@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   resolveDeathEffects,
   resolveEnemyAllyMeleeCollisions,
+  resolveEnemyProjectileAllyCollisions,
   resolveEnemyProjectileShipCollisions,
   resolveEnemyShipCollisions,
   resolveProjectileEnemyCollisions,
@@ -526,5 +527,59 @@ describe('resolveDeathEffects — bomber blast damages allies', () => {
     const result = resolveDeathEffects([bomber], farShip(), [ally], [dome])
 
     expect(result.allies[0].hp).toBe(100)
+  })
+})
+
+// Toroidal world: blast / overlap / knockback checks must take the SHORT way
+// across a seam. Each test puts an attacker and target on opposite edges — a few
+// units apart through the wrap, ~2590 the long way — so it fails if the check
+// uses raw euclidean math instead of toroidalDelta / checkCollision.
+describe('combat — collisions across the world seam', () => {
+  it('a missile blast damages an enemy whose nearest image is across the seam', () => {
+    // Missile detonates on the trigger at the seam; the victim is 10 units away
+    // through the x wrap. A raw euclidean blast distance (~2590) would miss it.
+    const trigger = { ...createEnemy(EnemyKind.drone, { x: 5, y: 1300 }), hp: 1000 }
+    const victim = { ...createEnemy(EnemyKind.drone, { x: WORLD_SIZE.x - 5, y: 1300 }), hp: 1000 }
+    const missile = buildShipProjectile({ x: 0, y: 1300 }, { x: 5, y: 1300 }, 0, {
+      speed: 100,
+      lifetime: 2,
+      radius: 8,
+      detonate: { aoeRadius: 100, blastDamage: 25 },
+    })
+    missile.prevPos = { x: 5, y: 1300 }
+    missile.pos = { x: 5, y: 1300 }
+
+    // Victim sits inside the 100u blast across the seam, far the long way.
+    expect(distance(missile.pos, victim.pos)).toBeLessThan(100)
+
+    const result = resolveProjectileEnemyCollisions([missile], [trigger, victim])
+    expect(result.enemies.find((e) => e.id === victim.id)?.hp).toBeLessThan(1000)
+  })
+
+  it('an enemy projectile hits an ally across the seam', () => {
+    const ally = createAlly({ x: 3, y: 800 }, 100)
+    const bullet = createProjectile(
+      { x: WORLD_SIZE.x - 3, y: 800 },
+      { x: WORLD_SIZE.x - 13, y: 800 },
+      ProjectileOwner.enemy,
+      10
+    )
+    expect(distance(bullet.pos, ally.pos)).toBeLessThan(bullet.radius + ally.radius)
+
+    const result = resolveEnemyProjectileAllyCollisions([bullet], [ally])
+    expect(result.allies[0].hp).toBeLessThan(100)
+    expect(result.projectiles).toHaveLength(0)
+  })
+
+  it('an enemy melees an ally across the seam and is knocked back the short way', () => {
+    const ally = createAlly({ x: 5, y: 500 }, 100)
+    const drone = { ...createEnemy(EnemyKind.drone, { x: WORLD_SIZE.x - 5, y: 500 }) }
+    expect(distance(drone.pos, ally.pos)).toBeLessThan(drone.radius + ally.radius)
+
+    const result = resolveEnemyAllyMeleeCollisions([drone], [ally])
+    // Collision registered through the seam → ally took contact damage.
+    expect(result.allies[0].hp).toBeLessThan(100)
+    // Knocked back along the short (wrapping) axis toward −x, not the long way.
+    expect(result.enemies[0].pos.x).toBeLessThan(ally.pos.x)
   })
 })

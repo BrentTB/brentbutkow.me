@@ -105,10 +105,8 @@ export const VOID_WORM_BOSS: BossDefinition = {
     let self: BossUpdateResult['self']
 
     if (worm.stage === WormStage.cruise) {
-      // Weave toward the ship at cruise speed, re-aiming every tick. Clamp
-      // matches the charge branch — a ship kited to a world edge would
-      // otherwise drag the head off the playfield (MovementBehavior.none
-      // never bounds it).
+      // Weave toward the ship at cruise speed, re-aiming every tick. Wrap the
+      // head onto the torus — MovementBehavior.none never bounds it.
       const homed = homeTowardTarget(boss.pos, ctx.shipPos, VOID_WORM.cruiseSpeed, dt)
       self = { pos: wrapPosition(homed.pos), vel: homed.vel }
       const heading = unitToward(boss.pos, ctx.shipPos)

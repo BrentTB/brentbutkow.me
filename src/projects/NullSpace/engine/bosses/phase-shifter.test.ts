@@ -58,7 +58,7 @@ describe('Phase Shifter — damage gate', () => {
 })
 
 describe('Phase Shifter — teleport cycle', () => {
-  it('idle expiry starts a telegraph with a target near the ship, inside margins', () => {
+  it('idle expiry starts a telegraph with a target near the ship', () => {
     const { boss } = tick([shifterWith(ShifterStage.idle, 0.001)])
     const shifter = shifterState(boss)
     expect(shifter.stage).toBe(ShifterStage.telegraph)
@@ -67,10 +67,6 @@ describe('Phase Shifter — teleport cycle', () => {
     const d = Math.hypot(shifter.targetPos!.x - CTX.shipPos.x, shifter.targetPos!.y - CTX.shipPos.y)
     expect(d).toBeGreaterThanOrEqual(PHASE_SHIFTER.arrivalMin)
     expect(d).toBeLessThanOrEqual(PHASE_SHIFTER.arrivalMax)
-    expect(shifter.targetPos!.x).toBeGreaterThanOrEqual(PHASE_SHIFTER.worldMargin)
-    expect(shifter.targetPos!.x).toBeLessThanOrEqual(WORLD_SIZE.x - PHASE_SHIFTER.worldMargin)
-    expect(shifter.targetPos!.y).toBeGreaterThanOrEqual(PHASE_SHIFTER.worldMargin)
-    expect(shifter.targetPos!.y).toBeLessThanOrEqual(WORLD_SIZE.y - PHASE_SHIFTER.worldMargin)
   })
 
   it('wraps the telegraph target across the seam when the ship hugs an edge', () => {

@@ -4,8 +4,9 @@ import type { EnemyKind } from './engine/types'
 export const GAME_NAME = 'Null Space'
 
 // The world is a torus — both axes wrap, no walls. Fixed size across sectors
-// (difficulty scales via waves, not space). Comfortably exceeds the largest
-// on-screen viewport extent (~1700) so every entity has a single nearest image.
+// (difficulty scales via waves, not space). Half-width is 1300; every spatial
+// delta the game measures (aim, blast, collision) stays well under that, so the
+// shortest-path / nearest-image is always unambiguous.
 export const WORLD_SIZE = { x: 2600, y: 2600 }
 
 export const SHIELD_COOLDOWN = 3
@@ -405,6 +406,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         'Enemies that stop to shoot now turn to face you, instead of pointing a fixed direction while firing.',
         'Your ship no longer gets stuck circling beneath an enemy (and slowly sinking with it) — it now orbits targets smoothly to either side.',
         "Force Field and Shield now bump and catch enemies across the world's wrap-around edges, not only on the side where they were cast.",
+        "Missile blast damage and ally collisions now also register across the world's wrap-around edges, matching targeting and homing.",
         'Force Field now flings stationary enemies it expands into (like shooters holding their ground), the same as ones that fly into it.',
         'The warp portal and the warp flash now line up — the view locks onto the portal as the ship arrives, so the rings stay concentric.',
       ],
