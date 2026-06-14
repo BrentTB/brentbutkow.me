@@ -400,6 +400,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         'The warp portal no longer sits unreached at the far end during play. Clear a sector and it appears just ahead of your ship, which flies into it for a brief hands-off jump to the next sector.',
         'Hazard mines are scattered sparsely across the whole corridor instead of bunched into one band.',
         'A soft slingshot into a corridor wall now eases back gently instead of springing you off it.',
+        'When hunting, the ship orbits to whichever side an enemy sits on instead of always strafing the same direction.',
       ],
       architecture: [
         'All enemy damage funnels through a single applyDamageToEnemy helper, which is what lets the regenerating enemy shield work everywhere without touching each weapon. Per-wave stat scaling and the modifier roll both apply at spawn. The end-of-sector warp is a hands-off cutscene: the portal spawns ahead of the ship and advanceWarp flies it in (camera unclamped, corridor borders dropped) before the shop opens.',

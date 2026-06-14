@@ -240,7 +240,7 @@ export function resetForSector(state: GameState): GameState {
       flingVel: { x: 0, y: 0 },
       driftMomentum: 0,
       // Random start phase so each sector's idle weave doesn't always lead off right.
-      weavePhase: Math.random(),
+      weavePhase: rng.next(),
       lastHeading: { ...FORWARD_DIR },
     },
   }
@@ -478,10 +478,11 @@ export function advanceWarp(state: GameState, dt: number): { state: GameState; l
   const dist = Math.hypot(dx, dy)
   if (dist <= WARP.arriveRadius || warpTimer <= 0) {
     // Snap onto the portal and begin the flash — completion waits for it to end.
+    // Zero the velocity so the sprite held under the flash doesn't carry stale motion.
     return {
       state: {
         ...state,
-        ship: { ...state.ship, pos: { ...state.portalPos } },
+        ship: { ...state.ship, pos: { ...state.portalPos }, vel: { x: 0, y: 0 } },
         warpTimer,
         warpFlashTimer: WARP.flashDuration,
       },

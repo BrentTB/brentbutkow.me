@@ -72,7 +72,7 @@ export function createShip(kind: ShipKind, worldSize: Vec2): Ship {
     attackRange: s.attackRange,
     driftMomentum: 0,
     // Random start phase so the idle weave doesn't always lead off the same way.
-    weavePhase: Math.random(),
+    weavePhase: rng.next(),
     weaponSlots: s.weaponSlots,
     equippedWeapons: Array(s.weaponSlots).fill(ShipWeaponKind.bullet),
     // Faces up the corridor (forward = +y) at spawn.

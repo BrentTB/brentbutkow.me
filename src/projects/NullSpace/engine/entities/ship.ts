@@ -270,8 +270,8 @@ export function updateShipDrift(
     const tangent = speed * SECTOR.orbitSpeedFraction
     // Orbit toward the side the target sits on (its lateral offset) rather than
     // always circling the same way — otherwise every head-on engagement strafes
-    // the same direction.
-    const hand = dirX >= 0 ? 1 : -1
+    // the same direction. A perfectly vertical target breaks the tie on fore/aft.
+    const hand = dirX > 0 || (dirX === 0 && dirY >= 0) ? 1 : -1
     let desiredX = dirX * radial - hand * dirY * tangent
     let desiredY = dirY * radial + hand * dirX * tangent
     const dmag = Math.hypot(desiredX, desiredY)

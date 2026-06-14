@@ -126,6 +126,10 @@ export function getWave(waveNumber: number, bossKind?: EnemyKind): EnemyKind[] {
     queue.push(bossKind)
   }
 
+  // Never hand back an empty wave — the wave-clear gate needs at least one
+  // enemy, so a zero-count composition would stall sector progression.
+  if (queue.length === 0) queue.push(EnemyKind.drone)
+
   return queue
 }
 
@@ -144,8 +148,7 @@ export function getWaveDelay(waveNumber: number): number {
 }
 
 // Kill-based progress through the current sector (0..1): each cleared wave fills
-// one segment, advancing within a wave as its enemies die. Shared by the HUD
-// sector bar, the in-world portal glow, and the ship's forward advance.
+// one segment, advancing within a wave as its enemies die. Drives the HUD sector bar.
 export function sectorProgress(opts: {
   wave: number
   spawnedInWave: number

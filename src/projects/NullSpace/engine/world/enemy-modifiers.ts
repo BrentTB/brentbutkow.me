@@ -75,5 +75,10 @@ export function applyModifier(enemy: Enemy, modifier: EnemyModifier): Enemy {
         maxHp: enemy.maxHp * ENEMY_MODIFIERS.giantHpMult,
       }
     }
+    default: {
+      // Exhaustiveness guard — a new EnemyModifier must add a case above.
+      const unhandled: never = modifier
+      throw new Error(`Unhandled enemy modifier: ${String(unhandled)}`)
+    }
   }
 }

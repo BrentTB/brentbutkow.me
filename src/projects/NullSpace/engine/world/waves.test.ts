@@ -22,6 +22,14 @@ describe('getWave', () => {
     expect(kinds.every((k) => k === EnemyKind.drone)).toBe(true)
   })
 
+  // The wave-clear gate needs at least one enemy; a zero-count composition would
+  // stall sector progression. Pins that no archetype/wave ever spawns empty.
+  it('never returns an empty wave across a deep run', () => {
+    for (let wave = 1; wave <= 200; wave++) {
+      expect(getWave(wave).length).toBeGreaterThan(0)
+    }
+  })
+
   it('later waves include tanks', () => {
     const kinds = getWave(4)
     expect(kinds.some((k) => k === EnemyKind.tank)).toBe(true)
