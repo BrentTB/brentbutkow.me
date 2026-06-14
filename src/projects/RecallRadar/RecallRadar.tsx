@@ -46,7 +46,7 @@ export function RecallRadar() {
     classification: filters.classification || undefined,
     state: filters.state || undefined,
     company: filters.company || undefined,
-    search: debouncedSearch || undefined,
+    search: debouncedSearch.trim() || undefined,
     limit: 50,
   })
 

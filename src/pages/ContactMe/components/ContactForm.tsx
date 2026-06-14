@@ -99,7 +99,7 @@ export function ContactForm() {
       </div>
 
       <p className={styles.note}>
-        Sends basic technical context (timezone, locale, browser) to help me reply.
+        Sends basic technical context (timezone, locale, referring page) to help me reply.
       </p>
     </form>
   )

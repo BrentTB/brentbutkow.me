@@ -24,7 +24,11 @@ export function RecallFilters({
   onClear,
 }: RecallFiltersProps) {
   const hasActive = Boolean(
-    filters.category || filters.classification || filters.state || filters.company || filters.search
+    filters.category ||
+    filters.classification ||
+    filters.state ||
+    filters.company ||
+    filters.search.trim()
   )
 
   return (

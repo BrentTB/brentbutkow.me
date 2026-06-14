@@ -28,12 +28,12 @@ export async function fetchJson<T>(
   return raw as T
 }
 
-export async function postJson<T>(path: string, body: unknown): Promise<T> {
+// Fire-and-forget POST — caller cares only about success/failure, so the response body is ignored.
+export async function postJson(path: string, body: unknown): Promise<void> {
   const res = await fetch(apiUrl(path), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   })
   if (!res.ok) throw new Error(`Request failed (${res.status})`)
-  return (await res.json()) as T
 }
