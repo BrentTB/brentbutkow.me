@@ -13,14 +13,24 @@ export const RecallClass = {
   classII: 'Class II',
   classIII: 'Class III',
   publicHealthAlert: 'Public Health Alert',
+  productRecall: 'Product Recall',
+  allergyAlert: 'Allergy Alert',
+  foodAlertForAction: 'Food Alert for Action',
 } as const
 export type RecallClass = (typeof RecallClass)[keyof typeof RecallClass]
 
 export const RecallSource = {
   fda: 'fda',
   usda: 'usda',
+  uk: 'uk',
 } as const
 export type RecallSource = (typeof RecallSource)[keyof typeof RecallSource]
+
+export const RecallCountry = {
+  us: 'us',
+  uk: 'uk',
+} as const
+export type RecallCountry = (typeof RecallCountry)[keyof typeof RecallCountry]
 
 // UI filter state — '' means "no filter".
 export type RecallFilterValues = {
@@ -33,6 +43,7 @@ export type RecallFilterValues = {
 }
 
 export type Recall = {
+  country: RecallCountry
   source: RecallSource
   recallNumber: string
   sourceUrl: string | null
@@ -87,6 +98,9 @@ export const isRecallClass = (value: string): value is RecallClass =>
 export const isRecallSource = (value: string): value is RecallSource =>
   (Object.values(RecallSource) as string[]).includes(value)
 
+export const isRecallCountry = (value: string): value is RecallCountry =>
+  (Object.values(RecallCountry) as string[]).includes(value)
+
 const isLabelCount = (value: unknown): value is LabelCount =>
   isRecord(value) && typeof value.label === 'string' && typeof value.count === 'number'
 
@@ -100,6 +114,7 @@ const isRecall = (value: unknown): value is Recall =>
   isRecord(value) &&
   typeof value.recallNumber === 'string' &&
   typeof value.source === 'string' &&
+  typeof value.country === 'string' &&
   typeof value.productDescription === 'string' &&
   typeof value.reasonText === 'string' &&
   typeof value.category === 'string' &&

@@ -4,6 +4,7 @@ import { RecallFeed } from './RecallFeed'
 import type { Recall } from '../recall.types'
 
 const recall: Recall = {
+  country: 'us',
   source: 'usda',
   recallNumber: 'F-1234',
   sourceUrl: 'https://www.fsis.usda.gov/recalls/test',

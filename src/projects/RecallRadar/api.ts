@@ -1,7 +1,8 @@
 import { apiRoutes } from '../../api/api'
-import type { RecallCategory, RecallClass, RecallSource } from './recall.types'
+import type { RecallCategory, RecallClass, RecallCountry, RecallSource } from './recall.types'
 
 export type RecallFilters = {
+  country?: RecallCountry
   category?: RecallCategory
   classification?: RecallClass
   state?: string
@@ -13,6 +14,7 @@ export type RecallFilters = {
 
 export function buildRecallsPath(filters: RecallFilters): string {
   const params = new URLSearchParams()
+  if (filters.country) params.set('country', filters.country)
   if (filters.category) params.set('category', filters.category)
   if (filters.classification) params.set('classification', filters.classification)
   if (filters.state) params.set('state', filters.state)

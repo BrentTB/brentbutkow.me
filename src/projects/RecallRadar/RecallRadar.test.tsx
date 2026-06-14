@@ -34,6 +34,7 @@ const stats = {
 const recalls = {
   items: [
     {
+      country: 'us',
       source: 'fda',
       recallNumber: 'F-1',
       sourceUrl: null,
@@ -79,11 +80,12 @@ describe('RecallRadar page', () => {
     // tech-stack overview + methodology render immediately (not data-gated)
     expect(screen.getByText('FastAPI')).toBeTruthy()
     expect(screen.getByText('How this works')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'United Kingdom' })).toBeTruthy() // country selector
 
     // data-driven sections after the fetch resolves
     await waitFor(() => expect(screen.getByText('Test cookies')).toBeTruthy())
     expect(screen.getByText('Acme Foods')).toBeTruthy()
-    expect(screen.getByText('Recalls by state')).toBeTruthy()
+    expect(screen.getByText('US recalls by state')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'California: 18 recalls' })).toBeTruthy()
     // trend callouts + per-recall drill-down detail
     expect(screen.getByText('the leading cause of recalls')).toBeTruthy()

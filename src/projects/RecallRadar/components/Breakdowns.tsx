@@ -78,31 +78,37 @@ export function Breakdowns({ stats, filters, onSelect }: BreakdownsProps) {
           count: c.count,
         }))}
       />
-      {/* byState carries every state for the map; the leaderboard shows the top rows. */}
-      <BreakdownList
-        title="Top states"
-        activeValue={filters.state}
-        onSelect={(value) => onSelect({ state: value })}
-        rows={stats.byState
-          .slice(0, 15)
-          .map((c) => ({ label: c.label, value: c.label, count: c.count }))}
-      />
+      {/* byState carries every state for the map; the leaderboard shows the top rows. UK has no
+          states, so it's hidden there. */}
+      {stats.byState.length > 0 && (
+        <BreakdownList
+          title="Top states"
+          activeValue={filters.state}
+          onSelect={(value) => onSelect({ state: value })}
+          rows={stats.byState
+            .slice(0, 15)
+            .map((c) => ({ label: c.label, value: c.label, count: c.count }))}
+        />
+      )}
       <BreakdownList
         title="Top companies"
         activeValue={filters.company}
         onSelect={(value) => onSelect({ company: value })}
         rows={stats.byCompany.map((c) => ({ label: c.label, value: c.label, count: c.count }))}
       />
-      <BreakdownList
-        title="By source"
-        activeValue={filters.source}
-        onSelect={(value) => onSelect({ source: value as RecallSource | '' })}
-        rows={stats.bySource.map((c) => ({
-          label: sourceLabels[c.label as RecallSource] ?? c.label,
-          value: c.label,
-          count: c.count,
-        }))}
-      />
+      {/* One source (UK) → nothing to break down; hidden there. */}
+      {stats.bySource.length > 1 && (
+        <BreakdownList
+          title="By source"
+          activeValue={filters.source}
+          onSelect={(value) => onSelect({ source: value as RecallSource | '' })}
+          rows={stats.bySource.map((c) => ({
+            label: sourceLabels[c.label as RecallSource] ?? c.label,
+            value: c.label,
+            count: c.count,
+          }))}
+        />
+      )}
     </div>
   )
 }

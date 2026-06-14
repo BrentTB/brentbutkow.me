@@ -6,6 +6,7 @@ import { getLinkArrow } from '../../components/utils/link-arrow'
 import { useFunMode } from '../../contexts/useFunMode'
 import { useDebouncedValue } from '../../api/useDebouncedValue'
 import { Breakdowns } from './components/Breakdowns'
+import { CountrySelector } from './components/CountrySelector'
 import { ProjectOverview } from './components/ProjectOverview'
 import { RecallFeed } from './components/RecallFeed'
 import { RecallFilters } from './components/RecallFilters'
@@ -22,7 +23,7 @@ import {
   monthsForYear,
 } from './chart-format'
 import { deriveCallouts } from './trend-callouts'
-import type { RecallFilterValues } from './recall.types'
+import { RecallCountry, type RecallFilterValues } from './recall.types'
 import { useRecalls } from './useRecalls'
 import { useRecallStats } from './useRecallStats'
 import styles from './RecallRadar.module.scss'
@@ -38,12 +39,21 @@ const EMPTY_FILTERS: RecallFilterValues = {
 
 export function RecallRadar() {
   const { isFunMode } = useFunMode()
+  const [country, setCountry] = useState<RecallCountry>(RecallCountry.us)
   const [filters, setFilters] = useState<RecallFilterValues>(EMPTY_FILTERS)
   const [year, setYear] = useState<number | null>(null)
   const debouncedSearch = useDebouncedValue(filters.search, 500)
 
-  const stats = useRecallStats()
+  // Switching country is a fresh view — reset filters + year so US selections don't leak into UK.
+  const changeCountry = (next: RecallCountry) => {
+    setCountry(next)
+    setFilters(EMPTY_FILTERS)
+    setYear(null)
+  }
+
+  const stats = useRecallStats(country)
   const recalls = useRecalls({
+    country,
     category: filters.category || undefined,
     classification: filters.classification || undefined,
     state: filters.state || undefined,
@@ -74,13 +84,23 @@ export function RecallRadar() {
       <PageHeader title={recallRadarCopy.title} showBackButton />
       <p className={styles.intro}>{isFunMode ? recallRadarCopy.introFun : recallRadarCopy.intro}</p>
 
+      <CountrySelector value={country} onChange={changeCountry} />
+
       {freshness && (
         <p className={`${styles.freshness} ${freshness.stale ? styles.stale : ''}`}>
           {freshness.label}
         </p>
       )}
 
-      <ProjectOverview />
+      <button
+        type="button"
+        className={styles.techStackLink}
+        onClick={() =>
+          document.getElementById('tech-stack')?.scrollIntoView({ behavior: 'smooth' })
+        }
+      >
+        Interested in the tech stack? ↓
+      </button>
 
       {stats.data && (
         <div className={styles.stats}>
@@ -132,9 +152,9 @@ export function RecallRadar() {
         {stats.data && <RecallTrendsChart data={monthSeries} year={selectedYear} />}
       </section>
 
-      {stats.data && (
+      {stats.data && country === RecallCountry.us && (
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Recalls by state</h2>
+          <h2 className={styles.sectionTitle}>US recalls by state</h2>
           <p className={styles.hint}>Click a state to filter the recalls below.</p>
           <RecallMap
             byState={stats.data.byState}
@@ -158,6 +178,7 @@ export function RecallRadar() {
         </h2>
         <RecallFilters
           filters={filters}
+          country={country}
           stateOptions={stateOptions}
           companyOptions={companyOptions}
           onChange={patch}
@@ -178,6 +199,10 @@ export function RecallRadar() {
           </ul>
         </details>
       </section>
+
+      <div id="tech-stack">
+        <ProjectOverview />
+      </div>
 
       <footer className={styles.footer}>
         <p className={styles.methodology}>{recallRadarCopy.methodology}</p>

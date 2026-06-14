@@ -5,6 +5,7 @@ import { FunStuffPage } from '../pages/FunStuff/FunStuffPage'
 import { HomePage } from '../pages/Home/HomePage'
 import { NotFoundPage } from '../pages/NotFound/NotFoundPage'
 import { AchievementsPage } from '../pages/Achievements/AchievementsPage'
+import { ProjectsPage } from '../pages/Projects/ProjectsPage'
 import { lazy } from 'react'
 import { AppRoute } from './routes.types'
 import { funStuffSubRoutes } from '../pages/FunStuff/data'
@@ -42,6 +43,7 @@ export const routePaths = {
   experience: '/experience',
   education: '/education',
   achievements: '/achievements',
+  projects: '/projects',
   recallRadar: '/recall-radar',
   funStuff: '/fun-stuff',
   contact: '/contact',
@@ -105,9 +107,16 @@ export const routes: AppRoute[] = [
     title: 'Achievements — Brent Butkow',
   },
   {
+    path: routePaths.projects,
+    element: <ProjectsPage />,
+    label: 'Projects',
+    title: 'Projects — Brent Butkow',
+  },
+  {
+    // Reached via the Projects page, not a top-level nav tab.
     path: routePaths.recallRadar,
     element: <RecallRadar />,
-    label: 'Recall Radar',
+    dontShowInNavbar: true,
     title: 'Recall Radar — Brent Butkow',
   },
   {

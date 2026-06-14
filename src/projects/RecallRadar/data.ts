@@ -1,15 +1,15 @@
-import { RecallCategory, RecallSource } from './recall.types'
+import { RecallCategory, RecallClass, RecallCountry, RecallSource } from './recall.types'
 
 export const recallRadarCopy = {
   title: 'Recall Radar',
   intro:
-    'A live view of US food-safety recalls. Each day this pulls the latest reports from the FDA and USDA FSIS, sorts them by likely cause, and tracks the trend over time.',
+    'A live view of US & UK food-safety recalls. Each day this pulls the latest reports from the US (FDA, USDA FSIS) and the UK (FSA), sorts them by likely cause, and tracks the trend over time.',
   introFun:
-    "Because nothing says 'fun side project' like undeclared peanuts and the occasional rogue metal fragment — live FDA & USDA food recalls, sorted and plotted.",
+    "Because nothing says 'fun side project' like undeclared peanuts and the occasional rogue metal fragment — live US & UK food recalls, sorted and plotted.",
   methodology:
-    'Sources: openFDA food-enforcement reports and USDA FSIS recalls + public health alerts. Categories are assigned by a TF-IDF + logistic-regression classifier trained on the recall text; the % on each recall is the model confidence.',
+    'Sources: US openFDA + USDA FSIS, and UK Food Standards Agency alerts. Categories are assigned by a TF-IDF + logistic-regression classifier trained on the recall text; the % on each recall is the model confidence.',
   about:
-    'A full-stack side project. A Python/FastAPI service ingests US food-recall data from the FDA (openFDA) and USDA FSIS every day, classifies each recall by likely cause, and stores it in Postgres; this React + TypeScript dashboard reads a documented JSON API to explore it. Built production-shaped — typed end to end, tested, migrated with Alembic, rate-limited, and deployed behind a daily ingest job.',
+    'A full-stack side project. A Python/FastAPI service ingests food-recall data from the US (FDA openFDA, USDA FSIS) and the UK (Food Standards Agency) every day, classifies each recall by likely cause, and stores it in Postgres; this React + TypeScript dashboard reads a documented JSON API to explore it. Built production-shaped — typed end to end, tested, migrated with Alembic, rate-limited, and deployed behind a daily ingest job.',
 }
 
 export const techStack: { area: string; items: string[] }[] = [
@@ -25,7 +25,7 @@ export const techStack: { area: string; items: string[] }[] = [
     area: 'Data & infra',
     items: [
       'PostgreSQL (Neon)',
-      'openFDA + USDA FSIS APIs',
+      'openFDA + USDA FSIS + UK FSA APIs',
       'GitHub Actions (daily ingest)',
       'Render',
       'Docker',
@@ -34,7 +34,7 @@ export const techStack: { area: string; items: string[] }[] = [
 ]
 
 export const methodologyPoints: string[] = [
-  'Data comes from two federal sources — the FDA openFDA food-enforcement API and USDA FSIS (meat, poultry & egg recalls + public health alerts) — re-ingested daily via a GitHub Actions cron.',
+  'Data comes from the US (FDA openFDA + USDA FSIS) and the UK (Food Standards Agency), re-ingested daily via a GitHub Actions cron.',
   "Each recall's cause is predicted by a TF-IDF + logistic-regression classifier trained on its reason text; the % shown is the model's confidence.",
   'The model is weakly supervised by a keyword baseline (no human-labelled gold set), so it generalises that taxonomy rather than beating an independent ground truth.',
   'The dashboard flags when the last successful ingest is more than two days old.',
@@ -51,6 +51,33 @@ export const categoryLabels: Record<RecallCategory, string> = {
 export const sourceLabels: Record<RecallSource, string> = {
   [RecallSource.fda]: 'FDA',
   [RecallSource.usda]: 'USDA FSIS',
+  [RecallSource.uk]: 'UK FSA',
+}
+
+export const countryLabels: Record<RecallCountry, string> = {
+  [RecallCountry.us]: 'United States',
+  [RecallCountry.uk]: 'United Kingdom',
+}
+
+// Which classifications / sources belong to each country — drives the country-specific filters
+// (US and UK are shown separately, so their dropdowns must not bleed into each other).
+export const classesByCountry: Record<RecallCountry, RecallClass[]> = {
+  [RecallCountry.us]: [
+    RecallClass.classI,
+    RecallClass.classII,
+    RecallClass.classIII,
+    RecallClass.publicHealthAlert,
+  ],
+  [RecallCountry.uk]: [
+    RecallClass.productRecall,
+    RecallClass.allergyAlert,
+    RecallClass.foodAlertForAction,
+  ],
+}
+
+export const sourcesByCountry: Record<RecallCountry, RecallSource[]> = {
+  [RecallCountry.us]: [RecallSource.fda, RecallSource.usda],
+  [RecallCountry.uk]: [RecallSource.uk],
 }
 
 export const recallRadarLinks = [
@@ -59,5 +86,6 @@ export const recallRadarLinks = [
     label: 'USDA FSIS recall API',
     href: 'https://www.fsis.usda.gov/science-data/developer-resources/recall-api',
   },
+  { label: 'UK FSA food alerts API', href: 'https://data.food.gov.uk/food-alerts/ui/reference' },
   { label: 'Source on GitHub', href: 'https://github.com/BrentTB/brentbutkow.me-backend' },
 ]

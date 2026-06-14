@@ -1,30 +1,37 @@
-import { categoryLabels, sourceLabels } from '../data'
+import { categoryLabels, classesByCountry, sourceLabels, sourcesByCountry } from '../data'
 import {
   RecallCategory,
-  RecallClass,
-  RecallSource,
   isRecallCategory,
   isRecallClass,
   isRecallSource,
+  type RecallCountry,
   type RecallFilterValues,
 } from '../recall.types'
+import { Select, type SelectOption } from '../../../components/inputs/Select'
 import styles from './RecallFilters.module.scss'
 
 type RecallFiltersProps = {
   filters: RecallFilterValues
+  country: RecallCountry
   stateOptions: string[]
   companyOptions: string[]
   onChange: (patch: Partial<RecallFilterValues>) => void
   onClear: () => void
 }
 
+const ALL: SelectOption = { value: '', label: 'All' }
+
 export function RecallFilters({
   filters,
+  country,
   stateOptions,
   companyOptions,
   onChange,
   onClear,
 }: RecallFiltersProps) {
+  // Classification + source options are country-specific so the US/UK dropdowns stay separate.
+  const classOptions = classesByCountry[country]
+  const sourceOptions = sourcesByCountry[country]
   const hasActive = Boolean(
     filters.category ||
     filters.classification ||
@@ -33,6 +40,27 @@ export function RecallFilters({
     filters.source ||
     filters.search.trim()
   )
+
+  const categoryOptions: SelectOption[] = [
+    ALL,
+    ...Object.values(RecallCategory).map((value) => ({ value, label: categoryLabels[value] })),
+  ]
+  const classificationOptions: SelectOption[] = [
+    ALL,
+    ...classOptions.map((value) => ({ value, label: value })),
+  ]
+  const sourceFilterOptions: SelectOption[] = [
+    ALL,
+    ...sourceOptions.map((value) => ({ value, label: sourceLabels[value] })),
+  ]
+  const stateFilterOptions: SelectOption[] = [
+    ALL,
+    ...stateOptions.map((value) => ({ value, label: value })),
+  ]
+  const companyFilterOptions: SelectOption[] = [
+    ALL,
+    ...companyOptions.map((value) => ({ value, label: value })),
+  ]
 
   return (
     <div className={styles.filters}>
@@ -47,94 +75,59 @@ export function RecallFilters({
         />
       </label>
 
-      <label className={styles.field}>
+      <div className={styles.field}>
         <span className={styles.label}>Category</span>
-        <select
-          className={styles.select}
+        <Select
+          ariaLabel="Category"
           value={filters.category}
-          onChange={(event) => {
-            const value = event.target.value
-            onChange({ category: isRecallCategory(value) ? value : '' })
-          }}
-        >
-          <option value="">All</option>
-          {Object.values(RecallCategory).map((value) => (
-            <option key={value} value={value}>
-              {categoryLabels[value]}
-            </option>
-          ))}
-        </select>
-      </label>
+          options={categoryOptions}
+          onChange={(value) => onChange({ category: isRecallCategory(value) ? value : '' })}
+        />
+      </div>
 
-      <label className={styles.field}>
+      <div className={styles.field}>
         <span className={styles.label}>Classification</span>
-        <select
-          className={styles.select}
+        <Select
+          ariaLabel="Classification"
           value={filters.classification}
-          onChange={(event) => {
-            const value = event.target.value
-            onChange({ classification: isRecallClass(value) ? value : '' })
-          }}
-        >
-          <option value="">All</option>
-          {Object.values(RecallClass).map((value) => (
-            <option key={value} value={value}>
-              {value}
-            </option>
-          ))}
-        </select>
-      </label>
+          options={classificationOptions}
+          onChange={(value) => onChange({ classification: isRecallClass(value) ? value : '' })}
+        />
+      </div>
 
-      <label className={styles.field}>
-        <span className={styles.label}>Source</span>
-        <select
-          className={styles.select}
-          value={filters.source}
-          onChange={(event) => {
-            const value = event.target.value
-            onChange({ source: isRecallSource(value) ? value : '' })
-          }}
-        >
-          <option value="">All</option>
-          {Object.values(RecallSource).map((value) => (
-            <option key={value} value={value}>
-              {sourceLabels[value]}
-            </option>
-          ))}
-        </select>
-      </label>
+      {sourceOptions.length > 1 && (
+        <div className={styles.field}>
+          <span className={styles.label}>Source</span>
+          <Select
+            ariaLabel="Source"
+            value={filters.source}
+            options={sourceFilterOptions}
+            onChange={(value) => onChange({ source: isRecallSource(value) ? value : '' })}
+          />
+        </div>
+      )}
 
-      <label className={styles.field}>
-        <span className={styles.label}>State</span>
-        <select
-          className={styles.select}
-          value={filters.state}
-          onChange={(event) => onChange({ state: event.target.value })}
-        >
-          <option value="">All</option>
-          {stateOptions.map((value) => (
-            <option key={value} value={value}>
-              {value}
-            </option>
-          ))}
-        </select>
-      </label>
+      {stateOptions.length > 0 && (
+        <div className={styles.field}>
+          <span className={styles.label}>State</span>
+          <Select
+            ariaLabel="State"
+            value={filters.state}
+            options={stateFilterOptions}
+            onChange={(value) => onChange({ state: value })}
+          />
+        </div>
+      )}
 
-      <label className={styles.field}>
+      <div className={styles.field}>
         <span className={styles.label}>Company</span>
-        <select
-          className={styles.select}
+        <Select
+          ariaLabel="Company"
           value={filters.company}
-          onChange={(event) => onChange({ company: event.target.value })}
-        >
-          <option value="">All</option>
-          {companyOptions.map((value) => (
-            <option key={value} value={value}>
-              {value}
-            </option>
-          ))}
-        </select>
-      </label>
+          options={companyFilterOptions}
+          onChange={(value) => onChange({ company: value })}
+        />
+      </div>
 
       {hasActive && (
         <button type="button" className={styles.clear} onClick={onClear}>
