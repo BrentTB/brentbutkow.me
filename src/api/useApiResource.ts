@@ -8,7 +8,7 @@ export type ApiState<T> = {
 }
 
 // Generic GET-and-track hook: loading/error state plus in-flight cancellation on
-// path change / unmount. Shared by useRecalls + useRecallStats.
+// path change / unmount. Reused by every module's data hooks.
 export function useApiResource<T>(path: string): ApiState<T> {
   const [state, setState] = useState<ApiState<T>>({ data: null, loading: true, error: null })
 

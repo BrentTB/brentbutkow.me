@@ -8,6 +8,11 @@ Format: `<file>  <exported symbols>`. Use this to locate code instead of greppin
 src/
   App.tsx                                    App
 
+src/api/
+  api.ts                                     apiRoutes, apiUrl, fetchJson
+  useApiResource.ts                          ApiState, useApiResource
+  useWarmApi.ts                              useWarmApi
+
 src/components/CodeSection/
   CodeSection.tsx                            CodeBlock, CodeSection
   useCopyToClipboard.ts                      useCopyToClipboard
@@ -318,7 +323,7 @@ src/projects/NullSpace/
 
 src/projects/RecallRadar/
   RecallRadar.tsx                            RecallRadar
-  api.ts                                     fetchJson, RecallFilters, buildRecallsPath
+  api.ts                                     RecallFilters, buildRecallsPath
   chart-format.ts                            formatMonthLabel, formatNumber, formatDate
 
 src/projects/RecallRadar/components/
@@ -330,7 +335,6 @@ src/projects/RecallRadar/components/
 src/projects/RecallRadar/
   data.ts                                    recallRadarCopy, categoryLabels, recallRadarLinks
   recall.types.ts                            RecallCategory, RecallClass, Recall, RecallListResult, CategoryCount, MonthCount, RecallStats
-  useApiResource.ts                          ApiState, useApiResource
   useRecallStats.ts                          useRecallStats
   useRecalls.ts                              useRecalls
 
