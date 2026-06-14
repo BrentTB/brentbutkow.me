@@ -3,7 +3,10 @@ import type { EnemyKind } from './engine/types'
 
 export const GAME_NAME = 'Null Space'
 
-export const WORLD_SIZE = { x: 3000, y: 3000 }
+// The world is a torus — both axes wrap, no walls. Fixed size across sectors
+// (difficulty scales via waves, not space). Comfortably exceeds the largest
+// on-screen viewport extent (~1700) so every entity has a single nearest image.
+export const WORLD_SIZE = { x: 2600, y: 2600 }
 
 export const SHIELD_COOLDOWN = 3
 
@@ -312,15 +315,13 @@ export const SPAWN_DISTANCE = { min: 650, max: 1050 } as const
 // Half-width of the box swarm members scatter into around their shared spawn center.
 export const SWARM_SPAWN_SPREAD = 60
 
-// Each level is a finite corridor the ship advances up toward a portal. "Forward"
-// is stored as a vector so the math is direction-agnostic; every sector uses -y
-// (up the screen). The ship enters at the bottom; the portal sits at the top.
+// The world is a torus, but the ship keeps a gentle "forward" it drifts along when
+// idle — stored as a vector so the math is direction-agnostic. Forward is -y (up
+// the screen); flying off any edge wraps seamlessly to the opposite side.
 export const FORWARD_DIR = { x: 0, y: -1 } as const
+
+// Ship idle-drift and hunt-orbit tuning.
 export const SECTOR = {
-  width: 1400, // corridor width (lateral, X) — soft-tethered
-  length: 6000, // corridor length (forward, Y)
-  shipStartOffset: 700, // ship entry is this far up from the bottom (high Y)
-  portalInset: 500, // portal sits this far down from the top (low Y)
   driftSpeed: 75, // gentle forward drift when no enemies (world units/sec)
   weaveAmplitude: 90, // lateral weave half-width during idle drift
   weaveFrequency: 0.5, // weave cycles/sec
@@ -328,10 +329,6 @@ export const SECTOR = {
   orbitRangeFraction: 0.55, // hunt orbit radius = attackRange × this
   orbitSpeedFraction: 0.7, // tangential (circling) speed = ship speed × this
   steerRate: 3, // how fast velocity eases toward the desired heading (flowy turns)
-  lateralMargin: 120, // soft-tether margin inside each wall (before the hard clamp)
-  lateralTetherStrength: 4, // restoring accel past the soft corridor edge
-  lateralTetherMax: 80, // cap on the lateral restoring velocity — keeps a spent fling
-  // pinned at the wall from being flung back at a depth-proportional (and jarring) speed
 } as const
 
 // End-of-sector warp cutscene. The portal only appears once the sector clears:
@@ -358,20 +355,19 @@ export const SPAWN_CONE = {
   minHalfAngle: Math.PI / 6, // floor at ±30°
 } as const
 
-// Mines scattered sparsely across the whole corridor — thread between them as
+// Mines scattered sparsely across the whole world — thread between them as
 // the ship advances (Escape Mode dashes through unharmed).
 export const HAZARD = {
-  mineCount: 14, // mines spread across the corridor length (sparse)
+  mineCount: 14, // mines scattered across the world (sparse)
   mineRadius: 26,
   mineDamage: 35,
-  lateralFraction: 0.7, // mines stay within ±this × corridorHalfWidth — clear lateral gaps at the edges
-  forwardMargin: 500, // keep mines this far from the entry and portal ends
+  forwardMargin: 500, // keep mines at least this far from the ship's spawn point
   laneEveryWaves: 2, // a minefield appears every N non-boss sectors
   hitCooldown: 1, // seconds before a mine can re-hit the ship
   color: '#d6533a',
 } as const
 
-// The portal at the far end of each corridor. Dormant until the sector clears.
+// The portal the ship warps through when a sector clears. Dormant until then.
 export const PORTAL = {
   radius: 120,
   activeColor: 'rgba(176, 130, 255, 0.9)',
@@ -401,6 +397,35 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.25.1',
+    date: '2026-06-14',
+    changes: {
+      fixes: [
+        'Enemies that stop to shoot now turn to face you, instead of pointing a fixed direction while firing.',
+        'Your ship no longer gets stuck circling beneath an enemy (and slowly sinking with it) — it now orbits targets smoothly to either side.',
+        "Force Field and Shield now bump and catch enemies across the world's wrap-around edges, not only on the side where they were cast.",
+        'Force Field now flings stationary enemies it expands into (like shooters holding their ground), the same as ones that fly into it.',
+        'The warp portal and the warp flash now line up — the view locks onto the portal as the ship arrives, so the rings stay concentric.',
+      ],
+    },
+  },
+  {
+    version: '0.25.0',
+    date: '2026-06-14',
+    changes: {
+      features: [
+        'The world is now endless — fly off any edge and you seamlessly reappear on the opposite side, in every direction. No more walls or corridor; space wraps around you like a globe.',
+        'Targeting, homing, AoE, and collisions all take the shortest path across the wrap, so enemies and shots just over an edge are handled exactly like ones right in front of you.',
+      ],
+      breaking: [
+        'Saves from before the endless-world update are cleared — the world model changed, so older runs can no longer be continued.',
+      ],
+      architecture: [
+        'Replaced the bounded corridor with a fixed-size torus: one toroidal-math layer (wrap, shortest-delta, nearest-image) now feeds distance, aim, and collision, with all rendering wrapping through a single camera chokepoint.',
+      ],
+    },
+  },
   {
     version: '0.24.3',
     date: '2026-06-14',

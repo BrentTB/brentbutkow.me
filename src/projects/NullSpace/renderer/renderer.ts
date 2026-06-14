@@ -27,6 +27,7 @@ import {
 import { EFFECT_DEFINITIONS } from '../engine/systems/effects'
 import { ABILITY_LIST } from '../engine/abilities'
 import { getBossDefinition } from '../engine/bosses'
+import { enemyFacing } from '../engine/entities/enemy'
 import type { Camera } from './camera'
 import { isWithinView, worldToScreen } from './camera'
 import type { AnimationCache, SpriteCache } from './sprite-cache'
@@ -34,10 +35,13 @@ import { getSpriteSize, pickFrame } from './sprite-cache'
 import { AnimationKey, SpriteKey } from './sprites'
 import type { Star } from './starfield'
 import { renderStarfield } from './starfield'
-import { renderCorridor } from './corridor'
 import { renderPortal } from './portal'
 import { renderHazardField } from './hazard-field'
 import { renderWarpTransition } from './warp'
+
+// Dev-only (env-gated, set in .env.local): draw the torus wrap seam so the
+// otherwise-invisible world edge is visible while testing wrapping.
+const SHOW_WORLD_BORDER = import.meta.env.VITE_NULL_SPACE_SHOW_WORLD_BORDER === 'true'
 
 const ENEMY_SPRITE: Record<EnemyKind, SpriteKey> = {
   [EnemyKind.drone]: SpriteKey.drone,
@@ -116,11 +120,11 @@ export function renderFrame(
     state.phase !== GamePhase.gameOver
 
   renderStarfield(ctx, stars, camera)
+  if (SHOW_WORLD_BORDER) renderWorldBorder(ctx, camera)
   const warping = state.phase === GamePhase.warping
-  // During the warp cutscene the corridor borders drop (so a ship near the top
-  // can fly past the edge into the portal cleanly) and only the portal shows.
+  // During the warp cutscene the hazard field is hidden so only the portal shows
+  // as the ship flies in.
   if (shipInWorld && !warping) {
-    renderCorridor(ctx, state, camera)
     renderHazardField(ctx, state, camera)
   }
   if (warping) renderPortal(ctx, state, camera)
@@ -150,6 +154,28 @@ export function renderFrame(
   if (warping && state.warpFlashTimer > 0) {
     renderWarpTransition(ctx, camera, 1 - state.warpFlashTimer / WARP.flashDuration)
   }
+}
+
+// Dev overlay (env-gated): the torus wrap seam — the lines where world x ≡ 0 and
+// y ≡ 0. worldToScreen places each at its nearest image, so the line slides in as
+// the ship nears that edge (there is exactly one seam per axis on a torus).
+function renderWorldBorder(ctx: CanvasRenderingContext2D, camera: Camera): void {
+  const vw = camera.width / camera.zoom
+  const vh = camera.height / camera.zoom
+  const seamX = worldToScreen({ x: 0, y: camera.y + vh / 2 }, camera).x
+  const seamY = worldToScreen({ x: camera.x + vw / 2, y: 0 }, camera).y
+
+  ctx.save()
+  ctx.strokeStyle = 'rgba(255, 80, 255, 0.7)'
+  ctx.lineWidth = 2
+  ctx.setLineDash([14, 10])
+  ctx.beginPath()
+  ctx.moveTo(seamX, 0)
+  ctx.lineTo(seamX, vh)
+  ctx.moveTo(0, seamY)
+  ctx.lineTo(vw, seamY)
+  ctx.stroke()
+  ctx.restore()
 }
 
 // Generic dispatch: every active effect draws via the renderBack/renderFront
@@ -396,11 +422,10 @@ function renderEnemies(
 
     ctx.save()
     ctx.translate(screen.x, screen.y)
-    // Stationary enemies (vel = 0) draw upright — atan2(0, 0) is 0 in JS, so
-    // the +π/2 facing offset would otherwise tilt them 90° for no reason.
-    const stationary = enemy.vel.x === 0 && enemy.vel.y === 0
-    const angle = stationary ? 0 : Math.atan2(enemy.vel.y, enemy.vel.x) + Math.PI / 2
-    ctx.rotate(angle)
+    // Face velocity when moving, else the nearest target — so a parked shooter
+    // points at what it fires at instead of a fixed heading.
+    const facing = enemyFacing(enemy, state.ship, state.allies)
+    ctx.rotate(Math.atan2(facing.y, facing.x) + Math.PI / 2)
     ctx.globalAlpha = spriteAlpha * spawnT
     // Giant modifier oversizes the sprite; spawn-in grow + idle pulse compose on top.
     const giant = enemy.modifier === EnemyModifier.giant ? ENEMY_MODIFIERS.giantRadiusMult : 1

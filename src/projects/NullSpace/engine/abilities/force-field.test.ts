@@ -4,6 +4,7 @@ import { ABILITY_DEFINITIONS } from '.'
 import { applyShieldConstraints, createShieldEffect } from './shield'
 import { createForceFieldEffect, getForceFieldCurrentRadius } from './force-field'
 import { FORCE_FIELD, SHIELD } from './ability-data'
+import { WORLD_SIZE } from '../../data'
 import { createEnemy } from '../entities/entity-creator'
 import { createInitialUpgrades } from '../upgrades'
 import { AbilityKind, EnemyKind } from '../types'
@@ -98,6 +99,27 @@ describe('forceField', () => {
     upgrades[UpgradeId.forceFieldKnockback] = { currentTier: 1 }
     const patch = forceField.applyUpgrades!(makeAbility(), upgrades)
     expect(patch.force).toBeGreaterThan(FORCE_FIELD.knockback)
+  })
+
+  // Regression: knockback must reach across the world seam. A dome hugging one
+  // edge has to catch an enemy hugging the opposite edge (10 units away on the
+  // torus), not ignore it as ~a-world-away by raw subtraction.
+  it('catches and flings an enemy across the world seam', () => {
+    const field = createForceFieldEffect(
+      { x: 5, y: 0 },
+      SHIELD.radius,
+      FORCE_FIELD.growDuration,
+      FORCE_FIELD.bumpDamage,
+      FORCE_FIELD.knockback
+    )
+    // 10 units left of the dome, across the seam (raw distance ≈ WORLD_SIZE.x).
+    const enemy = {
+      ...createEnemy(EnemyKind.drone, { x: WORLD_SIZE.x - 5, y: 0 }),
+      vel: { x: 0, y: 0 },
+    }
+    const res = applyShieldConstraints([field], [enemy], DT)
+    // Hurled further out across the seam (−x) at the knockback speed.
+    expect(res.enemies[0].vel.x).toBeCloseTo(-FORCE_FIELD.knockback, 5)
   })
 
   // Regression: the base shield must keep reflecting and dealing zero damage —

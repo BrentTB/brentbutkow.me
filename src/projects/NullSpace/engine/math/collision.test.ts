@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { checkCollision, distance, segmentIntersectsCircle } from './collision'
+import { WORLD_SIZE } from '../../data'
 import type { Entity } from '../types'
+
+const W = WORLD_SIZE.x
 
 function makeEntity(x: number, y: number, radius: number): Entity {
   return { id: 'test', pos: { x, y }, vel: { x: 0, y: 0 }, radius, hp: 1, maxHp: 1 }
@@ -24,6 +27,13 @@ describe('checkCollision', () => {
     const b = makeEntity(20, 0, 10)
     expect(checkCollision(a, b)).toBe(false)
   })
+
+  it('detects overlap across the world seam', () => {
+    // 5px inside opposite edges — a world apart by raw subtraction, 10px on the torus.
+    const a = makeEntity(W - 5, 0, 10)
+    const b = makeEntity(5, 0, 10)
+    expect(checkCollision(a, b)).toBe(true)
+  })
 })
 
 describe('distance', () => {
@@ -33,6 +43,10 @@ describe('distance', () => {
 
   it('returns 0 for same point', () => {
     expect(distance({ x: 5, y: 5 }, { x: 5, y: 5 })).toBe(0)
+  })
+
+  it('measures the short way across the seam', () => {
+    expect(distance({ x: W - 5, y: 0 }, { x: 5, y: 0 })).toBeCloseTo(10, 6)
   })
 })
 
@@ -85,5 +99,16 @@ describe('segmentIntersectsCircle', () => {
     expect(distance(bulletCur, enemyPos) < collisionRadius).toBe(false)
     // Swept check catches it
     expect(segmentIntersectsCircle(bulletPrev, bulletCur, enemyPos, collisionRadius)).toBe(true)
+  })
+
+  it('regression: a bullet crossing the world seam still hits an enemy over the edge', () => {
+    // Collision runs before the position-wrap, so the segment stays unwrapped and
+    // short (W-10 → W+30, stepping over the right seam at W). The enemy sits just
+    // past the seam at x=10; its nearest image to the segment is x=W+10, so the
+    // swept test hits it instead of missing a whole world away.
+    const bulletPrev = { x: W - 10, y: 0 }
+    const bulletCur = { x: W + 30, y: 0 }
+    const enemyPos = { x: 10, y: 0 }
+    expect(segmentIntersectsCircle(bulletPrev, bulletCur, enemyPos, 14)).toBe(true)
   })
 })

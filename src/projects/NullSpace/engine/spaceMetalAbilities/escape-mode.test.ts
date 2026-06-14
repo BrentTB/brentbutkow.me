@@ -60,17 +60,12 @@ describe('escape-mode space-metal ability', () => {
     let state = tryActivateSpaceMetalAbility(ready(), SpaceMetalAbilityKind.escapeDash)
     let acc = 0
     // Tick past the charge duration in two halves.
-    const result1 = tickEscapeMode(state.ship, ESCAPE_MODE.chargeDuration / 2, acc, state.worldSize)
+    const result1 = tickEscapeMode(state.ship, ESCAPE_MODE.chargeDuration / 2, acc)
     state = { ...state, ship: result1.ship }
     acc = result1.trailAccumulator
     expect(state.ship.escapeMode!.phase).toBe(EscapeModePhase.charge)
 
-    const result2 = tickEscapeMode(
-      state.ship,
-      ESCAPE_MODE.chargeDuration / 2 + 0.001,
-      acc,
-      state.worldSize
-    )
+    const result2 = tickEscapeMode(state.ship, ESCAPE_MODE.chargeDuration / 2 + 0.001, acc)
     state = { ...state, ship: result2.ship }
     expect(state.ship.escapeMode!.phase).toBe(EscapeModePhase.dash)
     expect(state.ship.escapeMode!.timer).toBeCloseTo(ESCAPE_MODE.dashDuration)
@@ -80,23 +75,18 @@ describe('escape-mode space-metal ability', () => {
     let state = tryActivateSpaceMetalAbility(ready(), SpaceMetalAbilityKind.escapeDash)
     let acc = 0
     // Skip past charge.
-    let result = tickEscapeMode(
-      state.ship,
-      ESCAPE_MODE.chargeDuration + 0.001,
-      acc,
-      state.worldSize
-    )
+    let result = tickEscapeMode(state.ship, ESCAPE_MODE.chargeDuration + 0.001, acc)
     state = { ...state, ship: result.ship }
     acc = result.trailAccumulator
 
     // Tick the dash forward — should spawn particles.
-    result = tickEscapeMode(state.ship, 0.1, acc, state.worldSize)
+    result = tickEscapeMode(state.ship, 0.1, acc)
     expect(result.particles.length).toBeGreaterThan(0)
     state = { ...state, ship: result.ship }
     acc = result.trailAccumulator
 
     // Finish the dash.
-    result = tickEscapeMode(state.ship, ESCAPE_MODE.dashDuration + 0.001, acc, state.worldSize)
+    result = tickEscapeMode(state.ship, ESCAPE_MODE.dashDuration + 0.001, acc)
     expect(result.ship.escapeMode).toBeNull()
   })
 

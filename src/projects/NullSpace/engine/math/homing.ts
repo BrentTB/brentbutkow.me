@@ -1,4 +1,5 @@
 import type { Vec2 } from '../types'
+import { toroidalDelta } from './toroid'
 
 /**
  * Move a point toward a target with a constant magnet speed. The returned
@@ -14,8 +15,7 @@ export function homeTowardTarget(
   strength: number,
   dt: number
 ): { pos: Vec2; vel: Vec2 } {
-  const dx = target.x - pos.x
-  const dy = target.y - pos.y
+  const { x: dx, y: dy } = toroidalDelta(pos, target)
   const dist = Math.sqrt(dx * dx + dy * dy)
   if (dist <= 0.1) {
     return { pos: { ...pos }, vel: { x: 0, y: 0 } }

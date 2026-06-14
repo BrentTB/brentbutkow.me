@@ -1,6 +1,7 @@
 import { ENEMY_STATS } from '../../data'
 import { checkCollision, distance, segmentIntersectsCircle } from '../math/collision'
 import { homeTowardTarget } from '../math/homing'
+import { toroidalDelta } from '../math/toroid'
 import { spawnExplosionParticles } from '../entities/entity-creator'
 import { applyDamageToEnemy } from '../entities/enemy-damage'
 import { applyDamageToShip } from '../entities/ship'
@@ -24,8 +25,7 @@ export function updateProjectiles(
         let nearestDist = Infinity
         for (const e of enemies) {
           if (!canEnemyTakeDamage(e, enemies)) continue
-          const dx = e.pos.x - p.pos.x
-          const dy = e.pos.y - p.pos.y
+          const { x: dx, y: dy } = toroidalDelta(p.pos, e.pos)
           const d = dx * dx + dy * dy
           if (d < nearestDist) {
             nearestDist = d
@@ -210,8 +210,7 @@ export function resolveProjectileEnemyCollisions(
           if (bounce.hitEnemyIds.includes(other.id)) continue
           // Don't bounce toward an invincible target (shielded boss).
           if (!canEnemyTakeDamage(other, updatedEnemies)) continue
-          const dx = other.pos.x - proj.pos.x
-          const dy = other.pos.y - proj.pos.y
+          const { x: dx, y: dy } = toroidalDelta(proj.pos, other.pos)
           const d = dx * dx + dy * dy
           if (d < nextDistSq) {
             nextDistSq = d
@@ -222,8 +221,7 @@ export function resolveProjectileEnemyCollisions(
           hitProjectiles.add(proj)
           break
         }
-        const dx = next.pos.x - proj.pos.x
-        const dy = next.pos.y - proj.pos.y
+        const { x: dx, y: dy } = toroidalDelta(proj.pos, next.pos)
         const len = Math.sqrt(dx * dx + dy * dy) || 1
         const speed = Math.hypot(proj.vel.x, proj.vel.y) || 1
         proj.vel = { x: (dx / len) * speed, y: (dy / len) * speed }

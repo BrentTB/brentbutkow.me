@@ -21,10 +21,11 @@ export function HelpScreen({ onClose }: HelpScreenProps) {
       <section className={styles.section}>
         <h3 className={styles.heading}>Gameplay</h3>
         <p>
-          You are a cosmic guardian watching over a lone ship as it auto-pilots forward through one
-          hostile sector after another. You do not pilot the ship — it threads the corridor on its
-          own. Clear each wave to push the front toward the portal, then warp to the next sector,
-          and use your abilities to blast enemies before they reach the hull.
+          You are a cosmic guardian watching over a lone ship as it auto-pilots through one hostile
+          sector after another. You do not pilot the ship — it weaves through the endless dark on
+          its own, where flying off any edge loops straight back around. Clear every wave to open
+          the portal, then warp to the next sector, and use your abilities to blast enemies before
+          they reach the hull.
         </p>
       </section>
 

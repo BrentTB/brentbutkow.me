@@ -1,4 +1,5 @@
 import type { Vec2 } from '../engine/types'
+import { toroidalDelta, wrapPosition } from '../engine/math/toroid'
 
 /**
  * Reference canvas size that defines the "intended" zoom level (1.0).
@@ -106,70 +107,50 @@ export function isWithinView(screen: Vec2, camera: Camera, margin: number): bool
   )
 }
 
-/**
- * Clamps a camera top-left coordinate to the world on one axis. When the world
- * extent is smaller than the viewport (e.g. a 1400-wide corridor on a wide
- * desktop), the world is centered instead of pinned to the 0 edge.
- */
-export function clampCameraAxis(
-  target: number,
-  worldExtent: number,
-  viewportExtent: number
-): number {
-  if (worldExtent <= viewportExtent) return (worldExtent - viewportExtent) / 2
-  return Math.max(0, Math.min(worldExtent - viewportExtent, target))
+// Stores the camera origin wrapped into [0, world) so it never grows unbounded
+// over an endless run.
+function wrapCameraOrigin(camera: Camera, x: number, y: number): Camera {
+  const w = wrapPosition({ x, y })
+  return { ...camera, x: w.x, y: w.y }
 }
 
-// `clampToBounds` keeps the camera inside the world; the warp cutscene passes
-// false so it can follow the ship past the corridor edge into the portal.
-export function updateCamera(
-  camera: Camera,
-  target: Vec2,
-  dt: number,
-  worldSize: Vec2,
-  clampToBounds = true
-): Camera {
+// Follows `target` (the ship) on the torus: the camera centre chases the
+// target's NEAREST image, so crossing a world seam pans smoothly instead of
+// whipping the long way around.
+export function updateCamera(camera: Camera, target: Vec2, dt: number): Camera {
   const vw = viewportWorldWidth(camera)
   const vh = viewportWorldHeight(camera)
-  const targetX = target.x - vw / 2
-  const targetY = target.y - vh / 2
+  const center = { x: camera.x + vw / 2, y: camera.y + vh / 2 }
+  const d = toroidalDelta(center, target)
   const lerp = 1 - Math.pow(0.01, dt)
-
-  const rawX = camera.x + (targetX - camera.x) * lerp
-  const rawY = camera.y + (targetY - camera.y) * lerp
-  const x = clampToBounds ? clampCameraAxis(rawX, worldSize.x, vw) : rawX
-  const y = clampToBounds ? clampCameraAxis(rawY, worldSize.y, vh) : rawY
-
-  return { ...camera, x, y }
+  return wrapCameraOrigin(camera, camera.x + d.x * lerp, camera.y + d.y * lerp)
 }
 
-/** Snap the camera so its viewport is centered on `target`, clamped to world bounds. */
-export function centerCameraOn(camera: Camera, target: Vec2, worldSize: Vec2): Camera {
+/** Snap the camera so its viewport is centred on `target` (torus-wrapped). */
+export function centerCameraOn(camera: Camera, target: Vec2): Camera {
   const vw = viewportWorldWidth(camera)
   const vh = viewportWorldHeight(camera)
-  const x = clampCameraAxis(target.x - vw / 2, worldSize.x, vw)
-  const y = clampCameraAxis(target.y - vh / 2, worldSize.y, vh)
-  return { ...camera, x, y }
+  return wrapCameraOrigin(camera, target.x - vw / 2, target.y - vh / 2)
 }
 
 /**
  * World coord → "render-space" coord. NOT canvas pixels — `renderFrame` sets up
- * `ctx.scale(camera.zoom, camera.zoom)` so the canvas applies the zoom
- * multiplication. Render code treats this output as a 1:1-with-the-active-
- * transform position, which makes BOTH position AND drawn size scale together
- * (a 16-px sprite drawn at this coord appears as 16*zoom canvas pixels).
+ * `ctx.scale(camera.zoom, camera.zoom)` so the canvas applies the zoom. Torus-
+ * aware: `pos` is placed at its image nearest the viewport centre, so an entity
+ * just over a world seam still draws adjacent (no jump at the edge).
  */
 export function worldToScreen(pos: Vec2, camera: Camera): Vec2 {
-  return {
-    x: pos.x - camera.x,
-    y: pos.y - camera.y,
-  }
+  const vw = viewportWorldWidth(camera)
+  const vh = viewportWorldHeight(camera)
+  const center = { x: camera.x + vw / 2, y: camera.y + vh / 2 }
+  const d = toroidalDelta(center, pos)
+  return { x: vw / 2 + d.x, y: vh / 2 + d.y }
 }
 
-/** Canvas pixel → world coord. Used for click input — accounts for zoom. */
+/** Canvas pixel → world coord (click input), wrapped back into the torus. */
 export function screenToWorld(screenPos: Vec2, camera: Camera): Vec2 {
-  return {
+  return wrapPosition({
     x: screenPos.x / camera.zoom + camera.x,
     y: screenPos.y / camera.zoom + camera.y,
-  }
+  })
 }

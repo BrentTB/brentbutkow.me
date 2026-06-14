@@ -246,7 +246,7 @@ src/projects/NullSpace/engine/
 src/projects/NullSpace/engine/entities/
   ally.ts                                    updateAllies
   enemy-damage.ts                            applyDamageToEnemy
-  enemy.ts                                   findNearestTarget, updateEnemyMovement, updateEnemyShooting
+  enemy.ts                                   findNearestTarget, enemyFacing, updateEnemyMovement, updateEnemyShooting
   entity-creator.ts                          uid, createShip, createEnemy, createProjectile, createAlly, createHelperFactory, createParticle, spawnExplosionParticles, updateParticles, createDeathAnim, updateDeathAnims, createAbilities
   ship.ts                                    applySlingshot, tickSlingHeat, tickFling, applyDamageToShip, tickEscapeMode, updateShipDrift, updateShipAttack
 
@@ -258,8 +258,9 @@ src/projects/NullSpace/engine/math/
   collision.ts                               checkCollision, distance, segmentIntersectsCircle
   homing.ts                                  homeTowardTarget
   random.ts                                  rng
-  steering.ts                                driftWithWeave, softTether1D
-  utils.ts                                   clamp, clampToWorld
+  steering.ts                                driftWithWeave
+  toroid.ts                                  wrapPosition, toroidalDelta, toroidalDistance, nearestImage
+  utils.ts                                   clamp
   vec.ts                                     ringPositions, unitToward
 
 src/projects/NullSpace/engine/ship/
@@ -310,8 +311,7 @@ src/projects/NullSpace/input/
   sling-gesture.ts                           SLING_MAX_DRAG_PX, SlingGesture, tryGrabShip, moveGesture, releaseGesture
 
 src/projects/NullSpace/renderer/
-  camera.ts                                  REFERENCE_VIEW, DEFAULT_GAME_ZOOM, Camera, createCamera, computeZoom, HUD_SCALE_MIN, HUD_SCALE_MAX, computeHudScale, isWithinView, clampCameraAxis, updateCamera, centerCameraOn, worldToScreen, screenToWorld
-  corridor.ts                                renderCorridor
+  camera.ts                                  REFERENCE_VIEW, DEFAULT_GAME_ZOOM, Camera, createCamera, computeZoom, HUD_SCALE_MIN, HUD_SCALE_MAX, computeHudScale, isWithinView, updateCamera, centerCameraOn, worldToScreen, screenToWorld
   draw.ts                                    fillRadialGlow
   hazard-field.ts                            renderHazardField
   portal.ts                                  renderPortal

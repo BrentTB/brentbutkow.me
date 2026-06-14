@@ -1,3 +1,4 @@
+import { toroidalDelta } from '../math/toroid'
 import type { Enemy, Vec2 } from '../types'
 
 // Direction of the force: pull enemies toward the center, or push them away.
@@ -28,8 +29,7 @@ export function applyRadialForce(
     return peakForce * 0.5 * (Math.cos(Math.PI * t) + 1)
   }
   return enemies.map((enemy) => {
-    const dx = center.x - enemy.pos.x
-    const dy = center.y - enemy.pos.y
+    const { x: dx, y: dy } = toroidalDelta(enemy.pos, center)
     const dist = Math.sqrt(dx * dx + dy * dy)
     if (dist < 0.01) return enemy
     const f = forceAt(dist)

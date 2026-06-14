@@ -1,5 +1,6 @@
 import { ANIMATION, ENEMY_STATS } from '../../data'
 import { distance } from '../math/collision'
+import { toroidalDelta } from '../math/toroid'
 import { createProjectile } from './entity-creator'
 import { MovementBehavior, ProjectileOwner } from '../types'
 import type { Ally, Enemy, Projectile, Ship, Vec2 } from '../types'
@@ -18,11 +19,39 @@ export function findNearestTarget(pos: Vec2, ship: Ship, allies: Ally[]): Vec2 {
   return nearest
 }
 
+// Direction the enemy sprite should point: its velocity when moving, otherwise
+// toward the nearest target — so a parked shooter faces what it fires at rather
+// than a fixed heading.
+export function enemyFacing(enemy: Enemy, ship: Ship, allies: Ally[]): Vec2 {
+  if (enemy.vel.x !== 0 || enemy.vel.y !== 0) return enemy.vel
+  return toroidalDelta(enemy.pos, findNearestTarget(enemy.pos, ship, allies))
+}
+
 type MoveFn = (enemy: Enemy, ship: Ship, dt: number) => Enemy
 
+// How fast a knockback impulse (e.g. a Force Field bump) bleeds off once the
+// enemy's own AI would otherwise sit still. Chasers already decay it through
+// their velocity blend; this lets keepRange/stationary enemies coast out too
+// instead of cancelling the bump on the spot.
+const KNOCKBACK_DECAY = 3
+
+// Hold station while any residual velocity (a bump) coasts out and decays — so a
+// knockback flings the enemy instead of being zeroed the instant it wants to
+// stop. Below a crawl it just parks.
+function holdWithKnockback(enemy: Enemy, dt: number): Enemy {
+  const decay = Math.exp(-KNOCKBACK_DECAY * dt)
+  const vx = enemy.vel.x * decay
+  const vy = enemy.vel.y * decay
+  if (vx * vx + vy * vy < 1) return { ...enemy, vel: { x: 0, y: 0 } }
+  return {
+    ...enemy,
+    pos: { x: enemy.pos.x + vx * dt, y: enemy.pos.y + vy * dt },
+    vel: { x: vx, y: vy },
+  }
+}
+
 function moveChase(enemy: Enemy, ship: Ship, dt: number): Enemy {
-  const dx = ship.pos.x - enemy.pos.x
-  const dy = ship.pos.y - enemy.pos.y
+  const { x: dx, y: dy } = toroidalDelta(enemy.pos, ship.pos)
   const dist = Math.sqrt(dx * dx + dy * dy)
   if (dist < 1) return enemy
 
@@ -45,13 +74,12 @@ function moveChase(enemy: Enemy, ship: Ship, dt: number): Enemy {
 }
 
 function moveKeepRange(enemy: Enemy, ship: Ship, dt: number): Enemy {
-  const dx = ship.pos.x - enemy.pos.x
-  const dy = ship.pos.y - enemy.pos.y
+  const { x: dx, y: dy } = toroidalDelta(enemy.pos, ship.pos)
   const dist = Math.sqrt(dx * dx + dy * dy)
   if (dist < 1) return enemy
 
   if (dist < enemy.attackRange * 0.7) {
-    return { ...enemy, vel: { x: 0, y: 0 } }
+    return holdWithKnockback(enemy, dt)
   }
 
   const nx = dx / dist
@@ -67,8 +95,7 @@ function moveKeepRange(enemy: Enemy, ship: Ship, dt: number): Enemy {
 }
 
 function moveZigzag(enemy: Enemy, ship: Ship, dt: number): Enemy {
-  const dx = ship.pos.x - enemy.pos.x
-  const dy = ship.pos.y - enemy.pos.y
+  const { x: dx, y: dy } = toroidalDelta(enemy.pos, ship.pos)
   const dist = Math.sqrt(dx * dx + dy * dy)
   if (dist < 1) return enemy
 
@@ -99,8 +126,8 @@ function moveZigzag(enemy: Enemy, ship: Ship, dt: number): Enemy {
   }
 }
 
-function moveStationary(enemy: Enemy): Enemy {
-  return { ...enemy, vel: { x: 0, y: 0 } }
+function moveStationary(enemy: Enemy, _ship: Ship, dt: number): Enemy {
+  return holdWithKnockback(enemy, dt)
 }
 
 // Boss-tick-driven enemies (worm head/segments): position and velocity are

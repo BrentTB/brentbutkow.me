@@ -97,7 +97,8 @@ export function saveChangelogFilters(filters: ChangelogFilters): void {
 const SAVE_KEY = 'null-space-save'
 // Bump ONLY when a change makes old saves structurally incompatible. A normal
 // release leaves this alone, so an in-progress run survives updates.
-const SAVE_VERSION = 1
+// v2: world became a torus (corridor/world dims + positions changed).
+const SAVE_VERSION = 2
 
 export type SavedGame = {
   version: number

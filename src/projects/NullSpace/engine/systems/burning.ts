@@ -2,6 +2,7 @@ import { canEnemyTakeDamage } from '../bosses/index'
 import { applyDamageToEnemy } from '../entities/enemy-damage'
 import { createParticle, spawnExplosionParticles } from '../entities/entity-creator'
 import { rng } from '../math/random'
+import { toroidalDelta } from '../math/toroid'
 import type { BurningState, Enemy, Particle } from '../types'
 
 export type BurningResult = {
@@ -42,8 +43,7 @@ export function updateBurningEnemies(enemies: Enemy[], dt: number): BurningResul
     for (const tgt of enemies) {
       if (tgt.id === src.id || tgt.burning || ignitions.has(tgt.id)) continue
       if (!canEnemyTakeDamage(tgt, enemies)) continue
-      const dx = tgt.pos.x - src.pos.x
-      const dy = tgt.pos.y - src.pos.y
+      const { x: dx, y: dy } = toroidalDelta(src.pos, tgt.pos)
       const gap = Math.sqrt(dx * dx + dy * dy) - tgt.radius - src.radius
       if (gap <= src.burning.spreadRange) {
         ignitions.set(tgt.id, { ...src.burning, remaining: src.burning.duration })

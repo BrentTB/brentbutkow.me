@@ -1,27 +1,29 @@
 import type { Entity, Vec2 } from '../types'
+import { nearestImage, toroidalDelta, toroidalDistance } from './toroid'
 
 export function checkCollision(a: Entity, b: Entity): boolean {
-  const dx = a.pos.x - b.pos.x
-  const dy = a.pos.y - b.pos.y
-  const distSq = dx * dx + dy * dy
+  const d = toroidalDelta(a.pos, b.pos)
+  const distSq = d.x * d.x + d.y * d.y
   const radii = a.radius + b.radius
   return distSq < radii * radii
 }
 
 export function distance(a: { x: number; y: number }, b: { x: number; y: number }): number {
-  const dx = a.x - b.x
-  const dy = a.y - b.y
-  return Math.sqrt(dx * dx + dy * dy)
+  return toroidalDistance(a, b)
 }
 
 // Swept circle test: returns true if the segment p1→p2 passes within `radius`
 // of `center`. Catches fast-moving projectiles that would tunnel through a
-// thin enemy in a single frame.
+// thin enemy in a single frame. `center` is wrapped to its image nearest the
+// segment so a projectile crossing a world seam still hits an enemy just over
+// the edge (the segment itself stays short — collision runs before the position
+// wrap, so it never straddles a seam).
 export function segmentIntersectsCircle(p1: Vec2, p2: Vec2, center: Vec2, radius: number): boolean {
+  const target = nearestImage(p1, center)
   const dx = p2.x - p1.x
   const dy = p2.y - p1.y
-  const fx = p1.x - center.x
-  const fy = p1.y - center.y
+  const fx = p1.x - target.x
+  const fy = p1.y - target.y
 
   const a = dx * dx + dy * dy
   const b = 2 * (fx * dx + fy * dy)

@@ -8,13 +8,11 @@ import {
   HUD_SCALE_MAX,
   createCamera,
   centerCameraOn,
-  clampCameraAxis,
   worldToScreen,
   screenToWorld,
   isWithinView,
 } from './camera'
-
-const WORLD = { x: 3000, y: 3000 }
+import { WORLD_SIZE } from '../data'
 
 const W = REFERENCE_VIEW.width
 const H = REFERENCE_VIEW.height
@@ -111,68 +109,53 @@ describe('isWithinView', () => {
 })
 
 describe('centerCameraOn', () => {
-  it('snaps the camera so the target sits at the viewport center', () => {
-    const cam = centerCameraOn(unitZoomCamera(), { x: 1500, y: 1500 }, WORLD)
-    expect(cam.x).toBe(1500 - W / 2)
-    expect(cam.y).toBe(1500 - H / 2)
-  })
-
-  it('the snapped camera renders the target at the screen center (in pre-zoom coords)', () => {
-    const cam = centerCameraOn(unitZoomCamera(), { x: 1500, y: 1500 }, WORLD)
-    const screen = worldToScreen({ x: 1500, y: 1500 }, cam)
-    expect(screen.x).toBe(W / 2)
-    expect(screen.y).toBe(H / 2)
+  it('snaps the camera so the target renders at the viewport center', () => {
+    const cam = centerCameraOn(unitZoomCamera(), { x: 1300, y: 1300 })
+    const screen = worldToScreen({ x: 1300, y: 1300 }, cam)
+    expect(screen.x).toBeCloseTo(W / 2, 4)
+    expect(screen.y).toBeCloseTo(H / 2, 4)
   })
 
   it('accounts for zoom — at zoom 0.5 the camera shows twice as much world', () => {
-    const cam = centerCameraOn({ ...createCamera(W, H), zoom: 0.5 }, { x: 1500, y: 1500 }, WORLD)
-    // visible world width = W / 0.5 = 2W; camera.x = ship.x - W (half of 2W)
-    expect(cam.x).toBe(1500 - W)
-    expect(cam.y).toBe(1500 - H)
+    const cam = centerCameraOn({ ...createCamera(W, H), zoom: 0.5 }, { x: 1300, y: 1300 })
+    const screen = worldToScreen({ x: 1300, y: 1300 }, cam)
+    expect(screen.x).toBeCloseTo(W / 0.5 / 2, 4)
+    expect(screen.y).toBeCloseTo(H / 0.5 / 2, 4)
   })
 
-  it('clamps to world bounds when the target is near the edge', () => {
-    const cam = centerCameraOn(unitZoomCamera(), { x: 100, y: 100 }, WORLD)
-    expect(cam.x).toBe(0)
-    expect(cam.y).toBe(0)
-  })
-
-  it('clamps to world bounds when the target is past the far edge', () => {
-    const cam = centerCameraOn(unitZoomCamera(), { x: 5000, y: 5000 }, WORLD)
-    expect(cam.x).toBe(WORLD.x - W)
-    expect(cam.y).toBe(WORLD.y - H)
+  it('wraps the camera origin instead of clamping (the torus has no edge)', () => {
+    // Centring on a target near 0 wraps the origin to the far side rather than
+    // pinning to 0 — and the target still renders dead centre.
+    const cam = centerCameraOn(unitZoomCamera(), { x: 10, y: 10 })
+    expect(cam.x).toBeGreaterThan(WORLD_SIZE.x / 2) // wrapped, not clamped to 0
+    const screen = worldToScreen({ x: 10, y: 10 }, cam)
+    expect(screen.x).toBeCloseTo(W / 2, 4)
+    expect(screen.y).toBeCloseTo(H / 2, 4)
   })
 })
 
 describe('worldToScreen / screenToWorld', () => {
   it('round-trips through a centered camera (zoom = 1)', () => {
-    const cam = centerCameraOn(unitZoomCamera(), { x: 1500, y: 1500 }, WORLD)
+    const cam = centerCameraOn(unitZoomCamera(), { x: 1300, y: 1300 })
     const world = { x: 1234, y: 567 }
     const screen = worldToScreen(world, cam)
     const back = screenToWorld({ x: screen.x * cam.zoom, y: screen.y * cam.zoom }, cam)
-    expect(back).toEqual(world)
+    expect(back.x).toBeCloseTo(world.x, 3)
+    expect(back.y).toBeCloseTo(world.y, 3)
+  })
+
+  it('draws an entity across the seam at its nearest image (no long-way jump)', () => {
+    // Camera near the top edge; an entity near the bottom edge is one short hop
+    // UP across the seam, so it draws just above centre — not a world away.
+    const cam = centerCameraOn(unitZoomCamera(), { x: 1300, y: 50 })
+    const screen = worldToScreen({ x: 1300, y: WORLD_SIZE.y - 30 }, cam)
+    expect(screen.y).toBeLessThan(H / 2)
+    expect(H / 2 - screen.y).toBeCloseTo(80, 3) // 50 → (size-30) is 80 units up
   })
 
   it('screenToWorld accounts for zoom (clicks land at the right world position)', () => {
-    // At zoom 2, a click 100 canvas pixels right of the camera origin is 50
-    // world units right of the camera origin.
     const cam = { ...createCamera(W, H), x: 0, y: 0, zoom: 2 }
     const world = screenToWorld({ x: 100, y: 0 }, cam)
-    expect(world.x).toBe(50)
-  })
-})
-
-describe('clampCameraAxis', () => {
-  it('clamps within range when the world is larger than the viewport', () => {
-    expect(clampCameraAxis(-50, 3000, 1000)).toBe(0)
-    expect(clampCameraAxis(5000, 3000, 1000)).toBe(2000)
-    expect(clampCameraAxis(500, 3000, 1000)).toBe(500)
-  })
-
-  it('centers the world when it is narrower than the viewport (corridor case)', () => {
-    // A 1400-wide corridor in an 1800-wide viewport → centered, not pinned to 0.
-    const centered = (1400 - 1800) / 2
-    expect(clampCameraAxis(0, 1400, 1800)).toBe(centered)
-    expect(clampCameraAxis(999, 1400, 1800)).toBe(centered)
+    expect(world.x).toBeCloseTo(50, 4)
   })
 })

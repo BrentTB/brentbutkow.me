@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { spawnPositionNearShip } from './spawner'
-import { SPAWN_CONE, WORLD_SIZE } from '../../data'
+import { SPAWN_CONE, SPAWN_DISTANCE } from '../../data'
 import { rng } from '../math/random'
 
 beforeEach(() => rng.reseed(123))
@@ -22,7 +22,7 @@ describe('spawnPositionNearShip', () => {
     let inCone = 0
     for (let i = 0; i < N; i++) {
       if (
-        angleFromForward(spawnPositionNearShip(shipPos, WORLD_SIZE, forward, 1)) <=
+        angleFromForward(spawnPositionNearShip(shipPos, forward, 1)) <=
         SPAWN_CONE.forwardHalfAngle + 1e-6
       )
         inCone++
@@ -34,7 +34,7 @@ describe('spawnPositionNearShip', () => {
     const maxConeDeviation = (wave: number) => {
       let max = 0
       for (let i = 0; i < 600; i++) {
-        const d = angleFromForward(spawnPositionNearShip(shipPos, WORLD_SIZE, forward, wave))
+        const d = angleFromForward(spawnPositionNearShip(shipPos, forward, wave))
         if (d <= SPAWN_CONE.forwardHalfAngle + 1e-6) max = Math.max(max, d)
       }
       return max
@@ -46,13 +46,14 @@ describe('spawnPositionNearShip', () => {
     expect(late).toBeLessThan(early)
   })
 
-  it('keeps every spawn within world bounds', () => {
+  // No clamping on the torus — the world-wrap pass normalises spawns later, so
+  // here they just sit at the configured distance from the ship.
+  it('spawns at the configured distance from the ship', () => {
     for (let i = 0; i < 200; i++) {
-      const p = spawnPositionNearShip(shipPos, WORLD_SIZE, forward, 1)
-      expect(p.x).toBeGreaterThanOrEqual(0)
-      expect(p.x).toBeLessThanOrEqual(WORLD_SIZE.x)
-      expect(p.y).toBeGreaterThanOrEqual(0)
-      expect(p.y).toBeLessThanOrEqual(WORLD_SIZE.y)
+      const p = spawnPositionNearShip(shipPos, forward, 1)
+      const d = Math.hypot(p.x - shipPos.x, p.y - shipPos.y)
+      expect(d).toBeGreaterThanOrEqual(SPAWN_DISTANCE.min - 1e-6)
+      expect(d).toBeLessThanOrEqual(SPAWN_DISTANCE.max + 1e-6)
     }
   })
 })

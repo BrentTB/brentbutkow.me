@@ -67,7 +67,7 @@ import { saveGame, loadGame, clearSave } from './engine/world/persistence'
 // Build-time literal, same as in NullSpace.tsx
 const DEV_MODE = import.meta.env.VITE_NULL_SPACE_DEV_MODE === 'true'
 
-// Background star count — reseeded to the corridor dimensions on each sector entry.
+// Background star count — reseeded on each sector entry.
 const STAR_COUNT = 250
 
 // Shared no-op stub returned in place of the dev handlers when DEV_MODE is
@@ -286,14 +286,10 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     }
   }, [uiState.phase])
 
-  // Snap the camera onto the ship and reseed the starfield to the active corridor
-  // dimensions — called whenever a fresh corridor is laid out (game start, warp).
-  const enterCorridor = useCallback(() => {
-    cameraRef.current = centerCameraOn(
-      cameraRef.current,
-      gameStateRef.current.ship.pos,
-      gameStateRef.current.worldSize
-    )
+  // Snap the camera onto the ship and reseed the starfield — called whenever a
+  // fresh sector is laid out (game start, warp).
+  const enterSector = useCallback(() => {
+    cameraRef.current = centerCameraOn(cameraRef.current, gameStateRef.current.ship.pos)
     starsRef.current = generateStarfield(
       gameStateRef.current.worldSize.x,
       gameStateRef.current.worldSize.y,
@@ -315,10 +311,10 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       gameStateRef.current = startNextWave(gameStateRef.current)
       gameTimeRef.current = resetGameClock(gameTimeRef.current)
       selectedAbilityRef.current = AbilityKind.meteorite
-      enterCorridor()
+      enterSector()
       syncUI(gameStateRef.current)
     },
-    [syncUI, enterCorridor]
+    [syncUI, enterSector]
   )
 
   const handleNextWave = useCallback(() => {
@@ -340,9 +336,9 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     // Restart the frame clock — otherwise the resumed run stays frozen (dt 0).
     gameTimeRef.current = resetGameClock(gameTimeRef.current)
     selectedAbilityRef.current = AbilityKind.meteorite
-    enterCorridor()
+    enterSector()
     syncUI(gameStateRef.current)
-  }, [syncUI, enterCorridor])
+  }, [syncUI, enterSector])
 
   // Save & Exit: the run was already auto-saved at the last sector clear, so this
   // just returns to a fresh menu; the save on disk stays for Continue.
@@ -389,7 +385,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       gameStateRef.current = startNextWave(gameStateRef.current)
       gameTimeRef.current = resetGameClock(gameTimeRef.current)
       selectedAbilityRef.current = AbilityKind.meteorite
-      enterCorridor()
+      enterSector()
       syncUI(gameStateRef.current)
     }
   }
@@ -490,11 +486,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       // Re-center on the ship after a viewport change so we never need to
       // chase it across the world (e.g. on initial mount where the camera
       // starts at (0,0) but the ship is at world center).
-      cameraRef.current = centerCameraOn(
-        cameraRef.current,
-        gameStateRef.current.ship.pos,
-        gameStateRef.current.worldSize
-      )
+      cameraRef.current = centerCameraOn(cameraRef.current, gameStateRef.current.ship.pos)
     }
     resize()
 
@@ -643,10 +635,10 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       const prevPhase = gameStateRef.current.phase
       gameStateRef.current = updateGameState(gameStateRef.current, dt, input)
 
-      // Tick the warp animation; reseed the corridor when it lands.
+      // Tick the warp animation; reseed the starfield when it lands.
       const warp = advanceWarp(gameStateRef.current, dt)
       gameStateRef.current = warp.state
-      if (warp.landed) enterCorridor()
+      if (warp.landed) enterSector()
 
       // Tick the player-death explosion; flips to gameOver when it ends.
       gameStateRef.current = advanceDeathSequence(
@@ -655,14 +647,13 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
         reducedMotionRef.current
       )
 
-      cameraRef.current = updateCamera(
-        cameraRef.current,
-        gameStateRef.current.ship.pos,
-        dt,
-        gameStateRef.current.worldSize,
-        // Let the camera follow the ship past the world edge during the warp.
-        gameStateRef.current.phase !== GamePhase.warping
-      )
+      // Warp cutscene: lock the camera dead-centre on the ship so the portal it
+      // flies into lines up with the screen-space warp rays (and the view sits
+      // still as it arrives). Normal play follows with a smooth lerp.
+      cameraRef.current =
+        gameStateRef.current.phase === GamePhase.warping
+          ? centerCameraOn(cameraRef.current, gameStateRef.current.ship.pos)
+          : updateCamera(cameraRef.current, gameStateRef.current.ship.pos, dt)
 
       if (spritesRef.current && animationsRef.current) {
         renderFrame(
@@ -714,7 +705,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       window.removeEventListener('keydown', handleKeyDown)
       resizeObserver.disconnect()
     }
-  }, [canvasRef, syncUI, handlePause, handleResume, handleUseSpaceMetalAbility, enterCorridor])
+  }, [canvasRef, syncUI, handlePause, handleResume, handleUseSpaceMetalAbility, enterSector])
 
   return {
     uiState,

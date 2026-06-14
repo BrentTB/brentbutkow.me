@@ -443,7 +443,7 @@ export type Collectible = {
   homing: boolean
 }
 
-// Static mid-corridor hazard. Damages the ship on overlap (per-hazard debounce),
+// Static hazard scattered across the world. Damages the ship on overlap (per-hazard debounce),
 // but is NOT an enemy — it never blocks wave completion.
 export const HazardKind = { mine: 'mine' } as const
 export type HazardKind = (typeof HazardKind)[keyof typeof HazardKind]
@@ -581,7 +581,7 @@ export type GameState = {
   maxPower: number
   powerRegen: number
   upgrades: PlayerUpgrades
-  // Active corridor bounds — set to the sector dimensions on each sector reset.
+  // Active world bounds — the torus size, set on each sector reset.
   worldSize: Vec2
   // Sector "forward" unit axis (fixed to FORWARD_DIR this version).
   forwardDir: Vec2
@@ -593,7 +593,7 @@ export type GameState = {
   // Seconds left in the warp screen flash. 0 during the fly-into-portal flight;
   // set once the ship reaches the portal, then the jump completes when it hits 0.
   warpFlashTimer: number
-  // Mid-corridor mine clusters. Not part of the kill/wave economy.
+  // Scattered mine clusters. Not part of the kill/wave economy.
   hazards: Hazard[]
   waveTimer: number
   spawnQueue: EnemyKind[]

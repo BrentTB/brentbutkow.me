@@ -85,12 +85,12 @@ export function devPatchState(state: GameState, patch: DevPatch): GameState {
   }
   if (patch.unlockWeapon !== undefined) next = devUnlockWeapon(next, patch.unlockWeapon)
   if (patch.grantUltimate !== undefined) next = devGrantUltimate(next, patch.grantUltimate)
-  // A wave jump crosses into a (possibly different) sector — re-lay the corridor.
+  // A wave jump crosses into a (possibly different) sector — re-lay it.
   return patch.wave !== undefined ? resetForSector(next) : next
 }
 
 // Jump to the between-sector shop as it appears in play: warped into the next
-// sector's fresh corridor with the field cleared. Continue then spawns that wave.
+// fresh sector with the field cleared. Continue then spawns that wave.
 export function devJumpToUpgrades(state: GameState): GameState {
   const base = state.wave > 0 ? state.wave : 1
   const boundary = Math.ceil(base / WAVES_PER_LEVEL) * WAVES_PER_LEVEL

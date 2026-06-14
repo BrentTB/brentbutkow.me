@@ -2,12 +2,10 @@ import { describe, it, expect } from 'vitest'
 import { devJumpToBoss, devJumpToUpgrades, devPatchState } from './dev-tools'
 import { createInitialState, startGame, startNextWave } from './game-loop'
 import { EnemyKind, GamePhase, ShipKind } from './types'
-import { SECTOR, WAVES_PER_LEVEL } from '../data'
+import { WAVES_PER_LEVEL, WORLD_SIZE } from '../data'
 
-const corridorEntry = {
-  x: SECTOR.width / 2,
-  y: SECTOR.length - SECTOR.shipStartOffset,
-}
+// Every sector resets the ship to the centre of the torus.
+const worldCenter = { x: WORLD_SIZE.x / 2, y: WORLD_SIZE.y / 2 }
 
 function playingState() {
   return startNextWave(startGame(createInitialState(), ShipKind.fighter))
@@ -38,12 +36,11 @@ describe('devPatchState', () => {
     expect(patched.bossSelection.pool).toEqual(state.bossSelection.pool)
   })
 
-  it('a wave jump re-lays the corridor — ship at the entry, portal placed', () => {
+  it('a wave jump resets the sector — ship dropped at the world centre', () => {
     const state = playingState()
     const patched = devPatchState(state, { wave: WAVES_PER_LEVEL * 2 })
     expect(patched.wave).toBe(WAVES_PER_LEVEL * 2)
-    expect(patched.ship.pos).toEqual(corridorEntry)
-    expect(patched.portalPos).toEqual({ x: SECTOR.width / 2, y: SECTOR.portalInset })
+    expect(patched.ship.pos).toEqual(worldCenter)
   })
 
   it('a patch without a wave jump leaves the ship position untouched', () => {
@@ -54,7 +51,7 @@ describe('devPatchState', () => {
 })
 
 describe('devJumpToUpgrades', () => {
-  it('opens the between-sector shop in a fresh corridor with a cleared field', () => {
+  it('opens the between-sector shop in a fresh sector with a cleared field', () => {
     const state = devJumpToUpgrades(playingState())
     expect(state.phase).toBe(GamePhase.upgradeScreen)
     expect(state.enemies).toEqual([])
@@ -74,10 +71,10 @@ describe('devJumpToBoss', () => {
     expect(state.bossSelection.nextBoss).not.toBe(before.bossSelection.nextBoss)
   })
 
-  it('re-lays a fresh boss corridor — ship at the entry, no hazard lane', () => {
+  it('resets a fresh boss sector — ship at the centre, no hazard field', () => {
     const state = devJumpToBoss(playingState())
-    expect(state.ship.pos).toEqual(corridorEntry)
-    // Boss sectors never seed a mine lane — the boss is the gate.
+    expect(state.ship.pos).toEqual(worldCenter)
+    // Boss sectors never scatter mines — the boss is the gate.
     expect(state.hazards).toEqual([])
   })
 })
