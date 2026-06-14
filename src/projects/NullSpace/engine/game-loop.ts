@@ -140,7 +140,20 @@ export function createInitialState(): GameState {
 }
 
 export function moveToShipSelection(state: GameState): GameState {
-  return { ...state, phase: GamePhase.shipSelection }
+  // Clear the previous run's entities so the ship-select background is empty —
+  // otherwise the dead run's enemies/particles linger behind the panel.
+  return {
+    ...state,
+    phase: GamePhase.shipSelection,
+    enemies: [],
+    projectiles: [],
+    allies: [],
+    particles: [],
+    deathAnims: [],
+    activeEffects: [],
+    collectibles: [],
+    hazards: [],
+  }
 }
 
 export function startGame(state: GameState, shipKind: ShipKind): GameState {
@@ -471,12 +484,19 @@ export function completeWarp(state: GameState): GameState {
 export function advanceWarp(state: GameState, dt: number): { state: GameState; landed: boolean } {
   if (state.phase !== GamePhase.warping) return { state, landed: false }
 
+  // The sim is frozen during the warp, but cosmetic world animations keep
+  // playing — the last kill's death burst finishes (instead of sticking as a
+  // frozen "star") and lingering particles fade as the ship flies in.
+  const particles = updateParticles(state.particles, dt)
+  const deathAnims = updateDeathAnims(state.deathAnims, dt)
+  const animated = { ...state, particles, deathAnims }
+
   // Stage 2 — flash: the ship has reached the portal; hold there while the
   // screen flash plays, then open the shop.
   if (state.warpFlashTimer > 0) {
     const warpFlashTimer = state.warpFlashTimer - dt
-    if (warpFlashTimer <= 0) return { state: completeWarp(state), landed: true }
-    return { state: { ...state, warpFlashTimer }, landed: false }
+    if (warpFlashTimer <= 0) return { state: completeWarp(animated), landed: true }
+    return { state: { ...animated, warpFlashTimer }, landed: false }
   }
 
   // Stage 1 — flight.
@@ -489,7 +509,7 @@ export function advanceWarp(state: GameState, dt: number): { state: GameState; l
     // Zero the velocity so the sprite held under the flash doesn't carry stale motion.
     return {
       state: {
-        ...state,
+        ...animated,
         ship: { ...state.ship, pos: { ...state.portalPos }, vel: { x: 0, y: 0 } },
         warpTimer,
         warpFlashTimer: WARP.flashDuration,
@@ -506,7 +526,7 @@ export function advanceWarp(state: GameState, dt: number): { state: GameState; l
     vel: { x: nx * WARP.flySpeed, y: ny * WARP.flySpeed },
     lastHeading: { x: nx, y: ny },
   }
-  return { state: { ...state, ship, warpTimer }, landed: false }
+  return { state: { ...animated, ship, warpTimer }, landed: false }
 }
 
 // Drives the player-death explosion (GamePhase.dying). The sim is suspended —

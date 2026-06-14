@@ -412,6 +412,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         'The screen no longer darkens during the warp between sectors — you can watch the ship fly into the portal, and the fly-in is slower (~2.5×) so the jump actually reads.',
         "Restarting after a defeat now clears the previous run's enemies from the ship-select background.",
         'Death bursts (and other particles) now finish animating during the warp to the next sector instead of freezing mid-burst.',
+        'The ship now stays pointing up as it flies into the portal, instead of flipping sideways when it arrives.',
       ],
       ui: [
         'Tanks no longer show a rotating turret — they ram rather than shoot, so the spinning part wrongly implied a ranged attack.',

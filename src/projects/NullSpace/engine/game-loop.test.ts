@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import {
   createInitialState,
   equipShipWeapon,
+  moveToShipSelection,
   rollLevelUpWeaponOffers,
   startGame,
   startNextWave,
@@ -15,7 +16,13 @@ import {
   advanceWarp,
   advanceDeathSequence,
 } from './game-loop'
-import { createAbilities, createEnemy, createProjectile } from './entities/entity-creator'
+import {
+  createAbilities,
+  createDeathAnim,
+  createEnemy,
+  createParticle,
+  createProjectile,
+} from './entities/entity-creator'
 import { tickEscapeMode } from './entities/ship'
 import {
   AbilityKind,
@@ -62,6 +69,30 @@ describe('startGame', () => {
     const state = startGame(createInitialState(), ShipKind.fighter)
     const waved = startNextWave(state)
     expect(waved.ship.hp).toBe(waved.ship.maxHp)
+  })
+})
+
+describe('moveToShipSelection', () => {
+  // Regression: a defeated run's enemies used to linger on the ship-select
+  // background because only the phase changed.
+  it('clears the previous run entities so the background is empty', () => {
+    const dirty = {
+      ...createInitialState(),
+      enemies: [createEnemy(EnemyKind.drone, { x: 0, y: 0 })],
+      particles: [createEnemy(EnemyKind.drone, { x: 0, y: 0 })].map(() => ({
+        id: 'p',
+        pos: { x: 0, y: 0 },
+        vel: { x: 0, y: 0 },
+        lifetime: 1,
+        elapsed: 0,
+        color: '#fff',
+        size: 2,
+      })),
+    }
+    const next = moveToShipSelection(dirty)
+    expect(next.phase).toBe(GamePhase.shipSelection)
+    expect(next.enemies).toEqual([])
+    expect(next.particles).toEqual([])
   })
 })
 
@@ -338,6 +369,19 @@ describe('advanceWarp', () => {
     expect(state.warpTimer).toBeCloseTo(0.984)
     expect(state.warpFlashTimer).toBe(0) // no screen effect during the flight
     expect(landed).toBe(false)
+  })
+
+  // Regression: the sim is frozen during the warp, so death bursts used to stick
+  // as a frozen "star" — advanceWarp must keep cosmetic animations ticking.
+  it('keeps cosmetic animations (death anims + particles) playing during the warp', () => {
+    const state = {
+      ...warpingState(5),
+      deathAnims: [createDeathAnim(createEnemy(EnemyKind.drone, { x: 0, y: 0 }))],
+      particles: [createParticle({ x: 0, y: 0 }, { x: 0, y: 0 }, '#fff', 1, 2)],
+    }
+    const result = advanceWarp(state, 0.1)
+    expect(result.state.deathAnims[0].elapsed).toBeCloseTo(0.1)
+    expect(result.state.particles[0].elapsed).toBeCloseTo(0.1)
   })
 
   it('begins the flash (not completion) when the flight safety timer elapses', () => {

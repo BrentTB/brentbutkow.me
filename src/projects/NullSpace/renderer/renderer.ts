@@ -226,8 +226,11 @@ function renderShip(
 
   ctx.save()
   ctx.translate(screen.x, screen.y)
-  // Sprite nose points up (local -y); the rotation aims it along velocity.
-  const angle = Math.atan2(ship.vel.y, ship.vel.x) + Math.PI / 2
+  // Sprite nose points up (local -y); the rotation aims it along velocity. A
+  // stationary ship (e.g. held on the portal during the warp) stays pointing up
+  // — otherwise atan2(0,0)+π/2 would tilt it 90° sideways.
+  const stationary = ship.vel.x === 0 && ship.vel.y === 0
+  const angle = stationary ? 0 : Math.atan2(ship.vel.y, ship.vel.x) + Math.PI / 2
   ctx.rotate(angle)
 
   // Shield ring — fades with shield level, invisible at 0.
