@@ -84,23 +84,23 @@ export function RecallRadar() {
       <PageHeader title={recallRadarCopy.title} showBackButton />
       <p className={styles.intro}>{isFunMode ? recallRadarCopy.introFun : recallRadarCopy.intro}</p>
 
-      <CountrySelector value={country} onChange={changeCountry} />
-
-      {freshness && (
-        <p className={`${styles.freshness} ${freshness.stale ? styles.stale : ''}`}>
-          {freshness.label}
-        </p>
-      )}
-
-      <button
-        type="button"
-        className={styles.techStackLink}
-        onClick={() =>
-          document.getElementById('tech-stack')?.scrollIntoView({ behavior: 'smooth' })
-        }
-      >
-        Interested in the tech stack? ↓
-      </button>
+      <div className={styles.topBar}>
+        <CountrySelector value={country} onChange={changeCountry} />
+        {freshness && (
+          <span className={`${styles.freshness} ${freshness.stale ? styles.stale : ''}`}>
+            {freshness.label}
+          </span>
+        )}
+        <button
+          type="button"
+          className={styles.techStackLink}
+          onClick={() =>
+            document.getElementById('tech-stack')?.scrollIntoView({ behavior: 'smooth' })
+          }
+        >
+          Interested in the tech stack? ↓
+        </button>
+      </div>
 
       {stats.data && (
         <div className={styles.stats}>

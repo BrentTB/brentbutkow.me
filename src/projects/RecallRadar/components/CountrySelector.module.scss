@@ -1,10 +1,7 @@
 .selector {
   display: inline-flex;
-  // The page body is a flex column (stretch); keep the toggle hugging its content, not full width.
-  align-self: flex-start;
   gap: 4px;
   padding: 4px;
-  margin: 0 0 24px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
