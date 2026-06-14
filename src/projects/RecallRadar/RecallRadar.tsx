@@ -7,10 +7,17 @@ import { Breakdowns } from './components/Breakdowns'
 import { ProjectOverview } from './components/ProjectOverview'
 import { RecallFeed } from './components/RecallFeed'
 import { RecallFilters } from './components/RecallFilters'
+import { RecallMap } from './components/RecallMap'
 import { RecallTrendsChart } from './components/RecallTrendsChart'
 import { StatCard } from './components/StatCard'
-import { categoryLabels, recallRadarCopy, recallRadarLinks } from './data'
-import { deriveYears, formatDate, formatNumber, monthsForYear } from './chart-format'
+import { categoryLabels, methodologyPoints, recallRadarCopy, recallRadarLinks } from './data'
+import {
+  deriveYears,
+  formatDate,
+  formatNumber,
+  ingestFreshness,
+  monthsForYear,
+} from './chart-format'
 import type { RecallFilterValues } from './recall.types'
 import { useRecalls } from './useRecalls'
 import { useRecallStats } from './useRecallStats'
@@ -43,6 +50,7 @@ export function RecallRadar() {
   const years = stats.data ? deriveYears(stats.data.byMonth) : []
   const selectedYear = year ?? years[0] ?? new Date().getFullYear()
   const monthSeries = stats.data ? monthsForYear(stats.data.byMonth, selectedYear) : []
+  const freshness = stats.data ? ingestFreshness(stats.data.lastIngestAt, new Date()) : null
 
   const topCategory = stats.data?.byCategory.slice().sort((a, b) => b.count - a.count)[0]
   const topState = stats.data?.byState[0]
@@ -53,6 +61,12 @@ export function RecallRadar() {
     <PageLayout>
       <PageHeader title={recallRadarCopy.title} showBackButton />
       <p className={styles.intro}>{isFunMode ? recallRadarCopy.introFun : recallRadarCopy.intro}</p>
+
+      {freshness && (
+        <p className={`${styles.freshness} ${freshness.stale ? styles.stale : ''}`}>
+          {freshness.label}
+        </p>
+      )}
 
       <ProjectOverview />
 
@@ -106,6 +120,18 @@ export function RecallRadar() {
 
       {stats.data && (
         <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>Recalls by state</h2>
+          <p className={styles.hint}>Click a state to filter the recalls below.</p>
+          <RecallMap
+            byState={stats.data.byState}
+            activeState={filters.state}
+            onSelect={(state) => patch({ state })}
+          />
+        </section>
+      )}
+
+      {stats.data && (
+        <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Breakdowns</h2>
           <p className={styles.hint}>Click any row to filter the recalls below.</p>
           <Breakdowns stats={stats.data} filters={filters} onSelect={patch} />
@@ -126,6 +152,17 @@ export function RecallRadar() {
         {recalls.loading && <p className={styles.status}>Loading recalls…</p>}
         {recalls.error && <p className={styles.status}>Couldn’t reach the recall service.</p>}
         {recalls.data && <RecallFeed recalls={recalls.data.items} />}
+      </section>
+
+      <section className={styles.section}>
+        <details className={styles.methodologyDetails}>
+          <summary>How this works</summary>
+          <ul>
+            {methodologyPoints.map((point) => (
+              <li key={point}>{point}</li>
+            ))}
+          </ul>
+        </details>
       </section>
 
       <footer className={styles.footer}>

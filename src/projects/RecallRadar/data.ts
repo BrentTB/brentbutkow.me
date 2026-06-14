@@ -33,6 +33,13 @@ export const techStack: { area: string; items: string[] }[] = [
   },
 ]
 
+export const methodologyPoints: string[] = [
+  'Data comes from the FDA openFDA food-enforcement API, re-ingested daily via a GitHub Actions cron.',
+  "Each recall's cause is predicted by a TF-IDF + logistic-regression classifier trained on its reason text; the % shown is the model's confidence.",
+  'The model is weakly supervised by a keyword baseline (no human-labelled gold set), so it generalises that taxonomy rather than beating an independent ground truth.',
+  'The dashboard flags when the last successful ingest is more than two days old.',
+]
+
 export const categoryLabels: Record<RecallCategory, string> = {
   [RecallCategory.allergen]: 'Undeclared allergen',
   [RecallCategory.pathogen]: 'Pathogen',

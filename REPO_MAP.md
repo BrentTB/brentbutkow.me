@@ -324,19 +324,21 @@ src/projects/NullSpace/
 src/projects/RecallRadar/
   RecallRadar.tsx                            RecallRadar
   api.ts                                     RecallFilters, buildRecallsPath
-  chart-format.ts                            formatMonthLabel, formatNumber, formatDate, deriveYears, monthsForYear
+  chart-format.ts                            formatMonthLabel, formatNumber, formatDate, deriveYears, monthsForYear, IngestFreshness, ingestFreshness
 
 src/projects/RecallRadar/components/
   Breakdowns.tsx                             Breakdowns
   ProjectOverview.tsx                        ProjectOverview
   RecallFeed.tsx                             RecallFeed
   RecallFilters.tsx                          RecallFilters
+  RecallMap.tsx                              RecallMap
   RecallTrendsChart.tsx                      RecallTrendsChart
   StatCard.tsx                               StatCard
 
 src/projects/RecallRadar/
-  data.ts                                    recallRadarCopy, techStack, categoryLabels, recallRadarLinks
+  data.ts                                    recallRadarCopy, techStack, methodologyPoints, categoryLabels, recallRadarLinks
   recall.types.ts                            RecallCategory, RecallClass, RecallFilterValues, Recall, RecallListResult, CategoryCount, MonthCount, LabelCount, RecallStats
+  us-state-grid.ts                           StateTile, STATE_GRID_ROWS, STATE_GRID_COLS, stateGrid
   useRecallStats.ts                          useRecallStats
   useRecalls.ts                              useRecalls
 

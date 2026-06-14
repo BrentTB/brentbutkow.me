@@ -5,6 +5,17 @@
   margin: 0 0 8px;
 }
 
+.freshness {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin: 0 0 8px;
+}
+
+.stale {
+  color: var(--accent);
+}
+
 .stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -80,6 +91,33 @@
   color: var(--muted);
   font-size: 0.85rem;
   max-width: 70ch;
+}
+
+.methodologyDetails {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  background: var(--surface);
+}
+
+.methodologyDetails summary {
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+.methodologyDetails ul {
+  margin: 14px 0 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.6;
+  max-width: 80ch;
 }
 
 .links {

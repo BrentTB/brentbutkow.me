@@ -69,12 +69,15 @@ describe('RecallRadar page', () => {
     )
 
     expect(screen.getByText('Recall Radar')).toBeTruthy()
-    // tech-stack overview renders immediately (not data-gated)
+    // tech-stack overview + methodology render immediately (not data-gated)
     expect(screen.getByText('FastAPI')).toBeTruthy()
+    expect(screen.getByText('How this works')).toBeTruthy()
 
     // data-driven sections after the fetch resolves
     await waitFor(() => expect(screen.getByText('Test cookies')).toBeTruthy())
     expect(screen.getByText('Acme Foods')).toBeTruthy()
+    expect(screen.getByText('Recalls by state')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'California: 18 recalls' })).toBeTruthy()
     expect(screen.getByText('100%')).toBeTruthy() // per-recall classifier confidence
     expect(screen.getByText('Top states')).toBeTruthy()
     // appears in the breakdown row and the company filter option

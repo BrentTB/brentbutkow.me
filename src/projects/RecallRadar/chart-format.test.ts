@@ -4,6 +4,7 @@ import {
   formatDate,
   formatMonthLabel,
   formatNumber,
+  ingestFreshness,
   monthsForYear,
 } from './chart-format'
 
@@ -46,5 +47,25 @@ describe('monthsForYear', () => {
     expect(series[0]).toEqual({ month: '2026-01', count: 0 })
     expect(series[1]).toEqual({ month: '2026-02', count: 5 })
     expect(series[11]).toEqual({ month: '2026-12', count: 9 })
+  })
+})
+
+describe('ingestFreshness', () => {
+  const now = new Date('2026-06-14T12:00:00Z')
+
+  it('reports fresh data', () => {
+    const result = ingestFreshness('2026-06-14T09:00:00Z', now)
+    expect(result.stale).toBe(false)
+    expect(result.label).toBe('Updated 3 hours ago')
+  })
+
+  it('flags stale data past the threshold', () => {
+    const result = ingestFreshness('2026-06-10T12:00:00Z', now)
+    expect(result.stale).toBe(true)
+    expect(result.label).toBe('Data may be stale — last updated 4 days ago')
+  })
+
+  it('handles a missing ingest', () => {
+    expect(ingestFreshness(null, now)).toEqual({ stale: true, label: 'No data ingested yet' })
   })
 })
