@@ -1,28 +1,34 @@
 import { categoryLabels } from '../data'
-import { RecallCategory, RecallClass } from '../recall.types'
+import { RecallCategory, RecallClass, type RecallFilterValues } from '../recall.types'
 import styles from './RecallFilters.module.scss'
 
 type RecallFiltersProps = {
-  category: RecallCategory | ''
-  classification: RecallClass | ''
-  onCategoryChange: (value: RecallCategory | '') => void
-  onClassificationChange: (value: RecallClass | '') => void
+  filters: RecallFilterValues
+  stateOptions: string[]
+  companyOptions: string[]
+  onChange: (patch: Partial<RecallFilterValues>) => void
+  onClear: () => void
 }
 
 export function RecallFilters({
-  category,
-  classification,
-  onCategoryChange,
-  onClassificationChange,
+  filters,
+  stateOptions,
+  companyOptions,
+  onChange,
+  onClear,
 }: RecallFiltersProps) {
+  const hasActive = Boolean(
+    filters.category || filters.classification || filters.state || filters.company
+  )
+
   return (
     <div className={styles.filters}>
       <label className={styles.field}>
         <span className={styles.label}>Category</span>
         <select
           className={styles.select}
-          value={category}
-          onChange={(event) => onCategoryChange(event.target.value as RecallCategory | '')}
+          value={filters.category}
+          onChange={(event) => onChange({ category: event.target.value as RecallCategory | '' })}
         >
           <option value="">All</option>
           {Object.values(RecallCategory).map((value) => (
@@ -32,12 +38,13 @@ export function RecallFilters({
           ))}
         </select>
       </label>
+
       <label className={styles.field}>
         <span className={styles.label}>Classification</span>
         <select
           className={styles.select}
-          value={classification}
-          onChange={(event) => onClassificationChange(event.target.value as RecallClass | '')}
+          value={filters.classification}
+          onChange={(event) => onChange({ classification: event.target.value as RecallClass | '' })}
         >
           <option value="">All</option>
           {Object.values(RecallClass).map((value) => (
@@ -47,6 +54,44 @@ export function RecallFilters({
           ))}
         </select>
       </label>
+
+      <label className={styles.field}>
+        <span className={styles.label}>State</span>
+        <select
+          className={styles.select}
+          value={filters.state}
+          onChange={(event) => onChange({ state: event.target.value })}
+        >
+          <option value="">All</option>
+          {stateOptions.map((value) => (
+            <option key={value} value={value}>
+              {value}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className={styles.field}>
+        <span className={styles.label}>Company</span>
+        <select
+          className={styles.select}
+          value={filters.company}
+          onChange={(event) => onChange({ company: event.target.value })}
+        >
+          <option value="">All</option>
+          {companyOptions.map((value) => (
+            <option key={value} value={value}>
+              {value}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      {hasActive && (
+        <button type="button" className={styles.clear} onClick={onClear}>
+          Clear filters
+        </button>
+      )}
     </div>
   )
 }

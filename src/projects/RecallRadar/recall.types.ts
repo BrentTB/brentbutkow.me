@@ -15,6 +15,14 @@ export const RecallClass = {
 } as const
 export type RecallClass = (typeof RecallClass)[keyof typeof RecallClass]
 
+// UI filter state — '' means "no filter".
+export type RecallFilterValues = {
+  category: RecallCategory | ''
+  classification: RecallClass | ''
+  state: string
+  company: string
+}
+
 export type Recall = {
   recallNumber: string
   status: string | null
@@ -37,10 +45,14 @@ export type RecallListResult = {
 
 export type CategoryCount = { category: RecallCategory; count: number }
 export type MonthCount = { month: string; count: number } // month is 'YYYY-MM'
+export type LabelCount = { label: string; count: number }
 
 export type RecallStats = {
   total: number
   byCategory: CategoryCount[]
   byMonth: MonthCount[]
+  byClassification: LabelCount[]
+  byState: LabelCount[]
+  byCompany: LabelCount[]
   lastIngestAt: string | null
 }

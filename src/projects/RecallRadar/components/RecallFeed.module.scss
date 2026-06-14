@@ -32,6 +32,12 @@
   color: var(--text-secondary);
 }
 
+.confidence {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
 .class {
   font-family: var(--font-mono);
   font-size: 0.72rem;

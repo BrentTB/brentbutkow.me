@@ -3,35 +3,58 @@ import { PageLayout } from '../../components/PageFormatting/PageLayout'
 import { PageHeader } from '../../components/PageFormatting/PageHeader'
 import { SafeLink } from '../../components/utils/SafeLink'
 import { useFunMode } from '../../contexts/useFunMode'
+import { Breakdowns } from './components/Breakdowns'
+import { ProjectOverview } from './components/ProjectOverview'
 import { RecallFeed } from './components/RecallFeed'
 import { RecallFilters } from './components/RecallFilters'
 import { RecallTrendsChart } from './components/RecallTrendsChart'
 import { StatCard } from './components/StatCard'
 import { categoryLabels, recallRadarCopy, recallRadarLinks } from './data'
-import { formatDate, formatNumber } from './chart-format'
-import type { RecallCategory, RecallClass } from './recall.types'
+import { deriveYears, formatDate, formatNumber, monthsForYear } from './chart-format'
+import type { RecallFilterValues } from './recall.types'
 import { useRecalls } from './useRecalls'
 import { useRecallStats } from './useRecallStats'
 import styles from './RecallRadar.module.scss'
 
+const EMPTY_FILTERS: RecallFilterValues = {
+  category: '',
+  classification: '',
+  state: '',
+  company: '',
+}
+
 export function RecallRadar() {
   const { isFunMode } = useFunMode()
-  const [category, setCategory] = useState<RecallCategory | ''>('')
-  const [classification, setClassification] = useState<RecallClass | ''>('')
+  const [filters, setFilters] = useState<RecallFilterValues>(EMPTY_FILTERS)
+  const [year, setYear] = useState<number | null>(null)
 
   const stats = useRecallStats()
   const recalls = useRecalls({
-    category: category || undefined,
-    classification: classification || undefined,
+    category: filters.category || undefined,
+    classification: filters.classification || undefined,
+    state: filters.state || undefined,
+    company: filters.company || undefined,
     limit: 50,
   })
 
+  const patch = (next: Partial<RecallFilterValues>) =>
+    setFilters((current) => ({ ...current, ...next }))
+
+  const years = stats.data ? deriveYears(stats.data.byMonth) : []
+  const selectedYear = year ?? years[0] ?? new Date().getFullYear()
+  const monthSeries = stats.data ? monthsForYear(stats.data.byMonth, selectedYear) : []
+
   const topCategory = stats.data?.byCategory.slice().sort((a, b) => b.count - a.count)[0]
+  const topState = stats.data?.byState[0]
+  const stateOptions = stats.data?.byState.map((entry) => entry.label) ?? []
+  const companyOptions = stats.data?.byCompany.map((entry) => entry.label) ?? []
 
   return (
     <PageLayout>
       <PageHeader title={recallRadarCopy.title} showBackButton />
       <p className={styles.intro}>{isFunMode ? recallRadarCopy.introFun : recallRadarCopy.intro}</p>
+
+      <ProjectOverview />
 
       {stats.data && (
         <div className={styles.stats}>
@@ -43,6 +66,13 @@ export function RecallRadar() {
               hint={`${formatNumber(topCategory.count)} recalls`}
             />
           )}
+          {topState && (
+            <StatCard
+              label="Top state"
+              value={topState.label}
+              hint={`${formatNumber(topState.count)} recalls`}
+            />
+          )}
           <StatCard
             label="Last updated"
             value={stats.data.lastIngestAt ? formatDate(stats.data.lastIngestAt.slice(0, 10)) : '—'}
@@ -51,22 +81,48 @@ export function RecallRadar() {
       )}
 
       <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Recalls per month</h2>
+        <div className={styles.sectionHead}>
+          <h2 className={styles.sectionTitle}>Recalls per month</h2>
+          {years.length > 0 && (
+            <label className={styles.yearSelect}>
+              <span className={styles.srOnly}>Year</span>
+              <select
+                value={selectedYear}
+                onChange={(event) => setYear(Number(event.target.value))}
+              >
+                {years.map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
         {stats.loading && <p className={styles.status}>Loading trend…</p>}
         {stats.error && <p className={styles.status}>Couldn’t load trend data.</p>}
-        {stats.data && <RecallTrendsChart data={stats.data.byMonth} />}
+        {stats.data && <RecallTrendsChart data={monthSeries} />}
       </section>
 
+      {stats.data && (
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>Breakdowns</h2>
+          <p className={styles.hint}>Click any row to filter the recalls below.</p>
+          <Breakdowns stats={stats.data} filters={filters} onSelect={patch} />
+        </section>
+      )}
+
       <section className={styles.section}>
-        <div className={styles.feedHeader}>
-          <h2 className={styles.sectionTitle}>Latest recalls</h2>
-          <RecallFilters
-            category={category}
-            classification={classification}
-            onCategoryChange={setCategory}
-            onClassificationChange={setClassification}
-          />
-        </div>
+        <h2 className={styles.sectionTitle}>
+          Recalls{recalls.data ? ` (${formatNumber(recalls.data.total)})` : ''}
+        </h2>
+        <RecallFilters
+          filters={filters}
+          stateOptions={stateOptions}
+          companyOptions={companyOptions}
+          onChange={patch}
+          onClear={() => setFilters(EMPTY_FILTERS)}
+        />
         {recalls.loading && <p className={styles.status}>Loading recalls…</p>}
         {recalls.error && <p className={styles.status}>Couldn’t reach the recall service.</p>}
         {recalls.data && <RecallFeed recalls={recalls.data.items} />}

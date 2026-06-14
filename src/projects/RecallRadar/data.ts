@@ -7,8 +7,31 @@ export const recallRadarCopy = {
   introFun:
     "Because nothing says 'fun side project' like undeclared peanuts and the occasional rogue metal fragment — live FDA food recalls, sorted and plotted.",
   methodology:
-    'Source: openFDA food enforcement reports. Categories come from a keyword baseline (v1); a trained classifier with calibrated confidence is the next step.',
+    'Source: openFDA food enforcement reports. Categories are assigned by a TF-IDF + logistic-regression classifier trained on the recall text; the % on each recall is the model confidence.',
+  about:
+    "A full-stack side project. A Python/FastAPI service ingests the FDA's openFDA food-enforcement data every day, classifies each recall by likely cause, and stores it in Postgres; this React + TypeScript dashboard reads a documented JSON API to explore it. Built production-shaped — typed end to end, tested, migrated with Alembic, rate-limited, and deployed behind a daily ingest job.",
 }
+
+export const techStack: { area: string; items: string[] }[] = [
+  {
+    area: 'Frontend',
+    items: ['React 18', 'TypeScript', 'Vite', 'SCSS Modules', 'Hand-rolled SVG charts'],
+  },
+  {
+    area: 'Backend',
+    items: ['FastAPI', 'Python 3.11', 'SQLAlchemy 2.0', 'Pydantic v2', 'Alembic'],
+  },
+  {
+    area: 'Data & infra',
+    items: [
+      'PostgreSQL (Neon)',
+      'openFDA API',
+      'GitHub Actions (daily ingest)',
+      'Render',
+      'Docker',
+    ],
+  },
+]
 
 export const categoryLabels: Record<RecallCategory, string> = {
   [RecallCategory.allergen]: 'Undeclared allergen',

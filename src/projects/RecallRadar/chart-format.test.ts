@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { formatDate, formatMonthLabel, formatNumber } from './chart-format'
+import {
+  deriveYears,
+  formatDate,
+  formatMonthLabel,
+  formatNumber,
+  monthsForYear,
+} from './chart-format'
 
 describe('chart-format', () => {
   it('formats a YYYY-MM month label', () => {
@@ -13,5 +19,32 @@ describe('chart-format', () => {
   it('formats an ISO date and falls back for null', () => {
     expect(formatDate('2026-03-01')).toBe('Mar 1, 2026')
     expect(formatDate(null)).toBe('—')
+  })
+})
+
+describe('deriveYears', () => {
+  it('returns distinct years, newest first', () => {
+    const byMonth = [
+      { month: '2025-03', count: 1 },
+      { month: '2026-01', count: 2 },
+      { month: '2025-11', count: 3 },
+    ]
+    expect(deriveYears(byMonth)).toEqual([2026, 2025])
+  })
+})
+
+describe('monthsForYear', () => {
+  it('builds a full 12-month series, filling gaps with 0', () => {
+    const series = monthsForYear(
+      [
+        { month: '2026-02', count: 5 },
+        { month: '2026-12', count: 9 },
+      ],
+      2026
+    )
+    expect(series).toHaveLength(12)
+    expect(series[0]).toEqual({ month: '2026-01', count: 0 })
+    expect(series[1]).toEqual({ month: '2026-02', count: 5 })
+    expect(series[11]).toEqual({ month: '2026-12', count: 9 })
   })
 })

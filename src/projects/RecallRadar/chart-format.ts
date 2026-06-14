@@ -1,3 +1,5 @@
+import type { MonthCount } from './recall.types'
+
 // Fixed locale keeps formatting deterministic across environments (and tests).
 const LOCALE = 'en-US'
 
@@ -22,4 +24,23 @@ export function formatDate(iso: string | null): string {
     month: 'short',
     day: 'numeric',
   }).format(date)
+}
+
+// Distinct years present in the monthly data, newest first.
+export function deriveYears(byMonth: MonthCount[]): number[] {
+  const years = new Set<number>()
+  for (const entry of byMonth) {
+    const year = Number(entry.month.slice(0, 4))
+    if (Number.isFinite(year)) years.add(year)
+  }
+  return [...years].sort((a, b) => b - a)
+}
+
+// A full Jan–Dec series for `year`, filling any missing months with 0.
+export function monthsForYear(byMonth: MonthCount[], year: number): MonthCount[] {
+  const counts = new Map(byMonth.map((entry) => [entry.month, entry.count]))
+  return Array.from({ length: 12 }, (_, index) => {
+    const month = `${year}-${String(index + 1).padStart(2, '0')}`
+    return { month, count: counts.get(month) ?? 0 }
+  })
 }

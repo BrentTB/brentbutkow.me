@@ -18,6 +18,9 @@ export function RecallFeed({ recalls }: RecallFeedProps) {
         <li key={recall.recallNumber} className={styles.row}>
           <div className={styles.meta}>
             <span className={styles.badge}>{categoryLabels[recall.category]}</span>
+            <span className={styles.confidence} title="Classifier confidence">
+              {Math.round(recall.categoryConfidence * 100)}%
+            </span>
             {recall.classification && <span className={styles.class}>{recall.classification}</span>}
             <span className={styles.date}>{formatDate(recall.reportDate)}</span>
           </div>
