@@ -73,7 +73,7 @@
 
 .submit {
   background: var(--accent);
-  color: #1a1407;
+  color: var(--on-accent);
   border: none;
   border-radius: var(--radius);
   padding: 10px 20px;
@@ -99,7 +99,7 @@
 }
 
 .error {
-  color: #e57373;
+  color: var(--danger);
   font-size: 0.85rem;
 }
 

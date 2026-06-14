@@ -36,6 +36,7 @@ export function ContactForm() {
           </span>
           <input
             className={styles.input}
+            aria-label="Name"
             value={name}
             onChange={(event) => setName(event.target.value)}
             autoComplete="name"
@@ -48,6 +49,7 @@ export function ContactForm() {
           <input
             className={styles.input}
             type="email"
+            aria-label="Email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             autoComplete="email"
@@ -85,10 +87,14 @@ export function ContactForm() {
           {sending ? 'Sending…' : 'Send message'}
         </button>
         {status === ContactStatus.success && (
-          <span className={styles.success}>Thanks — your message was sent.</span>
+          <span className={styles.success} role="status">
+            Thanks — your message was sent.
+          </span>
         )}
         {status === ContactStatus.error && (
-          <span className={styles.error}>Something went wrong. Please try again.</span>
+          <span className={styles.error} role="alert">
+            Something went wrong. Please try again.
+          </span>
         )}
       </div>
 
