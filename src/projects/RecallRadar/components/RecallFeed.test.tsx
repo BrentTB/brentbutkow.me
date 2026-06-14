@@ -4,7 +4,10 @@ import { RecallFeed } from './RecallFeed'
 import type { Recall } from '../recall.types'
 
 const recall: Recall = {
+  country: 'us',
+  source: 'usda',
   recallNumber: 'F-1234',
+  sourceUrl: 'https://www.fsis.usda.gov/recalls/test',
   status: 'Ongoing',
   classification: 'Class I',
   productDescription: 'Test cookies',
@@ -28,6 +31,8 @@ describe('RecallFeed', () => {
     // fields revealed in the expandable detail panel
     expect(screen.getByText('F-1234')).toBeTruthy()
     expect(screen.getByText('Nationwide')).toBeTruthy()
+    expect(screen.getByText('USDA FSIS')).toBeTruthy() // source badge
+    expect(screen.getByText('View original notice ↗')).toBeTruthy() // source_url link
   })
 
   it('toggles the detail panel open when the summary is clicked', () => {

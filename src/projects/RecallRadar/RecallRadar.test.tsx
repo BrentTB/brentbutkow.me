@@ -24,13 +24,20 @@ const stats = {
     { label: 'TX', count: 9 },
   ],
   byCompany: [{ label: 'Globex Foods', count: 14 }],
+  bySource: [
+    { label: 'fda', count: 30 },
+    { label: 'usda', count: 12 },
+  ],
   lastIngestAt: '2026-06-13T08:00:00.000Z',
 }
 
 const recalls = {
   items: [
     {
+      country: 'us',
+      source: 'fda',
       recallNumber: 'F-1',
+      sourceUrl: null,
       status: 'Ongoing',
       classification: 'Class I',
       productDescription: 'Test cookies',
@@ -72,11 +79,12 @@ describe('RecallRadar page', () => {
     // tech-stack overview + methodology render immediately (not data-gated)
     expect(screen.getByText('FastAPI')).toBeTruthy()
     expect(screen.getByText('How this works')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'United Kingdom' })).toBeTruthy() // country selector
 
     // data-driven sections after the fetch resolves
     await waitFor(() => expect(screen.getByText('Test cookies')).toBeTruthy())
     expect(screen.getByText('Acme Foods')).toBeTruthy()
-    expect(screen.getByText('Recalls by state')).toBeTruthy()
+    expect(screen.getByText('US recalls by state')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'California: 18 recalls' })).toBeTruthy()
     // trend callouts + per-recall drill-down detail
     expect(screen.getByText('the leading cause of recalls')).toBeTruthy()
@@ -85,6 +93,7 @@ describe('RecallRadar page', () => {
     expect(screen.getByText('Top states')).toBeTruthy()
     // appears in the breakdown row and the company filter option
     expect(screen.getAllByText('Globex Foods').length).toBeGreaterThan(0)
+    expect(screen.getByText('By source')).toBeTruthy() // FDA / USDA breakdown
     expect(screen.getByText('42')).toBeTruthy()
   })
 })

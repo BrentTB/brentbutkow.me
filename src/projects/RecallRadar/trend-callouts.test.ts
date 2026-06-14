@@ -24,6 +24,7 @@ const baseStats: RecallStats = {
     { label: 'TX', count: 10 },
   ],
   byCompany: [],
+  bySource: [],
   lastIngestAt: null,
 }
 
