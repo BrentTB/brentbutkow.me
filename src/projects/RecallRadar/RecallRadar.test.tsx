@@ -44,7 +44,6 @@ const recalls = {
       reasonText: 'Undeclared peanut',
       companyName: 'Acme Foods',
       state: 'CA',
-      states: ['CA'],
       distributionPattern: 'Nationwide',
       recallInitiationDate: '2026-06-01',
       reportDate: '2026-06-10',

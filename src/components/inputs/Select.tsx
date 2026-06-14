@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
 import styles from './Select.module.scss'
 
 export type SelectOption = { value: string; label: string }
@@ -16,6 +16,10 @@ export function Select({ value, options, onChange, ariaLabel }: SelectProps) {
   const [open, setOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
   const rootRef = useRef<HTMLDivElement>(null)
+  const optionRefs = useRef<(HTMLLIElement | null)[]>([])
+  const baseId = useId()
+  const listboxId = `${baseId}-listbox`
+  const optionId = (index: number) => `${baseId}-option-${index}`
 
   const selected = options.find((option) => option.value === value) ?? options[0]
 
@@ -27,6 +31,11 @@ export function Select({ value, options, onChange, ariaLabel }: SelectProps) {
     document.addEventListener('mousedown', onPointerDown)
     return () => document.removeEventListener('mousedown', onPointerDown)
   }, [open])
+
+  // Keep the keyboard-active option in view as it moves through a long list.
+  useEffect(() => {
+    if (open) optionRefs.current[activeIndex]?.scrollIntoView?.({ block: 'nearest' })
+  }, [open, activeIndex])
 
   const openMenu = () => {
     setActiveIndex(
@@ -68,25 +77,35 @@ export function Select({ value, options, onChange, ariaLabel }: SelectProps) {
         className={styles.trigger}
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-controls={open ? listboxId : undefined}
+        aria-activedescendant={open ? optionId(activeIndex) : undefined}
         aria-label={ariaLabel}
         onClick={() => (open ? setOpen(false) : openMenu())}
         onKeyDown={onKeyDown}
       >
-        <span className={styles.value}>{selected.label}</span>
+        <span className={styles.value}>{selected?.label ?? ''}</span>
         <span className={styles.chevron} aria-hidden="true">
           ▾
         </span>
       </button>
       {open && (
-        <ul className={styles.menu} role="listbox" aria-label={ariaLabel}>
+        <ul className={styles.menu} id={listboxId} role="listbox" aria-label={ariaLabel}>
           {options.map((option, index) => (
             <li
               key={option.value}
+              id={optionId(index)}
+              ref={(node) => {
+                optionRefs.current[index] = node
+              }}
               role="option"
               aria-selected={option.value === value}
-              className={`${styles.option} ${index === activeIndex ? styles.active : ''} ${
-                option.value === value ? styles.selected : ''
-              }`}
+              className={[
+                styles.option,
+                index === activeIndex && styles.active,
+                option.value === value && styles.selected,
+              ]
+                .filter(Boolean)
+                .join(' ')}
               onMouseEnter={() => setActiveIndex(index)}
               onClick={() => choose(index)}
             >

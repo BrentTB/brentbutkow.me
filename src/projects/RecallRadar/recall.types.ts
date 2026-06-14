@@ -53,7 +53,6 @@ export type Recall = {
   reasonText: string
   companyName: string | null
   state: string | null
-  states: string[] | null
   distributionPattern: string | null
   recallInitiationDate: string | null
   reportDate: string | null
@@ -114,7 +113,9 @@ const isRecall = (value: unknown): value is Recall =>
   isRecord(value) &&
   typeof value.recallNumber === 'string' &&
   typeof value.source === 'string' &&
+  isRecallSource(value.source) &&
   typeof value.country === 'string' &&
+  isRecallCountry(value.country) &&
   typeof value.productDescription === 'string' &&
   typeof value.reasonText === 'string' &&
   typeof value.category === 'string' &&
@@ -126,8 +127,7 @@ const isRecall = (value: unknown): value is Recall =>
   isStringOrNull(value.distributionPattern) &&
   isStringOrNull(value.recallInitiationDate) &&
   isStringOrNull(value.reportDate) &&
-  isStringOrNull(value.sourceUrl) &&
-  (value.states === null || Array.isArray(value.states))
+  isStringOrNull(value.sourceUrl)
 
 export const isRecallListResult = (value: unknown): value is RecallListResult =>
   isRecord(value) &&

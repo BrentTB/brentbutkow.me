@@ -27,6 +27,16 @@ describe('Select', () => {
     expect(screen.queryByRole('option')).toBeNull()
   })
 
+  it('moves the active descendant with ArrowDown', () => {
+    render(<Select value="" options={options} onChange={() => {}} ariaLabel="Source" />)
+    const trigger = screen.getByLabelText('Source')
+    fireEvent.click(trigger)
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' })
+    const activeId = trigger.getAttribute('aria-activedescendant')
+    expect(activeId).toBeTruthy()
+    expect(document.getElementById(activeId!)?.textContent).toBe('FDA')
+  })
+
   it('closes on Escape', () => {
     render(<Select value="" options={options} onChange={() => {}} ariaLabel="Source" />)
     const trigger = screen.getByLabelText('Source')

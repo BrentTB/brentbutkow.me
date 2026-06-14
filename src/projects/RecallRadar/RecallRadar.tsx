@@ -98,7 +98,7 @@ export function RecallRadar() {
             document.getElementById('tech-stack')?.scrollIntoView({ behavior: 'smooth' })
           }
         >
-          Interested in the tech stack? ↓
+          {recallRadarCopy.techStackPrompt}
         </button>
       </div>
 
@@ -154,7 +154,7 @@ export function RecallRadar() {
 
       {stats.data && country === RecallCountry.us && (
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>US recalls by state</h2>
+          <h2 className={styles.sectionTitle}>{recallRadarCopy.stateMapTitle}</h2>
           <p className={styles.hint}>Click a state to filter the recalls below.</p>
           <RecallMap
             byState={stats.data.byState}
