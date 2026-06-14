@@ -402,6 +402,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.24.3',
+    date: '2026-06-14',
+    changes: {
+      fixes: [
+        'With "reduce motion" on, the death sequence now stays genuinely calm — the ship still explodes, but with a smaller, single burst and no extra cook-off pops.',
+      ],
+    },
+  },
+  {
     version: '0.24.2',
     date: '2026-06-14',
     changes: {

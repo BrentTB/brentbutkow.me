@@ -150,6 +150,7 @@ export function moveToShipSelection(state: GameState): GameState {
     allies: [],
     particles: [],
     deathAnims: [],
+    deathTimer: 0,
     activeEffects: [],
     collectibles: [],
     hazards: [],
@@ -533,7 +534,11 @@ export function advanceWarp(state: GameState, dt: number): { state: GameState; l
 // updateGameState early-returns — so particles + death animations tick here and
 // the wreck keeps cooking off; when the timer ends the phase flips to gameOver
 // (the high score is saved at that moment, not at the killing hit).
-export function advanceDeathSequence(state: GameState, dt: number): GameState {
+export function advanceDeathSequence(
+  state: GameState,
+  dt: number,
+  reducedMotion = false
+): GameState {
   if (state.phase !== GamePhase.dying) return state
   dt = Math.min(dt, MAX_DT)
 
@@ -541,8 +546,9 @@ export function advanceDeathSequence(state: GameState, dt: number): GameState {
   const deathAnims = updateDeathAnims(state.deathAnims, dt)
 
   // Secondary pops during the first part of the sequence — the wreck cooks off.
+  // Reduced motion keeps the sequence calm: no extra bursts.
   const elapsed = ANIMATION.deathSequence - state.deathTimer
-  if (elapsed < ANIMATION.deathSequence * 0.6 && rng.next() < 0.25) {
+  if (!reducedMotion && elapsed < ANIMATION.deathSequence * 0.6 && rng.next() < 0.25) {
     particles = [
       ...particles,
       ...spawnExplosionParticles(
@@ -969,11 +975,14 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   // --- Player death → dying sequence (the ship explodes, THEN gameOver) ---
   // High score is saved when the sequence ends (advanceDeathSequence), not here.
   if (ship.hp <= 0) {
-    const wreck = [
-      ...spawnExplosionParticles(ship.pos, 28, '#ffaa55'),
-      ...spawnExplosionParticles(ship.pos, 16, '#ffffff'),
-      ...spawnExplosionParticles(ship.pos, 12, '#66aacc'),
-    ]
+    // Reduced motion still gets a death burst — just a calmer, smaller one.
+    const wreck = input.reducedMotion
+      ? spawnExplosionParticles(ship.pos, 10, '#ffaa55')
+      : [
+          ...spawnExplosionParticles(ship.pos, 28, '#ffaa55'),
+          ...spawnExplosionParticles(ship.pos, 16, '#ffffff'),
+          ...spawnExplosionParticles(ship.pos, 12, '#66aacc'),
+        ]
     return {
       ...state,
       phase: GamePhase.dying,

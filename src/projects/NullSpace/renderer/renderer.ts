@@ -507,8 +507,11 @@ function renderDeathAnims(
     ctx.drawImage(sprites[spriteKey], -size.w / 2, -size.h / 2)
     ctx.restore()
 
-    // Shatter overlay frame, scaled to the enemy and fading near the end.
-    const frame = frames[pickFrame(frames.length, d.duration / frames.length, d.elapsed)]
+    // Shatter overlay frame, scaled to the enemy and fading near the end. Clamp
+    // just under duration so the last frame holds instead of pickFrame's modulo
+    // wrapping back to frame 0 on the final tick.
+    const shatterElapsed = Math.min(d.elapsed, d.duration * 0.999)
+    const frame = frames[pickFrame(frames.length, d.duration / frames.length, shatterElapsed)]
     if (frame) {
       const scale = (size.w / frame.width) * 1.2 * d.sizeScale
       const w = frame.width * scale

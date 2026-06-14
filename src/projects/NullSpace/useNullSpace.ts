@@ -649,7 +649,11 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       if (warp.landed) enterCorridor()
 
       // Tick the player-death explosion; flips to gameOver when it ends.
-      gameStateRef.current = advanceDeathSequence(gameStateRef.current, dt)
+      gameStateRef.current = advanceDeathSequence(
+        gameStateRef.current,
+        dt,
+        reducedMotionRef.current
+      )
 
       cameraRef.current = updateCamera(
         cameraRef.current,

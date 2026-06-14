@@ -58,8 +58,6 @@ export function GameOverlay({
     if (uiState.phase !== GamePhase.paused) setPauseSubPage(null)
   }, [uiState.phase])
 
-  // `dying` shows the ship-explosion sequence on the canvas — no dark overlay
-  // until it resolves to gameOver.
   // `dying` (ship-explosion) and `warping` (fly into the portal) both play on the
   // canvas — no dark overlay over them, only once they resolve to gameOver/shop.
   if (

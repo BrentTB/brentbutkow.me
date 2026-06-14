@@ -237,6 +237,23 @@ describe('updateGameState', () => {
     expect(dying.deathTimer).toBeGreaterThan(0)
   })
 
+  it('reduced motion spawns a calmer (smaller) death burst', () => {
+    // Same lethal frame, only reducedMotion differs — the calm wreck must emit
+    // strictly fewer particles than the full one (guards the reduced-motion gate
+    // on the death burst + low-HP smoke).
+    const lethal = (reducedMotion: boolean) => {
+      let state = startGame(createInitialState(), ShipKind.fighter)
+      state = startNextWave(state)
+      state = { ...state, enemies: [], spawnQueue: [], ship: { ...state.ship, hp: 0, shield: 0 } }
+      return updateGameState(state, 0.016, { clicks: [], selectedAbility: null, reducedMotion })
+    }
+    const calm = lethal(true)
+    expect(calm.phase).toBe(GamePhase.dying)
+    // Full wreck = 56 particles, calm = 10; the ~46 gap dwarfs the ±1 from the
+    // rng-gated low-HP smoke, so the margin isolates the death-burst gate.
+    expect(lethal(false).particles.length - calm.particles.length).toBeGreaterThan(40)
+  })
+
   it('the dying sequence counts down, then flips to gameOver', () => {
     const dying = reachShipDeath()
     // Mid-sequence: still dying.
