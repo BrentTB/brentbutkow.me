@@ -1,9 +1,21 @@
 import { SPAWN_CONE, SPAWN_DELAY, SPAWN_DISTANCE, SWARM_SPAWN_SPREAD } from '../../data'
 import { createEnemy } from '../entities/entity-creator'
+import { scaleEnemy } from '../world/enemy-scaling'
+import { applyModifier, rollEnemyModifier } from '../world/enemy-modifiers'
 import { clamp } from '../math/utils'
 import { rng } from '../math/random'
 import { EnemyKind } from '../types'
 import type { Enemy, Vec2 } from '../types'
+
+// Creates an enemy for the current wave: wave stat-scaling first, then a chance
+// at a late-game modifier (so a shield pool is sized off the scaled HP). The
+// single source for spawning so both the swarm-burst and single paths match.
+function spawnEnemy(kind: EnemyKind, pos: Vec2, waveNumber: number): Enemy {
+  let enemy = scaleEnemy(createEnemy(kind, pos), waveNumber)
+  const modifier = rollEnemyModifier(kind, waveNumber)
+  if (modifier) enemy = applyModifier(enemy, modifier)
+  return enemy
+}
 
 // Picks a spawn point a random distance from the ship. Most spawns land in a cone
 // AHEAD of the ship (along forwardDir) so the pressure comes from the direction of
@@ -71,14 +83,14 @@ export function processSpawnQueue(opts: {
           x: center.x + rng.range(-SWARM_SPAWN_SPREAD, SWARM_SPAWN_SPREAD),
           y: center.y + rng.range(-SWARM_SPAWN_SPREAD, SWARM_SPAWN_SPREAD),
         }
-        enemies = [...enemies, createEnemy(EnemyKind.swarm, pos)]
+        enemies = [...enemies, spawnEnemy(EnemyKind.swarm, pos, waveNumber)]
         spawnQueue = spawnQueue.slice(1)
         spawnedInWave++
       }
     } else {
       spawnQueue = spawnQueue.slice(1)
       const pos = spawnPositionNearShip(shipPos, worldSize, forwardDir, waveNumber)
-      enemies = [...enemies, createEnemy(kind, pos)]
+      enemies = [...enemies, spawnEnemy(kind, pos, waveNumber)]
       spawnedInWave++
     }
 

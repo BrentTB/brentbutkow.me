@@ -1,4 +1,5 @@
 import { canEnemyTakeDamage } from '../bosses/index'
+import { applyDamageToEnemy } from '../entities/enemy-damage'
 import { createParticle, spawnExplosionParticles } from '../entities/entity-creator'
 import { rng } from '../math/random'
 import type { BurningState, Enemy, Particle } from '../types'
@@ -66,12 +67,12 @@ export function updateBurningEnemies(enemies: Enemy[], dt: number): BurningResul
     // no damage until the shield drops.
     const damage = canEnemyTakeDamage(enemy, enemies) ? burning.dps * dt : 0
     const remaining = burning.remaining - dt
-    const hp = enemy.hp - damage
+    const damaged = applyDamageToEnemy(enemy, damage)
     // A couple of licks per frame keeps a steady, readable flame.
     particles.push(fireParticle(enemy), fireParticle(enemy))
     if (rng.next() < 0.5) particles.push(fireParticle(enemy))
 
-    if (hp <= 0) {
+    if (damaged.hp <= 0) {
       scoreGained += enemy.scoreValue
       killedEnemies.push(enemy)
       particles.push(...spawnExplosionParticles(enemy.pos, 8, '#ff7733'))
@@ -79,8 +80,7 @@ export function updateBurningEnemies(enemies: Enemy[], dt: number): BurningResul
     }
 
     survivors.push({
-      ...enemy,
-      hp,
+      ...damaged,
       burning: remaining > 0 ? { ...burning, remaining } : undefined,
     })
   }

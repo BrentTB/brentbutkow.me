@@ -1,4 +1,5 @@
 import { canEnemyTakeDamage } from '../bosses/index'
+import { applyDamageToEnemy } from '../entities/enemy-damage'
 import { distance } from '../math/collision'
 import { spawnExplosionParticles, uid } from '../entities/entity-creator'
 import { EffectKind } from '../types'
@@ -83,7 +84,7 @@ function applyMeteorDamage(
     const dist = distance(enemy.pos, strike.pos)
     // Invincible enemies (shielded boss) are unaffected by the strike.
     if (dist < strike.aoeRadius && canEnemyTakeDamage(enemy, enemies)) {
-      const damaged = { ...enemy, hp: enemy.hp - strike.damage }
+      const damaged = applyDamageToEnemy(enemy, strike.damage)
       if (damaged.hp <= 0) {
         scoreGained += enemy.scoreValue
         killedEnemies.push(enemy)

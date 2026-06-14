@@ -1,5 +1,6 @@
 import { SHIELD } from './ability-data'
 import { spawnExplosionParticles, uid } from '../entities/entity-creator'
+import { applyDamageToEnemy } from '../entities/enemy-damage'
 import { canEnemyTakeDamage } from '../bosses/index'
 import { AbilityKind, EffectKind } from '../types'
 import type { ActiveEffect, Enemy, ForceFieldEffect, Particle, ShieldEffect, Vec2 } from '../types'
@@ -164,14 +165,14 @@ export function applyShieldConstraints(
       continue
     }
     if (contactDamage > 0 && canEnemyTakeDamage(enemy, enemies)) {
-      const hp = enemy.hp - contactDamage
-      if (hp <= 0) {
+      const damaged = applyDamageToEnemy(enemy, contactDamage)
+      if (damaged.hp <= 0) {
         killedEnemies.push(enemy)
         scoreGained += enemy.scoreValue
         particles.push(...spawnExplosionParticles(enemy.pos, 8, '#c8a8ff'))
         continue
       }
-      surviving.push({ ...enemy, pos, vel, hp })
+      surviving.push({ ...damaged, pos, vel })
       continue
     }
     surviving.push({ ...enemy, pos, vel })

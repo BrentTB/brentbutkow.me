@@ -1,5 +1,6 @@
 import { SINGULARITY, TELEKINESIS } from './ability-data'
 import { canEnemyTakeDamage } from '../bosses/index'
+import { applyDamageToEnemy } from '../entities/enemy-damage'
 import { distance } from '../math/collision'
 import { spawnExplosionParticles } from '../entities/entity-creator'
 import { damageEnemiesInRadiusFlat } from '../math/aoe'
@@ -69,12 +70,12 @@ const singularityHold: HoldAbilityConfig = {
           next.push(e)
           continue
         }
-        const hp = e.hp - damage
-        if (hp <= 0) {
+        const damaged = applyDamageToEnemy(e, damage)
+        if (damaged.hp <= 0) {
           killedEnemies.push(e)
           particles = [...particles, ...spawnExplosionParticles(e.pos, 6, '#b070ff')]
         } else {
-          next.push({ ...e, hp })
+          next.push(damaged)
         }
       }
       enemies = next

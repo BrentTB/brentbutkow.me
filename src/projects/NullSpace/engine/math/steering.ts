@@ -26,10 +26,17 @@ export function driftWithWeave(
 
 // Soft 1-axis tether: the restoring velocity to ADD when `v` is outside
 // [min, max]; 0 while inside. Pulls back toward the nearer bound, scaled by how
-// far past it `v` is and by `strength`. Composes additively with other velocity
-// terms, so a hard fling past the corridor edge curves back instead of hitting a wall.
-export function softTether1D(v: number, min: number, max: number, strength: number): number {
-  if (v < min) return (min - v) * strength
-  if (v > max) return (max - v) * strength
+// far past it `v` is and by `strength`, then clamped to `maxReturn` so deep
+// penetration (e.g. a spent fling pinned against the wall) eases back instead of
+// being flung at a depth-proportional speed. Composes additively with other terms.
+export function softTether1D(
+  v: number,
+  min: number,
+  max: number,
+  strength: number,
+  maxReturn = Infinity
+): number {
+  if (v < min) return Math.min((min - v) * strength, maxReturn)
+  if (v > max) return Math.max((max - v) * strength, -maxReturn)
   return 0
 }

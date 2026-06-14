@@ -6,7 +6,7 @@ import { fillRadialGlow } from './draw'
 
 // Draws hazard mines — a warning glow with a spiked core. Crossing one damages the
 // ship (unless dashing through with Escape Mode).
-export function renderHazardLanes(
+export function renderHazardField(
   ctx: CanvasRenderingContext2D,
   state: GameState,
   camera: Camera
