@@ -185,6 +185,9 @@ export type Enemy = Entity & {
   // fireFlash blips the muzzle on a shot, spawnIn counts DOWN from the warp-in
   // grow (0 = fully materialised). Movement/collision ignore them.
   hitFlash: number
+  // Gates how often hitFlash may re-trigger, so continuous damage (DOT, Event
+  // Horizon) pulses the white wash instead of pinning it solid. Counts down to 0.
+  hitFlashCooldown: number
   fireFlash: number
   spawnIn: number
 }

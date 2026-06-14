@@ -172,6 +172,7 @@ export function updateEnemyMovement(
       age: enemy.age + dt,
       spawnIn: Math.max(0, enemy.spawnIn - dt),
       hitFlash: Math.max(0, enemy.hitFlash - dt),
+      hitFlashCooldown: Math.max(0, enemy.hitFlashCooldown - dt),
     }
   })
 }

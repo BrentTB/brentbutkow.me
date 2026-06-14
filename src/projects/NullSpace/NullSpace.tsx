@@ -8,13 +8,16 @@ import { resetPinchZoom } from './reset-pinch-zoom'
 import { GameHUD } from './components/GameHUD/GameHUD'
 import { GameControls } from './components/GameHUD/GameControls'
 import { GameOverlay } from './components/GameOverlay'
+import { TutorialOverlay } from './components/Tutorial/TutorialOverlay'
 import { DevConsole } from './components/Development/DevConsole'
 import { ChangelogFilters } from './components/ChangelogFilters/ChangelogFilters'
 import { GAME_VERSION, CHANGELOG } from './data'
+import { TutorialEntry } from './engine/tutorial/tutorial-machine'
 import { computeHudScale } from './renderer/camera'
 import {
   CHANGELOG_CATEGORIES,
   loadChangelogFilters,
+  loadTutorialSeen,
   saveChangelogFilters,
   type ChangelogFilters as ChangelogFiltersState,
 } from './engine/world/persistence'
@@ -44,11 +47,22 @@ export function NullSpace() {
     handleResume,
     handleSetSpeed,
     handleUseSpaceMetalAbility,
+    handleStartTutorial,
+    handleSkipTutorial,
+    handleTutorialAck,
     handleDevPatch,
     handleDevJumpToUpgrades,
     handleDevJumpToBoss,
     handleDevQuickStart,
   } = useNullSpace(canvasRef)
+
+  // Start Game routes a first-ever player (never seen the tutorial) through the
+  // onboarding demo wave first; it flows into ship selection when done. Returning
+  // players go straight to ship selection.
+  const handleMenuStart = useCallback(() => {
+    if (loadTutorialSeen()) handleStart()
+    else handleStartTutorial(TutorialEntry.firstPlay)
+  }, [handleStart, handleStartTutorial])
 
   const [isRealFullscreen, setIsRealFullscreen] = useState(false)
   // Pseudo-fullscreen fallback for browsers without the Fullscreen API
@@ -153,6 +167,16 @@ export function NullSpace() {
               isFullscreen={isFullscreen}
               gameSpeed={gameSpeed}
             />
+            {uiState.tutorialActive && (
+              <TutorialOverlay
+                copy={uiState.tutorialCopy}
+                awaitingAck={uiState.tutorialAwaitingAck}
+                ackLabel={uiState.tutorialAckLabel}
+                isFinal={uiState.tutorialIsFinal}
+                onAck={handleTutorialAck}
+                onSkip={handleSkipTutorial}
+              />
+            )}
           </div>
           <div className={styles.controlBar}>
             <GameControls
@@ -163,7 +187,7 @@ export function NullSpace() {
           </div>
           <GameOverlay
             uiState={uiState}
-            onStart={handleStart}
+            onStart={handleMenuStart}
             onContinue={handleContinue}
             hasSave={hasSave}
             onSaveAndExit={handleSaveAndExit}
@@ -176,6 +200,7 @@ export function NullSpace() {
             onEquipShipWeapon={handleEquipShipWeapon}
             onResume={handleResume}
             onSetSpeed={handleSetSpeedAndSync}
+            onReplayTutorial={() => handleStartTutorial(TutorialEntry.replay)}
             gameSpeed={gameSpeed}
           />
         </div>

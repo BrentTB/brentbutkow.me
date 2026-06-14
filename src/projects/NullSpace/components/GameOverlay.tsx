@@ -27,6 +27,7 @@ type GameOverlayProps = {
   onResume: () => void
   onSetSpeed: (speed: number) => void
   onEquipShipWeapon: (slotIndex: number, weapon: ShipWeaponKind) => void
+  onReplayTutorial: () => void
   gameSpeed: number
 }
 
@@ -48,6 +49,7 @@ export function GameOverlay({
   onResume,
   onSetSpeed,
   onEquipShipWeapon,
+  onReplayTutorial,
   gameSpeed,
 }: GameOverlayProps) {
   const [pauseSubPage, setPauseSubPage] = useState<SettingsSubPages | null>(null)
@@ -85,7 +87,12 @@ export function GameOverlay({
     <div className={styles.overlay}>
       <div className={styles.content}>
         {uiState.phase === GamePhase.menu && (
-          <MenuScreen onStart={onStart} onContinue={onContinue} hasSave={hasSave} />
+          <MenuScreen
+            onStart={onStart}
+            onContinue={onContinue}
+            hasSave={hasSave}
+            onReplayTutorial={onReplayTutorial}
+          />
         )}
         {uiState.phase === GamePhase.shipSelection && (
           <ShipSelectionScreen onSelect={onSelectShip} />
@@ -98,7 +105,7 @@ export function GameOverlay({
               onClose={() => setPauseSubPage(null)}
             />
           ) : pauseSubPage === SettingsSubPages.help ? (
-            <HelpScreen onClose={() => setPauseSubPage(null)} />
+            <HelpScreen onClose={() => setPauseSubPage(null)} onReplayTutorial={onReplayTutorial} />
           ) : (
             <PauseMenu
               onResume={handleResume}

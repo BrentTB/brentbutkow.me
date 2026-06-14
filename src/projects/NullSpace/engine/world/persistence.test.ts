@@ -8,6 +8,8 @@ import {
   saveGame,
   loadGame,
   clearSave,
+  loadTutorialSeen,
+  saveTutorialSeen,
 } from './persistence'
 import { createInitialState } from '../game-loop'
 
@@ -51,6 +53,22 @@ describe('saveHighScore', () => {
   it('floors the score', () => {
     saveHighScore(99.7)
     expect(loadHighScore()).toBe(99)
+  })
+})
+
+describe('loadTutorialSeen / saveTutorialSeen', () => {
+  it('returns false when never seen', () => {
+    expect(loadTutorialSeen()).toBe(false)
+  })
+
+  it('returns true after marking seen', () => {
+    saveTutorialSeen()
+    expect(loadTutorialSeen()).toBe(true)
+  })
+
+  it('returns false for any other stored value', () => {
+    localStorage.setItem('null-space-tutorial-seen', 'yes')
+    expect(loadTutorialSeen()).toBe(false)
   })
 })
 

@@ -56,4 +56,23 @@ describe('applyDamageToEnemy', () => {
     // Overflow past the shield → flash fires.
     expect(applyDamageToEnemy(shielded(10), 25).hitFlash).toBeCloseTo(ANIMATION.hitFlash)
   })
+
+  // Regression: continuous damage (DOT / Event Horizon) used to refresh the flash
+  // every frame, pinning enemies solid white. The flash now throttles.
+  it('throttles the white flash so continuous damage cannot pin it solid', () => {
+    const e = createEnemy(EnemyKind.tank, { x: 0, y: 0 })
+    const first = applyDamageToEnemy(e, 5)
+    expect(first.hitFlash).toBeCloseTo(ANIMATION.hitFlash)
+    expect(first.hitFlashCooldown).toBeGreaterThan(0)
+
+    // Re-hit while the cooldown is live: HP still drops, but the flash is NOT
+    // refreshed (here it has already decayed to 0 and stays there).
+    const again = applyDamageToEnemy({ ...first, hitFlash: 0 }, 5)
+    expect(again.hp).toBe(first.hp - 5)
+    expect(again.hitFlash).toBe(0)
+
+    // Once the cooldown has elapsed, the next hit flashes again.
+    const cooled = applyDamageToEnemy({ ...first, hitFlash: 0, hitFlashCooldown: 0 }, 5)
+    expect(cooled.hitFlash).toBeCloseTo(ANIMATION.hitFlash)
+  })
 })

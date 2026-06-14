@@ -43,6 +43,11 @@ function makeUiState(phase: GameUIState['phase']): GameUIState {
     slingOverheated: false,
     boss: null,
     nextBoss: EnemyKind.dreadnought,
+    tutorialActive: false,
+    tutorialCopy: '',
+    tutorialAwaitingAck: false,
+    tutorialAckLabel: null,
+    tutorialIsFinal: false,
   }
 }
 
@@ -64,6 +69,7 @@ function renderOverlay(phase: GameUIState['phase'], hasSave = false) {
     onEquipShipWeapon: noop,
     onResume: noop,
     onSetSpeed: noop,
+    onReplayTutorial: noop,
     gameSpeed: 1,
   }
   const utils = render(<GameOverlay {...props} />)
@@ -116,7 +122,7 @@ describe('HelpScreen', () => {
   // backdrop, and it closes only via the explicit Back button.
   it('is not a modal and closes only via Back', () => {
     const onClose = vi.fn()
-    const { container } = render(<HelpScreen onClose={onClose} />)
+    const { container } = render(<HelpScreen onClose={onClose} onReplayTutorial={noop} />)
 
     expect(screen.queryByRole('dialog')).toBeNull()
 
