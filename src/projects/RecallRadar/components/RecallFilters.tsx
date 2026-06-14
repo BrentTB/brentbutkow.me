@@ -1,9 +1,11 @@
-import { categoryLabels } from '../data'
+import { categoryLabels, sourceLabels } from '../data'
 import {
   RecallCategory,
   RecallClass,
+  RecallSource,
   isRecallCategory,
   isRecallClass,
+  isRecallSource,
   type RecallFilterValues,
 } from '../recall.types'
 import styles from './RecallFilters.module.scss'
@@ -28,6 +30,7 @@ export function RecallFilters({
     filters.classification ||
     filters.state ||
     filters.company ||
+    filters.source ||
     filters.search.trim()
   )
 
@@ -77,6 +80,25 @@ export function RecallFilters({
           {Object.values(RecallClass).map((value) => (
             <option key={value} value={value}>
               {value}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className={styles.field}>
+        <span className={styles.label}>Source</span>
+        <select
+          className={styles.select}
+          value={filters.source}
+          onChange={(event) => {
+            const value = event.target.value
+            onChange({ source: isRecallSource(value) ? value : '' })
+          }}
+        >
+          <option value="">All</option>
+          {Object.values(RecallSource).map((value) => (
+            <option key={value} value={value}>
+              {sourceLabels[value]}
             </option>
           ))}
         </select>

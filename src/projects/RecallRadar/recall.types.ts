@@ -12,8 +12,15 @@ export const RecallClass = {
   classI: 'Class I',
   classII: 'Class II',
   classIII: 'Class III',
+  publicHealthAlert: 'Public Health Alert',
 } as const
 export type RecallClass = (typeof RecallClass)[keyof typeof RecallClass]
+
+export const RecallSource = {
+  fda: 'fda',
+  usda: 'usda',
+} as const
+export type RecallSource = (typeof RecallSource)[keyof typeof RecallSource]
 
 // UI filter state — '' means "no filter".
 export type RecallFilterValues = {
@@ -21,17 +28,21 @@ export type RecallFilterValues = {
   classification: RecallClass | ''
   state: string
   company: string
+  source: RecallSource | ''
   search: string
 }
 
 export type Recall = {
+  source: RecallSource
   recallNumber: string
+  sourceUrl: string | null
   status: string | null
   classification: RecallClass | null
   productDescription: string
   reasonText: string
   companyName: string | null
   state: string | null
+  states: string[] | null
   distributionPattern: string | null
   recallInitiationDate: string | null
   reportDate: string | null
@@ -55,6 +66,7 @@ export type RecallStats = {
   byClassification: LabelCount[]
   byState: LabelCount[]
   byCompany: LabelCount[]
+  bySource: LabelCount[]
   lastIngestAt: string | null
 }
 
@@ -72,6 +84,9 @@ export const isRecallCategory = (value: string): value is RecallCategory =>
 export const isRecallClass = (value: string): value is RecallClass =>
   (Object.values(RecallClass) as string[]).includes(value)
 
+export const isRecallSource = (value: string): value is RecallSource =>
+  (Object.values(RecallSource) as string[]).includes(value)
+
 const isLabelCount = (value: unknown): value is LabelCount =>
   isRecord(value) && typeof value.label === 'string' && typeof value.count === 'number'
 
@@ -84,6 +99,7 @@ const isMonthCount = (value: unknown): value is MonthCount =>
 const isRecall = (value: unknown): value is Recall =>
   isRecord(value) &&
   typeof value.recallNumber === 'string' &&
+  typeof value.source === 'string' &&
   typeof value.productDescription === 'string' &&
   typeof value.reasonText === 'string' &&
   typeof value.category === 'string' &&
@@ -94,7 +110,9 @@ const isRecall = (value: unknown): value is Recall =>
   isStringOrNull(value.state) &&
   isStringOrNull(value.distributionPattern) &&
   isStringOrNull(value.recallInitiationDate) &&
-  isStringOrNull(value.reportDate)
+  isStringOrNull(value.reportDate) &&
+  isStringOrNull(value.sourceUrl) &&
+  (value.states === null || Array.isArray(value.states))
 
 export const isRecallListResult = (value: unknown): value is RecallListResult =>
   isRecord(value) &&
@@ -115,4 +133,6 @@ export const isRecallStats = (value: unknown): value is RecallStats =>
   value.byState.every(isLabelCount) &&
   Array.isArray(value.byCompany) &&
   value.byCompany.every(isLabelCount) &&
+  Array.isArray(value.bySource) &&
+  value.bySource.every(isLabelCount) &&
   isStringOrNull(value.lastIngestAt)

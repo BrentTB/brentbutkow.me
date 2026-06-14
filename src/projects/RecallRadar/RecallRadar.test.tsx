@@ -24,19 +24,26 @@ const stats = {
     { label: 'TX', count: 9 },
   ],
   byCompany: [{ label: 'Globex Foods', count: 14 }],
+  bySource: [
+    { label: 'fda', count: 30 },
+    { label: 'usda', count: 12 },
+  ],
   lastIngestAt: '2026-06-13T08:00:00.000Z',
 }
 
 const recalls = {
   items: [
     {
+      source: 'fda',
       recallNumber: 'F-1',
+      sourceUrl: null,
       status: 'Ongoing',
       classification: 'Class I',
       productDescription: 'Test cookies',
       reasonText: 'Undeclared peanut',
       companyName: 'Acme Foods',
       state: 'CA',
+      states: ['CA'],
       distributionPattern: 'Nationwide',
       recallInitiationDate: '2026-06-01',
       reportDate: '2026-06-10',
@@ -85,6 +92,7 @@ describe('RecallRadar page', () => {
     expect(screen.getByText('Top states')).toBeTruthy()
     // appears in the breakdown row and the company filter option
     expect(screen.getAllByText('Globex Foods').length).toBeGreaterThan(0)
+    expect(screen.getByText('By source')).toBeTruthy() // FDA / USDA breakdown
     expect(screen.getByText('42')).toBeTruthy()
   })
 })

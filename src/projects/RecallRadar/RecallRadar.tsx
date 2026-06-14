@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { PageLayout } from '../../components/PageFormatting/PageLayout'
 import { PageHeader } from '../../components/PageFormatting/PageHeader'
 import { SafeLink } from '../../components/utils/SafeLink'
+import { getLinkArrow } from '../../components/utils/link-arrow'
 import { useFunMode } from '../../contexts/useFunMode'
 import { useDebouncedValue } from '../../api/useDebouncedValue'
 import { Breakdowns } from './components/Breakdowns'
@@ -31,6 +32,7 @@ const EMPTY_FILTERS: RecallFilterValues = {
   classification: '',
   state: '',
   company: '',
+  source: '',
   search: '',
 }
 
@@ -46,6 +48,7 @@ export function RecallRadar() {
     classification: filters.classification || undefined,
     state: filters.state || undefined,
     company: filters.company || undefined,
+    source: filters.source || undefined,
     search: debouncedSearch.trim() || undefined,
     limit: 50,
   })
@@ -181,7 +184,9 @@ export function RecallRadar() {
         <ul className={styles.links}>
           {recallRadarLinks.map((link) => (
             <li key={link.href}>
-              <SafeLink href={link.href}>{link.label} ↗</SafeLink>
+              <SafeLink href={link.href}>
+                {link.label} {getLinkArrow(false)}
+              </SafeLink>
             </li>
           ))}
         </ul>

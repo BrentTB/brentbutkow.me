@@ -348,8 +348,8 @@ src/projects/RecallRadar/components/
   TrendCallouts.tsx                          TrendCallouts
 
 src/projects/RecallRadar/
-  data.ts                                    recallRadarCopy, techStack, methodologyPoints, categoryLabels, recallRadarLinks
-  recall.types.ts                            RecallCategory, RecallClass, RecallFilterValues, Recall, RecallListResult, CategoryCount, MonthCount, LabelCount, RecallStats, isRecallCategory, isRecallClass, isRecallListResult, isRecallStats
+  data.ts                                    recallRadarCopy, techStack, methodologyPoints, categoryLabels, sourceLabels, recallRadarLinks
+  recall.types.ts                            RecallCategory, RecallClass, RecallSource, RecallFilterValues, Recall, RecallListResult, CategoryCount, MonthCount, LabelCount, RecallStats, isRecallCategory, isRecallClass, isRecallSource, isRecallListResult, isRecallStats
   trend-callouts.ts                          TrendDirection, TrendCallout, deriveCallouts
   us-state-grid.ts                           StateTile, STATE_GRID_ROWS, STATE_GRID_COLS, stateGrid
   useRecallStats.ts                          useRecallStats

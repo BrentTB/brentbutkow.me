@@ -8,6 +8,7 @@ const empty: RecallFilterValues = {
   classification: '',
   state: '',
   company: '',
+  source: '',
   search: '',
 }
 
@@ -31,6 +32,21 @@ describe('RecallFilters', () => {
       target: { value: 'listeria' },
     })
     expect(onChange).toHaveBeenCalledWith({ search: 'listeria' })
+  })
+
+  it('reports a chosen source through onChange', () => {
+    const onChange = vi.fn()
+    render(
+      <RecallFilters
+        filters={empty}
+        stateOptions={[]}
+        companyOptions={[]}
+        onChange={onChange}
+        onClear={noop}
+      />
+    )
+    fireEvent.change(screen.getByLabelText('Source'), { target: { value: 'usda' } })
+    expect(onChange).toHaveBeenCalledWith({ source: 'usda' })
   })
 
   it('shows the clear button when only a search is active', () => {

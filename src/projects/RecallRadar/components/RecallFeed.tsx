@@ -1,5 +1,7 @@
-import { categoryLabels } from '../data'
+import { categoryLabels, sourceLabels } from '../data'
 import { formatDate } from '../chart-format'
+import { SafeLink } from '../../../components/utils/SafeLink'
+import { getLinkArrow } from '../../../components/utils/link-arrow'
 import type { Recall } from '../recall.types'
 import styles from './RecallFeed.module.scss'
 
@@ -36,6 +38,7 @@ export function RecallFeed({ recalls }: RecallFeedProps) {
             <summary className={styles.summary}>
               <div className={styles.meta}>
                 <span className={styles.badge}>{categoryLabels[recall.category]}</span>
+                <span className={styles.source}>{sourceLabels[recall.source]}</span>
                 <span className={styles.confidence} title="Classifier confidence">
                   {Math.round(recall.categoryConfidence * 100)}%
                 </span>
@@ -59,6 +62,13 @@ export function RecallFeed({ recalls }: RecallFeedProps) {
                 </div>
               ))}
             </dl>
+            {recall.sourceUrl && (
+              <p className={styles.sourceLink}>
+                <SafeLink href={recall.sourceUrl}>
+                  View original notice {getLinkArrow(false)}
+                </SafeLink>
+              </p>
+            )}
           </details>
         </li>
       ))}

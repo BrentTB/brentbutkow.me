@@ -59,6 +59,14 @@
   color: var(--muted);
 }
 
+.source {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+}
+
 .date {
   font-family: var(--font-mono);
   font-size: 0.72rem;
@@ -135,6 +143,15 @@
   font-size: 0.85rem;
   color: var(--text-secondary);
   word-break: break-word;
+}
+
+.sourceLink {
+  margin: 14px 0 0;
+  font-size: 0.82rem;
+}
+
+.sourceLink a:hover {
+  color: var(--accent);
 }
 
 .empty {

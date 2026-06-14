@@ -1,7 +1,7 @@
-import { categoryLabels } from '../data'
+import { categoryLabels, sourceLabels } from '../data'
 import { formatNumber, seriesMax } from '../chart-format'
 import { isRecallCategory, isRecallClass } from '../recall.types'
-import type { RecallFilterValues, RecallStats } from '../recall.types'
+import type { RecallFilterValues, RecallSource, RecallStats } from '../recall.types'
 import styles from './Breakdowns.module.scss'
 
 type Row = { label: string; value: string; count: number }
@@ -92,6 +92,16 @@ export function Breakdowns({ stats, filters, onSelect }: BreakdownsProps) {
         activeValue={filters.company}
         onSelect={(value) => onSelect({ company: value })}
         rows={stats.byCompany.map((c) => ({ label: c.label, value: c.label, count: c.count }))}
+      />
+      <BreakdownList
+        title="By source"
+        activeValue={filters.source}
+        onSelect={(value) => onSelect({ source: value as RecallSource | '' })}
+        rows={stats.bySource.map((c) => ({
+          label: sourceLabels[c.label as RecallSource] ?? c.label,
+          value: c.label,
+          count: c.count,
+        }))}
       />
     </div>
   )
