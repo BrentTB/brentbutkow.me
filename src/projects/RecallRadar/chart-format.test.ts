@@ -6,6 +6,7 @@ import {
   formatNumber,
   ingestFreshness,
   monthsForYear,
+  seriesMax,
 } from './chart-format'
 
 describe('chart-format', () => {
@@ -13,13 +14,29 @@ describe('chart-format', () => {
     expect(formatMonthLabel('2026-03')).toBe('Mar 2026')
   })
 
+  it('falls back to the raw string for a malformed month', () => {
+    expect(formatMonthLabel('not-a-month')).toBe('not-a-month')
+  })
+
   it('formats numbers with grouping separators', () => {
     expect(formatNumber(28966)).toBe('28,966')
   })
 
-  it('formats an ISO date and falls back for null', () => {
+  it('formats an ISO date and falls back for null or malformed input', () => {
     expect(formatDate('2026-03-01')).toBe('Mar 1, 2026')
     expect(formatDate(null)).toBe('—')
+    expect(formatDate('not-a-date')).toBe('—')
+  })
+})
+
+describe('seriesMax', () => {
+  it('returns the largest count', () => {
+    expect(seriesMax([3, 9, 1])).toBe(9)
+  })
+
+  it('floors at 1 for an empty or all-zero series', () => {
+    expect(seriesMax([])).toBe(1)
+    expect(seriesMax([0, 0])).toBe(1)
   })
 })
 
@@ -31,6 +48,14 @@ describe('deriveYears', () => {
       { month: '2025-11', count: 3 },
     ]
     expect(deriveYears(byMonth)).toEqual([2026, 2025])
+  })
+
+  it('skips entries whose year is not a finite number', () => {
+    const byMonth = [
+      { month: '2026-01', count: 2 },
+      { month: 'bad', count: 1 },
+    ]
+    expect(deriveYears(byMonth)).toEqual([2026])
   })
 })
 
@@ -67,5 +92,12 @@ describe('ingestFreshness', () => {
 
   it('handles a missing ingest', () => {
     expect(ingestFreshness(null, now)).toEqual({ stale: true, label: 'No data ingested yet' })
+  })
+
+  it('flags an unparseable timestamp', () => {
+    expect(ingestFreshness('not-a-timestamp', now)).toEqual({
+      stale: true,
+      label: 'Update time unknown',
+    })
   })
 })

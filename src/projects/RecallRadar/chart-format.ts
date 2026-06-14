@@ -3,15 +3,21 @@ import type { MonthCount } from './recall.types'
 // Fixed locale keeps formatting deterministic across environments (and tests).
 const LOCALE = 'en-US'
 
-// month is 'YYYY-MM' → 'Mar 2026'
+// month is 'YYYY-MM' → 'Mar 2026'; malformed input falls back to the raw string.
 export function formatMonthLabel(month: string): string {
   const [year, monthIndex] = month.split('-').map(Number)
   const date = new Date(year ?? 0, (monthIndex ?? 1) - 1, 1)
+  if (Number.isNaN(date.getTime())) return month
   return new Intl.DateTimeFormat(LOCALE, { month: 'short', year: 'numeric' }).format(date)
 }
 
 export function formatNumber(value: number): string {
   return new Intl.NumberFormat(LOCALE).format(value)
+}
+
+// Largest count in a chart series, floored at 1 so an all-zero series divides safely.
+export function seriesMax(counts: number[]): number {
+  return Math.max(...counts, 1)
 }
 
 // iso is 'YYYY-MM-DD' → 'Mar 1, 2026'

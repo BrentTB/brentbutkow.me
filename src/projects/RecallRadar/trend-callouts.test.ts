@@ -66,4 +66,11 @@ describe('deriveCallouts', () => {
     const sparse = { ...baseStats, byMonth: [{ month: '2026-06', count: 5 }] }
     expect(deriveCallouts(sparse).find((c) => c.id === 'volume')).toBeUndefined()
   })
+
+  it('sorts byMonth before windowing so input order does not change the trend', () => {
+    const shuffled = { ...baseStats, byMonth: [...baseStats.byMonth].reverse() }
+    const volume = deriveCallouts(shuffled).find((c) => c.id === 'volume')
+    expect(volume?.value).toBe('+50%')
+    expect(volume?.direction).toBe('up')
+  })
 })

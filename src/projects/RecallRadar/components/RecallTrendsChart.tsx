@@ -1,22 +1,23 @@
-import { formatMonthLabel, formatNumber } from '../chart-format'
+import { formatMonthLabel, formatNumber, seriesMax } from '../chart-format'
 import type { MonthCount } from '../recall.types'
 import styles from './RecallTrendsChart.module.scss'
 
 type RecallTrendsChartProps = {
   data: MonthCount[]
+  year: number
 }
 
 const WIDTH = 720
 const HEIGHT = 240
 const PADDING = { top: 16, right: 12, bottom: 36, left: 44 }
 
-export function RecallTrendsChart({ data }: RecallTrendsChartProps) {
+export function RecallTrendsChart({ data, year }: RecallTrendsChartProps) {
   const months = data.slice(-12)
   if (months.length === 0) {
     return <p className={styles.empty}>No trend data yet.</p>
   }
 
-  const maxCount = Math.max(...months.map((month) => month.count), 1)
+  const maxCount = seriesMax(months.map((month) => month.count))
   const plotW = WIDTH - PADDING.left - PADDING.right
   const plotH = HEIGHT - PADDING.top - PADDING.bottom
   const slot = plotW / months.length
@@ -28,7 +29,7 @@ export function RecallTrendsChart({ data }: RecallTrendsChartProps) {
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         className={styles.svg}
         role="img"
-        aria-label="Monthly food recall counts"
+        aria-label={`Monthly food recall counts for ${year}`}
       >
         <line
           x1={PADDING.left}
@@ -47,6 +48,14 @@ export function RecallTrendsChart({ data }: RecallTrendsChartProps) {
           y2={PADDING.top + plotH}
           className={styles.axis}
         />
+        <text
+          x={PADDING.left - 8}
+          y={PADDING.top + plotH + 4}
+          textAnchor="end"
+          className={styles.label}
+        >
+          0
+        </text>
         {months.map((month, index) => {
           const barH = (month.count / maxCount) * plotH
           const x = PADDING.left + index * slot + (slot - barW) / 2
@@ -65,7 +74,7 @@ export function RecallTrendsChart({ data }: RecallTrendsChartProps) {
                   textAnchor="middle"
                   className={styles.label}
                 >
-                  {fullLabel.split(' ')[0] ?? fullLabel}
+                  {fullLabel.split(' ')[0]}
                 </text>
               )}
             </g>

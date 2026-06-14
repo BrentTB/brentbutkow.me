@@ -1,4 +1,4 @@
-import { formatNumber } from '../chart-format'
+import { formatNumber, seriesMax } from '../chart-format'
 import type { LabelCount } from '../recall.types'
 import { STATE_GRID_COLS, STATE_GRID_ROWS, stateGrid } from '../us-state-grid'
 import styles from './RecallMap.module.scss'
@@ -16,7 +16,7 @@ function intensity(count: number, max: number): number {
 
 export function RecallMap({ byState, activeState, onSelect }: RecallMapProps) {
   const counts = new Map(byState.map((entry) => [entry.label, entry.count]))
-  const max = Math.max(...byState.map((entry) => entry.count), 1)
+  const max = seriesMax(byState.map((entry) => entry.count))
 
   return (
     <figure className={styles.figure}>

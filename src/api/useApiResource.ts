@@ -8,15 +8,18 @@ export type ApiState<T> = {
 }
 
 // Generic GET-and-track hook: loading/error state plus in-flight cancellation on
-// path change / unmount. Reused by every module's data hooks.
-export function useApiResource<T>(path: string): ApiState<T> {
+// path change / unmount. Pass `validate` to reject malformed payloads. Reused by every module's data hooks.
+export function useApiResource<T>(
+  path: string,
+  validate?: (raw: unknown) => raw is T
+): ApiState<T> {
   const [state, setState] = useState<ApiState<T>>({ data: null, loading: true, error: null })
 
   useEffect(() => {
     const controller = new AbortController()
     setState((prev) => ({ ...prev, loading: true, error: null }))
 
-    fetchJson<T>(path, controller.signal)
+    fetchJson<T>(path, controller.signal, validate)
       .then((data) => setState({ data, loading: false, error: null }))
       .catch((err: unknown) => {
         if (err instanceof DOMException && err.name === 'AbortError') return
@@ -28,7 +31,7 @@ export function useApiResource<T>(path: string): ApiState<T> {
       })
 
     return () => controller.abort()
-  }, [path])
+  }, [path, validate])
 
   return state
 }

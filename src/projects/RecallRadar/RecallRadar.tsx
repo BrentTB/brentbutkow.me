@@ -50,7 +50,9 @@ export function RecallRadar() {
     setFilters((current) => ({ ...current, ...next }))
 
   const years = stats.data ? deriveYears(stats.data.byMonth) : []
-  const selectedYear = year ?? years[0] ?? new Date().getFullYear()
+  // Clamp to an available year — a stale `year` from a prior dataset would orphan the <select>.
+  const fallbackYear = years[0] ?? new Date().getFullYear()
+  const selectedYear = year !== null && years.includes(year) ? year : fallbackYear
   const monthSeries = stats.data ? monthsForYear(stats.data.byMonth, selectedYear) : []
   const freshness = stats.data ? ingestFreshness(stats.data.lastIngestAt, new Date()) : null
 
@@ -120,7 +122,7 @@ export function RecallRadar() {
         </div>
         {stats.loading && <p className={styles.status}>Loading trend…</p>}
         {stats.error && <p className={styles.status}>Couldn’t load trend data.</p>}
-        {stats.data && <RecallTrendsChart data={monthSeries} />}
+        {stats.data && <RecallTrendsChart data={monthSeries} year={selectedYear} />}
       </section>
 
       {stats.data && (

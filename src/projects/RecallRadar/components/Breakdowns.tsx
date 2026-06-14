@@ -1,6 +1,7 @@
 import { categoryLabels } from '../data'
-import { formatNumber } from '../chart-format'
-import type { RecallCategory, RecallClass, RecallFilterValues, RecallStats } from '../recall.types'
+import { formatNumber, seriesMax } from '../chart-format'
+import { isRecallCategory, isRecallClass } from '../recall.types'
+import type { RecallFilterValues, RecallStats } from '../recall.types'
 import styles from './Breakdowns.module.scss'
 
 type Row = { label: string; value: string; count: number }
@@ -13,7 +14,7 @@ type BreakdownListProps = {
 }
 
 function BreakdownList({ title, rows, activeValue, onSelect }: BreakdownListProps) {
-  const max = Math.max(...rows.map((row) => row.count), 1)
+  const max = seriesMax(rows.map((row) => row.count))
   return (
     <div className={styles.list}>
       <h3 className={styles.title}>{title}</h3>
@@ -60,7 +61,7 @@ export function Breakdowns({ stats, filters, onSelect }: BreakdownsProps) {
       <BreakdownList
         title="By cause"
         activeValue={filters.category}
-        onSelect={(value) => onSelect({ category: value as RecallCategory | '' })}
+        onSelect={(value) => onSelect({ category: isRecallCategory(value) ? value : '' })}
         rows={stats.byCategory.map((c) => ({
           label: categoryLabels[c.category],
           value: c.category,
@@ -70,7 +71,7 @@ export function Breakdowns({ stats, filters, onSelect }: BreakdownsProps) {
       <BreakdownList
         title="By classification"
         activeValue={filters.classification}
-        onSelect={(value) => onSelect({ classification: value as RecallClass | '' })}
+        onSelect={(value) => onSelect({ classification: isRecallClass(value) ? value : '' })}
         rows={stats.byClassification.map((c) => ({
           label: c.label,
           value: c.label,

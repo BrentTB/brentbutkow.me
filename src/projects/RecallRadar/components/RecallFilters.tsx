@@ -1,5 +1,11 @@
 import { categoryLabels } from '../data'
-import { RecallCategory, RecallClass, type RecallFilterValues } from '../recall.types'
+import {
+  RecallCategory,
+  RecallClass,
+  isRecallCategory,
+  isRecallClass,
+  type RecallFilterValues,
+} from '../recall.types'
 import styles from './RecallFilters.module.scss'
 
 type RecallFiltersProps = {
@@ -28,7 +34,10 @@ export function RecallFilters({
         <select
           className={styles.select}
           value={filters.category}
-          onChange={(event) => onChange({ category: event.target.value as RecallCategory | '' })}
+          onChange={(event) => {
+            const value = event.target.value
+            onChange({ category: isRecallCategory(value) ? value : '' })
+          }}
         >
           <option value="">All</option>
           {Object.values(RecallCategory).map((value) => (
@@ -44,7 +53,10 @@ export function RecallFilters({
         <select
           className={styles.select}
           value={filters.classification}
-          onChange={(event) => onChange({ classification: event.target.value as RecallClass | '' })}
+          onChange={(event) => {
+            const value = event.target.value
+            onChange({ classification: isRecallClass(value) ? value : '' })
+          }}
         >
           <option value="">All</option>
           {Object.values(RecallClass).map((value) => (

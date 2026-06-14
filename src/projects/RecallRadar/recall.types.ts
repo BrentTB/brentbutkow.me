@@ -56,3 +56,62 @@ export type RecallStats = {
   byCompany: LabelCount[]
   lastIngestAt: string | null
 }
+
+// Runtime guards for untrusted backend payloads — validate the shapes the UI reads
+// rather than casting (mirrors `isJokeType`).
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null
+
+const isStringOrNull = (value: unknown): value is string | null =>
+  value === null || typeof value === 'string'
+
+export const isRecallCategory = (value: string): value is RecallCategory =>
+  (Object.values(RecallCategory) as string[]).includes(value)
+
+export const isRecallClass = (value: string): value is RecallClass =>
+  (Object.values(RecallClass) as string[]).includes(value)
+
+const isLabelCount = (value: unknown): value is LabelCount =>
+  isRecord(value) && typeof value.label === 'string' && typeof value.count === 'number'
+
+const isCategoryCount = (value: unknown): value is CategoryCount =>
+  isRecord(value) && typeof value.category === 'string' && typeof value.count === 'number'
+
+const isMonthCount = (value: unknown): value is MonthCount =>
+  isRecord(value) && typeof value.month === 'string' && typeof value.count === 'number'
+
+const isRecall = (value: unknown): value is Recall =>
+  isRecord(value) &&
+  typeof value.recallNumber === 'string' &&
+  typeof value.productDescription === 'string' &&
+  typeof value.reasonText === 'string' &&
+  typeof value.category === 'string' &&
+  typeof value.categoryConfidence === 'number' &&
+  isStringOrNull(value.status) &&
+  isStringOrNull(value.classification) &&
+  isStringOrNull(value.companyName) &&
+  isStringOrNull(value.state) &&
+  isStringOrNull(value.distributionPattern) &&
+  isStringOrNull(value.recallInitiationDate) &&
+  isStringOrNull(value.reportDate)
+
+export const isRecallListResult = (value: unknown): value is RecallListResult =>
+  isRecord(value) &&
+  typeof value.total === 'number' &&
+  Array.isArray(value.items) &&
+  value.items.every(isRecall)
+
+export const isRecallStats = (value: unknown): value is RecallStats =>
+  isRecord(value) &&
+  typeof value.total === 'number' &&
+  Array.isArray(value.byCategory) &&
+  value.byCategory.every(isCategoryCount) &&
+  Array.isArray(value.byMonth) &&
+  value.byMonth.every(isMonthCount) &&
+  Array.isArray(value.byClassification) &&
+  value.byClassification.every(isLabelCount) &&
+  Array.isArray(value.byState) &&
+  value.byState.every(isLabelCount) &&
+  Array.isArray(value.byCompany) &&
+  value.byCompany.every(isLabelCount) &&
+  isStringOrNull(value.lastIngestAt)

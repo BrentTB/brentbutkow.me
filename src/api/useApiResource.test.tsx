@@ -30,4 +30,17 @@ describe('useApiResource', () => {
     expect(result.current.error).toMatch(/500/)
     expect(result.current.data).toBeNull()
   })
+
+  it('errors when the validator rejects the payload', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => mockRes({ wrong: true }))
+    )
+    const isShape = (raw: unknown): raw is { value: number } =>
+      typeof raw === 'object' && raw !== null && 'value' in raw
+    const { result } = renderHook(() => useApiResource('/x', isShape))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.data).toBeNull()
+    expect(result.current.error).not.toBeNull()
+  })
 })

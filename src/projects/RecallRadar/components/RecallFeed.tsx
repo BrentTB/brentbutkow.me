@@ -17,7 +17,6 @@ function detailRows(recall: Recall): DetailRow[] {
   if (recall.distributionPattern) {
     rows.push({ term: 'Distribution', value: recall.distributionPattern })
   }
-  rows.push({ term: 'Reported', value: formatDate(recall.reportDate) })
   if (recall.recallInitiationDate) {
     rows.push({ term: 'Initiated', value: formatDate(recall.recallInitiationDate) })
   }

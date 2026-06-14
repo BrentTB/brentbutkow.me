@@ -25,7 +25,8 @@ export function deriveCallouts(stats: RecallStats): TrendCallout[] {
   const callouts: TrendCallout[] = []
 
   // Volume trend: a recent window of months vs the equal window before it.
-  const months = stats.byMonth
+  // Sort chronologically first — the windowing relies on ascending order ('YYYY-MM' sorts lexically).
+  const months = stats.byMonth.slice().sort((a, b) => a.month.localeCompare(b.month))
   if (months.length >= 2) {
     const window = months.length >= 6 ? 3 : 1
     const recent = months.slice(-window)

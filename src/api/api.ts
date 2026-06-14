@@ -15,8 +15,14 @@ export function apiUrl(path: string): string {
   return `${API_BASE_URL}${path}`
 }
 
-export async function fetchJson<T>(path: string, signal?: AbortSignal): Promise<T> {
+export async function fetchJson<T>(
+  path: string,
+  signal?: AbortSignal,
+  validate?: (raw: unknown) => raw is T
+): Promise<T> {
   const res = await fetch(apiUrl(path), { signal })
   if (!res.ok) throw new Error(`Request failed (${res.status})`)
-  return (await res.json()) as T
+  const raw: unknown = await res.json()
+  if (validate && !validate(raw)) throw new Error('Unexpected response shape')
+  return raw as T
 }

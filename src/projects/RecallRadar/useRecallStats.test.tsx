@@ -10,7 +10,15 @@ describe('useRecallStats', () => {
 
   it('loads stats from /recalls/stats', async () => {
     const fetchMock = vi.fn(async () =>
-      mockRes({ total: 5, byCategory: [], byMonth: [], lastIngestAt: null })
+      mockRes({
+        total: 5,
+        byCategory: [],
+        byMonth: [],
+        byClassification: [],
+        byState: [],
+        byCompany: [],
+        lastIngestAt: null,
+      })
     )
     vi.stubGlobal('fetch', fetchMock)
 
@@ -22,5 +30,18 @@ describe('useRecallStats', () => {
       expect.stringContaining('/recalls/stats'),
       expect.anything()
     )
+  })
+
+  it('rejects a malformed payload missing required arrays', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => mockRes({ total: 5, byCategory: [] }))
+    )
+
+    const { result } = renderHook(() => useRecallStats())
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    expect(result.current.data).toBeNull()
+    expect(result.current.error).not.toBeNull()
   })
 })

@@ -18,7 +18,7 @@ export function TrendCallouts({ callouts }: TrendCalloutsProps) {
   }
 
   return (
-    <ul className={styles.strip}>
+    <ul className={styles.strip} aria-label="Trend highlights">
       {callouts.map((callout) => (
         <li key={callout.id} className={styles.card}>
           <span className={`${styles.value} ${callout.direction ? styles[callout.direction] : ''}`}>

@@ -11,12 +11,12 @@ describe('buildRecallsPath', () => {
     const path = buildRecallsPath({
       category: RecallCategory.pathogen,
       classification: RecallClass.classI,
-      since: '2026-01-01',
+      state: 'CA',
       limit: 25,
     })
     expect(path).toContain('category=pathogen')
     expect(path).toContain('classification=Class+I')
-    expect(path).toContain('since=2026-01-01')
+    expect(path).toContain('state=CA')
     expect(path).toContain('limit=25')
   })
 })
