@@ -7,6 +7,7 @@ import { Footer } from './components/footer/Footer'
 import { BrowserRouter } from 'react-router-dom'
 import { FunModeProvider } from './contexts/FunModeProvider'
 import { useFunMode } from './contexts/useFunMode'
+import { useWarmApi } from './api/useWarmApi'
 import { lazy, Suspense } from 'react'
 
 // WebGL effect is Fun-mode-only and heavy — code-split it out of the initial bundle.
@@ -27,6 +28,9 @@ const WaterRippleLayer = () => {
 }
 
 export function App() {
+  // Warm the backend on first load so its cold start overlaps with browsing.
+  useWarmApi()
+
   return (
     <>
       <div className={styles.shell}>

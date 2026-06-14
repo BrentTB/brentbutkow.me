@@ -21,6 +21,11 @@ export const heroContent: HeroContent = {
   subtitleFun: 'A joke lover, video game player, wacky algorithm creator, and biltong connoisseur.',
   actions: [
     {
+      label: 'Explore Recall Radar',
+      href: '/recall-radar',
+      variant: 'primary',
+    },
+    {
       label: 'Play Null Space (Beta)',
       href: '/fun-stuff/games/null-space',
       variant: 'primary',

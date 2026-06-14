@@ -1,0 +1,66 @@
+// US state tile-grid layout (50 states + DC). row/col are 1-indexed so they map
+// straight onto CSS grid-row / grid-column. Adapted from geofacet's
+// us_state_grid1 (https://hafen.github.io/geofacet/).
+export type StateTile = {
+  code: string
+  name: string
+  row: number
+  col: number
+}
+
+export const STATE_GRID_ROWS = 7
+export const STATE_GRID_COLS = 11
+
+export const stateGrid: StateTile[] = [
+  { code: 'AK', name: 'Alaska', row: 7, col: 2 },
+  { code: 'HI', name: 'Hawaii', row: 7, col: 1 },
+  { code: 'WA', name: 'Washington', row: 2, col: 1 },
+  { code: 'OR', name: 'Oregon', row: 3, col: 1 },
+  { code: 'CA', name: 'California', row: 4, col: 1 },
+  { code: 'ID', name: 'Idaho', row: 2, col: 2 },
+  { code: 'NV', name: 'Nevada', row: 3, col: 2 },
+  { code: 'UT', name: 'Utah', row: 4, col: 2 },
+  { code: 'AZ', name: 'Arizona', row: 5, col: 2 },
+  { code: 'MT', name: 'Montana', row: 2, col: 3 },
+  { code: 'WY', name: 'Wyoming', row: 3, col: 3 },
+  { code: 'CO', name: 'Colorado', row: 4, col: 3 },
+  { code: 'NM', name: 'New Mexico', row: 5, col: 3 },
+  { code: 'ND', name: 'North Dakota', row: 2, col: 4 },
+  { code: 'SD', name: 'South Dakota', row: 3, col: 4 },
+  { code: 'NE', name: 'Nebraska', row: 4, col: 4 },
+  { code: 'KS', name: 'Kansas', row: 5, col: 4 },
+  { code: 'OK', name: 'Oklahoma', row: 6, col: 4 },
+  { code: 'TX', name: 'Texas', row: 7, col: 4 },
+  { code: 'MN', name: 'Minnesota', row: 2, col: 5 },
+  { code: 'IA', name: 'Iowa', row: 3, col: 5 },
+  { code: 'MO', name: 'Missouri', row: 4, col: 5 },
+  { code: 'AR', name: 'Arkansas', row: 5, col: 5 },
+  { code: 'LA', name: 'Louisiana', row: 6, col: 5 },
+  { code: 'WI', name: 'Wisconsin', row: 1, col: 6 },
+  { code: 'IL', name: 'Illinois', row: 2, col: 6 },
+  { code: 'IN', name: 'Indiana', row: 3, col: 6 },
+  { code: 'TN', name: 'Tennessee', row: 5, col: 6 },
+  { code: 'MS', name: 'Mississippi', row: 6, col: 6 },
+  { code: 'MI', name: 'Michigan', row: 2, col: 7 },
+  { code: 'OH', name: 'Ohio', row: 3, col: 7 },
+  { code: 'KY', name: 'Kentucky', row: 4, col: 6 },
+  { code: 'NC', name: 'North Carolina', row: 5, col: 7 },
+  { code: 'AL', name: 'Alabama', row: 6, col: 7 },
+  { code: 'PA', name: 'Pennsylvania', row: 3, col: 8 },
+  { code: 'WV', name: 'West Virginia', row: 4, col: 7 },
+  { code: 'SC', name: 'South Carolina', row: 5, col: 8 },
+  { code: 'GA', name: 'Georgia', row: 6, col: 8 },
+  { code: 'NY', name: 'New York', row: 2, col: 9 },
+  { code: 'NJ', name: 'New Jersey', row: 3, col: 9 },
+  { code: 'VA', name: 'Virginia', row: 4, col: 8 },
+  { code: 'VT', name: 'Vermont', row: 1, col: 9 },
+  { code: 'CT', name: 'Connecticut', row: 3, col: 10 },
+  { code: 'MD', name: 'Maryland', row: 4, col: 9 },
+  { code: 'DC', name: 'District of Columbia', row: 5, col: 9 },
+  { code: 'FL', name: 'Florida', row: 7, col: 9 },
+  { code: 'NH', name: 'New Hampshire', row: 1, col: 10 },
+  { code: 'MA', name: 'Massachusetts', row: 2, col: 10 },
+  { code: 'DE', name: 'Delaware', row: 4, col: 10 },
+  { code: 'ME', name: 'Maine', row: 1, col: 11 },
+  { code: 'RI', name: 'Rhode Island', row: 3, col: 11 },
+]

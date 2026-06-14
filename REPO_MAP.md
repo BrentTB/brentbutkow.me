@@ -8,6 +8,11 @@ Format: `<file>  <exported symbols>`. Use this to locate code instead of greppin
 src/
   App.tsx                                    App
 
+src/api/
+  api.ts                                     apiRoutes, apiUrl, fetchJson
+  useApiResource.ts                          ApiState, useApiResource
+  useWarmApi.ts                              useWarmApi
+
 src/components/CodeSection/
   CodeSection.tsx                            CodeBlock, CodeSection
   useCopyToClipboard.ts                      useCopyToClipboard
@@ -323,6 +328,29 @@ src/projects/NullSpace/
   usePreventPinchZoom.ts                     usePreventPinchZoom
   usePseudoFullscreenChrome.ts               usePseudoFullscreenChrome
   useReducedMotion.ts                        useReducedMotion
+
+src/projects/RecallRadar/
+  RecallRadar.tsx                            RecallRadar
+  api.ts                                     RecallFilters, buildRecallsPath
+  chart-format.ts                            formatMonthLabel, formatNumber, seriesMax, formatDate, deriveYears, monthsForYear, IngestFreshness, ingestFreshness
+
+src/projects/RecallRadar/components/
+  Breakdowns.tsx                             Breakdowns
+  ProjectOverview.tsx                        ProjectOverview
+  RecallFeed.tsx                             RecallFeed
+  RecallFilters.tsx                          RecallFilters
+  RecallMap.tsx                              RecallMap
+  RecallTrendsChart.tsx                      RecallTrendsChart
+  StatCard.tsx                               StatCard
+  TrendCallouts.tsx                          TrendCallouts
+
+src/projects/RecallRadar/
+  data.ts                                    recallRadarCopy, techStack, methodologyPoints, categoryLabels, recallRadarLinks
+  recall.types.ts                            RecallCategory, RecallClass, RecallFilterValues, Recall, RecallListResult, CategoryCount, MonthCount, LabelCount, RecallStats, isRecallCategory, isRecallClass, isRecallListResult, isRecallStats
+  trend-callouts.ts                          TrendDirection, TrendCallout, deriveCallouts
+  us-state-grid.ts                           StateTile, STATE_GRID_ROWS, STATE_GRID_COLS, stateGrid
+  useRecallStats.ts                          useRecallStats
+  useRecalls.ts                              useRecalls
 
 src/routes/
   Router.tsx                                 Router
