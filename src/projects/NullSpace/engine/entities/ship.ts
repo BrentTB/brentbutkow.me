@@ -268,8 +268,12 @@ export function updateShipDrift(
     const orbitRange = ship.attackRange * SECTOR.orbitRangeFraction
     const radial = clamp(dist - orbitRange, -speed, speed)
     const tangent = speed * SECTOR.orbitSpeedFraction
-    let desiredX = dirX * radial - dirY * tangent
-    let desiredY = dirY * radial + dirX * tangent
+    // Orbit toward the side the target sits on (its lateral offset) rather than
+    // always circling the same way — otherwise every head-on engagement strafes
+    // the same direction. A perfectly vertical target breaks the tie on fore/aft.
+    const hand = dirX > 0 || (dirX === 0 && dirY >= 0) ? 1 : -1
+    let desiredX = dirX * radial - hand * dirY * tangent
+    let desiredY = dirY * radial + hand * dirX * tangent
     const dmag = Math.hypot(desiredX, desiredY)
     if (dmag > speed) {
       desiredX = (desiredX / dmag) * speed
@@ -300,12 +304,14 @@ export function updateShipDrift(
     velY = drift.vel.y
   }
 
-  // Soft lateral tether — a hard sideways fling curves back instead of hitting a wall.
+  // Soft lateral tether — a hard sideways fling curves back instead of hitting a
+  // wall. Capped so a spent fling pinned at the wall eases back, not springs.
   velX += softTether1D(
     ship.pos.x,
     corridorCenterX - corridorHalfWidth,
     corridorCenterX + corridorHalfWidth,
-    SECTOR.lateralTetherStrength
+    SECTOR.lateralTetherStrength,
+    SECTOR.lateralTetherMax
   )
 
   const pos = clampToWorld(

@@ -111,6 +111,16 @@ export const EnemyKind = {
 } as const
 export type EnemyKind = (typeof EnemyKind)[keyof typeof EnemyKind]
 
+// Optional late-game enemy modifier. `speed` is a fast red-tinted trailing
+// enemy, `shield` wraps it in a player-style regenerating shield, `giant` makes
+// it slow, oversized, and high-HP. One per enemy.
+export const EnemyModifier = {
+  speed: 'speed',
+  shield: 'shield',
+  giant: 'giant',
+} as const
+export type EnemyModifier = (typeof EnemyModifier)[keyof typeof EnemyModifier]
+
 export const MovementBehavior = {
   chase: 'chase',
   keepRange: 'keepRange',
@@ -160,6 +170,11 @@ export type Enemy = Entity & {
   boss?: BossRuntimeState
   // Solar Plague fire. Present while alight; absent otherwise.
   burning?: BurningState
+  // Late-game modifier (absent on plain enemies). Set at spawn.
+  modifier?: EnemyModifier
+  // Present only on shield-modifier enemies — a player-style absorb-first pool
+  // that regenerates after a cooldown. Damage routes through applyDamageToEnemy.
+  enemyShield?: { shield: number; maxShield: number; regen: number; cooldownRemaining: number }
 }
 
 export const ProjectileOwner = { ship: 'ship', enemy: 'enemy' } as const
@@ -535,10 +550,14 @@ export type GameState = {
   worldSize: Vec2
   // Sector "forward" unit axis (fixed to FORWARD_DIR this version).
   forwardDir: Vec2
-  // Portal centre at the far end of the corridor (the warp-out point).
+  // Portal the ship flies into during the end-of-sector warp (spawned just ahead
+  // of the ship when the sector clears).
   portalPos: Vec2
-  // Seconds left in the warp transition; 0 outside the `warping` phase.
+  // Safety cap (seconds) on the warp flight; 0 outside the `warping` phase.
   warpTimer: number
+  // Seconds left in the warp screen flash. 0 during the fly-into-portal flight;
+  // set once the ship reaches the portal, then the jump completes when it hits 0.
+  warpFlashTimer: number
   // Mid-corridor mine clusters. Not part of the kill/wave economy.
   hazards: Hazard[]
   waveTimer: number

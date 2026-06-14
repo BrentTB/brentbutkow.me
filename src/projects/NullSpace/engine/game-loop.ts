@@ -5,7 +5,7 @@ import {
   PARTICLE_DEFAULTS,
   POWER_DEFAULTS,
   SECTOR,
-  WARP_DURATION,
+  WARP,
   WORLD_SIZE,
 } from '../data'
 import {
@@ -32,6 +32,7 @@ import {
 import { applyShieldConstraints } from './abilities/shield'
 import { updateActiveEffects } from './systems/effects'
 import { updateBurningEnemies } from './systems/burning'
+import { updateModifiedEnemies } from './systems/enemy-modifiers-tick'
 import { MAX_DT } from './world/time'
 import { processSpawnQueue } from './systems/spawner'
 import {
@@ -71,7 +72,7 @@ import {
 } from './upgrades'
 import { purchaseUltimate } from './ultimates'
 import { getWave, getWaveDelay, isBossWave } from './world/waves'
-import { generateHazardLane, updateHazards } from './systems/hazards'
+import { generateHazardField, updateHazards } from './systems/hazards'
 import { advanceBossSelection, createBossSelection } from './bosses/boss-selection'
 import { updateBossAI } from './bosses/boss-ai'
 import { loadHighScore, saveHighScore } from './world/persistence'
@@ -116,6 +117,7 @@ export function createInitialState(): GameState {
     forwardDir: { ...FORWARD_DIR },
     portalPos: { x: WORLD_SIZE.x / 2, y: WORLD_SIZE.y },
     warpTimer: 0,
+    warpFlashTimer: 0,
     hazards: [],
     waveTimer: 0,
     spawnQueue: [],
@@ -165,6 +167,7 @@ export function startGame(state: GameState, shipKind: ShipKind): GameState {
     forwardDir: { ...FORWARD_DIR },
     portalPos: { x: WORLD_SIZE.x / 2, y: WORLD_SIZE.y },
     warpTimer: 0,
+    warpFlashTimer: 0,
     hazards: [],
     waveTimer: 0,
     spawnQueue: [],
@@ -214,18 +217,20 @@ export function resetForSector(state: GameState): GameState {
   const shipEntryY = worldSize.y - SECTOR.shipStartOffset
   const portalY = SECTOR.portalInset
   const bossSector = state.level > 0 && state.level % BOSS_LEVEL_INTERVAL === 0
-  const seedLane = !bossSector && state.level % HAZARD.laneEveryWaves === 0
+  const seedField = !bossSector && state.level % HAZARD.laneEveryWaves === 0
   return {
     ...state,
     worldSize,
     forwardDir: { ...FORWARD_DIR },
     portalPos: { x: corridorCenterX, y: portalY },
     warpTimer: 0,
-    hazards: seedLane
-      ? generateHazardLane({
+    warpFlashTimer: 0,
+    hazards: seedField
+      ? generateHazardField({
           corridorCenterX,
           corridorHalfWidth: corridorCenterX - SECTOR.lateralMargin,
-          laneY: (shipEntryY + portalY) / 2,
+          minY: portalY + HAZARD.forwardMargin,
+          maxY: shipEntryY - HAZARD.forwardMargin,
         })
       : [],
     ship: {
@@ -234,7 +239,8 @@ export function resetForSector(state: GameState): GameState {
       vel: { x: 0, y: 0 },
       flingVel: { x: 0, y: 0 },
       driftMomentum: 0,
-      weavePhase: 0,
+      // Random start phase so each sector's idle weave doesn't always lead off right.
+      weavePhase: rng.next(),
       lastHeading: { ...FORWARD_DIR },
     },
   }
@@ -401,21 +407,27 @@ function getWeaponForUnlockUpgrade(upgradeId: UpgradeId): AbilityKind | null {
   return null
 }
 
-// Suspends the sim and clears the corridor for the warp animation. The hook ticks
-// `warpTimer` (updateGameState early-returns while not playing), then calls completeWarp.
+// Begins the end-of-sector warp cutscene: spawns the portal just offscreen ahead
+// of the ship, then hands off to advanceWarp which flies the ship into it. Auto-
+// collects dropped loot first, then clears the field. updateGameState early-returns
+// while warping, so the player has no slingshot control during the cutscene.
 export function beginWarp(state: GameState): GameState {
-  // Auto-collect every dropped collectible so a boss's space metal / shards aren't
-  // lost to the warp, then clear the field for the animation.
   let { power, spaceMetal, singularityShard } = state
   for (const c of state.collectibles) {
     if (c.kind === CollectibleKind.spaceMetal) spaceMetal += c.value
     else if (c.kind === CollectibleKind.singularityShard) singularityShard += c.value
     else power = Math.min(state.maxPower, power + c.value)
   }
+  const portalPos = {
+    x: state.ship.pos.x + state.forwardDir.x * WARP.spawnAhead,
+    y: state.ship.pos.y + state.forwardDir.y * WARP.spawnAhead,
+  }
   return {
     ...state,
     phase: GamePhase.warping,
-    warpTimer: WARP_DURATION,
+    warpTimer: WARP.maxDuration,
+    warpFlashTimer: 0,
+    portalPos,
     power,
     spaceMetal,
     singularityShard,
@@ -424,6 +436,9 @@ export function beginWarp(state: GameState): GameState {
     activeEffects: [],
     collectibles: [],
     particles: [],
+    hazards: [],
+    // Cancel any residual fling / escape so the cutscene flight is clean.
+    ship: { ...state.ship, flingVel: { x: 0, y: 0 }, escapeMode: null },
   }
 }
 
@@ -438,15 +453,52 @@ export function completeWarp(state: GameState): GameState {
   }
 }
 
-// Advances the frozen warp animation by one frame. The sim is suspended during a
-// warp (updateGameState early-returns while not playing), so the timer is ticked
-// here. When it elapses the warp completes into the next sector; `landed` signals
-// the caller to reseed the camera/starfield for the fresh corridor.
+// Drives the warp cutscene each frame (no player control). The sim is suspended
+// while warping — updateGameState early-returns — so it runs entirely here. Two
+// stages: (1) the ship flies into the portal with NO screen effect; (2) once it
+// arrives, the screen flash plays for `flashDuration`, then the jump completes.
+// `landed` signals the caller to reseed the camera/starfield for the fresh
+// corridor. No world clamp — the renderer drops the borders so a ship near the
+// top can fly past the edge into the portal without artifacts.
 export function advanceWarp(state: GameState, dt: number): { state: GameState; landed: boolean } {
   if (state.phase !== GamePhase.warping) return { state, landed: false }
-  const warpTimer = state.warpTimer - dt
-  if (warpTimer <= 0) return { state: completeWarp(state), landed: true }
-  return { state: { ...state, warpTimer }, landed: false }
+
+  // Stage 2 — flash: the ship has reached the portal; hold there while the
+  // screen flash plays, then open the shop.
+  if (state.warpFlashTimer > 0) {
+    const warpFlashTimer = state.warpFlashTimer - dt
+    if (warpFlashTimer <= 0) return { state: completeWarp(state), landed: true }
+    return { state: { ...state, warpFlashTimer }, landed: false }
+  }
+
+  // Stage 1 — flight.
+  const warpTimer = Math.max(0, state.warpTimer - dt)
+  const dx = state.portalPos.x - state.ship.pos.x
+  const dy = state.portalPos.y - state.ship.pos.y
+  const dist = Math.hypot(dx, dy)
+  if (dist <= WARP.arriveRadius || warpTimer <= 0) {
+    // Snap onto the portal and begin the flash — completion waits for it to end.
+    // Zero the velocity so the sprite held under the flash doesn't carry stale motion.
+    return {
+      state: {
+        ...state,
+        ship: { ...state.ship, pos: { ...state.portalPos }, vel: { x: 0, y: 0 } },
+        warpTimer,
+        warpFlashTimer: WARP.flashDuration,
+      },
+      landed: false,
+    }
+  }
+  const step = Math.min(dist, WARP.flySpeed * dt)
+  const nx = dx / dist
+  const ny = dy / dist
+  const ship = {
+    ...state.ship,
+    pos: { x: state.ship.pos.x + nx * step, y: state.ship.pos.y + ny * step },
+    vel: { x: nx * WARP.flySpeed, y: ny * WARP.flySpeed },
+    lastHeading: { x: nx, y: ny },
+  }
+  return { state: { ...state, ship, warpTimer }, landed: false }
 }
 
 // Leaves the shop and spawns the wave in the corridor the warp already laid out.
@@ -672,6 +724,11 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   score += burnResult.scoreGained
   const burnKilledEnemies = burnResult.killedEnemies
   currency += computeCurrencyFromKills(burnKilledEnemies, stardustMultiplier)
+
+  // --- Enemy modifiers (shield regen + speed-enemy trail particles) ---
+  const modifierResult = updateModifiedEnemies(enemies, dt)
+  enemies = modifierResult.enemies
+  particles = [...particles, ...modifierResult.particles]
 
   // --- Collision: ship projectiles vs enemies ---
   const projCollision = resolveProjectileEnemyCollisions(projectiles, enemies)

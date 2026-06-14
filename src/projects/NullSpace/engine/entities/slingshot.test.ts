@@ -244,4 +244,22 @@ describe('forward drift (post-slingshot)', () => {
     })
     expect(after.pos.x).toBeGreaterThan(ship.pos.x)
   })
+
+  // Regression: the hunt orbit used to always circle the same way, so every
+  // head-on engagement strafed the same direction. It now orbits toward the
+  // target's side, so mirror-image targets produce mirror-image strafing.
+  it('orbits toward the target side — no fixed strafe bias', () => {
+    const base = createShip(ShipKind.fighter, WORLD_SIZE)
+    const ship = { ...base, pos: { x: WORLD_SIZE.x / 2, y: 1500 }, vel: { x: 0, y: 0 } }
+    const left = updateShipDrift(ship, 0.1, {
+      ...ctx,
+      target: { x: ship.pos.x - 300, y: ship.pos.y - 300 },
+    })
+    const right = updateShipDrift(ship, 0.1, {
+      ...ctx,
+      target: { x: ship.pos.x + 300, y: ship.pos.y - 300 },
+    })
+    expect(Math.sign(left.vel.x)).toBe(-Math.sign(right.vel.x))
+    expect(left.vel.x).toBeCloseTo(-right.vel.x, 5)
+  })
 })

@@ -10,6 +10,7 @@ import {
   devUnlockWeapon,
   devGrantUltimate,
   finishUpgradeScreen,
+  beginWarp,
   completeWarp,
   advanceWarp,
 } from './game-loop'
@@ -30,7 +31,7 @@ import {
 import { UpgradeId } from './upgrade-ids'
 import { isUpgradeWave } from './upgrades'
 import { BOSS_KINDS } from './bosses/index'
-import { ENEMY_STATS, POWER_DEFAULTS, SECTOR, WAVES_PER_LEVEL } from '../data'
+import { ENEMY_STATS, POWER_DEFAULTS, SECTOR, WARP, WAVES_PER_LEVEL } from '../data'
 import { TELEKINESIS, SOLAR_FLARE } from './abilities/ability-data'
 
 beforeEach(() => {
@@ -256,6 +257,58 @@ describe('updateGameState', () => {
   })
 })
 
+// The progression fix lives here: on sector clear the portal spawns just ahead
+// of the ship (not at a fixed far point), residual fling/escape is cancelled so
+// the cutscene flight is clean, and dropped loot is banked first. A regression
+// that mis-places the portal or skips the cleanup passes every advanceWarp test,
+// so beginWarp needs its own guard.
+describe('beginWarp', () => {
+  it('spawns the portal ahead of the ship and primes the cutscene', () => {
+    let state = startGame(createInitialState(), ShipKind.fighter)
+    state = startNextWave(state)
+    // Mid-fling, mid-escape, with an unclaimed metal drop still on the field.
+    state = {
+      ...state,
+      spaceMetal: 2,
+      collectibles: [
+        {
+          id: 'drop-1',
+          kind: CollectibleKind.spaceMetal,
+          pos: { x: state.ship.pos.x + 500, y: state.ship.pos.y },
+          vel: { x: 0, y: 0 },
+          value: 3,
+          elapsed: 0,
+          lifetime: 12,
+          homing: false,
+        },
+      ],
+      enemies: [createEnemy(EnemyKind.drone, { x: state.ship.pos.x, y: state.ship.pos.y + 200 })],
+      ship: {
+        ...state.ship,
+        flingVel: { x: 200, y: -50 },
+        escapeMode: { phase: EscapeModePhase.dash, timer: 1, heading: { x: 1, y: 0 } },
+      },
+    }
+
+    const warped = beginWarp(state)
+
+    // Portal sits exactly WARP.spawnAhead along the forward axis from the ship.
+    expect(warped.portalPos.x).toBeCloseTo(state.ship.pos.x + state.forwardDir.x * WARP.spawnAhead)
+    expect(warped.portalPos.y).toBeCloseTo(state.ship.pos.y + state.forwardDir.y * WARP.spawnAhead)
+    expect(warped.phase).toBe(GamePhase.warping)
+    expect(warped.warpTimer).toBe(WARP.maxDuration)
+    expect(warped.warpFlashTimer).toBe(0)
+    // Residual fling / escape cleared so the cutscene flight is clean.
+    expect(warped.ship.flingVel).toEqual({ x: 0, y: 0 })
+    expect(warped.ship.escapeMode).toBeNull()
+    // Field wiped and the dropped metal banked into the currency.
+    expect(warped.enemies).toEqual([])
+    expect(warped.collectibles).toEqual([])
+    expect(warped.hazards).toEqual([])
+    expect(warped.spaceMetal).toBe(2 + 3)
+  })
+})
+
 describe('advanceWarp', () => {
   const warpingState = (warpTimer: number) => ({
     ...startGame(createInitialState(), ShipKind.fighter),
@@ -263,19 +316,19 @@ describe('advanceWarp', () => {
     warpTimer,
   })
 
-  it('decrements the timer and stays warping while time remains', () => {
+  it('flies (no flash) while the safety timer has time remaining', () => {
     const { state, landed } = advanceWarp(warpingState(1.0), 0.016)
     expect(state.phase).toBe(GamePhase.warping)
     expect(state.warpTimer).toBeCloseTo(0.984)
+    expect(state.warpFlashTimer).toBe(0) // no screen effect during the flight
     expect(landed).toBe(false)
   })
 
-  it('completes the warp into the upgrade screen once the timer elapses', () => {
-    // Regression: the hook must land the warp (open the shop + reseed the
-    // corridor) exactly when warpTimer reaches 0 — not a frame early or late.
+  it('begins the flash (not completion) when the flight safety timer elapses', () => {
     const { state, landed } = advanceWarp(warpingState(0.01), 0.016)
-    expect(state.phase).toBe(GamePhase.upgradeScreen)
-    expect(landed).toBe(true)
+    expect(state.phase).toBe(GamePhase.warping)
+    expect(state.warpFlashTimer).toBeGreaterThan(0)
+    expect(landed).toBe(false)
   })
 
   it('is a no-op outside the warping phase', () => {
@@ -284,6 +337,34 @@ describe('advanceWarp', () => {
     expect(state).toBe(playing)
     expect(state.warpTimer).toBe(5)
     expect(landed).toBe(false)
+  })
+
+  it('flies the ship toward the portal each frame', () => {
+    const s = warpingState(WARP.maxDuration)
+    const before = Math.hypot(s.portalPos.x - s.ship.pos.x, s.portalPos.y - s.ship.pos.y)
+    const { state } = advanceWarp(s, 0.1)
+    const after = Math.hypot(
+      state.portalPos.x - state.ship.pos.x,
+      state.portalPos.y - state.ship.pos.y
+    )
+    expect(after).toBeLessThan(before)
+  })
+
+  it('starts the flash (not completion) when the ship reaches the portal', () => {
+    const s = warpingState(WARP.maxDuration)
+    // Park the ship right on the portal → the flash begins this frame.
+    const atPortal = { ...s, ship: { ...s.ship, pos: { ...s.portalPos } } }
+    const { state, landed } = advanceWarp(atPortal, 0.016)
+    expect(landed).toBe(false)
+    expect(state.phase).toBe(GamePhase.warping)
+    expect(state.warpFlashTimer).toBeCloseTo(WARP.flashDuration)
+  })
+
+  it('completes into the upgrade screen once the flash elapses', () => {
+    const s = { ...warpingState(WARP.maxDuration), warpFlashTimer: 0.01 }
+    const { state, landed } = advanceWarp(s, 0.05)
+    expect(landed).toBe(true)
+    expect(state.phase).toBe(GamePhase.upgradeScreen)
   })
 })
 

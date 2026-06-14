@@ -191,7 +191,7 @@ src/projects/NullSpace/components/
   WaveCompleteScreen.tsx                     WaveCompleteScreen
 
 src/projects/NullSpace/
-  data.ts                                    GAME_NAME, WORLD_SIZE, SHIELD_COOLDOWN, SLINGSHOT, POWER_DEFAULTS, WEAPON_ORDER, ENEMY_STATS, CURRENCY_DROPS, CURRENCY_NAME, POWER_ORB, SINGULARITY_SHARD_NAME, SHARDS_PER_BOSS, SINGULARITY_SHARD, SPACE_METAL, WAVES_PER_LEVEL, BOSS_LEVEL_INTERVAL, BOSS_WAVE_ENEMY_MULTIPLIER, SPAWN_DELAY, SPAWN_DISTANCE, SWARM_SPAWN_SPREAD, FORWARD_DIR, SECTOR, WARP_DURATION, SPAWN_CONE, HAZARD, PORTAL, PROJECTILE_SPEED, PROJECTILE_LIFETIME, PROJECTILE_RADIUS, PARTICLE_DEFAULTS, ChangelogEntry, CHANGELOG, GAME_VERSION
+  data.ts                                    GAME_NAME, WORLD_SIZE, SHIELD_COOLDOWN, SLINGSHOT, POWER_DEFAULTS, WEAPON_ORDER, ENEMY_STATS, CURRENCY_DROPS, CURRENCY_NAME, POWER_ORB, SINGULARITY_SHARD_NAME, SHARDS_PER_BOSS, SINGULARITY_SHARD, SPACE_METAL, WAVES_PER_LEVEL, BOSS_LEVEL_INTERVAL, BOSS_WAVE_ENEMY_MULTIPLIER, STAT_SCALING, WAVE_COMP, WAVE_THEME, ENEMY_MODIFIERS, SPAWN_DELAY, SPAWN_DISTANCE, SWARM_SPAWN_SPREAD, FORWARD_DIR, SECTOR, WARP, SPAWN_CONE, HAZARD, PORTAL, PROJECTILE_SPEED, PROJECTILE_LIFETIME, PROJECTILE_RADIUS, PARTICLE_DEFAULTS, ChangelogEntry, CHANGELOG, GAME_VERSION
 
 src/projects/NullSpace/engine/abilities/
   ability-data.ts                            METEORITE_STRIKE, METEOR_STRIKE, COMET_SHOWER, METEOR_SHOWER, BLACK_HOLE, ROCKET, SHIELD, FORCE_FIELD, SUN, SUPERNOVA, HELPER, HELPER_FACTORY, TELEKINESIS, SOLAR_FLARE, FIREWORKS, EVENT_HORIZON, SOLAR_PLAGUE, SINGULARITY
@@ -239,6 +239,7 @@ src/projects/NullSpace/engine/
 
 src/projects/NullSpace/engine/entities/
   ally.ts                                    updateAllies
+  enemy-damage.ts                            applyDamageToEnemy
   enemy.ts                                   findNearestTarget, updateEnemyMovement, updateEnemyShooting
   entity-creator.ts                          uid, createShip, createEnemy, createProjectile, createAlly, createHelperFactory, createParticle, spawnExplosionParticles, updateParticles, createAbilities
   ship.ts                                    applySlingshot, tickSlingHeat, tickFling, applyDamageToShip, tickEscapeMode, updateShipDrift, updateShipAttack
@@ -279,19 +280,22 @@ src/projects/NullSpace/engine/systems/
   economy.ts                                 computeCurrencyFromKills
   effect-definition.ts                       EffectTickContext, EffectTickResult, EffectTickFn, EffectRenderFn, EffectDefinition, passThroughTick
   effects.ts                                 EFFECT_DEFINITIONS, updateActiveEffects
-  hazards.ts                                 generateHazardLane, updateHazards
+  enemy-modifiers-tick.ts                    ModifierTickResult, updateModifiedEnemies
+  hazards.ts                                 generateHazardField, updateHazards
   spawner.ts                                 spawnPositionNearShip, processSpawnQueue
 
 src/projects/NullSpace/engine/
-  types.ts                                   Vec2, Entity, ShipKind, ShipWeaponKind, EscapeModePhase, EscapeModeState, Ship, EnemyKind, MovementBehavior, DeathBehavior, BurningState, Enemy, ProjectileOwner, Projectile, AbilityKind, Ability, EffectKind, EffectBase, MeteorStrikeEffect, BlackHoleEffect, RocketEffect, ShieldEffect, SunEffect, NuclearWasteEffect, SupernovaEffect, ForceFieldEffect, EventHorizonEffect, ActiveEffect, CollectibleKind, Collectible, HazardKind, Hazard, Ally, Particle, GamePhase, UpgradeCategory, UpgradeTier, UpgradeDefinition, PlayerUpgrades, BossSelection, GameState, HoldRuntimeState, PlayerInput
+  types.ts                                   Vec2, Entity, ShipKind, ShipWeaponKind, EscapeModePhase, EscapeModeState, Ship, EnemyKind, EnemyModifier, MovementBehavior, DeathBehavior, BurningState, Enemy, ProjectileOwner, Projectile, AbilityKind, Ability, EffectKind, EffectBase, MeteorStrikeEffect, BlackHoleEffect, RocketEffect, ShieldEffect, SunEffect, NuclearWasteEffect, SupernovaEffect, ForceFieldEffect, EventHorizonEffect, ActiveEffect, CollectibleKind, Collectible, HazardKind, Hazard, Ally, Particle, GamePhase, UpgradeCategory, UpgradeTier, UpgradeDefinition, PlayerUpgrades, BossSelection, GameState, HoldRuntimeState, PlayerInput
   ultimates.ts                               COEXIST_ULTIMATES, ultimateShardCost, canPurchaseUltimate, purchaseUltimate, isBaseReplacedByUltimate
   upgrade-ids.ts                             UpgradeId
   upgrades.ts                                SHIP_AND_POWER_UPGRADE_IDS, UNLOCK_UPGRADE_IDS, SLINGSHOT_UPGRADE_IDS, UPGRADE_DEFINITIONS, getWeaponModifierUpgrades, isWeaponFullyMaxed, isShipWeaponFullyMaxed, UPGRADE_CATEGORY_LABELS, createInitialUpgrades, canPurchaseUpgrade, purchaseUpgrade, applyUpgradesToAbilities, syncUltimateAbilities, applyUpgradesToShip, applyUpgradesToPowerRegen, getStardustMultiplier, getSpaceMetalDropMultiplier, getPowerOrbMultiplier, getLevel, isUpgradeWave
 
 src/projects/NullSpace/engine/world/
+  enemy-modifiers.ts                         modifierChance, rollEnemyModifier, applyModifier
+  enemy-scaling.ts                           waveStatScale, scaleEnemy
   persistence.ts                             loadHighScore, saveHighScore, ChangelogCategory, ChangelogFilters, DEFAULT_CHANGELOG_FILTERS, CHANGELOG_CATEGORIES, loadChangelogFilters, saveChangelogFilters
   time.ts                                    MAX_DT, GameTime, createGameTime, tickGameTime, pauseGameTime, resumeGameTime, setGameSpeed, resetGameClock
-  waves.ts                                   isBossWave, getWave, getWaveDelay, sectorProgress
+  waves.ts                                   isBossWave, WaveArchetype, getWaveArchetype, getWave, getWaveDelay, sectorProgress
 
 src/projects/NullSpace/
   icon-names.ts                              IconName
@@ -303,7 +307,7 @@ src/projects/NullSpace/renderer/
   camera.ts                                  REFERENCE_VIEW, DEFAULT_GAME_ZOOM, Camera, createCamera, computeZoom, HUD_SCALE_MIN, HUD_SCALE_MAX, computeHudScale, isWithinView, clampCameraAxis, updateCamera, centerCameraOn, worldToScreen, screenToWorld
   corridor.ts                                renderCorridor
   draw.ts                                    fillRadialGlow
-  hazard-lanes.ts                            renderHazardLanes
+  hazard-field.ts                            renderHazardField
   portal.ts                                  renderPortal
   renderer.ts                                SHIP_SPRITE_KEY, renderFrame
   sling-aim.ts                               drawSlingAim
