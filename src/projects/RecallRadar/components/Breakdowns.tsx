@@ -77,11 +77,14 @@ export function Breakdowns({ stats, filters, onSelect }: BreakdownsProps) {
           count: c.count,
         }))}
       />
+      {/* byState carries every state for the map; the leaderboard shows the top rows. */}
       <BreakdownList
         title="Top states"
         activeValue={filters.state}
         onSelect={(value) => onSelect({ state: value })}
-        rows={stats.byState.map((c) => ({ label: c.label, value: c.label, count: c.count }))}
+        rows={stats.byState
+          .slice(0, 15)
+          .map((c) => ({ label: c.label, value: c.label, count: c.count }))}
       />
       <BreakdownList
         title="Top companies"
