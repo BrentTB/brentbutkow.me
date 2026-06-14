@@ -1,4 +1,5 @@
 import {
+  ANIMATION,
   BOSS_LEVEL_INTERVAL,
   FORWARD_DIR,
   HAZARD,
@@ -10,8 +11,11 @@ import {
 } from '../data'
 import {
   createAbilities,
+  createDeathAnim,
   createParticle,
   createShip,
+  spawnExplosionParticles,
+  updateDeathAnims,
   updateParticles,
 } from './entities/entity-creator'
 import {
@@ -101,6 +105,8 @@ export function createInitialState(): GameState {
     activeEffects: [],
     collectibles: [],
     particles: [],
+    deathAnims: [],
+    deathTimer: 0,
     wave: 0,
     level: 0,
     score: 0,
@@ -134,7 +140,21 @@ export function createInitialState(): GameState {
 }
 
 export function moveToShipSelection(state: GameState): GameState {
-  return { ...state, phase: GamePhase.shipSelection }
+  // Clear the previous run's entities so the ship-select background is empty —
+  // otherwise the dead run's enemies/particles linger behind the panel.
+  return {
+    ...state,
+    phase: GamePhase.shipSelection,
+    enemies: [],
+    projectiles: [],
+    allies: [],
+    particles: [],
+    deathAnims: [],
+    deathTimer: 0,
+    activeEffects: [],
+    collectibles: [],
+    hazards: [],
+  }
 }
 
 export function startGame(state: GameState, shipKind: ShipKind): GameState {
@@ -153,6 +173,8 @@ export function startGame(state: GameState, shipKind: ShipKind): GameState {
     activeEffects: [],
     collectibles: [],
     particles: [],
+    deathAnims: [],
+    deathTimer: 0,
     wave: 0,
     level: 0,
     score: 0,
@@ -463,12 +485,19 @@ export function completeWarp(state: GameState): GameState {
 export function advanceWarp(state: GameState, dt: number): { state: GameState; landed: boolean } {
   if (state.phase !== GamePhase.warping) return { state, landed: false }
 
+  // The sim is frozen during the warp, but cosmetic world animations keep
+  // playing — the last kill's death burst finishes (instead of sticking as a
+  // frozen "star") and lingering particles fade as the ship flies in.
+  const particles = updateParticles(state.particles, dt)
+  const deathAnims = updateDeathAnims(state.deathAnims, dt)
+  const animated = { ...state, particles, deathAnims }
+
   // Stage 2 — flash: the ship has reached the portal; hold there while the
   // screen flash plays, then open the shop.
   if (state.warpFlashTimer > 0) {
     const warpFlashTimer = state.warpFlashTimer - dt
-    if (warpFlashTimer <= 0) return { state: completeWarp(state), landed: true }
-    return { state: { ...state, warpFlashTimer }, landed: false }
+    if (warpFlashTimer <= 0) return { state: completeWarp(animated), landed: true }
+    return { state: { ...animated, warpFlashTimer }, landed: false }
   }
 
   // Stage 1 — flight.
@@ -481,7 +510,7 @@ export function advanceWarp(state: GameState, dt: number): { state: GameState; l
     // Zero the velocity so the sprite held under the flash doesn't carry stale motion.
     return {
       state: {
-        ...state,
+        ...animated,
         ship: { ...state.ship, pos: { ...state.portalPos }, vel: { x: 0, y: 0 } },
         warpTimer,
         warpFlashTimer: WARP.flashDuration,
@@ -498,7 +527,55 @@ export function advanceWarp(state: GameState, dt: number): { state: GameState; l
     vel: { x: nx * WARP.flySpeed, y: ny * WARP.flySpeed },
     lastHeading: { x: nx, y: ny },
   }
-  return { state: { ...state, ship, warpTimer }, landed: false }
+  return { state: { ...animated, ship, warpTimer }, landed: false }
+}
+
+// Drives the player-death explosion (GamePhase.dying). The sim is suspended —
+// updateGameState early-returns — so particles + death animations tick here and
+// the wreck keeps cooking off; when the timer ends the phase flips to gameOver
+// (the high score is saved at that moment, not at the killing hit).
+export function advanceDeathSequence(
+  state: GameState,
+  dt: number,
+  reducedMotion = false
+): GameState {
+  if (state.phase !== GamePhase.dying) return state
+  dt = Math.min(dt, MAX_DT)
+
+  let particles = updateParticles(state.particles, dt)
+  const deathAnims = updateDeathAnims(state.deathAnims, dt)
+
+  // Secondary pops during the first part of the sequence — the wreck cooks off.
+  // Reduced motion keeps the sequence calm: no extra bursts.
+  const elapsed = ANIMATION.deathSequence - state.deathTimer
+  if (!reducedMotion && elapsed < ANIMATION.deathSequence * 0.6 && rng.next() < 0.25) {
+    particles = [
+      ...particles,
+      ...spawnExplosionParticles(
+        { x: state.ship.pos.x + rng.range(-20, 20), y: state.ship.pos.y + rng.range(-20, 20) },
+        8,
+        rng.next() < 0.5 ? '#ffaa55' : '#ffffff'
+      ),
+    ]
+  }
+
+  const deathTimer = state.deathTimer - dt
+  if (deathTimer <= 0) {
+    const isNewHighScore = state.score > state.highScore
+    saveHighScore(state.score)
+    return {
+      ...state,
+      phase: GamePhase.gameOver,
+      particles,
+      deathAnims,
+      deathTimer: 0,
+      allies: [],
+      isNewHighScore,
+      highScore: Math.max(state.highScore, state.score),
+    }
+  }
+
+  return { ...state, particles, deathAnims, deathTimer }
 }
 
 // Leaves the shop and spawns the wave in the corridor the warp already laid out.
@@ -522,6 +599,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     activeEffects,
     collectibles,
     particles,
+    deathAnims,
     score,
     power,
     currency,
@@ -535,6 +613,9 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   let { waveTimer } = state
   const { maxPower, powerRegen } = state
   let holdStates = state.holdStates
+
+  // Cosmetic damage-flash decays each frame; a hit later this frame refreshes it.
+  ship = { ...ship, hitFlash: Math.max(0, ship.hitFlash - dt) }
 
   // Upgrade-derived economy multipliers (constant across the frame).
   const stardustMultiplier = getStardustMultiplier(state.upgrades)
@@ -794,6 +875,14 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     particles = [...particles, ...deathResult.particles]
   }
 
+  // Cosmetic disintegration for every enemy that died this frame (all kill
+  // sources, no duplicates — a dead enemy is removed by exactly one resolver).
+  // Purely visual, runs alongside the explosion particles spawned above.
+  const killedThisFrame = [...killedForDeathEffects, ...shieldResult.killedEnemies]
+  if (killedThisFrame.length > 0) {
+    deathAnims = [...deathAnims, ...killedThisFrame.map(createDeathAnim)]
+  }
+
   // --- Spawn collectibles from kills ---
   // Ship-collision deaths drop nothing — no reward for letting an enemy reach you.
   const killedForCollectibles = [
@@ -860,34 +949,58 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     )
   }
 
-  // --- Particles ---
+  // Low HP: the ship trails smoke + embers so danger reads before game over.
+  if (!input.reducedMotion && ship.hp / ship.maxHp < ANIMATION.lowHpThreshold && rng.next() < 0.5) {
+    particles.push(
+      createParticle(
+        {
+          x: ship.pos.x + rng.range(-ship.radius, ship.radius),
+          y: ship.pos.y + rng.range(-ship.radius, ship.radius),
+        },
+        { x: rng.range(-15, 15), y: rng.range(-45, -10) },
+        rng.next() < 0.3 ? '#ff7733' : '#777777',
+        0.8,
+        rng.range(2, 5)
+      )
+    )
+  }
+
+  // --- Particles + death animations ---
   particles = updateParticles(particles, dt)
   if (particles.length > PARTICLE_DEFAULTS.maxParticles) {
     particles = particles.slice(particles.length - PARTICLE_DEFAULTS.maxParticles)
   }
+  deathAnims = updateDeathAnims(deathAnims, dt)
 
-  // --- Check game over ---
+  // --- Player death → dying sequence (the ship explodes, THEN gameOver) ---
+  // High score is saved when the sequence ends (advanceDeathSequence), not here.
   if (ship.hp <= 0) {
-    const isNewHighScore = score > state.highScore
-    saveHighScore(score)
+    // Reduced motion still gets a death burst — just a calmer, smaller one.
+    const wreck = input.reducedMotion
+      ? spawnExplosionParticles(ship.pos, 10, '#ffaa55')
+      : [
+          ...spawnExplosionParticles(ship.pos, 28, '#ffaa55'),
+          ...spawnExplosionParticles(ship.pos, 16, '#ffffff'),
+          ...spawnExplosionParticles(ship.pos, 12, '#66aacc'),
+        ]
     return {
       ...state,
-      phase: GamePhase.gameOver,
+      phase: GamePhase.dying,
+      deathTimer: ANIMATION.deathSequence,
       ship,
       enemies,
       projectiles,
-      allies: [],
+      allies,
       abilities,
       activeEffects,
       collectibles,
-      particles,
+      particles: [...particles, ...wreck],
+      deathAnims,
       score,
       power,
       currency,
       spaceMetal,
       singularityShard,
-      highScore: Math.max(state.highScore, score),
-      isNewHighScore,
       hazards,
       waveTimer: 0,
       spawnQueue,
@@ -911,6 +1024,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       activeEffects,
       collectibles,
       particles,
+      deathAnims,
       score,
       power,
       currency,
@@ -939,6 +1053,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     activeEffects,
     collectibles,
     particles,
+    deathAnims,
     score,
     power,
     currency,

@@ -215,6 +215,14 @@ function renderShield(ctx: CanvasRenderingContext2D, dome: ShieldEffect, camera:
   ctx.arc(0, 0, dome.radius, 0, Math.PI * 2)
   ctx.stroke()
 
+  // Shimmer band sweeping around the rim.
+  const sweep = dome.elapsed * 2
+  ctx.strokeStyle = `rgba(205, 245, 255, ${0.5 * pulse})`
+  ctx.lineWidth = 3
+  ctx.beginPath()
+  ctx.arc(0, 0, dome.radius, sweep, sweep + Math.PI * 0.5)
+  ctx.stroke()
+
   ctx.restore()
 }
 

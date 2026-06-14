@@ -47,3 +47,28 @@ describe('rng singleton', () => {
     }
   })
 })
+
+describe('rng getState / setState', () => {
+  it('restores the exact sequence from a snapshot (drives deterministic reload)', () => {
+    rng.reseed(777)
+    rng.next()
+    rng.next()
+    const snapshot = rng.getState()
+    const after = Array.from({ length: 8 }, () => rng.next())
+    rng.setState(snapshot)
+    const replayed = Array.from({ length: 8 }, () => rng.next())
+    expect(replayed).toEqual(after)
+  })
+
+  it('getState changes as the generator advances', () => {
+    rng.reseed(5)
+    const before = rng.getState()
+    rng.next()
+    expect(rng.getState()).not.toBe(before)
+  })
+
+  it('setState guards against a 0 state freezing the generator', () => {
+    rng.setState(0)
+    expect(rng.getState()).not.toBe(0)
+  })
+})

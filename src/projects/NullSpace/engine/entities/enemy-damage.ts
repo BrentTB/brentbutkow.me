@@ -1,4 +1,4 @@
-import { SHIELD_COOLDOWN } from '../../data'
+import { ANIMATION, SHIELD_COOLDOWN } from '../../data'
 import type { Enemy } from '../types'
 
 // Applies damage to an enemy, mirroring applyDamageToShip: a shield-modifier
@@ -9,7 +9,7 @@ import type { Enemy } from '../types'
 export function applyDamageToEnemy(enemy: Enemy, damage: number): Enemy {
   if (damage <= 0) return enemy
   const s = enemy.enemyShield
-  if (!s) return { ...enemy, hp: enemy.hp - damage }
+  if (!s) return { ...enemy, hp: enemy.hp - damage, hitFlash: ANIMATION.hitFlash }
 
   const shieldAbsorb = Math.min(s.shield, damage)
   const hpDamage = damage - shieldAbsorb
@@ -20,5 +20,7 @@ export function applyDamageToEnemy(enemy: Enemy, damage: number): Enemy {
         ? { ...s, shield: s.shield - shieldAbsorb, cooldownRemaining: SHIELD_COOLDOWN }
         : s,
     hp: enemy.hp - hpDamage,
+    // Flash only on HP damage — a shield absorb reads via its ring instead.
+    hitFlash: hpDamage > 0 ? ANIMATION.hitFlash : enemy.hitFlash,
   }
 }

@@ -1,4 +1,4 @@
-import { SECTOR, SHIELD_COOLDOWN, SLINGSHOT } from '../../data'
+import { ANIMATION, SECTOR, SHIELD_COOLDOWN, SLINGSHOT } from '../../data'
 import { canEnemyTakeDamage } from '../bosses/index'
 import { distance } from '../math/collision'
 import { driftWithWeave, softTether1D } from '../math/steering'
@@ -140,6 +140,8 @@ export function applyDamageToShip(ship: Ship, damage: number): Ship {
     // 3 seconds with no damage taken.
     shieldCooldownRemaining: shieldAbsorb > 0 ? SHIELD_COOLDOWN : ship.shieldCooldownRemaining,
     hp: ship.hp - hpDamage,
+    // Flash white only on HP damage — a shield absorb already reads via its ring.
+    hitFlash: hpDamage > 0 ? ANIMATION.hitFlash : ship.hitFlash,
   }
 }
 
@@ -344,10 +346,19 @@ export function updateShipAttack(
   // Each slot ticks down independently — a slow Nuke slot doesn't block a fast
   // Bullet slot on the same Carrier.
   const fireCooldowns = ship.fireCooldowns.map((c) => Math.max(0, c - dt))
+  // Cosmetic firing timers decay every frame whether or not a shot lands.
+  // Built from weaponSlots so a slot-count upgrade can't leave a stale length.
+  const muzzleFlash = Array.from({ length: ship.weaponSlots }, (_, i) =>
+    Math.max(0, (ship.muzzleFlash[i] ?? 0) - dt)
+  )
+  let recoil = Math.max(0, ship.recoil - dt)
 
-  if (enemies.length === 0) {
-    return { ship: { ...ship, fireCooldowns }, projectiles }
-  }
+  const idle = (): { ship: Ship; projectiles: Projectile[] } => ({
+    ship: { ...ship, fireCooldowns, muzzleFlash, recoil },
+    projectiles,
+  })
+
+  if (enemies.length === 0) return idle()
 
   // Nearest in-range enemies, sorted by distance. A slot picks its target as
   // the slot-index-th entry (so 3 ready slots fire at 3 distinct enemies); if
@@ -359,9 +370,7 @@ export function updateShipAttack(
     .map((e) => ({ enemy: e, dist: distance(ship.pos, e.pos) }))
     .filter((x) => x.dist < ship.attackRange && canEnemyTakeDamage(x.enemy, enemies))
     .sort((a, b) => a.dist - b.dist)
-  if (inRange.length === 0) {
-    return { ship: { ...ship, fireCooldowns }, projectiles }
-  }
+  if (inRange.length === 0) return idle()
 
   let nextProjectiles = projectiles
   for (let i = 0; i < ship.weaponSlots; i++) {
@@ -373,7 +382,9 @@ export function updateShipAttack(
     const spawned = def.createProjectiles(ship.pos, target.pos, damage, upgrades)
     nextProjectiles = [...nextProjectiles, ...spawned]
     fireCooldowns[i] = 1 / (ship.fireRate * def.fireRateMultiplier)
+    muzzleFlash[i] = ANIMATION.muzzleFlash
+    recoil = ANIMATION.recoil
   }
 
-  return { ship: { ...ship, fireCooldowns }, projectiles: nextProjectiles }
+  return { ship: { ...ship, fireCooldowns, muzzleFlash, recoil }, projectiles: nextProjectiles }
 }

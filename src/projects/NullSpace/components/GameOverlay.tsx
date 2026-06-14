@@ -15,6 +15,9 @@ import { GameOverScreen } from './GameOverScreen'
 type GameOverlayProps = {
   uiState: GameUIState
   onStart: () => void
+  onContinue: () => void
+  hasSave: boolean
+  onSaveAndExit: () => void
   onSelectShip: (kind: ShipKind) => void
   onNextWave: () => void
   onRestart: () => void
@@ -33,6 +36,9 @@ type SettingsSubPages = (typeof SettingsSubPages)[keyof typeof SettingsSubPages]
 export function GameOverlay({
   uiState,
   onStart,
+  onContinue,
+  hasSave,
+  onSaveAndExit,
   onSelectShip,
   onNextWave,
   onRestart,
@@ -52,7 +58,14 @@ export function GameOverlay({
     if (uiState.phase !== GamePhase.paused) setPauseSubPage(null)
   }, [uiState.phase])
 
-  if (uiState.phase === GamePhase.playing) return null
+  // `dying` (ship-explosion) and `warping` (fly into the portal) both play on the
+  // canvas — no dark overlay over them, only once they resolve to gameOver/shop.
+  if (
+    uiState.phase === GamePhase.playing ||
+    uiState.phase === GamePhase.dying ||
+    uiState.phase === GamePhase.warping
+  )
+    return null
 
   // Settings sits on top of the pause screen — close it on resume/restart
   const handleResume = () => {
@@ -63,11 +76,17 @@ export function GameOverlay({
     setPauseSubPage(null)
     onRestart()
   }
+  const handleSaveAndExit = () => {
+    setPauseSubPage(null)
+    onSaveAndExit()
+  }
 
   return (
     <div className={styles.overlay}>
       <div className={styles.content}>
-        {uiState.phase === GamePhase.menu && <MenuScreen onStart={onStart} />}
+        {uiState.phase === GamePhase.menu && (
+          <MenuScreen onStart={onStart} onContinue={onContinue} hasSave={hasSave} />
+        )}
         {uiState.phase === GamePhase.shipSelection && (
           <ShipSelectionScreen onSelect={onSelectShip} />
         )}
@@ -86,6 +105,8 @@ export function GameOverlay({
               onSettings={() => setPauseSubPage(SettingsSubPages.settings)}
               onHelp={() => setPauseSubPage(SettingsSubPages.help)}
               onRestart={handleRestart}
+              onSaveAndExit={handleSaveAndExit}
+              canSaveAndExit={hasSave}
             />
           ))}
         {uiState.phase === GamePhase.waveComplete && (

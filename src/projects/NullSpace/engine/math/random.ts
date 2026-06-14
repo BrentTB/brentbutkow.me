@@ -14,6 +14,16 @@ class SeededRandom {
     this.state = seed >>> 0 || 1
   }
 
+  /** Current internal state — snapshot it to persist a run's RNG sequence. */
+  getState(): number {
+    return this.state
+  }
+
+  /** Restore a snapshot so the sequence continues deterministically after a reload. */
+  setState(state: number): void {
+    this.state = state >>> 0 || 1
+  }
+
   next(): number {
     this.state = (this.state * 1664525 + 1013904223) >>> 0
     return this.state / 0x100000000

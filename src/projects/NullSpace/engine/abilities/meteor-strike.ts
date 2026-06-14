@@ -162,6 +162,16 @@ function renderMeteorProjectile(
   const meteorY = screen.y - 400 * (1 - progress)
 
   ctx.save()
+  // Flame wake trailing the descent — fading embers above the falling rock.
+  for (let i = 1; i <= 5; i++) {
+    const trailY = meteorY - i * 9
+    const a = (0.5 + progress * 0.5) * (1 - i / 6) * 0.6
+    const r = Math.max(1, (size.w / 2) * (1 - i / 8))
+    ctx.fillStyle = i % 2 === 0 ? `rgba(255, 150, 70, ${a})` : `rgba(255, 95, 45, ${a})`
+    ctx.beginPath()
+    ctx.arc(screen.x + Math.sin(strike.elapsed * 20 + i) * 2, trailY, r, 0, Math.PI * 2)
+    ctx.fill()
+  }
   ctx.globalAlpha = 0.5 + progress * 0.5
   ctx.drawImage(sprites[spriteKey], screen.x - size.w / 2, meteorY - size.h / 2)
   ctx.restore()

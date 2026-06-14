@@ -48,10 +48,13 @@ function makeUiState(phase: GameUIState['phase']): GameUIState {
 
 const noop = () => {}
 
-function renderOverlay(phase: GameUIState['phase']) {
+function renderOverlay(phase: GameUIState['phase'], hasSave = false) {
   const props = {
     uiState: makeUiState(phase),
     onStart: noop,
+    onContinue: noop,
+    hasSave,
+    onSaveAndExit: noop,
     onSelectShip: noop,
     onNextWave: noop,
     onRestart: noop,
@@ -73,6 +76,22 @@ function renderOverlay(phase: GameUIState['phase']) {
 
 describe('GameOverlay', () => {
   afterEach(cleanup)
+
+  // Regression: the dark overlay used to render during `dying` and `warping`,
+  // hiding the ship explosion / portal fly-in that play on the canvas.
+  it('renders nothing during the dying and warping sequences', () => {
+    expect(renderOverlay(GamePhase.dying).container.firstChild).toBeNull()
+    cleanup()
+    expect(renderOverlay(GamePhase.warping).container.firstChild).toBeNull()
+  })
+
+  it('hides "Save & Exit" until a save exists, then shows it', () => {
+    renderOverlay(GamePhase.paused, false)
+    expect(screen.queryByRole('button', { name: 'Save & Exit' })).toBeNull()
+    cleanup()
+    renderOverlay(GamePhase.paused, true)
+    expect(screen.queryByRole('button', { name: 'Save & Exit' })).not.toBeNull()
+  })
 
   // Regression: the P-key resume path flips phase straight to playing without
   // going through this component's handlers, so a sub-page left open must reset.

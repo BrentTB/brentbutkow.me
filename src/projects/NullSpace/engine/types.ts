@@ -95,6 +95,12 @@ export type Ship = Entity & {
   // below the re-engage threshold.
   slingHeat: number
   slingOverheated: boolean
+  // Cosmetic timers (seconds, count down to 0) — render-only, never touch the
+  // simulation. hitFlash washes the sprite white on damage, recoil nudges it
+  // back when firing, muzzleFlash[i] blips the muzzle of weapon slot i.
+  hitFlash: number
+  recoil: number
+  muzzleFlash: number[]
 }
 
 export const EnemyKind = {
@@ -175,6 +181,12 @@ export type Enemy = Entity & {
   // Present only on shield-modifier enemies — a player-style absorb-first pool
   // that regenerates after a cooldown. Damage routes through applyDamageToEnemy.
   enemyShield?: { shield: number; maxShield: number; regen: number; cooldownRemaining: number }
+  // Cosmetic timers (seconds) — render-only. hitFlash washes white on damage,
+  // fireFlash blips the muzzle on a shot, spawnIn counts DOWN from the warp-in
+  // grow (0 = fully materialised). Movement/collision ignore them.
+  hitFlash: number
+  fireFlash: number
+  spawnIn: number
 }
 
 export const ProjectileOwner = { ship: 'ship', enemy: 'enemy' } as const
@@ -478,6 +490,22 @@ export type Particle = {
   size: number
 }
 
+// Cosmetic disintegration left behind by a dead enemy — the sprite spins/fades
+// out under a shatter overlay. Never collides or scores; ticked alongside
+// particles and culled once `elapsed >= duration`. Stores the enemy `kind` (not
+// a sprite key) so the engine stays free of renderer concepts.
+export type DeathAnim = {
+  id: string
+  kind: EnemyKind
+  pos: Vec2
+  vel: Vec2
+  angle: number
+  sizeScale: number
+  elapsed: number
+  duration: number
+  isBoss: boolean
+}
+
 export const GamePhase = {
   menu: 'menu',
   shipSelection: 'shipSelection',
@@ -487,6 +515,8 @@ export const GamePhase = {
   upgradeScreen: 'upgradeScreen',
   // Timed, non-interactive portal jump between sectors — sim frozen, animation runs.
   warping: 'warping',
+  // Player HP hit 0 — the ship-explosion sequence plays out before gameOver.
+  dying: 'dying',
   gameOver: 'gameOver',
 } as const
 export type GamePhase = (typeof GamePhase)[keyof typeof GamePhase]
@@ -532,6 +562,11 @@ export type GameState = {
   activeEffects: ActiveEffect[]
   collectibles: Collectible[]
   particles: Particle[]
+  // Cosmetic enemy-death disintegrations (see DeathAnim).
+  deathAnims: DeathAnim[]
+  // Seconds left in the player-death explosion (GamePhase.dying). 0 elsewhere;
+  // counts down, then the phase flips to gameOver.
+  deathTimer: number
   wave: number
   level: number
   score: number
@@ -605,4 +640,7 @@ export type PlayerInput = {
   // One-shot slingshot flick: unit drag direction + 0..1 charge (drag distance).
   // Set the frame the player releases a ship-grab drag; cleared after one tick.
   fling?: { dir: Vec2; charge: number } | null
+  // OS "reduce motion" preference, sampled per frame. Gates cosmetic-only
+  // particle emitters in the engine; the renderer reads its own copy too.
+  reducedMotion?: boolean
 }

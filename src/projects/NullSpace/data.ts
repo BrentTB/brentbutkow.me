@@ -32,6 +32,18 @@ export const POWER_DEFAULTS = {
   startingPower: 100,
 }
 
+// Sprite-animation tuning (Phase 8). All durations in seconds — cosmetic only.
+export const ANIMATION = {
+  hitFlash: 0.07, // white-wash on damage
+  muzzleFlash: 0.06, // ship firing blip
+  recoil: 0.09, // ship kickback on fire
+  enemyFireFlash: 0.06, // enemy muzzle blip
+  spawnIn: 0.35, // enemy warp-in grow
+  deathAnim: 0.26, // enemy disintegration (×1.8 for bosses)
+  deathSequence: 1.3, // player ship-explosion before gameOver
+  lowHpThreshold: 0.3, // ship hp ratio that triggers smoke + screen vignette
+} as const
+
 // Ability stat constants live in engine/abilities/ability-data.ts. Import from
 // there directly.
 
@@ -203,6 +215,10 @@ export const POWER_ORB = {
   lifetime: 12,
 } as const
 
+// Material spent (with Stardust + Shards) on Ultimate purchases. Change this one
+// constant to rename it everywhere (HUD, shop, dev console).
+export const SPACE_METAL_NAME = 'Space Metal'
+
 // Run-scoped boss material that gates Ultimate purchases. Change this one
 // constant to rename it everywhere (HUD, shop, dev console).
 export const SINGULARITY_SHARD_NAME = 'Singularity Shard'
@@ -324,9 +340,10 @@ export const SECTOR = {
 // reaches within `arriveRadius`. `maxDuration` is a safety cap if it never lands.
 export const WARP = {
   spawnAhead: 1100,
-  flySpeed: 1200,
+  // Slow, cinematic fly-in (~2.5× longer than a quick zoom) so the jump reads.
+  flySpeed: 480,
   arriveRadius: 70,
-  maxDuration: 3,
+  maxDuration: 4,
   // Once the ship reaches the portal, the screen flash plays for this long
   // (the only time the warp effect shows) before the shop opens.
   flashDuration: 0.55,
@@ -384,6 +401,89 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.24.3',
+    date: '2026-06-14',
+    changes: {
+      fixes: [
+        'With "reduce motion" on, the death sequence now stays genuinely calm — the ship still explodes, but with a smaller, single burst and no extra cook-off pops.',
+      ],
+    },
+  },
+  {
+    version: '0.24.2',
+    date: '2026-06-14',
+    changes: {
+      fixes: [
+        'Continuing a saved run no longer leaves the game frozen — the frame clock now restarts on resume.',
+        'A destroyed ship now stays gone — it was briefly flashing back (pure white) behind the game-over screen the instant it appeared.',
+        'The start menu no longer looks cramped when a save exists — the onboarding blurb is hidden for returning players, leaving room for Continue / New Game.',
+        'The screen no longer darkens during the warp between sectors — you can watch the ship fly into the portal, and the fly-in is slower (~2.5×) so the jump actually reads.',
+        "Restarting after a defeat now clears the previous run's enemies from the ship-select background.",
+        'Death bursts (and other particles) now finish animating during the warp to the next sector instead of freezing mid-burst.',
+        'The ship now stays pointing up as it flies into the portal, instead of flipping sideways when it arrives.',
+      ],
+      ui: [
+        'Tanks no longer show a rotating turret — they ram rather than shoot, so the spinning part wrongly implied a ranged attack.',
+      ],
+    },
+  },
+  {
+    version: '0.24.1',
+    date: '2026-06-14',
+    changes: {
+      fixes: [
+        'You can now actually see your ship explode — the dark game-over screen no longer drops the instant you die, so the death sequence plays out first.',
+      ],
+      ui: [
+        'Enemy death bursts are a bit smaller and less busy.',
+        'The ship engine flame now connects to the hull (sits just under the ship) and is a touch taller, so it never looks detached.',
+        'The pause menu only offers "Save & Exit" once you have a save (after the first shop clears) — before that there is nothing to return to.',
+      ],
+    },
+  },
+  {
+    version: '0.24.0',
+    date: '2026-06-14',
+    changes: {
+      features: [
+        'Your run now autosaves at each sector (when the shop opens). Close the tab or pick "Save & Exit" from the pause menu, and a "Continue" button on the start screen drops you right back at the shop in the exact same state — even the RNG is restored, so the next waves play out identically. Starting a New Game or losing clears the save.',
+        'Bigger Fireworks / Rocket explosion-radius upgrades now visibly throw their debris further, so the extra radius reads at a glance instead of looking identical.',
+      ],
+    },
+  },
+  {
+    version: '0.23.1',
+    date: '2026-06-14',
+    changes: {
+      fixes: [
+        'The HEAT bar now tracks live on mobile — it was lagging behind (often reading empty) during play and only snapping to the real value when you paused.',
+        'The shop now shows your Space Metal balance alongside Stardust and Singularity Shards — it was hidden even though Ultimates are bought with it.',
+        'Pinch-zoom is now disabled while playing, so the view can no longer get stuck zoomed-in mid-game; entering fullscreen also snaps any existing zoom back to normal.',
+        'On phones the ability + Space Metal buttons now sit in a bar below (or beside) the play area instead of overlapping it — the ship and tap-to-aim are no longer blocked where a button used to cover the screen.',
+      ],
+    },
+  },
+  {
+    version: '0.23.0',
+    date: '2026-06-14',
+    changes: {
+      features: [
+        'The whole game has more life: your ship trails an engine flame that flares with speed, kicks back when it fires, and flashes a weapon-coloured muzzle blip on every shot.',
+        'Enemies breathe and read better — drones bob, tanks sweep a rotating turret, and every enemy warps in with a grow-in instead of popping into existence.',
+        'Hits land harder: enemies (and your ship) flash white when damaged, and a struck enemy now shatters in a short disintegration before the explosion.',
+        'Dying is a moment now — when your ship goes down it explodes in a brief sequence before the game-over screen, instead of cutting out instantly.',
+        'Ability flair: meteors trail flame as they fall, the black hole pulls in a swirl of dust, and the shield shimmers around its rim.',
+        'A danger read at low HP — the ship smokes and the screen edges glow red as you near death.',
+      ],
+      ui: [
+        'All the new animation honours your "reduce motion" system setting: flicker, bob, and the screen pulse damp down (the death sequence still plays out, just calmer).',
+      ],
+      architecture: [
+        'A SpriteAnimation primitive (multi-frame, pre-rasterized) backs the enemy disintegration; everything else is procedural (sine/tint/particles) driven by a cosmetic render clock kept out of the deterministic game state. Player death adds a GamePhase.dying that runs an advanceDeathSequence tick (mirroring the warp cutscene) before flipping to gameOver.',
+      ],
+    },
+  },
   {
     version: '0.22.0',
     date: '2026-06-13',

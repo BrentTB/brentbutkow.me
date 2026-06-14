@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import {
   createInitialState,
   equipShipWeapon,
+  moveToShipSelection,
   rollLevelUpWeaponOffers,
   startGame,
   startNextWave,
@@ -13,8 +14,15 @@ import {
   beginWarp,
   completeWarp,
   advanceWarp,
+  advanceDeathSequence,
 } from './game-loop'
-import { createAbilities, createEnemy, createProjectile } from './entities/entity-creator'
+import {
+  createAbilities,
+  createDeathAnim,
+  createEnemy,
+  createParticle,
+  createProjectile,
+} from './entities/entity-creator'
 import { tickEscapeMode } from './entities/ship'
 import {
   AbilityKind,
@@ -31,7 +39,7 @@ import {
 import { UpgradeId } from './upgrade-ids'
 import { isUpgradeWave } from './upgrades'
 import { BOSS_KINDS } from './bosses/index'
-import { ENEMY_STATS, POWER_DEFAULTS, SECTOR, WARP, WAVES_PER_LEVEL } from '../data'
+import { ANIMATION, ENEMY_STATS, POWER_DEFAULTS, SECTOR, WARP, WAVES_PER_LEVEL } from '../data'
 import { TELEKINESIS, SOLAR_FLARE } from './abilities/ability-data'
 
 beforeEach(() => {
@@ -61,6 +69,30 @@ describe('startGame', () => {
     const state = startGame(createInitialState(), ShipKind.fighter)
     const waved = startNextWave(state)
     expect(waved.ship.hp).toBe(waved.ship.maxHp)
+  })
+})
+
+describe('moveToShipSelection', () => {
+  // Regression: a defeated run's enemies used to linger on the ship-select
+  // background because only the phase changed.
+  it('clears the previous run entities so the background is empty', () => {
+    const dirty = {
+      ...createInitialState(),
+      enemies: [createEnemy(EnemyKind.drone, { x: 0, y: 0 })],
+      particles: [createEnemy(EnemyKind.drone, { x: 0, y: 0 })].map(() => ({
+        id: 'p',
+        pos: { x: 0, y: 0 },
+        vel: { x: 0, y: 0 },
+        lifetime: 1,
+        elapsed: 0,
+        color: '#fff',
+        size: 2,
+      })),
+    }
+    const next = moveToShipSelection(dirty)
+    expect(next.phase).toBe(GamePhase.shipSelection)
+    expect(next.enemies).toEqual([])
+    expect(next.particles).toEqual([])
   })
 })
 
@@ -183,45 +215,77 @@ describe('updateGameState', () => {
     expect(updated.projectiles.length).toBeGreaterThan(0)
   })
 
-  it('game over when ship hp reaches 0', () => {
+  // Helper: drive a run to the frame the ship dies, returning the `dying` state.
+  function reachShipDeath(score = 0, highScore = 0) {
     let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     // Tick to spawn enemies from queue
     state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
     state = {
       ...state,
-      ship: { ...state.ship, hp: 1, shield: 0 },
-      enemies: state.enemies.map((e) => ({
-        ...e,
-        pos: { ...state.ship.pos },
-      })),
-    }
-
-    const updated = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
-    expect(updated.phase).toBe(GamePhase.gameOver)
-  })
-
-  it('flags a new high score only when the score beats the previous best', () => {
-    let state = startGame(createInitialState(), ShipKind.fighter)
-    state = startNextWave(state)
-    // Tick to spawn enemies from queue
-    state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
-    const dying = {
-      ...state,
+      score,
+      highScore,
       ship: { ...state.ship, hp: 1, shield: 0 },
       enemies: state.enemies.map((e) => ({ ...e, pos: { ...state.ship.pos } })),
     }
+    return updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
+  }
 
-    const beaten = updateGameState({ ...dying, score: 100, highScore: 50 }, 0.016, {
-      clicks: [],
-      selectedAbility: null,
-    })
+  it('enters the dying sequence (not gameOver) when ship hp reaches 0', () => {
+    const dying = reachShipDeath()
+    expect(dying.phase).toBe(GamePhase.dying)
+    expect(dying.deathTimer).toBeGreaterThan(0)
+  })
+
+  it('reduced motion spawns a calmer (smaller) death burst', () => {
+    // Same lethal frame, only reducedMotion differs — the calm wreck must emit
+    // strictly fewer particles than the full one (guards the reduced-motion gate
+    // on the death burst + low-HP smoke).
+    const lethal = (reducedMotion: boolean) => {
+      let state = startGame(createInitialState(), ShipKind.fighter)
+      state = startNextWave(state)
+      state = { ...state, enemies: [], spawnQueue: [], ship: { ...state.ship, hp: 0, shield: 0 } }
+      return updateGameState(state, 0.016, { clicks: [], selectedAbility: null, reducedMotion })
+    }
+    const calm = lethal(true)
+    expect(calm.phase).toBe(GamePhase.dying)
+    // Full wreck = 56 particles, calm = 10; the ~46 gap dwarfs the ±1 from the
+    // rng-gated low-HP smoke, so the margin isolates the death-burst gate.
+    expect(lethal(false).particles.length - calm.particles.length).toBeGreaterThan(40)
+  })
+
+  it('the dying sequence counts down, then flips to gameOver', () => {
+    const dying = reachShipDeath()
+    // Mid-sequence: still dying.
+    const mid = advanceDeathSequence(dying, 0.1)
+    expect(mid.phase).toBe(GamePhase.dying)
+    expect(mid.deathTimer).toBeLessThan(dying.deathTimer)
+    // Run past the full sequence duration: now gameOver.
+    let s = dying
+    for (let t = 0; t < ANIMATION.deathSequence + 0.1; t += 0.05) {
+      s = advanceDeathSequence(s, 0.05)
+    }
+    expect(s.phase).toBe(GamePhase.gameOver)
+  })
+
+  it('flags a new high score only at the gameOver transition, never at the lethal hit', () => {
+    // The killing frame must NOT yet flag a high score — that waits for gameOver.
+    const dying = reachShipDeath(100, 50)
+    expect(dying.isNewHighScore).toBe(false)
+
+    const finishSequence = (start: ReturnType<typeof reachShipDeath>) => {
+      let s = start
+      for (let t = 0; t < ANIMATION.deathSequence + 0.1; t += 0.05) {
+        s = advanceDeathSequence(s, 0.05)
+      }
+      return s
+    }
+
+    const beaten = finishSequence(dying)
+    expect(beaten.phase).toBe(GamePhase.gameOver)
     expect(beaten.isNewHighScore).toBe(true)
 
-    const tied = updateGameState({ ...dying, score: 50, highScore: 50 }, 0.016, {
-      clicks: [],
-      selectedAbility: null,
-    })
+    const tied = finishSequence(reachShipDeath(50, 50))
     expect(tied.isNewHighScore).toBe(false)
   })
 
@@ -322,6 +386,19 @@ describe('advanceWarp', () => {
     expect(state.warpTimer).toBeCloseTo(0.984)
     expect(state.warpFlashTimer).toBe(0) // no screen effect during the flight
     expect(landed).toBe(false)
+  })
+
+  // Regression: the sim is frozen during the warp, so death bursts used to stick
+  // as a frozen "star" — advanceWarp must keep cosmetic animations ticking.
+  it('keeps cosmetic animations (death anims + particles) playing during the warp', () => {
+    const state = {
+      ...warpingState(5),
+      deathAnims: [createDeathAnim(createEnemy(EnemyKind.drone, { x: 0, y: 0 }))],
+      particles: [createParticle({ x: 0, y: 0 }, { x: 0, y: 0 }, '#fff', 1, 2)],
+    }
+    const result = advanceWarp(state, 0.1)
+    expect(result.state.deathAnims[0].elapsed).toBeCloseTo(0.1)
+    expect(result.state.particles[0].elapsed).toBeCloseTo(0.1)
   })
 
   it('begins the flash (not completion) when the flight safety timer elapses', () => {

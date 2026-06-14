@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CURRENCY_NAME, SINGULARITY_SHARD_NAME } from '../../data'
+import { CURRENCY_NAME, SINGULARITY_SHARD_NAME, SPACE_METAL_NAME } from '../../data'
 import { ULTIMATE_KIND_OF } from '../../engine/abilities'
 import { AbilityKind, ShipWeaponKind, UpgradeCategory } from '../../engine/types'
 import type { UpgradeId } from '../../engine/upgrade-ids'
@@ -59,6 +59,8 @@ export function UpgradeScreen({
       <h2 className={sharedStyles.title}>Sector {uiState.level} Complete</h2>
       <p className={styles.currencyDisplay}>
         {CURRENCY_NAME}: <span className={styles.stardustValue}>✦ {uiState.currency}</span>
+        {' · '}
+        {SPACE_METAL_NAME}: <span className={styles.metalValue}>⬢ {uiState.spaceMetal}</span>
         {' · '}
         {SINGULARITY_SHARD_NAME}:{' '}
         <span className={styles.shardValue}>◆ {uiState.singularityShard}</span>

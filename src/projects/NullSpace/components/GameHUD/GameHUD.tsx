@@ -4,26 +4,22 @@ import styles from './GameHUD.module.scss'
 import { SectorProgress } from './SectorProgress'
 import { TopBar } from './TopBar'
 import { BossHpBar } from './BossHpBar'
-import { SpaceMetalRail } from './SpaceMetalRail'
-import { Abilities } from './Abilities'
-import { SpaceMetalAbilityKind } from '../../engine/spaceMetalAbilities'
 
 type GameHUDProps = {
   uiState: GameUIState
-  onAbilitySelect: (kind: GameUIState['selectedAbility']) => void
   onPause: () => void
   onToggleFullscreen: () => void
-  onUseSpaceMetalAbility: (kind: SpaceMetalAbilityKind) => void
   isFullscreen: boolean
   gameSpeed: number
 }
 
+// Overlay HUD pinned over the play area — sector progress, boss bar, and the top
+// stat bar. The action controls (ability bar + Space Metal rail) live in their
+// own component (GameControls) so they can sit outside the play area on mobile.
 export function GameHUD({
   uiState,
-  onAbilitySelect,
   onPause,
   onToggleFullscreen,
-  onUseSpaceMetalAbility,
   isFullscreen,
   gameSpeed,
 }: GameHUDProps) {
@@ -40,10 +36,6 @@ export function GameHUD({
         onPause={onPause}
         onToggleFullscreen={onToggleFullscreen}
       />
-      <div className={styles.actionGroup}>
-        <SpaceMetalRail uiState={uiState} onUseSpaceMetalAbility={onUseSpaceMetalAbility} />
-        <Abilities uiState={uiState} onAbilitySelect={onAbilitySelect} />
-      </div>
     </div>
   )
 }

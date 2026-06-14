@@ -1,4 +1,6 @@
 import {
+  ANIMATION,
+  ENEMY_MODIFIERS,
   PROJECTILE_SPEED,
   PROJECTILE_LIFETIME,
   PROJECTILE_RADIUS,
@@ -6,8 +8,15 @@ import {
   SLINGSHOT,
 } from '../../data'
 import { HELPER, HELPER_FACTORY } from '../abilities/ability-data'
-import { DeathBehavior, EnemyKind, MovementBehavior, ShipKind, ShipWeaponKind } from '../types'
-import type { Ship, Enemy, Projectile, Vec2, Ally, Particle } from '../types'
+import {
+  DeathBehavior,
+  EnemyKind,
+  EnemyModifier,
+  MovementBehavior,
+  ShipKind,
+  ShipWeaponKind,
+} from '../types'
+import type { DeathAnim, Ship, Enemy, Projectile, Vec2, Ally, Particle } from '../types'
 import { rng } from '../math/random'
 import { SHIP_VARIANTS } from '../ship/ship-data'
 import { getBossDefinition } from '../bosses/index'
@@ -86,6 +95,9 @@ export function createShip(kind: ShipKind, worldSize: Vec2): Ship {
     slingCoolRate: SLINGSHOT.baseCoolRate,
     slingHeat: 0,
     slingOverheated: false,
+    hitFlash: 0,
+    recoil: 0,
+    muzzleFlash: Array(s.weaponSlots).fill(0),
   }
 }
 
@@ -112,6 +124,9 @@ export function createEnemy(kind: Enemy['kind'], pos: Vec2): Enemy {
     movementBehavior: bossDef?.movement ?? ENEMY_MOVEMENT[kind as NonBossEnemyKind],
     deathBehavior: bossDef ? DeathBehavior.boss : ENEMY_DEATH[kind as NonBossEnemyKind],
     age: 0,
+    hitFlash: 0,
+    fireFlash: 0,
+    spawnIn: ANIMATION.spawnIn,
   }
   if (bossDef) base.boss = bossDef.initialState()
   return base
@@ -202,11 +217,18 @@ export function createParticle(
   }
 }
 
-export function spawnExplosionParticles(pos: Vec2, count: number, color: string): Particle[] {
+// `spread` (default 1) scales how far particles fly — pass an ability's
+// radius ratio so a bigger explosion visibly throws debris further.
+export function spawnExplosionParticles(
+  pos: Vec2,
+  count: number,
+  color: string,
+  spread = 1
+): Particle[] {
   const particles: Particle[] = []
   for (let i = 0; i < count; i++) {
     const angle = (Math.PI * 2 * i) / count + rng.range(-0.25, 0.25)
-    const speed = 60 + rng.next() * 120
+    const speed = (60 + rng.next() * 120) * spread
     particles.push(
       createParticle(
         { x: pos.x, y: pos.y },
@@ -229,4 +251,34 @@ export function updateParticles(particles: Particle[], dt: number): Particle[] {
       elapsed: p.elapsed + dt,
     }))
     .filter((p) => p.elapsed < p.lifetime)
+}
+
+// Snapshots a dying enemy into a cosmetic disintegration. Inherits a fraction of
+// its velocity (drifts as it shatters); bosses get a longer, larger burst.
+export function createDeathAnim(enemy: Enemy): DeathAnim {
+  const isBoss = enemy.deathBehavior === DeathBehavior.boss
+  const giant = enemy.modifier === EnemyModifier.giant ? ENEMY_MODIFIERS.giantRadiusMult : 1
+  const moving = enemy.vel.x !== 0 || enemy.vel.y !== 0
+  return {
+    id: uid(),
+    kind: enemy.kind,
+    pos: { ...enemy.pos },
+    vel: { x: enemy.vel.x * 0.4, y: enemy.vel.y * 0.4 },
+    angle: moving ? Math.atan2(enemy.vel.y, enemy.vel.x) + Math.PI / 2 : 0,
+    sizeScale: giant * (isBoss ? 1.4 : 1),
+    elapsed: 0,
+    duration: ANIMATION.deathAnim * (isBoss ? 1.8 : 1),
+    isBoss,
+  }
+}
+
+export function updateDeathAnims(deathAnims: DeathAnim[], dt: number): DeathAnim[] {
+  return deathAnims
+    .map((d) => ({
+      ...d,
+      pos: { x: d.pos.x + d.vel.x * dt, y: d.pos.y + d.vel.y * dt },
+      vel: { x: d.vel.x * 0.9, y: d.vel.y * 0.9 },
+      elapsed: d.elapsed + dt,
+    }))
+    .filter((d) => d.elapsed < d.duration)
 }

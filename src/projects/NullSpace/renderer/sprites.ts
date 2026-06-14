@@ -1,5 +1,10 @@
 export type SpriteData = (string | null)[][]
 
+// A multi-frame sprite: equal-size frames shown `frameDuration` seconds each.
+// The cache pre-rasterizes every frame; the renderer selects one from elapsed
+// time (see pickFrame). Used for the enemy death disintegration.
+export type SpriteAnimation = { frames: SpriteData[]; frameDuration: number }
+
 const _ = null
 const G = '#e9b872' // accent gold
 const g = '#c49a58' // dark gold
@@ -514,4 +519,59 @@ export const SPRITE_MAP: Record<SpriteKey, SpriteData> = {
   missile: MISSILE_SPRITE,
   ricochet: RICOCHET_SPRITE,
   nuke: NUKE_SPRITE,
+}
+
+// Generic 4-frame shatter, drawn additively over a dying enemy as it fades. A
+// bright core flashes, fragments fling outward, then thin to embers. Reused for
+// every enemy (scaled to its size) — the one place Phase 8 authors frame art.
+const D1: SpriteData = [
+  [_, _, _, _, _, _, _, _, _],
+  [_, _, _, _, F, _, _, _, _],
+  [_, _, _, F, W, F, _, _, _],
+  [_, _, F, W, W, W, F, _, _],
+  [_, F, W, W, W, W, W, F, _],
+  [_, _, F, W, W, W, F, _, _],
+  [_, _, _, F, W, F, _, _, _],
+  [_, _, _, _, F, _, _, _, _],
+  [_, _, _, _, _, _, _, _, _],
+]
+const D2: SpriteData = [
+  [_, _, _, _, F, _, _, _, _],
+  [_, _, F, _, _, _, F, _, _],
+  [_, F, _, _, D, _, _, F, _],
+  [_, _, _, D, W, D, _, _, _],
+  [F, _, D, W, _, W, D, _, F],
+  [_, _, _, D, W, D, _, _, _],
+  [_, F, _, _, D, _, _, F, _],
+  [_, _, F, _, _, _, F, _, _],
+  [_, _, _, _, F, _, _, _, _],
+]
+const D3: SpriteData = [
+  [F, _, _, _, _, _, _, _, F],
+  [_, O, _, _, F, _, _, O, _],
+  [_, _, _, _, _, _, _, _, _],
+  [_, _, _, _, D, _, _, _, _],
+  [_, F, _, D, _, D, _, F, _],
+  [_, _, _, _, D, _, _, _, _],
+  [_, _, _, _, _, _, _, _, _],
+  [_, O, _, _, F, _, _, O, _],
+  [F, _, _, _, _, _, _, _, F],
+]
+const D4: SpriteData = [
+  [_, _, _, _, _, _, _, _, _],
+  [_, O, _, _, _, _, _, O, _],
+  [_, _, _, _, _, _, _, _, _],
+  [_, _, _, _, _, _, _, _, _],
+  [_, _, _, _, O, _, _, _, _],
+  [_, _, _, _, _, _, _, _, _],
+  [_, _, _, _, _, _, _, _, _],
+  [_, O, _, _, _, _, _, O, _],
+  [_, _, _, _, _, _, _, _, _],
+]
+
+export const AnimationKey = { disintegration: 'disintegration' } as const
+export type AnimationKey = (typeof AnimationKey)[keyof typeof AnimationKey]
+
+export const ANIMATION_MAP: Record<AnimationKey, SpriteAnimation> = {
+  disintegration: { frames: [D1, D2, D3, D4], frameDuration: 0.065 },
 }

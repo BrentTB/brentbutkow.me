@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { applyDamageToEnemy } from './enemy-damage'
 import { createEnemy } from './entity-creator'
-import { SHIELD_COOLDOWN } from '../../data'
+import { ANIMATION, SHIELD_COOLDOWN } from '../../data'
 import { EnemyKind } from '../types'
 
 const shielded = (shield: number, max = shield) => ({
@@ -45,5 +45,15 @@ describe('applyDamageToEnemy', () => {
     const hit = applyDamageToEnemy(e, 10)
     expect(hit.hp).toBe(e.hp - 10)
     expect(hit.enemyShield?.cooldownRemaining).toBe(1) // regen keeps ticking
+  })
+
+  it('triggers the white hit-flash on HP damage but not on a pure shield absorb', () => {
+    const plain = createEnemy(EnemyKind.tank, { x: 0, y: 0 })
+    expect(applyDamageToEnemy(plain, 10).hitFlash).toBeCloseTo(ANIMATION.hitFlash)
+
+    // Damage fully absorbed by the shield → no flash (the ring reads instead).
+    expect(applyDamageToEnemy(shielded(30), 10).hitFlash).toBe(0)
+    // Overflow past the shield → flash fires.
+    expect(applyDamageToEnemy(shielded(10), 25).hitFlash).toBeCloseTo(ANIMATION.hitFlash)
   })
 })
