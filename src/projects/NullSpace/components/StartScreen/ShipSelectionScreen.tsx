@@ -62,6 +62,12 @@ export function ShipSelectionScreen({ onSelect }: ShipSelectionScreenProps) {
           max={STAT_MAX.fireRate}
           color="#f5a53d"
         />
+        <StatBar
+          label="Guns"
+          value={variant.stats.weaponSlots}
+          max={STAT_MAX.weaponSlots}
+          color="#e6739f"
+        />
       </div>
 
       <ShipSpritePreview kind={selected} />

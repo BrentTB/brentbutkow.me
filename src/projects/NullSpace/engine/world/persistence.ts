@@ -25,6 +25,26 @@ export function saveHighScore(score: number): void {
   }
 }
 
+// --- Tutorial seen flag (gates the first-play auto-launch) ---
+
+const TUTORIAL_SEEN_KEY = 'null-space-tutorial-seen'
+
+export function loadTutorialSeen(): boolean {
+  try {
+    return localStorage.getItem(TUTORIAL_SEEN_KEY) === 'true'
+  } catch {
+    return false
+  }
+}
+
+export function saveTutorialSeen(): void {
+  try {
+    localStorage.setItem(TUTORIAL_SEEN_KEY, 'true')
+  } catch {
+    // localStorage unavailable
+  }
+}
+
 // Architecture defaults to false to hide the noisy internal entries until the
 // player opts in.
 const CHANGELOG_FILTERS_KEY = 'null-space-changelog-filters'

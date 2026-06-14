@@ -62,7 +62,23 @@ import { renderFrame } from './renderer/renderer'
 import { drawSlingAim } from './renderer/sling-aim'
 import { WORLD_SIZE } from './data'
 import { rng } from './engine/math/random'
-import { saveGame, loadGame, clearSave } from './engine/world/persistence'
+import { saveGame, loadGame, clearSave, saveTutorialSeen } from './engine/world/persistence'
+import {
+  advanceTutorial,
+  createTutorialState,
+  TutorialEntry,
+  type TutorialState,
+  type TutorialView,
+  type TutorialSignals,
+} from './engine/tutorial/tutorial-machine'
+import {
+  ensureTutorialEnemy,
+  pickSpotlightEnemyId,
+  startTutorialRun,
+} from './engine/tutorial/demo-wave'
+import { TutorialSpotlightKind } from './engine/tutorial/tutorial-script'
+import { drawTutorialFocus } from './renderer/tutorial-overlay'
+import { useCoarsePointer } from './useCoarsePointer'
 
 // Build-time literal, same as in NullSpace.tsx
 const DEV_MODE = import.meta.env.VITE_NULL_SPACE_DEV_MODE === 'true'
@@ -74,6 +90,20 @@ const STAR_COUNT = 250
 // off. A single zero-arg arrow satisfies all three slots because TypeScript
 // permits assigning functions with fewer parameters where more are expected.
 const noop = () => {}
+
+// Keys players reflexively try to "steer" the ship with — the tutorial watches
+// for one to prove the ship ignores them. Not bound to anything else in-game.
+const MOVEMENT_KEYS = new Set([
+  'w',
+  'a',
+  's',
+  'd',
+  'arrowup',
+  'arrowdown',
+  'arrowleft',
+  'arrowright',
+])
+const isMovementKey = (key: string): boolean => MOVEMENT_KEYS.has(key.toLowerCase())
 
 export type GameUIState = {
   phase: GameState['phase']
@@ -111,6 +141,12 @@ export type GameUIState = {
   slingOverheated: boolean
   boss: { hp: number; maxHp: number; label: string } | null
   nextBoss: EnemyKind
+  // Tutorial overlay state (the demo-wave onboarding). Inactive → tutorialActive false.
+  tutorialActive: boolean
+  tutorialCopy: string
+  tutorialAwaitingAck: boolean
+  tutorialAckLabel: string | null
+  tutorialIsFinal: boolean
 }
 
 // Hotkey number = position in unlock order. The HUD renders only unlocked
@@ -189,6 +225,11 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     slingOverheated: false,
     boss: null,
     nextBoss: gameStateRef.current.bossSelection.nextBoss,
+    tutorialActive: false,
+    tutorialCopy: '',
+    tutorialAwaitingAck: false,
+    tutorialAckLabel: null,
+    tutorialIsFinal: false,
   }))
 
   // Whether a resumable save exists on disk (drives the menu's Continue button).
@@ -205,6 +246,11 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
   const reducedMotion = useReducedMotion()
   const reducedMotionRef = useRef(reducedMotion)
   reducedMotionRef.current = reducedMotion
+  // Coarse (touch) pointer — swaps tutorial "click" copy for "tap" and drops the
+  // keyboard-only beats. Mirrored to a ref so the rAF loop reads the live value.
+  const isTouch = useCoarsePointer()
+  const isTouchRef = useRef(isTouch)
+  isTouchRef.current = isTouch
   const starsRef = useRef<Star[]>([])
   const rafRef = useRef<number>(0)
   const gameTimeRef = useRef<GameTime>(createGameTime())
@@ -223,6 +269,14 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
   // to the engine on release.
   const slingRef = useRef<SlingGesture | null>(null)
   const pendingFlingRef = useRef<PlayerInput['fling']>(null)
+  // Tutorial (demo-wave onboarding) runtime — kept out of GameState. The machine
+  // state, its latest projection (for the overlay), the resolved spotlight target
+  // enemy id (for the renderer), and one-shot input flags consumed each frame.
+  const tutorialRef = useRef<TutorialState | null>(null)
+  const tutorialViewRef = useRef<TutorialView | null>(null)
+  const tutorialTargetIdRef = useRef<string | null>(null)
+  const movementKeyRef = useRef(false)
+  const tutorialAckRef = useRef(false)
 
   const syncUI = useCallback((state: GameState) => {
     setUiState({
@@ -270,6 +324,11 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
         return { ...value, label: def?.hpBarLabel ?? 'BOSS' }
       })(),
       nextBoss: state.bossSelection.nextBoss,
+      tutorialActive: tutorialRef.current !== null && !tutorialRef.current.done,
+      tutorialCopy: tutorialViewRef.current?.copy ?? '',
+      tutorialAwaitingAck: tutorialViewRef.current?.awaitingAck ?? false,
+      tutorialAckLabel: tutorialViewRef.current?.ackLabel ?? null,
+      tutorialIsFinal: tutorialViewRef.current?.isFinalStep ?? false,
     })
   }, [])
 
@@ -451,6 +510,61 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     syncUI(gameStateRef.current)
   }, [syncUI])
 
+  // Ends the tutorial: marks it seen, then routes — first-play flows into the
+  // real run (ship selection); a replay drops back to the menu.
+  const finishTutorial = useCallback(
+    (entry: TutorialEntry) => {
+      saveTutorialSeen()
+      tutorialRef.current = null
+      tutorialViewRef.current = null
+      tutorialTargetIdRef.current = null
+      movementKeyRef.current = false
+      tutorialAckRef.current = false
+      gameStateRef.current =
+        entry === TutorialEntry.firstPlay
+          ? moveToShipSelection(createInitialState())
+          : createInitialState()
+      gameTimeRef.current = resetGameClock(gameTimeRef.current)
+      syncUI(gameStateRef.current)
+    },
+    [syncUI]
+  )
+
+  // Launches the guided demo wave. Auto-triggered on first-ever play and
+  // available from the menu's "How to Play" button (replay).
+  const handleStartTutorial = useCallback(
+    (entry: TutorialEntry) => {
+      const view = advanceTutorial(createTutorialState(entry, isTouchRef.current), {
+        realDt: 0,
+        clicked: false,
+        flung: false,
+        movementKeyPressed: false,
+        powerFraction: 1,
+        acknowledged: false,
+      })
+      tutorialRef.current = view.state
+      tutorialViewRef.current = view
+      tutorialTargetIdRef.current = null
+      movementKeyRef.current = false
+      tutorialAckRef.current = false
+      gameStateRef.current = startTutorialRun(gameStateRef.current)
+      gameTimeRef.current = resetGameClock(gameTimeRef.current)
+      selectedAbilityRef.current = AbilityKind.meteorite
+      enterSector()
+      syncUI(gameStateRef.current)
+    },
+    [syncUI, enterSector]
+  )
+
+  const handleSkipTutorial = useCallback(() => {
+    finishTutorial(tutorialRef.current?.entry ?? TutorialEntry.replay)
+  }, [finishTutorial])
+
+  // Next / Finish button — a one-shot the machine consumes on the next frame.
+  const handleTutorialAck = useCallback(() => {
+    tutorialAckRef.current = true
+  }, [])
+
   const handleSetSpeed = useCallback((speed: number) => {
     gameTimeRef.current = setGameSpeed(gameTimeRef.current, speed)
   }, [])
@@ -505,7 +619,11 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       const worldPos = screenToWorld(screenPos, cameraRef.current)
 
       // Grab the ship → slingshot flick, regardless of the selected ability.
-      const grab = tryGrabShip(worldPos, state.ship.pos, screenPos)
+      // During the tutorial, only the fling beat allows a grab — otherwise a
+      // frozen beat could be flung past (and rack up sling heat).
+      const tut = tutorialRef.current
+      const flingAllowed = !tut || (tut.steps[tut.stepIndex]?.allowFling ?? false)
+      const grab = flingAllowed ? tryGrabShip(worldPos, state.ship.pos, screenPos) : null
       if (grab) {
         slingRef.current = grab
         return
@@ -574,6 +692,13 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      // During the tutorial: record a movement-key press (the "you don't steer
+      // this ship" beat) and swallow pause/ability keys — the tutorial drives the
+      // freeze itself and has its own Skip.
+      if (tutorialRef.current) {
+        if (isMovementKey(e.key)) movementKeyRef.current = true
+        return
+      }
       // Use P (not Esc) for pause: in fullscreen, browsers intercept Esc to exit
       // fullscreen so a pause keybind there would never fire.
       if (e.key === 'p' || e.key === 'P') {
@@ -606,9 +731,19 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     const loop = (time: number) => {
       const tick = tickGameTime(gameTimeRef.current, time)
       gameTimeRef.current = tick.time
+      // Real frame dt drives the tutorial machine's timers; the SIM dt is forced
+      // to 0 on a frozen tutorial beat so the world holds while the prompt shows.
       const dt = tick.dt
-      // Cosmetic render clock — frozen on pause (dt is 0 then).
-      renderClockRef.current += dt
+      const tut = tutorialRef.current
+      const tutStep = tut ? tut.steps[tut.stepIndex] : null
+      // Keep a target on screen for beats that need one — the ship's own guns may
+      // have cleared the demo drones (e.g. the "fire until power runs low" beat).
+      if (tutStep?.keepEnemyAlive && gameStateRef.current.enemies.length === 0) {
+        gameStateRef.current = ensureTutorialEnemy(gameStateRef.current)
+      }
+      const simDt = tutStep?.freeze ? 0 : dt
+      // Cosmetic render clock — frozen on pause / tutorial freeze (simDt 0 then).
+      renderClockRef.current += simDt
 
       // Re-resolve hold cursor world-pos every frame from screen-pos so it
       // tracks the actual cursor even as the camera moves.
@@ -616,12 +751,18 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
         ? screenToWorld(holdScreenPosRef.current, cameraRef.current)
         : null
 
+      // Clicks reach the engine only on beats that teach casting; elsewhere a
+      // stray click must not fire a meteorite (the machine still sees the click).
+      const rawClicks = inputRef.current.clicks
+      const clickedThisFrame = rawClicks.length > 0
+      const fling = pendingFlingRef.current ?? null
+      const allowCast = tutStep?.allowCast ?? false
       const input: PlayerInput = {
-        clicks: inputRef.current.clicks,
+        clicks: tut && !allowCast ? [] : rawClicks,
         selectedAbility: inputRef.current.selectedAbility,
         holdPos: liveHoldPos,
         isHolding: inputRef.current.isHolding,
-        fling: pendingFlingRef.current ?? null,
+        fling,
         reducedMotion: reducedMotionRef.current,
       }
       // clicks + fling are one-shot per frame; hold state persists until pointerup.
@@ -633,19 +774,41 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       }
 
       const prevPhase = gameStateRef.current.phase
-      gameStateRef.current = updateGameState(gameStateRef.current, dt, input)
+      gameStateRef.current = updateGameState(gameStateRef.current, simDt, input)
 
       // Tick the warp animation; reseed the starfield when it lands.
-      const warp = advanceWarp(gameStateRef.current, dt)
+      const warp = advanceWarp(gameStateRef.current, simDt)
       gameStateRef.current = warp.state
       if (warp.landed) enterSector()
 
       // Tick the player-death explosion; flips to gameOver when it ends.
       gameStateRef.current = advanceDeathSequence(
         gameStateRef.current,
-        dt,
+        simDt,
         reducedMotionRef.current
       )
+
+      // Advance the tutorial from this frame's outcome (signals read post-update,
+      // e.g. power after a cast), then resolve the spotlight target.
+      if (tutorialRef.current) {
+        const st = gameStateRef.current
+        const signals: TutorialSignals = {
+          realDt: dt,
+          clicked: clickedThisFrame,
+          flung: fling !== null,
+          movementKeyPressed: movementKeyRef.current,
+          powerFraction: st.maxPower > 0 ? st.power / st.maxPower : 0,
+          acknowledged: tutorialAckRef.current,
+        }
+        const view = advanceTutorial(tutorialRef.current, signals)
+        tutorialRef.current = view.state
+        tutorialViewRef.current = view
+        movementKeyRef.current = false
+        tutorialAckRef.current = false
+        tutorialTargetIdRef.current =
+          view.spotlight === TutorialSpotlightKind.enemy ? pickSpotlightEnemyId(st) : null
+        if (view.finished) finishTutorial(view.state.entry)
+      }
 
       // Warp cutscene: lock the camera dead-centre on the ship so the portal it
       // flies into lines up with the screen-space warp rays (and the view sits
@@ -653,7 +816,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       cameraRef.current =
         gameStateRef.current.phase === GamePhase.warping
           ? centerCameraOn(cameraRef.current, gameStateRef.current.ship.pos)
-          : updateCamera(cameraRef.current, gameStateRef.current.ship.pos, dt)
+          : updateCamera(cameraRef.current, gameStateRef.current.ship.pos, simDt)
 
       if (spritesRef.current && animationsRef.current) {
         renderFrame(
@@ -680,6 +843,21 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
             SLING_MAX_DRAG_PX
           )
         }
+        // Tutorial spotlight — dim the scene and ring the current focus target.
+        const tutView = tutorialViewRef.current
+        if (tutorialRef.current && tutView && !tutView.finished) {
+          const st = gameStateRef.current
+          const focus =
+            tutView.spotlight === TutorialSpotlightKind.ship
+              ? st.ship.pos
+              : tutView.spotlight === TutorialSpotlightKind.enemy
+                ? (st.enemies.find((e) => e.id === tutorialTargetIdRef.current)?.pos ?? null)
+                : null
+          drawTutorialFocus(ctx, cameraRef.current, focus, {
+            reducedMotion: reducedMotionRef.current,
+            pulseClock: time / 1000,
+          })
+        }
       }
 
       const state = gameStateRef.current
@@ -705,7 +883,15 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       window.removeEventListener('keydown', handleKeyDown)
       resizeObserver.disconnect()
     }
-  }, [canvasRef, syncUI, handlePause, handleResume, handleUseSpaceMetalAbility, enterSector])
+  }, [
+    canvasRef,
+    syncUI,
+    handlePause,
+    handleResume,
+    handleUseSpaceMetalAbility,
+    enterSector,
+    finishTutorial,
+  ])
 
   return {
     uiState,
@@ -725,6 +911,9 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     handleResume,
     handleSetSpeed,
     handleUseSpaceMetalAbility,
+    handleStartTutorial,
+    handleSkipTutorial,
+    handleTutorialAck,
     handleDevPatch,
     handleDevJumpToUpgrades,
     handleDevJumpToBoss,

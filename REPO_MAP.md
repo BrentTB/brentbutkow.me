@@ -185,6 +185,9 @@ src/projects/NullSpace/components/StartScreen/
   ShipSpritePreview.tsx                      ShipSpritePreview
   StatBar.tsx                                StatBar
 
+src/projects/NullSpace/components/Tutorial/
+  TutorialOverlay.tsx                        TutorialOverlay
+
 src/projects/NullSpace/components/UpgradeScreen/
   ShipTab.tsx                                ShipTab
   ShipWeaponDetail.tsx                       ShipWeaponDetail
@@ -294,6 +297,11 @@ src/projects/NullSpace/engine/systems/
   hazards.ts                                 generateHazardField, updateHazards
   spawner.ts                                 spawnPositionNearShip, processSpawnQueue
 
+src/projects/NullSpace/engine/tutorial/
+  demo-wave.ts                               startTutorialRun, ensureTutorialEnemy, pickSpotlightEnemyId
+  tutorial-machine.ts                        TutorialEntry, TutorialSignals, TutorialState, TutorialView, createTutorialState, advanceTutorial
+  tutorial-script.ts                         TutorialTriggerKind, TutorialSpotlightKind, POWER_LOW_FRACTION, TutorialStep, TUTORIAL_STEPS
+
 src/projects/NullSpace/engine/
   types.ts                                   Vec2, Entity, ShipKind, ShipWeaponKind, EscapeModePhase, EscapeModeState, Ship, EnemyKind, EnemyModifier, MovementBehavior, DeathBehavior, BurningState, Enemy, ProjectileOwner, Projectile, AbilityKind, Ability, EffectKind, EffectBase, MeteorStrikeEffect, BlackHoleEffect, RocketEffect, ShieldEffect, SunEffect, NuclearWasteEffect, SupernovaEffect, ForceFieldEffect, EventHorizonEffect, ActiveEffect, CollectibleKind, Collectible, HazardKind, Hazard, Ally, Particle, DeathAnim, GamePhase, UpgradeCategory, UpgradeTier, UpgradeDefinition, PlayerUpgrades, BossSelection, GameState, HoldRuntimeState, PlayerInput
   ultimates.ts                               COEXIST_ULTIMATES, ultimateShardCost, canPurchaseUltimate, purchaseUltimate, isBaseReplacedByUltimate
@@ -303,7 +311,7 @@ src/projects/NullSpace/engine/
 src/projects/NullSpace/engine/world/
   enemy-modifiers.ts                         modifierChance, rollEnemyModifier, applyModifier
   enemy-scaling.ts                           waveStatScale, scaleEnemy
-  persistence.ts                             loadHighScore, saveHighScore, ChangelogCategory, ChangelogFilters, DEFAULT_CHANGELOG_FILTERS, CHANGELOG_CATEGORIES, loadChangelogFilters, saveChangelogFilters, SavedGame, saveGame, loadGame, clearSave
+  persistence.ts                             loadHighScore, saveHighScore, loadTutorialSeen, saveTutorialSeen, ChangelogCategory, ChangelogFilters, DEFAULT_CHANGELOG_FILTERS, CHANGELOG_CATEGORIES, loadChangelogFilters, saveChangelogFilters, SavedGame, saveGame, loadGame, clearSave
   time.ts                                    MAX_DT, GameTime, createGameTime, tickGameTime, pauseGameTime, resumeGameTime, setGameSpeed, resetGameClock
   waves.ts                                   isBossWave, WaveArchetype, getWaveArchetype, getWave, getWaveDelay, sectorProgress
 
@@ -323,10 +331,12 @@ src/projects/NullSpace/renderer/
   sprite-cache.ts                            SpriteCache, AnimationCache, buildSpriteCache, getSpriteSize, buildAnimationCache, pickFrame
   sprites.ts                                 SpriteData, SpriteAnimation, SHIP_SPRITE, DRONE_SPRITE, _OLD_DRONE_SPRITE, TANK_SPRITE, PROJECTILE_SPRITE, METEOR_SPRITE, METEORITE_SPRITE, SHOOTER_SPRITE, ENEMY_PROJECTILE_SPRITE, SWARM_SPRITE, _NEW_SWARM_SPRITE, BOMBER_SPRITE, ROCKET_SPRITE, INTERCEPTOR_SPRITE, DREADNOUGHT_SPRITE, CARRIER_SPRITE, ALLY_SPRITE, MISSILE_SPRITE, RICOCHET_SPRITE, NUKE_SPRITE, DREADNOUGHT_BOSS_SPRITE, SHIELD_GENERATOR_SPRITE, VOID_WORM_BOSS_SPRITE, WORM_SEGMENT_SPRITE, PHASE_SHIFTER_BOSS_SPRITE, SpriteKey, SPRITE_MAP, AnimationKey, ANIMATION_MAP
   starfield.ts                               Star, generateStarfield, renderStarfield
+  tutorial-overlay.ts                        TutorialFocusOpts, drawTutorialFocus
   warp.ts                                    renderWarpTransition
 
 src/projects/NullSpace/
   reset-pinch-zoom.ts                        resetPinchZoom
+  useCoarsePointer.ts                        useCoarsePointer
   useNullSpace.ts                            GameUIState, getUnlockedAbilitiesInOrder, abilityKindForHotkey, selectionAfterUltimatePurchase, useNullSpace
   usePreventPinchZoom.ts                     usePreventPinchZoom
   usePseudoFullscreenChrome.ts               usePseudoFullscreenChrome

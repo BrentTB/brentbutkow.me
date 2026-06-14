@@ -11,9 +11,10 @@ const holdAbilityNames = ABILITY_LIST.filter((a) => a.activation === 'hold')
 
 type HelpScreenProps = {
   onClose: () => void
+  onReplayTutorial: () => void
 }
 
-export function HelpScreen({ onClose }: HelpScreenProps) {
+export function HelpScreen({ onClose, onReplayTutorial }: HelpScreenProps) {
   return (
     <div className={styles.help}>
       <h2 className={sharedStyles.title}>How to play</h2>
@@ -68,6 +69,9 @@ export function HelpScreen({ onClose }: HelpScreenProps) {
         </p>
       </section>
 
+      <button className={sharedStyles.secondaryBtn} onClick={onReplayTutorial}>
+        Replay Tutorial
+      </button>
       <button className={sharedStyles.primaryBtn} onClick={onClose}>
         Back
       </button>

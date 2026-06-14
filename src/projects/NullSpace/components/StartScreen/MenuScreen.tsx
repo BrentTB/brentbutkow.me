@@ -1,29 +1,21 @@
 import { GAME_NAME } from '../../data'
+import { loadTutorialSeen } from '../../engine/world/persistence'
 import sharedStyles from '../OverlayShared.module.scss'
 
 type MenuScreenProps = {
   onStart: () => void
   onContinue: () => void
   hasSave: boolean
+  onReplayTutorial: () => void
 }
 
-export function MenuScreen({ onStart, onContinue, hasSave }: MenuScreenProps) {
+export function MenuScreen({ onStart, onContinue, hasSave, onReplayTutorial }: MenuScreenProps) {
   return (
     <>
       <h2 className={sharedStyles.title}>{GAME_NAME}</h2>
       <p className={sharedStyles.subtitle}>
         You are a cosmic guardian. Shepherd the ship through hostile sectors.
       </p>
-      {/* Returning players (with a save) skip the onboarding blurb — it keeps the
-          menu from cramming the extra Continue button into the same space. */}
-      {!hasSave && (
-        <p className={sharedStyles.hint}>
-          The ship auto-pilots forward through each sector and fights on its own — your job is to
-          bend space itself: click anywhere to drop meteorites and clear the path ahead, unlocking
-          more powers as you advance. Press the settings menu to get to the help screen in-game any
-          time for the full controls.
-        </p>
-      )}
       {hasSave && (
         <button className={sharedStyles.primaryBtn} onClick={onContinue}>
           Continue
@@ -35,6 +27,13 @@ export function MenuScreen({ onStart, onContinue, hasSave }: MenuScreenProps) {
       >
         {hasSave ? 'New Game' : 'Start Game'}
       </button>
+      {/* Replay the tutorial — hidden for first-timers, whose Start Game already
+          runs it, so it isn't a redundant second entry point. */}
+      {loadTutorialSeen() && (
+        <button className={sharedStyles.secondaryBtn} onClick={onReplayTutorial}>
+          How to Play
+        </button>
+      )}
     </>
   )
 }

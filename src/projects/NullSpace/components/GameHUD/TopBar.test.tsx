@@ -42,6 +42,11 @@ function makeUiState(over: Partial<GameUIState> = {}): GameUIState {
     slingOverheated: false,
     boss: null,
     nextBoss: EnemyKind.dreadnought,
+    tutorialActive: false,
+    tutorialCopy: '',
+    tutorialAwaitingAck: false,
+    tutorialAckLabel: null,
+    tutorialIsFinal: false,
     ...over,
   }
 }

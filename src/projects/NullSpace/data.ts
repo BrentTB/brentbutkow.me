@@ -39,6 +39,7 @@ export const POWER_DEFAULTS = {
 // Sprite-animation tuning (Phase 8). All durations in seconds — cosmetic only.
 export const ANIMATION = {
   hitFlash: 0.07, // white-wash on damage
+  hitFlashThrottle: 0.6, // min gap between white-washes (continuous damage pulses, not solid)
   muzzleFlash: 0.06, // ship firing blip
   recoil: 0.09, // ship kickback on fire
   enemyFireFlash: 0.06, // enemy muzzle blip
@@ -398,6 +399,24 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.26.0',
+    date: '2026-06-14',
+    changes: {
+      features: [
+        'New players get a guided tutorial the first time they start a game: a demo wave that pauses to teach the thing everyone misses — your ship flies and fights on its own, and YOU attack independently by clicking, and can fling the ship with a slingshot.',
+        'Replay the tutorial any time from the "How to Play" button on the start menu or the in-game Help screen.',
+      ],
+      ui: [
+        'The tutorial spotlights what to do — dimming the scene and ringing the ship or the enemy to hit — and adapts its prompts for touch (tap) versus desktop (click / WASD).',
+        'Ship selection now shows a Guns stat: 1 for most ships, 3 for the Carrier.',
+      ],
+      fixes: [
+        'Enemies under continuous damage (Event Horizon, Solar Plague, and the like) no longer stay washed solid white — the white damage flash now pulses at most a few times a second.',
+        'Tutorial polish: the spotlight no longer dims its own target dark, demo enemies no longer drift off forever when slingshotted, the slingshot is locked except on its own step, and the final step shows just Finish.',
+      ],
+    },
+  },
   {
     version: '0.25.1',
     date: '2026-06-14',

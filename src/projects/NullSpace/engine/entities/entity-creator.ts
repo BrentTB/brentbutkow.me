@@ -126,6 +126,7 @@ export function createEnemy(kind: Enemy['kind'], pos: Vec2): Enemy {
     deathBehavior: bossDef ? DeathBehavior.boss : ENEMY_DEATH[kind as NonBossEnemyKind],
     age: 0,
     hitFlash: 0,
+    hitFlashCooldown: 0,
     fireFlash: 0,
     spawnIn: ANIMATION.spawnIn,
   }

@@ -114,7 +114,7 @@ export function TopBar({
           type="button"
           className={styles.iconBtn}
           onClick={onPause}
-          disabled={uiState.phase !== GamePhase.playing}
+          disabled={uiState.phase !== GamePhase.playing || uiState.tutorialActive}
           aria-label="Pause game"
         >
           <Icon name={IconName.pause} />

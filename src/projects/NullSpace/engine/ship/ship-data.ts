@@ -28,6 +28,7 @@ export const STAT_MAX = {
   damage: 10,
   speed: 200,
   fireRate: 4,
+  weaponSlots: 4,
 } as const
 
 export const SHIP_ORDER: ShipKind[] = [
