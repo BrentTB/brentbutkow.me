@@ -78,6 +78,9 @@ describe('RecallRadar page', () => {
     expect(screen.getByText('Acme Foods')).toBeTruthy()
     expect(screen.getByText('Recalls by state')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'California: 18 recalls' })).toBeTruthy()
+    // trend callouts + per-recall drill-down detail
+    expect(screen.getByText('the leading cause of recalls')).toBeTruthy()
+    expect(screen.getByText('Nationwide')).toBeTruthy()
     expect(screen.getByText('100%')).toBeTruthy() // per-recall classifier confidence
     expect(screen.getByText('Top states')).toBeTruthy()
     // appears in the breakdown row and the company filter option
