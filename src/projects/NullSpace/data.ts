@@ -340,9 +340,10 @@ export const SECTOR = {
 // reaches within `arriveRadius`. `maxDuration` is a safety cap if it never lands.
 export const WARP = {
   spawnAhead: 1100,
-  flySpeed: 1200,
+  // Slow, cinematic fly-in (~2.5× longer than a quick zoom) so the jump reads.
+  flySpeed: 480,
   arriveRadius: 70,
-  maxDuration: 3,
+  maxDuration: 4,
   // Once the ship reaches the portal, the screen flash plays for this long
   // (the only time the warp effect shows) before the shop opens.
   flashDuration: 0.55,
@@ -400,6 +401,37 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.24.2',
+    date: '2026-06-14',
+    changes: {
+      fixes: [
+        'Continuing a saved run no longer leaves the game frozen — the frame clock now restarts on resume.',
+        'A destroyed ship now stays gone — it was briefly flashing back (pure white) behind the game-over screen the instant it appeared.',
+        'The start menu no longer looks cramped when a save exists — the onboarding blurb is hidden for returning players, leaving room for Continue / New Game.',
+        'The screen no longer darkens during the warp between sectors — you can watch the ship fly into the portal, and the fly-in is slower (~2.5×) so the jump actually reads.',
+        "Restarting after a defeat now clears the previous run's enemies from the ship-select background.",
+        'Death bursts (and other particles) now finish animating during the warp to the next sector instead of freezing mid-burst.',
+      ],
+      ui: [
+        'Tanks no longer show a rotating turret — they ram rather than shoot, so the spinning part wrongly implied a ranged attack.',
+      ],
+    },
+  },
+  {
+    version: '0.24.1',
+    date: '2026-06-14',
+    changes: {
+      fixes: [
+        'You can now actually see your ship explode — the dark game-over screen no longer drops the instant you die, so the death sequence plays out first.',
+      ],
+      ui: [
+        'Enemy death bursts are a bit smaller and less busy.',
+        'The ship engine flame now connects to the hull (sits just under the ship) and is a touch taller, so it never looks detached.',
+        'The pause menu only offers "Save & Exit" once you have a save (after the first shop clears) — before that there is nothing to return to.',
+      ],
+    },
+  },
   {
     version: '0.24.0',
     date: '2026-06-14',

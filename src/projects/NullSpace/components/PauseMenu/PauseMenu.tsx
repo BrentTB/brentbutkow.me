@@ -6,6 +6,9 @@ interface PauseMenuProps {
   onRestart: () => void
   onHelp: () => void
   onSaveAndExit: () => void
+  // Only offered once a save exists (after the first shop) — before that there's
+  // nothing to return to, so exiting would just lose the run.
+  canSaveAndExit: boolean
 }
 
 export const PauseMenu = ({
@@ -14,6 +17,7 @@ export const PauseMenu = ({
   onRestart,
   onHelp,
   onSaveAndExit,
+  canSaveAndExit,
 }: PauseMenuProps) => {
   return (
     <>
@@ -30,9 +34,11 @@ export const PauseMenu = ({
       <button className={sharedStyles.secondaryBtn} onClick={onHelp}>
         Help
       </button>
-      <button className={sharedStyles.secondaryBtn} onClick={onSaveAndExit}>
-        Save &amp; Exit
-      </button>
+      {canSaveAndExit && (
+        <button className={sharedStyles.secondaryBtn} onClick={onSaveAndExit}>
+          Save &amp; Exit
+        </button>
+      )}
       <p className={sharedStyles.hint}>Press P to resume</p>
     </>
   )

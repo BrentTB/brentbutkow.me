@@ -106,11 +106,14 @@ export function renderFrame(
   ctx.save()
   ctx.scale(camera.zoom, camera.zoom)
 
-  // No ship in the world before one is chosen, or after it's exploded (dying).
+  // No ship in the world before one is chosen, or once it's exploded (dying →
+  // gameOver) — otherwise the dead hull pops back, washed white by the stale
+  // hit-flash, the instant the game-over screen appears.
   const shipInWorld =
     state.phase !== GamePhase.menu &&
     state.phase !== GamePhase.shipSelection &&
-    state.phase !== GamePhase.dying
+    state.phase !== GamePhase.dying &&
+    state.phase !== GamePhase.gameOver
 
   renderStarfield(ctx, stars, camera)
   const warping = state.phase === GamePhase.warping
@@ -284,9 +287,11 @@ function drawThruster(
 ): void {
   const intensity = Math.min(1, 0.35 + speed / 600)
   const flicker = reducedMotion ? 1 : 0.8 + Math.sin(clock * 32) * 0.2
-  const len = size.h * 0.5 * intensity * flicker
+  const len = size.h * 0.72 * intensity * flicker
   if (len < 1) return
-  const baseY = size.h / 2 - 2
+  // Start the flame up inside the lower hull (the sprite is drawn over it, so it
+  // emerges from under the ship) — never a gap between body and exhaust.
+  const baseY = size.h * 0.3
   const nozzleX = size.w * 0.16
   const w = size.w * 0.12
   for (const dir of [-1, 1]) {
@@ -409,10 +414,6 @@ function renderEnemies(
     }
     ctx.restore()
 
-    // Rotating turret on tanks — a barrel that sweeps independent of facing.
-    if (enemy.kind === EnemyKind.tank) {
-      drawTankTurret(ctx, screen, enemy.radius, reducedMotion ? 0 : enemy.age)
-    }
     // Muzzle blip the moment an enemy fires.
     if (enemy.fireFlash > 0) {
       drawEnemyFireFlash(ctx, screen, enemy.fireFlash / ANIMATION.enemyFireFlash)
@@ -458,25 +459,6 @@ function renderEnemies(
       )
     }
   }
-}
-
-// A short barrel that slowly sweeps — reads as a scanning turret atop a tank.
-function drawTankTurret(
-  ctx: CanvasRenderingContext2D,
-  screen: { x: number; y: number },
-  radius: number,
-  age: number
-): void {
-  ctx.save()
-  ctx.translate(screen.x, screen.y)
-  ctx.rotate(age * 1.3)
-  ctx.fillStyle = '#6a7d8c'
-  ctx.fillRect(-2, -radius * 0.95, 4, radius * 0.95)
-  ctx.fillStyle = '#cc3333'
-  ctx.beginPath()
-  ctx.arc(0, 0, 3, 0, Math.PI * 2)
-  ctx.fill()
-  ctx.restore()
 }
 
 // Brief bright bloom at an enemy that just fired.
@@ -525,7 +507,7 @@ function renderDeathAnims(
     // Shatter overlay frame, scaled to the enemy and fading near the end.
     const frame = frames[pickFrame(frames.length, d.duration / frames.length, d.elapsed)]
     if (frame) {
-      const scale = (size.w / frame.width) * 1.6 * d.sizeScale
+      const scale = (size.w / frame.width) * 1.2 * d.sizeScale
       const w = frame.width * scale
       const h = frame.height * scale
       ctx.save()

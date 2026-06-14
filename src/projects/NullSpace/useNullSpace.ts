@@ -337,6 +337,8 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     if (!saved) return
     gameStateRef.current = saved.state
     rng.setState(saved.rngState)
+    // Restart the frame clock — otherwise the resumed run stays frozen (dt 0).
+    gameTimeRef.current = resetGameClock(gameTimeRef.current)
     selectedAbilityRef.current = AbilityKind.meteorite
     enterCorridor()
     syncUI(gameStateRef.current)

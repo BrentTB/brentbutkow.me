@@ -58,7 +58,16 @@ export function GameOverlay({
     if (uiState.phase !== GamePhase.paused) setPauseSubPage(null)
   }, [uiState.phase])
 
-  if (uiState.phase === GamePhase.playing) return null
+  // `dying` shows the ship-explosion sequence on the canvas — no dark overlay
+  // until it resolves to gameOver.
+  // `dying` (ship-explosion) and `warping` (fly into the portal) both play on the
+  // canvas — no dark overlay over them, only once they resolve to gameOver/shop.
+  if (
+    uiState.phase === GamePhase.playing ||
+    uiState.phase === GamePhase.dying ||
+    uiState.phase === GamePhase.warping
+  )
+    return null
 
   // Settings sits on top of the pause screen — close it on resume/restart
   const handleResume = () => {
@@ -99,6 +108,7 @@ export function GameOverlay({
               onHelp={() => setPauseSubPage(SettingsSubPages.help)}
               onRestart={handleRestart}
               onSaveAndExit={handleSaveAndExit}
+              canSaveAndExit={hasSave}
             />
           ))}
         {uiState.phase === GamePhase.waveComplete && (
