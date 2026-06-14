@@ -13,6 +13,7 @@ import {
   beginWarp,
   completeWarp,
   advanceWarp,
+  advanceDeathSequence,
 } from './game-loop'
 import { createAbilities, createEnemy, createProjectile } from './entities/entity-creator'
 import { tickEscapeMode } from './entities/ship'
@@ -31,7 +32,7 @@ import {
 import { UpgradeId } from './upgrade-ids'
 import { isUpgradeWave } from './upgrades'
 import { BOSS_KINDS } from './bosses/index'
-import { ENEMY_STATS, POWER_DEFAULTS, SECTOR, WARP, WAVES_PER_LEVEL } from '../data'
+import { ANIMATION, ENEMY_STATS, POWER_DEFAULTS, SECTOR, WARP, WAVES_PER_LEVEL } from '../data'
 import { TELEKINESIS, SOLAR_FLARE } from './abilities/ability-data'
 
 beforeEach(() => {
@@ -183,45 +184,60 @@ describe('updateGameState', () => {
     expect(updated.projectiles.length).toBeGreaterThan(0)
   })
 
-  it('game over when ship hp reaches 0', () => {
+  // Helper: drive a run to the frame the ship dies, returning the `dying` state.
+  function reachShipDeath(score = 0, highScore = 0) {
     let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     // Tick to spawn enemies from queue
     state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
     state = {
       ...state,
-      ship: { ...state.ship, hp: 1, shield: 0 },
-      enemies: state.enemies.map((e) => ({
-        ...e,
-        pos: { ...state.ship.pos },
-      })),
-    }
-
-    const updated = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
-    expect(updated.phase).toBe(GamePhase.gameOver)
-  })
-
-  it('flags a new high score only when the score beats the previous best', () => {
-    let state = startGame(createInitialState(), ShipKind.fighter)
-    state = startNextWave(state)
-    // Tick to spawn enemies from queue
-    state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
-    const dying = {
-      ...state,
+      score,
+      highScore,
       ship: { ...state.ship, hp: 1, shield: 0 },
       enemies: state.enemies.map((e) => ({ ...e, pos: { ...state.ship.pos } })),
     }
+    return updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
+  }
 
-    const beaten = updateGameState({ ...dying, score: 100, highScore: 50 }, 0.016, {
-      clicks: [],
-      selectedAbility: null,
-    })
+  it('enters the dying sequence (not gameOver) when ship hp reaches 0', () => {
+    const dying = reachShipDeath()
+    expect(dying.phase).toBe(GamePhase.dying)
+    expect(dying.deathTimer).toBeGreaterThan(0)
+  })
+
+  it('the dying sequence counts down, then flips to gameOver', () => {
+    const dying = reachShipDeath()
+    // Mid-sequence: still dying.
+    const mid = advanceDeathSequence(dying, 0.1)
+    expect(mid.phase).toBe(GamePhase.dying)
+    expect(mid.deathTimer).toBeLessThan(dying.deathTimer)
+    // Run past the full sequence duration: now gameOver.
+    let s = dying
+    for (let t = 0; t < ANIMATION.deathSequence + 0.1; t += 0.05) {
+      s = advanceDeathSequence(s, 0.05)
+    }
+    expect(s.phase).toBe(GamePhase.gameOver)
+  })
+
+  it('flags a new high score only at the gameOver transition, never at the lethal hit', () => {
+    // The killing frame must NOT yet flag a high score — that waits for gameOver.
+    const dying = reachShipDeath(100, 50)
+    expect(dying.isNewHighScore).toBe(false)
+
+    const finishSequence = (start: ReturnType<typeof reachShipDeath>) => {
+      let s = start
+      for (let t = 0; t < ANIMATION.deathSequence + 0.1; t += 0.05) {
+        s = advanceDeathSequence(s, 0.05)
+      }
+      return s
+    }
+
+    const beaten = finishSequence(dying)
+    expect(beaten.phase).toBe(GamePhase.gameOver)
     expect(beaten.isNewHighScore).toBe(true)
 
-    const tied = updateGameState({ ...dying, score: 50, highScore: 50 }, 0.016, {
-      clicks: [],
-      selectedAbility: null,
-    })
+    const tied = finishSequence(reachShipDeath(50, 50))
     expect(tied.isNewHighScore).toBe(false)
   })
 

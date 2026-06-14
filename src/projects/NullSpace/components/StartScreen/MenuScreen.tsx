@@ -3,9 +3,11 @@ import sharedStyles from '../OverlayShared.module.scss'
 
 type MenuScreenProps = {
   onStart: () => void
+  onContinue: () => void
+  hasSave: boolean
 }
 
-export function MenuScreen({ onStart }: MenuScreenProps) {
+export function MenuScreen({ onStart, onContinue, hasSave }: MenuScreenProps) {
   return (
     <>
       <h2 className={sharedStyles.title}>{GAME_NAME}</h2>
@@ -18,8 +20,16 @@ export function MenuScreen({ onStart }: MenuScreenProps) {
         powers as you advance. Press the settings menu to get to the help screen in-game any time
         for the full controls.
       </p>
-      <button className={sharedStyles.primaryBtn} onClick={onStart}>
-        Start Game
+      {hasSave && (
+        <button className={sharedStyles.primaryBtn} onClick={onContinue}>
+          Continue
+        </button>
+      )}
+      <button
+        className={hasSave ? sharedStyles.secondaryBtn : sharedStyles.primaryBtn}
+        onClick={onStart}
+      >
+        {hasSave ? 'New Game' : 'Start Game'}
       </button>
     </>
   )

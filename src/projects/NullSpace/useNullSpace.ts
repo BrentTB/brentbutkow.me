@@ -10,6 +10,7 @@ import {
   applyUltimatePurchaseToState,
   finishUpgradeScreen,
   advanceWarp,
+  advanceDeathSequence,
 } from './engine/game-loop'
 import { devJumpToBoss, devJumpToUpgrades, devPatchState, type DevPatch } from './engine/dev-tools'
 import { isBaseReplacedByUltimate } from './engine/ultimates'
@@ -41,7 +42,13 @@ import {
   setGameSpeed,
   type GameTime,
 } from './engine/world/time'
-import { buildSpriteCache, type SpriteCache } from './renderer/sprite-cache'
+import {
+  buildAnimationCache,
+  buildSpriteCache,
+  type AnimationCache,
+  type SpriteCache,
+} from './renderer/sprite-cache'
+import { useReducedMotion } from './useReducedMotion'
 import {
   createCamera,
   updateCamera,
@@ -54,6 +61,8 @@ import { generateStarfield, type Star } from './renderer/starfield'
 import { renderFrame } from './renderer/renderer'
 import { drawSlingAim } from './renderer/sling-aim'
 import { WORLD_SIZE } from './data'
+import { rng } from './engine/math/random'
+import { saveGame, loadGame, clearSave } from './engine/world/persistence'
 
 // Build-time literal, same as in NullSpace.tsx
 const DEV_MODE = import.meta.env.VITE_NULL_SPACE_DEV_MODE === 'true'
@@ -182,8 +191,20 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     nextBoss: gameStateRef.current.bossSelection.nextBoss,
   }))
 
+  // Whether a resumable save exists on disk (drives the menu's Continue button).
+  const [hasSave, setHasSave] = useState(() => loadGame() !== null)
+
   const cameraRef = useRef<Camera>(createCamera(800, 600))
   const spritesRef = useRef<SpriteCache | null>(null)
+  const animationsRef = useRef<AnimationCache | null>(null)
+  // Cosmetic clock (seconds) driving ship-side animation; advanced by dt so it
+  // freezes on pause. Kept out of GameState — purely a render concern.
+  const renderClockRef = useRef(0)
+  // OS reduce-motion preference, mirrored into a ref so the rAF loop (set up
+  // once) always reads the live value.
+  const reducedMotion = useReducedMotion()
+  const reducedMotionRef = useRef(reducedMotion)
+  reducedMotionRef.current = reducedMotion
   const starsRef = useRef<Star[]>([])
   const rafRef = useRef<number>(0)
   const gameTimeRef = useRef<GameTime>(createGameTime())
@@ -252,6 +273,19 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     })
   }, [])
 
+  // Autosave the run when a sector clears (the shop opens); drop the save when a
+  // run ends. Keyed on the synced phase so it fires for the warp path and dev
+  // jumps alike, independent of the rAF loop's timing.
+  useEffect(() => {
+    if (uiState.phase === GamePhase.upgradeScreen) {
+      saveGame(gameStateRef.current, rng.getState())
+      setHasSave(true)
+    } else if (uiState.phase === GamePhase.gameOver) {
+      clearSave()
+      setHasSave(false)
+    }
+  }, [uiState.phase])
+
   // Snap the camera onto the ship and reseed the starfield to the active corridor
   // dimensions — called whenever a fresh corridor is laid out (game start, warp).
   const enterCorridor = useCallback(() => {
@@ -268,6 +302,9 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
   }, [])
 
   const handleStart = useCallback(() => {
+    // Starting fresh discards any resumable save.
+    clearSave()
+    setHasSave(false)
     gameStateRef.current = moveToShipSelection(gameStateRef.current)
     syncUI(gameStateRef.current)
   }, [syncUI])
@@ -292,6 +329,25 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
   const handleRestart = useCallback(() => {
     handleStart()
   }, [handleStart])
+
+  // Resume the saved run (from the last sector clear). Restores RNG so spawns
+  // play out identically, then re-seats the camera/starfield on the loaded world.
+  const handleContinue = useCallback(() => {
+    const saved = loadGame()
+    if (!saved) return
+    gameStateRef.current = saved.state
+    rng.setState(saved.rngState)
+    selectedAbilityRef.current = AbilityKind.meteorite
+    enterCorridor()
+    syncUI(gameStateRef.current)
+  }, [syncUI, enterCorridor])
+
+  // Save & Exit: the run was already auto-saved at the last sector clear, so this
+  // just returns to a fresh menu; the save on disk stays for Continue.
+  const handleSaveAndExit = useCallback(() => {
+    gameStateRef.current = createInitialState()
+    syncUI(gameStateRef.current)
+  }, [syncUI])
 
   const handleUseSpaceMetalAbility = useCallback(
     (kind: SpaceMetalAbilityKind) => {
@@ -409,6 +465,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     if (!ctx) return
 
     spritesRef.current = buildSpriteCache()
+    animationsRef.current = buildAnimationCache()
     starsRef.current = generateStarfield(WORLD_SIZE.x, WORLD_SIZE.y, STAR_COUNT)
 
     const resize = () => {
@@ -556,6 +613,8 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       const tick = tickGameTime(gameTimeRef.current, time)
       gameTimeRef.current = tick.time
       const dt = tick.dt
+      // Cosmetic render clock — frozen on pause (dt is 0 then).
+      renderClockRef.current += dt
 
       // Re-resolve hold cursor world-pos every frame from screen-pos so it
       // tracks the actual cursor even as the camera moves.
@@ -569,6 +628,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
         holdPos: liveHoldPos,
         isHolding: inputRef.current.isHolding,
         fling: pendingFlingRef.current ?? null,
+        reducedMotion: reducedMotionRef.current,
       }
       // clicks + fling are one-shot per frame; hold state persists until pointerup.
       pendingFlingRef.current = null
@@ -586,6 +646,9 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       gameStateRef.current = warp.state
       if (warp.landed) enterCorridor()
 
+      // Tick the player-death explosion; flips to gameOver when it ends.
+      gameStateRef.current = advanceDeathSequence(gameStateRef.current, dt)
+
       cameraRef.current = updateCamera(
         cameraRef.current,
         gameStateRef.current.ship.pos,
@@ -595,13 +658,18 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
         gameStateRef.current.phase !== GamePhase.warping
       )
 
-      if (spritesRef.current) {
+      if (spritesRef.current && animationsRef.current) {
         renderFrame(
           ctx,
           gameStateRef.current,
           cameraRef.current,
           spritesRef.current,
-          starsRef.current
+          starsRef.current,
+          {
+            animations: animationsRef.current,
+            clock: renderClockRef.current,
+            reducedMotion: reducedMotionRef.current,
+          }
         )
         // Slingshot aim arrow — drawn after the world while a grab is active.
         const sling = slingRef.current
@@ -644,7 +712,10 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
 
   return {
     uiState,
+    hasSave,
     handleStart,
+    handleContinue,
+    handleSaveAndExit,
     handleSelectShip,
     handleNextWave,
     handleRestart,

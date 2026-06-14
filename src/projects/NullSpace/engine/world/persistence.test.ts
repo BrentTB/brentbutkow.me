@@ -5,7 +5,11 @@ import {
   loadChangelogFilters,
   saveChangelogFilters,
   DEFAULT_CHANGELOG_FILTERS,
+  saveGame,
+  loadGame,
+  clearSave,
 } from './persistence'
+import { createInitialState } from '../game-loop'
 
 beforeEach(() => {
   localStorage.clear()
@@ -90,5 +94,43 @@ describe('saveChangelogFilters', () => {
     }
     saveChangelogFilters(filters)
     expect(loadChangelogFilters()).toEqual(filters)
+  })
+})
+
+describe('saveGame / loadGame / clearSave', () => {
+  it('round-trips the game state and rng state', () => {
+    const state = createInitialState()
+    saveGame(state, 123456)
+    const loaded = loadGame()
+    expect(loaded).not.toBeNull()
+    expect(loaded?.rngState).toBe(123456)
+    expect(loaded?.state.phase).toBe(state.phase)
+    expect(loaded?.state.ship.maxHp).toBe(state.ship.maxHp)
+  })
+
+  it('returns null when nothing is saved', () => {
+    expect(loadGame()).toBeNull()
+  })
+
+  it('clearSave removes the save', () => {
+    saveGame(createInitialState(), 1)
+    clearSave()
+    expect(loadGame()).toBeNull()
+  })
+
+  it('discards a corrupt or wrong-shape blob', () => {
+    localStorage.setItem('null-space-save', '{not json')
+    expect(loadGame()).toBeNull()
+    localStorage.setItem(
+      'null-space-save',
+      JSON.stringify({ version: 1, rngState: 1, state: { foo: 1 } })
+    )
+    expect(loadGame()).toBeNull()
+  })
+
+  it('discards a save from an incompatible version', () => {
+    const state = createInitialState()
+    localStorage.setItem('null-space-save', JSON.stringify({ version: 999, rngState: 1, state }))
+    expect(loadGame()).toBeNull()
   })
 })

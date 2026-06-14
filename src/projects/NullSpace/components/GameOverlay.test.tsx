@@ -52,6 +52,9 @@ function renderOverlay(phase: GameUIState['phase']) {
   const props = {
     uiState: makeUiState(phase),
     onStart: noop,
+    onContinue: noop,
+    hasSave: false,
+    onSaveAndExit: noop,
     onSelectShip: noop,
     onNextWave: noop,
     onRestart: noop,

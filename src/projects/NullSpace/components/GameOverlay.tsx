@@ -15,6 +15,9 @@ import { GameOverScreen } from './GameOverScreen'
 type GameOverlayProps = {
   uiState: GameUIState
   onStart: () => void
+  onContinue: () => void
+  hasSave: boolean
+  onSaveAndExit: () => void
   onSelectShip: (kind: ShipKind) => void
   onNextWave: () => void
   onRestart: () => void
@@ -33,6 +36,9 @@ type SettingsSubPages = (typeof SettingsSubPages)[keyof typeof SettingsSubPages]
 export function GameOverlay({
   uiState,
   onStart,
+  onContinue,
+  hasSave,
+  onSaveAndExit,
   onSelectShip,
   onNextWave,
   onRestart,
@@ -63,11 +69,17 @@ export function GameOverlay({
     setPauseSubPage(null)
     onRestart()
   }
+  const handleSaveAndExit = () => {
+    setPauseSubPage(null)
+    onSaveAndExit()
+  }
 
   return (
     <div className={styles.overlay}>
       <div className={styles.content}>
-        {uiState.phase === GamePhase.menu && <MenuScreen onStart={onStart} />}
+        {uiState.phase === GamePhase.menu && (
+          <MenuScreen onStart={onStart} onContinue={onContinue} hasSave={hasSave} />
+        )}
         {uiState.phase === GamePhase.shipSelection && (
           <ShipSelectionScreen onSelect={onSelectShip} />
         )}
@@ -86,6 +98,7 @@ export function GameOverlay({
               onSettings={() => setPauseSubPage(SettingsSubPages.settings)}
               onHelp={() => setPauseSubPage(SettingsSubPages.help)}
               onRestart={handleRestart}
+              onSaveAndExit={handleSaveAndExit}
             />
           ))}
         {uiState.phase === GamePhase.waveComplete && (

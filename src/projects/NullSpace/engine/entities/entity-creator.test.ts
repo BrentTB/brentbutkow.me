@@ -2,10 +2,12 @@ import { describe, it, expect } from 'vitest'
 import {
   createShip,
   createEnemy,
+  createDeathAnim,
   createProjectile,
   createAbilities,
   createParticle,
   spawnExplosionParticles,
+  updateDeathAnims,
 } from './entity-creator'
 import {
   AbilityKind,
@@ -15,7 +17,8 @@ import {
   ShipKind,
   ShipWeaponKind,
 } from '../types'
-import { WEAPON_ORDER, WORLD_SIZE } from '../../data'
+import { ANIMATION, WEAPON_ORDER, WORLD_SIZE } from '../../data'
+import { rng } from '../math/random'
 
 describe('createShip', () => {
   it('places ship at world center', () => {
@@ -35,6 +38,13 @@ describe('createShip', () => {
     expect(ship.equippedWeapons).toHaveLength(ship.weaponSlots)
     expect(ship.fireCooldowns).toHaveLength(ship.weaponSlots)
     expect(ship.equippedWeapons.every((k) => k === ShipWeaponKind.bullet)).toBe(true)
+  })
+
+  it('starts with cleared cosmetic timers (one muzzle flash per slot)', () => {
+    const ship = createShip(ShipKind.carrier, WORLD_SIZE)
+    expect(ship.hitFlash).toBe(0)
+    expect(ship.recoil).toBe(0)
+    expect(ship.muzzleFlash).toEqual([0, 0, 0])
   })
 
   it('carrier starts with three bullets equipped (one per slot)', () => {
@@ -89,6 +99,34 @@ describe('createEnemy', () => {
       expect(enemy.movementBehavior).toBeDefined()
       expect(enemy.deathBehavior).toBeDefined()
     }
+  })
+
+  it('seeds the warp-in timer and clears cosmetic flashes', () => {
+    const enemy = createEnemy(EnemyKind.drone, { x: 0, y: 0 })
+    expect(enemy.spawnIn).toBeCloseTo(ANIMATION.spawnIn)
+    expect(enemy.hitFlash).toBe(0)
+    expect(enemy.fireFlash).toBe(0)
+  })
+})
+
+describe('createDeathAnim + updateDeathAnims', () => {
+  it('snapshots a dead enemy into a fresh disintegration', () => {
+    const enemy = createEnemy(EnemyKind.drone, { x: 10, y: 20 })
+    const anim = createDeathAnim(enemy)
+    expect(anim.kind).toBe(EnemyKind.drone)
+    expect(anim.pos).toEqual({ x: 10, y: 20 })
+    expect(anim.elapsed).toBe(0)
+    expect(anim.duration).toBeCloseTo(ANIMATION.deathAnim)
+    expect(anim.isBoss).toBe(false)
+  })
+
+  it('advances elapsed and culls once the animation completes', () => {
+    const enemy = createEnemy(EnemyKind.drone, { x: 0, y: 0 })
+    let anims = [createDeathAnim(enemy)]
+    anims = updateDeathAnims(anims, 0.1)
+    expect(anims[0].elapsed).toBeCloseTo(0.1)
+    anims = updateDeathAnims(anims, ANIMATION.deathAnim)
+    expect(anims).toHaveLength(0)
   })
 })
 
@@ -155,5 +193,26 @@ describe('spawnExplosionParticles', () => {
     const particles = spawnExplosionParticles({ x: 0, y: 0 }, 5, '#fff')
     const ids = new Set(particles.map((p) => p.id))
     expect(ids.size).toBe(5)
+  })
+
+  // The radius upgrade is invisible without this: spread must scale particle reach.
+  it('scales particle velocity with the spread factor', () => {
+    rng.reseed(99)
+    const base = spawnExplosionParticles({ x: 0, y: 0 }, 12, '#fff', 1)
+    rng.reseed(99)
+    const wide = spawnExplosionParticles({ x: 0, y: 0 }, 12, '#fff', 2)
+    for (let i = 0; i < base.length; i++) {
+      const baseSpeed = Math.hypot(base[i].vel.x, base[i].vel.y)
+      const wideSpeed = Math.hypot(wide[i].vel.x, wide[i].vel.y)
+      expect(wideSpeed).toBeCloseTo(baseSpeed * 2, 5)
+    }
+  })
+
+  it('defaults to spread 1 (unchanged) when omitted', () => {
+    rng.reseed(7)
+    const explicit = spawnExplosionParticles({ x: 0, y: 0 }, 6, '#fff', 1)
+    rng.reseed(7)
+    const omitted = spawnExplosionParticles({ x: 0, y: 0 }, 6, '#fff')
+    expect(omitted.map((p) => p.vel)).toEqual(explicit.map((p) => p.vel))
   })
 })

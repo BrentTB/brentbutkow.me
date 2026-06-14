@@ -1,3 +1,5 @@
+import type { GameState } from '../types'
+
 const STORAGE_KEY = 'null-space-high-score'
 
 export function loadHighScore(): number {
@@ -88,4 +90,65 @@ export function saveChangelogFilters(filters: ChangelogFilters): void {
   } catch {
     // localStorage unavailable
   }
+}
+
+// --- In-progress run save (auto-saved at each sector clear) ---
+
+const SAVE_KEY = 'null-space-save'
+// Bump ONLY when a change makes old saves structurally incompatible. A normal
+// release leaves this alone, so an in-progress run survives updates.
+const SAVE_VERSION = 1
+
+export type SavedGame = {
+  version: number
+  state: GameState
+  rngState: number
+}
+
+export function saveGame(state: GameState, rngState: number): void {
+  try {
+    const payload: SavedGame = { version: SAVE_VERSION, state, rngState }
+    localStorage.setItem(SAVE_KEY, JSON.stringify(payload))
+  } catch {
+    // localStorage unavailable / over quota — a missed save is non-fatal.
+  }
+}
+
+// Loads a saved run, or null when there's nothing usable. Discards ONLY on a
+// SAVE_VERSION mismatch (a deliberate breaking change) or a corrupt/foreign blob
+// — a run-shaped save is kept across ordinary updates.
+export function loadGame(): SavedGame | null {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY)
+    if (raw === null) return null
+    const parsed: unknown = JSON.parse(raw)
+    if (!isSavedGame(parsed) || parsed.version !== SAVE_VERSION) return null
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+export function clearSave(): void {
+  try {
+    localStorage.removeItem(SAVE_KEY)
+  } catch {
+    // localStorage unavailable
+  }
+}
+
+function isSavedGame(value: unknown): value is SavedGame {
+  if (!value || typeof value !== 'object') return false
+  const obj = value as Record<string, unknown>
+  if (typeof obj.version !== 'number' || typeof obj.rngState !== 'number') return false
+  const state = obj.state as Record<string, unknown> | null
+  // Light structural sanity check — enough to reject a corrupt/foreign blob
+  // without coupling to every field.
+  return (
+    !!state &&
+    typeof state === 'object' &&
+    typeof state.phase === 'string' &&
+    typeof state.ship === 'object' &&
+    Array.isArray(state.enemies)
+  )
 }

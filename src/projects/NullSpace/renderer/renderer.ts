@@ -5,24 +5,33 @@ import {
   GamePhase,
   ProjectileOwner,
   ShipKind,
+  ShipWeaponKind,
 } from '../engine/types'
 import type {
   ActiveEffect,
   Ally,
   Collectible,
+  DeathAnim,
   GameState,
   Particle,
   Projectile,
 } from '../engine/types'
-import { ENEMY_MODIFIERS, POWER_ORB, SINGULARITY_SHARD, SPACE_METAL, WARP } from '../data'
+import {
+  ANIMATION,
+  ENEMY_MODIFIERS,
+  POWER_ORB,
+  SINGULARITY_SHARD,
+  SPACE_METAL,
+  WARP,
+} from '../data'
 import { EFFECT_DEFINITIONS } from '../engine/systems/effects'
 import { ABILITY_LIST } from '../engine/abilities'
 import { getBossDefinition } from '../engine/bosses'
 import type { Camera } from './camera'
 import { isWithinView, worldToScreen } from './camera'
-import type { SpriteCache } from './sprite-cache'
-import { getSpriteSize } from './sprite-cache'
-import { SpriteKey } from './sprites'
+import type { AnimationCache, SpriteCache } from './sprite-cache'
+import { getSpriteSize, pickFrame } from './sprite-cache'
+import { AnimationKey, SpriteKey } from './sprites'
 import type { Star } from './starfield'
 import { renderStarfield } from './starfield'
 import { renderCorridor } from './corridor'
@@ -50,12 +59,38 @@ export const SHIP_SPRITE_KEY: Record<ShipKind, SpriteKey> = {
   [ShipKind.carrier]: SpriteKey.shipCarrier,
 }
 
+// Per-weapon muzzle-flash tint so a weapon swap reads at the barrel.
+const WEAPON_FLASH: Record<ShipWeaponKind, string> = {
+  [ShipWeaponKind.bullet]: '#ffe08a',
+  [ShipWeaponKind.laser]: '#bff2ff',
+  [ShipWeaponKind.missile]: '#ffb066',
+  [ShipWeaponKind.ricochet]: '#ff99e0',
+  [ShipWeaponKind.nuke]: '#fff2c0',
+}
+
+// Stable 0..2π phase from an entity id so idle pulses don't march in lockstep.
+function idPhase(id: string): number {
+  let h = 0
+  for (let i = 0; i < id.length; i++) h = (h + id.charCodeAt(i)) % 360
+  return (h / 360) * Math.PI * 2
+}
+
+// Render-time inputs that aren't part of the deterministic GameState: the
+// pre-rasterized animation frames, a cosmetic clock (seconds, freezes on pause)
+// driving ship-side animation, and the OS reduce-motion preference.
+export type RenderOptions = {
+  animations: AnimationCache
+  clock: number
+  reducedMotion: boolean
+}
+
 export function renderFrame(
   ctx: CanvasRenderingContext2D,
   state: GameState,
   camera: Camera,
   sprites: SpriteCache,
-  stars: Star[]
+  stars: Star[],
+  opts: RenderOptions
 ): void {
   ctx.imageSmoothingEnabled = false
   // Baseline transform is DPR-scaled so all subsequent CSS-pixel coords map to
@@ -71,8 +106,11 @@ export function renderFrame(
   ctx.save()
   ctx.scale(camera.zoom, camera.zoom)
 
-  // No ship or corridor exists before the player has chosen a ship.
-  const shipInWorld = state.phase !== GamePhase.menu && state.phase !== GamePhase.shipSelection
+  // No ship in the world before one is chosen, or after it's exploded (dying).
+  const shipInWorld =
+    state.phase !== GamePhase.menu &&
+    state.phase !== GamePhase.shipSelection &&
+    state.phase !== GamePhase.dying
 
   renderStarfield(ctx, stars, camera)
   const warping = state.phase === GamePhase.warping
@@ -88,15 +126,21 @@ export function renderFrame(
   renderHoldOverlays(ctx, state, camera, 'renderBack')
   renderCollectibles(ctx, state.collectibles, camera)
   renderParticles(ctx, state.particles, camera)
-  renderEnemies(ctx, state, camera, sprites)
+  renderEnemies(ctx, state, camera, sprites, opts.reducedMotion)
+  renderDeathAnims(ctx, state.deathAnims, camera, sprites, opts.animations, opts.reducedMotion)
   renderAllies(ctx, state.allies, camera, sprites)
   renderProjectiles(ctx, state, camera, sprites)
-  if (shipInWorld) renderShip(ctx, state, camera, sprites)
+  if (shipInWorld) renderShip(ctx, state, camera, sprites, opts.clock, opts.reducedMotion)
+  // Expanding shockwave ring where the ship blew up.
+  if (state.phase === GamePhase.dying) renderDeathShockwave(ctx, state, camera, opts.reducedMotion)
   renderActiveEffects(ctx, state.activeEffects, camera, sprites, 'renderFront')
   renderHoldOverlays(ctx, state, camera, 'renderFront')
   if (shipInWorld) renderShipHealthBar(ctx, state, camera)
 
   ctx.restore()
+
+  // Low-HP danger vignette — screen space, hugging the viewport edges.
+  if (shipInWorld) renderLowHpVignette(ctx, state, camera, opts)
 
   // Warp flash lives in screen space. It plays ONLY after the ship reaches the
   // portal (the flash stage) — never during the fly-in — then the shop opens.
@@ -168,33 +212,125 @@ function renderShip(
   ctx: CanvasRenderingContext2D,
   state: GameState,
   camera: Camera,
-  sprites: SpriteCache
+  sprites: SpriteCache,
+  clock: number,
+  reducedMotion: boolean
 ): void {
-  const screen = worldToScreen(state.ship.pos, camera)
+  const ship = state.ship
+  const screen = worldToScreen(ship.pos, camera)
   const spriteKey = SHIP_SPRITE_KEY[state.shipKind]
   const size = getSpriteSize(spriteKey)
 
   ctx.save()
   ctx.translate(screen.x, screen.y)
-
-  const angle = Math.atan2(state.ship.vel.y, state.ship.vel.x) + Math.PI / 2
+  // Sprite nose points up (local -y); the rotation aims it along velocity.
+  const angle = Math.atan2(ship.vel.y, ship.vel.x) + Math.PI / 2
   ctx.rotate(angle)
 
-  // Shield ring — fades with shield level, invisible at 0
-  if (state.ship.shield > 0) {
-    drawShieldRing(ctx, state.ship.radius + 12, (state.ship.shield / state.ship.maxShield) * 0.65)
+  // Shield ring — fades with shield level, invisible at 0.
+  if (ship.shield > 0) {
+    drawShieldRing(ctx, ship.radius + 12, (ship.shield / ship.maxShield) * 0.65)
   }
 
+  // Recoil kicks the hull (and its exhaust) backward (local +y) after a shot.
+  const recoil = reducedMotion ? 0 : (ship.recoil / ANIMATION.recoil) * 2.5
+  ctx.translate(0, recoil)
+
+  // Engine exhaust sits behind the hull, so draw it before the sprite.
+  drawThruster(ctx, size, Math.hypot(ship.vel.x, ship.vel.y), clock, reducedMotion)
+
   ctx.drawImage(sprites[spriteKey], -size.w / 2, -size.h / 2)
+
+  // Muzzle flash per firing slot — coloured by the equipped weapon. Carrier's
+  // three slots spread across the nose; single-slot ships fire dead centre.
+  for (let i = 0; i < ship.muzzleFlash.length; i++) {
+    if (ship.muzzleFlash[i] <= 0) continue
+    const slots = ship.muzzleFlash.length
+    const x = slots > 1 ? (i - (slots - 1) / 2) * (size.w * 0.28) : 0
+    const kind = ship.equippedWeapons[i] ?? ShipWeaponKind.bullet
+    drawMuzzleFlash(
+      ctx,
+      x,
+      -size.h / 2,
+      ship.muzzleFlash[i] / ANIMATION.muzzleFlash,
+      WEAPON_FLASH[kind]
+    )
+  }
+
+  // Hit flash — white wash on HP damage (reuses the masked-tint helper).
+  if (ship.hitFlash > 0) {
+    const a = (ship.hitFlash / ANIMATION.hitFlash) * 0.85
+    drawSpriteTint(ctx, sprites[spriteKey], size.w, size.h, `rgba(255, 255, 255, ${a})`)
+  }
 
   // Overheated: wash the ship red. Tint on a scratch canvas so source-atop
   // clips to the sprite's own pixels — doing it on the main ctx would tint the
   // whole bounding box (the space background counts as destination).
-  if (state.ship.slingOverheated) {
-    const heatRatio = Math.max(0, Math.min(1, state.ship.slingHeat - 0.5))
-    const tintColor = `rgba(255, 70, 40, ${heatRatio})`
-    drawSpriteTint(ctx, sprites[spriteKey], size.w, size.h, tintColor)
+  if (ship.slingOverheated) {
+    const heatRatio = Math.max(0, Math.min(1, ship.slingHeat - 0.5))
+    drawSpriteTint(ctx, sprites[spriteKey], size.w, size.h, `rgba(255, 70, 40, ${heatRatio})`)
   }
+  ctx.restore()
+}
+
+// Twin engine plume behind the hull (local +y), flickering with the cosmetic
+// clock and lengthening with speed. Reduced motion → a short steady flame.
+function drawThruster(
+  ctx: CanvasRenderingContext2D,
+  size: { w: number; h: number },
+  speed: number,
+  clock: number,
+  reducedMotion: boolean
+): void {
+  const intensity = Math.min(1, 0.35 + speed / 600)
+  const flicker = reducedMotion ? 1 : 0.8 + Math.sin(clock * 32) * 0.2
+  const len = size.h * 0.5 * intensity * flicker
+  if (len < 1) return
+  const baseY = size.h / 2 - 2
+  const nozzleX = size.w * 0.16
+  const w = size.w * 0.12
+  for (const dir of [-1, 1]) {
+    const x = dir * nozzleX
+    ctx.fillStyle = '#ff6633'
+    ctx.beginPath()
+    ctx.moveTo(x - w, baseY)
+    ctx.lineTo(x + w, baseY)
+    ctx.lineTo(x, baseY + len)
+    ctx.closePath()
+    ctx.fill()
+    ctx.fillStyle = '#ffd24a'
+    ctx.beginPath()
+    ctx.moveTo(x - w * 0.5, baseY)
+    ctx.lineTo(x + w * 0.5, baseY)
+    ctx.lineTo(x, baseY + len * 0.6)
+    ctx.closePath()
+    ctx.fill()
+  }
+}
+
+// A short bright spike at a weapon muzzle (local frame; nose points toward -y).
+function drawMuzzleFlash(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  noseY: number,
+  t: number,
+  color: string
+): void {
+  const len = 6 + t * 6
+  const half = 2 + t * 2
+  ctx.save()
+  ctx.globalAlpha = Math.min(1, t)
+  ctx.fillStyle = color
+  ctx.beginPath()
+  ctx.moveTo(x - half, noseY)
+  ctx.lineTo(x + half, noseY)
+  ctx.lineTo(x, noseY - len)
+  ctx.closePath()
+  ctx.fill()
+  ctx.fillStyle = '#ffffff'
+  ctx.beginPath()
+  ctx.arc(x, noseY, half * 0.7, 0, Math.PI * 2)
+  ctx.fill()
   ctx.restore()
 }
 
@@ -227,7 +363,8 @@ function renderEnemies(
   ctx: CanvasRenderingContext2D,
   state: GameState,
   camera: Camera,
-  sprites: SpriteCache
+  sprites: SpriteCache,
+  reducedMotion: boolean
 ): void {
   for (const enemy of state.enemies) {
     const screen = worldToScreen(enemy.pos, camera)
@@ -239,6 +376,15 @@ function renderEnemies(
     const def = enemy.boss ? getBossDefinition(enemy.kind) : undefined
     // Boss-declared sprite alpha — e.g. the Phase Shifter's mid-shift ghost.
     const spriteAlpha = def?.spriteAlpha?.(enemy) ?? 1
+    // Warp-in: grow + fade from nothing as spawnIn counts down to 0.
+    const spawnT = reducedMotion ? 1 : Math.min(1, 1 - enemy.spawnIn / ANIMATION.spawnIn)
+    // Idle breathing on nimble enemies, desynced per id; bosses + reduced motion stay still.
+    const idle =
+      !reducedMotion &&
+      !enemy.boss &&
+      (enemy.kind === EnemyKind.drone || enemy.kind === EnemyKind.swarm)
+        ? 1 + Math.sin(enemy.age * 6 + idPhase(enemy.id)) * 0.06
+        : 1
 
     ctx.save()
     ctx.translate(screen.x, screen.y)
@@ -247,17 +393,30 @@ function renderEnemies(
     const stationary = enemy.vel.x === 0 && enemy.vel.y === 0
     const angle = stationary ? 0 : Math.atan2(enemy.vel.y, enemy.vel.x) + Math.PI / 2
     ctx.rotate(angle)
-    if (spriteAlpha < 1) ctx.globalAlpha = spriteAlpha
-    // Giant modifier draws the sprite oversized to match its enlarged hitbox.
-    if (enemy.modifier === EnemyModifier.giant) {
-      ctx.scale(ENEMY_MODIFIERS.giantRadiusMult, ENEMY_MODIFIERS.giantRadiusMult)
-    }
+    ctx.globalAlpha = spriteAlpha * spawnT
+    // Giant modifier oversizes the sprite; spawn-in grow + idle pulse compose on top.
+    const giant = enemy.modifier === EnemyModifier.giant ? ENEMY_MODIFIERS.giantRadiusMult : 1
+    ctx.scale(giant * idle * (0.35 + 0.65 * spawnT), giant * idle * (0.35 + 0.65 * spawnT))
     ctx.drawImage(sprites[spriteKey], -size.w / 2, -size.h / 2)
     // Speed modifier washes the sprite red (same masked tint as the ship overheat).
     if (enemy.modifier === EnemyModifier.speed) {
       drawSpriteTint(ctx, sprites[spriteKey], size.w, size.h, ENEMY_MODIFIERS.speedTint)
     }
+    // Hit flash — white wash on damage.
+    if (enemy.hitFlash > 0) {
+      const a = (enemy.hitFlash / ANIMATION.hitFlash) * 0.9
+      drawSpriteTint(ctx, sprites[spriteKey], size.w, size.h, `rgba(255, 255, 255, ${a})`)
+    }
     ctx.restore()
+
+    // Rotating turret on tanks — a barrel that sweeps independent of facing.
+    if (enemy.kind === EnemyKind.tank) {
+      drawTankTurret(ctx, screen, enemy.radius, reducedMotion ? 0 : enemy.age)
+    }
+    // Muzzle blip the moment an enemy fires.
+    if (enemy.fireFlash > 0) {
+      drawEnemyFireFlash(ctx, screen, enemy.fireFlash / ANIMATION.enemyFireFlash)
+    }
 
     // Boss shield bubble — visible while the boss is damage-gated. Drawn
     // outside the sprite's rotation so the ring never spins with the boss.
@@ -299,6 +458,134 @@ function renderEnemies(
       )
     }
   }
+}
+
+// A short barrel that slowly sweeps — reads as a scanning turret atop a tank.
+function drawTankTurret(
+  ctx: CanvasRenderingContext2D,
+  screen: { x: number; y: number },
+  radius: number,
+  age: number
+): void {
+  ctx.save()
+  ctx.translate(screen.x, screen.y)
+  ctx.rotate(age * 1.3)
+  ctx.fillStyle = '#6a7d8c'
+  ctx.fillRect(-2, -radius * 0.95, 4, radius * 0.95)
+  ctx.fillStyle = '#cc3333'
+  ctx.beginPath()
+  ctx.arc(0, 0, 3, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.restore()
+}
+
+// Brief bright bloom at an enemy that just fired.
+function drawEnemyFireFlash(
+  ctx: CanvasRenderingContext2D,
+  screen: { x: number; y: number },
+  t: number
+): void {
+  ctx.save()
+  ctx.globalAlpha = Math.min(1, t) * 0.8
+  ctx.fillStyle = '#ff7a4d'
+  ctx.beginPath()
+  ctx.arc(screen.x, screen.y, 3 + t * 3, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.restore()
+}
+
+// Cosmetic enemy disintegration: the sprite spins + fades while a shatter
+// animation flashes over it, then both vanish (see DeathAnim / ANIMATION_MAP).
+function renderDeathAnims(
+  ctx: CanvasRenderingContext2D,
+  deathAnims: DeathAnim[],
+  camera: Camera,
+  sprites: SpriteCache,
+  animations: AnimationCache,
+  reducedMotion: boolean
+): void {
+  const frames = animations[AnimationKey.disintegration]
+  for (const d of deathAnims) {
+    const screen = worldToScreen(d.pos, camera)
+    if (!isWithinView(screen, camera, 80)) continue
+    const t = d.elapsed / d.duration
+    const spriteKey = ENEMY_SPRITE[d.kind]
+    const size = getSpriteSize(spriteKey)
+
+    // Fading, slightly swelling, tumbling sprite.
+    ctx.save()
+    ctx.translate(screen.x, screen.y)
+    ctx.rotate(d.angle + (reducedMotion ? 0 : t * 1.5))
+    const grow = d.sizeScale * (1 + t * 0.4)
+    ctx.globalAlpha = 1 - t
+    ctx.scale(grow, grow)
+    ctx.drawImage(sprites[spriteKey], -size.w / 2, -size.h / 2)
+    ctx.restore()
+
+    // Shatter overlay frame, scaled to the enemy and fading near the end.
+    const frame = frames[pickFrame(frames.length, d.duration / frames.length, d.elapsed)]
+    if (frame) {
+      const scale = (size.w / frame.width) * 1.6 * d.sizeScale
+      const w = frame.width * scale
+      const h = frame.height * scale
+      ctx.save()
+      ctx.globalAlpha = Math.min(1, (1 - t) * 1.4)
+      ctx.drawImage(frame, screen.x - w / 2, screen.y - h / 2, w, h)
+      ctx.restore()
+    }
+  }
+}
+
+// Expanding ring where the player ship blew up (GamePhase.dying).
+function renderDeathShockwave(
+  ctx: CanvasRenderingContext2D,
+  state: GameState,
+  camera: Camera,
+  reducedMotion: boolean
+): void {
+  if (reducedMotion) return
+  const t = 1 - state.deathTimer / ANIMATION.deathSequence
+  const ringT = t / 0.5
+  if (ringT >= 1) return
+  const screen = worldToScreen(state.ship.pos, camera)
+  ctx.save()
+  ctx.globalAlpha = (1 - ringT) * 0.7
+  ctx.strokeStyle = '#ffd2a0'
+  ctx.lineWidth = 3
+  ctx.beginPath()
+  ctx.arc(screen.x, screen.y, 10 + ringT * 120, 0, Math.PI * 2)
+  ctx.stroke()
+  ctx.restore()
+}
+
+// Red danger vignette hugging the viewport edges when the ship nears death.
+// Screen space — drawn after the world transform is restored.
+function renderLowHpVignette(
+  ctx: CanvasRenderingContext2D,
+  state: GameState,
+  camera: Camera,
+  opts: RenderOptions
+): void {
+  const ratio = state.ship.hp / state.ship.maxHp
+  if (ratio >= ANIMATION.lowHpThreshold || state.ship.hp <= 0) return
+  const danger = 1 - Math.max(0, ratio) / ANIMATION.lowHpThreshold
+  const pulse = opts.reducedMotion ? 0.7 : 0.7 + Math.sin(opts.clock * 5) * 0.3
+  const w = camera.width
+  const h = camera.height
+  const grad = ctx.createRadialGradient(
+    w / 2,
+    h / 2,
+    Math.min(w, h) * 0.35,
+    w / 2,
+    h / 2,
+    Math.max(w, h) * 0.72
+  )
+  grad.addColorStop(0, 'rgba(180, 20, 20, 0)')
+  grad.addColorStop(1, `rgba(180, 20, 20, ${danger * 0.45 * pulse})`)
+  ctx.save()
+  ctx.fillStyle = grad
+  ctx.fillRect(0, 0, w, h)
+  ctx.restore()
 }
 
 function renderProjectiles(

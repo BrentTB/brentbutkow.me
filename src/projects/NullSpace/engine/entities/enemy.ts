@@ -1,4 +1,4 @@
-import { ENEMY_STATS } from '../../data'
+import { ANIMATION, ENEMY_STATS } from '../../data'
 import { distance } from '../math/collision'
 import { createProjectile } from './entity-creator'
 import { MovementBehavior, ProjectileOwner } from '../types'
@@ -136,7 +136,12 @@ export function updateEnemyMovement(
     const target = findNearestTarget(enemy.pos, ship, allies)
     const targetAsShip = { ...ship, pos: target }
     const moved = MOVEMENT_FN[enemy.movementBehavior](enemy, targetAsShip, dt)
-    return { ...moved, age: enemy.age + dt }
+    return {
+      ...moved,
+      age: enemy.age + dt,
+      spawnIn: Math.max(0, enemy.spawnIn - dt),
+      hitFlash: Math.max(0, enemy.hitFlash - dt),
+    }
   })
 }
 
@@ -151,12 +156,14 @@ export function updateEnemyShooting(
   let newProjectiles = projectiles
 
   for (const enemy of enemies) {
+    const fireFlash = Math.max(0, enemy.fireFlash - dt)
     if (enemy.fireRate <= 0) {
-      updatedEnemies.push(enemy)
+      updatedEnemies.push({ ...enemy, fireFlash })
       continue
     }
 
     let cooldown = enemy.fireCooldown - dt
+    let nextFireFlash = fireFlash
     if (cooldown <= 0) {
       const target = findNearestTarget(enemy.pos, ship, allies)
       const dist = distance(enemy.pos, target)
@@ -177,9 +184,10 @@ export function updateEnemyShooting(
         })
         newProjectiles = [...newProjectiles, proj]
         cooldown = 1 / enemy.fireRate
+        nextFireFlash = ANIMATION.enemyFireFlash
       }
     }
-    updatedEnemies.push({ ...enemy, fireCooldown: Math.max(0, cooldown) })
+    updatedEnemies.push({ ...enemy, fireCooldown: Math.max(0, cooldown), fireFlash: nextFireFlash })
   }
 
   return { enemies: updatedEnemies, projectiles: newProjectiles }

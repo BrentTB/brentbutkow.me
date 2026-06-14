@@ -5,9 +5,16 @@ interface PauseMenuProps {
   onSettings: () => void
   onRestart: () => void
   onHelp: () => void
+  onSaveAndExit: () => void
 }
 
-export const PauseMenu = ({ onResume, onSettings, onRestart, onHelp }: PauseMenuProps) => {
+export const PauseMenu = ({
+  onResume,
+  onSettings,
+  onRestart,
+  onHelp,
+  onSaveAndExit,
+}: PauseMenuProps) => {
   return (
     <>
       <h2 className={sharedStyles.title}>Paused</h2>
@@ -22,6 +29,9 @@ export const PauseMenu = ({ onResume, onSettings, onRestart, onHelp }: PauseMenu
       </button>
       <button className={sharedStyles.secondaryBtn} onClick={onHelp}>
         Help
+      </button>
+      <button className={sharedStyles.secondaryBtn} onClick={onSaveAndExit}>
+        Save &amp; Exit
       </button>
       <p className={sharedStyles.hint}>Press P to resume</p>
     </>

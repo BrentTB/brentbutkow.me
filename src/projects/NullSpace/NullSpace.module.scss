@@ -44,6 +44,15 @@
     height: calc(100dvh - 140px);
     border: none;
     border-radius: 0;
+    // Controls live OUTSIDE the canvas on mobile: stack play area + control bar.
+    display: flex;
+    flex-direction: column;
+  }
+
+  // Short landscape (phone on its side): control bar beside the play area.
+  @media (orientation: landscape) and (max-height: 600px) {
+    display: flex;
+    flex-direction: row;
   }
 
   // Used by the Fullscreen API on desktop AND iPadOS.
@@ -69,6 +78,60 @@
     border: none;
     border-radius: 0;
     z-index: 9999;
+  }
+}
+
+// The canvas + overlay HUD. Fills the container on desktop (controls overlay it);
+// on mobile it's a flex child that shrinks to leave room for the control bar.
+// The canvas's parent drives the camera size (ResizeObserver in useNullSpace),
+// so shrinking the play area zooms the view rather than hiding world content.
+.playArea {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+// Holds the ability bar + Space Metal rail. Desktop: a transparent layer pinned
+// over the play area (controls position absolutely within). Mobile: a real,
+// interactive bar OUTSIDE the play area so it never blocks drags/taps.
+.controlBar {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
+@media (max-width: 768px), (orientation: landscape) and (max-height: 600px) {
+  .playArea {
+    position: relative;
+    inset: auto;
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .controlBar {
+    position: relative;
+    inset: auto;
+    flex: 0 0 auto;
+    pointer-events: auto;
+    display: flex;
+    padding: calc(6px * var(--hud-scale, 1));
+    background: rgba(6, 8, 14, 0.95);
+  }
+}
+
+@media (orientation: portrait) and (max-width: 768px) {
+  .controlBar {
+    justify-content: center;
+    border-top: 1px solid var(--border);
+  }
+}
+
+@media (orientation: landscape) and (max-height: 600px) {
+  .controlBar {
+    align-items: stretch;
+    border-left: 1px solid var(--border);
   }
 }
 

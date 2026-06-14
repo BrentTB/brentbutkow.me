@@ -160,6 +160,19 @@ function renderBlackHole(
     ctx.stroke()
   }
 
+  // Dust motes spiralling inward — each cycles from the rim to the core, faster
+  // and fainter as it falls in, then resets.
+  ctx.fillStyle = 'rgba(205, 165, 255, 1)'
+  for (let i = 0; i < 12; i++) {
+    const cycle = (hole.elapsed * 0.7 + i / 12) % 1
+    const r = hole.radius * (0.9 - cycle * 0.8)
+    const ang = (i / 12) * Math.PI * 2 + cycle * 6
+    ctx.globalAlpha = alpha * (1 - cycle) * 0.8
+    ctx.beginPath()
+    ctx.arc(Math.cos(ang) * r, Math.sin(ang) * r, 1.5, 0, Math.PI * 2)
+    ctx.fill()
+  }
+
   ctx.restore()
 }
 

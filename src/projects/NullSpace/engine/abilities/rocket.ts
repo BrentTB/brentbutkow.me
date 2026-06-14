@@ -174,10 +174,13 @@ function tickRocket(missile: RocketEffect, ctx: EffectTickContext): EffectTickRe
       effect: null,
       enemies,
       projectiles: ctx.projectiles,
+      // Spread scales with the upgraded radius so a bigger blast throws debris
+      // further (base rocket radius = 1×).
       particles: spawnExplosionParticles(
         detonatePos,
         18,
-        missile.fireworks ? '#ffcc44' : '#ff7733'
+        missile.fireworks ? '#ffcc44' : '#ff7733',
+        missile.aoeRadius / ROCKET.aoeRadius
       ),
       scoreGained,
       killedEnemies,

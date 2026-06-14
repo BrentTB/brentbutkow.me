@@ -21,14 +21,20 @@
   font-size: 0.9rem;
   color: var(--text-secondary);
   margin: 0;
-  white-space: nowrap;
+  text-align: center;
+  // Wraps gracefully on narrow / mobile widths rather than overflowing.
+  text-wrap: balance;
 }
 
 // Per-currency colours, shared with the cost rows so a glyph always reads the
-// same: Stardust cyan, Singularity Shard violet (Space Metal gold lives on the
-// HUD rail / ultimate cost row).
+// same: Stardust cyan, Space Metal gold, Singularity Shard violet.
 .stardustValue {
   color: #7ad1ff;
+  font-weight: 600;
+}
+
+.metalValue {
+  color: #e9b872;
   font-weight: 600;
 }
 

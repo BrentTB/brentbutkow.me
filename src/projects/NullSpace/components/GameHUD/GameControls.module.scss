@@ -1,0 +1,34 @@
+// Desktop: transparent — the ability bar + space-metal rail position themselves
+// absolutely within the .controlBar (their nearest positioned ancestor),
+// overlaying the bottom/right of the play area exactly as before.
+.actionGroup {
+  display: contents;
+}
+
+// Mobile / short-landscape: the controls live OUTSIDE the canvas in a flow
+// control bar, so the group is a normal flex container (no absolute overlay) —
+// this keeps every point of the play area reachable to drag/aim.
+@media (max-width: 768px), (orientation: landscape) and (max-height: 600px) {
+  .actionGroup {
+    display: flex;
+    gap: calc(10px * var(--hud-scale, 1));
+    width: 100%;
+    height: 100%;
+  }
+}
+
+@media (orientation: portrait) and (max-width: 768px) {
+  .actionGroup {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 600px) {
+  .actionGroup {
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: flex-end;
+  }
+}

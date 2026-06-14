@@ -54,6 +54,7 @@ export function TopBar({
           <div className={styles.barOuter}>
             <div
               className={styles.barInner}
+              data-testid="hpBar"
               style={{ width: `${hpRatio * 100}%`, backgroundColor: hpColor }}
             />
           </div>
@@ -78,7 +79,16 @@ export function TopBar({
           <div className={styles.barOuter}>
             <div
               className={styles.barInner}
-              style={{ width: `${heatRatio * 100}%`, backgroundColor: heatColor }}
+              data-testid="heatBar"
+              // Heat changes every frame (continuous decay + flick jumps), so the
+              // shared 0.15s width transition perpetually re-targets and never
+              // settles — on mobile the bar reads empty until updates stop (pause).
+              // Track it live; the other bars keep the smooth transition.
+              style={{
+                width: `${heatRatio * 100}%`,
+                backgroundColor: heatColor,
+                transition: 'none',
+              }}
             />
           </div>
           <span className={styles.barText}>

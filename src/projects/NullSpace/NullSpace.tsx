@@ -3,7 +3,10 @@ import { BackButton } from '../../components/PageFormatting/BackButton'
 import { ToggleableSection } from '../../components/ToggleableSection/ToggleableSection'
 import { useNullSpace } from './useNullSpace'
 import { usePseudoFullscreenChrome } from './usePseudoFullscreenChrome'
+import { usePreventPinchZoom } from './usePreventPinchZoom'
+import { resetPinchZoom } from './reset-pinch-zoom'
 import { GameHUD } from './components/GameHUD/GameHUD'
+import { GameControls } from './components/GameHUD/GameControls'
 import { GameOverlay } from './components/GameOverlay'
 import { DevConsole } from './components/Development/DevConsole'
 import { ChangelogFilters } from './components/ChangelogFilters/ChangelogFilters'
@@ -25,7 +28,10 @@ export function NullSpace() {
   const gameContainerRef = useRef<HTMLDivElement>(null)
   const {
     uiState,
+    hasSave,
     handleStart,
+    handleContinue,
+    handleSaveAndExit,
     handleSelectShip,
     handleNextWave,
     handleRestart,
@@ -82,8 +88,10 @@ export function NullSpace() {
       return
     }
 
-    // Enter path: try the real API; if it doesn't exist or it rejects,
-    // fall back to the CSS pseudo-fullscreen.
+    // Enter path: snap any browser pinch-zoom back to normal first (the canvas's
+    // touch-action blocks pinching it out mid-play), then try the real API; if it
+    // doesn't exist or rejects, fall back to the CSS pseudo-fullscreen.
+    resetPinchZoom()
     if (typeof el.requestFullscreen === 'function') {
       el.requestFullscreen().catch(() => setPseudoFullscreen(true))
     } else {
@@ -100,6 +108,10 @@ export function NullSpace() {
   // Keep Safari's URL / tab bar hidden in pseudo-fullscreen — on entry and
   // after each rotate (Safari re-shows the bars when the phone turns).
   usePseudoFullscreenChrome(pseudoFullscreen)
+
+  // Stop browser pinch-zoom while the game is open — the canvas eats touches, so
+  // a zoomed-in page can't be pinched back out mid-play.
+  usePreventPinchZoom()
 
   // HUD scaling — keep overlay text/buttons proportional to the gameplay area
   // so fullscreen doesn't leave a 28px pause icon stranded on a 1080p screen.
@@ -132,19 +144,29 @@ export function NullSpace() {
           ref={gameContainerRef}
           className={`${styles.gameContainer} ${pseudoFullscreen ? styles.pseudoFullscreen : ''}`}
         >
-          <canvas ref={canvasRef} className={styles.canvas} />
-          <GameHUD
-            uiState={uiState}
-            onAbilitySelect={setSelectedAbility}
-            onPause={handlePause}
-            onToggleFullscreen={handleToggleFullscreen}
-            onUseSpaceMetalAbility={handleUseSpaceMetalAbility}
-            isFullscreen={isFullscreen}
-            gameSpeed={gameSpeed}
-          />
+          <div className={styles.playArea}>
+            <canvas ref={canvasRef} className={styles.canvas} />
+            <GameHUD
+              uiState={uiState}
+              onPause={handlePause}
+              onToggleFullscreen={handleToggleFullscreen}
+              isFullscreen={isFullscreen}
+              gameSpeed={gameSpeed}
+            />
+          </div>
+          <div className={styles.controlBar}>
+            <GameControls
+              uiState={uiState}
+              onAbilitySelect={setSelectedAbility}
+              onUseSpaceMetalAbility={handleUseSpaceMetalAbility}
+            />
+          </div>
           <GameOverlay
             uiState={uiState}
             onStart={handleStart}
+            onContinue={handleContinue}
+            hasSave={hasSave}
+            onSaveAndExit={handleSaveAndExit}
             onSelectShip={handleSelectShip}
             onNextWave={handleNextWave}
             onRestart={handleRestart}
