@@ -11,6 +11,7 @@ src/
 src/api/
   api.ts                                     apiRoutes, apiUrl, fetchJson
   useApiResource.ts                          ApiState, useApiResource
+  useDebouncedValue.ts                       useDebouncedValue
   useWarmApi.ts                              useWarmApi
 
 src/components/CodeSection/

@@ -3,6 +3,7 @@ import { PageLayout } from '../../components/PageFormatting/PageLayout'
 import { PageHeader } from '../../components/PageFormatting/PageHeader'
 import { SafeLink } from '../../components/utils/SafeLink'
 import { useFunMode } from '../../contexts/useFunMode'
+import { useDebouncedValue } from '../../api/useDebouncedValue'
 import { Breakdowns } from './components/Breakdowns'
 import { ProjectOverview } from './components/ProjectOverview'
 import { RecallFeed } from './components/RecallFeed'
@@ -30,12 +31,14 @@ const EMPTY_FILTERS: RecallFilterValues = {
   classification: '',
   state: '',
   company: '',
+  search: '',
 }
 
 export function RecallRadar() {
   const { isFunMode } = useFunMode()
   const [filters, setFilters] = useState<RecallFilterValues>(EMPTY_FILTERS)
   const [year, setYear] = useState<number | null>(null)
+  const debouncedSearch = useDebouncedValue(filters.search, 500)
 
   const stats = useRecallStats()
   const recalls = useRecalls({
@@ -43,6 +46,7 @@ export function RecallRadar() {
     classification: filters.classification || undefined,
     state: filters.state || undefined,
     company: filters.company || undefined,
+    search: debouncedSearch || undefined,
     limit: 50,
   })
 
