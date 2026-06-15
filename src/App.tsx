@@ -15,8 +15,8 @@ const WaterRipple = lazy(() =>
   import('./components/effects/WaterRipple').then((module) => ({ default: module.WaterRipple }))
 )
 
-const enableVercelAnalytics = import.meta.env.ENABLE_VERCEL_ANALYTICS === 'true'
-const enableVercelSpeedInsights = import.meta.env.ENABLE_VERCEL_SPEED_INSIGHTS === 'true'
+const enableVercelAnalytics = import.meta.env.VITE_ENABLE_VERCEL_ANALYTICS === 'true'
+const enableVercelSpeedInsights = import.meta.env.VITE_ENABLE_VERCEL_SPEED_INSIGHTS === 'true'
 
 const WaterRippleLayer = () => {
   const { isFunMode } = useFunMode()
