@@ -12,7 +12,7 @@ export function CurrentWork({ role, company }: CurrentWorkProps) {
     <Link
       to={routePaths.experience}
       className={styles.current}
-      aria-label={`Currently ${role} at ${company} — view experience`}
+      aria-label={`Currently ${role} at ${company}, view experience`}
     >
       <span className={styles.label}>Currently</span>
       <span className={styles.detail}>

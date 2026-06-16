@@ -83,9 +83,9 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
     freeze: false,
     durationSeconds: 2.8,
     copyDesktop:
-      "Watch the ship — it flies and fires on its own. You don't control it; you're its guardian.",
+      "Watch the ship. It flies and fires on its own. You don't control it; you're its guardian.",
     copyTouch:
-      "Watch the ship — it flies and fires on its own. You don't control it; you're its guardian.",
+      "Watch the ship. It flies and fires on its own. You don't control it; you're its guardian.",
   },
   {
     id: 'attackPrompt',
@@ -103,8 +103,8 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
     spotlight: TutorialSpotlightKind.none,
     freeze: false,
     durationSeconds: 2.6,
-    copyDesktop: 'Boom. You attack independently of the ship — anywhere, any time.',
-    copyTouch: 'Boom. You attack independently of the ship — anywhere, any time.',
+    copyDesktop: 'Boom. You attack independently of the ship, anywhere, any time.',
+    copyTouch: 'Boom. You attack independently of the ship, anywhere, any time.',
   },
   {
     id: 'flingPrompt',
@@ -113,9 +113,9 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
     freeze: true,
     allowFling: true,
     copyDesktop:
-      "You can't steer the ship — but you can fling it. Drag the ship to slingshot it. Just be careful — fling too much and it overheats.",
+      "You can't steer the ship, but you can fling it. Drag the ship to slingshot it. Be careful: fling too much and it overheats.",
     copyTouch:
-      "You can't steer the ship — but you can fling it. Drag the ship to slingshot it. Just be careful — fling too much and it overheats.",
+      "You can't steer the ship, but you can fling it. Drag the ship to slingshot it. Be careful: fling too much and it overheats.",
   },
   {
     id: 'flingResolve',
@@ -133,8 +133,8 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
     freeze: false,
     allowCast: true,
     keepEnemyAlive: true,
-    copyDesktop: 'Keep firing — click to launch meteorites until your power bar runs low.',
-    copyTouch: 'Keep firing — tap to launch meteorites until your power bar runs low.',
+    copyDesktop: 'Keep firing: click to launch meteorites until your power bar runs low.',
+    copyTouch: 'Keep firing: tap to launch meteorites until your power bar runs low.',
   },
   {
     id: 'powerRecharge',
@@ -142,8 +142,8 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
     spotlight: TutorialSpotlightKind.none,
     freeze: false,
     durationSeconds: 3.2,
-    copyDesktop: 'Out of power — the bar refills on its own over time. Spend it wisely.',
-    copyTouch: 'Out of power — the bar refills on its own over time. Spend it wisely.',
+    copyDesktop: 'Out of power. The bar refills on its own over time, so spend it wisely.',
+    copyTouch: 'Out of power. The bar refills on its own over time, so spend it wisely.',
   },
   {
     id: 'swapAbility',
@@ -162,8 +162,8 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
     allowCast: true,
     keepEnemyAlive: true,
     refillsPower: true,
-    copyDesktop: 'Now click beside the enemy to drop your Black Hole — it pulls enemies in.',
-    copyTouch: 'Now tap beside the enemy to drop your Black Hole — it pulls enemies in.',
+    copyDesktop: 'Now click beside the enemy to drop your Black Hole. It pulls enemies in.',
+    copyTouch: 'Now tap beside the enemy to drop your Black Hole. It pulls enemies in.',
   },
   {
     id: 'collectMetal',
@@ -185,9 +185,9 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
     freeze: true,
     allowSpaceMetalKeys: true,
     breaksShield: true,
-    copyDesktop: 'Your shield is down. Spend ⬢ space metal to instantly restore it — press F.',
+    copyDesktop: 'Your shield is down. Spend ⬢ space metal to instantly restore it: press F.',
     copyTouch:
-      'Your shield is down. Spend ⬢ space metal to instantly restore it — tap the Shield button.',
+      'Your shield is down. Spend ⬢ space metal to instantly restore it: tap the Shield button.',
   },
   {
     id: 'mineWarning',
@@ -195,8 +195,8 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
     spotlight: TutorialSpotlightKind.mine,
     freeze: true,
     spawnsMine: true,
-    copyDesktop: 'Careful — that blinking object is a mine. It damages your ship, so steer clear.',
-    copyTouch: 'Careful — that blinking object is a mine. It damages your ship, so steer clear.',
+    copyDesktop: 'Careful: that blinking object is a mine. It damages your ship, so steer clear.',
+    copyTouch: 'Careful: that blinking object is a mine. It damages your ship, so steer clear.',
   },
   {
     id: 'outro',
