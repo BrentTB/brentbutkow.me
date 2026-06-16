@@ -65,7 +65,7 @@ export function GulagSort() {
         <h4>Space Complexity</h4>
         <p>
           O(n) – space is needed to store every element, but in-place merges can be done to reduce
-          the space required. When implemented non-optimally, the space complexity will be worse —
+          the space required. When implemented non-optimally, the space complexity will be worse,
           e.g. when created recursively, the space complexity will be higher.
         </p>
         <h4>Pseudocode/Steps</h4>

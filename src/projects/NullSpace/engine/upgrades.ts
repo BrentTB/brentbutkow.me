@@ -123,7 +123,7 @@ const shipAndPowerUpgrades: UpgradeDefinition[] = [
     id: SHIP_AND_POWER_UPGRADE_IDS.slingAccuracy,
     category: UpgradeCategory.ship,
     label: 'Slingshot Control',
-    description: 'Tighten the slingshot — less random scatter',
+    description: 'Icreases the slingshot accuracy',
     tiers: [
       { cost: 8, value: 0.1 },
       { cost: 32, value: 0.11 },

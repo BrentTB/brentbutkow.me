@@ -1,4 +1,4 @@
-import { COMET_SHOWER, METEORITE_STRIKE } from './ability-data'
+import { METEORITE_STRIKE } from './ability-data'
 import { createMeteoriteEffect } from './meteor-strike'
 import { AbilityKind } from '../types'
 import {
@@ -63,7 +63,7 @@ export const meteorite: AbilityDefinition = {
   ultimate: {
     kind: AbilityKind.cometShower,
     label: 'Comet Shower',
-    description: `Rain ${COMET_SHOWER.baseCount} meteorites — one dead-center, the rest scattered around it.`,
+    description: `Rain down meteorites on your enemies`,
     cost: { stardust: 250, spaceMetal: 10 },
   },
 }
