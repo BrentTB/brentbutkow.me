@@ -20,7 +20,7 @@ describe('ContactForm', () => {
     fireEvent.change(screen.getByLabelText('Message'), { target: { value: 'Hi Brent' } })
     fireEvent.click(screen.getByRole('button', { name: 'Send message' }))
 
-    await waitFor(() => expect(screen.getByText('Thanks — your message was sent.')).toBeTruthy())
+    await waitFor(() => expect(screen.getByText('Thanks, your message was sent.')).toBeTruthy())
   })
 
   it('disables submit until a message is entered', () => {

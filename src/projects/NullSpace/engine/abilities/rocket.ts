@@ -267,7 +267,7 @@ export const rocket: AbilityDefinition = {
   ultimate: {
     kind: AbilityKind.fireworks,
     label: 'Fireworks',
-    description: 'One spark — and the sky blooms, and blooms again.',
+    description: 'One spark and the sky blooms, and blooms again.',
     cost: { stardust: 360, spaceMetal: 14 },
   },
 }

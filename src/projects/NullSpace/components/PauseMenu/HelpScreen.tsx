@@ -23,10 +23,9 @@ export function HelpScreen({ onClose, onReplayTutorial }: HelpScreenProps) {
         <h3 className={styles.heading}>Gameplay</h3>
         <p>
           You are a cosmic guardian watching over a lone ship as it auto-pilots through one hostile
-          sector after another. You do not pilot the ship — it weaves through the endless dark on
-          its own, where flying off any edge loops straight back around. Clear every wave to open
-          the portal, then warp to the next sector, and use your abilities to blast enemies before
-          they reach the hull.
+          sector after another. You do not pilot the ship. It weaves through the endless dark on its
+          own. Clear every wave to open the portal, then warp to the next sector, and use your
+          abilities to blast enemies before they reach the hull.
         </p>
       </section>
 
@@ -55,7 +54,7 @@ export function HelpScreen({ onClose, onReplayTutorial }: HelpScreenProps) {
         <ul className={styles.list}>
           {SPACE_METAL_ABILITIES.map((a) => (
             <li key={a.kind}>
-              <kbd>{a.hotkey}</kbd> {a.meta.label} — costs ⬢ {a.cost}
+              <kbd>{a.hotkey}</kbd> {a.meta.label} costs ⬢ {a.cost}
             </li>
           ))}
         </ul>
@@ -65,7 +64,7 @@ export function HelpScreen({ onClose, onReplayTutorial }: HelpScreenProps) {
         <h3 className={styles.heading}>Progression</h3>
         <p>
           Kill enemies to earn ✦ Stardust. Every 3 waves opens the upgrade shop: buy ability
-          upgrades, ship stats, or unlock a new power to ensure the ship's survival.
+          upgrades, ship stats, or unlock a new power to keep the ship alive.
         </p>
       </section>
 

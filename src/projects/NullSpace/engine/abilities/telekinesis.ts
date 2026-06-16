@@ -111,7 +111,7 @@ export const telekinesis: AbilityDefinition = {
   ultimate: {
     kind: AbilityKind.singularity,
     label: 'Singularity',
-    description: 'All things fall to one point — then you let go.',
+    description: 'All things inevitably fall to one point',
     cost: { stardust: 400, spaceMetal: 15 },
   },
 }

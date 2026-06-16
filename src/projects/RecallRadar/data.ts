@@ -5,11 +5,11 @@ export const recallRadarCopy = {
   intro:
     'A live view of US & UK food-safety recalls. Each day this pulls the latest reports from the US (FDA, USDA FSIS) and the UK (FSA), sorts them by likely cause, and tracks the trend over time.',
   introFun:
-    "Because nothing says 'fun side project' like undeclared peanuts and the occasional rogue metal fragment — live US & UK food recalls, sorted and plotted.",
+    "Because nothing says 'fun side project' like undeclared peanuts and the occasional rogue metal fragment. Live US & UK food recalls, sorted and plotted.",
   methodology:
     'Sources: US openFDA + USDA FSIS, and UK Food Standards Agency alerts. Categories are assigned by a TF-IDF + logistic-regression classifier trained on the recall text; the % on each recall is the model confidence.',
   about:
-    'A full-stack side project. A Python/FastAPI service ingests food-recall data from the US (FDA openFDA, USDA FSIS) and the UK (Food Standards Agency) every day, classifies each recall by likely cause, and stores it in Postgres; this React + TypeScript dashboard reads a documented JSON API to explore it. Built production-shaped — typed end to end, tested, migrated with Alembic, rate-limited, and deployed behind a daily ingest job.',
+    'A full-stack side project. A Python/FastAPI service ingests food-recall data from the US (FDA openFDA, USDA FSIS) and the UK (Food Standards Agency) every day, classifies each recall by likely cause, and stores it in Postgres. This React + TypeScript dashboard reads a documented JSON API to explore it. It is built to production standards: typed end to end, tested, migrated with Alembic, rate-limited, and deployed behind a daily ingest job.',
   techStackPrompt: 'Interested in the tech stack? ↓',
   stateMapTitle: 'US recalls by state',
 }

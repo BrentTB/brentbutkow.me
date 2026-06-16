@@ -88,7 +88,7 @@ export function ContactForm() {
         </button>
         {status === ContactStatus.success && (
           <span className={styles.success} role="status">
-            Thanks — your message was sent.
+            Thanks, your message was sent.
           </span>
         )}
         {status === ContactStatus.error && (

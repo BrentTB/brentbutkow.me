@@ -89,7 +89,7 @@ export const SHIP_VARIANTS: Record<ShipKind, ShipVariantConfig> = {
   },
   [ShipKind.carrier]: {
     label: 'Carrier',
-    description: 'Fields 3 weapons at once — but weaker hull, lower speed, and slower guns.',
+    description: 'Fields 3 weapons at once, but with a weaker hull, lower speed, and slower guns.',
     stats: {
       hp: 75,
       maxHp: 75,
