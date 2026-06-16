@@ -1,8 +1,14 @@
 import { describe, it, expect } from 'vitest'
 import { createInitialState } from '../game-loop'
-import { GamePhase, ShipKind } from '../types'
+import { CollectibleKind, GamePhase, ShipKind } from '../types'
 import { updateEnemyMovement } from '../entities/enemy'
-import { ensureTutorialEnemy, pickSpotlightEnemyId, startTutorialRun } from './demo-wave'
+import {
+  applyTutorialStepEnter,
+  ensureTutorialEnemy,
+  pickSpotlightEnemyId,
+  startTutorialRun,
+} from './demo-wave'
+import { TUTORIAL_STEPS } from './tutorial-script'
 
 describe('startTutorialRun', () => {
   const run = () => startTutorialRun(createInitialState())
@@ -34,6 +40,11 @@ describe('startTutorialRun', () => {
     expect(state.power).toBe(state.maxPower)
   })
 
+  it('unlocks a second ability so the swap beat has a target', () => {
+    const state = run()
+    expect(state.abilities.filter((a) => a.unlocked).length).toBeGreaterThanOrEqual(2)
+  })
+
   // Regression: demo drones were chase + speed 0, so a slingshot knockback was
   // never damped (chase smooths velocity at a rate of speed/30 = 0) and the drone
   // coasted forever. Stationary movement decays the bump back to rest.
@@ -58,6 +69,36 @@ describe('ensureTutorialEnemy', () => {
   it('leaves the state untouched while an enemy still lives', () => {
     const state = startTutorialRun(createInitialState())
     expect(ensureTutorialEnemy(state)).toBe(state)
+  })
+})
+
+describe('applyTutorialStepEnter', () => {
+  const base = () => startTutorialRun(createInitialState())
+  const stepWhere = (pred: (s: (typeof TUTORIAL_STEPS)[number]) => boolean) =>
+    TUTORIAL_STEPS.find(pred)!
+
+  it('drops a space metal pickup on the collect beat', () => {
+    const after = applyTutorialStepEnter(
+      base(),
+      stepWhere((s) => !!s.spawnsMetal)
+    )
+    expect(after.collectibles.some((c) => c.kind === CollectibleKind.spaceMetal)).toBe(true)
+  })
+
+  it('breaks the shield on the refresh beat', () => {
+    const after = applyTutorialStepEnter(
+      base(),
+      stepWhere((s) => !!s.breaksShield)
+    )
+    expect(after.ship.shield).toBe(0)
+  })
+
+  it('places a mine on the mine beat', () => {
+    const after = applyTutorialStepEnter(
+      base(),
+      stepWhere((s) => !!s.spawnsMine)
+    )
+    expect(after.hazards.length).toBeGreaterThan(0)
   })
 })
 

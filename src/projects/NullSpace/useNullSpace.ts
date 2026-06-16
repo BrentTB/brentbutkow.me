@@ -15,7 +15,15 @@ import {
 import { devJumpToBoss, devJumpToUpgrades, devPatchState, type DevPatch } from './engine/dev-tools'
 import { isBaseReplacedByUltimate } from './engine/ultimates'
 import { ULTIMATE_KIND_OF } from './engine/abilities'
-import { AbilityKind, EnemyKind, GamePhase, ShipKind, ShipWeaponKind } from './engine/types'
+import {
+  AbilityKind,
+  CollectibleKind,
+  EffectKind,
+  EnemyKind,
+  GamePhase,
+  ShipKind,
+  ShipWeaponKind,
+} from './engine/types'
 import type { GameState, PlayerInput, Vec2, PlayerUpgrades } from './engine/types'
 import type { UpgradeId } from './engine/upgrade-ids'
 import { getBossDefinition } from './engine/bosses/index'
@@ -72,6 +80,7 @@ import {
   type TutorialSignals,
 } from './engine/tutorial/tutorial-machine'
 import {
+  applyTutorialStepEnter,
   ensureTutorialEnemy,
   pickSpotlightEnemyId,
   startTutorialRun,
@@ -90,20 +99,6 @@ const STAR_COUNT = 250
 // off. A single zero-arg arrow satisfies all three slots because TypeScript
 // permits assigning functions with fewer parameters where more are expected.
 const noop = () => {}
-
-// Keys players reflexively try to "steer" the ship with — the tutorial watches
-// for one to prove the ship ignores them. Not bound to anything else in-game.
-const MOVEMENT_KEYS = new Set([
-  'w',
-  'a',
-  's',
-  'd',
-  'arrowup',
-  'arrowdown',
-  'arrowleft',
-  'arrowright',
-])
-const isMovementKey = (key: string): boolean => MOVEMENT_KEYS.has(key.toLowerCase())
 
 export type GameUIState = {
   phase: GameState['phase']
@@ -275,7 +270,8 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
   const tutorialRef = useRef<TutorialState | null>(null)
   const tutorialViewRef = useRef<TutorialView | null>(null)
   const tutorialTargetIdRef = useRef<string | null>(null)
-  const movementKeyRef = useRef(false)
+  // Last beat the per-step enter-setup ran for, so spawns/shield-break fire once.
+  const tutorialPrevStepIdRef = useRef<string>('')
   const tutorialAckRef = useRef(false)
 
   const syncUI = useCallback((state: GameState) => {
@@ -518,7 +514,6 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       tutorialRef.current = null
       tutorialViewRef.current = null
       tutorialTargetIdRef.current = null
-      movementKeyRef.current = false
       tutorialAckRef.current = false
       gameStateRef.current =
         entry === TutorialEntry.firstPlay
@@ -538,14 +533,17 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
         realDt: 0,
         clicked: false,
         flung: false,
-        movementKeyPressed: false,
         powerFraction: 1,
+        abilitySwapped: false,
+        swapAbilityUsed: false,
+        spaceMetal: 0,
+        shieldFraction: 1,
         acknowledged: false,
       })
       tutorialRef.current = view.state
       tutorialViewRef.current = view
       tutorialTargetIdRef.current = null
-      movementKeyRef.current = false
+      tutorialPrevStepIdRef.current = ''
       tutorialAckRef.current = false
       gameStateRef.current = startTutorialRun(gameStateRef.current)
       gameTimeRef.current = resetGameClock(gameTimeRef.current)
@@ -692,11 +690,27 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // During the tutorial: record a movement-key press (the "you don't steer
-      // this ship" beat) and swallow pause/ability keys — the tutorial drives the
-      // freeze itself and has its own Skip.
+      // During the tutorial, swallow keys by default (the tutorial drives the
+      // freeze and has its own Skip) — except, on the beats that teach them, let
+      // ability hotkeys (swap) and space-metal hotkeys (shield refresh) through.
       if (tutorialRef.current) {
-        if (isMovementKey(e.key)) movementKeyRef.current = true
+        const tutStep = tutorialRef.current.steps[tutorialRef.current.stepIndex]
+        if (tutStep?.allowAbilityKeys) {
+          const kind = abilityKindForHotkey(
+            gameStateRef.current.abilities,
+            e.key,
+            gameStateRef.current.ultimatesOwned
+          )
+          if (kind) {
+            selectedAbilityRef.current = kind
+            syncUI(gameStateRef.current)
+          }
+          return
+        }
+        if (tutStep?.allowSpaceMetalKeys) {
+          const sm = findSpaceMetalAbilityByKey(e.key)
+          if (sm) handleUseSpaceMetalAbility(sm.kind)
+        }
         return
       }
       // Use P (not Esc) for pause: in fullscreen, browsers intercept Esc to exit
@@ -736,6 +750,12 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       const dt = tick.dt
       const tut = tutorialRef.current
       const tutStep = tut ? tut.steps[tut.stepIndex] : null
+      // One-shot setup when a new beat opens (drop space metal / break shield /
+      // place a mine).
+      if (tutStep && tutStep.id !== tutorialPrevStepIdRef.current) {
+        tutorialPrevStepIdRef.current = tutStep.id
+        gameStateRef.current = applyTutorialStepEnter(gameStateRef.current, tutStep)
+      }
       // Keep a target on screen for beats that need one — the ship's own guns may
       // have cleared the demo drones (e.g. the "fire until power runs low" beat).
       if (tutStep?.keepEnemyAlive && gameStateRef.current.enemies.length === 0) {
@@ -796,14 +816,16 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
           realDt: dt,
           clicked: clickedThisFrame,
           flung: fling !== null,
-          movementKeyPressed: movementKeyRef.current,
           powerFraction: st.maxPower > 0 ? st.power / st.maxPower : 0,
+          abilitySwapped: selectedAbilityRef.current !== AbilityKind.meteorite,
+          swapAbilityUsed: st.activeEffects.some((ef) => ef.kind === EffectKind.blackHole),
+          spaceMetal: st.spaceMetal,
+          shieldFraction: st.ship.maxShield > 0 ? st.ship.shield / st.ship.maxShield : 1,
           acknowledged: tutorialAckRef.current,
         }
         const view = advanceTutorial(tutorialRef.current, signals)
         tutorialRef.current = view.state
         tutorialViewRef.current = view
-        movementKeyRef.current = false
         tutorialAckRef.current = false
         tutorialTargetIdRef.current =
           view.spotlight === TutorialSpotlightKind.enemy ? pickSpotlightEnemyId(st) : null
@@ -852,7 +874,12 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
               ? st.ship.pos
               : tutView.spotlight === TutorialSpotlightKind.enemy
                 ? (st.enemies.find((e) => e.id === tutorialTargetIdRef.current)?.pos ?? null)
-                : null
+                : tutView.spotlight === TutorialSpotlightKind.metal
+                  ? (st.collectibles.find((c) => c.kind === CollectibleKind.spaceMetal)?.pos ??
+                    null)
+                  : tutView.spotlight === TutorialSpotlightKind.mine
+                    ? (st.hazards[0]?.pos ?? null)
+                    : null
           drawTutorialFocus(ctx, cameraRef.current, focus, {
             reducedMotion: reducedMotionRef.current,
             pulseClock: time / 1000,

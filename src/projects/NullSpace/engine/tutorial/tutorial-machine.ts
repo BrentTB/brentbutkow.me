@@ -22,8 +22,14 @@ export type TutorialSignals = {
   realDt: number
   clicked: boolean
   flung: boolean
-  movementKeyPressed: boolean
   powerFraction: number
+  // True once the selected ability is no longer the starting meteorite.
+  abilitySwapped: boolean
+  // True once the swapped-to ability has actually been cast.
+  swapAbilityUsed: boolean
+  // Current space metal count, and shield as a 0..1 fraction of max.
+  spaceMetal: number
+  shieldFraction: number
   // Set the frame the player presses the overlay's Next / Finish button.
   acknowledged: boolean
 }
@@ -54,8 +60,8 @@ export type TutorialView = {
 }
 
 export function createTutorialState(entry: TutorialEntry, isTouch: boolean): TutorialState {
-  const steps = TUTORIAL_STEPS.filter((s) => (isTouch ? s.appliesOnTouch !== false : true))
-  return { entry, isTouch, steps, stepIndex: 0, elapsedInStep: 0, done: false }
+  // isTouch only swaps copy (click ↔ tap); every beat applies on both.
+  return { entry, isTouch, steps: [...TUTORIAL_STEPS], stepIndex: 0, elapsedInStep: 0, done: false }
 }
 
 function stepCopy(step: TutorialStep, isTouch: boolean): string {
@@ -71,11 +77,16 @@ function isSatisfied(step: TutorialStep, elapsedInStep: number, signals: Tutoria
       return signals.clicked
     case TutorialTriggerKind.fling:
       return signals.flung
-    case TutorialTriggerKind.movementKey:
-      // The player tries the keys — or we let them off the hook after the fallback.
-      return signals.movementKeyPressed || elapsedInStep >= (step.durationSeconds ?? Infinity)
     case TutorialTriggerKind.powerLow:
       return signals.powerFraction <= POWER_LOW_FRACTION
+    case TutorialTriggerKind.abilitySwap:
+      return signals.abilitySwapped
+    case TutorialTriggerKind.swapAbilityUsed:
+      return signals.swapAbilityUsed
+    case TutorialTriggerKind.spaceMetalCollected:
+      return signals.spaceMetal >= 1
+    case TutorialTriggerKind.shieldRestored:
+      return signals.shieldFraction >= 0.99
     case TutorialTriggerKind.acknowledge:
       return signals.acknowledged
     default:

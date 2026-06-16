@@ -305,7 +305,7 @@ src/projects/NullSpace/engine/systems/
   spawner.ts                                 spawnPositionNearShip, processSpawnQueue
 
 src/projects/NullSpace/engine/tutorial/
-  demo-wave.ts                               startTutorialRun, ensureTutorialEnemy, pickSpotlightEnemyId
+  demo-wave.ts                               startTutorialRun, applyTutorialStepEnter, ensureTutorialEnemy, pickSpotlightEnemyId
   tutorial-machine.ts                        TutorialEntry, TutorialSignals, TutorialState, TutorialView, createTutorialState, advanceTutorial
   tutorial-script.ts                         TutorialTriggerKind, TutorialSpotlightKind, POWER_LOW_FRACTION, TutorialStep, TUTORIAL_STEPS
 
