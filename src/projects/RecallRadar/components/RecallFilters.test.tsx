@@ -9,6 +9,7 @@ const empty: RecallFilterValues = {
   state: '',
   company: '',
   source: '',
+  entity: '',
   search: '',
 }
 

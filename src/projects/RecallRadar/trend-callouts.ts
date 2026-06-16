@@ -1,5 +1,6 @@
 import { categoryLabels } from './data'
-import type { RecallStats } from './recall.types'
+import { AnomalyScope, isRecallCategory } from './recall.types'
+import type { Anomaly, AnomalyMonth, MonthCount, RecallStats } from './recall.types'
 import { stateGrid } from './us-state-grid'
 
 // Direction of a trend — values double as the CSS-module class names.
@@ -12,6 +13,9 @@ export type TrendCallout = {
   value: string
   detail: string
   direction?: TrendDirection
+  anomaly?: boolean
+  // Present on anomaly callouts — the window plus every flagged month, to chart when opened.
+  chart?: { series: MonthCount[]; months: AnomalyMonth[] }
 }
 
 const stateNames = new Map(stateGrid.map((tile) => [tile.code, tile.name]))
@@ -70,4 +74,31 @@ export function deriveCallouts(stats: RecallStats): TrendCallout[] {
   }
 
   return callouts
+}
+
+// Backend-detected spikes (robust z-score) → callouts, flagged so the UI marks them as anomalies.
+// Each anomaly is one "thing" with ≥1 flagged month; the headline uses its strongest month.
+export function anomalyCallouts(anomalies: Anomaly[]): TrendCallout[] {
+  return anomalies.map((anomaly) => {
+    const peak = anomaly.months.reduce((a, b) => (Math.abs(b.z) > Math.abs(a.z) ? b : a))
+    const up = peak.z > 0
+    const label =
+      anomaly.scope === AnomalyScope.category && isRecallCategory(anomaly.label)
+        ? categoryLabels[anomaly.label]
+        : anomaly.label
+    const sortedMonths = anomaly.months.map((month) => month.month).sort()
+    const detail =
+      anomaly.months.length === 1
+        ? `${up ? 'spiked' : 'dropped'} in ${peak.month} (${peak.observed} vs ~${Math.round(peak.baseline)})`
+        : `${anomaly.months.length} unusual months · latest ${sortedMonths[sortedMonths.length - 1]}`
+    return {
+      id: `anomaly-${anomaly.scope}-${anomaly.label}`,
+      label,
+      value: `${up ? '+' : ''}${peak.z}σ`,
+      detail,
+      direction: up ? TrendDirection.up : TrendDirection.down,
+      anomaly: true,
+      chart: { series: anomaly.series, months: anomaly.months },
+    }
+  })
 }

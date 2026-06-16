@@ -20,6 +20,14 @@ export function seriesMax(counts: number[]): number {
   return Math.max(...counts, 1)
 }
 
+// Median of a numeric series (the "typical" level a chart's baseline line is drawn at).
+export function median(values: number[]): number {
+  if (values.length === 0) return 0
+  const sorted = [...values].sort((a, b) => a - b)
+  const mid = Math.floor(sorted.length / 2)
+  return sorted.length % 2 === 1 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
+}
+
 // iso is 'YYYY-MM-DD' → 'Mar 1, 2026'
 export function formatDate(iso: string | null): string {
   if (!iso) return '—'

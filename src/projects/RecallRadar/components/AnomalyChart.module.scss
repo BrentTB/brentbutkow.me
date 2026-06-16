@@ -1,0 +1,49 @@
+.figure {
+  margin: 0;
+}
+
+.caption {
+  margin: 0 0 6px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.bar {
+  fill: rgba(255, 255, 255, 0.16);
+}
+
+// The flagged month — amber so it pops against the neutral baseline bars.
+.barFlagged {
+  fill: var(--accent);
+}
+
+.axis {
+  stroke: var(--border-strong);
+  stroke-width: 1;
+}
+
+.baseline {
+  stroke: var(--muted);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+.axisLabel {
+  fill: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.tickFlagged {
+  fill: var(--accent-strong);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+}

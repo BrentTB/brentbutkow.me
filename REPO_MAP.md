@@ -352,9 +352,10 @@ src/projects/NullSpace/
 src/projects/RecallRadar/
   RecallRadar.tsx                            RecallRadar
   api.ts                                     RecallFilters, buildRecallsPath
-  chart-format.ts                            formatMonthLabel, formatNumber, seriesMax, formatDate, deriveYears, monthsForYear, IngestFreshness, ingestFreshness
+  chart-format.ts                            formatMonthLabel, formatNumber, seriesMax, median, formatDate, deriveYears, monthsForYear, IngestFreshness, ingestFreshness
 
 src/projects/RecallRadar/components/
+  AnomalyChart.tsx                           AnomalyChart
   Breakdowns.tsx                             Breakdowns
   CountrySelector.tsx                        CountrySelector
   ProjectOverview.tsx                        ProjectOverview
@@ -366,9 +367,9 @@ src/projects/RecallRadar/components/
   TrendCallouts.tsx                          TrendCallouts
 
 src/projects/RecallRadar/
-  data.ts                                    recallRadarCopy, techStack, methodologyPoints, categoryLabels, sourceLabels, countryLabels, classesByCountry, sourcesByCountry, recallRadarLinks
-  recall.types.ts                            RecallCategory, RecallClass, RecallSource, RecallCountry, RecallFilterValues, Recall, RecallListResult, CategoryCount, MonthCount, LabelCount, RecallStats, isRecallCategory, isRecallClass, isRecallSource, isRecallCountry, isRecallListResult, isRecallStats
-  trend-callouts.ts                          TrendDirection, TrendCallout, deriveCallouts
+  data.ts                                    recallRadarCopy, techStack, methodologyPoints, categoryLabels, sourceLabels, countryLabels, entityTypeLabels, classesByCountry, sourcesByCountry, recallRadarLinks
+  recall.types.ts                            RecallCategory, RecallClass, RecallSource, RecallCountry, EntityType, AnomalyScope, RecallFilterValues, Recall, RecallEntity, RecallListResult, CategoryCount, MonthCount, LabelCount, EntityCount, AnomalyMonth, Anomaly, RecallStats, isRecallCategory, isRecallClass, isRecallSource, isRecallCountry, isEntityType, isRecallListResult, isRecallStats
+  trend-callouts.ts                          TrendDirection, TrendCallout, deriveCallouts, anomalyCallouts
   us-state-grid.ts                           StateTile, STATE_GRID_ROWS, STATE_GRID_COLS, stateGrid
   useRecallStats.ts                          useRecallStats
   useRecalls.ts                              useRecalls

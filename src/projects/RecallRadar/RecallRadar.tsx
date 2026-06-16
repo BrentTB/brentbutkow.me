@@ -22,7 +22,7 @@ import {
   ingestFreshness,
   monthsForYear,
 } from './chart-format'
-import { deriveCallouts } from './trend-callouts'
+import { anomalyCallouts, deriveCallouts } from './trend-callouts'
 import { RecallCountry, type RecallFilterValues } from './recall.types'
 import { useRecalls } from './useRecalls'
 import { useRecallStats } from './useRecallStats'
@@ -34,6 +34,7 @@ const EMPTY_FILTERS: RecallFilterValues = {
   state: '',
   company: '',
   source: '',
+  entity: '',
   search: '',
 }
 
@@ -59,6 +60,7 @@ export function RecallRadar() {
     state: filters.state || undefined,
     company: filters.company || undefined,
     source: filters.source || undefined,
+    entity: filters.entity || undefined,
     search: debouncedSearch.trim() || undefined,
     limit: 50,
   })
@@ -77,7 +79,10 @@ export function RecallRadar() {
   const topState = stats.data?.byState[0]
   const stateOptions = stats.data?.byState.map((entry) => entry.label) ?? []
   const companyOptions = stats.data?.byCompany.map((entry) => entry.label) ?? []
-  const callouts = stats.data ? deriveCallouts(stats.data) : []
+  // Backend-detected anomalies lead (they're the ML headline), then the descriptive summaries.
+  const callouts = stats.data
+    ? [...anomalyCallouts(stats.data.anomalies), ...deriveCallouts(stats.data)]
+    : []
 
   return (
     <PageLayout>

@@ -1,4 +1,10 @@
-import { RecallCategory, RecallClass, RecallCountry, RecallSource } from './recall.types'
+import {
+  EntityType,
+  RecallCategory,
+  RecallClass,
+  RecallCountry,
+  RecallSource,
+} from './recall.types'
 
 export const recallRadarCopy = {
   title: 'Recall Radar',
@@ -39,6 +45,8 @@ export const methodologyPoints: string[] = [
   'Data comes from the US (FDA openFDA + USDA FSIS) and the UK (Food Standards Agency), re-ingested daily via a GitHub Actions cron.',
   "Each recall's cause is predicted by a TF-IDF + logistic-regression classifier trained on its reason text; the % shown is the model's confidence.",
   'The model is weakly supervised by a keyword baseline (no human-labelled gold set), so it generalises that taxonomy rather than beating an independent ground truth.',
+  'Allergens, pathogens, and physical hazards are pulled from each reason with a curated gazetteer (the FDA/UK regulated allergen lists and named pathogens) — deterministic and fully explainable.',
+  'Trend callouts come from a robust z-score (median + MAD) over the monthly counts — a flag means a month is unusual versus its own recent history, never a forecast. We surface the most significant from the last ~2 years, newest first. A statsmodels STL decomposition validates the detector offline against seasonality.',
   'The dashboard flags when the last successful ingest is more than two days old.',
 ]
 
@@ -59,6 +67,12 @@ export const sourceLabels: Record<RecallSource, string> = {
 export const countryLabels: Record<RecallCountry, string> = {
   [RecallCountry.us]: 'United States',
   [RecallCountry.uk]: 'United Kingdom',
+}
+
+export const entityTypeLabels: Record<EntityType, string> = {
+  [EntityType.allergen]: 'Allergen',
+  [EntityType.pathogen]: 'Pathogen',
+  [EntityType.hazard]: 'Foreign material',
 }
 
 // Which classifications / sources belong to each country — drives the country-specific filters

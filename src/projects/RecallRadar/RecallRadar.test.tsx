@@ -28,6 +28,22 @@ const stats = {
     { label: 'fda', count: 30 },
     { label: 'usda', count: 12 },
   ],
+  byEntity: [
+    { type: 'allergen', label: 'peanuts', count: 20 },
+    { type: 'pathogen', label: 'Listeria', count: 8 },
+  ],
+  anomalies: [
+    {
+      scope: 'entity',
+      label: 'Listeria',
+      months: [{ month: '2026-06', observed: 22, baseline: 6, z: 3.5 }],
+      series: [
+        { month: '2026-04', count: 6 },
+        { month: '2026-05', count: 7 },
+        { month: '2026-06', count: 22 },
+      ],
+    },
+  ],
   lastIngestAt: '2026-06-13T08:00:00.000Z',
 }
 
@@ -49,6 +65,7 @@ const recalls = {
       reportDate: '2026-06-10',
       category: 'allergen',
       categoryConfidence: 1,
+      entities: [{ type: 'allergen', value: 'peanuts' }],
     },
   ],
   total: 1,
@@ -95,5 +112,9 @@ describe('RecallRadar page', () => {
     expect(screen.getAllByText('Globex Foods').length).toBeGreaterThan(0)
     expect(screen.getByText('By source')).toBeTruthy() // FDA / USDA breakdown
     expect(screen.getByText('42')).toBeTruthy()
+    // entity leaderboard + a detected anomaly callout
+    expect(screen.getByText('Top allergens')).toBeTruthy()
+    expect(screen.getByText('Anomaly')).toBeTruthy()
+    expect(screen.getByText('+3.5σ')).toBeTruthy()
   })
 })

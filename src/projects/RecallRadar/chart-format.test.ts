@@ -5,11 +5,18 @@ import {
   formatMonthLabel,
   formatNumber,
   ingestFreshness,
+  median,
   monthsForYear,
   seriesMax,
 } from './chart-format'
 
 describe('chart-format', () => {
+  it('median handles odd, even, and empty series', () => {
+    expect(median([5, 1, 3])).toBe(3) // odd → middle of sorted
+    expect(median([1, 2, 3, 4])).toBe(2.5) // even → mean of middle two
+    expect(median([])).toBe(0)
+  })
+
   it('formats a YYYY-MM month label', () => {
     expect(formatMonthLabel('2026-03')).toBe('Mar 2026')
   })

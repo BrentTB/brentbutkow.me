@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { deriveCallouts } from './trend-callouts'
-import type { RecallStats } from './recall.types'
+import { anomalyCallouts, deriveCallouts } from './trend-callouts'
+import type { Anomaly, RecallStats } from './recall.types'
 
 const baseStats: RecallStats = {
   total: 100,
@@ -25,6 +25,8 @@ const baseStats: RecallStats = {
   ],
   byCompany: [],
   bySource: [],
+  byEntity: [],
+  anomalies: [],
   lastIngestAt: null,
 }
 
@@ -73,5 +75,80 @@ describe('deriveCallouts', () => {
     const volume = deriveCallouts(shuffled).find((c) => c.id === 'volume')
     expect(volume?.value).toBe('+50%')
     expect(volume?.direction).toBe('up')
+  })
+})
+
+describe('anomalyCallouts', () => {
+  it('maps backend anomalies to flagged callouts with sign + direction', () => {
+    const series = [
+      { month: '2026-01', count: 8 },
+      { month: '2026-02', count: 9 },
+      { month: '2026-03', count: 40 },
+    ]
+    const anomalies: Anomaly[] = [
+      {
+        scope: 'entity',
+        label: 'Listeria',
+        months: [{ month: '2026-03', observed: 40, baseline: 8, z: 3.4 }],
+        series,
+      },
+      {
+        scope: 'category',
+        label: 'allergen',
+        months: [{ month: '2026-02', observed: 5, baseline: 20, z: -3.1 }],
+        series,
+      },
+      {
+        scope: 'overall',
+        label: 'All recalls',
+        months: [{ month: '2026-01', observed: 60, baseline: 30, z: 3 }],
+        series,
+      },
+    ]
+    const callouts = anomalyCallouts(anomalies)
+    expect(callouts).toHaveLength(3)
+
+    expect(callouts[0].anomaly).toBe(true)
+    expect(callouts[0].value).toBe('+3.4σ')
+    expect(callouts[0].direction).toBe('up')
+    expect(callouts[0].label).toBe('Listeria')
+    expect(callouts[0].detail).toContain('spiked in 2026-03')
+    // the chart payload rides along on the callout
+    expect(callouts[0].chart?.months).toHaveLength(1)
+    expect(callouts[0].chart?.series).toHaveLength(3)
+
+    expect(callouts[1].value).toBe('-3.1σ')
+    expect(callouts[1].direction).toBe('down')
+    expect(callouts[1].label).toBe('Undeclared allergen') // category value → label
+    expect(callouts[1].detail).toContain('dropped in 2026-02')
+
+    expect(callouts[2].label).toBe('All recalls')
+  })
+
+  it('consolidates several flagged months into one callout, headlined by the strongest', () => {
+    const series = [
+      { month: '2025-03', count: 10 },
+      { month: '2026-05', count: 16 },
+    ]
+    const anomalies: Anomaly[] = [
+      {
+        scope: 'entity',
+        label: 'Clostridium botulinum',
+        months: [
+          { month: '2025-03', observed: 10, baseline: 2, z: 26.8 },
+          { month: '2026-05', observed: 16, baseline: 6, z: 20.9 },
+        ],
+        series,
+      },
+    ]
+    const [callout] = anomalyCallouts(anomalies)
+    expect(callout.value).toBe('+26.8σ') // peak |z|
+    expect(callout.detail).toContain('2 unusual months')
+    expect(callout.detail).toContain('latest 2026-05')
+    expect(callout.chart?.months).toHaveLength(2)
+  })
+
+  it('returns nothing for no anomalies', () => {
+    expect(anomalyCallouts([])).toEqual([])
   })
 })

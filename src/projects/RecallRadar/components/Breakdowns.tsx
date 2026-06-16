@@ -1,6 +1,6 @@
 import { categoryLabels, sourceLabels } from '../data'
 import { formatNumber, seriesMax } from '../chart-format'
-import { isRecallCategory, isRecallClass, isRecallSource } from '../recall.types'
+import { EntityType, isRecallCategory, isRecallClass, isRecallSource } from '../recall.types'
 import type { RecallFilterValues, RecallStats } from '../recall.types'
 import styles from './Breakdowns.module.scss'
 
@@ -56,6 +56,14 @@ type BreakdownsProps = {
 }
 
 export function Breakdowns({ stats, filters, onSelect }: BreakdownsProps) {
+  const entityRows = (type: EntityType): Row[] =>
+    stats.byEntity
+      .filter((entry) => entry.type === type)
+      .slice(0, 15)
+      .map((entry) => ({ label: entry.label, value: entry.label, count: entry.count }))
+  const allergenRows = entityRows(EntityType.allergen)
+  const pathogenRows = entityRows(EntityType.pathogen)
+
   return (
     <div className={styles.grid}>
       <BreakdownList
@@ -96,6 +104,23 @@ export function Breakdowns({ stats, filters, onSelect }: BreakdownsProps) {
         onSelect={(value) => onSelect({ company: value })}
         rows={stats.byCompany.map((c) => ({ label: c.label, value: c.label, count: c.count }))}
       />
+      {/* Entities extracted from the recall reason — click to filter. Hidden when none found. */}
+      {allergenRows.length > 0 && (
+        <BreakdownList
+          title="Top allergens"
+          activeValue={filters.entity}
+          onSelect={(value) => onSelect({ entity: value })}
+          rows={allergenRows}
+        />
+      )}
+      {pathogenRows.length > 0 && (
+        <BreakdownList
+          title="Top pathogens"
+          activeValue={filters.entity}
+          onSelect={(value) => onSelect({ entity: value })}
+          rows={pathogenRows}
+        />
+      )}
       {/* One source (UK) → nothing to break down; hidden there. */}
       {stats.bySource.length > 1 && (
         <BreakdownList

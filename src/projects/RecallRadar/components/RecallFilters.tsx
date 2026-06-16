@@ -38,6 +38,7 @@ export function RecallFilters({
     filters.state ||
     filters.company ||
     filters.source ||
+    filters.entity ||
     filters.search.trim()
   )
 
