@@ -8,8 +8,11 @@ function signals(over: Partial<TutorialSignals> = {}): TutorialSignals {
     realDt: 0,
     clicked: false,
     flung: false,
-    movementKeyPressed: false,
     powerFraction: 1,
+    abilitySwapped: false,
+    swapAbilityUsed: false,
+    spaceMetal: 0,
+    shieldFraction: 1,
     acknowledged: false,
     ...over,
   }
@@ -31,21 +34,10 @@ function currentId(state: TutorialState): string {
 }
 
 describe('createTutorialState', () => {
-  it('keeps the keyboard-only steps on desktop', () => {
-    const state = createTutorialState(TutorialEntry.firstPlay, false)
-    const ids = state.steps.map((s) => s.id)
-    expect(ids).toContain('tryControls')
-    expect(ids).toContain('controlsRejected')
-  })
-
-  it('drops the keyboard-only steps on touch', () => {
-    const state = createTutorialState(TutorialEntry.firstPlay, true)
-    const ids = state.steps.map((s) => s.id)
-    expect(ids).not.toContain('tryControls')
-    expect(ids).not.toContain('controlsRejected')
-    expect(state.steps.length).toBe(
-      createTutorialState(TutorialEntry.firstPlay, false).steps.length - 2
-    )
+  it('uses the same beats on touch and desktop (only the copy differs)', () => {
+    const desktop = createTutorialState(TutorialEntry.firstPlay, false).steps.map((s) => s.id)
+    const touch = createTutorialState(TutorialEntry.firstPlay, true).steps.map((s) => s.id)
+    expect(touch).toEqual(desktop)
   })
 
   it('starts at the intro, not done', () => {
@@ -58,7 +50,7 @@ describe('createTutorialState', () => {
 describe('advanceTutorial — triggers', () => {
   it('advances a time beat once its duration elapses', () => {
     const { state } = advanceTutorial(at(0), signals({ realDt: 2.8 }))
-    expect(currentId(state)).toBe('tryControls')
+    expect(currentId(state)).toBe('attackPrompt')
   })
 
   it('does not advance a time beat before its duration', () => {
@@ -67,26 +59,13 @@ describe('advanceTutorial — triggers', () => {
     expect(view.copy).toContain('on its own')
   })
 
-  it('advances the controls beat when a movement key is pressed', () => {
-    const { state } = advanceTutorial(
-      atId('tryControls'),
-      signals({ realDt: 0.1, movementKeyPressed: true })
-    )
-    expect(currentId(state)).toBe('controlsRejected')
-  })
-
-  it('advances the controls beat on the no-stuck fallback even without a key', () => {
-    const { state } = advanceTutorial(atId('tryControls'), signals({ realDt: 4 }))
-    expect(currentId(state)).toBe('controlsRejected')
-  })
-
   it('advances an acknowledge beat only on a button press', () => {
-    const stay = advanceTutorial(atId('controlsRejected'), signals({ realDt: 5 }))
-    expect(currentId(stay.state)).toBe('controlsRejected')
+    const stay = advanceTutorial(atId('mineWarning'), signals({ realDt: 5 }))
+    expect(currentId(stay.state)).toBe('mineWarning')
     expect(stay.awaitingAck).toBe(true)
     expect(stay.ackLabel).toBe('Next')
-    const { state } = advanceTutorial(atId('controlsRejected'), signals({ acknowledged: true }))
-    expect(currentId(state)).toBe('attackPrompt')
+    const { state } = advanceTutorial(atId('mineWarning'), signals({ acknowledged: true }))
+    expect(currentId(state)).toBe('outro')
   })
 
   it('advances the attack beat on a click and freezes until then', () => {
@@ -113,6 +92,34 @@ describe('advanceTutorial — triggers', () => {
       signals({ powerFraction: POWER_LOW_FRACTION })
     )
     expect(currentId(state)).toBe('powerRecharge')
+  })
+
+  it('advances the swap beat when a different ability is selected', () => {
+    const stay = advanceTutorial(atId('swapAbility'), signals({ abilitySwapped: false }))
+    expect(currentId(stay.state)).toBe('swapAbility')
+    const { state } = advanceTutorial(atId('swapAbility'), signals({ abilitySwapped: true }))
+    expect(currentId(state)).toBe('useBlackHole')
+  })
+
+  it('advances the use-ability beat once the swapped ability is cast', () => {
+    const stay = advanceTutorial(atId('useBlackHole'), signals({ swapAbilityUsed: false }))
+    expect(currentId(stay.state)).toBe('useBlackHole')
+    const { state } = advanceTutorial(atId('useBlackHole'), signals({ swapAbilityUsed: true }))
+    expect(currentId(state)).toBe('collectMetal')
+  })
+
+  it('advances the collect beat once space metal is picked up', () => {
+    const stay = advanceTutorial(atId('collectMetal'), signals({ spaceMetal: 0 }))
+    expect(currentId(stay.state)).toBe('collectMetal')
+    const { state } = advanceTutorial(atId('collectMetal'), signals({ spaceMetal: 1 }))
+    expect(currentId(state)).toBe('shieldRefresh')
+  })
+
+  it('advances the shield beat once the shield is restored', () => {
+    const stay = advanceTutorial(atId('shieldRefresh'), signals({ shieldFraction: 0 }))
+    expect(currentId(stay.state)).toBe('shieldRefresh')
+    const { state } = advanceTutorial(atId('shieldRefresh'), signals({ shieldFraction: 1 }))
+    expect(currentId(state)).toBe('mineWarning')
   })
 })
 

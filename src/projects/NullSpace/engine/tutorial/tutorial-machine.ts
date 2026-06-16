@@ -16,14 +16,20 @@ export const TutorialEntry = {
 export type TutorialEntry = (typeof TutorialEntry)[keyof typeof TutorialEntry]
 
 // Per-frame inputs the machine reads. `realDt` is wall-clock seconds — NOT the
-// simulation dt, which is forced to 0 while a beat is frozen. Timers and the
-// no-stuck fallback run on real time so they keep ticking during a freeze.
+// simulation dt, which is forced to 0 while a beat is frozen. Timers run on real
+// time so they keep ticking during a freeze.
 export type TutorialSignals = {
   realDt: number
   clicked: boolean
   flung: boolean
-  movementKeyPressed: boolean
   powerFraction: number
+  // True once the selected ability is no longer the starting meteorite.
+  abilitySwapped: boolean
+  // True once the swapped-to ability has actually been cast.
+  swapAbilityUsed: boolean
+  // Current space metal count, and shield as a 0..1 fraction of max.
+  spaceMetal: number
+  shieldFraction: number
   // Set the frame the player presses the overlay's Next / Finish button.
   acknowledged: boolean
 }
@@ -31,7 +37,7 @@ export type TutorialSignals = {
 export type TutorialState = {
   entry: TutorialEntry
   isTouch: boolean
-  // Steps already filtered for the device (keyboard-only steps dropped on touch).
+  // Full ordered script; only the copy differs by device.
   steps: TutorialStep[]
   stepIndex: number
   elapsedInStep: number
@@ -54,8 +60,8 @@ export type TutorialView = {
 }
 
 export function createTutorialState(entry: TutorialEntry, isTouch: boolean): TutorialState {
-  const steps = TUTORIAL_STEPS.filter((s) => (isTouch ? s.appliesOnTouch !== false : true))
-  return { entry, isTouch, steps, stepIndex: 0, elapsedInStep: 0, done: false }
+  // isTouch only swaps copy (click ↔ tap); every beat applies on both.
+  return { entry, isTouch, steps: [...TUTORIAL_STEPS], stepIndex: 0, elapsedInStep: 0, done: false }
 }
 
 function stepCopy(step: TutorialStep, isTouch: boolean): string {
@@ -71,11 +77,16 @@ function isSatisfied(step: TutorialStep, elapsedInStep: number, signals: Tutoria
       return signals.clicked
     case TutorialTriggerKind.fling:
       return signals.flung
-    case TutorialTriggerKind.movementKey:
-      // The player tries the keys — or we let them off the hook after the fallback.
-      return signals.movementKeyPressed || elapsedInStep >= (step.durationSeconds ?? Infinity)
     case TutorialTriggerKind.powerLow:
       return signals.powerFraction <= POWER_LOW_FRACTION
+    case TutorialTriggerKind.abilitySwap:
+      return signals.abilitySwapped
+    case TutorialTriggerKind.swapAbilityUsed:
+      return signals.swapAbilityUsed
+    case TutorialTriggerKind.spaceMetalCollected:
+      return signals.spaceMetal >= 1
+    case TutorialTriggerKind.shieldRestored:
+      return signals.shieldFraction >= 0.99
     case TutorialTriggerKind.acknowledge:
       return signals.acknowledged
     default:

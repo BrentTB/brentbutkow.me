@@ -400,6 +400,18 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.26.1',
+    date: '2026-06-16',
+    changes: {
+      features: [
+        'The guided tutorial now teaches the full toolkit: swap to the Black Hole and cast it, scoop up space metal to refresh your shield, and steer clear of mines.',
+      ],
+      ui: [
+        'Tutorial prompts adapt for touch (tap) versus desktop (click); the manual-steering (WASD) step is gone — the ship flies itself.',
+      ],
+    },
+  },
+  {
     version: '0.26.0',
     date: '2026-06-14',
     changes: {

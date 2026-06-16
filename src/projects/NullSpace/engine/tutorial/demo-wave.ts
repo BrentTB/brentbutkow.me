@@ -1,13 +1,22 @@
-import { startGame } from '../game-loop'
-import { createEnemy } from '../entities/entity-creator'
-import { EnemyKind, MovementBehavior, ShipKind } from '../types'
-import type { Enemy, GameState, Vec2 } from '../types'
+import { devUnlockWeapon, startGame } from '../game-loop'
+import { createEnemy, uid } from '../entities/entity-creator'
+import { HAZARD } from '../../data'
+import {
+  AbilityKind,
+  CollectibleKind,
+  EnemyKind,
+  HazardKind,
+  MovementBehavior,
+  ShipKind,
+} from '../types'
+import type { Collectible, Enemy, GameState, Hazard, Vec2 } from '../types'
 import { toroidalDelta, wrapPosition } from '../math/toroid'
+import type { TutorialStep } from './tutorial-script'
 
-// Power pool for the tutorial — far below a real run (100/1000) so a couple of
+// Power pool for the tutorial — far below a real run (100/1000) so a few
 // meteorite casts (8 power each) visibly drain the bar for the "power runs low"
-// beat, and the refill is quick enough to watch.
-const TUTORIAL_POWER = 24
+// beat. Sized to also cover one Black Hole (30) when the use-it beat refills it.
+const TUTORIAL_POWER = 32
 
 // Target drones placed ahead of the ship. damage 0 so the ship can never die
 // mid-tutorial; speed 0 so they hold position and stay predictable. HP high
@@ -50,7 +59,9 @@ function aheadOfShip(state: GameState, along: number, side: number): Vec2 {
 // wave-complete check in updateGameState can never fire and end the tutorial
 // early; the tutorial machine controls when it ends.
 export function startTutorialRun(state: GameState): GameState {
-  const base = startGame(state, ShipKind.fighter)
+  // Unlock a second ability so the swap beat has something to switch to (it
+  // takes hotkey 2 / the next toolbar slot).
+  const base = devUnlockWeapon(startGame(state, ShipKind.fighter), AbilityKind.blackHole)
   const enemies = [
     demoDrone(aheadOfShip(base, 200, -90), DEMO_DRONE_HP),
     demoDrone(aheadOfShip(base, 240, 0), DEMO_DRONE_HP),
@@ -67,6 +78,55 @@ export function startTutorialRun(state: GameState): GameState {
     power: TUTORIAL_POWER,
     maxPower: TUTORIAL_POWER,
   }
+}
+
+function tutorialSpaceMetal(pos: Vec2): Collectible {
+  return {
+    id: uid(),
+    kind: CollectibleKind.spaceMetal,
+    pos,
+    vel: { x: 0, y: 0 },
+    value: 1,
+    elapsed: 0,
+    lifetime: 999, // persists until the player collects it during the beat
+    homing: false,
+  }
+}
+
+function tutorialMine(pos: Vec2): Hazard {
+  return {
+    id: uid(),
+    kind: HazardKind.mine,
+    pos,
+    radius: HAZARD.mineRadius,
+    damage: HAZARD.mineDamage,
+    hitCooldown: 0,
+  }
+}
+
+// One-shot setup applied when a beat opens (the caller fires it once per step
+// transition; the guards also make it safe to re-run): drop a space metal pickup
+// ahead, break the shield so the refresh beat has something to restore, or place
+// a mine to point out. Frozen beats keep the ship off the mine.
+export function applyTutorialStepEnter(state: GameState, step: TutorialStep): GameState {
+  let next = state
+  if (step.spawnsMetal && !next.collectibles.some((c) => c.kind === CollectibleKind.spaceMetal)) {
+    next = {
+      ...next,
+      collectibles: [...next.collectibles, tutorialSpaceMetal(aheadOfShip(next, 110, 0))],
+    }
+  }
+  if (step.breaksShield) {
+    // shieldCooldownRemaining parks regen so the bar stays empty until refreshed.
+    next = { ...next, ship: { ...next.ship, shield: 0, shieldCooldownRemaining: 9999 } }
+  }
+  if (step.spawnsMine && next.hazards.length === 0) {
+    next = { ...next, hazards: [...next.hazards, tutorialMine(aheadOfShip(next, 180, 70))] }
+  }
+  if (step.refillsPower) {
+    next = { ...next, power: next.maxPower }
+  }
+  return next
 }
 
 // Keeps a target on screen for the beats that need one: if the ship's own fire
