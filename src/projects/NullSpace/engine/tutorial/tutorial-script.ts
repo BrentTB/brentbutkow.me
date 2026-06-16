@@ -47,8 +47,7 @@ export type TutorialStep = {
   // Whether the simulation is frozen (dt forced to 0) while this beat shows.
   freeze: boolean
   copyDesktop: string
-  // Touch copy — keyboard-only steps are dropped on touch (appliesOnTouch), so
-  // their touch copy is empty.
+  // Touch copy — shown on touch devices in place of copyDesktop.
   copyTouch: string
   // For `time` beats: seconds before advancing.
   durationSeconds?: number

@@ -10,6 +10,7 @@ import { createRef } from 'react'
 import { createAbilities } from './engine/entities/entity-creator'
 import { BOSS_KINDS } from './engine/bosses/index'
 import { AbilityKind, GamePhase, ShipKind } from './engine/types'
+import { TutorialEntry } from './engine/tutorial/tutorial-machine'
 import { WEAPON_ORDER } from './data'
 
 describe('useNullSpace', () => {
@@ -267,6 +268,8 @@ describe('useNullSpace — slingshot', () => {
     const step = (t: number) => act(() => frame?.(t))
     const pointer = (target: EventTarget, type: string, x: number, y: number) =>
       target.dispatchEvent(new MouseEvent(type, { clientX: x, clientY: y }))
+    const key = (k: string) =>
+      act(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: k })))
 
     const startPlaying = (result: { current: ReturnType<typeof useNullSpace> }) => {
       act(() => result.current.handleStart())
@@ -356,6 +359,26 @@ describe('useNullSpace — slingshot', () => {
       const { enemiesAlive, totalWaveEnemies } = result.current.uiState
       expect(enemiesAlive).toBeGreaterThan(0)
       expect(enemiesAlive).toBeLessThanOrEqual(totalWaveEnemies)
+    })
+
+    // Regression: keyDown's tutorial branch swallows keys by default — only the
+    // beats that teach swap/shield-refresh let hotkeys through. The intro beat
+    // teaches neither, so an ability hotkey must not change selection even though
+    // startTutorialRun unlocks Black Hole (so '2' would select it in normal play).
+    // Also guards the removal of the old WASD movement-key special-casing: a
+    // movement key is now an inert no-op, not a handled input.
+    it('swallows ability and movement keys on a tutorial beat that teaches neither', () => {
+      const canvasRef = { current: canvas }
+      const { result } = renderHook(() => useNullSpace(canvasRef))
+      act(() => result.current.handleStartTutorial(TutorialEntry.replay))
+      step(0)
+      expect(result.current.uiState.selectedAbility).toBe(AbilityKind.meteorite)
+
+      key('2') // Black Hole hotkey — unlocked for the tutorial, but not yet taught
+      expect(result.current.uiState.selectedAbility).toBe(AbilityKind.meteorite)
+
+      key('w') // old movement key — must do nothing and not crash
+      expect(result.current.uiState.selectedAbility).toBe(AbilityKind.meteorite)
     })
   })
 })

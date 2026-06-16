@@ -400,15 +400,27 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.26.1',
+    date: '2026-06-16',
+    changes: {
+      features: [
+        'The guided tutorial now teaches the full toolkit: swap to the Black Hole and cast it, scoop up space metal to refresh your shield, and steer clear of mines.',
+      ],
+      ui: [
+        'Tutorial prompts adapt for touch (tap) versus desktop (click); the manual-steering (WASD) step is gone — the ship flies itself.',
+      ],
+    },
+  },
+  {
     version: '0.26.0',
     date: '2026-06-14',
     changes: {
       features: [
-        'New players get a guided tutorial the first time they start a game: a demo wave that pauses to teach the thing everyone misses — your ship flies and fights on its own, while you click to attack, fling the ship with the slingshot, swap abilities, scoop up space metal to refresh your shield, and steer clear of mines.',
+        'New players get a guided tutorial the first time they start a game: a demo wave that pauses to teach the thing everyone misses — your ship flies and fights on its own, and YOU attack independently by clicking, and can fling the ship with a slingshot.',
         'Replay the tutorial any time from the "How to Play" button on the start menu or the in-game Help screen.',
       ],
       ui: [
-        'The tutorial spotlights what to do — dimming the scene and ringing the ship or the enemy to hit — and adapts its prompts for touch (tap) versus desktop (click).',
+        'The tutorial spotlights what to do — dimming the scene and ringing the ship or the enemy to hit — and adapts its prompts for touch (tap) versus desktop (click / WASD).',
         'Ship selection now shows a Guns stat: 1 for most ships, 3 for the Carrier.',
       ],
       fixes: [

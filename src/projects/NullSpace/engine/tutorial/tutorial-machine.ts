@@ -16,8 +16,8 @@ export const TutorialEntry = {
 export type TutorialEntry = (typeof TutorialEntry)[keyof typeof TutorialEntry]
 
 // Per-frame inputs the machine reads. `realDt` is wall-clock seconds — NOT the
-// simulation dt, which is forced to 0 while a beat is frozen. Timers and the
-// no-stuck fallback run on real time so they keep ticking during a freeze.
+// simulation dt, which is forced to 0 while a beat is frozen. Timers run on real
+// time so they keep ticking during a freeze.
 export type TutorialSignals = {
   realDt: number
   clicked: boolean
@@ -37,7 +37,7 @@ export type TutorialSignals = {
 export type TutorialState = {
   entry: TutorialEntry
   isTouch: boolean
-  // Steps already filtered for the device (keyboard-only steps dropped on touch).
+  // Full ordered script; only the copy differs by device.
   steps: TutorialStep[]
   stepIndex: number
   elapsedInStep: number
