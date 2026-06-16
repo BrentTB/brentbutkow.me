@@ -37,15 +37,15 @@ describe('deriveCallouts', () => {
     const volume = callouts.find((c) => c.id === 'volume')
     expect(volume?.value).toBe('+50%') // (60 - 40) / 40
     expect(volume?.direction).toBe('up')
-    expect(volume?.detail).toBe('over the last 3 months vs the prior 3 months')
+    expect(volume?.caption).toBe('over the last 3 months vs the prior 3 months')
 
     const cause = callouts.find((c) => c.id === 'cause')
     expect(cause?.value).toBe('60%')
-    expect(cause?.label).toBe('Undeclared allergen')
+    expect(cause?.title).toBe('Undeclared allergen')
 
     const state = callouts.find((c) => c.id === 'state')
     expect(state?.value).toBe('25%')
-    expect(state?.label).toBe('California') // mapped from the CA code
+    expect(state?.title).toBe('California') // mapped from the CA code
   })
 
   it('marks a falling volume trend as down', () => {
@@ -109,20 +109,21 @@ describe('anomalyCallouts', () => {
     expect(callouts).toHaveLength(3)
 
     expect(callouts[0].anomaly).toBe(true)
-    expect(callouts[0].value).toBe('+3.4σ')
+    expect(callouts[0].value).toBe('40') // peak observed count, no σ jargon
     expect(callouts[0].direction).toBe('up')
-    expect(callouts[0].label).toBe('Listeria')
-    expect(callouts[0].detail).toContain('spiked in 2026-03')
+    expect(callouts[0].title).toBe('Listeria')
+    expect(callouts[0].caption).toContain('Mar 2026')
+    expect(callouts[0].caption).toContain('normally ~8/mo')
     // the chart payload rides along on the callout
     expect(callouts[0].chart?.months).toHaveLength(1)
     expect(callouts[0].chart?.series).toHaveLength(3)
 
-    expect(callouts[1].value).toBe('-3.1σ')
-    expect(callouts[1].direction).toBe('down')
-    expect(callouts[1].label).toBe('Undeclared allergen') // category value → label
-    expect(callouts[1].detail).toContain('dropped in 2026-02')
+    expect(callouts[1].value).toBe('5')
+    expect(callouts[1].direction).toBe('down') // 5 vs a typical ~20
+    expect(callouts[1].title).toBe('Undeclared allergen') // category value → label
+    expect(callouts[1].caption).toContain('normally ~20/mo')
 
-    expect(callouts[2].label).toBe('All recalls')
+    expect(callouts[2].title).toBe('All recalls')
   })
 
   it('consolidates several flagged months into one callout, headlined by the strongest', () => {
@@ -142,9 +143,9 @@ describe('anomalyCallouts', () => {
       },
     ]
     const [callout] = anomalyCallouts(anomalies)
-    expect(callout.value).toBe('+26.8σ') // peak |z|
-    expect(callout.detail).toContain('2 unusual months')
-    expect(callout.detail).toContain('latest 2026-05')
+    expect(callout.value).toBe('16') // biggest flagged month's count
+    expect(callout.caption).toContain('2 unusual months')
+    expect(callout.caption).toContain('latest May 2026')
     expect(callout.chart?.months).toHaveLength(2)
   })
 

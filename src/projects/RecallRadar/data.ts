@@ -4,6 +4,9 @@ import {
   RecallClass,
   RecallCountry,
   RecallSource,
+  TrendGroup,
+  isRecallCategory,
+  isRecallSource,
 } from './recall.types'
 
 export const recallRadarCopy = {
@@ -73,6 +76,34 @@ export const entityTypeLabels: Record<EntityType, string> = {
   [EntityType.allergen]: 'Allergen',
   [EntityType.pathogen]: 'Pathogen',
   [EntityType.hazard]: 'Foreign material',
+}
+
+export const trendGroupLabels: Record<TrendGroup, string> = {
+  [TrendGroup.total]: 'Total',
+  [TrendGroup.category]: 'By cause',
+  [TrendGroup.source]: 'By source',
+}
+
+// Muted, warm-leaning palette for stacked trend segments — harmonises with the amber/dark theme.
+const TREND_PALETTE = ['#e9b872', '#e57373', '#8fb0c9', '#9fbf9f', '#c2a0b8', '#8d8a82']
+const CATEGORY_COLORS: Record<RecallCategory, string> = {
+  [RecallCategory.allergen]: '#e9b872',
+  [RecallCategory.pathogen]: '#e57373',
+  [RecallCategory.foreignMaterial]: '#8fb0c9',
+  [RecallCategory.mislabeling]: '#9fbf9f',
+  [RecallCategory.other]: '#8d8a82',
+}
+const SOURCE_COLORS: Record<RecallSource, string> = {
+  [RecallSource.fda]: '#e9b872',
+  [RecallSource.usda]: '#8fb0c9',
+  [RecallSource.uk]: '#9fbf9f',
+}
+
+export function trendColor(group: TrendGroup, key: string, index: number): string {
+  if (group === TrendGroup.category && isRecallCategory(key)) return CATEGORY_COLORS[key]
+  if (group === TrendGroup.source && isRecallSource(key)) return SOURCE_COLORS[key]
+  if (group === TrendGroup.total) return '#e9b872'
+  return TREND_PALETTE[index % TREND_PALETTE.length]
 }
 
 // Which classifications / sources belong to each country — drives the country-specific filters

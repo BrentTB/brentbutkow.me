@@ -46,6 +46,13 @@ export const AnomalyScope = {
 } as const
 export type AnomalyScope = (typeof AnomalyScope)[keyof typeof AnomalyScope]
 
+export const TrendGroup = {
+  total: 'total',
+  category: 'category',
+  source: 'source',
+} as const
+export type TrendGroup = (typeof TrendGroup)[keyof typeof TrendGroup]
+
 // UI filter state — '' means "no filter".
 export type RecallFilterValues = {
   category: RecallCategory | ''
@@ -113,6 +120,11 @@ export type RecallStats = {
   lastIngestAt: string | null
 }
 
+// Long-format monthly counts for the groupable trend chart. group is a category/source value,
+// or 'total' when ungrouped.
+export type TrendBucket = { month: string; group: string; count: number }
+export type TrendResult = { group: TrendGroup; buckets: TrendBucket[] }
+
 // Runtime guards for untrusted backend payloads — validate the shapes the UI reads
 // rather than casting (mirrors `isJokeType`).
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -135,6 +147,22 @@ export const isRecallCountry = (value: string): value is RecallCountry =>
 
 export const isEntityType = (value: string): value is EntityType =>
   (Object.values(EntityType) as string[]).includes(value)
+
+export const isTrendGroup = (value: string): value is TrendGroup =>
+  (Object.values(TrendGroup) as string[]).includes(value)
+
+const isTrendBucket = (value: unknown): value is TrendBucket =>
+  isRecord(value) &&
+  typeof value.month === 'string' &&
+  typeof value.group === 'string' &&
+  typeof value.count === 'number'
+
+export const isTrendResult = (value: unknown): value is TrendResult =>
+  isRecord(value) &&
+  typeof value.group === 'string' &&
+  isTrendGroup(value.group) &&
+  Array.isArray(value.buckets) &&
+  value.buckets.every(isTrendBucket)
 
 const isLabelCount = (value: unknown): value is LabelCount =>
   isRecord(value) && typeof value.label === 'string' && typeof value.count === 'number'

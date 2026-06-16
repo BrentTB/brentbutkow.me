@@ -14,18 +14,15 @@ import { RecallMap } from './components/RecallMap'
 import { RecallTrendsChart } from './components/RecallTrendsChart'
 import { StatCard } from './components/StatCard'
 import { TrendCallouts } from './components/TrendCallouts'
-import { categoryLabels, methodologyPoints, recallRadarCopy, recallRadarLinks } from './data'
-import {
-  deriveYears,
-  formatDate,
-  formatNumber,
-  ingestFreshness,
-  monthsForYear,
-} from './chart-format'
+import { Select, type SelectOption } from '../../components/inputs/Select'
+import { categoryLabels, recallRadarCopy, recallRadarLinks, trendGroupLabels } from './data'
+import { deriveYears, formatDate, formatNumber, ingestFreshness } from './chart-format'
 import { anomalyCallouts, deriveCallouts } from './trend-callouts'
-import { RecallCountry, type RecallFilterValues } from './recall.types'
+import { toChartMonths } from './trend-chart'
+import { RecallCountry, TrendGroup, isTrendGroup, type RecallFilterValues } from './recall.types'
 import { useRecalls } from './useRecalls'
 import { useRecallStats } from './useRecallStats'
+import { useRecallTrend } from './useRecallTrend'
 import styles from './RecallRadar.module.scss'
 
 const EMPTY_FILTERS: RecallFilterValues = {
@@ -43,6 +40,7 @@ export function RecallRadar() {
   const [country, setCountry] = useState<RecallCountry>(RecallCountry.us)
   const [filters, setFilters] = useState<RecallFilterValues>(EMPTY_FILTERS)
   const [year, setYear] = useState<number | null>(null)
+  const [group, setGroup] = useState<TrendGroup>(TrendGroup.category)
   const debouncedSearch = useDebouncedValue(filters.search, 500)
 
   // Switching country is a fresh view — reset filters + year so US selections don't leak into UK.
@@ -53,6 +51,7 @@ export function RecallRadar() {
   }
 
   const stats = useRecallStats(country)
+  const trend = useRecallTrend(country, group)
   const recalls = useRecalls({
     country,
     category: filters.category || undefined,
@@ -72,7 +71,12 @@ export function RecallRadar() {
   // Clamp to an available year — a stale `year` from a prior dataset would orphan the <select>.
   const fallbackYear = years[0] ?? new Date().getFullYear()
   const selectedYear = year !== null && years.includes(year) ? year : fallbackYear
-  const monthSeries = stats.data ? monthsForYear(stats.data.byMonth, selectedYear) : []
+  const chart = trend.data ? toChartMonths(trend.data, selectedYear) : { months: [], legend: [] }
+  // Source grouping is intentionally omitted for now — only Total + By cause are offered.
+  const groupOptions: SelectOption[] = [TrendGroup.total, TrendGroup.category].map((value) => ({
+    value,
+    label: trendGroupLabels[value],
+  }))
   const freshness = stats.data ? ingestFreshness(stats.data.lastIngestAt, new Date()) : null
 
   const topCategory = stats.data?.byCategory.slice().sort((a, b) => b.count - a.count)[0]
@@ -136,25 +140,28 @@ export function RecallRadar() {
       <section className={styles.section}>
         <div className={styles.sectionHead}>
           <h2 className={styles.sectionTitle}>Recalls per month</h2>
-          {years.length > 0 && (
-            <label className={styles.yearSelect}>
-              <span className={styles.srOnly}>Year</span>
-              <select
-                value={selectedYear}
-                onChange={(event) => setYear(Number(event.target.value))}
-              >
-                {years.map((value) => (
-                  <option key={value} value={value}>
-                    {value}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
+          <div className={styles.controls}>
+            <Select
+              ariaLabel="Group by"
+              value={group}
+              options={groupOptions}
+              onChange={(value) => setGroup(isTrendGroup(value) ? value : TrendGroup.total)}
+            />
+            {years.length > 0 && (
+              <Select
+                ariaLabel="Year"
+                value={String(selectedYear)}
+                options={years.map((value) => ({ value: String(value), label: String(value) }))}
+                onChange={(value) => setYear(Number(value))}
+              />
+            )}
+          </div>
         </div>
-        {stats.loading && <p className={styles.status}>Loading trend…</p>}
-        {stats.error && <p className={styles.status}>Couldn’t load trend data.</p>}
-        {stats.data && <RecallTrendsChart data={monthSeries} year={selectedYear} />}
+        {trend.loading && <p className={styles.status}>Loading trend…</p>}
+        {trend.error && <p className={styles.status}>Couldn’t load trend data.</p>}
+        {trend.data && (
+          <RecallTrendsChart data={chart.months} year={selectedYear} legend={chart.legend} />
+        )}
       </section>
 
       {stats.data && country === RecallCountry.us && (
@@ -194,23 +201,11 @@ export function RecallRadar() {
         {recalls.data && <RecallFeed recalls={recalls.data.items} />}
       </section>
 
-      <section className={styles.section}>
-        <details className={styles.methodologyDetails}>
-          <summary>How this works</summary>
-          <ul>
-            {methodologyPoints.map((point) => (
-              <li key={point}>{point}</li>
-            ))}
-          </ul>
-        </details>
-      </section>
-
       <div id="tech-stack">
         <ProjectOverview />
       </div>
 
       <footer className={styles.footer}>
-        <p className={styles.methodology}>{recallRadarCopy.methodology}</p>
         <ul className={styles.links}>
           {recallRadarLinks.map((link) => (
             <li key={link.href}>

@@ -13,16 +13,19 @@ type BreakdownListProps = {
   onSelect: (value: string) => void
 }
 
+const MAX_ROWS = 6
+
 function BreakdownList({ title, rows, activeValue, onSelect }: BreakdownListProps) {
-  const max = seriesMax(rows.map((row) => row.count))
+  const shown = rows.slice(0, MAX_ROWS)
+  const max = seriesMax(shown.map((row) => row.count))
   return (
-    <div className={styles.list}>
+    <div className={styles.card}>
       <h3 className={styles.title}>{title}</h3>
-      {rows.length === 0 ? (
+      {shown.length === 0 ? (
         <p className={styles.empty}>No data.</p>
       ) : (
         <ul className={styles.rows}>
-          {rows.map((row) => {
+          {shown.map((row) => {
             const active = row.value === activeValue
             return (
               <li key={row.value}>
@@ -93,9 +96,7 @@ export function Breakdowns({ stats, filters, onSelect }: BreakdownsProps) {
           title="Top states"
           activeValue={filters.state}
           onSelect={(value) => onSelect({ state: value })}
-          rows={stats.byState
-            .slice(0, 15)
-            .map((c) => ({ label: c.label, value: c.label, count: c.count }))}
+          rows={stats.byState.map((c) => ({ label: c.label, value: c.label, count: c.count }))}
         />
       )}
       <BreakdownList

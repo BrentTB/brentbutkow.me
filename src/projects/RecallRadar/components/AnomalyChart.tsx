@@ -1,5 +1,7 @@
+import { useRef, useState, type MouseEvent } from 'react'
 import { formatMonthLabel, formatNumber, median, seriesMax } from '../chart-format'
 import type { AnomalyMonth, MonthCount } from '../recall.types'
+import { ChartTooltip, type TooltipState } from './ChartTooltip'
 import styles from './AnomalyChart.module.scss'
 
 type AnomalyChartProps = {
@@ -19,10 +21,17 @@ function tick(month: string): string {
 }
 
 export function AnomalyChart({ series, months, label }: AnomalyChartProps) {
+  const figureRef = useRef<HTMLElement>(null)
+  const [tip, setTip] = useState<TooltipState>(null)
+
   if (series.length === 0) return null
 
+  const showTip = (text: string) => (event: MouseEvent) => {
+    const rect = figureRef.current?.getBoundingClientRect()
+    if (rect) setTip({ text, x: event.clientX - rect.left, y: event.clientY - rect.top })
+  }
+
   const flagged = new Set(months.map((month) => month.month))
-  const zByMonth = new Map(months.map((month) => [month.month, month.z]))
   // Reference line = the typical (median) monthly level over the window, so the spikes stand out.
   const baseline = median(series.map((entry) => entry.count))
 
@@ -34,7 +43,7 @@ export function AnomalyChart({ series, months, label }: AnomalyChartProps) {
   const baselineY = PADDING.top + plotH - (baseline / maxCount) * plotH
 
   return (
-    <figure className={styles.figure}>
+    <figure className={styles.figure} ref={figureRef}>
       <figcaption className={styles.caption}>
         Typical ~{formatNumber(Math.round(baseline))}/month (dashed line); flagged months in amber.
       </figcaption>
@@ -85,12 +94,7 @@ export function AnomalyChart({ series, months, label }: AnomalyChartProps) {
           // Evenly-spaced reference ticks only — the amber bars + tooltips already mark the spikes,
           // so we don't add a tick per flagged month (which would collide with these).
           const showLabel = index % 4 === 0
-          const z = zByMonth.get(entry.month)
-          const title = isFlagged
-            ? `${formatMonthLabel(entry.month)}: ${formatNumber(entry.count)} (${
-                z && z > 0 ? '+' : ''
-              }${z}σ)`
-            : `${formatMonthLabel(entry.month)}: ${formatNumber(entry.count)}`
+          const text = `${formatMonthLabel(entry.month)}: ${formatNumber(entry.count)}`
           return (
             <g key={entry.month}>
               <rect
@@ -100,9 +104,11 @@ export function AnomalyChart({ series, months, label }: AnomalyChartProps) {
                 height={barH}
                 rx={2}
                 className={isFlagged ? styles.barFlagged : styles.bar}
-              >
-                <title>{title}</title>
-              </rect>
+                aria-label={text}
+                onMouseEnter={showTip(text)}
+                onMouseMove={showTip(text)}
+                onMouseLeave={() => setTip(null)}
+              />
               {showLabel && (
                 <text
                   x={x + barW / 2}
@@ -117,6 +123,8 @@ export function AnomalyChart({ series, months, label }: AnomalyChartProps) {
           )
         })}
       </svg>
+
+      <ChartTooltip tip={tip} />
     </figure>
   )
 }

@@ -5,9 +5,10 @@ import { TrendDirection, type TrendCallout } from '../trend-callouts'
 
 const anomaly: TrendCallout = {
   id: 'a1',
-  label: 'Listeria',
-  value: '+3.4σ',
-  detail: 'spiked in 2025-03',
+  eyebrow: 'Anomaly',
+  value: '40',
+  title: 'Listeria',
+  caption: 'Mar 2025 · normally ~6/mo',
   direction: TrendDirection.up,
   anomaly: true,
   chart: {
@@ -20,7 +21,13 @@ const anomaly: TrendCallout = {
   },
 }
 
-const plain: TrendCallout = { id: 'c1', label: 'Pathogen', value: '40%', detail: 'leading cause' }
+const plain: TrendCallout = {
+  id: 'c1',
+  eyebrow: 'Leading cause',
+  value: '40%',
+  title: 'Pathogen',
+  caption: 'of all recalls',
+}
 
 describe('TrendCallouts', () => {
   afterEach(cleanup)

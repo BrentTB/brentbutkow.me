@@ -1,17 +1,48 @@
 .overview {
   margin: 24px 0 8px;
-  padding: 22px 24px;
+  padding: 24px 26px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
 }
 
 .about {
-  margin: 0 0 20px;
+  margin: 0;
   max-width: 72ch;
   color: var(--text-secondary);
   font-size: 0.98rem;
   line-height: 1.65;
+}
+
+.block {
+  margin-top: 26px;
+  padding-top: 22px;
+  border-top: 1px solid var(--border);
+}
+
+.area {
+  margin: 0 0 14px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+}
+
+.points {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 80ch;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.points li::marker {
+  color: var(--muted);
 }
 
 .stack {
@@ -20,12 +51,11 @@
   gap: 20px;
 }
 
-.area {
+.subArea {
   margin: 0 0 10px;
   font-family: var(--font-mono);
   font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.04em;
   color: var(--muted);
 }
 

@@ -1,6 +1,7 @@
 .figure {
   margin: 0;
   width: 100%;
+  position: relative;
 }
 
 .svg {
@@ -9,13 +10,37 @@
   display: block;
 }
 
-.bar {
-  fill: var(--accent);
-  transition: fill 0.15s ease;
+.seg {
+  transition: opacity 0.15s ease;
 }
 
-.bar:hover {
-  fill: var(--accent-strong);
+.seg:hover {
+  opacity: 0.82;
+}
+
+.legend {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.swatch {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  display: inline-block;
 }
 
 .axis {

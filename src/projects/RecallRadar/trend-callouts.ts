@@ -1,3 +1,4 @@
+import { formatMonthLabel, formatNumber } from './chart-format'
 import { categoryLabels } from './data'
 import { AnomalyScope, isRecallCategory } from './recall.types'
 import type { Anomaly, AnomalyMonth, MonthCount, RecallStats } from './recall.types'
@@ -7,11 +8,14 @@ import { stateGrid } from './us-state-grid'
 export const TrendDirection = { up: 'up', down: 'down', flat: 'flat' } as const
 export type TrendDirection = (typeof TrendDirection)[keyof typeof TrendDirection]
 
+// A headline card: eyebrow (what it measures) · value (the number) · title (the subject) · caption.
+// The shared shape lets descriptive insights and detected anomalies render through one component.
 export type TrendCallout = {
   id: string
-  label: string
+  eyebrow: string
   value: string
-  detail: string
+  title?: string
+  caption: string
   direction?: TrendDirection
   anomaly?: boolean
   // Present on anomaly callouts — the window plus every flagged month, to chart when opened.
@@ -42,9 +46,9 @@ export function deriveCallouts(stats: RecallStats): TrendCallout[] {
       const span = window === 1 ? 'month' : `${window} months`
       callouts.push({
         id: 'volume',
-        label: 'Recall volume',
+        eyebrow: 'Recall volume',
         value: `${change > 0 ? '+' : ''}${change}%`,
-        detail: `over the last ${span} vs the prior ${span}`,
+        caption: `over the last ${span} vs the prior ${span}`,
         direction:
           change > 0 ? TrendDirection.up : change < 0 ? TrendDirection.down : TrendDirection.flat,
       })
@@ -56,9 +60,10 @@ export function deriveCallouts(stats: RecallStats): TrendCallout[] {
   if (topCause && stats.total > 0) {
     callouts.push({
       id: 'cause',
-      label: categoryLabels[topCause.category],
+      eyebrow: 'Leading cause',
       value: `${share(topCause.count, stats.total)}%`,
-      detail: 'the leading cause of recalls',
+      title: categoryLabels[topCause.category],
+      caption: 'of all recalls',
     })
   }
 
@@ -67,9 +72,10 @@ export function deriveCallouts(stats: RecallStats): TrendCallout[] {
   if (topState && stats.total > 0) {
     callouts.push({
       id: 'state',
-      label: stateNames.get(topState.label) ?? topState.label,
+      eyebrow: 'Top state',
       value: `${share(topState.count, stats.total)}%`,
-      detail: 'of recalls come from one state',
+      title: stateNames.get(topState.label) ?? topState.label,
+      caption: 'of US recalls',
     })
   }
 
@@ -77,25 +83,29 @@ export function deriveCallouts(stats: RecallStats): TrendCallout[] {
 }
 
 // Backend-detected spikes (robust z-score) → callouts, flagged so the UI marks them as anomalies.
-// Each anomaly is one "thing" with ≥1 flagged month; the headline uses its strongest month.
+// Each anomaly is one "thing" with ≥1 flagged month; the headline uses its strongest month, and
+// states the magnitude in plain language (count vs the typical monthly level) — no z-score jargon.
 export function anomalyCallouts(anomalies: Anomaly[]): TrendCallout[] {
   return anomalies.map((anomaly) => {
-    const peak = anomaly.months.reduce((a, b) => (Math.abs(b.z) > Math.abs(a.z) ? b : a))
-    const up = peak.z > 0
-    const label =
+    // Headline the biggest month and whether it's above/below the typical level — no z-score jargon.
+    const peak = anomaly.months.reduce((a, b) => (b.observed > a.observed ? b : a))
+    const up = peak.observed >= peak.baseline
+    const title =
       anomaly.scope === AnomalyScope.category && isRecallCategory(anomaly.label)
         ? categoryLabels[anomaly.label]
         : anomaly.label
     const sortedMonths = anomaly.months.map((month) => month.month).sort()
-    const detail =
+    const latest = sortedMonths[sortedMonths.length - 1] ?? peak.month
+    const caption =
       anomaly.months.length === 1
-        ? `${up ? 'spiked' : 'dropped'} in ${peak.month} (${peak.observed} vs ~${Math.round(peak.baseline)})`
-        : `${anomaly.months.length} unusual months · latest ${sortedMonths[sortedMonths.length - 1]}`
+        ? `${formatMonthLabel(peak.month)} · normally ~${Math.round(peak.baseline)}/mo`
+        : `${anomaly.months.length} unusual months · latest ${formatMonthLabel(latest)}`
     return {
       id: `anomaly-${anomaly.scope}-${anomaly.label}`,
-      label,
-      value: `${up ? '+' : ''}${peak.z}σ`,
-      detail,
+      eyebrow: 'Anomaly',
+      value: formatNumber(peak.observed),
+      title,
+      caption,
       direction: up ? TrendDirection.up : TrendDirection.down,
       anomaly: true,
       chart: { series: anomaly.series, months: anomaly.months },

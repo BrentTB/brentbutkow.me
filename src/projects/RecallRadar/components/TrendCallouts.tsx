@@ -17,19 +17,17 @@ type TrendCalloutsProps = {
 function CardBody({ callout, open }: { callout: TrendCallout; open?: boolean }) {
   return (
     <>
-      {callout.anomaly && (
-        <span className={styles.tag}>
-          Anomaly
-          {callout.chart && (
-            <span
-              aria-hidden="true"
-              className={`${styles.chevron} ${open ? styles.chevronOpen : ''}`}
-            >
-              ▾
-            </span>
-          )}
-        </span>
-      )}
+      <span className={styles.eyebrow}>
+        {callout.eyebrow}
+        {callout.chart && (
+          <span
+            aria-hidden="true"
+            className={`${styles.chevron} ${open ? styles.chevronOpen : ''}`}
+          >
+            ▾
+          </span>
+        )}
+      </span>
       <span className={`${styles.value} ${callout.direction ? styles[callout.direction] : ''}`}>
         {callout.direction && (
           <span aria-hidden="true" className={styles.arrow}>
@@ -38,8 +36,8 @@ function CardBody({ callout, open }: { callout: TrendCallout; open?: boolean }) 
         )}
         {callout.value}
       </span>
-      <span className={styles.label}>{callout.label}</span>
-      <span className={styles.detail}>{callout.detail}</span>
+      {callout.title && <span className={styles.title}>{callout.title}</span>}
+      <span className={styles.caption}>{callout.caption}</span>
     </>
   )
 }
@@ -72,7 +70,7 @@ export function TrendCallouts({ callouts }: TrendCalloutsProps) {
                   <CardBody callout={callout} open={isOpen} />
                 </button>
               ) : (
-                <div className={`${styles.card} ${callout.anomaly ? styles.anomaly : ''}`}>
+                <div className={styles.card}>
                   <CardBody callout={callout} />
                 </div>
               )}
@@ -84,7 +82,9 @@ export function TrendCallouts({ callouts }: TrendCalloutsProps) {
       {open?.chart && (
         <div className={styles.chartPanel} id="anomaly-chart">
           <div className={styles.chartHead}>
-            <span className={styles.chartTitle}>{open.label} — recalls per month</span>
+            <span className={styles.chartTitle}>
+              {open.title ?? open.eyebrow} — recalls per month
+            </span>
             <button
               type="button"
               className={styles.close}
@@ -94,7 +94,11 @@ export function TrendCallouts({ callouts }: TrendCalloutsProps) {
               ×
             </button>
           </div>
-          <AnomalyChart series={open.chart.series} months={open.chart.months} label={open.label} />
+          <AnomalyChart
+            series={open.chart.series}
+            months={open.chart.months}
+            label={open.title ?? ''}
+          />
         </div>
       )}
     </>
