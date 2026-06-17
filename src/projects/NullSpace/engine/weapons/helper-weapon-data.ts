@@ -4,10 +4,10 @@
 import { PROJECTILE_SPEED } from '../../data'
 
 export const BULLET = {
-  // Multiplier applied to ship.fireRate for this weapon's cooldown
+  // Multiplier applied to the firing ally's fireRate for this weapon's cooldown
   // (1 = unchanged, 0.15 = much slower).
   fireRateMultiplier: 1,
-  // Multiplier on ship.damage before tier bonuses apply.
+  // Multiplier on the ally's base damage.
   damageMultiplier: 1,
   // Straight-line projectile speed reuse.
   speed: PROJECTILE_SPEED,

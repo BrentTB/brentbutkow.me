@@ -21,21 +21,20 @@ export const ShipKind = {
   fighter: 'fighter',
   interceptor: 'interceptor',
   dreadnought: 'dreadnought',
-  carrier: 'carrier',
 } as const
 export type ShipKind = (typeof ShipKind)[keyof typeof ShipKind]
 
-// The ship's auto-attack weapon. Bullet is the default every ship starts with;
-// the rest are bought and equipped in the shop. Defined here (not in
-// engine/ship/) so Ship can reference it without a types→ship import cycle.
-export const ShipWeaponKind = {
+// A weapon a helper (ally) can be armed with. Bullet is the default; the rest
+// are unlocked via the Helper shop and rolled onto summoned allies. Defined here
+// (not in engine/weapons/) so Ally can reference it without a types→weapons cycle.
+export const HelperWeaponKind = {
   bullet: 'bullet',
   laser: 'laser',
   missile: 'missile',
   ricochet: 'ricochet',
   nuke: 'nuke',
 } as const
-export type ShipWeaponKind = (typeof ShipWeaponKind)[keyof typeof ShipWeaponKind]
+export type HelperWeaponKind = (typeof HelperWeaponKind)[keyof typeof HelperWeaponKind]
 
 export const EscapeModePhase = {
   charge: 'charge',
@@ -51,13 +50,7 @@ export type EscapeModeState = {
 
 export type Ship = Entity & {
   kind: ShipKind
-  fireRate: number
-  // One cooldown per weapon slot — different equipped weapons fire on their
-  // own cadence. Length equals weaponSlots.
-  fireCooldowns: number[]
-  damage: number
   speed: number
-  attackRange: number
   // Seconds left in the post-fling window where the resumed forward-drift still
   // inherits the fling heading (eases back to forward) instead of snapping. 0 = pure drift.
   driftMomentum: number
@@ -70,10 +63,6 @@ export type Ship = Entity & {
   // HP regenerated per second. 0 by default; the Life Regeneration power upgrade
   // raises it. Heals up to maxHp while alive.
   hpRegen: number
-  weaponSlots: number
-  // The weapon equipped in each slot. Length equals weaponSlots. Carrier
-  // (weaponSlots=3) holds 3 distinct weapons; everything else holds one.
-  equippedWeapons: ShipWeaponKind[]
   // Cached last non-zero movement direction (unit vector). Falls back to {1,0}
   // at game start. Used by Escape Mode to dash when the ship is stationary.
   lastHeading: Vec2
@@ -95,12 +84,9 @@ export type Ship = Entity & {
   // below the re-engage threshold.
   slingHeat: number
   slingOverheated: boolean
-  // Cosmetic timers (seconds, count down to 0) — render-only, never touch the
-  // simulation. hitFlash washes the sprite white on damage, recoil nudges it
-  // back when firing, muzzleFlash[i] blips the muzzle of weapon slot i.
+  // Cosmetic timer (seconds, counts down to 0) — render-only, never touches the
+  // simulation. hitFlash washes the sprite white on damage.
   hitFlash: number
-  recoil: number
-  muzzleFlash: number[]
 }
 
 export const EnemyKind = {
@@ -109,6 +95,7 @@ export const EnemyKind = {
   shooter: 'shooter',
   swarm: 'swarm',
   bomber: 'bomber',
+  dasher: 'dasher',
   dreadnought: 'dreadnought',
   shieldGenerator: 'shieldGenerator',
   voidWorm: 'voidWorm',
@@ -134,6 +121,9 @@ export const MovementBehavior = {
   stationary: 'stationary',
   // Pursues the target until within `attackRange`, then holds position.
   approach: 'approach',
+  // Telegraphed charger: approach → windup tell → locked straight-line lunge →
+  // recover. Per-enemy cycle state lives on Enemy.dasher.
+  dash: 'dash',
   // The boss tick owns position and velocity; the movement system leaves the
   // enemy untouched (unlike `stationary`, which zeroes vel each frame).
   none: 'none',
@@ -156,6 +146,23 @@ export type BurningState = {
   duration: number
   dps: number
   spreadRange: number
+}
+
+// Dasher attack cycle. The stage timer counts DOWN; `heading` is the lunge
+// direction, locked at the windup→charge transition so the charge commits to a
+// straight line the player dodges. Present only on dasher enemies.
+export const DashStage = {
+  approach: 'approach',
+  windup: 'windup',
+  charge: 'charge',
+  recover: 'recover',
+} as const
+export type DashStage = (typeof DashStage)[keyof typeof DashStage]
+
+export type DasherState = {
+  stage: DashStage
+  stageTimer: number
+  heading: Vec2
 }
 
 export type Enemy = Entity & {
@@ -181,6 +188,8 @@ export type Enemy = Entity & {
   // Present only on shield-modifier enemies — a player-style absorb-first pool
   // that regenerates after a cooldown. Damage routes through applyDamageToEnemy.
   enemyShield?: { shield: number; maxShield: number; regen: number; cooldownRemaining: number }
+  // Dasher charge cycle (absent on other kinds). Drives the windup→lunge tell.
+  dasher?: DasherState
   // Cosmetic timers (seconds) — render-only. hitFlash washes white on damage,
   // fireFlash blips the muzzle on a shot, spawnIn counts DOWN from the warp-in
   // grow (0 = fully materialised). Movement/collision ignore them.
@@ -203,8 +212,8 @@ export type Projectile = Entity & {
   // Visual-only: render as a laser beam (segment prevPos→pos) instead of a
   // sprite. Player lasers render as beams via `pierce`; enemy lasers set this.
   beam?: boolean
-  // Optional behavior tags written by ship-weapon createProjectiles. A plain
-  // bullet leaves them undefined and takes the unchanged collision path.
+  // Optional behavior tags written by helper-weapon createProjectiles. A plain
+  // bullet leaves them undefined and takes the default collision path.
   pierce?: { maxHits: number; hitEnemyIds: string[] }
   homing?: boolean
   bounce?: {
@@ -471,6 +480,9 @@ export type Ally = {
   fireRate: number
   fireCooldown: number
   damage: number
+  // The helper weapon this ally fires, rolled at spawn from the player's unlocked
+  // ally weapons (bullet by default). Reuses the helper-weapon definitions.
+  weapon: HelperWeaponKind
   speed: number
   attackRange: number
   // Time alive — drives orbit-phase drift so allies fan around the ship.
@@ -527,8 +539,11 @@ export type GamePhase = (typeof GamePhase)[keyof typeof GamePhase]
 export const UpgradeCategory = {
   weapons: 'weapons',
   ship: 'ship',
-  loadout: 'loadout',
   powers: 'powers',
+  // Ally-weapon (loadout) upgrades. Allies wield these; no shop tab renders this
+  // category (CATEGORY_ORDER is weapons/ship/powers) — the unlocks surface on the
+  // Helper ability's upgrade page instead.
+  loadout: 'loadout',
 } as const
 export type UpgradeCategory = (typeof UpgradeCategory)[keyof typeof UpgradeCategory]
 
@@ -541,7 +556,7 @@ export type UpgradeDefinition = {
   id: UpgradeId
   category: UpgradeCategory
   /** For weapon/loadout upgrades, which weapon this belongs to */
-  weapon?: AbilityKind | ShipWeaponKind
+  weapon?: AbilityKind | HelperWeaponKind
   label: string
   description: string
   tiers: UpgradeTier[]
@@ -603,6 +618,9 @@ export type GameState = {
   spawnTimer: number
   totalWaveEnemies: number
   spawnedInWave: number
+  // Seconds since the current wave's enemies began spawning. Drives soft
+  // stall-escalation (enemies speed up the longer a wave drags). Reset per wave.
+  waveElapsed: number
   // Per-ability runtime state for hold abilities. Keyed by AbilityKind. Each
   // entry tracks {active, timer, target}. Inactive abilities are simply absent.
   holdStates: Partial<Record<AbilityKind, HoldRuntimeState>>
@@ -610,9 +628,9 @@ export type GameState = {
   // screen. Buying any one clears the array — the player gets one unlock per
   // level-up at most. Empty between upgrade screens.
   levelUpWeaponOffers: AbilityKind[]
-  // Ship-weapon kinds the player has purchased this run. Starts with bullet;
-  // every successful ship-weapon unlock pushes its kind here. Resets per run.
-  unlockedWeapons: ShipWeaponKind[]
+  // Helper-weapon kinds the player has unlocked this run. Starts with bullet;
+  // every successful helper-weapon unlock pushes its kind here. Resets per run.
+  unlockedWeapons: HelperWeaponKind[]
   // Ultimate ability kinds purchased this run. Drives the escalating shard cost
   // (N = ultimatesOwned.length + 1) and replaces the base in the hotbar/shop.
   // Resets per run.

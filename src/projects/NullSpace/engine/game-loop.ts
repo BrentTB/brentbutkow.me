@@ -45,11 +45,10 @@ import {
   tickEscapeMode,
   tickFling,
   tickSlingHeat,
-  updateShipAttack,
   updateShipDrift,
 } from './entities/ship'
 import { updateEnemyMovement, updateEnemyShooting } from './entities/enemy'
-import { updateAllies } from './entities/ally'
+import { rollAllyWeapon, updateAllies } from './entities/ally'
 import {
   resolveDeathEffects,
   resolveEnemyAllyMeleeCollisions,
@@ -76,20 +75,21 @@ import {
 } from './upgrades'
 import { purchaseUltimate } from './ultimates'
 import { getWave, getWaveDelay, isBossWave } from './world/waves'
+import { waveSpeedEscalation } from './world/wave-escalation'
 import { generateHazardField, updateHazards } from './systems/hazards'
 import { advanceBossSelection, createBossSelection } from './bosses/boss-selection'
 import { updateBossAI } from './bosses/boss-ai'
 import { loadHighScore, saveHighScore } from './world/persistence'
 import { rng } from './math/random'
 import { toroidalDelta, wrapPosition } from './math/toroid'
-import { getShipWeaponForUnlockUpgrade, SHIP_WEAPON_LIST } from './ship'
-import { CollectibleKind, GamePhase, ShipKind, ShipWeaponKind } from './types'
+import { getHelperWeaponForUnlockUpgrade, HELPER_WEAPON_LIST } from './weapons'
+import { CollectibleKind, GamePhase, ShipKind, HelperWeaponKind } from './types'
 import type { AbilityKind, GameState, PlayerInput, Vec2 } from './types'
 import type { UpgradeId } from './upgrade-ids'
 
 // Weapons a fresh run starts with — derived from each weapon's startsUnlocked
 // flag so the registry stays the single source of truth.
-const INITIAL_UNLOCKED_WEAPONS: ShipWeaponKind[] = SHIP_WEAPON_LIST.filter(
+const INITIAL_UNLOCKED_WEAPONS: HelperWeaponKind[] = HELPER_WEAPON_LIST.filter(
   (d) => d.startsUnlocked
 ).map((d) => d.kind)
 
@@ -131,6 +131,7 @@ export function createInitialState(): GameState {
     spawnTimer: 0,
     totalWaveEnemies: 0,
     spawnedInWave: 0,
+    waveElapsed: 0,
     holdStates: {},
     levelUpWeaponOffers: [],
     unlockedWeapons: [...INITIAL_UNLOCKED_WEAPONS],
@@ -197,6 +198,7 @@ export function startGame(state: GameState, shipKind: ShipKind): GameState {
     spawnTimer: 0,
     totalWaveEnemies: 0,
     spawnedInWave: 0,
+    waveElapsed: 0,
     highScore: loadHighScore(),
     isNewHighScore: false,
     holdStates: {},
@@ -282,6 +284,7 @@ function beginWave(state: GameState): GameState {
     spawnTimer: 0,
     totalWaveEnemies: queue.length,
     spawnedInWave: 0,
+    waveElapsed: 0,
     bossSelection: bossWave ? advanceBossSelection(state.bossSelection) : state.bossSelection,
   }
 }
@@ -298,7 +301,7 @@ export function applyUpgradeToState(state: GameState, upgradeId: UpgradeId): Gam
     applyUpgradesToAbilities(state.abilities, upgrades),
     state.ultimatesOwned
   )
-  let ship = applyUpgradesToShip(state.ship, upgrades)
+  const ship = applyUpgradesToShip(state.ship, upgrades)
   const powerRegen = applyUpgradesToPowerRegen(POWER_DEFAULTS.regenRate, upgrades)
 
   // Whichever weapon-unlock the player bought clears both offers — they only
@@ -309,30 +312,13 @@ export function applyUpgradeToState(state: GameState, upgradeId: UpgradeId): Gam
       ? []
       : state.levelUpWeaponOffers
 
-  // Ship-weapon unlock purchase: append the kind to unlockedWeapons so the
-  // Loadout shop tab and equip handler can offer it, then auto-equip where it
-  // makes sense:
-  //  - Single-slot ships: always equip the newest weapon (only one slot).
-  //  - Carrier (multi-slot): drop it into the first still-default (bullet) slot.
-  //    Once every slot holds a non-default weapon, leave it for the player to
-  //    slot manually rather than evicting one of their choices.
-  const purchasedShipWeapon = getShipWeaponForUnlockUpgrade(upgradeId)
+  // Ally-weapon unlock purchase: append the kind to unlockedWeapons so summoned
+  // allies can roll it at spawn (see rollAllyWeapon). Ships don't equip weapons.
+  const purchasedHelperWeapon = getHelperWeaponForUnlockUpgrade(upgradeId)
   const unlockedWeapons =
-    purchasedShipWeapon && !state.unlockedWeapons.includes(purchasedShipWeapon)
-      ? [...state.unlockedWeapons, purchasedShipWeapon]
+    purchasedHelperWeapon && !state.unlockedWeapons.includes(purchasedHelperWeapon)
+      ? [...state.unlockedWeapons, purchasedHelperWeapon]
       : state.unlockedWeapons
-  if (purchasedShipWeapon) {
-    if (ship.weaponSlots === 1) {
-      ship = { ...ship, equippedWeapons: [purchasedShipWeapon] }
-    } else {
-      const bulletSlot = ship.equippedWeapons.indexOf(ShipWeaponKind.bullet)
-      if (bulletSlot !== -1) {
-        const next = [...ship.equippedWeapons]
-        next[bulletSlot] = purchasedShipWeapon
-        ship = { ...ship, equippedWeapons: next }
-      }
-    }
-  }
 
   return {
     ...state,
@@ -344,34 +330,6 @@ export function applyUpgradeToState(state: GameState, upgradeId: UpgradeId): Gam
     levelUpWeaponOffers,
     unlockedWeapons,
   }
-}
-
-// Equip a ship weapon to a slot. Validates the kind is unlocked and the slot
-// is in range. For the Carrier (multi-slot), enforces distinctness across
-// slots — if `kind` is already equipped in another slot, that other slot is
-// swapped to whatever was at `slotIndex` (a swap, not a duplicate).
-export function equipShipWeapon(
-  state: GameState,
-  slotIndex: number,
-  kind: ShipWeaponKind
-): GameState {
-  if (slotIndex < 0 || slotIndex >= state.ship.weaponSlots) return state
-  if (!state.unlockedWeapons.includes(kind)) return state
-
-  const current = state.ship.equippedWeapons
-  const previousAtSlot = current[slotIndex]
-  if (previousAtSlot === kind) return state
-
-  const next = [...current]
-  next[slotIndex] = kind
-  const duplicate = next.findIndex((k, i) => i !== slotIndex && k === kind)
-  if (duplicate !== -1) {
-    // Swap: send whatever was here over to the duplicate slot so the loadout
-    // stays unique without forcing the player to manually reshuffle.
-    next[duplicate] = previousAtSlot
-  }
-
-  return { ...state, ship: { ...state.ship, equippedWeapons: next } }
 }
 
 // Buys the ultimate for `baseKind` (deducts stardust + space metal + shards),
@@ -447,6 +405,9 @@ export function beginWarp(state: GameState): GameState {
     spaceMetal,
     singularityShard,
     enemies: [],
+    // Helpers (and the helper factory) don't follow the ship through the warp —
+    // each sector starts with no allies, so a fresh squad can't be banked.
+    allies: [],
     projectiles: [],
     activeEffects: [],
     collectibles: [],
@@ -601,6 +562,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     spawnQueue,
     spawnTimer,
     spawnedInWave,
+    waveElapsed,
   } = state
   let { waveTimer } = state
   const { maxPower, powerRegen } = state
@@ -638,6 +600,11 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   enemies = spawnResult.enemies
   spawnedInWave = spawnResult.spawnedInWave
 
+  // Soft stall-escalation: time-since-wave-start drives a rising enemy-speed
+  // multiplier, so parking and letting enemies trail the ship forever gets worse.
+  waveElapsed = waveElapsed + dt
+  const waveSpeedMult = waveSpeedEscalation(waveElapsed)
+
   // --- Boss AI (onSpawn + phase advance + drone spawning + self-motion) ---
   const bossResult = updateBossAI(enemies, dt, { shipPos: ship.pos, worldSize: state.worldSize })
   enemies = bossResult.enemies
@@ -663,7 +630,14 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   )
   abilities = abilityResult.abilities
   activeEffects = [...activeEffects, ...abilityResult.newEffects]
-  allies = [...allies, ...abilityResult.newAllies]
+  // Each freshly-summoned ally rolls a weapon from the player's unlocked pool.
+  allies = [
+    ...allies,
+    ...abilityResult.newAllies.map((a) => ({
+      ...a,
+      weapon: rollAllyWeapon(state.unlockedWeapons),
+    })),
+  ]
   power -= abilityResult.powerSpent
 
   // --- Active effects (meteor strikes, black holes, rockets, shield, sun) ---
@@ -722,10 +696,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     }
   }
 
-  // --- Ship auto-attack ---
-  const attackResult = updateShipAttack(ship, enemies, projectiles, dt, state.upgrades)
-  ship = attackResult.ship
-  projectiles = attackResult.projectiles
+  // Ship has no weapons — all damage comes from player abilities and allies.
 
   // --- Enemy shooting (targets nearest of ship or ally) ---
   const enemyFireResult = updateEnemyShooting(enemies, ship, allies, projectiles, dt)
@@ -733,7 +704,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   projectiles = enemyFireResult.projectiles
 
   // --- Enemy movement (pursues nearest of ship or ally) ---
-  enemies = updateEnemyMovement(enemies, ship, allies, dt)
+  enemies = updateEnemyMovement(enemies, ship, allies, dt, waveSpeedMult)
   // Shields block new entries — bounce non-grandfathered enemies back to the
   // boundary after they've moved this frame. Force fields also burn on contact.
   const shieldResult = applyShieldConstraints(activeEffects, enemies, dt)
@@ -743,7 +714,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   particles = [...particles, ...shieldResult.particles]
 
   // --- Ally update (movement + shooting) ---
-  const allyResult = updateAllies(allies, enemies, ship, projectiles, dt)
+  const allyResult = updateAllies(allies, enemies, ship, projectiles, dt, state.unlockedWeapons)
   allies = allyResult.allies
   projectiles = allyResult.projectiles
 
@@ -1001,6 +972,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       spawnQueue,
       spawnTimer,
       spawnedInWave,
+      waveElapsed,
       holdStates: {},
       escapeTrailAccumulator,
     }
@@ -1029,6 +1001,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       spawnQueue,
       spawnTimer,
       spawnedInWave,
+      waveElapsed,
       holdStates: {},
       hazards,
       escapeTrailAccumulator,
@@ -1058,6 +1031,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     spawnQueue,
     spawnTimer,
     spawnedInWave,
+    waveElapsed,
     holdStates,
     hazards,
     escapeTrailAccumulator,

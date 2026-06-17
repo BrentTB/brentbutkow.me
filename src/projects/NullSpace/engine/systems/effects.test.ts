@@ -385,7 +385,7 @@ describe('updateActiveEffects', () => {
   // growDuration, then linearly shrinks back to 0 over the remainder.
   describe('nuclearWaste', () => {
     it('damages enemies inside its peak radius at full extent', async () => {
-      const { createNuclearWasteEffect } = await import('../ship/nuke')
+      const { createNuclearWasteEffect } = await import('../weapons/nuke')
       // Grow phase 0.4s → past 0.5s elapsed it's at full peakRadius.
       const waste = createNuclearWasteEffect({ x: 0, y: 0 }, 100, 5, 4, 0.4)
       // Run a couple ticks to reach peak.
@@ -405,7 +405,7 @@ describe('updateActiveEffects', () => {
 
     it('does not damage enemies outside the current radius (grow then shrink)', async () => {
       const { createNuclearWasteEffect, getNuclearWasteCurrentRadius } =
-        await import('../ship/nuke')
+        await import('../weapons/nuke')
       const waste = createNuclearWasteEffect({ x: 0, y: 0 }, 100, 5, 4, 0.5)
       // At elapsed=0 the radius is 0, so even an enemy at the center isn't
       // damaged by the very first tick of the very first frame (radius below the enemy).
@@ -423,7 +423,7 @@ describe('updateActiveEffects', () => {
     })
 
     it('does not damage enemies outside its full radius', async () => {
-      const { createNuclearWasteEffect } = await import('../ship/nuke')
+      const { createNuclearWasteEffect } = await import('../weapons/nuke')
       const waste = createNuclearWasteEffect({ x: 0, y: 0 }, 100, 5, 4, 0.4)
       const outside = createEnemy(EnemyKind.drone, { x: 500, y: 0 })
       const result = updateActiveEffects([waste], [outside], [], ship, WORLD_SIZE, 1.0)
@@ -431,7 +431,7 @@ describe('updateActiveEffects', () => {
     })
 
     it('expires after duration', async () => {
-      const { createNuclearWasteEffect } = await import('../ship/nuke')
+      const { createNuclearWasteEffect } = await import('../weapons/nuke')
       const waste = createNuclearWasteEffect({ x: 0, y: 0 }, 100, 5, 2, 0.3)
       const result = updateActiveEffects([waste], [], [], ship, WORLD_SIZE, 2.5)
       expect(result.activeEffects.length).toBe(0)

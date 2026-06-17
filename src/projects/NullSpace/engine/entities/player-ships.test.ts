@@ -21,13 +21,12 @@ describe('createShip — per-kind stats', () => {
     expect(ship.hp).toBe(base.maxHp)
     expect(ship.maxShield).toBe(base.maxShield)
     expect(ship.shield).toBe(base.maxShield)
-    expect(ship.weaponSlots).toBe(1)
   })
 
-  it('Interceptor has higher damage and speed than Fighter', () => {
+  it('Interceptor is faster and more fragile than Fighter', () => {
     const fighter = createShip(ShipKind.fighter, WORLD_SIZE)
     const interceptor = createShip(ShipKind.interceptor, WORLD_SIZE)
-    expect(interceptor.damage).toBeGreaterThan(fighter.damage)
+    // Ships no longer attack — they differ on mobility + survivability, not damage.
     expect(interceptor.speed).toBeGreaterThan(fighter.speed)
     expect(interceptor.hp).toBeLessThan(fighter.hp)
     expect(interceptor.maxShield).toBeLessThan(fighter.maxShield)
@@ -38,11 +37,6 @@ describe('createShip — per-kind stats', () => {
     const dreadnought = createShip(ShipKind.dreadnought, WORLD_SIZE)
     expect(dreadnought.maxShield).toBeGreaterThan(fighter.maxShield)
     expect(dreadnought.shield).toBe(dreadnought.maxShield)
-  })
-
-  it('Carrier has 3 weapon slots', () => {
-    const carrier = createShip(ShipKind.carrier, WORLD_SIZE)
-    expect(carrier.weaponSlots).toBe(3)
   })
 
   it('all ships start with full shield', () => {
@@ -225,9 +219,6 @@ describe("projectile-enemy collision — dead enemies don't absorb extra bullets
       waveTimer: 0,
       enemies: [enemy],
       projectiles: [projA, projB],
-      // Force the ship's auto-attack onto cooldown so it doesn't spawn a
-      // fresh projectile that confuses the count.
-      ship: { ...state.ship, fireCooldowns: state.ship.fireCooldowns.map(() => 999) },
     }
     const next = updateGameState(state, 1 / 60, { clicks: [], selectedAbility: null })
 
@@ -267,7 +258,6 @@ describe("projectile-enemy collision — dead enemies don't absorb extra bullets
       waveTimer: 0,
       enemies: [enemy],
       projectiles: [projA, projB],
-      ship: { ...state.ship, fireCooldowns: state.ship.fireCooldowns.map(() => 999) },
     }
     const next = updateGameState(state, 1 / 60, { clicks: [], selectedAbility: null })
 
@@ -311,7 +301,6 @@ describe("projectile-enemy collision — dead enemies don't absorb extra bullets
       waveTimer: 0,
       enemies: [enemy],
       projectiles: [projA, projB],
-      ship: { ...state.ship, fireCooldowns: state.ship.fireCooldowns.map(() => 999) },
     }
     const next = updateGameState(state, 1 / 60, { clicks: [], selectedAbility: null })
 
@@ -360,7 +349,6 @@ describe("projectile-enemy collision — dead enemies don't absorb extra bullets
       waveTimer: 0,
       enemies: [enemyA, enemyB],
       projectiles: [projA, projB],
-      ship: { ...state.ship, fireCooldowns: state.ship.fireCooldowns.map(() => 999) },
     }
     const next = updateGameState(state, 1 / 60, { clicks: [], selectedAbility: null })
 
@@ -372,37 +360,13 @@ describe("projectile-enemy collision — dead enemies don't absorb extra bullets
   })
 })
 
-describe('Carrier multi-weapon attack', () => {
-  it('fires at up to 3 enemies simultaneously', () => {
-    let state = startGame(createInitialState(), ShipKind.carrier)
-    state = startNextWave(state)
-    // Place 4 enemies at close range, all within attackRange
-    const shipPos = state.ship.pos
-    const closePos = (offset: number) => ({ x: shipPos.x + offset, y: shipPos.y })
-    const enemies = [
-      { ...createEnemy(EnemyKind.drone, closePos(50)) },
-      { ...createEnemy(EnemyKind.drone, closePos(60)) },
-      { ...createEnemy(EnemyKind.drone, closePos(70)) },
-      { ...createEnemy(EnemyKind.drone, closePos(80)) },
-    ]
-    state = {
-      ...state,
-      ship: { ...state.ship, fireCooldowns: state.ship.fireCooldowns.map(() => 0) },
-      spawnQueue: [],
-      waveTimer: 0,
-      projectiles: [],
-      enemies,
-    }
-    const next = updateGameState(state, 1 / 60, { clicks: [], selectedAbility: null })
-    // Carrier (weaponSlots=3) should fire at 3 of the 4 enemies
-    expect(next.projectiles.length).toBe(3)
-  })
-
-  it('Fighter fires at only 1 enemy', () => {
+describe('ship has no auto-attack', () => {
+  it('fires no projectiles even with enemies in range (all damage is player-driven)', () => {
     let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     const shipPos = state.ship.pos
     const closePos = (offset: number) => ({ x: shipPos.x + offset, y: shipPos.y })
+    // Drones don't shoot, so any projectile this frame could only be the ship's.
     const enemies = [
       { ...createEnemy(EnemyKind.drone, closePos(50)) },
       { ...createEnemy(EnemyKind.drone, closePos(60)) },
@@ -410,13 +374,12 @@ describe('Carrier multi-weapon attack', () => {
     ]
     state = {
       ...state,
-      ship: { ...state.ship, fireCooldowns: state.ship.fireCooldowns.map(() => 0) },
       spawnQueue: [],
       waveTimer: 0,
       projectiles: [],
       enemies,
     }
     const next = updateGameState(state, 1 / 60, { clicks: [], selectedAbility: null })
-    expect(next.projectiles.length).toBe(1)
+    expect(next.projectiles.length).toBe(0)
   })
 })

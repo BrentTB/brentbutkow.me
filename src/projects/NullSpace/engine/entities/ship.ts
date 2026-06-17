@@ -1,15 +1,12 @@
 import { ANIMATION, SECTOR, SHIELD_COOLDOWN, SLINGSHOT } from '../../data'
-import { canEnemyTakeDamage } from '../bosses/index'
-import { distance } from '../math/collision'
 import { driftWithWeave } from '../math/steering'
 import { clamp } from '../math/utils'
 import { toroidalDelta } from '../math/toroid'
 import { rng } from '../math/random'
 import { createParticle } from './entity-creator'
 import { ESCAPE_MODE } from '../spaceMetalAbilities/escape-mode'
-import { SHIP_WEAPON_DEFINITIONS } from '../ship'
 import { EscapeModePhase } from '../types'
-import type { Enemy, Particle, PlayerUpgrades, Projectile, Ship, Vec2 } from '../types'
+import type { Particle, Ship, Vec2 } from '../types'
 
 // --- Slingshot ---
 // Per-second exponential decay of the coast velocity — how long the ship drifts
@@ -21,10 +18,15 @@ const SLING_MIN_SPEED = 60
 // Converts a release flick (unit dir + 0..1 charge) into a coast velocity using
 // the ship's upgraded power, accuracy, and cooldown. Scatter widens with heat
 // (control slips as you heat up). Adds heat scaled by charge, and overheats at
-// max. No-op while on cooldown or overheated.
+// max. No-op while on cooldown; while overheated it still flings, but at half
+// distance for double heat.
 export function applySlingshot(ship: Ship, fling: { dir: Vec2; charge: number }): Ship {
-  if (ship.slingCooldownRemaining > 0 || ship.slingOverheated) return ship
+  if (ship.slingCooldownRemaining > 0) return ship
   const charge = clamp(fling.charge, 0, 1)
+  // Overheated flings still work — half the distance for double the heat. A
+  // heavy penalty, not a lockout, so you can always limp out of danger.
+  const speedMult = ship.slingOverheated ? 0.5 : 1
+  const heatMult = ship.slingOverheated ? 2 : 1
   // Current heat widens the scatter — a warning that you're pushing your luck.
   const jitterMag = ship.slingJitter + ship.slingHeat * SLINGSHOT.heatJitterBonus
   const jitter = rng.range(-jitterMag, jitterMag)
@@ -32,14 +34,16 @@ export function applySlingshot(ship: Ship, fling: { dir: Vec2; charge: number })
   const sin = Math.sin(jitter)
   const dx = fling.dir.x * cos - fling.dir.y * sin
   const dy = fling.dir.x * sin + fling.dir.y * cos
-  const speed = ship.slingMaxSpeed * charge
-  const heat = Math.min(1, ship.slingHeat + SLINGSHOT.heatPerFling * charge)
+  const speed = ship.slingMaxSpeed * charge * speedMult
+  const heat = Math.min(1, ship.slingHeat + SLINGSHOT.heatPerFling * charge * heatMult)
   return {
     ...ship,
     flingVel: { x: dx * speed, y: dy * speed },
     slingCooldownRemaining: ship.slingCooldown,
     slingHeat: heat,
-    slingOverheated: heat >= 1,
+    // Stay overheated until heat cools below the re-engage threshold (cleared in
+    // tickSlingHeat) — a penalty fling never lifts the lockout on its own.
+    slingOverheated: ship.slingOverheated || heat >= 1,
   }
 }
 
@@ -173,10 +177,11 @@ export function tickEscapeMode(
   }
 }
 
-// Drives the ship's auto-movement each tick. With an enemy around it HUNTS —
-// closes to attack range then strafes while the guns work. With the lane clear it
-// drifts gently forward, wrapping around the torus forever. No walls to tether
-// against — a spent slingshot just resumes drifting from where it coasted to.
+// Drives the ship's auto-movement each tick. With an enemy around it keeps a
+// loose flee-orbit — backing away to hold a respectful distance (so enemies stay
+// close-ish) without ever truly escaping; it has no weapons, so survival is the
+// player's job. With the lane clear it drifts gently forward, wrapping around the
+// torus forever. A spent slingshot just resumes drifting from where it coasted to.
 export function updateShipDrift(
   ship: Ship,
   dt: number,
@@ -196,17 +201,19 @@ export function updateShipDrift(
   let velY: number
 
   if (target) {
-    // Hunt by orbiting: a radial term holds the ship near `orbitRange` (closing in
-    // when far, easing off when too close) and a tangential term circles the enemy,
-    // so it engages from a ring instead of beelining or ramming. Steering toward
-    // the desired velocity (rather than snapping to it) keeps the path flowy.
+    // Flee-orbit: a radial term holds the ship near `orbitRange` (closing a touch
+    // when far, backing away when too close, biased outward) and a tangential term
+    // circles the enemy, so it keeps its distance on a ring instead of ramming.
+    // Steering toward the desired velocity (rather than snapping) keeps it flowy.
     const { x: dx, y: dy } = toroidalDelta(ship.pos, target)
     const dist = Math.hypot(dx, dy) || 1
     const dirX = dx / dist
     const dirY = dy / dist
     const speed = ship.speed * overheatMult
-    const orbitRange = ship.attackRange * SECTOR.orbitRangeFraction
-    const radial = clamp(dist - orbitRange, -speed, speed)
+    const orbitRange = SECTOR.orbitRange
+    // Outward lean (fleeBias) shifts the equilibrium a little past orbitRange, so
+    // the resting behaviour reads as backing away rather than circling in place.
+    const radial = clamp(dist - orbitRange - speed * SECTOR.fleeBias, -speed, speed)
     const tangent = speed * SECTOR.orbitSpeedFraction
     // Circle whichever way the ship is already moving around the target, so it
     // sweeps a smooth ring instead of getting pinned oscillating on one side.
@@ -261,57 +268,4 @@ export function updateShipDrift(
     driftMomentum,
     lastHeading,
   }
-}
-
-export function updateShipAttack(
-  ship: Ship,
-  enemies: Enemy[],
-  projectiles: Projectile[],
-  dt: number,
-  upgrades: PlayerUpgrades
-): { ship: Ship; projectiles: Projectile[] } {
-  // Each slot ticks down independently — a slow Nuke slot doesn't block a fast
-  // Bullet slot on the same Carrier.
-  const fireCooldowns = ship.fireCooldowns.map((c) => Math.max(0, c - dt))
-  // Cosmetic firing timers decay every frame whether or not a shot lands.
-  // Built from weaponSlots so a slot-count upgrade can't leave a stale length.
-  const muzzleFlash = Array.from({ length: ship.weaponSlots }, (_, i) =>
-    Math.max(0, (ship.muzzleFlash[i] ?? 0) - dt)
-  )
-  let recoil = Math.max(0, ship.recoil - dt)
-
-  const idle = (): { ship: Ship; projectiles: Projectile[] } => ({
-    ship: { ...ship, fireCooldowns, muzzleFlash, recoil },
-    projectiles,
-  })
-
-  if (enemies.length === 0) return idle()
-
-  // Nearest in-range enemies, sorted by distance. A slot picks its target as
-  // the slot-index-th entry (so 3 ready slots fire at 3 distinct enemies); if
-  // fewer enemies than slots, multiple slots fall back to the nearest.
-  // Invincible enemies (a shielded boss) are skipped — no point shooting what
-  // can't be hurt; the ship targets generators / other enemies instead, and
-  // holds fire if nothing damageable is in range.
-  const inRange = enemies
-    .map((e) => ({ enemy: e, dist: distance(ship.pos, e.pos) }))
-    .filter((x) => x.dist < ship.attackRange && canEnemyTakeDamage(x.enemy, enemies))
-    .sort((a, b) => a.dist - b.dist)
-  if (inRange.length === 0) return idle()
-
-  let nextProjectiles = projectiles
-  for (let i = 0; i < ship.weaponSlots; i++) {
-    if (fireCooldowns[i] > 0) continue
-    const kind = ship.equippedWeapons[i] ?? ship.equippedWeapons[0]
-    const def = SHIP_WEAPON_DEFINITIONS[kind]
-    const target = inRange[Math.min(i, inRange.length - 1)].enemy
-    const damage = def.weaponDamage(ship.damage, upgrades)
-    const spawned = def.createProjectiles(ship.pos, target.pos, damage, upgrades)
-    nextProjectiles = [...nextProjectiles, ...spawned]
-    fireCooldowns[i] = 1 / (ship.fireRate * def.fireRateMultiplier)
-    muzzleFlash[i] = ANIMATION.muzzleFlash
-    recoil = ANIMATION.recoil
-  }
-
-  return { ship: { ...ship, fireCooldowns, muzzleFlash, recoil }, projectiles: nextProjectiles }
 }

@@ -1,11 +1,11 @@
 import {
   CollectibleKind,
+  DashStage,
   EnemyKind,
   EnemyModifier,
   GamePhase,
   ProjectileOwner,
   ShipKind,
-  ShipWeaponKind,
 } from '../engine/types'
 import type {
   ActiveEffect,
@@ -18,16 +18,19 @@ import type {
 } from '../engine/types'
 import {
   ANIMATION,
+  DASHER,
   ENEMY_MODIFIERS,
   POWER_ORB,
   SINGULARITY_SHARD,
   SPACE_METAL,
   WARP,
+  WAVE_ESCALATION,
 } from '../data'
 import { EFFECT_DEFINITIONS } from '../engine/systems/effects'
 import { ABILITY_LIST } from '../engine/abilities'
 import { getBossDefinition } from '../engine/bosses'
 import { enemyFacing } from '../engine/entities/enemy'
+import { waveSpeedEscalation } from '../engine/world/wave-escalation'
 import type { Camera } from './camera'
 import { isWithinView, worldToScreen } from './camera'
 import type { AnimationCache, SpriteCache } from './sprite-cache'
@@ -49,6 +52,7 @@ const ENEMY_SPRITE: Record<EnemyKind, SpriteKey> = {
   [EnemyKind.shooter]: SpriteKey.shooter,
   [EnemyKind.swarm]: SpriteKey.swarm,
   [EnemyKind.bomber]: SpriteKey.bomber,
+  [EnemyKind.dasher]: SpriteKey.dasher,
   [EnemyKind.dreadnought]: SpriteKey.dreadnoughtBoss,
   [EnemyKind.shieldGenerator]: SpriteKey.shieldGenerator,
   [EnemyKind.voidWorm]: SpriteKey.voidWormBoss,
@@ -60,16 +64,6 @@ export const SHIP_SPRITE_KEY: Record<ShipKind, SpriteKey> = {
   [ShipKind.fighter]: SpriteKey.ship,
   [ShipKind.interceptor]: SpriteKey.shipInterceptor,
   [ShipKind.dreadnought]: SpriteKey.shipDreadnought,
-  [ShipKind.carrier]: SpriteKey.shipCarrier,
-}
-
-// Per-weapon muzzle-flash tint so a weapon swap reads at the barrel.
-const WEAPON_FLASH: Record<ShipWeaponKind, string> = {
-  [ShipWeaponKind.bullet]: '#ffe08a',
-  [ShipWeaponKind.laser]: '#bff2ff',
-  [ShipWeaponKind.missile]: '#ffb066',
-  [ShipWeaponKind.ricochet]: '#ff99e0',
-  [ShipWeaponKind.nuke]: '#fff2c0',
 }
 
 // Stable 0..2π phase from an entity id so idle pulses don't march in lockstep.
@@ -264,30 +258,10 @@ function renderShip(
     drawShieldRing(ctx, ship.radius + 12, (ship.shield / ship.maxShield) * 0.65)
   }
 
-  // Recoil kicks the hull (and its exhaust) backward (local +y) after a shot.
-  const recoil = reducedMotion ? 0 : (ship.recoil / ANIMATION.recoil) * 2.5
-  ctx.translate(0, recoil)
-
   // Engine exhaust sits behind the hull, so draw it before the sprite.
   drawThruster(ctx, size, Math.hypot(ship.vel.x, ship.vel.y), clock, reducedMotion)
 
   ctx.drawImage(sprites[spriteKey], -size.w / 2, -size.h / 2)
-
-  // Muzzle flash per firing slot — coloured by the equipped weapon. Carrier's
-  // three slots spread across the nose; single-slot ships fire dead centre.
-  for (let i = 0; i < ship.muzzleFlash.length; i++) {
-    if (ship.muzzleFlash[i] <= 0) continue
-    const slots = ship.muzzleFlash.length
-    const x = slots > 1 ? (i - (slots - 1) / 2) * (size.w * 0.28) : 0
-    const kind = ship.equippedWeapons[i] ?? ShipWeaponKind.bullet
-    drawMuzzleFlash(
-      ctx,
-      x,
-      -size.h / 2,
-      ship.muzzleFlash[i] / ANIMATION.muzzleFlash,
-      WEAPON_FLASH[kind]
-    )
-  }
 
   // Hit flash — white wash on HP damage (reuses the masked-tint helper).
   if (ship.hitFlash > 0) {
@@ -342,32 +316,6 @@ function drawThruster(
   }
 }
 
-// A short bright spike at a weapon muzzle (local frame; nose points toward -y).
-function drawMuzzleFlash(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  noseY: number,
-  t: number,
-  color: string
-): void {
-  const len = 6 + t * 6
-  const half = 2 + t * 2
-  ctx.save()
-  ctx.globalAlpha = Math.min(1, t)
-  ctx.fillStyle = color
-  ctx.beginPath()
-  ctx.moveTo(x - half, noseY)
-  ctx.lineTo(x + half, noseY)
-  ctx.lineTo(x, noseY - len)
-  ctx.closePath()
-  ctx.fill()
-  ctx.fillStyle = '#ffffff'
-  ctx.beginPath()
-  ctx.arc(x, noseY, half * 0.7, 0, Math.PI * 2)
-  ctx.fill()
-  ctx.restore()
-}
-
 // Reused scratch buffer for sprite-masked tints (e.g. the overheat wash).
 let tintScratch: HTMLCanvasElement | null = null
 
@@ -400,10 +348,31 @@ function renderEnemies(
   sprites: SpriteCache,
   reducedMotion: boolean
 ): void {
+  // Wave stall-escalation reddens every enemy as they speed up — a legibility
+  // cue that parking is getting dangerous. Zero until past the grace period.
+  const escMult = waveSpeedEscalation(state.waveElapsed)
+  const escalationAlpha = escMult <= 1 ? 0 : ((escMult - 1) / (WAVE_ESCALATION.maxMult - 1)) * 0.5
   for (const enemy of state.enemies) {
     const screen = worldToScreen(enemy.pos, camera)
 
     if (!isWithinView(screen, camera, 60)) continue
+
+    // Dasher windup telegraph — a charge-path line that brightens as the lunge
+    // nears, so the player can read the dodge. Hidden under reduced motion.
+    if (!reducedMotion && enemy.dasher?.stage === DashStage.windup) {
+      const d = enemy.dasher
+      const progress = 1 - Math.max(0, d.stageTimer) / DASHER.windupDuration
+      const len = DASHER.chargeSpeed * DASHER.chargeDuration
+      ctx.save()
+      ctx.globalAlpha = 0.25 + progress * 0.5
+      ctx.strokeStyle = '#ff5a3c'
+      ctx.lineWidth = 2 + progress * 3
+      ctx.beginPath()
+      ctx.moveTo(screen.x, screen.y)
+      ctx.lineTo(screen.x + d.heading.x * len, screen.y + d.heading.y * len)
+      ctx.stroke()
+      ctx.restore()
+    }
 
     const spriteKey = ENEMY_SPRITE[enemy.kind]
     const size = getSpriteSize(spriteKey)
@@ -434,6 +403,16 @@ function renderEnemies(
     // Speed modifier washes the sprite red (same masked tint as the ship overheat).
     if (enemy.modifier === EnemyModifier.speed) {
       drawSpriteTint(ctx, sprites[spriteKey], size.w, size.h, ENEMY_MODIFIERS.speedTint)
+    }
+    // Stall-escalation wash — reddens with the rising wave speed multiplier.
+    if (escalationAlpha > 0) {
+      drawSpriteTint(
+        ctx,
+        sprites[spriteKey],
+        size.w,
+        size.h,
+        `rgba(255, 70, 40, ${escalationAlpha})`
+      )
     }
     // Hit flash — white wash on damage.
     if (enemy.hitFlash > 0) {

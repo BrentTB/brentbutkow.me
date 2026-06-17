@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import {
   createInitialState,
-  equipShipWeapon,
   moveToShipSelection,
   rollLevelUpWeaponOffers,
   startGame,
@@ -18,6 +17,7 @@ import {
 } from './game-loop'
 import {
   createAbilities,
+  createAlly,
   createDeathAnim,
   createEnemy,
   createParticle,
@@ -34,7 +34,7 @@ import {
   HazardKind,
   ProjectileOwner,
   ShipKind,
-  ShipWeaponKind,
+  HelperWeaponKind,
 } from './types'
 import { UpgradeId } from './upgrade-ids'
 import { isUpgradeWave } from './upgrades'
@@ -198,23 +198,6 @@ describe('updateGameState', () => {
     }
   })
 
-  it('ship auto-attacks enemies in range', () => {
-    let state = startGame(createInitialState(), ShipKind.fighter)
-    state = startNextWave(state)
-    // Tick to spawn an enemy, then move it into range
-    state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
-    state = {
-      ...state,
-      enemies: state.enemies.map((e) => ({
-        ...e,
-        pos: { x: state.ship.pos.x + 50, y: state.ship.pos.y },
-      })),
-    }
-
-    const updated = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
-    expect(updated.projectiles.length).toBeGreaterThan(0)
-  })
-
   // Helper: drive a run to the frame the ship dies, returning the `dying` state.
   function reachShipDeath(score = 0, highScore = 0) {
     let state = startGame(createInitialState(), ShipKind.fighter)
@@ -370,6 +353,15 @@ describe('beginWarp', () => {
     expect(warped.collectibles).toEqual([])
     expect(warped.hazards).toEqual([])
     expect(warped.spaceMetal).toBe(2 + 3)
+  })
+
+  // Regression: helpers + the helper factory used to ride the warp into the next
+  // sector (and the shop), banking a free squad. The ship teleports away alone.
+  it('clears all allies on the sector-clear warp', () => {
+    let state = startGame(createInitialState(), ShipKind.fighter)
+    state = startNextWave(state)
+    state = { ...state, allies: [createAlly({ x: 0, y: 0 }), createAlly({ x: 10, y: 0 })] }
+    expect(beginWarp(state).allies).toEqual([])
   })
 })
 
@@ -599,54 +591,19 @@ describe('levelUpWeaponOffers', () => {
   })
 })
 
-describe('ship weapons in GameState', () => {
+describe('helper weapons in GameState', () => {
   it('starts a run with only bullet unlocked', () => {
     let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
-    expect(state.unlockedWeapons).toEqual([ShipWeaponKind.bullet])
+    expect(state.unlockedWeapons).toEqual([HelperWeaponKind.bullet])
   })
 
-  it('buying a ship-weapon unlock pushes the kind into unlockedWeapons', () => {
+  it('buying a helper-weapon unlock pushes the kind into unlockedWeapons', () => {
     let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     state = { ...state, currency: 1000 }
     state = applyUpgradeToState(state, UpgradeId.unlockLaser)
-    expect(state.unlockedWeapons).toContain(ShipWeaponKind.laser)
-  })
-
-  it('auto-equips the new weapon on single-slot ships (no other slot to put it in)', () => {
-    let state = startGame(createInitialState(), ShipKind.fighter)
-    state = startNextWave(state)
-    state = { ...state, currency: 1000 }
-    state = applyUpgradeToState(state, UpgradeId.unlockLaser)
-    expect(state.ship.equippedWeapons).toEqual([ShipWeaponKind.laser])
-  })
-
-  it('Carrier auto-equips a bought weapon into the first default (bullet) slot', () => {
-    let state = startGame(createInitialState(), ShipKind.carrier)
-    state = startNextWave(state)
-    state = { ...state, currency: 100000 }
-    state = applyUpgradeToState(state, UpgradeId.unlockLaser)
-    // One bullet slot becomes laser; the other two stay bullet.
-    expect(state.ship.equippedWeapons.filter((w) => w === ShipWeaponKind.laser)).toHaveLength(1)
-    expect(state.ship.equippedWeapons.filter((w) => w === ShipWeaponKind.bullet)).toHaveLength(2)
-  })
-
-  it('Carrier stops auto-equipping once no default (bullet) slot remains', () => {
-    let state = startGame(createInitialState(), ShipKind.carrier)
-    state = startNextWave(state)
-    state = { ...state, currency: 100000 }
-    // Fill all three slots with non-default weapons.
-    state = applyUpgradeToState(state, UpgradeId.unlockLaser)
-    state = applyUpgradeToState(state, UpgradeId.unlockMissile)
-    state = applyUpgradeToState(state, UpgradeId.unlockRicochet)
-    expect(state.ship.equippedWeapons).not.toContain(ShipWeaponKind.bullet)
-
-    // A further purchase has nowhere to auto-slot — loadout stays, weapon unlocked.
-    const beforeLoadout = state.ship.equippedWeapons
-    state = applyUpgradeToState(state, UpgradeId.unlockNuke)
-    expect(state.unlockedWeapons).toContain(ShipWeaponKind.nuke)
-    expect(state.ship.equippedWeapons).toEqual(beforeLoadout)
+    expect(state.unlockedWeapons).toContain(HelperWeaponKind.laser)
   })
 
   it('buying the same unlock twice does not duplicate the kind in unlockedWeapons', () => {
@@ -656,70 +613,10 @@ describe('ship weapons in GameState', () => {
     state = applyUpgradeToState(state, UpgradeId.unlockLaser)
     // applyUpgradeToState rejects a second purchase past the single tier, but
     // we still want the array stable if it ever ran twice.
-    const beforeCount = state.unlockedWeapons.filter((k) => k === ShipWeaponKind.laser).length
+    const beforeCount = state.unlockedWeapons.filter((k) => k === HelperWeaponKind.laser).length
     state = applyUpgradeToState(state, UpgradeId.unlockLaser)
-    const afterCount = state.unlockedWeapons.filter((k) => k === ShipWeaponKind.laser).length
+    const afterCount = state.unlockedWeapons.filter((k) => k === HelperWeaponKind.laser).length
     expect(afterCount).toBe(beforeCount)
-  })
-})
-
-describe('equipShipWeapon', () => {
-  it('rejects equipping a weapon that has not been unlocked', () => {
-    let state = startGame(createInitialState(), ShipKind.fighter)
-    state = startNextWave(state)
-    const before = state.ship.equippedWeapons
-    const next = equipShipWeapon(state, 0, ShipWeaponKind.laser)
-    expect(next.ship.equippedWeapons).toEqual(before)
-  })
-
-  it('equips an unlocked weapon into the given slot', () => {
-    let state = startGame(createInitialState(), ShipKind.fighter)
-    state = startNextWave(state)
-    state = { ...state, currency: 1000 }
-    state = applyUpgradeToState(state, UpgradeId.unlockLaser)
-    state = equipShipWeapon(state, 0, ShipWeaponKind.laser)
-    expect(state.ship.equippedWeapons[0]).toBe(ShipWeaponKind.laser)
-  })
-
-  it('carrier swaps duplicates between slots when equipping the same kind twice', () => {
-    let state = startGame(createInitialState(), ShipKind.carrier)
-    state = startNextWave(state)
-    state = { ...state, currency: 5000 }
-    state = applyUpgradeToState(state, UpgradeId.unlockLaser)
-    // Equip laser in slot 0; slots 1 and 2 still hold bullet.
-    state = equipShipWeapon(state, 0, ShipWeaponKind.laser)
-    expect(state.ship.equippedWeapons[0]).toBe(ShipWeaponKind.laser)
-    // Equipping laser in slot 2: the swap moves slot-2's previous bullet over
-    // to slot 0 (the prior laser location), so laser isn't duplicated.
-    state = equipShipWeapon(state, 2, ShipWeaponKind.laser)
-    expect(state.ship.equippedWeapons[2]).toBe(ShipWeaponKind.laser)
-    expect(state.ship.equippedWeapons[0]).toBe(ShipWeaponKind.bullet)
-    // Laser appears exactly once across the loadout.
-    expect(state.ship.equippedWeapons.filter((k) => k === ShipWeaponKind.laser)).toHaveLength(1)
-  })
-
-  it('carrier with three distinct unlocks can equip three different weapons', () => {
-    let state = startGame(createInitialState(), ShipKind.carrier)
-    state = startNextWave(state)
-    state = { ...state, currency: 5000 }
-    state = applyUpgradeToState(state, UpgradeId.unlockLaser)
-    state = applyUpgradeToState(state, UpgradeId.unlockMissile)
-    state = equipShipWeapon(state, 0, ShipWeaponKind.laser)
-    state = equipShipWeapon(state, 1, ShipWeaponKind.missile)
-    expect(state.ship.equippedWeapons).toEqual([
-      ShipWeaponKind.laser,
-      ShipWeaponKind.missile,
-      ShipWeaponKind.bullet,
-    ])
-    expect(new Set(state.ship.equippedWeapons).size).toBe(3)
-  })
-
-  it('rejects a slot index out of range', () => {
-    let state = startGame(createInitialState(), ShipKind.fighter)
-    state = startNextWave(state)
-    const before = state.ship.equippedWeapons
-    expect(equipShipWeapon(state, -1, ShipWeaponKind.bullet).ship.equippedWeapons).toEqual(before)
-    expect(equipShipWeapon(state, 5, ShipWeaponKind.bullet).ship.equippedWeapons).toEqual(before)
   })
 })
 
@@ -886,31 +783,24 @@ describe('updateGameState — state field round-trip persistence', () => {
     state = startNextWave(state)
     state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
 
-    // Place an enemy adjacent to the ship with 1 HP so the ship's auto-attack
-    // kills it within a frame or two.
+    // The ship no longer auto-attacks, so kill an enemy with a Meteorite. Keep it
+    // far and stationary so the strike lands reliably and the dropped orb stays
+    // uncollected in state.collectibles.
     if (state.enemies.length > 0) {
       const target = state.enemies[0]
-      state = {
-        ...state,
-        enemies: [
-          {
-            ...target,
-            hp: 1,
-            pos: { x: state.ship.pos.x + 30, y: state.ship.pos.y },
-          },
-        ],
+      const enemyPos = { x: state.ship.pos.x + 600, y: state.ship.pos.y }
+      state = { ...state, enemies: [{ ...target, hp: 1, speed: 0, spawnIn: 0, pos: enemyPos }] }
+
+      // Cast Meteorite at the enemy, then tick past its strike delay + orb spawn.
+      state = updateGameState(state, 0.05, {
+        clicks: [enemyPos],
+        selectedAbility: AbilityKind.meteorite,
+      })
+      for (let i = 0; i < 15; i++) {
+        state = updateGameState(state, 0.05, { clicks: [], selectedAbility: null })
       }
 
-      // Tick a few frames for the kill + collectible spawn to land.
-      for (let i = 0; i < 4; i++) {
-        state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
-      }
-
-      // Either the orb is still in state.collectibles, or it has already been
-      // collected and added to state.power. Either way, the spawn-from-kill
-      // path persisted into the returned state.
-      const collectedSomething = state.collectibles.length > 0 || state.power > 100
-      expect(collectedSomething).toBe(true)
+      expect(state.collectibles.length).toBeGreaterThan(0)
       expect(state.score).toBeGreaterThan(0)
     }
   })
@@ -948,6 +838,45 @@ describe('updateGameState — state field round-trip persistence', () => {
     expect(state.phase).toBe(GamePhase.waveComplete)
     expect(state.escapeTrailAccumulator).toBeCloseTo(expected)
   })
+
+  it('waveElapsed accumulates dt across frames in the returned state', () => {
+    let state = startGame(createInitialState(), ShipKind.fighter)
+    state = startNextWave(state)
+
+    const dt = 1 / 60
+    const before = state.waveElapsed
+    for (let i = 0; i < 3; i++) {
+      state = updateGameState(state, dt, { clicks: [], selectedAbility: null })
+    }
+
+    expect(state.waveElapsed).toBeCloseTo(before + 3 * dt)
+  })
+
+  // Companion to escapeTrailAccumulator: waveElapsed is incremented before the
+  // wave-complete early return, so that branch must thread the frame's increment
+  // too — a `...state` spread would silently emit the stale frame-start value.
+  it('waveElapsed threads through the wave-complete early return', () => {
+    let state = startGame(createInitialState(), ShipKind.fighter)
+    state = startNextWave(state)
+    // Force the wave-complete branch: nothing left to spawn or fight; mid-sector
+    // wave (1) returns directly without warping.
+    state = {
+      ...state,
+      phase: GamePhase.playing,
+      waveElapsed: 5,
+      wave: 1,
+      spawnQueue: [],
+      enemies: [],
+      totalWaveEnemies: 1,
+      spawnedInWave: 1,
+    }
+
+    const dt = 0.016
+    state = updateGameState(state, dt, { clicks: [], selectedAbility: null })
+
+    expect(state.phase).toBe(GamePhase.waveComplete)
+    expect(state.waveElapsed).toBeCloseTo(5 + dt)
+  })
 })
 
 // moveChase smooths velocity toward the chase target. The tank's chase vector
@@ -983,19 +912,18 @@ describe('updateGameState — chase-movement smoothing (tank behaviour)', () => 
     state = startNextWave(state)
     state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
 
-    // Tank moving right (+x) at full speed, ship now to the LEFT.
-    state = {
-      ...state,
-      enemies: state.enemies.map((e) => ({
-        ...e,
-        speed: 40,
-        pos: { x: state.ship.pos.x + 200, y: state.ship.pos.y },
-        vel: { x: 40, y: 0 },
-      })),
+    // A drone (chase movement) moving right (+x) at full speed, ship to the LEFT.
+    // Explicit drone — wave 1 can also spawn a dasher, which uses dash movement,
+    // not the chase smoothing this test measures.
+    const chaser = {
+      ...createEnemy(EnemyKind.drone, { x: state.ship.pos.x + 200, y: state.ship.pos.y }),
+      speed: 40,
+      vel: { x: 40, y: 0 },
     }
+    state = { ...state, enemies: [chaser] }
 
     const next = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
-    const after = next.enemies.find((e) => e.id === state.enemies[0].id)
+    const after = next.enemies.find((e) => e.id === chaser.id)
     // After ONE frame: chase target is -40 (ship is to the left). Without
     // smoothing the snapped vel would be -40 exactly. With smoothing it's
     // between the old (+40) and the target (-40) — i.e. closer to +40 than
@@ -1015,9 +943,12 @@ describe('updateGameState — chase-movement smoothing (tank behaviour)', () => 
     state = startNextWave(state)
     state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
 
-    if (state.enemies.length === 0) return
-
-    const baseEnemy = state.enemies[0]
+    // Explicitly a drone (chase movement). Wave 1 can also spawn a dasher, which
+    // uses dash movement, not the smoothed chase turn-rate this test measures.
+    const baseEnemy = createEnemy(EnemyKind.drone, {
+      x: state.ship.pos.x + 200,
+      y: state.ship.pos.y,
+    })
     const slowState = {
       ...state,
       enemies: [
@@ -1313,7 +1244,8 @@ describe('updateGameState — shield blocks bomber explosions', () => {
     state = startNextWave(state)
     const bomber = {
       ...createEnemy(EnemyKind.bomber, { x: state.ship.pos.x + 30, y: state.ship.pos.y }),
-      hp: 1,
+      // hp 0 so it explodes on frame one — the ship no longer auto-attacks to kill it.
+      hp: 0,
     }
     state = {
       ...state,
@@ -1332,7 +1264,8 @@ describe('updateGameState — shield blocks bomber explosions', () => {
     state = startNextWave(state)
     const bomber = {
       ...createEnemy(EnemyKind.bomber, { x: state.ship.pos.x + 30, y: state.ship.pos.y }),
-      hp: 1,
+      // hp 0 so it explodes on frame one — the ship no longer auto-attacks to kill it.
+      hp: 0,
     }
     // Grandfather the bomber so the shield doesn't push it out — we want to
     // exercise the "bomber inside dome" branch of resolveDeathEffects.
@@ -1354,7 +1287,8 @@ describe('updateGameState — shield blocks bomber explosions', () => {
     state = startNextWave(state)
     const bomber = {
       ...createEnemy(EnemyKind.bomber, { x: state.ship.pos.x + 30, y: state.ship.pos.y }),
-      hp: 1,
+      // hp 0 so it explodes on frame one — the ship no longer auto-attacks to kill it.
+      hp: 0,
     }
     state = {
       ...state,
@@ -1435,10 +1369,11 @@ describe('Helper ability', () => {
     })
     // Place enemy near ally, within attackRange
     const allyPos = state.allies[0]?.pos ?? allySpawnPos
-    const enemy = createEnemy(EnemyKind.drone, { x: allyPos.x + 50, y: allyPos.y })
+    // Within the ally's attackRange (200) but far enough that its shot doesn't
+    // reach — and get consumed by — the enemy within the tick.
+    const enemy = createEnemy(EnemyKind.drone, { x: allyPos.x + 150, y: allyPos.y })
     state = { ...state, enemies: [enemy] }
     const projsBefore = state.projectiles.length
-    // Tick long enough for ally fire cooldown to expire
     state = updateGameState(state, 0.1, { clicks: [], selectedAbility: AbilityKind.helper })
     expect(state.projectiles.length).toBeGreaterThan(projsBefore)
   })

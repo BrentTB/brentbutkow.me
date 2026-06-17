@@ -1,7 +1,6 @@
-import { applyTierSum } from '../abilities/ability-definition'
 import { damageEnemiesInRadius } from '../math/aoe'
 import { uid } from '../entities/entity-creator'
-import { EffectKind, ShipWeaponKind } from '../types'
+import { EffectKind, HelperWeaponKind } from '../types'
 import type { NuclearWasteEffect, Vec2 } from '../types'
 import type { Camera } from '../../renderer/camera'
 import { worldToScreen } from '../../renderer/camera'
@@ -12,58 +11,24 @@ import type {
 } from '../systems/effect-definition'
 import { passThroughTick } from '../systems/effect-definition'
 import { IconName } from '../../icon-names'
-import { NUKE } from './ship-weapon-data'
+import { NUKE } from './helper-weapon-data'
 import {
   makeLoadoutUpgrade,
-  buildShipProjectile,
-  type ShipWeaponDefinition,
-} from './ship-weapon-definition'
+  buildHelperProjectile,
+  type HelperWeaponDefinition,
+} from './helper-weapon-definition'
 
 export const NUKE_UPGRADE_IDS = {
   unlockNuke: 'unlockNuke',
-  nukeDamage: 'nukeDamage',
-  nukeBlastRadius: 'nukeBlastRadius',
-  nukeWasteDuration: 'nukeWasteDuration',
 } as const
 
-const upgrade = makeLoadoutUpgrade(ShipWeaponKind.nuke)
+const upgrade = makeLoadoutUpgrade(HelperWeaponKind.nuke)
 
 const unlockUpgrade = upgrade({
   id: NUKE_UPGRADE_IDS.unlockNuke,
-  label: 'Unlock Nuke',
-  description: 'A very slow shell with a massive blast that leaves radioactive waste',
+  label: 'Ally Nukes',
+  description: 'Arms ~1 in 4 helpers with a slow, heavy nuke that leaves radioactive waste.',
   tiers: [{ cost: 140, value: 1 }],
-})
-
-const damageUpgrade = upgrade({
-  id: NUKE_UPGRADE_IDS.nukeDamage,
-  label: 'Damage',
-  description: 'Increase nuke blast damage',
-  tiers: [
-    { cost: 50, value: 10 },
-    { cost: 200, value: 20 },
-    { cost: 480, value: 35 },
-  ],
-})
-
-const radiusUpgrade = upgrade({
-  id: NUKE_UPGRADE_IDS.nukeBlastRadius,
-  label: 'Blast Radius',
-  description: 'Increase nuke blast radius',
-  tiers: [
-    { cost: 40, value: 25 },
-    { cost: 160, value: 40 },
-  ],
-})
-
-const wasteDurationUpgrade = upgrade({
-  id: NUKE_UPGRADE_IDS.nukeWasteDuration,
-  label: 'Fallout',
-  description: 'Radioactive waste lingers longer',
-  tiers: [
-    { cost: 40, value: 2 },
-    { cost: 160, value: 3 },
-  ],
 })
 
 export function createNuclearWasteEffect(
@@ -168,35 +133,29 @@ export const nuclearWasteEffect: EffectDefinition = {
     renderNuclearWaste(ctx, effect as NuclearWasteEffect, camera),
 }
 
-export const nuke: ShipWeaponDefinition = {
-  kind: ShipWeaponKind.nuke,
+export const nuke: HelperWeaponDefinition = {
+  kind: HelperWeaponKind.nuke,
   meta: { icon: IconName.nuke, label: 'Nuke' },
   fireRateMultiplier: NUKE.fireRateMultiplier,
-  weaponDamage: (baseShipDamage, upgrades) =>
-    applyTierSum(baseShipDamage * NUKE.damageMultiplier, upgrades, damageUpgrade),
-  createProjectiles: (shipPos, targetPos, damage, upgrades) => {
-    const aoeRadius = applyTierSum(NUKE.baseAoeRadius, upgrades, radiusUpgrade)
-    const wasteDuration = applyTierSum(NUKE.baseWasteDuration, upgrades, wasteDurationUpgrade)
-    return [
-      buildShipProjectile(shipPos, targetPos, damage, {
-        speed: NUKE.speed,
-        lifetime: NUKE.lifetime,
-        radius: NUKE.radius,
-        // Carries the detonation parameters with it so combat.ts can apply
-        // them at impact without importing the weapon registry.
-        detonate: {
-          aoeRadius,
-          // Direct hit also delivers the full blast damage to the surrounding
-          // enemies, so the contact damage itself is folded into the AoE.
-          blastDamage: damage,
-          wasteRadius: NUKE.baseWasteRadius,
-          wasteDps: NUKE.baseWasteDps,
-          wasteDuration,
-          wasteGrowDuration: NUKE.wasteGrowDuration,
-        },
-      }),
-    ]
-  },
+  weaponDamage: (baseDamage) => baseDamage * NUKE.damageMultiplier,
+  createProjectiles: (shipPos, targetPos, damage) => [
+    buildHelperProjectile(shipPos, targetPos, damage, {
+      speed: NUKE.speed,
+      lifetime: NUKE.lifetime,
+      radius: NUKE.radius,
+      // Carries the detonation parameters with it so combat.ts can apply them at
+      // impact without importing the weapon registry.
+      detonate: {
+        aoeRadius: NUKE.baseAoeRadius,
+        // Direct hit also delivers the full blast damage to surrounding enemies,
+        // so the contact damage itself is folded into the AoE.
+        blastDamage: damage,
+        wasteRadius: NUKE.baseWasteRadius,
+        wasteDps: NUKE.baseWasteDps,
+        wasteDuration: NUKE.baseWasteDuration,
+        wasteGrowDuration: NUKE.wasteGrowDuration,
+      },
+    }),
+  ],
   unlockUpgrade,
-  modifierUpgrades: [damageUpgrade, radiusUpgrade, wasteDurationUpgrade],
 }

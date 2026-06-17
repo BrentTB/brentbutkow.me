@@ -1,9 +1,10 @@
 import { distance } from '../math/collision'
 import { toroidalDelta } from '../math/toroid'
-import { createAlly, createProjectile } from './entity-creator'
+import { createAlly } from './entity-creator'
 import { canEnemyTakeDamage } from '../bosses/index'
 import { rng } from '../math/random'
-import { ProjectileOwner } from '../types'
+import { HELPER_WEAPON_DEFINITIONS } from '../weapons'
+import { HelperWeaponKind } from '../types'
 import type { Ally, Enemy, Projectile, Ship, Vec2 } from '../types'
 import { HELPER } from '../abilities/ability-data'
 
@@ -15,6 +16,22 @@ const ALLY_ORBIT_RADIUS = 130
 const ALLY_AVOID_RADIUS = 55
 const ALLY_AVOID_WEIGHT = 0.7
 const ALLY_NOISE_STRENGTH = 0.4
+
+// The four special weapons an ally can roll at spawn (bullet is the
+// fallback). Each spawned ally rolls one slot uniformly; if the player has
+// unlocked that weapon for allies it spawns with it, else the basic shot — so
+// each unlock arms ~1/4 of allies, and unlocking all four arms them all.
+const ALLY_WEAPON_POOL: readonly HelperWeaponKind[] = [
+  HelperWeaponKind.laser,
+  HelperWeaponKind.missile,
+  HelperWeaponKind.ricochet,
+  HelperWeaponKind.nuke,
+]
+
+export function rollAllyWeapon(unlockedWeapons: HelperWeaponKind[]): HelperWeaponKind {
+  const slot = ALLY_WEAPON_POOL[rng.intRange(0, ALLY_WEAPON_POOL.length - 1)]
+  return unlockedWeapons.includes(slot) ? slot : HelperWeaponKind.bullet
+}
 
 function allyOrbitTarget(ally: Ally, ship: Ship): Vec2 {
   // Per-ally phase from id hash; slowly drifts so each ally weaves around the
@@ -33,7 +50,8 @@ export function updateAllies(
   enemies: Enemy[],
   ship: Ship,
   projectiles: Projectile[],
-  dt: number
+  dt: number,
+  unlockedWeapons: HelperWeaponKind[]
 ): { allies: Ally[]; projectiles: Projectile[] } {
   const surviving: Ally[] = []
   const spawned: Ally[] = []
@@ -55,7 +73,7 @@ export function updateAllies(
       // --- Factory: spawns helpers on a timer, never shoots ---
       const spawnTimer = (ally.spawnTimer ?? ally.spawnInterval) - dt
       if (spawnTimer <= 0) {
-        spawned.push(createAlly(ally.pos))
+        spawned.push({ ...createAlly(ally.pos), weapon: rollAllyWeapon(unlockedWeapons) })
         // Carry the overshoot so cadence doesn't drift on long frames.
         updated = { ...updated, spawnTimer: ally.spawnInterval + spawnTimer }
       } else {
@@ -75,9 +93,14 @@ export function updateAllies(
         }
       }
       if (nearestEnemy && nearestDist <= ally.attackRange && updated.fireCooldown <= 0) {
-        const proj = createProjectile(ally.pos, nearestEnemy.pos, ProjectileOwner.ship, ally.damage)
-        newProjectiles = [...newProjectiles, proj]
-        updated = { ...updated, fireCooldown: 1 / ally.fireRate }
+        // Fire the ally's rolled weapon — the basic shot is the bullet weapon, so
+        // unarmed allies behave exactly as before; armed ones borrow the helper
+        // weapon's projectiles + damage scaling (a nuke ally fires slow + rare).
+        const def = HELPER_WEAPON_DEFINITIONS[ally.weapon]
+        const damage = def.weaponDamage(ally.damage)
+        const shots = def.createProjectiles(ally.pos, nearestEnemy.pos, damage)
+        newProjectiles = [...newProjectiles, ...shots]
+        updated = { ...updated, fireCooldown: 1 / (ally.fireRate * def.fireRateMultiplier) }
       }
     }
 

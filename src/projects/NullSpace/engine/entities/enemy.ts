@@ -2,6 +2,7 @@ import { ANIMATION, ENEMY_STATS } from '../../data'
 import { distance } from '../math/collision'
 import { toroidalDelta } from '../math/toroid'
 import { createProjectile } from './entity-creator'
+import { tickDasher } from './dasher'
 import { MovementBehavior, ProjectileOwner } from '../types'
 import type { Ally, Enemy, Projectile, Ship, Vec2 } from '../types'
 
@@ -154,6 +155,7 @@ const MOVEMENT_FN: Record<MovementBehavior, MoveFn> = {
   [MovementBehavior.zigzag]: moveZigzag,
   [MovementBehavior.stationary]: moveStationary,
   [MovementBehavior.approach]: moveApproach,
+  [MovementBehavior.dash]: tickDasher,
   [MovementBehavior.none]: moveNone,
 }
 
@@ -161,14 +163,19 @@ export function updateEnemyMovement(
   enemies: Enemy[],
   ship: Ship,
   allies: Ally[],
-  dt: number
+  dt: number,
+  speedMult = 1
 ): Enemy[] {
   return enemies.map((enemy) => {
     const target = findNearestTarget(enemy.pos, ship, allies)
     const targetAsShip = { ...ship, pos: target }
-    const moved = MOVEMENT_FN[enemy.movementBehavior](enemy, targetAsShip, dt)
+    // Stall-escalation scales movement speed without mutating the stored base:
+    // run the MoveFn on a sped-up copy, then restore enemy.speed on the result.
+    const forMove = speedMult === 1 ? enemy : { ...enemy, speed: enemy.speed * speedMult }
+    const moved = MOVEMENT_FN[enemy.movementBehavior](forMove, targetAsShip, dt)
     return {
       ...moved,
+      speed: enemy.speed,
       age: enemy.age + dt,
       spawnIn: Math.max(0, enemy.spawnIn - dt),
       hitFlash: Math.max(0, enemy.hitFlash - dt),

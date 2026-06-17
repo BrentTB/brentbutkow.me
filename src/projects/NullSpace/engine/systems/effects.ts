@@ -9,9 +9,9 @@ import { shieldEffect } from '../abilities/shield'
 import { sunEffect } from '../abilities/sun'
 import { supernovaEffect } from '../abilities/supernova'
 import { forceFieldEffect } from '../abilities/force-field'
-import { nuclearWasteEffect } from '../ship/nuke'
+import { nuclearWasteEffect } from '../weapons/nuke'
 
-// Registry: each effect's owner file (ability or ship weapon) declares an
+// Registry: each effect's owner file (ability or helper weapon) declares an
 // EffectDefinition — tick + optional world-layer renderers — and registers it
 // here, the only central step a new effect needs. updateActiveEffects and the
 // renderer both dispatch through this map.

@@ -11,6 +11,7 @@ import {
   getPowerOrbMultiplier,
   getSpaceMetalDropMultiplier,
   getStardustMultiplier,
+  getAllyWeaponUnlocks,
   getWeaponModifierUpgrades,
   isUpgradeWave,
   isWeaponFullyMaxed,
@@ -207,6 +208,20 @@ describe('WEAPON_UNLOCK_UPGRADE', () => {
   })
 })
 
+describe('getAllyWeaponUnlocks', () => {
+  it('shows the four helper-weapon unlocks for the Helper and its Helper Factory ultimate', () => {
+    expect(getAllyWeaponUnlocks(AbilityKind.helper).length).toBe(4)
+    // Regression: buying the ultimate swaps the detail to Helper Factory, which
+    // inherits the Helper line — the ally-weapon unlocks must NOT disappear.
+    expect(getAllyWeaponUnlocks(AbilityKind.helperFactory).length).toBe(4)
+  })
+
+  it('shows nothing for abilities outside the Helper line', () => {
+    expect(getAllyWeaponUnlocks(AbilityKind.meteorite)).toEqual([])
+    expect(getAllyWeaponUnlocks(AbilityKind.sun)).toEqual([])
+  })
+})
+
 describe('getWeaponModifierUpgrades', () => {
   // Regression: after an ultimate replaced its base, the base's upgrades vanished
   // from the shop. The ultimate's detail must surface its base modifiers (which
@@ -318,7 +333,7 @@ describe('UNLOCK_UPGRADE_IDS', () => {
       expect(UNLOCK_UPGRADE_IDS.has(id)).toBe(true)
     }
     expect(UNLOCK_UPGRADE_IDS.has(UpgradeId.meteoriteDamage)).toBe(false)
-    expect(UNLOCK_UPGRADE_IDS.has(UpgradeId.shipDamage)).toBe(false)
+    expect(UNLOCK_UPGRADE_IDS.has(UpgradeId.shipMaxHp)).toBe(false)
   })
 })
 

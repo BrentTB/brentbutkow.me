@@ -1,11 +1,13 @@
+import { useState } from 'react'
 import { ABILITY_META } from '../../engine/abilities'
-import { getWeaponModifierUpgrades } from '../../engine/upgrades'
+import { getAllyWeaponUnlocks, getWeaponModifierUpgrades } from '../../engine/upgrades'
 import { AbilityKind } from '../../engine/types'
 import type { UpgradeId } from '../../engine/upgrade-ids'
 import type { GameUIState } from '../../useNullSpace'
 import { UpgradeCard } from './UpgradeCard'
 import { UltimateCard } from './UltimateCard'
 import styles from './WeaponDetail.module.scss'
+import listStyles from './WeaponsList.module.scss'
 
 type WeaponDetailProps = {
   weapon: AbilityKind
@@ -22,23 +24,67 @@ export function WeaponDetail({
   onPurchase,
   onPurchaseUltimate,
 }: WeaponDetailProps) {
+  const [showAllyWeapons, setShowAllyWeapons] = useState(false)
   const subUpgrades = getWeaponModifierUpgrades(weapon)
+  // Non-empty only for the Helper line (base Helper or its Helper Factory ultimate).
+  const allyWeapons = getAllyWeaponUnlocks(weapon)
+  // On the Helper line the Ally Weapons entry sits after the base Helper upgrades
+  // but before the Helper Factory's own, so split them. Off the Helper line
+  // everything is "base" and the entry is hidden anyway.
+  const baseUpgrades =
+    allyWeapons.length > 0
+      ? subUpgrades.filter((d) => d.weapon === AbilityKind.helper)
+      : subUpgrades
+  const ultimateUpgrades =
+    allyWeapons.length > 0 ? subUpgrades.filter((d) => d.weapon !== AbilityKind.helper) : []
+
+  const card = (def: (typeof subUpgrades)[number]) => (
+    <UpgradeCard
+      key={def.id}
+      def={def}
+      currentTier={uiState.upgrades[def.id]?.currentTier ?? 0}
+      currency={uiState.currency}
+      upgrades={uiState.upgrades}
+      onPurchase={onPurchase}
+    />
+  )
+
+  // Sub-view: the Helper's "Ally Weapons" drill-down — only the 4 weapon unlocks,
+  // with a back link to the ability's main upgrade list.
+  if (showAllyWeapons) {
+    return (
+      <>
+        <button
+          className={styles.backBtn}
+          onClick={() => setShowAllyWeapons(false)}
+          aria-label={`Back to ${ABILITY_META[weapon].label}`}
+        >
+          ← Ally Weapons
+        </button>
+        {allyWeapons.map(card)}
+      </>
+    )
+  }
 
   return (
     <>
       <button className={styles.backBtn} onClick={onBack} aria-label="Back to weapons">
         ← {ABILITY_META[weapon].label}
       </button>
-      {subUpgrades.map((def) => (
-        <UpgradeCard
-          key={def.id}
-          def={def}
-          currentTier={uiState.upgrades[def.id]?.currentTier ?? 0}
-          currency={uiState.currency}
-          upgrades={uiState.upgrades}
-          onPurchase={onPurchase}
-        />
-      ))}
+      {baseUpgrades.map(card)}
+      {/* Helper line: drill into a sub-list of the helper weapons allies can wield.
+          Slots in after the base Helper upgrades, before the Helper Factory's. */}
+      {allyWeapons.length > 0 && (
+        <button
+          type="button"
+          className={`${listStyles.weaponCard} ${listStyles.weaponCardBtn}`}
+          onClick={() => setShowAllyWeapons(true)}
+        >
+          <span className={listStyles.weaponName}>Ally Weapons</span>
+          <span className={listStyles.weaponArrow}>→</span>
+        </button>
+      )}
+      {ultimateUpgrades.map(card)}
       <UltimateCard weapon={weapon} uiState={uiState} onPurchaseUltimate={onPurchaseUltimate} />
     </>
   )

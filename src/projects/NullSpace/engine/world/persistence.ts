@@ -118,7 +118,9 @@ const SAVE_KEY = 'null-space-save'
 // Bump ONLY when a change makes old saves structurally incompatible. A normal
 // release leaves this alone, so an in-progress run survives updates.
 // v2: world became a torus (corridor/world dims + positions changed).
-const SAVE_VERSION = 2
+// v3: "You Are the Weapon" rework — ship guns removed, Carrier gone, plus a new
+// waveElapsed field; old runs would be inconsistent, so they're discarded.
+const SAVE_VERSION = 3
 
 export type SavedGame = {
   version: number

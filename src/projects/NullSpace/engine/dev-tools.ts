@@ -23,8 +23,6 @@ export type DevPatch = {
   shipMaxHp?: number
   shipShield?: number
   shipMaxShield?: number
-  shipDamage?: number
-  shipFireRate?: number
   shipSpeed?: number
   score?: number
   currency?: number
@@ -59,8 +57,6 @@ export function devPatchState(state: GameState, patch: DevPatch): GameState {
   if (patch.shipHp !== undefined) ship = { ...ship, hp: patch.shipHp }
   if (patch.shipMaxShield !== undefined) ship = { ...ship, maxShield: patch.shipMaxShield }
   if (patch.shipShield !== undefined) ship = { ...ship, shield: patch.shipShield }
-  if (patch.shipDamage !== undefined) ship = { ...ship, damage: patch.shipDamage }
-  if (patch.shipFireRate !== undefined) ship = { ...ship, fireRate: patch.shipFireRate }
   if (patch.shipSpeed !== undefined) ship = { ...ship, speed: patch.shipSpeed }
 
   const wave = patch.wave ?? state.wave
