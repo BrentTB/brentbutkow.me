@@ -9,14 +9,7 @@ import {
   spawnExplosionParticles,
   updateDeathAnims,
 } from './entity-creator'
-import {
-  AbilityKind,
-  DeathBehavior,
-  EnemyKind,
-  MovementBehavior,
-  ShipKind,
-  ShipWeaponKind,
-} from '../types'
+import { AbilityKind, DeathBehavior, EnemyKind, MovementBehavior, ShipKind } from '../types'
 import { ANIMATION, WEAPON_ORDER, WORLD_SIZE } from '../../data'
 import { rng } from '../math/random'
 
@@ -33,18 +26,9 @@ describe('createShip', () => {
     expect(ship.hp).toBeGreaterThan(0)
   })
 
-  it('starts with one bullet equipped per weapon slot (single-slot ships)', () => {
-    const ship = createShip(ShipKind.fighter, WORLD_SIZE)
-    expect(ship.equippedWeapons).toHaveLength(ship.weaponSlots)
-    expect(ship.fireCooldowns).toHaveLength(ship.weaponSlots)
-    expect(ship.equippedWeapons.every((k) => k === ShipWeaponKind.bullet)).toBe(true)
-  })
-
-  it('starts with cleared cosmetic timers (one muzzle flash per slot)', () => {
+  it('starts with cleared cosmetic timers', () => {
     const ship = createShip(ShipKind.fighter, WORLD_SIZE)
     expect(ship.hitFlash).toBe(0)
-    expect(ship.recoil).toBe(0)
-    expect(ship.muzzleFlash).toEqual([0])
   })
 })
 

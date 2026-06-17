@@ -24,17 +24,17 @@ export const ShipKind = {
 } as const
 export type ShipKind = (typeof ShipKind)[keyof typeof ShipKind]
 
-// The ship's auto-attack weapon. Bullet is the default every ship starts with;
-// the rest are bought and equipped in the shop. Defined here (not in
-// engine/ship/) so Ship can reference it without a types→ship import cycle.
-export const ShipWeaponKind = {
+// A weapon a helper (ally) can be armed with. Bullet is the default; the rest
+// are unlocked via the Helper shop and rolled onto summoned allies. Defined here
+// (not in engine/weapons/) so Ally can reference it without a types→weapons cycle.
+export const HelperWeaponKind = {
   bullet: 'bullet',
   laser: 'laser',
   missile: 'missile',
   ricochet: 'ricochet',
   nuke: 'nuke',
 } as const
-export type ShipWeaponKind = (typeof ShipWeaponKind)[keyof typeof ShipWeaponKind]
+export type HelperWeaponKind = (typeof HelperWeaponKind)[keyof typeof HelperWeaponKind]
 
 export const EscapeModePhase = {
   charge: 'charge',
@@ -50,13 +50,7 @@ export type EscapeModeState = {
 
 export type Ship = Entity & {
   kind: ShipKind
-  fireRate: number
-  // One cooldown per weapon slot — different equipped weapons fire on their
-  // own cadence. Length equals weaponSlots.
-  fireCooldowns: number[]
-  damage: number
   speed: number
-  attackRange: number
   // Seconds left in the post-fling window where the resumed forward-drift still
   // inherits the fling heading (eases back to forward) instead of snapping. 0 = pure drift.
   driftMomentum: number
@@ -69,10 +63,6 @@ export type Ship = Entity & {
   // HP regenerated per second. 0 by default; the Life Regeneration power upgrade
   // raises it. Heals up to maxHp while alive.
   hpRegen: number
-  weaponSlots: number
-  // The weapon equipped in each slot. Length equals weaponSlots. Every current
-  // ship has one slot; the array still supports multi-slot ships if reintroduced.
-  equippedWeapons: ShipWeaponKind[]
   // Cached last non-zero movement direction (unit vector). Falls back to {1,0}
   // at game start. Used by Escape Mode to dash when the ship is stationary.
   lastHeading: Vec2
@@ -94,12 +84,9 @@ export type Ship = Entity & {
   // below the re-engage threshold.
   slingHeat: number
   slingOverheated: boolean
-  // Cosmetic timers (seconds, count down to 0) — render-only, never touch the
-  // simulation. hitFlash washes the sprite white on damage, recoil nudges it
-  // back when firing, muzzleFlash[i] blips the muzzle of weapon slot i.
+  // Cosmetic timer (seconds, counts down to 0) — render-only, never touches the
+  // simulation. hitFlash washes the sprite white on damage.
   hitFlash: number
-  recoil: number
-  muzzleFlash: number[]
 }
 
 export const EnemyKind = {
@@ -493,6 +480,9 @@ export type Ally = {
   fireRate: number
   fireCooldown: number
   damage: number
+  // The ship weapon this ally fires, rolled at spawn from the player's unlocked
+  // ally weapons (bullet by default). Reuses the ship-weapon definitions.
+  weapon: HelperWeaponKind
   speed: number
   attackRange: number
   // Time alive — drives orbit-phase drift so allies fan around the ship.
@@ -565,7 +555,7 @@ export type UpgradeDefinition = {
   id: UpgradeId
   category: UpgradeCategory
   /** For weapon/loadout upgrades, which weapon this belongs to */
-  weapon?: AbilityKind | ShipWeaponKind
+  weapon?: AbilityKind | HelperWeaponKind
   label: string
   description: string
   tiers: UpgradeTier[]
@@ -639,7 +629,7 @@ export type GameState = {
   levelUpWeaponOffers: AbilityKind[]
   // Ship-weapon kinds the player has purchased this run. Starts with bullet;
   // every successful ship-weapon unlock pushes its kind here. Resets per run.
-  unlockedWeapons: ShipWeaponKind[]
+  unlockedWeapons: HelperWeaponKind[]
   // Ultimate ability kinds purchased this run. Drives the escalating shard cost
   // (N = ultimatesOwned.length + 1) and replaces the base in the hotbar/shop.
   // Resets per run.

@@ -1,15 +1,15 @@
 import { createProjectile } from '../entities/entity-creator'
-import { ProjectileOwner, ShipWeaponKind } from '../types'
+import { ProjectileOwner, HelperWeaponKind } from '../types'
 import { IconName } from '../../icon-names'
-import { BULLET } from './ship-weapon-data'
-import type { ShipWeaponDefinition } from './ship-weapon-definition'
+import { BULLET } from './helper-weapon-data'
+import type { HelperWeaponDefinition } from './helper-weapon-definition'
 
-export const bullet: ShipWeaponDefinition = {
-  kind: ShipWeaponKind.bullet,
+export const bullet: HelperWeaponDefinition = {
+  kind: HelperWeaponKind.bullet,
   meta: { icon: IconName.bullet, label: 'Bullet' },
   startsUnlocked: true,
   fireRateMultiplier: BULLET.fireRateMultiplier,
-  weaponDamage: (baseShipDamage) => baseShipDamage * BULLET.damageMultiplier,
+  weaponDamage: (baseDamage) => baseDamage * BULLET.damageMultiplier,
   // Default weapon — identical to the original createProjectile path.
   createProjectiles: (shipPos, targetPos, damage) => [
     createProjectile(shipPos, targetPos, ProjectileOwner.ship, damage),

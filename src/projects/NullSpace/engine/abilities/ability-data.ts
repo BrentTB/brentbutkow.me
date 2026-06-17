@@ -126,7 +126,7 @@ export const HELPER = {
 // still decays, so its lifetime (and total spawns) is bounded. The Assembly Line
 // upgrade shortens the interval, floored at `minSpawnInterval`.
 export const HELPER_FACTORY = {
-  costMultiplier: 3,
+  costMultiplier: 4,
   hpMultiplier: 6,
   spawnInterval: 4,
   minSpawnInterval: 1.5,

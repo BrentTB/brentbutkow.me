@@ -21,7 +21,6 @@ describe('createShip — per-kind stats', () => {
     expect(ship.hp).toBe(base.maxHp)
     expect(ship.maxShield).toBe(base.maxShield)
     expect(ship.shield).toBe(base.maxShield)
-    expect(ship.weaponSlots).toBe(1)
   })
 
   it('Interceptor is faster and more fragile than Fighter', () => {
@@ -220,9 +219,6 @@ describe("projectile-enemy collision — dead enemies don't absorb extra bullets
       waveTimer: 0,
       enemies: [enemy],
       projectiles: [projA, projB],
-      // Force the ship's auto-attack onto cooldown so it doesn't spawn a
-      // fresh projectile that confuses the count.
-      ship: { ...state.ship, fireCooldowns: state.ship.fireCooldowns.map(() => 999) },
     }
     const next = updateGameState(state, 1 / 60, { clicks: [], selectedAbility: null })
 
@@ -262,7 +258,6 @@ describe("projectile-enemy collision — dead enemies don't absorb extra bullets
       waveTimer: 0,
       enemies: [enemy],
       projectiles: [projA, projB],
-      ship: { ...state.ship, fireCooldowns: state.ship.fireCooldowns.map(() => 999) },
     }
     const next = updateGameState(state, 1 / 60, { clicks: [], selectedAbility: null })
 
@@ -306,7 +301,6 @@ describe("projectile-enemy collision — dead enemies don't absorb extra bullets
       waveTimer: 0,
       enemies: [enemy],
       projectiles: [projA, projB],
-      ship: { ...state.ship, fireCooldowns: state.ship.fireCooldowns.map(() => 999) },
     }
     const next = updateGameState(state, 1 / 60, { clicks: [], selectedAbility: null })
 
@@ -355,7 +349,6 @@ describe("projectile-enemy collision — dead enemies don't absorb extra bullets
       waveTimer: 0,
       enemies: [enemyA, enemyB],
       projectiles: [projA, projB],
-      ship: { ...state.ship, fireCooldowns: state.ship.fireCooldowns.map(() => 999) },
     }
     const next = updateGameState(state, 1 / 60, { clicks: [], selectedAbility: null })
 
@@ -381,7 +374,6 @@ describe('ship has no auto-attack', () => {
     ]
     state = {
       ...state,
-      ship: { ...state.ship, fireCooldowns: state.ship.fireCooldowns.map(() => 0) },
       spawnQueue: [],
       waveTimer: 0,
       projectiles: [],

@@ -255,15 +255,15 @@ src/projects/NullSpace/engine/
   dev-tools.ts                               DevPatch, devPatchState, devJumpToUpgrades, devJumpToBoss
 
 src/projects/NullSpace/engine/entities/
-  ally.ts                                    updateAllies
+  ally.ts                                    rollAllyWeapon, updateAllies
   dasher.ts                                  tickDasher
   enemy-damage.ts                            applyDamageToEnemy
   enemy.ts                                   findNearestTarget, enemyFacing, updateEnemyMovement, updateEnemyShooting
   entity-creator.ts                          uid, createShip, createEnemy, createProjectile, createAlly, createHelperFactory, createParticle, spawnExplosionParticles, updateParticles, createDeathAnim, updateDeathAnims, createAbilities
-  ship.ts                                    applySlingshot, tickSlingHeat, tickFling, applyDamageToShip, tickEscapeMode, updateShipDrift, updateShipAttack
+  ship.ts                                    applySlingshot, tickSlingHeat, tickFling, applyDamageToShip, tickEscapeMode, updateShipDrift
 
 src/projects/NullSpace/engine/
-  game-loop.ts                               createInitialState, moveToShipSelection, startGame, rollLevelUpWeaponOffers, resetForSector, startNextWave, applyUpgradeToState, equipShipWeapon, applyUltimatePurchaseToState, devUnlockWeapon, devGrantUltimate, beginWarp, completeWarp, advanceWarp, advanceDeathSequence, finishUpgradeScreen, updateGameState
+  game-loop.ts                               createInitialState, moveToShipSelection, startGame, rollLevelUpWeaponOffers, resetForSector, startNextWave, applyUpgradeToState, applyUltimatePurchaseToState, devUnlockWeapon, devGrantUltimate, beginWarp, completeWarp, advanceWarp, advanceDeathSequence, finishUpgradeScreen, updateGameState
 
 src/projects/NullSpace/engine/math/
   aoe.ts                                     AoeResult, damageEnemiesInRadiusFlat, damageEnemiesInRadius
@@ -276,15 +276,7 @@ src/projects/NullSpace/engine/math/
   vec.ts                                     ringPositions, unitToward
 
 src/projects/NullSpace/engine/ship/
-  bullet.ts                                  bullet
-  index.ts                                   SHIP_WEAPON_DEFINITIONS, SHIP_WEAPON_LIST, SHIP_WEAPON_ORDER, SHIP_WEAPON_META, SHIP_WEAPON_UNLOCK_UPGRADE, SHIP_WEAPON_UPGRADE_DEFINITIONS, getShipWeaponForUnlockUpgrade, buildShipProjectile
-  laser.ts                                   LASER_UPGRADE_IDS, laser
-  missile.ts                                 MISSILE_UPGRADE_IDS, missile
-  nuke.ts                                    NUKE_UPGRADE_IDS, createNuclearWasteEffect, getNuclearWasteCurrentRadius, nuclearWasteEffect, nuke
-  ricochet.ts                                RICOCHET_UPGRADE_IDS, ricochet
   ship-data.ts                               ShipVariantStats, ShipVariantConfig, STAT_MAX, SHIP_ORDER, SHIP_VARIANTS
-  ship-weapon-data.ts                        BULLET, LASER, MISSILE, RICOCHET, NUKE
-  ship-weapon-definition.ts                  ShipWeaponDefinition, makeLoadoutUpgrade, WeaponProjectileOpts, buildShipProjectile
 
 src/projects/NullSpace/engine/spaceMetalAbilities/
   escape-mode.ts                             ESCAPE_MODE, escapeDash
@@ -309,10 +301,20 @@ src/projects/NullSpace/engine/tutorial/
   tutorial-script.ts                         TutorialTriggerKind, TutorialSpotlightKind, POWER_LOW_FRACTION, TutorialStep, TUTORIAL_STEPS
 
 src/projects/NullSpace/engine/
-  types.ts                                   Vec2, Entity, ShipKind, ShipWeaponKind, EscapeModePhase, EscapeModeState, Ship, EnemyKind, EnemyModifier, MovementBehavior, DeathBehavior, BurningState, DashStage, DasherState, Enemy, ProjectileOwner, Projectile, AbilityKind, Ability, EffectKind, EffectBase, MeteorStrikeEffect, BlackHoleEffect, RocketEffect, ShieldEffect, SunEffect, NuclearWasteEffect, SupernovaEffect, ForceFieldEffect, EventHorizonEffect, ActiveEffect, CollectibleKind, Collectible, HazardKind, Hazard, Ally, Particle, DeathAnim, GamePhase, UpgradeCategory, UpgradeTier, UpgradeDefinition, PlayerUpgrades, BossSelection, GameState, HoldRuntimeState, PlayerInput
+  types.ts                                   Vec2, Entity, ShipKind, HelperWeaponKind, EscapeModePhase, EscapeModeState, Ship, EnemyKind, EnemyModifier, MovementBehavior, DeathBehavior, BurningState, DashStage, DasherState, Enemy, ProjectileOwner, Projectile, AbilityKind, Ability, EffectKind, EffectBase, MeteorStrikeEffect, BlackHoleEffect, RocketEffect, ShieldEffect, SunEffect, NuclearWasteEffect, SupernovaEffect, ForceFieldEffect, EventHorizonEffect, ActiveEffect, CollectibleKind, Collectible, HazardKind, Hazard, Ally, Particle, DeathAnim, GamePhase, UpgradeCategory, UpgradeTier, UpgradeDefinition, PlayerUpgrades, BossSelection, GameState, HoldRuntimeState, PlayerInput
   ultimates.ts                               COEXIST_ULTIMATES, ultimateShardCost, canPurchaseUltimate, purchaseUltimate, isBaseReplacedByUltimate
   upgrade-ids.ts                             UpgradeId
-  upgrades.ts                                SHIP_AND_POWER_UPGRADE_IDS, UNLOCK_UPGRADE_IDS, SLINGSHOT_UPGRADE_IDS, UPGRADE_DEFINITIONS, getWeaponModifierUpgrades, isWeaponFullyMaxed, UPGRADE_CATEGORY_LABELS, createInitialUpgrades, canPurchaseUpgrade, purchaseUpgrade, applyUpgradesToAbilities, syncUltimateAbilities, applyUpgradesToShip, applyUpgradesToPowerRegen, getStardustMultiplier, getSpaceMetalDropMultiplier, getPowerOrbMultiplier, getLevel, isUpgradeWave
+  upgrades.ts                                SHIP_AND_POWER_UPGRADE_IDS, UNLOCK_UPGRADE_IDS, SLINGSHOT_UPGRADE_IDS, UPGRADE_DEFINITIONS, getWeaponModifierUpgrades, getAllyWeaponUnlocks, isWeaponFullyMaxed, UPGRADE_CATEGORY_LABELS, createInitialUpgrades, canPurchaseUpgrade, purchaseUpgrade, applyUpgradesToAbilities, syncUltimateAbilities, applyUpgradesToShip, applyUpgradesToPowerRegen, getStardustMultiplier, getSpaceMetalDropMultiplier, getPowerOrbMultiplier, getLevel, isUpgradeWave
+
+src/projects/NullSpace/engine/weapons/
+  bullet.ts                                  bullet
+  helper-weapon-data.ts                      BULLET, LASER, MISSILE, RICOCHET, NUKE
+  helper-weapon-definition.ts                HelperWeaponDefinition, makeLoadoutUpgrade, WeaponProjectileOpts, buildHelperProjectile
+  index.ts                                   HELPER_WEAPON_DEFINITIONS, HELPER_WEAPON_LIST, HELPER_WEAPON_META, HELPER_WEAPON_UNLOCK_UPGRADE, HELPER_WEAPON_UPGRADE_DEFINITIONS, getHelperWeaponForUnlockUpgrade, buildHelperProjectile
+  laser.ts                                   LASER_UPGRADE_IDS, laser
+  missile.ts                                 MISSILE_UPGRADE_IDS, missile
+  nuke.ts                                    NUKE_UPGRADE_IDS, createNuclearWasteEffect, getNuclearWasteCurrentRadius, nuclearWasteEffect, nuke
+  ricochet.ts                                RICOCHET_UPGRADE_IDS, ricochet
 
 src/projects/NullSpace/engine/world/
   enemy-modifiers.ts                         modifierChance, rollEnemyModifier, applyModifier

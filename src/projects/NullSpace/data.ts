@@ -34,7 +34,7 @@ export const SLINGSHOT = {
 } as const
 
 export const POWER_DEFAULTS = {
-  max: 1000,
+  max: 2000,
   // Abilities are now the player's only weapon, so the floor must sustain basic
   // defence — the cheapest abilities stay castable off regen alone.
   regenRate: 6,
@@ -45,8 +45,6 @@ export const POWER_DEFAULTS = {
 export const ANIMATION = {
   hitFlash: 0.07, // white-wash on damage
   hitFlashThrottle: 0.6, // min gap between white-washes (continuous damage pulses, not solid)
-  muzzleFlash: 0.06, // ship firing blip
-  recoil: 0.09, // ship kickback on fire
   enemyFireFlash: 0.06, // enemy muzzle blip
   spawnIn: 0.35, // enemy warp-in grow
   deathAnim: 0.26, // enemy disintegration (×1.8 for bosses)
@@ -371,7 +369,7 @@ export const SECTOR = {
   // enemies at a respectful orbit distance (so they stay on-screen) while kept
   // deliberately leaky: driftSpeed/steerRate stay modest, so faster threats and
   // dasher charges close in and force a player slingshot.
-  orbitRangeFraction: 0.85, // flee-orbit radius = attackRange × this
+  orbitRange: 238, // flee-orbit radius (px): how far the ship holds enemies off
   orbitSpeedFraction: 0.7, // tangential (circling) speed = ship speed × this
   fleeBias: 0.18, // outward lean: rest point sits this × speed beyond orbitRange
   steerRate: 3, // how fast velocity eases toward the desired heading (flowy turns)
@@ -456,9 +454,10 @@ export const CHANGELOG: ChangelogEntry[] = [
       features: [
         'New enemy, the Dasher: it winds up, shows the line of its lunge, then charges straight at the ship. Read the tell and slingshot clear.',
         'Waves that drag heat up — lingering enemies speed up and glow redder the longer you stall, so you can no longer just watch them trail the ship.',
+        'Arm your helpers: the new Allies shop tab unlocks the old ship weapons (laser, missile, ricochet, nuke) for your summoned allies — each unlock arms about a quarter of them, so buying all four arms them all.',
       ],
       balance: [
-        'Ships are set apart by toughness and speed now, not firepower; ship select drops the combat stats it can no longer stand behind.',
+        'Ships are set apart by toughness and speed now, not firepower; ship select drops the combat-stat bars and the shop drops its Auto-Turret and Fire Rate upgrades — there are no ship guns left to boost.',
         'The slingshot is a long-burn resource: many quick flings before it overheats, then a slower cool-down. Overheating no longer locks you out — you can still fling, at half the distance for double the heat.',
         'Power regenerates faster and the cheapest abilities cost less, so you always have an answer. Regular enemies drop less power; bosses drop a big refill.',
         'Fewer enemies per wave, and mines are denser and present from wave one — thread between them.',

@@ -9,7 +9,7 @@ import {
   updateProjectiles,
 } from './combat'
 import { createAlly, createEnemy, createProjectile, createShip } from '../entities/entity-creator'
-import { buildShipProjectile } from '../ship'
+import { buildHelperProjectile } from '../weapons'
 import { distance } from '../math/collision'
 import { EffectKind, EnemyKind, ProjectileOwner, ShipKind } from '../types'
 import type { ShieldEffect } from '../types'
@@ -168,7 +168,7 @@ describe('resolveProjectileEnemyCollisions — laser pierce', () => {
       createEnemy(EnemyKind.drone, { x: 300, y: 0 }),
     ]
     // Beam swept across all three — pierce=2 should hit the first two only.
-    const beam = buildShipProjectile({ x: 0, y: 0 }, { x: 1000, y: 0 }, 5, {
+    const beam = buildHelperProjectile({ x: 0, y: 0 }, { x: 1000, y: 0 }, 5, {
       speed: 1000,
       lifetime: 1,
       pierce: { maxHits: 2, hitEnemyIds: [] },
@@ -192,7 +192,7 @@ describe('resolveProjectileEnemyCollisions — ricochet bounce', () => {
   it('redirects velocity toward the nearest unhit enemy in range after a hit', () => {
     const a = createEnemy(EnemyKind.drone, { x: 100, y: 0 })
     const b = createEnemy(EnemyKind.drone, { x: 120, y: 60 })
-    const proj = buildShipProjectile({ x: 0, y: 0 }, a.pos, 5, {
+    const proj = buildHelperProjectile({ x: 0, y: 0 }, a.pos, 5, {
       speed: 200,
       lifetime: 3,
       bounce: { remaining: 2, hitEnemyIds: [], bounceRange: 300 },
@@ -213,7 +213,7 @@ describe('resolveProjectileEnemyCollisions — ricochet bounce', () => {
 
   it('is consumed when no unhit enemy is in range', () => {
     const a = createEnemy(EnemyKind.drone, { x: 100, y: 0 })
-    const proj = buildShipProjectile({ x: 0, y: 0 }, a.pos, 5, {
+    const proj = buildHelperProjectile({ x: 0, y: 0 }, a.pos, 5, {
       speed: 200,
       lifetime: 3,
       bounce: { remaining: 3, hitEnemyIds: [], bounceRange: 10 },
@@ -231,7 +231,7 @@ describe('resolveProjectileEnemyCollisions — nuke detonate', () => {
   it('applies AoE damage and emits a nuclearWaste effect', () => {
     const inBlast = createEnemy(EnemyKind.drone, { x: 110, y: 0 })
     const outside = createEnemy(EnemyKind.drone, { x: 500, y: 0 })
-    const shell = buildShipProjectile({ x: 0, y: 0 }, { x: 100, y: 0 }, 50, {
+    const shell = buildHelperProjectile({ x: 0, y: 0 }, { x: 100, y: 0 }, 50, {
       speed: 100,
       lifetime: 2,
       radius: 8,
@@ -258,44 +258,6 @@ describe('resolveProjectileEnemyCollisions — nuke detonate', () => {
   })
 })
 
-describe('ricochet — full game-loop firing pipeline', () => {
-  it('ship-fired ricochet bounces between two enemies (updateShipAttack + collisions)', async () => {
-    const { updateShipAttack } = await import('../entities/ship')
-    const { createInitialUpgrades } = await import('../upgrades')
-    const { ShipWeaponKind } = await import('../types')
-
-    let ship = createShip(ShipKind.fighter, WORLD_SIZE)
-    ship = { ...ship, equippedWeapons: [ShipWeaponKind.ricochet], fireCooldowns: [0] }
-
-    // Tank-HP drones so a single hit can't one-shot them — we want to see them
-    // both *damaged* by bouncing, not killed before bounce can land.
-    const baseEnemyA = createEnemy(EnemyKind.tank, { x: ship.pos.x + 200, y: ship.pos.y })
-    const baseEnemyB = createEnemy(EnemyKind.tank, { x: ship.pos.x + 260, y: ship.pos.y + 40 })
-    let liveEnemies = [baseEnemyA, baseEnemyB]
-    const startingHp = { a: baseEnemyA.hp, b: baseEnemyB.hp }
-
-    let projectiles: import('../types').Projectile[] = []
-    const upgrades = createInitialUpgrades()
-    const dt = 0.016
-
-    for (let i = 0; i < 200; i++) {
-      const fired = updateShipAttack(ship, liveEnemies, projectiles, dt, upgrades)
-      ship = fired.ship
-      projectiles = fired.projectiles
-      projectiles = updateProjectiles(projectiles, liveEnemies, dt)
-      const r = resolveProjectileEnemyCollisions(projectiles, liveEnemies)
-      projectiles = r.projectiles
-      liveEnemies = r.enemies
-    }
-
-    const aAfter = liveEnemies.find((e) => e.id === baseEnemyA.id)
-    const bAfter = liveEnemies.find((e) => e.id === baseEnemyB.id)
-    // Both enemies took damage — proves the bounce reached the second target.
-    expect(aAfter?.hp ?? 0).toBeLessThan(startingHp.a)
-    expect(bAfter?.hp ?? 0).toBeLessThan(startingHp.b)
-  })
-})
-
 // Single-frame collision tests cover the redirect math, but the user-facing
 // bug is "ricochet hits one enemy then disappears" — which can only happen if
 // the multi-frame pipeline (updateProjectiles → collisions, every frame)
@@ -314,7 +276,7 @@ describe('resolveProjectileEnemyCollisions — ricochet lifetime extends per bou
       createEnemy(EnemyKind.tank, { x: 720, y: 0 }),
       createEnemy(EnemyKind.tank, { x: 880, y: 100 }),
     ]
-    const proj = buildShipProjectile({ x: 0, y: 0 }, enemies[0].pos, 5, {
+    const proj = buildHelperProjectile({ x: 0, y: 0 }, enemies[0].pos, 5, {
       speed: 400,
       lifetime: 1.5,
       bounce: {
@@ -349,7 +311,7 @@ describe('resolveProjectileEnemyCollisions — ricochet lifetime extends per bou
       createEnemy(EnemyKind.tank, { x: 720, y: 0 }),
       createEnemy(EnemyKind.tank, { x: 880, y: 100 }),
     ]
-    const proj = buildShipProjectile({ x: 0, y: 0 }, enemies[0].pos, 5, {
+    const proj = buildHelperProjectile({ x: 0, y: 0 }, enemies[0].pos, 5, {
       speed: 400,
       lifetime: 1.5,
       // No lifetimePerBounce — projectile times out naturally.
@@ -375,7 +337,7 @@ describe('resolveProjectileEnemyCollisions — ricochet multi-frame flight', () 
   it('hits multiple enemies across frames after firing', () => {
     const a = createEnemy(EnemyKind.drone, { x: 100, y: 0 })
     const b = createEnemy(EnemyKind.drone, { x: 220, y: 0 })
-    const proj = buildShipProjectile({ x: 0, y: 0 }, a.pos, 100, {
+    const proj = buildHelperProjectile({ x: 0, y: 0 }, a.pos, 100, {
       speed: 400,
       lifetime: 3,
       bounce: { remaining: 3, hitEnemyIds: [], bounceRange: 500 },
@@ -408,7 +370,7 @@ describe('resolveProjectileEnemyCollisions — ricochet multi-frame flight', () 
       createEnemy(EnemyKind.drone, { x: 200, y: 80 }),
       createEnemy(EnemyKind.drone, { x: 320, y: 0 }),
     ]
-    const proj = buildShipProjectile({ x: 0, y: 0 }, enemies[0].pos, 100, {
+    const proj = buildHelperProjectile({ x: 0, y: 0 }, enemies[0].pos, 100, {
       speed: 400,
       lifetime: 3,
       bounce: { remaining: 3, hitEnemyIds: [], bounceRange: 500 },
@@ -436,7 +398,7 @@ describe('resolveProjectileEnemyCollisions — missile splash (detonate without 
     const directHit = createEnemy(EnemyKind.drone, { x: 100, y: 0 })
     const inSplash = createEnemy(EnemyKind.drone, { x: 130, y: 0 })
     const outside = createEnemy(EnemyKind.drone, { x: 500, y: 0 })
-    const missile = buildShipProjectile({ x: 0, y: 0 }, directHit.pos, 12, {
+    const missile = buildHelperProjectile({ x: 0, y: 0 }, directHit.pos, 12, {
       speed: 200,
       lifetime: 4,
       radius: 5,
@@ -464,7 +426,7 @@ describe('updateProjectiles — missile homing', () => {
     const enemy = createEnemy(EnemyKind.drone, { x: 0, y: 200 })
     // Missile starts moving in +x but enemy is in +y — homing should pull vel
     // toward +y over a single tick.
-    const missile = buildShipProjectile({ x: 0, y: 0 }, { x: 100, y: 0 }, 5, {
+    const missile = buildHelperProjectile({ x: 0, y: 0 }, { x: 100, y: 0 }, 5, {
       speed: 200,
       lifetime: 2,
       homing: true,
@@ -540,7 +502,7 @@ describe('combat — collisions across the world seam', () => {
     // through the x wrap. A raw euclidean blast distance (~2590) would miss it.
     const trigger = { ...createEnemy(EnemyKind.drone, { x: 5, y: 1300 }), hp: 1000 }
     const victim = { ...createEnemy(EnemyKind.drone, { x: WORLD_SIZE.x - 5, y: 1300 }), hp: 1000 }
-    const missile = buildShipProjectile({ x: 0, y: 1300 }, { x: 5, y: 1300 }, 0, {
+    const missile = buildHelperProjectile({ x: 0, y: 1300 }, { x: 5, y: 1300 }, 0, {
       speed: 100,
       lifetime: 2,
       radius: 8,

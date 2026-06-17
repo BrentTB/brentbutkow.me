@@ -6,7 +6,6 @@ import {
   GamePhase,
   ProjectileOwner,
   ShipKind,
-  ShipWeaponKind,
 } from '../engine/types'
 import type {
   ActiveEffect,
@@ -65,15 +64,6 @@ export const SHIP_SPRITE_KEY: Record<ShipKind, SpriteKey> = {
   [ShipKind.fighter]: SpriteKey.ship,
   [ShipKind.interceptor]: SpriteKey.shipInterceptor,
   [ShipKind.dreadnought]: SpriteKey.shipDreadnought,
-}
-
-// Per-weapon muzzle-flash tint so a weapon swap reads at the barrel.
-const WEAPON_FLASH: Record<ShipWeaponKind, string> = {
-  [ShipWeaponKind.bullet]: '#ffe08a',
-  [ShipWeaponKind.laser]: '#bff2ff',
-  [ShipWeaponKind.missile]: '#ffb066',
-  [ShipWeaponKind.ricochet]: '#ff99e0',
-  [ShipWeaponKind.nuke]: '#fff2c0',
 }
 
 // Stable 0..2π phase from an entity id so idle pulses don't march in lockstep.
@@ -268,30 +258,10 @@ function renderShip(
     drawShieldRing(ctx, ship.radius + 12, (ship.shield / ship.maxShield) * 0.65)
   }
 
-  // Recoil kicks the hull (and its exhaust) backward (local +y) after a shot.
-  const recoil = reducedMotion ? 0 : (ship.recoil / ANIMATION.recoil) * 2.5
-  ctx.translate(0, recoil)
-
   // Engine exhaust sits behind the hull, so draw it before the sprite.
   drawThruster(ctx, size, Math.hypot(ship.vel.x, ship.vel.y), clock, reducedMotion)
 
   ctx.drawImage(sprites[spriteKey], -size.w / 2, -size.h / 2)
-
-  // Muzzle flash per firing slot — coloured by the equipped weapon. Multi-slot
-  // ships spread across the nose; single-slot ships fire dead centre.
-  for (let i = 0; i < ship.muzzleFlash.length; i++) {
-    if (ship.muzzleFlash[i] <= 0) continue
-    const slots = ship.muzzleFlash.length
-    const x = slots > 1 ? (i - (slots - 1) / 2) * (size.w * 0.28) : 0
-    const kind = ship.equippedWeapons[i] ?? ShipWeaponKind.bullet
-    drawMuzzleFlash(
-      ctx,
-      x,
-      -size.h / 2,
-      ship.muzzleFlash[i] / ANIMATION.muzzleFlash,
-      WEAPON_FLASH[kind]
-    )
-  }
 
   // Hit flash — white wash on HP damage (reuses the masked-tint helper).
   if (ship.hitFlash > 0) {
@@ -344,32 +314,6 @@ function drawThruster(
     ctx.closePath()
     ctx.fill()
   }
-}
-
-// A short bright spike at a weapon muzzle (local frame; nose points toward -y).
-function drawMuzzleFlash(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  noseY: number,
-  t: number,
-  color: string
-): void {
-  const len = 6 + t * 6
-  const half = 2 + t * 2
-  ctx.save()
-  ctx.globalAlpha = Math.min(1, t)
-  ctx.fillStyle = color
-  ctx.beginPath()
-  ctx.moveTo(x - half, noseY)
-  ctx.lineTo(x + half, noseY)
-  ctx.lineTo(x, noseY - len)
-  ctx.closePath()
-  ctx.fill()
-  ctx.fillStyle = '#ffffff'
-  ctx.beginPath()
-  ctx.arc(x, noseY, half * 0.7, 0, Math.PI * 2)
-  ctx.fill()
-  ctx.restore()
 }
 
 // Reused scratch buffer for sprite-masked tints (e.g. the overheat wash).

@@ -1,26 +1,32 @@
 import { PROJECTILE_RADIUS } from '../../data'
 import { uid } from '../entities/entity-creator'
 import { ProjectileOwner, UpgradeCategory } from '../types'
-import type { PlayerUpgrades, Projectile, ShipWeaponKind, UpgradeDefinition, Vec2 } from '../types'
+import type {
+  PlayerUpgrades,
+  Projectile,
+  HelperWeaponKind,
+  UpgradeDefinition,
+  Vec2,
+} from '../types'
 import type { IconName } from '../../icon-names'
 
-// The ship's auto-attack weapon, mirroring AbilityDefinition. A weapon owns its
-// firing cadence multiplier, how it spawns projectiles (pre-tagged with
-// behavior fields the combat system reads), the damage it does, and the
-// upgrade definitions that unlock and modify it. Combat never imports this
-// file — it dispatches on the projectile's optional fields.
-export type ShipWeaponDefinition = {
-  kind: ShipWeaponKind
+// A weapon an ally can be armed with, mirroring AbilityDefinition. A weapon owns
+// its firing cadence multiplier, how it spawns projectiles (pre-tagged with
+// behavior fields the combat system reads), the damage it does, and the upgrade
+// that unlocks it. Combat never imports this file — it dispatches on the
+// projectile's optional fields.
+export type HelperWeaponDefinition = {
+  kind: HelperWeaponKind
   meta: { icon: IconName; label: string }
   // True only for the default weapon (bullet). Everything else needs its
   // `unlockUpgrade` purchased before it can be equipped.
   startsUnlocked?: boolean
-  // Multiplier applied to `ship.fireRate` to compute this weapon's per-slot
-  // cooldown (`1 / (ship.fireRate * multiplier)`). Nuke is ~0.15, missile
-  // ~0.55, bullet 1.
+  // Multiplier applied to the firing ally's fireRate to compute this weapon's
+  // cooldown (`1 / (fireRate * multiplier)`). Nuke is ~0.1, missile ~0.55,
+  // bullet 1.
   fireRateMultiplier: number
-  // Live damage after upgrades, given the ship's base damage stat.
-  weaponDamage: (baseShipDamage: number, upgrades: PlayerUpgrades) => number
+  // Live damage given the firing ally's base damage.
+  weaponDamage: (baseDamage: number, upgrades: PlayerUpgrades) => number
   // Spawns the projectile(s) for a single target (bullet returns 1).
   createProjectiles: (
     shipPos: Vec2,
@@ -30,15 +36,13 @@ export type ShipWeaponDefinition = {
   ) => Projectile[]
   // One-tier purchase that unlocks the weapon. Absent for the default weapon.
   unlockUpgrade?: UpgradeDefinition
-  // Tiered upgrades (damage, special stats).
-  modifierUpgrades?: UpgradeDefinition[]
 }
 
-// Binds a ship weapon so each of its upgrades declares only id/label/
+// Binds a helper weapon so each of its upgrades declares only id/label/
 // description/tiers — the shared loadout category + weapon fields are injected
 // once per file. Loadout parallel of makeAbilityUpgrade.
 export function makeLoadoutUpgrade(
-  weapon: ShipWeaponKind
+  weapon: HelperWeaponKind
 ): (def: Omit<UpgradeDefinition, 'category' | 'weapon'>) => UpgradeDefinition {
   return (def) => ({ ...def, category: UpgradeCategory.loadout, weapon })
 }
@@ -59,7 +63,7 @@ export type WeaponProjectileOpts = {
 // pre-tagged with whichever behavior fields the caller passes. Shared by the
 // non-bullet weapons (bullet still uses createProjectile to stay byte-identical
 // to its original code path).
-export function buildShipProjectile(
+export function buildHelperProjectile(
   shipPos: Vec2,
   targetPos: Vec2,
   damage: number,

@@ -21,7 +21,7 @@ import {
   EnemyKind,
   GamePhase,
   ShipKind,
-  ShipWeaponKind,
+  HelperWeaponKind,
 } from './engine/types'
 import type { GameState, PlayerInput, Vec2, PlayerUpgrades } from './engine/types'
 import type { UpgradeId } from './engine/upgrade-ids'
@@ -112,8 +112,6 @@ export type GameUIState = {
   shipShield: number
   shipMaxShield: number
   shieldCooldownRemaining: number
-  shipDamage: number
-  shipFireRate: number
   shipSpeed: number
   power: number
   maxPower: number
@@ -129,7 +127,6 @@ export type GameUIState = {
   enemiesAlive: number
   levelUpWeaponOffers: GameState['levelUpWeaponOffers']
   unlockedWeapons: GameState['unlockedWeapons']
-  equippedWeapons: GameState['ship']['equippedWeapons']
   escapeModeActive: boolean
   slingHeat: number
   slingOverheated: boolean
@@ -196,8 +193,6 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     shipShield: 50,
     shipMaxShield: 50,
     shieldCooldownRemaining: 0,
-    shipDamage: 0,
-    shipFireRate: 0,
     shipSpeed: 0,
     power: 80,
     maxPower: 100,
@@ -212,8 +207,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     totalWaveEnemies: 0,
     enemiesAlive: 0,
     levelUpWeaponOffers: [],
-    unlockedWeapons: [ShipWeaponKind.bullet],
-    equippedWeapons: [ShipWeaponKind.bullet],
+    unlockedWeapons: [HelperWeaponKind.bullet],
     escapeModeActive: false,
     slingHeat: 0,
     slingOverheated: false,
@@ -287,8 +281,6 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       shipShield: state.ship.shield,
       shipMaxShield: state.ship.maxShield,
       shieldCooldownRemaining: state.ship.shieldCooldownRemaining,
-      shipDamage: state.ship.damage,
-      shipFireRate: state.ship.fireRate,
       shipSpeed: state.ship.speed,
       power: state.power,
       maxPower: state.maxPower,
@@ -304,7 +296,6 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       enemiesAlive: state.enemies.length,
       levelUpWeaponOffers: state.levelUpWeaponOffers,
       unlockedWeapons: state.unlockedWeapons,
-      equippedWeapons: state.ship.equippedWeapons,
       escapeModeActive: state.ship.escapeMode !== null,
       slingHeat: state.ship.slingHeat,
       slingOverheated: state.ship.slingOverheated,

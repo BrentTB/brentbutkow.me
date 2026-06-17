@@ -1,13 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { createEnemy, createProjectile, createShip } from '../entities/entity-creator'
 import { updateEnemyMovement } from '../entities/enemy'
-import { updateShipAttack } from '../entities/ship'
 import { updateBossAI } from './boss-ai'
 import { getBossDefinition } from './index'
 import { DREADNOUGHT_BOSS } from './dreadnought'
 import { resolveProjectileEnemyCollisions, updateProjectiles } from '../systems/combat'
 import { damageEnemiesInRadiusFlat } from '../math/aoe'
-import { createInitialUpgrades } from '../upgrades'
 import { distance } from '../math/collision'
 import { EnemyKind, ProjectileOwner, ShipKind } from '../types'
 import { WORLD_SIZE } from '../../data'
@@ -304,34 +302,6 @@ describe('DREADNOUGHT_BOSS onDeath', () => {
 // A shielded boss can't be damaged or targeted — every damage and targeting
 // path must respect that (not just direct projectile hits).
 describe('invincibility is respected by targeting + AoE', () => {
-  it('ship auto-attack fires at a damageable enemy, not the closer shielded boss', () => {
-    const ship = createShip(ShipKind.fighter, WORLD_SIZE)
-    // Shield generator parked out of range keeps the boss shielded without being
-    // a valid target itself.
-    const { boss, gen } = shieldedBoss(
-      { x: ship.pos.x + 100, y: ship.pos.y },
-      { x: ship.pos.x + 2000, y: ship.pos.y }
-    )
-    const drone = createEnemy(EnemyKind.drone, { x: ship.pos.x, y: ship.pos.y + 200 })
-
-    const result = updateShipAttack(ship, [boss, gen, drone], [], 0.016, createInitialUpgrades())
-    expect(result.projectiles.length).toBeGreaterThan(0)
-    // Aimed at the drone (+y), not the nearer boss (+x).
-    const p = result.projectiles[0]
-    expect(p.vel.y).toBeGreaterThan(0)
-    expect(Math.abs(p.vel.x)).toBeLessThan(Math.abs(p.vel.y))
-  })
-
-  it('ship holds fire when only a shielded boss is in range', () => {
-    const ship = createShip(ShipKind.fighter, WORLD_SIZE)
-    const { boss, gen } = shieldedBoss(
-      { x: ship.pos.x + 100, y: ship.pos.y },
-      { x: ship.pos.x + 2000, y: ship.pos.y }
-    )
-    const result = updateShipAttack(ship, [boss, gen], [], 0.016, createInitialUpgrades())
-    expect(result.projectiles.length).toBe(0)
-  })
-
   it('homing missile retargets to a damageable enemy instead of the nearer shielded boss', () => {
     const { boss, gen } = shieldedBoss({ x: 100, y: 0 }, { x: 5000, y: 0 })
     const drone = createEnemy(EnemyKind.drone, { x: 0, y: 200 })

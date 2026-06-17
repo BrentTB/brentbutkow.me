@@ -14,7 +14,7 @@ import {
   EnemyModifier,
   MovementBehavior,
   ShipKind,
-  ShipWeaponKind,
+  HelperWeaponKind,
 } from '../types'
 import type { DeathAnim, Ship, Enemy, Projectile, Vec2, Ally, Particle } from '../types'
 import { rng } from '../math/random'
@@ -77,16 +77,10 @@ export function createShip(kind: ShipKind, worldSize: Vec2): Ship {
     shieldRegen: s.shieldRegen,
     shieldCooldownRemaining: 0,
     hpRegen: 0,
-    fireRate: s.fireRate,
-    fireCooldowns: Array(s.weaponSlots).fill(0),
-    damage: s.damage,
     speed: s.speed,
-    attackRange: s.attackRange,
     driftMomentum: 0,
     // Random start phase so the idle weave doesn't always lead off the same way.
     weavePhase: rng.next(),
-    weaponSlots: s.weaponSlots,
-    equippedWeapons: Array(s.weaponSlots).fill(ShipWeaponKind.bullet),
     // Spawn heading; updated as the ship moves.
     lastHeading: { x: 0, y: 1 },
     escapeMode: null,
@@ -99,8 +93,6 @@ export function createShip(kind: ShipKind, worldSize: Vec2): Ship {
     slingHeat: 0,
     slingOverheated: false,
     hitFlash: 0,
-    recoil: 0,
-    muzzleFlash: Array(s.weaponSlots).fill(0),
   }
 }
 
@@ -180,6 +172,7 @@ export function createAlly(
     fireRate: HELPER.fireRate,
     fireCooldown: 0,
     damage,
+    weapon: HelperWeaponKind.bullet,
     speed: HELPER.speed,
     attackRange: HELPER.attackRange,
     elapsed: 0,

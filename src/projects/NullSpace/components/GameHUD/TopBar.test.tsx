@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
 import { TopBar } from './TopBar'
-import { AbilityKind, EnemyKind, GamePhase, ShipKind, ShipWeaponKind } from '../../engine/types'
+import { AbilityKind, EnemyKind, GamePhase, ShipKind, HelperWeaponKind } from '../../engine/types'
 import type { PlayerUpgrades } from '../../engine/types'
 import type { GameUIState } from '../../useNullSpace'
 
@@ -19,8 +19,6 @@ function makeUiState(over: Partial<GameUIState> = {}): GameUIState {
     shipShield: 50,
     shipMaxShield: 50,
     shieldCooldownRemaining: 0,
-    shipDamage: 0,
-    shipFireRate: 0,
     shipSpeed: 0,
     power: 80,
     maxPower: 100,
@@ -35,8 +33,7 @@ function makeUiState(over: Partial<GameUIState> = {}): GameUIState {
     totalWaveEnemies: 0,
     enemiesAlive: 0,
     levelUpWeaponOffers: [],
-    unlockedWeapons: [ShipWeaponKind.bullet],
-    equippedWeapons: [ShipWeaponKind.bullet],
+    unlockedWeapons: [HelperWeaponKind.bullet],
     escapeModeActive: false,
     slingHeat: 0,
     slingOverheated: false,

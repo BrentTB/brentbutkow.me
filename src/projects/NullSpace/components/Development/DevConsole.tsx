@@ -122,19 +122,6 @@ export function DevConsole({
             type="button"
             className={styles.shipBtn}
             disabled={!inGame}
-            onClick={() =>
-              onPatch({
-                shipDamage: uiState.shipDamage * 5,
-                shipFireRate: uiState.shipFireRate * 5,
-              })
-            }
-          >
-            Make Ship OP
-          </button>
-          <button
-            type="button"
-            className={styles.shipBtn}
-            disabled={!inGame}
             onClick={() => onPatch({ shipShield: 5000, shipMaxShield: 5000 })}
           >
             Super Shield
@@ -237,20 +224,7 @@ export function DevConsole({
             />
           </Section>
 
-          <Section label="Combat Stats">
-            <NumField
-              label="Damage"
-              value={uiState.shipDamage}
-              onCommit={(v) => onPatch({ shipDamage: v })}
-              disabled={!inGame}
-            />
-            <NumField
-              label="Fire Rate"
-              value={uiState.shipFireRate}
-              onCommit={(v) => onPatch({ shipFireRate: v })}
-              disabled={!inGame}
-              step="0.1"
-            />
+          <Section label="Movement">
             <NumField
               label="Speed"
               value={uiState.shipSpeed}

@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import {
   createInitialState,
-  equipShipWeapon,
   moveToShipSelection,
   rollLevelUpWeaponOffers,
   startGame,
@@ -18,6 +17,7 @@ import {
 } from './game-loop'
 import {
   createAbilities,
+  createAlly,
   createDeathAnim,
   createEnemy,
   createParticle,
@@ -34,7 +34,7 @@ import {
   HazardKind,
   ProjectileOwner,
   ShipKind,
-  ShipWeaponKind,
+  HelperWeaponKind,
 } from './types'
 import { UpgradeId } from './upgrade-ids'
 import { isUpgradeWave } from './upgrades'
@@ -354,6 +354,15 @@ describe('beginWarp', () => {
     expect(warped.hazards).toEqual([])
     expect(warped.spaceMetal).toBe(2 + 3)
   })
+
+  // Regression: helpers + the helper factory used to ride the warp into the next
+  // sector (and the shop), banking a free squad. The ship teleports away alone.
+  it('clears all allies on the sector-clear warp', () => {
+    let state = startGame(createInitialState(), ShipKind.fighter)
+    state = startNextWave(state)
+    state = { ...state, allies: [createAlly({ x: 0, y: 0 }), createAlly({ x: 10, y: 0 })] }
+    expect(beginWarp(state).allies).toEqual([])
+  })
 })
 
 describe('advanceWarp', () => {
@@ -586,7 +595,7 @@ describe('ship weapons in GameState', () => {
   it('starts a run with only bullet unlocked', () => {
     let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
-    expect(state.unlockedWeapons).toEqual([ShipWeaponKind.bullet])
+    expect(state.unlockedWeapons).toEqual([HelperWeaponKind.bullet])
   })
 
   it('buying a ship-weapon unlock pushes the kind into unlockedWeapons', () => {
@@ -594,15 +603,7 @@ describe('ship weapons in GameState', () => {
     state = startNextWave(state)
     state = { ...state, currency: 1000 }
     state = applyUpgradeToState(state, UpgradeId.unlockLaser)
-    expect(state.unlockedWeapons).toContain(ShipWeaponKind.laser)
-  })
-
-  it('auto-equips the new weapon on single-slot ships (no other slot to put it in)', () => {
-    let state = startGame(createInitialState(), ShipKind.fighter)
-    state = startNextWave(state)
-    state = { ...state, currency: 1000 }
-    state = applyUpgradeToState(state, UpgradeId.unlockLaser)
-    expect(state.ship.equippedWeapons).toEqual([ShipWeaponKind.laser])
+    expect(state.unlockedWeapons).toContain(HelperWeaponKind.laser)
   })
 
   it('buying the same unlock twice does not duplicate the kind in unlockedWeapons', () => {
@@ -612,37 +613,10 @@ describe('ship weapons in GameState', () => {
     state = applyUpgradeToState(state, UpgradeId.unlockLaser)
     // applyUpgradeToState rejects a second purchase past the single tier, but
     // we still want the array stable if it ever ran twice.
-    const beforeCount = state.unlockedWeapons.filter((k) => k === ShipWeaponKind.laser).length
+    const beforeCount = state.unlockedWeapons.filter((k) => k === HelperWeaponKind.laser).length
     state = applyUpgradeToState(state, UpgradeId.unlockLaser)
-    const afterCount = state.unlockedWeapons.filter((k) => k === ShipWeaponKind.laser).length
+    const afterCount = state.unlockedWeapons.filter((k) => k === HelperWeaponKind.laser).length
     expect(afterCount).toBe(beforeCount)
-  })
-})
-
-describe('equipShipWeapon', () => {
-  it('rejects equipping a weapon that has not been unlocked', () => {
-    let state = startGame(createInitialState(), ShipKind.fighter)
-    state = startNextWave(state)
-    const before = state.ship.equippedWeapons
-    const next = equipShipWeapon(state, 0, ShipWeaponKind.laser)
-    expect(next.ship.equippedWeapons).toEqual(before)
-  })
-
-  it('equips an unlocked weapon into the given slot', () => {
-    let state = startGame(createInitialState(), ShipKind.fighter)
-    state = startNextWave(state)
-    state = { ...state, currency: 1000 }
-    state = applyUpgradeToState(state, UpgradeId.unlockLaser)
-    state = equipShipWeapon(state, 0, ShipWeaponKind.laser)
-    expect(state.ship.equippedWeapons[0]).toBe(ShipWeaponKind.laser)
-  })
-
-  it('rejects a slot index out of range', () => {
-    let state = startGame(createInitialState(), ShipKind.fighter)
-    state = startNextWave(state)
-    const before = state.ship.equippedWeapons
-    expect(equipShipWeapon(state, -1, ShipWeaponKind.bullet).ship.equippedWeapons).toEqual(before)
-    expect(equipShipWeapon(state, 5, ShipWeaponKind.bullet).ship.equippedWeapons).toEqual(before)
   })
 })
 
@@ -899,19 +873,18 @@ describe('updateGameState — chase-movement smoothing (tank behaviour)', () => 
     state = startNextWave(state)
     state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
 
-    // Tank moving right (+x) at full speed, ship now to the LEFT.
-    state = {
-      ...state,
-      enemies: state.enemies.map((e) => ({
-        ...e,
-        speed: 40,
-        pos: { x: state.ship.pos.x + 200, y: state.ship.pos.y },
-        vel: { x: 40, y: 0 },
-      })),
+    // A drone (chase movement) moving right (+x) at full speed, ship to the LEFT.
+    // Explicit drone — wave 1 can also spawn a dasher, which uses dash movement,
+    // not the chase smoothing this test measures.
+    const chaser = {
+      ...createEnemy(EnemyKind.drone, { x: state.ship.pos.x + 200, y: state.ship.pos.y }),
+      speed: 40,
+      vel: { x: 40, y: 0 },
     }
+    state = { ...state, enemies: [chaser] }
 
     const next = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
-    const after = next.enemies.find((e) => e.id === state.enemies[0].id)
+    const after = next.enemies.find((e) => e.id === chaser.id)
     // After ONE frame: chase target is -40 (ship is to the left). Without
     // smoothing the snapped vel would be -40 exactly. With smoothing it's
     // between the old (+40) and the target (-40) — i.e. closer to +40 than

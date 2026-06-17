@@ -7,16 +7,14 @@ import {
   WEAPON_UNLOCK_UPGRADE,
   applyTierSum,
 } from './abilities'
-import { SHIP_WEAPON_UNLOCK_UPGRADE, SHIP_WEAPON_UPGRADE_DEFINITIONS } from './ship'
+import { HELPER_WEAPON_UNLOCK_UPGRADE, HELPER_WEAPON_UPGRADE_DEFINITIONS } from './weapons'
 import { SHIP_VARIANTS } from './ship/ship-data'
-import { UpgradeCategory } from './types'
+import { AbilityKind, UpgradeCategory } from './types'
 import type { UpgradeId } from './upgrade-ids'
-import type { Ability, AbilityKind, PlayerUpgrades, Ship, UpgradeDefinition } from './types'
+import type { Ability, PlayerUpgrades, Ship, UpgradeDefinition } from './types'
 
 export const SHIP_AND_POWER_UPGRADE_IDS = {
   shipMaxHp: 'shipMaxHp',
-  shipDamage: 'shipDamage',
-  shipFireRate: 'shipFireRate',
   shipShieldStrength: 'shipShieldStrength',
   shipSpeed: 'shipSpeed',
   slingPower: 'slingPower',
@@ -35,7 +33,7 @@ export const SHIP_AND_POWER_UPGRADE_IDS = {
 // detection views only see modifier upgrades.
 export const UNLOCK_UPGRADE_IDS: ReadonlySet<UpgradeId> = new Set([
   ...Object.values(WEAPON_UNLOCK_UPGRADE).filter((id): id is UpgradeId => id !== undefined),
-  ...Object.values(SHIP_WEAPON_UNLOCK_UPGRADE).filter((id): id is UpgradeId => id !== undefined),
+  ...Object.values(HELPER_WEAPON_UNLOCK_UPGRADE).filter((id): id is UpgradeId => id !== undefined),
 ])
 
 // Ship and power upgrades live here — they aren't per-ability so they don't
@@ -51,32 +49,6 @@ const shipAndPowerUpgrades: UpgradeDefinition[] = [
       { cost: 6, value: 25 },
       { cost: 24, value: 25 },
       { cost: 96, value: 50 },
-    ],
-  },
-  {
-    id: SHIP_AND_POWER_UPGRADE_IDS.shipDamage,
-    category: UpgradeCategory.ship,
-    label: 'Auto-Turret',
-    description: 'Increase ship auto-attack damage',
-    tiers: [
-      { cost: 8, value: 2 },
-      { cost: 32, value: 3 },
-      { cost: 120, value: 5 },
-      { cost: 240, value: 7 },
-      { cost: 480, value: 10 },
-    ],
-  },
-  {
-    id: SHIP_AND_POWER_UPGRADE_IDS.shipFireRate,
-    category: UpgradeCategory.ship,
-    label: 'Fire Rate',
-    description: 'Increase auto-turret fire rate',
-    tiers: [
-      { cost: 8, value: 0.4 },
-      { cost: 32, value: 0.4 },
-      { cost: 112, value: 0.6 },
-      { cost: 224, value: 0.8 },
-      { cost: 448, value: 1.0 },
     ],
   },
   {
@@ -151,9 +123,11 @@ const shipAndPowerUpgrades: UpgradeDefinition[] = [
     label: 'Power Regen',
     description: 'Increase passive power regeneration',
     tiers: [
-      { cost: 8, value: 1 },
-      { cost: 32, value: 2 },
-      { cost: 120, value: 3 },
+      { cost: 8, value: 2 },
+      { cost: 32, value: 4 },
+      { cost: 120, value: 8 },
+      { cost: 360, value: 16 },
+      { cost: 1080, value: 32 },
     ],
   },
   {
@@ -212,9 +186,11 @@ export const SLINGSHOT_UPGRADE_IDS: readonly UpgradeId[] = [
 ]
 
 export const UPGRADE_DEFINITIONS: Record<UpgradeId, UpgradeDefinition> = Object.fromEntries(
-  [...ABILITY_UPGRADE_DEFINITIONS, ...SHIP_WEAPON_UPGRADE_DEFINITIONS, ...shipAndPowerUpgrades].map(
-    (d) => [d.id, d]
-  )
+  [
+    ...ABILITY_UPGRADE_DEFINITIONS,
+    ...HELPER_WEAPON_UPGRADE_DEFINITIONS,
+    ...shipAndPowerUpgrades,
+  ].map((d) => [d.id, d])
 ) as Record<UpgradeId, UpgradeDefinition>
 
 // Modifier upgrades shown on a weapon's shop detail page. For an ultimate, this
@@ -228,6 +204,18 @@ export function getWeaponModifierUpgrades(weapon: AbilityKind): UpgradeDefinitio
       def.category === UpgradeCategory.weapons &&
       (def.weapon === weapon || def.weapon === baseKind) &&
       !UNLOCK_UPGRADE_IDS.has(def.id)
+  )
+}
+
+// The ship-weapon unlocks shown on the Helper line's detail page — the base
+// Helper or its Helper Factory ultimate (which inherits them). Buying one arms
+// ~1/4 of summoned allies with that weapon (see rollAllyWeapon). They keep the
+// loadout category (no shop tab renders it) and surface only here.
+export function getAllyWeaponUnlocks(weapon: AbilityKind): UpgradeDefinition[] {
+  const isHelperLine = weapon === AbilityKind.helper || BASE_KIND_OF[weapon] === AbilityKind.helper
+  if (!isHelperLine) return []
+  return Object.values(UPGRADE_DEFINITIONS).filter(
+    (def) => def.category === UpgradeCategory.loadout && UNLOCK_UPGRADE_IDS.has(def.id)
   )
 }
 
@@ -252,7 +240,7 @@ export const UPGRADE_CATEGORY_LABELS: Record<UpgradeCategory, string> = {
   [UpgradeCategory.weapons]: 'Weapons',
   [UpgradeCategory.ship]: 'Ship',
   [UpgradeCategory.powers]: 'Powers',
-  [UpgradeCategory.loadout]: 'Loadout',
+  [UpgradeCategory.loadout]: 'Allies',
 }
 
 export function createInitialUpgrades(): PlayerUpgrades {
@@ -340,16 +328,6 @@ export function applyUpgradesToShip(ship: Ship, upgrades: PlayerUpgrades): Ship 
     upgrades,
     UPGRADE_DEFINITIONS[SHIP_AND_POWER_UPGRADE_IDS.shipMaxHp]
   )
-  const damage = applyTierSum(
-    base.damage,
-    upgrades,
-    UPGRADE_DEFINITIONS[SHIP_AND_POWER_UPGRADE_IDS.shipDamage]
-  )
-  const fireRate = applyTierSum(
-    base.fireRate,
-    upgrades,
-    UPGRADE_DEFINITIONS[SHIP_AND_POWER_UPGRADE_IDS.shipFireRate]
-  )
   const maxShield = applyTierSum(
     base.maxShield,
     upgrades,
@@ -412,8 +390,6 @@ export function applyUpgradesToShip(ship: Ship, upgrades: PlayerUpgrades): Ship 
     maxShield,
     shield: Math.min(ship.shield + Math.max(0, shieldGain), maxShield),
     hpRegen,
-    damage,
-    fireRate,
     speed,
     slingMaxSpeed,
     slingJitter,

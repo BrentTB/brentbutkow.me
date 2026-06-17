@@ -5,12 +5,8 @@ export type ShipVariantStats = {
   maxHp: number
   maxShield: number
   shieldRegen: number
-  damage: number
-  fireRate: number
   speed: number
-  attackRange: number
   radius: number
-  weaponSlots: number
 }
 
 export type ShipVariantConfig = {
@@ -39,12 +35,8 @@ export const SHIP_VARIANTS: Record<ShipKind, ShipVariantConfig> = {
       maxHp: 100,
       maxShield: 50,
       shieldRegen: 4,
-      damage: 6,
-      fireRate: 2.5,
       speed: 120,
-      attackRange: 280,
       radius: 16,
-      weaponSlots: 1,
     },
   },
   [ShipKind.interceptor]: {
@@ -55,12 +47,8 @@ export const SHIP_VARIANTS: Record<ShipKind, ShipVariantConfig> = {
       maxHp: 70,
       maxShield: 25,
       shieldRegen: 3,
-      damage: 0,
-      fireRate: 0,
       speed: 180,
-      attackRange: 280,
       radius: 14,
-      weaponSlots: 1,
     },
   },
   [ShipKind.dreadnought]: {
@@ -71,12 +59,8 @@ export const SHIP_VARIANTS: Record<ShipKind, ShipVariantConfig> = {
       maxHp: 110,
       maxShield: 120,
       shieldRegen: 6,
-      damage: 4,
-      fireRate: 1.5,
       speed: 75,
-      attackRange: 280,
       radius: 18,
-      weaponSlots: 1,
     },
   },
 }
