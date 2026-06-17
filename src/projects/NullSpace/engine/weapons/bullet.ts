@@ -10,7 +10,7 @@ export const bullet: HelperWeaponDefinition = {
   startsUnlocked: true,
   fireRateMultiplier: BULLET.fireRateMultiplier,
   weaponDamage: (baseDamage) => baseDamage * BULLET.damageMultiplier,
-  // Default weapon — identical to the original createProjectile path.
+  // Default weapon — a plain projectile, no special behavior fields.
   createProjectiles: (shipPos, targetPos, damage) => [
     createProjectile(shipPos, targetPos, ProjectileOwner.ship, damage),
   ],

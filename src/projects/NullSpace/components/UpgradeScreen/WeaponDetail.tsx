@@ -72,7 +72,7 @@ export function WeaponDetail({
         ← {ABILITY_META[weapon].label}
       </button>
       {baseUpgrades.map(card)}
-      {/* Helper line: drill into a sub-list of the ship weapons allies can wield.
+      {/* Helper line: drill into a sub-list of the helper weapons allies can wield.
           Slots in after the base Helper upgrades, before the Helper Factory's. */}
       {allyWeapons.length > 0 && (
         <button

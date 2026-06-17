@@ -62,7 +62,7 @@ describe('helperFactory', () => {
     // Just past the first-spawn delay a fresh helper already appears (no waiting
     // a full interval), and no projectile is fired even with the factory present.
     const dt = HELPER_FACTORY.firstSpawnDelay + 0.1
-    const result = updateAllies([factory], [], ship, [], dt, [], createInitialUpgrades())
+    const result = updateAllies([factory], [], ship, [], dt, [])
     expect(result.projectiles.length).toBe(0)
     const spawnedHelpers = result.allies.filter((a) => a.spawnInterval === undefined)
     expect(spawnedHelpers.length).toBe(1)

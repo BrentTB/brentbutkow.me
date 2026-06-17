@@ -338,7 +338,7 @@ src/projects/NullSpace/renderer/
   renderer.ts                                SHIP_SPRITE_KEY, RenderOptions, renderFrame
   sling-aim.ts                               drawSlingAim
   sprite-cache.ts                            SpriteCache, AnimationCache, buildSpriteCache, getSpriteSize, buildAnimationCache, pickFrame
-  sprites.ts                                 SpriteData, SpriteAnimation, SHIP_SPRITE, DRONE_SPRITE, _OLD_DRONE_SPRITE, TANK_SPRITE, PROJECTILE_SPRITE, METEOR_SPRITE, METEORITE_SPRITE, SHOOTER_SPRITE, ENEMY_PROJECTILE_SPRITE, SWARM_SPRITE, _NEW_SWARM_SPRITE, BOMBER_SPRITE, ROCKET_SPRITE, INTERCEPTOR_SPRITE, DREADNOUGHT_SPRITE, CARRIER_SPRITE, ALLY_SPRITE, MISSILE_SPRITE, RICOCHET_SPRITE, NUKE_SPRITE, DREADNOUGHT_BOSS_SPRITE, SHIELD_GENERATOR_SPRITE, VOID_WORM_BOSS_SPRITE, WORM_SEGMENT_SPRITE, PHASE_SHIFTER_BOSS_SPRITE, DASHER_SPRITE, SpriteKey, SPRITE_MAP, AnimationKey, ANIMATION_MAP
+  sprites.ts                                 SpriteData, SpriteAnimation, SHIP_SPRITE, DRONE_SPRITE, _OLD_DRONE_SPRITE, TANK_SPRITE, PROJECTILE_SPRITE, METEOR_SPRITE, METEORITE_SPRITE, SHOOTER_SPRITE, ENEMY_PROJECTILE_SPRITE, SWARM_SPRITE, _NEW_SWARM_SPRITE, BOMBER_SPRITE, ROCKET_SPRITE, INTERCEPTOR_SPRITE, DREADNOUGHT_SPRITE, ALLY_SPRITE, MISSILE_SPRITE, RICOCHET_SPRITE, NUKE_SPRITE, DREADNOUGHT_BOSS_SPRITE, SHIELD_GENERATOR_SPRITE, VOID_WORM_BOSS_SPRITE, WORM_SEGMENT_SPRITE, PHASE_SHIFTER_BOSS_SPRITE, DASHER_SPRITE, SpriteKey, SPRITE_MAP, AnimationKey, ANIMATION_MAP
   starfield.ts                               Star, generateStarfield, renderStarfield
   tutorial-overlay.ts                        TutorialFocusOpts, drawTutorialFocus
   warp.ts                                    renderWarpTransition

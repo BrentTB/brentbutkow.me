@@ -5,14 +5,13 @@ import {
   HELPER_WEAPON_UNLOCK_UPGRADE,
   getHelperWeaponForUnlockUpgrade,
 } from './index'
-import { createInitialUpgrades } from '../upgrades'
 import { HelperWeaponKind } from '../types'
 import { UpgradeId } from '../upgrade-ids'
 
 // Registry integrity — adding a new weapon kind to types.ts without wiring it
 // here would silently leave the lookup tables empty for that kind. These tests
 // catch that.
-describe('SHIP_WEAPON registry', () => {
+describe('helper weapon registry', () => {
   it('has a definition for every HelperWeaponKind', () => {
     for (const kind of Object.values(HelperWeaponKind)) {
       expect(HELPER_WEAPON_DEFINITIONS[kind]).toBeDefined()
@@ -49,13 +48,12 @@ describe('SHIP_WEAPON registry', () => {
 describe('HelperWeaponDefinition.createProjectiles', () => {
   const shipPos = { x: 0, y: 0 }
   const targetPos = { x: 100, y: 0 }
-  const upgrades = createInitialUpgrades()
 
-  // Bullet must stay byte-identical to the original behavior: one straight-line
-  // projectile, none of the new optional tags set.
+  // Bullet is the plain projectile: one straight-line shot, none of the optional
+  // tags set.
   it('bullet returns exactly one untagged projectile aimed at the target', () => {
     const def = HELPER_WEAPON_DEFINITIONS[HelperWeaponKind.bullet]
-    const projectiles = def.createProjectiles(shipPos, targetPos, 10, upgrades)
+    const projectiles = def.createProjectiles(shipPos, targetPos, 10)
     expect(projectiles).toHaveLength(1)
     const p = projectiles[0]
     expect(p.damage).toBe(10)
@@ -68,7 +66,7 @@ describe('HelperWeaponDefinition.createProjectiles', () => {
 
   it('laser tags pierce with the configured maxHits', () => {
     const def = HELPER_WEAPON_DEFINITIONS[HelperWeaponKind.laser]
-    const [proj] = def.createProjectiles(shipPos, targetPos, 10, upgrades)
+    const [proj] = def.createProjectiles(shipPos, targetPos, 10)
     expect(proj.pierce).toBeDefined()
     expect(proj.pierce!.maxHits).toBeGreaterThan(0)
     expect(proj.pierce!.hitEnemyIds).toEqual([])
@@ -76,7 +74,7 @@ describe('HelperWeaponDefinition.createProjectiles', () => {
 
   it('missile tags homing AND a detonate splash with no waste zone', () => {
     const def = HELPER_WEAPON_DEFINITIONS[HelperWeaponKind.missile]
-    const [proj] = def.createProjectiles(shipPos, targetPos, 10, upgrades)
+    const [proj] = def.createProjectiles(shipPos, targetPos, 10)
     expect(proj.homing).toBe(true)
     expect(proj.detonate).toBeDefined()
     expect(proj.detonate!.aoeRadius).toBeGreaterThan(0)
@@ -89,7 +87,7 @@ describe('HelperWeaponDefinition.createProjectiles', () => {
 
   it('ricochet tags bounce with remaining > 0 and a bounceRange', () => {
     const def = HELPER_WEAPON_DEFINITIONS[HelperWeaponKind.ricochet]
-    const [proj] = def.createProjectiles(shipPos, targetPos, 10, upgrades)
+    const [proj] = def.createProjectiles(shipPos, targetPos, 10)
     expect(proj.bounce).toBeDefined()
     expect(proj.bounce!.remaining).toBeGreaterThan(0)
     expect(proj.bounce!.bounceRange).toBeGreaterThan(0)
@@ -97,7 +95,7 @@ describe('HelperWeaponDefinition.createProjectiles', () => {
 
   it('nuke tags detonate with positive AoE radius and waste DOT params', () => {
     const def = HELPER_WEAPON_DEFINITIONS[HelperWeaponKind.nuke]
-    const [proj] = def.createProjectiles(shipPos, targetPos, 50, upgrades)
+    const [proj] = def.createProjectiles(shipPos, targetPos, 50)
     expect(proj.detonate).toBeDefined()
     expect(proj.detonate!.aoeRadius).toBeGreaterThan(0)
     expect(proj.detonate!.blastDamage).toBe(50)
@@ -111,12 +109,12 @@ describe('HelperWeaponDefinition.createProjectiles', () => {
 describe('HelperWeaponDefinition.weaponDamage', () => {
   it('bullet damage scales 1× with the base damage by default', () => {
     const def = HELPER_WEAPON_DEFINITIONS[HelperWeaponKind.bullet]
-    expect(def.weaponDamage(10, createInitialUpgrades())).toBe(10)
+    expect(def.weaponDamage(10)).toBe(10)
   })
 
   it('a specialty weapon scales the base damage by its multiplier', () => {
-    // Laser deals 0.85× — weapons no longer have buyable damage upgrades.
+    // Laser deals 0.85× its base damage.
     const def = HELPER_WEAPON_DEFINITIONS[HelperWeaponKind.laser]
-    expect(def.weaponDamage(10, createInitialUpgrades())).toBeCloseTo(8.5, 5)
+    expect(def.weaponDamage(10)).toBeCloseTo(8.5, 5)
   })
 })

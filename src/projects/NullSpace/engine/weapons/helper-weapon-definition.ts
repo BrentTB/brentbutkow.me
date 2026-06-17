@@ -1,13 +1,7 @@
 import { PROJECTILE_RADIUS } from '../../data'
 import { uid } from '../entities/entity-creator'
 import { ProjectileOwner, UpgradeCategory } from '../types'
-import type {
-  PlayerUpgrades,
-  Projectile,
-  HelperWeaponKind,
-  UpgradeDefinition,
-  Vec2,
-} from '../types'
+import type { Projectile, HelperWeaponKind, UpgradeDefinition, Vec2 } from '../types'
 import type { IconName } from '../../icon-names'
 
 // A weapon an ally can be armed with, mirroring AbilityDefinition. A weapon owns
@@ -26,14 +20,9 @@ export type HelperWeaponDefinition = {
   // bullet 1.
   fireRateMultiplier: number
   // Live damage given the firing ally's base damage.
-  weaponDamage: (baseDamage: number, upgrades: PlayerUpgrades) => number
+  weaponDamage: (baseDamage: number) => number
   // Spawns the projectile(s) for a single target (bullet returns 1).
-  createProjectiles: (
-    shipPos: Vec2,
-    targetPos: Vec2,
-    damage: number,
-    upgrades: PlayerUpgrades
-  ) => Projectile[]
+  createProjectiles: (shipPos: Vec2, targetPos: Vec2, damage: number) => Projectile[]
   // One-tier purchase that unlocks the weapon. Absent for the default weapon.
   unlockUpgrade?: UpgradeDefinition
 }
@@ -61,8 +50,7 @@ export type WeaponProjectileOpts = {
 
 // Builds a ship-owned projectile aimed from `shipPos` toward `targetPos`,
 // pre-tagged with whichever behavior fields the caller passes. Shared by the
-// non-bullet weapons (bullet still uses createProjectile to stay byte-identical
-// to its original code path).
+// non-bullet weapons (bullet uses createProjectile directly).
 export function buildHelperProjectile(
   shipPos: Vec2,
   targetPos: Vec2,

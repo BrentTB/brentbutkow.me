@@ -26,7 +26,7 @@ export function UpgradeCard({
   const canBuy = canPurchaseUpgrade(upgrades, def.id, currency)
   // Upgrades belonging to an ultimate (their weapon is an ultimate kind) read as
   // special, matching the ultimate's hotbar styling. BASE_KIND_OF is keyed by
-  // ultimate kinds only, so a ship-weapon `def.weapon` simply isn't a member.
+  // ultimate kinds only, so a helper-weapon `def.weapon` simply isn't a member.
   const isUltimateUpgrade = def.weapon !== undefined && def.weapon in BASE_KIND_OF
   const ultimateClass = isUltimateUpgrade ? styles.upgradeUltimate : ''
 

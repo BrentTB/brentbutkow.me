@@ -5,7 +5,7 @@ import { canEnemyTakeDamage } from '../bosses/index'
 import { rng } from '../math/random'
 import { HELPER_WEAPON_DEFINITIONS } from '../weapons'
 import { HelperWeaponKind } from '../types'
-import type { Ally, Enemy, PlayerUpgrades, Projectile, Ship, Vec2 } from '../types'
+import type { Ally, Enemy, Projectile, Ship, Vec2 } from '../types'
 import { HELPER } from '../abilities/ability-data'
 
 // Ally behavior: shoots the nearest enemy in range and orbits the ship at a
@@ -17,7 +17,7 @@ const ALLY_AVOID_RADIUS = 55
 const ALLY_AVOID_WEIGHT = 0.7
 const ALLY_NOISE_STRENGTH = 0.4
 
-// The four special ship weapons an ally can roll at spawn (bullet is the
+// The four special weapons an ally can roll at spawn (bullet is the
 // fallback). Each spawned ally rolls one slot uniformly; if the player has
 // unlocked that weapon for allies it spawns with it, else the basic shot — so
 // each unlock arms ~1/4 of allies, and unlocking all four arms them all.
@@ -51,8 +51,7 @@ export function updateAllies(
   ship: Ship,
   projectiles: Projectile[],
   dt: number,
-  unlockedWeapons: HelperWeaponKind[],
-  upgrades: PlayerUpgrades
+  unlockedWeapons: HelperWeaponKind[]
 ): { allies: Ally[]; projectiles: Projectile[] } {
   const surviving: Ally[] = []
   const spawned: Ally[] = []
@@ -95,11 +94,11 @@ export function updateAllies(
       }
       if (nearestEnemy && nearestDist <= ally.attackRange && updated.fireCooldown <= 0) {
         // Fire the ally's rolled weapon — the basic shot is the bullet weapon, so
-        // unarmed allies behave exactly as before; armed ones borrow the ship
+        // unarmed allies behave exactly as before; armed ones borrow the helper
         // weapon's projectiles + damage scaling (a nuke ally fires slow + rare).
         const def = HELPER_WEAPON_DEFINITIONS[ally.weapon]
-        const damage = def.weaponDamage(ally.damage, upgrades)
-        const shots = def.createProjectiles(ally.pos, nearestEnemy.pos, damage, upgrades)
+        const damage = def.weaponDamage(ally.damage)
+        const shots = def.createProjectiles(ally.pos, nearestEnemy.pos, damage)
         newProjectiles = [...newProjectiles, ...shots]
         updated = { ...updated, fireCooldown: 1 / (ally.fireRate * def.fireRateMultiplier) }
       }

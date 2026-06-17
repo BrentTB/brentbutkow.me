@@ -209,7 +209,7 @@ describe('WEAPON_UNLOCK_UPGRADE', () => {
 })
 
 describe('getAllyWeaponUnlocks', () => {
-  it('shows the four ship-weapon unlocks for the Helper and its Helper Factory ultimate', () => {
+  it('shows the four helper-weapon unlocks for the Helper and its Helper Factory ultimate', () => {
     expect(getAllyWeaponUnlocks(AbilityKind.helper).length).toBe(4)
     // Regression: buying the ultimate swaps the detail to Helper Factory, which
     // inherits the Helper line — the ally-weapon unlocks must NOT disappear.

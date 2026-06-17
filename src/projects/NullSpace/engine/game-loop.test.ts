@@ -591,14 +591,14 @@ describe('levelUpWeaponOffers', () => {
   })
 })
 
-describe('ship weapons in GameState', () => {
+describe('helper weapons in GameState', () => {
   it('starts a run with only bullet unlocked', () => {
     let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     expect(state.unlockedWeapons).toEqual([HelperWeaponKind.bullet])
   })
 
-  it('buying a ship-weapon unlock pushes the kind into unlockedWeapons', () => {
+  it('buying a helper-weapon unlock pushes the kind into unlockedWeapons', () => {
     let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     state = { ...state, currency: 1000 }
@@ -837,6 +837,45 @@ describe('updateGameState — state field round-trip persistence', () => {
 
     expect(state.phase).toBe(GamePhase.waveComplete)
     expect(state.escapeTrailAccumulator).toBeCloseTo(expected)
+  })
+
+  it('waveElapsed accumulates dt across frames in the returned state', () => {
+    let state = startGame(createInitialState(), ShipKind.fighter)
+    state = startNextWave(state)
+
+    const dt = 1 / 60
+    const before = state.waveElapsed
+    for (let i = 0; i < 3; i++) {
+      state = updateGameState(state, dt, { clicks: [], selectedAbility: null })
+    }
+
+    expect(state.waveElapsed).toBeCloseTo(before + 3 * dt)
+  })
+
+  // Companion to escapeTrailAccumulator: waveElapsed is incremented before the
+  // wave-complete early return, so that branch must thread the frame's increment
+  // too — a `...state` spread would silently emit the stale frame-start value.
+  it('waveElapsed threads through the wave-complete early return', () => {
+    let state = startGame(createInitialState(), ShipKind.fighter)
+    state = startNextWave(state)
+    // Force the wave-complete branch: nothing left to spawn or fight; mid-sector
+    // wave (1) returns directly without warping.
+    state = {
+      ...state,
+      phase: GamePhase.playing,
+      waveElapsed: 5,
+      wave: 1,
+      spawnQueue: [],
+      enemies: [],
+      totalWaveEnemies: 1,
+      spawnedInWave: 1,
+    }
+
+    const dt = 0.016
+    state = updateGameState(state, dt, { clicks: [], selectedAbility: null })
+
+    expect(state.phase).toBe(GamePhase.waveComplete)
+    expect(state.waveElapsed).toBeCloseTo(5 + dt)
   })
 })
 

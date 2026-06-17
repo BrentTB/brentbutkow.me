@@ -714,15 +714,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   particles = [...particles, ...shieldResult.particles]
 
   // --- Ally update (movement + shooting) ---
-  const allyResult = updateAllies(
-    allies,
-    enemies,
-    ship,
-    projectiles,
-    dt,
-    state.unlockedWeapons,
-    state.upgrades
-  )
+  const allyResult = updateAllies(allies, enemies, ship, projectiles, dt, state.unlockedWeapons)
   allies = allyResult.allies
   projectiles = allyResult.projectiles
 

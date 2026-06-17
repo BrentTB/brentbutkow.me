@@ -272,29 +272,6 @@ export const DREADNOUGHT_SPRITE: SpriteData = [
   [_, _, _, _, _, _, F, F, F, F, _, _, _, _, _, _],
 ]
 
-// Carrier: trimaran gunship — its identity is "fields 3 weapons at once", so
-// the silhouette is three parallel gun barrels: a longer spinal cannon up the
-// middle and one on each side pod, all with light-gold muzzle tips. Wide
-// weapons-platform deck, three exhaust groups astern (one per mount).
-export const CARRIER_SPRITE: SpriteData = [
-  [_, _, _, _, _, _, _, D, D, _, _, _, _, _, _, _],
-  [_, _, _, _, _, _, _, G, G, _, _, _, _, _, _, _],
-  [_, _, D, D, _, _, g, G, G, g, _, _, D, D, _, _],
-  [_, _, G, G, _, _, g, G, G, g, _, _, G, G, _, _],
-  [_, _, G, G, _, _, G, C, C, G, _, _, G, G, _, _],
-  [_, _, G, G, _, _, G, C, C, G, _, _, G, G, _, _],
-  [_, g, G, G, g, G, G, W, W, G, G, g, G, G, g, _],
-  [g, G, G, G, G, G, G, G, G, G, G, G, G, G, G, g],
-  [g, G, g, G, G, g, G, G, G, G, g, G, G, g, G, g],
-  [g, G, g, G, G, g, G, D, D, G, g, G, G, g, G, g],
-  [_, g, G, G, G, g, G, D, D, G, g, G, G, G, g, _],
-  [_, g, G, G, G, g, G, G, G, G, g, G, G, G, g, _],
-  [_, _, g, G, G, g, G, G, G, G, g, G, G, g, _, _],
-  [_, _, _, F, F, _, g, G, G, g, _, F, F, _, _, _],
-  [_, _, _, _, _, _, g, F, F, g, _, _, _, _, _, _],
-  [_, _, _, _, _, _, _, F, F, _, _, _, _, _, _, _],
-]
-
 // Ally fighter — mini green dart with a white cockpit and engine spark, a
 // clear step up from a bare triangle while staying tiny.
 export const ALLY_SPRITE: SpriteData = [
@@ -490,7 +467,6 @@ export const SpriteKey = {
   ship: 'ship',
   shipInterceptor: 'shipInterceptor',
   shipDreadnought: 'shipDreadnought',
-  shipCarrier: 'shipCarrier',
   drone: 'drone',
   tank: 'tank',
   shooter: 'shooter',
@@ -518,7 +494,6 @@ export const SPRITE_MAP: Record<SpriteKey, SpriteData> = {
   ship: SHIP_SPRITE,
   shipInterceptor: INTERCEPTOR_SPRITE,
   shipDreadnought: DREADNOUGHT_SPRITE,
-  shipCarrier: CARRIER_SPRITE,
   drone: DRONE_SPRITE,
   tank: TANK_SPRITE,
   shooter: SHOOTER_SPRITE,

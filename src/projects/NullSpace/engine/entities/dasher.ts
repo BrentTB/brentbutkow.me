@@ -1,5 +1,5 @@
 import { DASHER } from '../../data'
-import { toroidalDelta, wrapPosition } from '../math/toroid'
+import { toroidalDelta } from '../math/toroid'
 import { DashStage } from '../types'
 import type { DasherState, Enemy, Ship, Vec2 } from '../types'
 
@@ -47,11 +47,14 @@ export function tickDasher(enemy: Enemy, ship: Ship, dt: number): Enemy {
   }
 
   if (state.stage === DashStage.charge) {
-    // Lunge along the locked heading — dodge it, don't try to outrun it.
-    const pos = wrapPosition({
+    // Lunge along the locked heading — dodge it, don't try to outrun it. chargeSpeed
+    // is a fixed constant, exempt from wave-speed escalation (which scales only
+    // enemy.speed), so the lunge always stays under the slingshot fling cap. Position
+    // wraps in the global per-frame pass, like every other MoveFn.
+    const pos = {
       x: enemy.pos.x + state.heading.x * DASHER.chargeSpeed * dt,
       y: enemy.pos.y + state.heading.y * DASHER.chargeSpeed * dt,
-    })
+    }
     const vel = {
       x: state.heading.x * DASHER.chargeSpeed,
       y: state.heading.y * DASHER.chargeSpeed,

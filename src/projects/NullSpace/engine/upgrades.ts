@@ -28,7 +28,7 @@ export const SHIP_AND_POWER_UPGRADE_IDS = {
   powerPerKill: 'powerPerKill',
 } as const
 
-// Set of upgrade IDs that unlock a weapon (ability OR ship weapon). Used to
+// Set of upgrade IDs that unlock a weapon (ability OR helper weapon). Used to
 // filter unlock upgrades out of per-weapon upgrade lists so detail / max
 // detection views only see modifier upgrades.
 export const UNLOCK_UPGRADE_IDS: ReadonlySet<UpgradeId> = new Set([
@@ -207,7 +207,7 @@ export function getWeaponModifierUpgrades(weapon: AbilityKind): UpgradeDefinitio
   )
 }
 
-// The ship-weapon unlocks shown on the Helper line's detail page — the base
+// The helper-weapon unlocks shown on the Helper line's detail page — the base
 // Helper or its Helper Factory ultimate (which inherits them). Buying one arms
 // ~1/4 of summoned allies with that weapon (see rollAllyWeapon). They keep the
 // loadout category (no shop tab renders it) and surface only here.
@@ -240,6 +240,8 @@ export const UPGRADE_CATEGORY_LABELS: Record<UpgradeCategory, string> = {
   [UpgradeCategory.weapons]: 'Weapons',
   [UpgradeCategory.ship]: 'Ship',
   [UpgradeCategory.powers]: 'Powers',
+  // Type-fill only: the loadout category has no shop tab (CATEGORY_ORDER omits
+  // it), so this label never renders.
   [UpgradeCategory.loadout]: 'Allies',
 }
 

@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { rollAllyWeapon, updateAllies } from './ally'
 import { createAlly, createEnemy, createShip } from './entity-creator'
-import { createInitialUpgrades } from '../upgrades'
 import { EnemyKind, ShipKind, HelperWeaponKind } from '../types'
 import { WORLD_SIZE } from '../../data'
 import { rng } from '../math/random'
@@ -47,7 +46,7 @@ describe('allies fire their rolled weapon', () => {
     const ship = createShip(ShipKind.fighter, WORLD_SIZE)
     const ally = { ...createAlly({ x: 0, y: 0 }), weapon, fireCooldown: 0 }
     const enemy = createEnemy(EnemyKind.drone, { x: 30, y: 0 })
-    return updateAllies([ally], [enemy], ship, [], 0.1, [weapon], createInitialUpgrades())
+    return updateAllies([ally], [enemy], ship, [], 0.1, [weapon])
   }
 
   it('an unarmed ally fires a single plain shot (bullet path unchanged)', () => {

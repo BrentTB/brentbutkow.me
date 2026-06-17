@@ -212,8 +212,8 @@ export type Projectile = Entity & {
   // Visual-only: render as a laser beam (segment prevPos→pos) instead of a
   // sprite. Player lasers render as beams via `pierce`; enemy lasers set this.
   beam?: boolean
-  // Optional behavior tags written by ship-weapon createProjectiles. A plain
-  // bullet leaves them undefined and takes the unchanged collision path.
+  // Optional behavior tags written by helper-weapon createProjectiles. A plain
+  // bullet leaves them undefined and takes the default collision path.
   pierce?: { maxHits: number; hitEnemyIds: string[] }
   homing?: boolean
   bounce?: {
@@ -480,8 +480,8 @@ export type Ally = {
   fireRate: number
   fireCooldown: number
   damage: number
-  // The ship weapon this ally fires, rolled at spawn from the player's unlocked
-  // ally weapons (bullet by default). Reuses the ship-weapon definitions.
+  // The helper weapon this ally fires, rolled at spawn from the player's unlocked
+  // ally weapons (bullet by default). Reuses the helper-weapon definitions.
   weapon: HelperWeaponKind
   speed: number
   attackRange: number
@@ -540,8 +540,9 @@ export const UpgradeCategory = {
   weapons: 'weapons',
   ship: 'ship',
   powers: 'powers',
-  // Ship-weapon (loadout) upgrades. Kept for a future ally feature; no shop tab
-  // renders this category (CATEGORY_ORDER is weapons/ship/powers), so it stays hidden.
+  // Ally-weapon (loadout) upgrades. Allies wield these; no shop tab renders this
+  // category (CATEGORY_ORDER is weapons/ship/powers) — the unlocks surface on the
+  // Helper ability's upgrade page instead.
   loadout: 'loadout',
 } as const
 export type UpgradeCategory = (typeof UpgradeCategory)[keyof typeof UpgradeCategory]
@@ -627,8 +628,8 @@ export type GameState = {
   // screen. Buying any one clears the array — the player gets one unlock per
   // level-up at most. Empty between upgrade screens.
   levelUpWeaponOffers: AbilityKind[]
-  // Ship-weapon kinds the player has purchased this run. Starts with bullet;
-  // every successful ship-weapon unlock pushes its kind here. Resets per run.
+  // Helper-weapon kinds the player has unlocked this run. Starts with bullet;
+  // every successful helper-weapon unlock pushes its kind here. Resets per run.
   unlockedWeapons: HelperWeaponKind[]
   // Ultimate ability kinds purchased this run. Drives the escalating shard cost
   // (N = ultimatesOwned.length + 1) and replaces the base in the hotbar/shop.

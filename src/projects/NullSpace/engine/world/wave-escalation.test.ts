@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { waveSpeedEscalation } from './wave-escalation'
-import { WAVE_ESCALATION } from '../../data'
+import { ENEMY_STATS, SLINGSHOT, WAVE_ESCALATION } from '../../data'
 
 describe('waveSpeedEscalation', () => {
   it('is flat (1.0) through the grace period', () => {
@@ -19,7 +19,8 @@ describe('waveSpeedEscalation', () => {
   })
 
   it('keeps escalated enemies below a slingshot fling so the player can escape', () => {
-    // A drone (speed 100) escalated to the cap stays well under fling speed (600).
-    expect(100 * WAVE_ESCALATION.maxMult).toBeLessThan(600)
+    // A drone escalated to the cap stays under a full slingshot fling, so the
+    // player can always outrun a stalled wave.
+    expect(ENEMY_STATS.drone.speed * WAVE_ESCALATION.maxMult).toBeLessThan(SLINGSHOT.baseSpeed)
   })
 })

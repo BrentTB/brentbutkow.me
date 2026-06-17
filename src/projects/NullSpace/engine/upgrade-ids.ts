@@ -22,7 +22,7 @@ import { RICOCHET_UPGRADE_IDS } from './weapons/ricochet'
 import { NUKE_UPGRADE_IDS } from './weapons/nuke'
 import { SHIP_AND_POWER_UPGRADE_IDS } from './upgrades'
 
-// Every feature file (ability, ship weapon, ship/power upgrades) declares its
+// Every feature file (ability, helper weapon, ship/power upgrades) declares its
 // own upgrade ids next to its UpgradeDefinitions; this module merges them into
 // the global UpgradeId const + union. Adding a feature means adding its ids
 // block in its own file and one spread here — types.ts never changes.

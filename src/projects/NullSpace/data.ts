@@ -454,7 +454,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       features: [
         'New enemy, the Dasher: it winds up, shows the line of its lunge, then charges straight at the ship. Read the tell and slingshot clear.',
         'Waves that drag heat up — lingering enemies speed up and glow redder the longer you stall, so you can no longer just watch them trail the ship.',
-        'Arm your helpers: the new Allies shop tab unlocks the old ship weapons (laser, missile, ricochet, nuke) for your summoned allies — each unlock arms about a quarter of them, so buying all four arms them all.',
+        'Arm your helpers: unlock the old ship weapons (laser, missile, ricochet, nuke) under the Helper ability in the upgrade shop for your summoned allies — each unlock arms about a quarter of them, so buying all four arms them all.',
       ],
       balance: [
         'Ships are set apart by toughness and speed now, not firepower; ship select drops the combat-stat bars and the shop drops its Auto-Turret and Fire Rate upgrades — there are no ship guns left to boost.',
@@ -462,6 +462,8 @@ export const CHANGELOG: ChangelogEntry[] = [
         'Power regenerates faster and the cheapest abilities cost less, so you always have an answer. Regular enemies drop less power; bosses drop a big refill.',
         'Fewer enemies per wave, and mines are denser and present from wave one — thread between them.',
         'The ship keeps its distance from enemies rather than charging in, but it can never escape on its own.',
+        'The maximum power was increased from 1000 to 2000.',
+        'The Helper Factory ultimate costs a bit more to field, now that its summoned allies can carry your unlocked weapons.',
       ],
     },
   },
