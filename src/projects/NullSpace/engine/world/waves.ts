@@ -47,6 +47,7 @@ type WaveCounts = {
   tank: number
   shooter: number
   bomber: number
+  dasher: number
   swarmPacks: number
 }
 
@@ -54,11 +55,13 @@ type WaveCounts = {
 // cap the overflow converts into tanks/shooters/bombers, so high waves lean on
 // composition rather than an ever-growing drone wall.
 function mixedCounts(waveNumber: number): WaveCounts {
-  let drone = 3 + waveNumber * 2
-  let tank = Math.max(0, Math.floor((waveNumber - 1) / 2))
-  let shooter = Math.max(0, Math.floor((waveNumber - 2) / 2))
-  let bomber = Math.max(0, Math.floor((waveNumber - 4) / 3))
-  const swarmPacks = Math.max(0, Math.floor((waveNumber - 3) / 3))
+  let drone = 2 + waveNumber
+  let tank = Math.max(0, Math.floor((waveNumber - 1) / 3))
+  let shooter = Math.max(0, Math.floor((waveNumber - 2) / 3))
+  let bomber = Math.max(0, Math.floor((waveNumber - 4) / 4))
+  // Dashers appear from wave 1 — they force the slingshot dodge from the start.
+  const dasher = 1 + Math.floor(waveNumber / 4)
+  const swarmPacks = Math.max(0, Math.floor((waveNumber - 3) / 4))
   if (drone > WAVE_COMP.maxDrones) {
     const overflow = drone - WAVE_COMP.maxDrones
     drone = WAVE_COMP.maxDrones
@@ -66,12 +69,12 @@ function mixedCounts(waveNumber: number): WaveCounts {
     shooter += Math.floor(overflow / 4)
     bomber += Math.floor(overflow / 5)
   }
-  return { drone, tank, shooter, bomber, swarmPacks }
+  return { drone, tank, shooter, bomber, dasher, swarmPacks }
 }
 
 // Themed-wave counts: a single kind, sized so the wave still grows with depth.
 function themedCounts(waveNumber: number, archetype: WaveArchetype): WaveCounts {
-  const zero: WaveCounts = { drone: 0, tank: 0, shooter: 0, bomber: 0, swarmPacks: 0 }
+  const zero: WaveCounts = { drone: 0, tank: 0, shooter: 0, bomber: 0, dasher: 0, swarmPacks: 0 }
   switch (archetype) {
     case WaveArchetype.swarmOnly:
       return { ...zero, swarmPacks: Math.max(2, Math.floor(waveNumber / 3)) }
@@ -98,6 +101,7 @@ function assembleQueue(counts: WaveCounts, multiplier: number): EnemyKind[] {
   push(EnemyKind.tank, counts.tank)
   push(EnemyKind.shooter, counts.shooter)
   push(EnemyKind.bomber, counts.bomber)
+  push(EnemyKind.dasher, counts.dasher)
   shuffle(singles)
 
   const packs = Math.round(counts.swarmPacks * multiplier)

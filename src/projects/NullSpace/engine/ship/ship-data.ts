@@ -25,18 +25,10 @@ export const STAT_MAX = {
   maxHp: 160,
   maxShield: 140,
   shieldRegen: 8,
-  damage: 10,
   speed: 200,
-  fireRate: 4,
-  weaponSlots: 4,
 } as const
 
-export const SHIP_ORDER: ShipKind[] = [
-  ShipKind.fighter,
-  ShipKind.interceptor,
-  ShipKind.dreadnought,
-  ShipKind.carrier,
-]
+export const SHIP_ORDER: ShipKind[] = [ShipKind.fighter, ShipKind.interceptor, ShipKind.dreadnought]
 
 export const SHIP_VARIANTS: Record<ShipKind, ShipVariantConfig> = {
   [ShipKind.fighter]: {
@@ -57,14 +49,14 @@ export const SHIP_VARIANTS: Record<ShipKind, ShipVariantConfig> = {
   },
   [ShipKind.interceptor]: {
     label: 'Interceptor',
-    description: 'Fast and hard-hitting. Fragile under sustained fire.',
+    description: 'Fast and nimble. Hard to pin down, but fragile under sustained fire.',
     stats: {
       hp: 70,
       maxHp: 70,
       maxShield: 25,
       shieldRegen: 3,
-      damage: 8,
-      fireRate: 3,
+      damage: 0,
+      fireRate: 0,
       speed: 180,
       attackRange: 280,
       radius: 14,
@@ -85,22 +77,6 @@ export const SHIP_VARIANTS: Record<ShipKind, ShipVariantConfig> = {
       attackRange: 280,
       radius: 18,
       weaponSlots: 1,
-    },
-  },
-  [ShipKind.carrier]: {
-    label: 'Carrier',
-    description: 'Fields 3 weapons at once, but with a weaker hull, lower speed, and slower guns.',
-    stats: {
-      hp: 75,
-      maxHp: 75,
-      maxShield: 30,
-      shieldRegen: 2,
-      damage: 4,
-      fireRate: 1.5,
-      speed: 90,
-      attackRange: 280,
-      radius: 16,
-      weaponSlots: 3,
     },
   },
 }

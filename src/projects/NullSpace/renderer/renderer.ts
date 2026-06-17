@@ -1,5 +1,6 @@
 import {
   CollectibleKind,
+  DashStage,
   EnemyKind,
   EnemyModifier,
   GamePhase,
@@ -18,16 +19,19 @@ import type {
 } from '../engine/types'
 import {
   ANIMATION,
+  DASHER,
   ENEMY_MODIFIERS,
   POWER_ORB,
   SINGULARITY_SHARD,
   SPACE_METAL,
   WARP,
+  WAVE_ESCALATION,
 } from '../data'
 import { EFFECT_DEFINITIONS } from '../engine/systems/effects'
 import { ABILITY_LIST } from '../engine/abilities'
 import { getBossDefinition } from '../engine/bosses'
 import { enemyFacing } from '../engine/entities/enemy'
+import { waveSpeedEscalation } from '../engine/world/wave-escalation'
 import type { Camera } from './camera'
 import { isWithinView, worldToScreen } from './camera'
 import type { AnimationCache, SpriteCache } from './sprite-cache'
@@ -49,6 +53,7 @@ const ENEMY_SPRITE: Record<EnemyKind, SpriteKey> = {
   [EnemyKind.shooter]: SpriteKey.shooter,
   [EnemyKind.swarm]: SpriteKey.swarm,
   [EnemyKind.bomber]: SpriteKey.bomber,
+  [EnemyKind.dasher]: SpriteKey.dasher,
   [EnemyKind.dreadnought]: SpriteKey.dreadnoughtBoss,
   [EnemyKind.shieldGenerator]: SpriteKey.shieldGenerator,
   [EnemyKind.voidWorm]: SpriteKey.voidWormBoss,
@@ -60,7 +65,6 @@ export const SHIP_SPRITE_KEY: Record<ShipKind, SpriteKey> = {
   [ShipKind.fighter]: SpriteKey.ship,
   [ShipKind.interceptor]: SpriteKey.shipInterceptor,
   [ShipKind.dreadnought]: SpriteKey.shipDreadnought,
-  [ShipKind.carrier]: SpriteKey.shipCarrier,
 }
 
 // Per-weapon muzzle-flash tint so a weapon swap reads at the barrel.
@@ -273,8 +277,8 @@ function renderShip(
 
   ctx.drawImage(sprites[spriteKey], -size.w / 2, -size.h / 2)
 
-  // Muzzle flash per firing slot — coloured by the equipped weapon. Carrier's
-  // three slots spread across the nose; single-slot ships fire dead centre.
+  // Muzzle flash per firing slot — coloured by the equipped weapon. Multi-slot
+  // ships spread across the nose; single-slot ships fire dead centre.
   for (let i = 0; i < ship.muzzleFlash.length; i++) {
     if (ship.muzzleFlash[i] <= 0) continue
     const slots = ship.muzzleFlash.length
@@ -400,10 +404,31 @@ function renderEnemies(
   sprites: SpriteCache,
   reducedMotion: boolean
 ): void {
+  // Wave stall-escalation reddens every enemy as they speed up — a legibility
+  // cue that parking is getting dangerous. Zero until past the grace period.
+  const escMult = waveSpeedEscalation(state.waveElapsed)
+  const escalationAlpha = escMult <= 1 ? 0 : ((escMult - 1) / (WAVE_ESCALATION.maxMult - 1)) * 0.5
   for (const enemy of state.enemies) {
     const screen = worldToScreen(enemy.pos, camera)
 
     if (!isWithinView(screen, camera, 60)) continue
+
+    // Dasher windup telegraph — a charge-path line that brightens as the lunge
+    // nears, so the player can read the dodge. Hidden under reduced motion.
+    if (!reducedMotion && enemy.dasher?.stage === DashStage.windup) {
+      const d = enemy.dasher
+      const progress = 1 - Math.max(0, d.stageTimer) / DASHER.windupDuration
+      const len = DASHER.chargeSpeed * DASHER.chargeDuration
+      ctx.save()
+      ctx.globalAlpha = 0.25 + progress * 0.5
+      ctx.strokeStyle = '#ff5a3c'
+      ctx.lineWidth = 2 + progress * 3
+      ctx.beginPath()
+      ctx.moveTo(screen.x, screen.y)
+      ctx.lineTo(screen.x + d.heading.x * len, screen.y + d.heading.y * len)
+      ctx.stroke()
+      ctx.restore()
+    }
 
     const spriteKey = ENEMY_SPRITE[enemy.kind]
     const size = getSpriteSize(spriteKey)
@@ -434,6 +459,16 @@ function renderEnemies(
     // Speed modifier washes the sprite red (same masked tint as the ship overheat).
     if (enemy.modifier === EnemyModifier.speed) {
       drawSpriteTint(ctx, sprites[spriteKey], size.w, size.h, ENEMY_MODIFIERS.speedTint)
+    }
+    // Stall-escalation wash — reddens with the rising wave speed multiplier.
+    if (escalationAlpha > 0) {
+      drawSpriteTint(
+        ctx,
+        sprites[spriteKey],
+        size.w,
+        size.h,
+        `rgba(255, 70, 40, ${escalationAlpha})`
+      )
     }
     // Hit flash — white wash on damage.
     if (enemy.hitFlash > 0) {

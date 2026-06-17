@@ -20,19 +20,24 @@ export const SLINGSHOT = {
   minJitter: 0.05, // accuracy floor (~3°)
   baseCooldown: 1, // seconds between flicks
   minCooldown: 0.4, // cadence floor
-  // --- Heat: punishes sustained kiting. 0..1; full-charge flicks add the most,
-  // tiny precise nudges almost nothing, so small dodges stay sustainable.
-  heatPerFling: 0.45, // heat added by a FULL-charge flick (scaled by charge)
-  baseCoolRate: 0.09, // heat dissipated per second (raised by Heat Sink)
-  maxCoolRate: 0.45, // cooling cap (sanity bound)
+  // --- Heat: a slow-burn pool. 0..1; full-charge flicks add the most, tiny
+  // precise nudges almost nothing. Builds slowly (burst many flings before the
+  // cap) and cools slowly (a long recovery), so it reads as a long-term resource
+  // rather than a per-fling tax. Overheating doesn't lock you out — applySlingshot
+  // still flings at half distance for double heat — so you can always limp away.
+  heatPerFling: 0.18, // heat added by a FULL-charge flick (scaled by charge)
+  baseCoolRate: 0.05, // heat dissipated per second (raised by Heat Sink)
+  maxCoolRate: 0.2, // cooling cap (sanity bound)
   heatReengage: 0.5, // overheat clears only once heat falls back below this
-  overheatSlowMult: 0.5, // patrol speed multiplier while overheated
+  overheatSlowMult: 0.7, // patrol speed multiplier while overheated
   heatJitterBonus: 0.3, // extra scatter (rad) at full heat — control slips as you heat up
 } as const
 
 export const POWER_DEFAULTS = {
   max: 1000,
-  regenRate: 3,
+  // Abilities are now the player's only weapon, so the floor must sustain basic
+  // defence — the cheapest abilities stay castable off regen alone.
+  regenRate: 6,
   startingPower: 100,
 }
 
@@ -53,7 +58,7 @@ export const ANIMATION = {
 // there directly.
 
 // Display order for the hotbar AND the shop. Edit this array to reorder.
-// Initial order: cheapest → most expensive at base cost (5, 25, 30, 40, 50, 100).
+// Initial order: cheapest → most expensive at base cost.
 // ABILITY_META, HOLD_ABILITIES, factory tables, and upgrade definitions are all
 // derived from per-ability files in engine/abilities/ — import them from there.
 export const WEAPON_ORDER: readonly AbilityKind[] = [
@@ -86,7 +91,7 @@ export const ENEMY_STATS = {
     damage: 8,
     radius: 10,
     scoreValue: 10,
-    powerReward: 5,
+    powerReward: 2,
   },
   tank: {
     hp: 80,
@@ -94,7 +99,7 @@ export const ENEMY_STATS = {
     damage: 15,
     radius: 18,
     scoreValue: 30,
-    powerReward: 15,
+    powerReward: 8,
   },
   shooter: {
     hp: 30,
@@ -102,7 +107,7 @@ export const ENEMY_STATS = {
     damage: 6,
     radius: 12,
     scoreValue: 20,
-    powerReward: 8,
+    powerReward: 4,
     fireRate: 0.8,
     attackRange: 350,
     projectileDamage: 8,
@@ -113,7 +118,7 @@ export const ENEMY_STATS = {
     damage: 3,
     radius: 6,
     scoreValue: 5,
-    powerReward: 2,
+    powerReward: 1,
   },
   bomber: {
     hp: 50,
@@ -121,9 +126,17 @@ export const ENEMY_STATS = {
     damage: 5,
     radius: 14,
     scoreValue: 25,
-    powerReward: 12,
+    powerReward: 6,
     explosionDamage: 40,
     explosionRadius: 80,
+  },
+  dasher: {
+    hp: 35,
+    speed: 70,
+    damage: 18,
+    radius: 11,
+    scoreValue: 25,
+    powerReward: 5,
   },
   dreadnought: {
     hp: 800,
@@ -131,7 +144,7 @@ export const ENEMY_STATS = {
     damage: 20,
     radius: 36,
     scoreValue: 500,
-    powerReward: 100,
+    powerReward: 200,
     // Doubles as the standoff distance — the boss approaches the player to here, then holds.
     attackRange: 220,
     // Laser attack. fireRange exceeds the standoff so it shoots from where it
@@ -164,7 +177,7 @@ export const ENEMY_STATS = {
     damage: 25,
     radius: 24,
     scoreValue: 400,
-    powerReward: 80,
+    powerReward: 180,
   },
   wormSegment: {
     hp: 120,
@@ -183,7 +196,7 @@ export const ENEMY_STATS = {
     damage: 15,
     radius: 24,
     scoreValue: 500,
-    powerReward: 100,
+    powerReward: 200,
     // Fires lasers between teleports from wherever it lands.
     fireRate: 0.7,
     fireRange: 520,
@@ -199,6 +212,7 @@ export const CURRENCY_DROPS: Record<EnemyKind, { min: number; max: number }> = {
   shooter: { min: 1, max: 3 },
   swarm: { min: 0, max: 1 },
   bomber: { min: 1, max: 4 },
+  dasher: { min: 1, max: 4 },
   dreadnought: { min: 5, max: 15 },
   shieldGenerator: { min: 1, max: 3 },
   voidWorm: { min: 5, max: 15 },
@@ -252,6 +266,7 @@ export const SPACE_METAL = {
     shooter: 0.06,
     swarm: 0.01,
     bomber: 0.1,
+    dasher: 0.06,
     // Boss drops are handled by BossDefinition.onDeath — these are never rolled.
     // Worm segments drop nothing so the body can't be farmed for metal.
     dreadnought: 0,
@@ -281,7 +296,31 @@ export const STAT_SCALING = {
 // Mixed-wave count caps. Past the cap, drone overflow converts into harder kinds
 // so high waves lean on composition (tanks/shooters/bombers) rather than a drone wall.
 export const WAVE_COMP = {
-  maxDrones: 22,
+  maxDrones: 12,
+} as const
+
+// Dasher charge cycle. Approaches within triggerRange, stalls for windupDuration
+// (the dodge tell), then lunges along a locked heading at chargeSpeed for
+// chargeDuration, then recovers (slow, vulnerable). chargeSpeed sits above ship
+// patrol speed but below a slingshot fling (600) — a dodge check, not a wall.
+export const DASHER = {
+  triggerRange: 240,
+  windupDuration: 0.7,
+  chargeSpeed: 420,
+  chargeDuration: 0.55,
+  recoverDuration: 2,
+  recoverSpeed: 50,
+} as const
+
+// Soft stall-escalation. A wave runs at normal speed through gracePeriod, then
+// surviving enemies speed up (rampPerSec per second, capped at maxMult) the longer
+// it drags — so parking and watching enemies trail the ship gets steadily worse.
+// The cap keeps even escalated enemies under a slingshot fling (600), so the
+// player can always break away.
+export const WAVE_ESCALATION = {
+  gracePeriod: 20,
+  rampPerSec: 0.04,
+  maxMult: 2.2,
 } as const
 
 // Themed waves (all-tank, swarm-only, etc.) for mid/late-game texture. Only on
@@ -328,8 +367,13 @@ export const SECTOR = {
   weaveAmplitude: 90, // lateral weave half-width during idle drift
   weaveFrequency: 0.5, // weave cycles/sec
   momentumWindow: 0.6, // seconds the resumed drift inherits the fling heading
-  orbitRangeFraction: 0.55, // hunt orbit radius = attackRange × this
+  // The ship has no weapons, so it backs away rather than engages — holding
+  // enemies at a respectful orbit distance (so they stay on-screen) while kept
+  // deliberately leaky: driftSpeed/steerRate stay modest, so faster threats and
+  // dasher charges close in and force a player slingshot.
+  orbitRangeFraction: 0.85, // flee-orbit radius = attackRange × this
   orbitSpeedFraction: 0.7, // tangential (circling) speed = ship speed × this
+  fleeBias: 0.18, // outward lean: rest point sits this × speed beyond orbitRange
   steerRate: 3, // how fast velocity eases toward the desired heading (flowy turns)
 } as const
 
@@ -357,14 +401,15 @@ export const SPAWN_CONE = {
   minHalfAngle: Math.PI / 6, // floor at ±30°
 } as const
 
-// Mines scattered sparsely across the whole world — thread between them as
-// the ship advances (Escape Mode dashes through unharmed).
+// Mines scattered across the whole world — thread between them as the ship
+// advances (Escape Mode dashes through unharmed). Dense and present from wave 1
+// so the player must slingshot to navigate, not just sit and tap enemies.
 export const HAZARD = {
-  mineCount: 14, // mines scattered across the world (sparse)
+  mineCount: 22, // mines scattered across the world
   mineRadius: 26,
   mineDamage: 35,
   forwardMargin: 500, // keep mines at least this far from the ship's spawn point
-  laneEveryWaves: 2, // a minefield appears every N non-boss sectors
+  laneEveryWaves: 1, // a minefield appears every non-boss sector
   hitCooldown: 1, // seconds before a mine can re-hit the ship
   color: '#d6533a',
 } as const
@@ -399,6 +444,28 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.0.0',
+    date: '2026-06-16',
+    changes: {
+      breaking: [
+        'Your ship no longer has guns. It flies and dodges on its own, but every shot is now yours — defend it with abilities and the slingshot from the very first wave.',
+        'The Carrier ship is gone. With ships unarmed, a three-gun hull had nothing left to offer.',
+        'Saved runs from older versions are cleared — too much changed under the hood to carry them forward.',
+      ],
+      features: [
+        'New enemy, the Dasher: it winds up, shows the line of its lunge, then charges straight at the ship. Read the tell and slingshot clear.',
+        'Waves that drag heat up — lingering enemies speed up and glow redder the longer you stall, so you can no longer just watch them trail the ship.',
+      ],
+      balance: [
+        'Ships are set apart by toughness and speed now, not firepower; ship select drops the combat stats it can no longer stand behind.',
+        'The slingshot is a long-burn resource: many quick flings before it overheats, then a slower cool-down. Overheating no longer locks you out — you can still fling, at half the distance for double the heat.',
+        'Power regenerates faster and the cheapest abilities cost less, so you always have an answer. Regular enemies drop less power; bosses drop a big refill.',
+        'Fewer enemies per wave, and mines are denser and present from wave one — thread between them.',
+        'The ship keeps its distance from enemies rather than charging in, but it can never escape on its own.',
+      ],
+    },
+  },
   {
     version: '0.26.1',
     date: '2026-06-16',

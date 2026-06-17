@@ -8,7 +8,7 @@ import { RadialForceMode } from './radial-force'
 export const METEORITE_STRIKE = {
   delay: 0.3,
   cooldown: 0.2,
-  powerCost: 8,
+  powerCost: 6,
   damage: 10,
   aoeRadius: 40,
 } as const
@@ -16,7 +16,7 @@ export const METEORITE_STRIKE = {
 export const METEOR_STRIKE = {
   delay: 0.5,
   cooldown: 1.5,
-  powerCost: 40,
+  powerCost: 32,
   damage: 60,
   aoeRadius: 100,
 } as const
@@ -57,7 +57,7 @@ export const BLACK_HOLE = {
 
 export const ROCKET = {
   cooldown: 2.5,
-  powerCost: 25,
+  powerCost: 20,
   damage: 50,
   aoeRadius: 130,
   speed: 250,

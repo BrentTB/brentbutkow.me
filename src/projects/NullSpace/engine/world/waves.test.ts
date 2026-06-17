@@ -16,10 +16,13 @@ beforeEach(() => {
 })
 
 describe('getWave', () => {
-  it('wave 1 has drones only', () => {
+  it('wave 1 is drones plus the first dasher (no heavier kinds yet)', () => {
     const kinds = getWave(1)
     expect(kinds.length).toBeGreaterThan(0)
-    expect(kinds.every((k) => k === EnemyKind.drone)).toBe(true)
+    // Dashers appear from wave 1 to force slingshot dodges; nothing heavier yet.
+    expect(kinds.every((k) => k === EnemyKind.drone || k === EnemyKind.dasher)).toBe(true)
+    expect(kinds).toContain(EnemyKind.drone)
+    expect(kinds).toContain(EnemyKind.dasher)
   })
 
   // The wave-clear gate needs at least one enemy; a zero-count composition would
@@ -42,10 +45,12 @@ describe('getWave', () => {
   })
 
   it('shuffles the enemy order', () => {
+    // Wave 7 (mixed, multi-kind) has enough enemies that two seeds diverge —
+    // a small low-count wave can shuffle to the same order by chance.
     rng.reseed(1)
-    const a = getWave(4)
+    const a = getWave(7)
     rng.reseed(2)
-    const b = getWave(4)
+    const b = getWave(7)
     expect(a).not.toEqual(b)
   })
 

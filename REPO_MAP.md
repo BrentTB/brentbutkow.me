@@ -197,8 +197,6 @@ src/projects/NullSpace/components/Tutorial/
 
 src/projects/NullSpace/components/UpgradeScreen/
   ShipTab.tsx                                ShipTab
-  ShipWeaponDetail.tsx                       ShipWeaponDetail
-  ShipWeaponsList.tsx                        ShipWeaponsList
   UltimateCard.tsx                           UltimateCard
   UpgradeCard.tsx                            UpgradeCard
   UpgradeScreen.tsx                          UpgradeScreen
@@ -210,7 +208,7 @@ src/projects/NullSpace/components/
   WaveCompleteScreen.tsx                     WaveCompleteScreen
 
 src/projects/NullSpace/
-  data.ts                                    GAME_NAME, WORLD_SIZE, SHIELD_COOLDOWN, SLINGSHOT, POWER_DEFAULTS, ANIMATION, WEAPON_ORDER, ENEMY_STATS, CURRENCY_DROPS, CURRENCY_NAME, POWER_ORB, SPACE_METAL_NAME, SINGULARITY_SHARD_NAME, SHARDS_PER_BOSS, SINGULARITY_SHARD, SPACE_METAL, WAVES_PER_LEVEL, BOSS_LEVEL_INTERVAL, BOSS_WAVE_ENEMY_MULTIPLIER, STAT_SCALING, WAVE_COMP, WAVE_THEME, ENEMY_MODIFIERS, SPAWN_DELAY, SPAWN_DISTANCE, SWARM_SPAWN_SPREAD, FORWARD_DIR, SECTOR, WARP, SPAWN_CONE, HAZARD, PORTAL, PROJECTILE_SPEED, PROJECTILE_LIFETIME, PROJECTILE_RADIUS, PARTICLE_DEFAULTS, ChangelogEntry, CHANGELOG, GAME_VERSION
+  data.ts                                    GAME_NAME, WORLD_SIZE, SHIELD_COOLDOWN, SLINGSHOT, POWER_DEFAULTS, ANIMATION, WEAPON_ORDER, ENEMY_STATS, CURRENCY_DROPS, CURRENCY_NAME, POWER_ORB, SPACE_METAL_NAME, SINGULARITY_SHARD_NAME, SHARDS_PER_BOSS, SINGULARITY_SHARD, SPACE_METAL, WAVES_PER_LEVEL, BOSS_LEVEL_INTERVAL, BOSS_WAVE_ENEMY_MULTIPLIER, STAT_SCALING, WAVE_COMP, DASHER, WAVE_ESCALATION, WAVE_THEME, ENEMY_MODIFIERS, SPAWN_DELAY, SPAWN_DISTANCE, SWARM_SPAWN_SPREAD, FORWARD_DIR, SECTOR, WARP, SPAWN_CONE, HAZARD, PORTAL, PROJECTILE_SPEED, PROJECTILE_LIFETIME, PROJECTILE_RADIUS, PARTICLE_DEFAULTS, ChangelogEntry, CHANGELOG, GAME_VERSION
 
 src/projects/NullSpace/engine/abilities/
   ability-data.ts                            METEORITE_STRIKE, METEOR_STRIKE, COMET_SHOWER, METEOR_SHOWER, BLACK_HOLE, ROCKET, SHIELD, FORCE_FIELD, SUN, SUPERNOVA, HELPER, HELPER_FACTORY, TELEKINESIS, SOLAR_FLARE, FIREWORKS, EVENT_HORIZON, SOLAR_PLAGUE, SINGULARITY
@@ -258,6 +256,7 @@ src/projects/NullSpace/engine/
 
 src/projects/NullSpace/engine/entities/
   ally.ts                                    updateAllies
+  dasher.ts                                  tickDasher
   enemy-damage.ts                            applyDamageToEnemy
   enemy.ts                                   findNearestTarget, enemyFacing, updateEnemyMovement, updateEnemyShooting
   entity-creator.ts                          uid, createShip, createEnemy, createProjectile, createAlly, createHelperFactory, createParticle, spawnExplosionParticles, updateParticles, createDeathAnim, updateDeathAnims, createAbilities
@@ -310,16 +309,17 @@ src/projects/NullSpace/engine/tutorial/
   tutorial-script.ts                         TutorialTriggerKind, TutorialSpotlightKind, POWER_LOW_FRACTION, TutorialStep, TUTORIAL_STEPS
 
 src/projects/NullSpace/engine/
-  types.ts                                   Vec2, Entity, ShipKind, ShipWeaponKind, EscapeModePhase, EscapeModeState, Ship, EnemyKind, EnemyModifier, MovementBehavior, DeathBehavior, BurningState, Enemy, ProjectileOwner, Projectile, AbilityKind, Ability, EffectKind, EffectBase, MeteorStrikeEffect, BlackHoleEffect, RocketEffect, ShieldEffect, SunEffect, NuclearWasteEffect, SupernovaEffect, ForceFieldEffect, EventHorizonEffect, ActiveEffect, CollectibleKind, Collectible, HazardKind, Hazard, Ally, Particle, DeathAnim, GamePhase, UpgradeCategory, UpgradeTier, UpgradeDefinition, PlayerUpgrades, BossSelection, GameState, HoldRuntimeState, PlayerInput
+  types.ts                                   Vec2, Entity, ShipKind, ShipWeaponKind, EscapeModePhase, EscapeModeState, Ship, EnemyKind, EnemyModifier, MovementBehavior, DeathBehavior, BurningState, DashStage, DasherState, Enemy, ProjectileOwner, Projectile, AbilityKind, Ability, EffectKind, EffectBase, MeteorStrikeEffect, BlackHoleEffect, RocketEffect, ShieldEffect, SunEffect, NuclearWasteEffect, SupernovaEffect, ForceFieldEffect, EventHorizonEffect, ActiveEffect, CollectibleKind, Collectible, HazardKind, Hazard, Ally, Particle, DeathAnim, GamePhase, UpgradeCategory, UpgradeTier, UpgradeDefinition, PlayerUpgrades, BossSelection, GameState, HoldRuntimeState, PlayerInput
   ultimates.ts                               COEXIST_ULTIMATES, ultimateShardCost, canPurchaseUltimate, purchaseUltimate, isBaseReplacedByUltimate
   upgrade-ids.ts                             UpgradeId
-  upgrades.ts                                SHIP_AND_POWER_UPGRADE_IDS, UNLOCK_UPGRADE_IDS, SLINGSHOT_UPGRADE_IDS, UPGRADE_DEFINITIONS, getWeaponModifierUpgrades, isWeaponFullyMaxed, isShipWeaponFullyMaxed, UPGRADE_CATEGORY_LABELS, createInitialUpgrades, canPurchaseUpgrade, purchaseUpgrade, applyUpgradesToAbilities, syncUltimateAbilities, applyUpgradesToShip, applyUpgradesToPowerRegen, getStardustMultiplier, getSpaceMetalDropMultiplier, getPowerOrbMultiplier, getLevel, isUpgradeWave
+  upgrades.ts                                SHIP_AND_POWER_UPGRADE_IDS, UNLOCK_UPGRADE_IDS, SLINGSHOT_UPGRADE_IDS, UPGRADE_DEFINITIONS, getWeaponModifierUpgrades, isWeaponFullyMaxed, UPGRADE_CATEGORY_LABELS, createInitialUpgrades, canPurchaseUpgrade, purchaseUpgrade, applyUpgradesToAbilities, syncUltimateAbilities, applyUpgradesToShip, applyUpgradesToPowerRegen, getStardustMultiplier, getSpaceMetalDropMultiplier, getPowerOrbMultiplier, getLevel, isUpgradeWave
 
 src/projects/NullSpace/engine/world/
   enemy-modifiers.ts                         modifierChance, rollEnemyModifier, applyModifier
   enemy-scaling.ts                           waveStatScale, scaleEnemy
   persistence.ts                             loadHighScore, saveHighScore, loadTutorialSeen, saveTutorialSeen, ChangelogCategory, ChangelogFilters, DEFAULT_CHANGELOG_FILTERS, CHANGELOG_CATEGORIES, loadChangelogFilters, saveChangelogFilters, SavedGame, saveGame, loadGame, clearSave
   time.ts                                    MAX_DT, GameTime, createGameTime, tickGameTime, pauseGameTime, resumeGameTime, setGameSpeed, resetGameClock
+  wave-escalation.ts                         waveSpeedEscalation
   waves.ts                                   isBossWave, WaveArchetype, getWaveArchetype, getWave, getWaveDelay, sectorProgress
 
 src/projects/NullSpace/
@@ -336,7 +336,7 @@ src/projects/NullSpace/renderer/
   renderer.ts                                SHIP_SPRITE_KEY, RenderOptions, renderFrame
   sling-aim.ts                               drawSlingAim
   sprite-cache.ts                            SpriteCache, AnimationCache, buildSpriteCache, getSpriteSize, buildAnimationCache, pickFrame
-  sprites.ts                                 SpriteData, SpriteAnimation, SHIP_SPRITE, DRONE_SPRITE, _OLD_DRONE_SPRITE, TANK_SPRITE, PROJECTILE_SPRITE, METEOR_SPRITE, METEORITE_SPRITE, SHOOTER_SPRITE, ENEMY_PROJECTILE_SPRITE, SWARM_SPRITE, _NEW_SWARM_SPRITE, BOMBER_SPRITE, ROCKET_SPRITE, INTERCEPTOR_SPRITE, DREADNOUGHT_SPRITE, CARRIER_SPRITE, ALLY_SPRITE, MISSILE_SPRITE, RICOCHET_SPRITE, NUKE_SPRITE, DREADNOUGHT_BOSS_SPRITE, SHIELD_GENERATOR_SPRITE, VOID_WORM_BOSS_SPRITE, WORM_SEGMENT_SPRITE, PHASE_SHIFTER_BOSS_SPRITE, SpriteKey, SPRITE_MAP, AnimationKey, ANIMATION_MAP
+  sprites.ts                                 SpriteData, SpriteAnimation, SHIP_SPRITE, DRONE_SPRITE, _OLD_DRONE_SPRITE, TANK_SPRITE, PROJECTILE_SPRITE, METEOR_SPRITE, METEORITE_SPRITE, SHOOTER_SPRITE, ENEMY_PROJECTILE_SPRITE, SWARM_SPRITE, _NEW_SWARM_SPRITE, BOMBER_SPRITE, ROCKET_SPRITE, INTERCEPTOR_SPRITE, DREADNOUGHT_SPRITE, CARRIER_SPRITE, ALLY_SPRITE, MISSILE_SPRITE, RICOCHET_SPRITE, NUKE_SPRITE, DREADNOUGHT_BOSS_SPRITE, SHIELD_GENERATOR_SPRITE, VOID_WORM_BOSS_SPRITE, WORM_SEGMENT_SPRITE, PHASE_SHIFTER_BOSS_SPRITE, DASHER_SPRITE, SpriteKey, SPRITE_MAP, AnimationKey, ANIMATION_MAP
   starfield.ts                               Star, generateStarfield, renderStarfield
   tutorial-overlay.ts                        TutorialFocusOpts, drawTutorialFocus
   warp.ts                                    renderWarpTransition

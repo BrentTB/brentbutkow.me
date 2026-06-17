@@ -42,7 +42,6 @@ export function NullSpace() {
     handlePurchaseUpgrade,
     handlePurchaseUltimate,
     handleFinishUpgrades,
-    handleEquipShipWeapon,
     handlePause,
     handleResume,
     handleSetSpeed,
@@ -202,7 +201,6 @@ export function NullSpace() {
             onPurchaseUpgrade={handlePurchaseUpgrade}
             onPurchaseUltimate={handlePurchaseUltimate}
             onFinishUpgrades={handleFinishUpgrades}
-            onEquipShipWeapon={handleEquipShipWeapon}
             onResume={handleResume}
             onSetSpeed={handleSetSpeedAndSync}
             onReplayTutorial={handleReplayTutorial}

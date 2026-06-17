@@ -41,21 +41,10 @@ describe('createShip', () => {
   })
 
   it('starts with cleared cosmetic timers (one muzzle flash per slot)', () => {
-    const ship = createShip(ShipKind.carrier, WORLD_SIZE)
+    const ship = createShip(ShipKind.fighter, WORLD_SIZE)
     expect(ship.hitFlash).toBe(0)
     expect(ship.recoil).toBe(0)
-    expect(ship.muzzleFlash).toEqual([0, 0, 0])
-  })
-
-  it('carrier starts with three bullets equipped (one per slot)', () => {
-    const ship = createShip(ShipKind.carrier, WORLD_SIZE)
-    expect(ship.weaponSlots).toBe(3)
-    expect(ship.equippedWeapons).toEqual([
-      ShipWeaponKind.bullet,
-      ShipWeaponKind.bullet,
-      ShipWeaponKind.bullet,
-    ])
-    expect(ship.fireCooldowns).toEqual([0, 0, 0])
+    expect(ship.muzzleFlash).toEqual([0])
   })
 })
 

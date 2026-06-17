@@ -45,7 +45,6 @@ import {
   tickEscapeMode,
   tickFling,
   tickSlingHeat,
-  updateShipAttack,
   updateShipDrift,
 } from './entities/ship'
 import { updateEnemyMovement, updateEnemyShooting } from './entities/enemy'
@@ -76,6 +75,7 @@ import {
 } from './upgrades'
 import { purchaseUltimate } from './ultimates'
 import { getWave, getWaveDelay, isBossWave } from './world/waves'
+import { waveSpeedEscalation } from './world/wave-escalation'
 import { generateHazardField, updateHazards } from './systems/hazards'
 import { advanceBossSelection, createBossSelection } from './bosses/boss-selection'
 import { updateBossAI } from './bosses/boss-ai'
@@ -131,6 +131,7 @@ export function createInitialState(): GameState {
     spawnTimer: 0,
     totalWaveEnemies: 0,
     spawnedInWave: 0,
+    waveElapsed: 0,
     holdStates: {},
     levelUpWeaponOffers: [],
     unlockedWeapons: [...INITIAL_UNLOCKED_WEAPONS],
@@ -197,6 +198,7 @@ export function startGame(state: GameState, shipKind: ShipKind): GameState {
     spawnTimer: 0,
     totalWaveEnemies: 0,
     spawnedInWave: 0,
+    waveElapsed: 0,
     highScore: loadHighScore(),
     isNewHighScore: false,
     holdStates: {},
@@ -282,6 +284,7 @@ function beginWave(state: GameState): GameState {
     spawnTimer: 0,
     totalWaveEnemies: queue.length,
     spawnedInWave: 0,
+    waveElapsed: 0,
     bossSelection: bossWave ? advanceBossSelection(state.bossSelection) : state.bossSelection,
   }
 }
@@ -313,7 +316,7 @@ export function applyUpgradeToState(state: GameState, upgradeId: UpgradeId): Gam
   // Loadout shop tab and equip handler can offer it, then auto-equip where it
   // makes sense:
   //  - Single-slot ships: always equip the newest weapon (only one slot).
-  //  - Carrier (multi-slot): drop it into the first still-default (bullet) slot.
+  //  - Multi-slot ships: drop it into the first still-default (bullet) slot.
   //    Once every slot holds a non-default weapon, leave it for the player to
   //    slot manually rather than evicting one of their choices.
   const purchasedShipWeapon = getShipWeaponForUnlockUpgrade(upgradeId)
@@ -347,9 +350,9 @@ export function applyUpgradeToState(state: GameState, upgradeId: UpgradeId): Gam
 }
 
 // Equip a ship weapon to a slot. Validates the kind is unlocked and the slot
-// is in range. For the Carrier (multi-slot), enforces distinctness across
-// slots — if `kind` is already equipped in another slot, that other slot is
-// swapped to whatever was at `slotIndex` (a swap, not a duplicate).
+// is in range. On a multi-slot ship, enforces distinctness across slots — if
+// `kind` is already equipped in another slot, that other slot is swapped to
+// whatever was at `slotIndex` (a swap, not a duplicate).
 export function equipShipWeapon(
   state: GameState,
   slotIndex: number,
@@ -601,6 +604,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     spawnQueue,
     spawnTimer,
     spawnedInWave,
+    waveElapsed,
   } = state
   let { waveTimer } = state
   const { maxPower, powerRegen } = state
@@ -637,6 +641,11 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   spawnTimer = spawnResult.spawnTimer
   enemies = spawnResult.enemies
   spawnedInWave = spawnResult.spawnedInWave
+
+  // Soft stall-escalation: time-since-wave-start drives a rising enemy-speed
+  // multiplier, so parking and letting enemies trail the ship forever gets worse.
+  waveElapsed = waveElapsed + dt
+  const waveSpeedMult = waveSpeedEscalation(waveElapsed)
 
   // --- Boss AI (onSpawn + phase advance + drone spawning + self-motion) ---
   const bossResult = updateBossAI(enemies, dt, { shipPos: ship.pos, worldSize: state.worldSize })
@@ -722,10 +731,8 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     }
   }
 
-  // --- Ship auto-attack ---
-  const attackResult = updateShipAttack(ship, enemies, projectiles, dt, state.upgrades)
-  ship = attackResult.ship
-  projectiles = attackResult.projectiles
+  // Ship has no weapons — all damage comes from player abilities. The auto-attack
+  // and weapon code is kept (engine/ship/, updateShipAttack) for a future ally feature.
 
   // --- Enemy shooting (targets nearest of ship or ally) ---
   const enemyFireResult = updateEnemyShooting(enemies, ship, allies, projectiles, dt)
@@ -733,7 +740,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   projectiles = enemyFireResult.projectiles
 
   // --- Enemy movement (pursues nearest of ship or ally) ---
-  enemies = updateEnemyMovement(enemies, ship, allies, dt)
+  enemies = updateEnemyMovement(enemies, ship, allies, dt, waveSpeedMult)
   // Shields block new entries — bounce non-grandfathered enemies back to the
   // boundary after they've moved this frame. Force fields also burn on contact.
   const shieldResult = applyShieldConstraints(activeEffects, enemies, dt)
@@ -1001,6 +1008,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       spawnQueue,
       spawnTimer,
       spawnedInWave,
+      waveElapsed,
       holdStates: {},
       escapeTrailAccumulator,
     }
@@ -1029,6 +1037,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       spawnQueue,
       spawnTimer,
       spawnedInWave,
+      waveElapsed,
       holdStates: {},
       hazards,
       escapeTrailAccumulator,
@@ -1058,6 +1067,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     spawnQueue,
     spawnTimer,
     spawnedInWave,
+    waveElapsed,
     holdStates,
     hazards,
     escapeTrailAccumulator,

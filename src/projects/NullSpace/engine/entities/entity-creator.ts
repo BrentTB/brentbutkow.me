@@ -33,6 +33,7 @@ const ENEMY_MOVEMENT: Record<NonBossEnemyKind, MovementBehavior> = {
   [EnemyKind.shooter]: MovementBehavior.keepRange,
   [EnemyKind.swarm]: MovementBehavior.zigzag,
   [EnemyKind.bomber]: MovementBehavior.chase,
+  [EnemyKind.dasher]: MovementBehavior.dash,
   [EnemyKind.shieldGenerator]: MovementBehavior.stationary,
   [EnemyKind.wormSegment]: MovementBehavior.none,
 }
@@ -43,6 +44,7 @@ const ENEMY_DEATH: Record<NonBossEnemyKind, DeathBehavior> = {
   [EnemyKind.shooter]: DeathBehavior.none,
   [EnemyKind.swarm]: DeathBehavior.none,
   [EnemyKind.bomber]: DeathBehavior.explode,
+  [EnemyKind.dasher]: DeathBehavior.none,
   [EnemyKind.shieldGenerator]: DeathBehavior.none,
   [EnemyKind.wormSegment]: DeathBehavior.none,
 }

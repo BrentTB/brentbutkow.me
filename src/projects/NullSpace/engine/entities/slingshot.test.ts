@@ -150,18 +150,25 @@ describe('slingshot heat', () => {
 
   it('overheats once heat reaches the cap', () => {
     const base = createShip(ShipKind.fighter, WORLD_SIZE)
-    const hot = { ...base, slingHeat: 0.7 }
+    const hot = { ...base, slingHeat: 0.95 }
     const flung = applySlingshot(hot, { dir: { x: 1, y: 0 }, charge: 1 })
     expect(flung.slingHeat).toBe(1)
     expect(flung.slingOverheated).toBe(true)
   })
 
-  it('is locked out while overheated (flick ignored, no heat added)', () => {
+  it('still flings while overheated — half distance, double heat (a penalty, not a lockout)', () => {
     const base = createShip(ShipKind.fighter, WORLD_SIZE)
-    const overheated = { ...base, slingHeat: 1, slingOverheated: true }
-    const result = applySlingshot(overheated, { dir: { x: 1, y: 0 }, charge: 1 })
-    expect(result).toBe(overheated)
-    expect(result.flingVel).toEqual({ x: 0, y: 0 })
+    const normal = applySlingshot(base, { dir: { x: 1, y: 0 }, charge: 1 })
+    const overheated = applySlingshot(
+      { ...base, slingHeat: 0.5, slingOverheated: true },
+      { dir: { x: 1, y: 0 }, charge: 1 }
+    )
+    const sNormal = Math.hypot(normal.flingVel.x, normal.flingVel.y)
+    const sOver = Math.hypot(overheated.flingVel.x, overheated.flingVel.y)
+    expect(sOver).toBeCloseTo(sNormal * 0.5, 1) // half the coast distance
+    // Double the heat added on top of the starting 0.5 (capped at 1).
+    expect(overheated.slingHeat).toBeCloseTo(Math.min(1, 0.5 + SLINGSHOT.heatPerFling * 2), 5)
+    expect(overheated.slingOverheated).toBe(true) // a penalty fling never lifts the lockout
   })
 
   it('cools over time but keeps the lockout until heat falls below re-engage (hysteresis)', () => {
@@ -220,15 +227,26 @@ describe('forward drift (post-slingshot)', () => {
     expect(updateShipDrift(ship, 0.1, ctx).pos.y).toBeLessThan(ship.pos.y)
   })
 
-  it('hunts toward a target when one is present', () => {
+  it('closes on a distant target — pulls it back toward orbit range', () => {
     const base = createShip(ShipKind.fighter, WORLD_SIZE)
     const ship = { ...base, pos: { x: WORLD_SIZE.x / 2, y: 1500 } }
-    // Target to the right, within half a world → the ship steers toward it (x increases).
+    // Target far to the right (beyond orbit range) → the ship steers toward it.
     const after = updateShipDrift(ship, 0.1, {
       ...ctx,
       target: { x: ship.pos.x + 600, y: ship.pos.y },
     })
     expect(after.pos.x).toBeGreaterThan(ship.pos.x)
+  })
+
+  it('backs away from a target inside the flee-orbit range (no weapons — keep distance)', () => {
+    const base = createShip(ShipKind.fighter, WORLD_SIZE)
+    const ship = { ...base, pos: { x: WORLD_SIZE.x / 2, y: 1500 }, vel: { x: 0, y: 0 } }
+    // Target close to the right, well inside orbitRange → the ship steers LEFT (away).
+    const after = updateShipDrift(ship, 0.1, {
+      ...ctx,
+      target: { x: ship.pos.x + 40, y: ship.pos.y },
+    })
+    expect(after.pos.x).toBeLessThan(ship.pos.x)
   })
 
   // Regression: the hunt orbit used to pick its circling side from the target's

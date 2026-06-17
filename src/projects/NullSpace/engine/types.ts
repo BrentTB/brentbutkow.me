@@ -21,7 +21,6 @@ export const ShipKind = {
   fighter: 'fighter',
   interceptor: 'interceptor',
   dreadnought: 'dreadnought',
-  carrier: 'carrier',
 } as const
 export type ShipKind = (typeof ShipKind)[keyof typeof ShipKind]
 
@@ -71,8 +70,8 @@ export type Ship = Entity & {
   // raises it. Heals up to maxHp while alive.
   hpRegen: number
   weaponSlots: number
-  // The weapon equipped in each slot. Length equals weaponSlots. Carrier
-  // (weaponSlots=3) holds 3 distinct weapons; everything else holds one.
+  // The weapon equipped in each slot. Length equals weaponSlots. Every current
+  // ship has one slot; the array still supports multi-slot ships if reintroduced.
   equippedWeapons: ShipWeaponKind[]
   // Cached last non-zero movement direction (unit vector). Falls back to {1,0}
   // at game start. Used by Escape Mode to dash when the ship is stationary.
@@ -109,6 +108,7 @@ export const EnemyKind = {
   shooter: 'shooter',
   swarm: 'swarm',
   bomber: 'bomber',
+  dasher: 'dasher',
   dreadnought: 'dreadnought',
   shieldGenerator: 'shieldGenerator',
   voidWorm: 'voidWorm',
@@ -134,6 +134,9 @@ export const MovementBehavior = {
   stationary: 'stationary',
   // Pursues the target until within `attackRange`, then holds position.
   approach: 'approach',
+  // Telegraphed charger: approach → windup tell → locked straight-line lunge →
+  // recover. Per-enemy cycle state lives on Enemy.dasher.
+  dash: 'dash',
   // The boss tick owns position and velocity; the movement system leaves the
   // enemy untouched (unlike `stationary`, which zeroes vel each frame).
   none: 'none',
@@ -156,6 +159,23 @@ export type BurningState = {
   duration: number
   dps: number
   spreadRange: number
+}
+
+// Dasher attack cycle. The stage timer counts DOWN; `heading` is the lunge
+// direction, locked at the windup→charge transition so the charge commits to a
+// straight line the player dodges. Present only on dasher enemies.
+export const DashStage = {
+  approach: 'approach',
+  windup: 'windup',
+  charge: 'charge',
+  recover: 'recover',
+} as const
+export type DashStage = (typeof DashStage)[keyof typeof DashStage]
+
+export type DasherState = {
+  stage: DashStage
+  stageTimer: number
+  heading: Vec2
 }
 
 export type Enemy = Entity & {
@@ -181,6 +201,8 @@ export type Enemy = Entity & {
   // Present only on shield-modifier enemies — a player-style absorb-first pool
   // that regenerates after a cooldown. Damage routes through applyDamageToEnemy.
   enemyShield?: { shield: number; maxShield: number; regen: number; cooldownRemaining: number }
+  // Dasher charge cycle (absent on other kinds). Drives the windup→lunge tell.
+  dasher?: DasherState
   // Cosmetic timers (seconds) — render-only. hitFlash washes white on damage,
   // fireFlash blips the muzzle on a shot, spawnIn counts DOWN from the warp-in
   // grow (0 = fully materialised). Movement/collision ignore them.
@@ -527,8 +549,10 @@ export type GamePhase = (typeof GamePhase)[keyof typeof GamePhase]
 export const UpgradeCategory = {
   weapons: 'weapons',
   ship: 'ship',
-  loadout: 'loadout',
   powers: 'powers',
+  // Ship-weapon (loadout) upgrades. Kept for a future ally feature; no shop tab
+  // renders this category (CATEGORY_ORDER is weapons/ship/powers), so it stays hidden.
+  loadout: 'loadout',
 } as const
 export type UpgradeCategory = (typeof UpgradeCategory)[keyof typeof UpgradeCategory]
 
@@ -603,6 +627,9 @@ export type GameState = {
   spawnTimer: number
   totalWaveEnemies: number
   spawnedInWave: number
+  // Seconds since the current wave's enemies began spawning. Drives soft
+  // stall-escalation (enemies speed up the longer a wave drags). Reset per wave.
+  waveElapsed: number
   // Per-ability runtime state for hold abilities. Keyed by AbilityKind. Each
   // entry tracks {active, timer, target}. Inactive abilities are simply absent.
   holdStates: Partial<Record<AbilityKind, HoldRuntimeState>>

@@ -11,14 +11,7 @@ import { SHIP_WEAPON_UNLOCK_UPGRADE, SHIP_WEAPON_UPGRADE_DEFINITIONS } from './s
 import { SHIP_VARIANTS } from './ship/ship-data'
 import { UpgradeCategory } from './types'
 import type { UpgradeId } from './upgrade-ids'
-import type {
-  Ability,
-  AbilityKind,
-  PlayerUpgrades,
-  Ship,
-  ShipWeaponKind,
-  UpgradeDefinition,
-} from './types'
+import type { Ability, AbilityKind, PlayerUpgrades, Ship, UpgradeDefinition } from './types'
 
 export const SHIP_AND_POWER_UPGRADE_IDS = {
   shipMaxHp: 'shipMaxHp',
@@ -248,22 +241,6 @@ export function isWeaponFullyMaxed(weapon: AbilityKind, upgrades: PlayerUpgrades
   return allModifiersAtMaxTier(getWeaponModifierUpgrades(weapon), upgrades)
 }
 
-// Parallel of isWeaponFullyMaxed for ship weapons (category: loadout).
-export function isShipWeaponFullyMaxed(weapon: ShipWeaponKind, upgrades: PlayerUpgrades): boolean {
-  return isModifierSetFullyMaxed(weapon, UpgradeCategory.loadout, upgrades)
-}
-
-function isModifierSetFullyMaxed(
-  weapon: AbilityKind | ShipWeaponKind,
-  category: UpgradeCategory,
-  upgrades: PlayerUpgrades
-): boolean {
-  const modifiers = Object.values(UPGRADE_DEFINITIONS).filter(
-    (def) => def.category === category && def.weapon === weapon && !UNLOCK_UPGRADE_IDS.has(def.id)
-  )
-  return allModifiersAtMaxTier(modifiers, upgrades)
-}
-
 // True when every modifier in the set sits at its top tier. An empty set is
 // "not maxed" — a freshly-unlocked weapon has nothing to buy yet but isn't done.
 function allModifiersAtMaxTier(modifiers: UpgradeDefinition[], upgrades: PlayerUpgrades): boolean {
@@ -274,8 +251,8 @@ function allModifiersAtMaxTier(modifiers: UpgradeDefinition[], upgrades: PlayerU
 export const UPGRADE_CATEGORY_LABELS: Record<UpgradeCategory, string> = {
   [UpgradeCategory.weapons]: 'Weapons',
   [UpgradeCategory.ship]: 'Ship',
-  [UpgradeCategory.loadout]: 'Loadout',
   [UpgradeCategory.powers]: 'Powers',
+  [UpgradeCategory.loadout]: 'Loadout',
 }
 
 export function createInitialUpgrades(): PlayerUpgrades {

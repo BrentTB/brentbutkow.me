@@ -468,6 +468,24 @@ export const PHASE_SHIFTER_BOSS_SPRITE: SpriteData = [
   [_, _, _, _, _, _, _, _, _, C, C, _, _, _, _, _, _, _, _, _],
 ]
 
+// Dasher — an aggressive orange dart: swept wings, twin exhausts, a red core.
+// The renderer points it along its velocity, so the nose leads the charge.
+export const DASHER_SPRITE: SpriteData = [
+  [_, _, _, _, _, F, _, _, _, _, _],
+  [_, _, _, _, F, O, F, _, _, _, _],
+  [_, _, _, F, O, O, O, F, _, _, _],
+  [_, _, F, O, o, o, o, O, F, _, _],
+  [_, _, F, O, o, R, o, O, F, _, _],
+  [_, F, O, o, R, R, R, o, O, F, _],
+  [_, F, O, o, R, R, R, o, O, F, _],
+  [F, O, o, o, o, o, o, o, o, O, F],
+  [F, O, o, O, _, _, _, O, o, O, F],
+  [O, o, O, _, _, _, _, _, O, o, O],
+  [o, O, _, _, _, _, _, _, _, O, o],
+  [_, O, _, _, _, _, _, _, _, O, _],
+  [_, o, _, _, _, _, _, _, _, o, _],
+]
+
 export const SpriteKey = {
   ship: 'ship',
   shipInterceptor: 'shipInterceptor',
@@ -478,6 +496,7 @@ export const SpriteKey = {
   shooter: 'shooter',
   swarm: 'swarm',
   bomber: 'bomber',
+  dasher: 'dasher',
   dreadnoughtBoss: 'dreadnoughtBoss',
   shieldGenerator: 'shieldGenerator',
   voidWormBoss: 'voidWormBoss',
@@ -505,6 +524,7 @@ export const SPRITE_MAP: Record<SpriteKey, SpriteData> = {
   shooter: SHOOTER_SPRITE,
   swarm: SWARM_SPRITE,
   bomber: BOMBER_SPRITE,
+  dasher: DASHER_SPRITE,
   dreadnoughtBoss: DREADNOUGHT_BOSS_SPRITE,
   shieldGenerator: SHIELD_GENERATOR_SPRITE,
   voidWormBoss: VOID_WORM_BOSS_SPRITE,

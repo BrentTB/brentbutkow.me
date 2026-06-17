@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import {
   createInitialState,
-  equipShipWeapon,
   moveToShipSelection,
   startGame,
   startNextWave,
@@ -484,14 +483,6 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     syncUI(gameStateRef.current)
   }, [syncUI])
 
-  const handleEquipShipWeapon = useCallback(
-    (slotIndex: number, weapon: ShipWeaponKind) => {
-      gameStateRef.current = equipShipWeapon(gameStateRef.current, slotIndex, weapon)
-      syncUI(gameStateRef.current)
-    },
-    [syncUI]
-  )
-
   const handlePause = useCallback(() => {
     if (gameStateRef.current.phase !== GamePhase.playing) return
     gameStateRef.current = { ...gameStateRef.current, phase: GamePhase.paused }
@@ -933,7 +924,6 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     handlePurchaseUpgrade,
     handlePurchaseUltimate,
     handleFinishUpgrades,
-    handleEquipShipWeapon,
     handlePause,
     handleResume,
     handleSetSpeed,

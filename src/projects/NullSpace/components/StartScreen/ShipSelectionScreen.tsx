@@ -49,25 +49,7 @@ export function ShipSelectionScreen({ onSelect }: ShipSelectionScreenProps) {
           max={STAT_MAX.shieldRegen}
           color="#44bb44"
         />
-        <StatBar
-          label="Damage"
-          value={variant.stats.damage}
-          max={STAT_MAX.damage}
-          color="#e9b872"
-        />
         <StatBar label="Speed" value={variant.stats.speed} max={STAT_MAX.speed} color="#cc88ff" />
-        <StatBar
-          label="Fire Rate"
-          value={variant.stats.fireRate}
-          max={STAT_MAX.fireRate}
-          color="#f5a53d"
-        />
-        <StatBar
-          label="Guns"
-          value={variant.stats.weaponSlots}
-          max={STAT_MAX.weaponSlots}
-          color="#e6739f"
-        />
       </div>
 
       <ShipSpritePreview kind={selected} />
