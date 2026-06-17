@@ -382,4 +382,5 @@ src/routes/
   routes.config.tsx                          routePaths, funStuffRoutes, routes
   routes.types.ts                            AppRoute
   useDocumentTitle.ts                        useDocumentTitle
+  useQueryParamsState.ts                     QueryParamsState, useQueryParamsState
 ```

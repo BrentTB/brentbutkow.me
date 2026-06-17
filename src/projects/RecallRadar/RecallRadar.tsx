@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { PageLayout } from '../../components/PageFormatting/PageLayout'
 import { PageHeader } from '../../components/PageFormatting/PageHeader'
 import { SafeLink } from '../../components/utils/SafeLink'
@@ -19,7 +18,17 @@ import { categoryLabels, recallRadarCopy, recallRadarLinks, trendGroupLabels } f
 import { deriveYears, formatDate, formatNumber, ingestFreshness } from './chart-format'
 import { anomalyCallouts, deriveCallouts } from './trend-callouts'
 import { toChartMonths } from './trend-chart'
-import { RecallCountry, TrendGroup, isTrendGroup, type RecallFilterValues } from './recall.types'
+import {
+  RecallCountry,
+  TrendGroup,
+  isRecallCategory,
+  isRecallClass,
+  isRecallCountry,
+  isRecallSource,
+  isTrendGroup,
+  type RecallFilterValues,
+} from './recall.types'
+import { useQueryParamsState } from '../../routes/useQueryParamsState'
 import { useRecalls } from './useRecalls'
 import { useRecallStats } from './useRecallStats'
 import { useRecallTrend } from './useRecallTrend'
@@ -35,20 +44,39 @@ const EMPTY_FILTERS: RecallFilterValues = {
   search: '',
 }
 
+// The URL is the source of truth for the whole view. Param name → default; absent/default params
+// stay out of the query string. Stable module-level object so the hook's memo doesn't churn.
+const DEFAULT_PARAMS = {
+  ...EMPTY_FILTERS,
+  location: RecallCountry.us,
+  group: TrendGroup.category,
+  year: '',
+}
+
 export function RecallRadar() {
   const { isFunMode } = useFunMode()
-  const [country, setCountry] = useState<RecallCountry>(RecallCountry.us)
-  const [filters, setFilters] = useState<RecallFilterValues>(EMPTY_FILTERS)
-  const [year, setYear] = useState<number | null>(null)
-  const [group, setGroup] = useState<TrendGroup>(TrendGroup.category)
+  const { values, patch: patchParams } = useQueryParamsState(DEFAULT_PARAMS)
+
+  // URL strings → typed UI state, validated rather than cast (query params are untrusted input).
+  const country = isRecallCountry(values.location) ? values.location : RecallCountry.us
+  const group = isTrendGroup(values.group) ? values.group : TrendGroup.category
+  const year = values.year ? Number(values.year) : null
+  const filters: RecallFilterValues = {
+    category: isRecallCategory(values.category) ? values.category : '',
+    classification: isRecallClass(values.classification) ? values.classification : '',
+    state: values.state,
+    company: values.company,
+    source: isRecallSource(values.source) ? values.source : '',
+    entity: values.entity,
+    search: values.search,
+  }
   const debouncedSearch = useDebouncedValue(filters.search, 500)
 
+  const patch = (next: Partial<RecallFilterValues>) => patchParams(next)
+  const clearFilters = () => patchParams(EMPTY_FILTERS)
   // Switching country is a fresh view — reset filters + year so US selections don't leak into UK.
-  const changeCountry = (next: RecallCountry) => {
-    setCountry(next)
-    setFilters(EMPTY_FILTERS)
-    setYear(null)
-  }
+  const changeCountry = (next: RecallCountry) =>
+    patchParams({ location: next, ...EMPTY_FILTERS, year: '' })
 
   const stats = useRecallStats(country)
   const trend = useRecallTrend(country, group)
@@ -63,9 +91,6 @@ export function RecallRadar() {
     search: debouncedSearch.trim() || undefined,
     limit: 50,
   })
-
-  const patch = (next: Partial<RecallFilterValues>) =>
-    setFilters((current) => ({ ...current, ...next }))
 
   const years = stats.data ? deriveYears(stats.data.byMonth) : []
   // Clamp to an available year — a stale `year` from a prior dataset would orphan the <select>.
@@ -145,14 +170,20 @@ export function RecallRadar() {
               ariaLabel="Group by"
               value={group}
               options={groupOptions}
-              onChange={(value) => setGroup(isTrendGroup(value) ? value : TrendGroup.total)}
+              onChange={(value) =>
+                patchParams({ group: isTrendGroup(value) ? value : TrendGroup.total })
+              }
             />
             {years.length > 0 && (
               <Select
                 ariaLabel="Year"
                 value={String(selectedYear)}
                 options={years.map((value) => ({ value: String(value), label: String(value) }))}
-                onChange={(value) => setYear(Number(value))}
+                // Year's real default is the dynamic fallback (latest year), not '', so clear the
+                // param when it's reselected — keeps the default view's URL clean like every other.
+                onChange={(value) =>
+                  patchParams({ year: Number(value) === fallbackYear ? '' : value })
+                }
               />
             )}
           </div>
@@ -194,7 +225,7 @@ export function RecallRadar() {
           stateOptions={stateOptions}
           companyOptions={companyOptions}
           onChange={patch}
-          onClear={() => setFilters(EMPTY_FILTERS)}
+          onClear={clearFilters}
         />
         {recalls.loading && <p className={styles.status}>Loading recalls…</p>}
         {recalls.error && <p className={styles.status}>Couldn’t reach the recall service.</p>}
