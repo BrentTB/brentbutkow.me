@@ -9,6 +9,7 @@ export const apiRoutes = {
     list: '/recalls',
     stats: '/recalls/stats',
     trend: '/recalls/trend',
+    companies: '/recalls/companies',
   },
   contact: '/contact',
 } as const
