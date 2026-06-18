@@ -47,6 +47,7 @@ src/components/footer/
   Footer.tsx                                 Footer
 
 src/components/inputs/
+  Combobox.tsx                               Combobox
   Select.tsx                                 SelectOption, Select
 
 src/components/navbar/
@@ -358,6 +359,7 @@ src/projects/RecallRadar/components/
   AnomalyChart.tsx                           AnomalyChart
   Breakdowns.tsx                             Breakdowns
   ChartTooltip.tsx                           TooltipState, ChartTooltip
+  CompanyFilter.tsx                          CompanyFilter
   CountrySelector.tsx                        CountrySelector
   Pagination.tsx                             Pagination
   ProjectOverview.tsx                        ProjectOverview
@@ -367,6 +369,7 @@ src/projects/RecallRadar/components/
   RecallTrendsChart.tsx                      RecallTrendsChart
   StatCard.tsx                               StatCard
   TrendCallouts.tsx                          TrendCallouts
+  page-window.ts                             pageWindow
 
 src/projects/RecallRadar/
   data.ts                                    recallRadarCopy, techStack, methodologyPoints, categoryLabels, sourceLabels, countryLabels, entityTypeLabels, trendGroupLabels, trendColor, classesByCountry, sourcesByCountry, recallRadarLinks
@@ -374,6 +377,7 @@ src/projects/RecallRadar/
   trend-callouts.ts                          TrendDirection, TrendCallout, deriveCallouts, anomalyCallouts
   trend-chart.ts                             ChartSegment, ChartMonth, toChartMonths
   us-state-grid.ts                           StateTile, STATE_GRID_ROWS, STATE_GRID_COLS, stateGrid
+  useCompanySearch.ts                        useCompanySearch
   useRecallStats.ts                          useRecallStats
   useRecallTrend.ts                          useRecallTrend
   useRecalls.ts                              useRecalls

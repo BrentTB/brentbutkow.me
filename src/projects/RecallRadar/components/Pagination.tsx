@@ -1,3 +1,4 @@
+import { pageWindow } from './page-window'
 import styles from './Pagination.module.scss'
 
 type PaginationProps = {
@@ -7,36 +8,52 @@ type PaginationProps = {
   onChange: (page: number) => void
 }
 
-// Previous / next pager for a list of `total` items shown `pageSize` at a time. Renders nothing
-// when everything fits on one page.
 export function Pagination({ page, pageSize, total, onChange }: PaginationProps) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
   if (totalPages <= 1) return null
 
-  const start = (page - 1) * pageSize + 1
-  const end = Math.min(page * pageSize, total)
+  const go = (next: number) => onChange(Math.min(totalPages, Math.max(1, next)))
 
   return (
     <nav className={styles.pagination} aria-label="Recall list pages">
-      <button
-        type="button"
-        className={styles.button}
-        onClick={() => onChange(page - 1)}
-        disabled={page <= 1}
-      >
-        ← Previous
-      </button>
-      <span className={styles.status}>
-        {start.toLocaleString()}–{end.toLocaleString()} of {total.toLocaleString()}
-      </span>
-      <button
-        type="button"
-        className={styles.button}
-        onClick={() => onChange(page + 1)}
-        disabled={page >= totalPages}
-      >
-        Next →
-      </button>
+      <div className={styles.pages}>
+        <button
+          type="button"
+          className={styles.step}
+          onClick={() => go(page - 1)}
+          disabled={page <= 1}
+          aria-label="Previous page"
+        >
+          ‹
+        </button>
+        {pageWindow(page, totalPages).map((item, index) =>
+          item === 'gap' ? (
+            <span key={`gap-${index}`} className={styles.gap} aria-hidden="true">
+              …
+            </span>
+          ) : (
+            <button
+              key={item}
+              type="button"
+              className={`${styles.page} ${item === page ? styles.active : ''}`}
+              onClick={() => go(item)}
+              aria-current={item === page ? 'page' : undefined}
+              aria-label={`Page ${item}`}
+            >
+              {item}
+            </button>
+          )
+        )}
+        <button
+          type="button"
+          className={styles.step}
+          onClick={() => go(page + 1)}
+          disabled={page >= totalPages}
+          aria-label="Next page"
+        >
+          ›
+        </button>
+      </div>
     </nav>
   )
 }

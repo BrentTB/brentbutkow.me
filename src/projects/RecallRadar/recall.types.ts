@@ -64,6 +64,8 @@ export type RecallFilterValues = {
   source: RecallSource | ''
   entity: string
   search: string
+  since: string // YYYY-MM-DD, '' = no lower bound
+  until: string // YYYY-MM-DD, '' = no upper bound
 }
 
 export type Recall = {

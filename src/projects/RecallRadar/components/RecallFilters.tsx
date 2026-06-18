@@ -7,14 +7,15 @@ import {
   type RecallCountry,
   type RecallFilterValues,
 } from '../recall.types'
+import { Combobox } from '../../../components/inputs/Combobox'
 import { Select, type SelectOption } from '../../../components/inputs/Select'
+import { CompanyFilter } from './CompanyFilter'
 import styles from './RecallFilters.module.scss'
 
 type RecallFiltersProps = {
   filters: RecallFilterValues
   country: RecallCountry
   stateOptions: string[]
-  companyOptions: string[]
   onChange: (patch: Partial<RecallFilterValues>) => void
   onClear: () => void
 }
@@ -25,7 +26,6 @@ export function RecallFilters({
   filters,
   country,
   stateOptions,
-  companyOptions,
   onChange,
   onClear,
 }: RecallFiltersProps) {
@@ -55,6 +55,10 @@ export function RecallFilters({
   if (filters.company)
     chips.push({ key: 'company', label: filters.company, patch: { company: '' } })
   if (filters.entity) chips.push({ key: 'entity', label: filters.entity, patch: { entity: '' } })
+  if (filters.since)
+    chips.push({ key: 'since', label: `From ${filters.since}`, patch: { since: '' } })
+  if (filters.until)
+    chips.push({ key: 'until', label: `To ${filters.until}`, patch: { until: '' } })
 
   const categoryOptions: SelectOption[] = [
     ALL,
@@ -68,15 +72,6 @@ export function RecallFilters({
     ALL,
     ...sourceOptions.map((value) => ({ value, label: sourceLabels[value] })),
   ]
-  const stateFilterOptions: SelectOption[] = [
-    ALL,
-    ...stateOptions.map((value) => ({ value, label: value })),
-  ]
-  const companyFilterOptions: SelectOption[] = [
-    ALL,
-    ...companyOptions.map((value) => ({ value, label: value })),
-  ]
-
   return (
     <div className={styles.root}>
       <div className={styles.filters}>
@@ -126,22 +121,46 @@ export function RecallFilters({
         {stateOptions.length > 0 && (
           <div className={styles.field}>
             <span className={styles.label}>State</span>
-            <Select
+            <Combobox
               ariaLabel="State"
               value={filters.state}
-              options={stateFilterOptions}
+              options={stateOptions.map((code) => ({ value: code, label: code }))}
               onChange={(value) => onChange({ state: value })}
+              placeholder="Search states…"
             />
           </div>
         )}
 
         <div className={styles.field}>
           <span className={styles.label}>Company</span>
-          <Select
-            ariaLabel="Company"
+          <CompanyFilter
+            country={country}
             value={filters.company}
-            options={companyFilterOptions}
             onChange={(value) => onChange({ company: value })}
+          />
+        </div>
+
+        <div className={styles.field}>
+          <span className={styles.label}>From</span>
+          <input
+            type="date"
+            aria-label="Recalls reported on or after"
+            className={styles.date}
+            value={filters.since}
+            max={filters.until || undefined}
+            onChange={(event) => onChange({ since: event.target.value })}
+          />
+        </div>
+
+        <div className={styles.field}>
+          <span className={styles.label}>To</span>
+          <input
+            type="date"
+            aria-label="Recalls reported on or before"
+            className={styles.date}
+            value={filters.until}
+            min={filters.since || undefined}
+            onChange={(event) => onChange({ until: event.target.value })}
           />
         </div>
       </div>

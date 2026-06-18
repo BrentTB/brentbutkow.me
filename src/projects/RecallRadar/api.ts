@@ -16,6 +16,8 @@ export type RecallFilters = {
   source?: RecallSource
   entity?: string
   search?: string
+  since?: string
+  until?: string
   limit?: number
   offset?: number
 }
@@ -30,6 +32,8 @@ function appendRecallFilters(params: URLSearchParams, filters: RecallFilters): v
   if (filters.source) params.set('source', filters.source)
   if (filters.entity) params.set('entity', filters.entity)
   if (filters.search) params.set('search', filters.search)
+  if (filters.since) params.set('since', filters.since)
+  if (filters.until) params.set('until', filters.until)
 }
 
 export function buildRecallsPath(filters: RecallFilters): string {

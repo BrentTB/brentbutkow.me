@@ -43,6 +43,8 @@ const EMPTY_FILTERS: RecallFilterValues = {
   source: '',
   entity: '',
   search: '',
+  since: '',
+  until: '',
 }
 
 // The URL is the source of truth for the whole view. Param name → default; absent/default params
@@ -74,6 +76,8 @@ export function RecallRadar() {
     source: isRecallSource(values.source) ? values.source : '',
     entity: values.entity,
     search: values.search,
+    since: values.since,
+    until: values.until,
   }
   const debouncedSearch = useDebouncedValue(filters.search, 500)
 
@@ -97,12 +101,20 @@ export function RecallRadar() {
     source: filters.source || undefined,
     entity: filters.entity || undefined,
     search: debouncedSearch.trim() || undefined,
+    since: filters.since || undefined,
+    until: filters.until || undefined,
   }
   const stats = useRecallStats(country)
   const trend = useRecallTrend(queryFilters, group)
   const recalls = useRecalls({ ...queryFilters, limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE })
 
-  const years = stats.data ? deriveYears(stats.data.byMonth) : []
+  // Year options follow the data, then narrow to whatever the date filter admits (2021–2025 for a
+  // 2021-01-05 → 2025-02-03 range), so the chart can't offer a year the filters exclude.
+  const sinceYear = filters.since ? Number(filters.since.slice(0, 4)) : -Infinity
+  const untilYear = filters.until ? Number(filters.until.slice(0, 4)) : Infinity
+  const years = (stats.data ? deriveYears(stats.data.byMonth) : []).filter(
+    (y) => y >= sinceYear && y <= untilYear
+  )
   // Clamp to an available year — a stale `year` from a prior dataset would orphan the <select>.
   const fallbackYear = years[0] ?? new Date().getFullYear()
   const selectedYear = year !== null && years.includes(year) ? year : fallbackYear
@@ -117,7 +129,6 @@ export function RecallRadar() {
   const topCategory = stats.data?.byCategory.slice().sort((a, b) => b.count - a.count)[0]
   const topState = stats.data?.byState[0]
   const stateOptions = stats.data?.byState.map((entry) => entry.label) ?? []
-  const companyOptions = stats.data?.byCompany.map((entry) => entry.label) ?? []
   // Backend-detected anomalies lead (they're the ML headline), then the descriptive summaries.
   const callouts = stats.data
     ? [...anomalyCallouts(stats.data.anomalies), ...deriveCallouts(stats.data)]
@@ -176,7 +187,6 @@ export function RecallRadar() {
         filters={filters}
         country={country}
         stateOptions={stateOptions}
-        companyOptions={companyOptions}
         onChange={patch}
         onClear={clearFilters}
       />

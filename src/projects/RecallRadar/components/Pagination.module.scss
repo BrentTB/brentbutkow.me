@@ -1,40 +1,90 @@
 .pagination {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
-  gap: 16px;
+  justify-content: space-between;
+  gap: 16px 24px;
   margin-top: 24px;
 }
 
-.button {
+.pages {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.step,
+.page {
+  min-width: 38px;
   background: var(--surface-strong);
   color: var(--text);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
-  padding: 8px 16px;
+  padding: 6px 10px;
   font-family: var(--font-mono);
   font-size: 0.82rem;
+  text-align: center;
   cursor: pointer;
 }
 
-.button:hover:not(:disabled) {
+.step:hover:not(:disabled),
+.page:hover {
   border-color: var(--accent);
 }
 
-.button:disabled {
+.step:disabled {
   opacity: 0.4;
   cursor: default;
 }
 
-.button:focus-visible {
+.page.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.gap {
+  padding: 0 2px;
+  color: var(--muted);
+  user-select: none;
+}
+
+.step:focus-visible,
+.page:focus-visible,
+.jumpInput:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
-.status {
+.jump {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.jumpLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: var(--muted);
-  min-width: 12ch;
-  text-align: center;
+}
+
+.jumpInput {
+  width: 6ch;
+  background: var(--surface-strong);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 6px 8px;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+}
+
+.ofTotal {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--muted);
 }
