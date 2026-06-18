@@ -4,6 +4,7 @@ export const RecallCategory = {
   pathogen: 'pathogen',
   foreignMaterial: 'foreignMaterial',
   mislabeling: 'mislabeling',
+  contaminant: 'contaminant',
   other: 'other',
 } as const
 export type RecallCategory = (typeof RecallCategory)[keyof typeof RecallCategory]
@@ -36,6 +37,7 @@ export const EntityType = {
   allergen: 'allergen',
   pathogen: 'pathogen',
   hazard: 'hazard',
+  contaminant: 'contaminant',
 } as const
 export type EntityType = (typeof EntityType)[keyof typeof EntityType]
 

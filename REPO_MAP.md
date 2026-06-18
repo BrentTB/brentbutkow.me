@@ -351,7 +351,7 @@ src/projects/NullSpace/
 
 src/projects/RecallRadar/
   RecallRadar.tsx                            RecallRadar
-  api.ts                                     RecallFilters, buildRecallsPath
+  api.ts                                     RecallFilters, buildRecallsPath, buildTrendPath
   chart-format.ts                            formatMonthLabel, formatNumber, seriesMax, median, formatDate, deriveYears, monthsForYear, IngestFreshness, ingestFreshness
 
 src/projects/RecallRadar/components/
@@ -359,6 +359,7 @@ src/projects/RecallRadar/components/
   Breakdowns.tsx                             Breakdowns
   ChartTooltip.tsx                           TooltipState, ChartTooltip
   CountrySelector.tsx                        CountrySelector
+  Pagination.tsx                             Pagination
   ProjectOverview.tsx                        ProjectOverview
   RecallFeed.tsx                             RecallFeed
   RecallFilters.tsx                          RecallFilters

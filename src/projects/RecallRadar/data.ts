@@ -58,6 +58,7 @@ export const categoryLabels: Record<RecallCategory, string> = {
   [RecallCategory.pathogen]: 'Pathogen',
   [RecallCategory.foreignMaterial]: 'Foreign material',
   [RecallCategory.mislabeling]: 'Mislabeling',
+  [RecallCategory.contaminant]: 'Contaminant',
   [RecallCategory.other]: 'Other',
 }
 
@@ -76,6 +77,7 @@ export const entityTypeLabels: Record<EntityType, string> = {
   [EntityType.allergen]: 'Allergen',
   [EntityType.pathogen]: 'Pathogen',
   [EntityType.hazard]: 'Foreign material',
+  [EntityType.contaminant]: 'Contaminant',
 }
 
 export const trendGroupLabels: Record<TrendGroup, string> = {
@@ -91,6 +93,7 @@ const CATEGORY_COLORS: Record<RecallCategory, string> = {
   [RecallCategory.pathogen]: '#e57373',
   [RecallCategory.foreignMaterial]: '#8fb0c9',
   [RecallCategory.mislabeling]: '#9fbf9f',
+  [RecallCategory.contaminant]: '#c2a0b8',
   [RecallCategory.other]: '#8d8a82',
 }
 const SOURCE_COLORS: Record<RecallSource, string> = {

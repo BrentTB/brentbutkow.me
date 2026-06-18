@@ -56,8 +56,13 @@ describe('RecallFilters', () => {
     expect(screen.queryByText('Class I')).toBeNull() // US classes don't bleed in
   })
 
-  it('shows the clear button when only a search is active', () => {
-    renderFilters({ filters: { ...empty, search: 'peanut' } })
-    expect(screen.getByText('Clear filters')).toBeTruthy()
+  it('renders a removable chip per active filter, plus clear-all', () => {
+    const onChange = vi.fn()
+    renderFilters({ filters: { ...empty, search: 'peanut', state: 'CA' }, onChange })
+    expect(screen.getByText('Clear all')).toBeTruthy()
+    expect(screen.getByText('“peanut”')).toBeTruthy()
+    // A chip clears only its own filter.
+    fireEvent.click(screen.getByRole('button', { name: 'Remove CA filter' }))
+    expect(onChange).toHaveBeenCalledWith({ state: '' })
   })
 })

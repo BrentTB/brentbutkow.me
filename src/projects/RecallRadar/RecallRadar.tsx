@@ -6,6 +6,7 @@ import { useFunMode } from '../../contexts/useFunMode'
 import { useDebouncedValue } from '../../api/useDebouncedValue'
 import { Breakdowns } from './components/Breakdowns'
 import { CountrySelector } from './components/CountrySelector'
+import { Pagination } from './components/Pagination'
 import { ProjectOverview } from './components/ProjectOverview'
 import { RecallFeed } from './components/RecallFeed'
 import { RecallFilters } from './components/RecallFilters'
@@ -51,7 +52,11 @@ const DEFAULT_PARAMS = {
   location: RecallCountry.us,
   group: TrendGroup.category,
   year: '',
+  page: '',
 }
+
+// The recall feed paginates this many rows at a time.
+const PAGE_SIZE = 20
 
 export function RecallRadar() {
   const { isFunMode } = useFunMode()
@@ -72,15 +77,18 @@ export function RecallRadar() {
   }
   const debouncedSearch = useDebouncedValue(filters.search, 500)
 
-  const patch = (next: Partial<RecallFilterValues>) => patchParams(next)
-  const clearFilters = () => patchParams(EMPTY_FILTERS)
+  // Any filter change resets to page 1; the pager sets `page` directly (goToPage).
+  const patch = (next: Partial<RecallFilterValues>) => patchParams({ ...next, page: '' })
+  const clearFilters = () => patchParams({ ...EMPTY_FILTERS, page: '' })
   // Switching country is a fresh view — reset filters + year so US selections don't leak into UK.
   const changeCountry = (next: RecallCountry) =>
-    patchParams({ location: next, ...EMPTY_FILTERS, year: '' })
+    patchParams({ location: next, ...EMPTY_FILTERS, year: '', page: '' })
+  const page = Math.max(1, Number(values.page) || 1)
+  const goToPage = (next: number) => patchParams({ page: next <= 1 ? '' : String(next) })
 
-  const stats = useRecallStats(country)
-  const trend = useRecallTrend(country, group)
-  const recalls = useRecalls({
+  // One filter set drives both the chart and the list, so they always describe the same recalls.
+  // Stats (breakdowns, map, callouts) stay country-only — a global overview that also picks filters.
+  const queryFilters = {
     country,
     category: filters.category || undefined,
     classification: filters.classification || undefined,
@@ -89,8 +97,10 @@ export function RecallRadar() {
     source: filters.source || undefined,
     entity: filters.entity || undefined,
     search: debouncedSearch.trim() || undefined,
-    limit: 50,
-  })
+  }
+  const stats = useRecallStats(country)
+  const trend = useRecallTrend(queryFilters, group)
+  const recalls = useRecalls({ ...queryFilters, limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE })
 
   const years = stats.data ? deriveYears(stats.data.byMonth) : []
   // Clamp to an available year — a stale `year` from a prior dataset would orphan the <select>.
@@ -162,6 +172,16 @@ export function RecallRadar() {
 
       <TrendCallouts callouts={callouts} />
 
+      <RecallFilters
+        filters={filters}
+        country={country}
+        stateOptions={stateOptions}
+        companyOptions={companyOptions}
+        onChange={patch}
+        onClear={clearFilters}
+      />
+      <p className={styles.hint}>Filters apply to the chart and the recall list below.</p>
+
       <section className={styles.section}>
         <div className={styles.sectionHead}>
           <h2 className={styles.sectionTitle}>Recalls per month</h2>
@@ -219,17 +239,17 @@ export function RecallRadar() {
         <h2 className={styles.sectionTitle}>
           Recalls{recalls.data ? ` (${formatNumber(recalls.data.total)})` : ''}
         </h2>
-        <RecallFilters
-          filters={filters}
-          country={country}
-          stateOptions={stateOptions}
-          companyOptions={companyOptions}
-          onChange={patch}
-          onClear={clearFilters}
-        />
         {recalls.loading && <p className={styles.status}>Loading recalls…</p>}
         {recalls.error && <p className={styles.status}>Couldn’t reach the recall service.</p>}
         {recalls.data && <RecallFeed recalls={recalls.data.items} />}
+        {recalls.data && (
+          <Pagination
+            page={page}
+            pageSize={PAGE_SIZE}
+            total={recalls.data.total}
+            onChange={goToPage}
+          />
+        )}
       </section>
 
       <div id="tech-stack">
