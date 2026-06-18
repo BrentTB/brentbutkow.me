@@ -126,6 +126,6 @@ describe('RecallRadar page', () => {
     // entity leaderboard + a detected anomaly callout (headlined by the spike's count, not σ)
     expect(screen.getByText('Top allergens')).toBeTruthy()
     expect(screen.getByText('Anomaly')).toBeTruthy()
-    expect(screen.getByText(/normally ~6\/mo/i)).toBeTruthy() // anomaly caption, plain-language
+    expect(screen.getByText(/~6\/mo typical/i)).toBeTruthy() // anomaly caption, plain-language
   })
 })

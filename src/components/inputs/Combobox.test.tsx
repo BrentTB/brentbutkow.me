@@ -46,6 +46,30 @@ describe('Combobox', () => {
     expect(screen.getByRole('option', { name: 'CA' })).toBeTruthy() // not client-filtered
   })
 
+  it('shows status text instead of "No matches" while loading or on error', () => {
+    const { rerender } = render(
+      <Combobox value="" options={[]} onChange={vi.fn()} ariaLabel="Company" loading />
+    )
+    fireEvent.focus(screen.getByRole('combobox', { name: 'Company' }))
+    expect(screen.getByText('Searching…')).toBeTruthy()
+
+    rerender(<Combobox value="" options={[]} onChange={vi.fn()} ariaLabel="Company" error />)
+    expect(screen.getByText('Couldn’t load options')).toBeTruthy()
+
+    rerender(<Combobox value="" options={[]} onChange={vi.fn()} ariaLabel="Company" />)
+    expect(screen.getByText('No matches')).toBeTruthy()
+  })
+
+  it('mirrors the committed selection when value changes from outside', () => {
+    const { rerender } = render(
+      <Combobox value="CA" options={opts} onChange={vi.fn()} ariaLabel="State" />
+    )
+    const input = screen.getByRole('combobox', { name: 'State' }) as HTMLInputElement
+    expect(input.value).toBe('CA')
+    rerender(<Combobox value="NY" options={opts} onChange={vi.fn()} ariaLabel="State" />)
+    expect(input.value).toBe('NY')
+  })
+
   it('clears the current selection', () => {
     const onChange = vi.fn()
     render(<Combobox value="CA" options={opts} onChange={onChange} ariaLabel="State" />)

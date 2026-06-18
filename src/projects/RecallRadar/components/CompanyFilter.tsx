@@ -13,13 +13,21 @@ type CompanyFilterProps = {
 // an empty query yields the busiest firms; typing searches all of them.
 export function CompanyFilter({ country, value, onChange }: CompanyFilterProps) {
   const [query, setQuery] = useState('')
-  const options = useCompanySearch(country, query).map((name) => ({ value: name, label: name }))
+  const { companies, loading, error } = useCompanySearch(country, query)
+  const options = companies.map((name) => ({ value: name, label: name }))
   return (
     <Combobox
       value={value}
       options={options}
-      onChange={onChange}
+      // Clear the typed query on select so reopening shows the busiest-companies defaults, not the
+      // last narrow search.
+      onChange={(next) => {
+        setQuery('')
+        onChange(next)
+      }}
       onInputChange={setQuery}
+      loading={loading}
+      error={Boolean(error)}
       ariaLabel="Company"
       placeholder="Search companies…"
       widthCh={36}

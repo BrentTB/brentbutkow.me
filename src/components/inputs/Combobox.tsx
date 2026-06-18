@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
-import type { SelectOption } from './Select'
+import type { SelectOption } from './option.types'
 import styles from './Combobox.module.scss'
 
 type ComboboxProps = {
@@ -11,6 +11,10 @@ type ComboboxProps = {
   // Provide to drive options from a parent (e.g. a server search) as the user types; omit to filter
   // the given `options` client-side.
   onInputChange?: (query: string) => void
+  // For async loaders: distinguish an in-flight fetch and a failed one from a genuine empty result,
+  // so the empty dropdown reads "Searching…"/"Couldn't load options" instead of a misleading "No matches".
+  loading?: boolean
+  error?: boolean
   // Fix the control + dropdown to this many characters wide; longer option labels truncate with an
   // ellipsis rather than widening it. Omit to size to the input (good for short options).
   widthCh?: number
@@ -26,6 +30,8 @@ export function Combobox({
   ariaLabel,
   placeholder,
   onInputChange,
+  loading,
+  error,
   widthCh,
 }: ComboboxProps) {
   const [open, setOpen] = useState(false)
@@ -87,6 +93,7 @@ export function Combobox({
       setOpen(true)
     } else if (open && event.key === 'ArrowDown') {
       event.preventDefault()
+      if (filtered.length === 0) return
       setActiveIndex((index) => Math.min(filtered.length - 1, index + 1))
     } else if (open && event.key === 'ArrowUp') {
       event.preventDefault()
@@ -135,7 +142,9 @@ export function Combobox({
       {open && (
         <ul className={styles.menu} id={listboxId} role="listbox" aria-label={ariaLabel}>
           {filtered.length === 0 ? (
-            <li className={styles.empty}>No matches</li>
+            <li className={styles.empty}>
+              {loading ? 'Searching…' : error ? 'Couldn’t load options' : 'No matches'}
+            </li>
           ) : (
             filtered.map((option, index) => (
               <li

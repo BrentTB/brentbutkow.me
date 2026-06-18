@@ -96,10 +96,13 @@ export function anomalyCallouts(anomalies: Anomaly[]): TrendCallout[] {
         : anomaly.label
     const sortedMonths = anomaly.months.map((month) => month.month).sort()
     const latest = sortedMonths[sortedMonths.length - 1] ?? peak.month
+    // Always say which way it broke (a dip reads the same as a spike otherwise) and against what
+    // typical level — both single- and multi-month so the baseline magnitude is never dropped.
+    const vsTypical = `${up ? 'above' : 'below'} ~${Math.round(peak.baseline)}/mo typical`
     const caption =
       anomaly.months.length === 1
-        ? `${formatMonthLabel(peak.month)} · normally ~${Math.round(peak.baseline)}/mo`
-        : `${anomaly.months.length} unusual months · latest ${formatMonthLabel(latest)}`
+        ? `${formatMonthLabel(peak.month)} · ${vsTypical}`
+        : `${anomaly.months.length} unusual months · latest ${formatMonthLabel(latest)} · ${vsTypical}`
     return {
       id: `anomaly-${anomaly.scope}-${anomaly.label}`,
       eyebrow: 'Anomaly',

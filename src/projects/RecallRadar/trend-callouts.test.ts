@@ -113,7 +113,7 @@ describe('anomalyCallouts', () => {
     expect(callouts[0].direction).toBe('up')
     expect(callouts[0].title).toBe('Listeria')
     expect(callouts[0].caption).toContain('Mar 2026')
-    expect(callouts[0].caption).toContain('normally ~8/mo')
+    expect(callouts[0].caption).toContain('above ~8/mo typical')
     // the chart payload rides along on the callout
     expect(callouts[0].chart?.months).toHaveLength(1)
     expect(callouts[0].chart?.series).toHaveLength(3)
@@ -121,7 +121,7 @@ describe('anomalyCallouts', () => {
     expect(callouts[1].value).toBe('5')
     expect(callouts[1].direction).toBe('down') // 5 vs a typical ~20
     expect(callouts[1].title).toBe('Undeclared allergen') // category value → label
-    expect(callouts[1].caption).toContain('normally ~20/mo')
+    expect(callouts[1].caption).toContain('below ~20/mo typical') // a dip reads distinctly from a spike
 
     expect(callouts[2].title).toBe('All recalls')
   })
@@ -146,6 +146,7 @@ describe('anomalyCallouts', () => {
     expect(callout.value).toBe('16') // biggest flagged month's count
     expect(callout.caption).toContain('2 unusual months')
     expect(callout.caption).toContain('latest May 2026')
+    expect(callout.caption).toContain('above ~6/mo typical') // baseline kept on multi-month too
     expect(callout.chart?.months).toHaveLength(2)
   })
 

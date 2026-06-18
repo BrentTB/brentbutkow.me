@@ -48,7 +48,8 @@ src/components/footer/
 
 src/components/inputs/
   Combobox.tsx                               Combobox
-  Select.tsx                                 SelectOption, Select
+  Select.tsx                                 Select
+  option.types.ts                            SelectOption
 
 src/components/navbar/
   Navbar.tsx                                 Navbar
@@ -352,7 +353,7 @@ src/projects/NullSpace/
 
 src/projects/RecallRadar/
   RecallRadar.tsx                            RecallRadar
-  api.ts                                     RecallFilters, buildRecallsPath, buildTrendPath
+  api.ts                                     RecallFilters, TrendFilters, buildRecallsPath, buildTrendPath
   chart-format.ts                            formatMonthLabel, formatNumber, seriesMax, median, formatDate, deriveYears, monthsForYear, IngestFreshness, ingestFreshness
 
 src/projects/RecallRadar/components/
@@ -369,15 +370,16 @@ src/projects/RecallRadar/components/
   RecallTrendsChart.tsx                      RecallTrendsChart
   StatCard.tsx                               StatCard
   TrendCallouts.tsx                          TrendCallouts
-  page-window.ts                             pageWindow
+  page-window.ts                             PageSlot, pageWindow
+  useChartTooltip.ts                         useChartTooltip
 
 src/projects/RecallRadar/
   data.ts                                    recallRadarCopy, techStack, methodologyPoints, categoryLabels, sourceLabels, countryLabels, entityTypeLabels, trendGroupLabels, trendColor, classesByCountry, sourcesByCountry, recallRadarLinks
-  recall.types.ts                            RecallCategory, RecallClass, RecallSource, RecallCountry, EntityType, AnomalyScope, TrendGroup, RecallFilterValues, Recall, RecallEntity, RecallListResult, CategoryCount, MonthCount, LabelCount, EntityCount, AnomalyMonth, Anomaly, RecallStats, TrendBucket, TrendResult, isRecallCategory, isRecallClass, isRecallSource, isRecallCountry, isEntityType, isTrendGroup, isTrendResult, isRecallListResult, isRecallStats
+  recall.types.ts                            RecallCategory, RecallClass, RecallSource, RecallCountry, EntityType, AnomalyScope, TrendGroup, RecallFilterValues, Recall, RecallEntity, RecallListResult, CategoryCount, MonthCount, LabelCount, EntityCount, AnomalyMonth, Anomaly, RecallStats, TrendBucket, TrendResult, isRecallCategory, isRecallClass, isRecallSource, isRecallCountry, isEntityType, isTrendGroup, isIsoDate, isTrendResult, isRecallListResult, isRecallStats
   trend-callouts.ts                          TrendDirection, TrendCallout, deriveCallouts, anomalyCallouts
   trend-chart.ts                             ChartSegment, ChartMonth, toChartMonths
   us-state-grid.ts                           StateTile, STATE_GRID_ROWS, STATE_GRID_COLS, stateGrid
-  useCompanySearch.ts                        useCompanySearch
+  useCompanySearch.ts                        CompanySearch, useCompanySearch
   useRecallStats.ts                          useRecallStats
   useRecallTrend.ts                          useRecallTrend
   useRecalls.ts                              useRecalls

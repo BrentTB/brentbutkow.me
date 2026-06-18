@@ -155,6 +155,10 @@ export const isEntityType = (value: string): value is EntityType =>
 export const isTrendGroup = (value: string): value is TrendGroup =>
   (Object.values(TrendGroup) as string[]).includes(value)
 
+// A 'YYYY-MM-DD' calendar date — the shape the date filters and the backend expect. Guards the
+// raw `since`/`until` URL params so a malformed value can't reach the API or break year derivation.
+export const isIsoDate = (value: string): boolean => /^\d{4}-\d{2}-\d{2}$/.test(value)
+
 const isTrendBucket = (value: unknown): value is TrendBucket =>
   isRecord(value) &&
   typeof value.month === 'string' &&

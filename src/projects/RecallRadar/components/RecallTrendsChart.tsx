@@ -1,7 +1,7 @@
-import { useRef, useState, type MouseEvent } from 'react'
 import { formatMonthLabel, formatNumber, seriesMax } from '../chart-format'
 import type { ChartMonth, ChartSegment } from '../trend-chart'
-import { ChartTooltip, type TooltipState } from './ChartTooltip'
+import { ChartTooltip } from './ChartTooltip'
+import { useChartTooltip } from './useChartTooltip'
 import styles from './RecallTrendsChart.module.scss'
 
 type RecallTrendsChartProps = {
@@ -15,18 +15,11 @@ const HEIGHT = 240
 const PADDING = { top: 16, right: 12, bottom: 36, left: 44 }
 
 export function RecallTrendsChart({ data, year, legend }: RecallTrendsChartProps) {
-  const figureRef = useRef<HTMLElement>(null)
-  const [tip, setTip] = useState<TooltipState>(null)
+  const { figureRef, tip, showTip, hideTip } = useChartTooltip()
 
   const months = data.slice(-12)
   if (months.length === 0) {
     return <p className={styles.empty}>No trend data yet.</p>
-  }
-
-  // Cursor-following tooltip, shown the instant a segment is entered.
-  const showTip = (text: string) => (event: MouseEvent) => {
-    const rect = figureRef.current?.getBoundingClientRect()
-    if (rect) setTip({ text, x: event.clientX - rect.left, y: event.clientY - rect.top })
   }
 
   const totals = months.map((month) => month.segments.reduce((sum, seg) => sum + seg.count, 0))
@@ -96,7 +89,7 @@ export function RecallTrendsChart({ data, year, legend }: RecallTrendsChartProps
                     aria-label={text}
                     onMouseEnter={showTip(text)}
                     onMouseMove={showTip(text)}
-                    onMouseLeave={() => setTip(null)}
+                    onMouseLeave={hideTip}
                   />
                 )
               })}

@@ -1,7 +1,7 @@
-import { useRef, useState, type MouseEvent } from 'react'
 import { formatMonthLabel, formatNumber, median, seriesMax } from '../chart-format'
 import type { AnomalyMonth, MonthCount } from '../recall.types'
-import { ChartTooltip, type TooltipState } from './ChartTooltip'
+import { ChartTooltip } from './ChartTooltip'
+import { useChartTooltip } from './useChartTooltip'
 import styles from './AnomalyChart.module.scss'
 
 type AnomalyChartProps = {
@@ -21,15 +21,9 @@ function tick(month: string): string {
 }
 
 export function AnomalyChart({ series, months, label }: AnomalyChartProps) {
-  const figureRef = useRef<HTMLElement>(null)
-  const [tip, setTip] = useState<TooltipState>(null)
+  const { figureRef, tip, showTip, hideTip } = useChartTooltip()
 
   if (series.length === 0) return null
-
-  const showTip = (text: string) => (event: MouseEvent) => {
-    const rect = figureRef.current?.getBoundingClientRect()
-    if (rect) setTip({ text, x: event.clientX - rect.left, y: event.clientY - rect.top })
-  }
 
   const flagged = new Set(months.map((month) => month.month))
   // Reference line = the typical (median) monthly level over the window, so the spikes stand out.
@@ -107,7 +101,7 @@ export function AnomalyChart({ series, months, label }: AnomalyChartProps) {
                 aria-label={text}
                 onMouseEnter={showTip(text)}
                 onMouseMove={showTip(text)}
-                onMouseLeave={() => setTip(null)}
+                onMouseLeave={hideTip}
               />
               {showLabel && (
                 <text

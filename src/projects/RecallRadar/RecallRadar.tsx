@@ -14,7 +14,8 @@ import { RecallMap } from './components/RecallMap'
 import { RecallTrendsChart } from './components/RecallTrendsChart'
 import { StatCard } from './components/StatCard'
 import { TrendCallouts } from './components/TrendCallouts'
-import { Select, type SelectOption } from '../../components/inputs/Select'
+import { Select } from '../../components/inputs/Select'
+import type { SelectOption } from '../../components/inputs/option.types'
 import { categoryLabels, recallRadarCopy, recallRadarLinks, trendGroupLabels } from './data'
 import { deriveYears, formatDate, formatNumber, ingestFreshness } from './chart-format'
 import { anomalyCallouts, deriveCallouts } from './trend-callouts'
@@ -27,6 +28,7 @@ import {
   isRecallCountry,
   isRecallSource,
   isTrendGroup,
+  isIsoDate,
   type RecallFilterValues,
 } from './recall.types'
 import { useQueryParamsState } from '../../routes/useQueryParamsState'
@@ -76,8 +78,8 @@ export function RecallRadar() {
     source: isRecallSource(values.source) ? values.source : '',
     entity: values.entity,
     search: values.search,
-    since: values.since,
-    until: values.until,
+    since: isIsoDate(values.since) ? values.since : '',
+    until: isIsoDate(values.until) ? values.until : '',
   }
   const debouncedSearch = useDebouncedValue(filters.search, 500)
 

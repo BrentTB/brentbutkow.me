@@ -51,40 +51,7 @@
 }
 
 .step:focus-visible,
-.page:focus-visible,
-.jumpInput:focus-visible {
+.page:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-}
-
-.jump {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.jumpLabel {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  color: var(--muted);
-}
-
-.jumpInput {
-  width: 6ch;
-  background: var(--surface-strong);
-  color: var(--text);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  padding: 6px 8px;
-  font-family: var(--font-mono);
-  font-size: 0.82rem;
-}
-
-.ofTotal {
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  color: var(--muted);
 }

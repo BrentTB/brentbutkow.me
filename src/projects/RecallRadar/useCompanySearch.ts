@@ -6,14 +6,21 @@ import type { RecallCountry } from './recall.types'
 const isStringArray = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((entry) => typeof entry === 'string')
 
+export type CompanySearch = {
+  companies: string[]
+  loading: boolean
+  error: string | null
+}
+
 // Debounced company-name suggestions for the country + query, from the backend search endpoint.
 // An empty query returns the busiest companies, so the dropdown has sensible defaults before typing.
-export function useCompanySearch(country: RecallCountry, query: string): string[] {
+// Surfaces loading/error so the dropdown distinguishes "fetching" and "failed" from "no matches".
+export function useCompanySearch(country: RecallCountry, query: string): CompanySearch {
   const debounced = useDebouncedValue(query.trim(), 250)
   const params = new URLSearchParams({ country, q: debounced })
-  const { data } = useApiResource<string[]>(
+  const { data, loading, error } = useApiResource<string[]>(
     `${apiRoutes.recalls.companies}?${params.toString()}`,
     isStringArray
   )
-  return data ?? []
+  return { companies: data ?? [], loading, error }
 }
