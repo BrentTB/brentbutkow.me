@@ -11,7 +11,8 @@ import type { TrendResult } from './recall.types'
 export type ChartSegment = { key: string; label: string; color: string; count: number }
 export type ChartMonth = { month: string; segments: ChartSegment[] }
 
-// Fixed key order per dimension so stacking + colors stay stable across renders.
+// The full candidate key set per dimension; toChartMonths keeps the present ones and orders them
+// by volume. Colors are keyed by value (see trendColor), so order never affects them.
 function keysFor(group: TrendGroup): string[] {
   if (group === TrendGroup.category) return Object.values(RecallCategory)
   if (group === TrendGroup.source) return Object.values(RecallSource)
@@ -36,7 +37,14 @@ export function toChartMonths(
     counts.set(bucket.month, row)
   }
 
-  const present = keysFor(result.group).filter((key) => result.buckets.some((b) => b.group === key))
+  const totals = new Map<string, number>()
+  for (const bucket of result.buckets) {
+    totals.set(bucket.group, (totals.get(bucket.group) ?? 0) + bucket.count)
+  }
+  // Largest cause first — order segments by total recalls, not the enum's fixed order.
+  const present = keysFor(result.group)
+    .filter((key) => result.buckets.some((b) => b.group === key))
+    .sort((a, b) => (totals.get(b) ?? 0) - (totals.get(a) ?? 0))
   const keys = present.length > 0 ? present : ['total']
   const legend: ChartSegment[] = keys.map((key, index) => ({
     key,
