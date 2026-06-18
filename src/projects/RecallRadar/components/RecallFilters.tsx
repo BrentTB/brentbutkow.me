@@ -8,7 +8,8 @@ import {
   type RecallFilterValues,
 } from '../recall.types'
 import { Combobox } from '../../../components/inputs/Combobox'
-import { Select, type SelectOption } from '../../../components/inputs/Select'
+import { Select } from '../../../components/inputs/Select'
+import type { SelectOption } from '../../../components/inputs/option.types'
 import { CompanyFilter } from './CompanyFilter'
 import styles from './RecallFilters.module.scss'
 
@@ -34,7 +35,14 @@ export function RecallFilters({
   const sourceOptions = sourcesByCountry[country]
   // One removable chip per active filter — surfaces what's scoping the chart + list, and lets each
   // be cleared on its own (clicks from the breakdowns/map land here too).
-  const chips: { key: string; label: string; patch: Partial<RecallFilterValues> }[] = []
+  // `remove` is the screen-reader phrase for the chip's clear button; defaults to the visible label,
+  // overridden where the label alone reads poorly aloud (e.g. a raw ISO date).
+  const chips: {
+    key: string
+    label: string
+    remove?: string
+    patch: Partial<RecallFilterValues>
+  }[] = []
   if (filters.search.trim())
     chips.push({ key: 'search', label: `“${filters.search.trim()}”`, patch: { search: '' } })
   if (filters.category)
@@ -56,9 +64,19 @@ export function RecallFilters({
     chips.push({ key: 'company', label: filters.company, patch: { company: '' } })
   if (filters.entity) chips.push({ key: 'entity', label: filters.entity, patch: { entity: '' } })
   if (filters.since)
-    chips.push({ key: 'since', label: `From ${filters.since}`, patch: { since: '' } })
+    chips.push({
+      key: 'since',
+      label: `From ${filters.since}`,
+      remove: 'the start date',
+      patch: { since: '' },
+    })
   if (filters.until)
-    chips.push({ key: 'until', label: `To ${filters.until}`, patch: { until: '' } })
+    chips.push({
+      key: 'until',
+      label: `To ${filters.until}`,
+      remove: 'the end date',
+      patch: { until: '' },
+    })
 
   const categoryOptions: SelectOption[] = [
     ALL,
@@ -172,7 +190,7 @@ export function RecallFilters({
               key={chip.key}
               type="button"
               className={styles.chip}
-              aria-label={`Remove ${chip.label} filter`}
+              aria-label={`Remove ${chip.remove ?? chip.label} filter`}
               onClick={() => onChange(chip.patch)}
             >
               <span>{chip.label}</span>

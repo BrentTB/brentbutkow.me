@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { ReactNode } from 'react'
 import { renderHook, act } from '@testing-library/react'
-import { MemoryRouter, useLocation } from 'react-router-dom'
+import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom'
 import { useQueryParamsState } from './useQueryParamsState'
 
 const DEFAULTS = { location: 'us', category: '', group: 'category' }
@@ -14,6 +14,13 @@ const wrapperFor =
 
 // Pair the hook with the live location so tests can assert the actual query string written.
 const useProbe = () => ({ ...useQueryParamsState(DEFAULTS), search: useLocation().search })
+
+// Variant that also exposes navigate, to assert how patch affects the history stack.
+const useProbeWith = (options: { replace?: boolean }) => ({
+  ...useQueryParamsState(DEFAULTS, options),
+  search: useLocation().search,
+  navigate: useNavigate(),
+})
 
 describe('useQueryParamsState', () => {
   it('returns defaults when no params are present', () => {
@@ -69,5 +76,25 @@ describe('useQueryParamsState', () => {
     const params = new URLSearchParams(result.current.search)
     expect(params.get('tab')).toBe('feed')
     expect(params.get('location')).toBe('uk')
+  })
+
+  it('replaces history by default, so a patch is not a separate back-button entry', () => {
+    const { result } = renderHook(() => useProbeWith({}), { wrapper: wrapperFor('/') })
+    act(() => result.current.patch({ location: 'uk' }))
+    expect(result.current.search).toContain('location=uk')
+    // Replaced the only entry — there is nothing earlier to navigate back to.
+    act(() => result.current.navigate(-1))
+    expect(result.current.search).toContain('location=uk')
+  })
+
+  it('pushes a history entry when replace is false', () => {
+    const { result } = renderHook(() => useProbeWith({ replace: false }), {
+      wrapper: wrapperFor('/'),
+    })
+    act(() => result.current.patch({ location: 'uk' }))
+    expect(result.current.search).toContain('location=uk')
+    // Pushed a new entry — back returns to the original, param-free URL.
+    act(() => result.current.navigate(-1))
+    expect(result.current.search).toBe('')
   })
 })

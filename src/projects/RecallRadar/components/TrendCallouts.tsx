@@ -64,7 +64,9 @@ export function TrendCallouts({ callouts }: TrendCalloutsProps) {
                     isOpen ? styles.active : ''
                   }`}
                   aria-expanded={isOpen}
-                  aria-controls="anomaly-chart"
+                  // Only the open card references the single panel — avoids a dangling idref while
+                  // closed and many cards all claiming to control one panel.
+                  aria-controls={isOpen ? 'anomaly-chart' : undefined}
                   onClick={() => setOpenId(isOpen ? null : callout.id)}
                 >
                   <CardBody callout={callout} open={isOpen} />

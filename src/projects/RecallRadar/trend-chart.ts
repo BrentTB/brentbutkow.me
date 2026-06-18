@@ -46,10 +46,10 @@ export function toChartMonths(
     .filter((key) => result.buckets.some((b) => b.group === key))
     .sort((a, b) => (totals.get(b) ?? 0) - (totals.get(a) ?? 0))
   const keys = present.length > 0 ? present : ['total']
-  const legend: ChartSegment[] = keys.map((key, index) => ({
+  const legend: ChartSegment[] = keys.map((key) => ({
     key,
     label: labelFor(result.group, key),
-    color: trendColor(result.group, key, index),
+    color: trendColor(result.group, key),
     count: 0,
   }))
 

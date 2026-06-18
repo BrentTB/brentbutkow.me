@@ -102,11 +102,14 @@ const SOURCE_COLORS: Record<RecallSource, string> = {
   [RecallSource.uk]: '#9fbf9f',
 }
 
-export function trendColor(group: TrendGroup, key: string, index: number): string {
+export function trendColor(group: TrendGroup, key: string): string {
   if (group === TrendGroup.category && isRecallCategory(key)) return CATEGORY_COLORS[key]
   if (group === TrendGroup.source && isRecallSource(key)) return SOURCE_COLORS[key]
   if (group === TrendGroup.total) return '#e9b872'
-  return TREND_PALETTE[index % TREND_PALETTE.length]
+  // Stable per-key fallback for any unrecognised key — hashed so the color never shifts with order.
+  let hash = 0
+  for (const ch of key) hash = (hash + ch.charCodeAt(0)) % TREND_PALETTE.length
+  return TREND_PALETTE[hash]
 }
 
 // Which classifications / sources belong to each country — drives the country-specific filters

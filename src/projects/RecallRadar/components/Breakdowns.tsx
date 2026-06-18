@@ -62,7 +62,6 @@ export function Breakdowns({ stats, filters, onSelect }: BreakdownsProps) {
   const entityRows = (type: EntityType): Row[] =>
     stats.byEntity
       .filter((entry) => entry.type === type)
-      .slice(0, 15)
       .map((entry) => ({ label: entry.label, value: entry.label, count: entry.count }))
   const allergenRows = entityRows(EntityType.allergen)
   const pathogenRows = entityRows(EntityType.pathogen)

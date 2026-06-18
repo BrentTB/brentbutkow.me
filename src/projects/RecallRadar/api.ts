@@ -22,6 +22,9 @@ export type RecallFilters = {
   offset?: number
 }
 
+// The trend chart scopes to the same recalls but isn't paginated — so it can't accept limit/offset.
+export type TrendFilters = Omit<RecallFilters, 'limit' | 'offset'>
+
 // The filter params the recall list and the trend chart share, so both scope to the same recalls.
 function appendRecallFilters(params: URLSearchParams, filters: RecallFilters): void {
   if (filters.country) params.set('country', filters.country)
@@ -44,7 +47,7 @@ export function buildRecallsPath(filters: RecallFilters): string {
   return `${apiRoutes.recalls.list}?${params.toString()}`
 }
 
-export function buildTrendPath(filters: RecallFilters, group: TrendGroup): string {
+export function buildTrendPath(filters: TrendFilters, group: TrendGroup): string {
   const params = new URLSearchParams()
   params.set('group', group)
   appendRecallFilters(params, filters)

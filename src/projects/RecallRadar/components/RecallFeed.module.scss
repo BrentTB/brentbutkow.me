@@ -141,7 +141,7 @@
 }
 
 .entityChip[data-type='pathogen'] {
-  background: rgba(229, 115, 115, 0.16);
+  background: rgba(var(--danger-rgb), 0.16);
   color: var(--danger);
 }
 

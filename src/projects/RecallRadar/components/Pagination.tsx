@@ -1,4 +1,4 @@
-import { pageWindow } from './page-window'
+import { PageSlot, pageWindow } from './page-window'
 import styles from './Pagination.module.scss'
 
 type PaginationProps = {
@@ -27,7 +27,7 @@ export function Pagination({ page, pageSize, total, onChange }: PaginationProps)
           ‹
         </button>
         {pageWindow(page, totalPages).map((item, index) =>
-          item === 'gap' ? (
+          item === PageSlot.gap ? (
             <span key={`gap-${index}`} className={styles.gap} aria-hidden="true">
               …
             </span>
