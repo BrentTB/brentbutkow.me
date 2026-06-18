@@ -47,7 +47,9 @@ src/components/footer/
   Footer.tsx                                 Footer
 
 src/components/inputs/
-  Select.tsx                                 SelectOption, Select
+  Combobox.tsx                               Combobox
+  Select.tsx                                 Select
+  option.types.ts                            SelectOption
 
 src/components/navbar/
   Navbar.tsx                                 Navbar
@@ -353,12 +355,16 @@ src/projects/NullSpace/
 
 src/projects/RecallRadar/
   RecallRadar.tsx                            RecallRadar
-  api.ts                                     RecallFilters, buildRecallsPath
-  chart-format.ts                            formatMonthLabel, formatNumber, seriesMax, formatDate, deriveYears, monthsForYear, IngestFreshness, ingestFreshness
+  api.ts                                     RecallFilters, TrendFilters, buildRecallsPath, buildTrendPath
+  chart-format.ts                            formatMonthLabel, formatNumber, seriesMax, median, formatDate, deriveYears, monthsForYear, IngestFreshness, ingestFreshness
 
 src/projects/RecallRadar/components/
+  AnomalyChart.tsx                           AnomalyChart
   Breakdowns.tsx                             Breakdowns
+  ChartTooltip.tsx                           TooltipState, ChartTooltip
+  CompanyFilter.tsx                          CompanyFilter
   CountrySelector.tsx                        CountrySelector
+  Pagination.tsx                             Pagination
   ProjectOverview.tsx                        ProjectOverview
   RecallFeed.tsx                             RecallFeed
   RecallFilters.tsx                          RecallFilters
@@ -366,13 +372,18 @@ src/projects/RecallRadar/components/
   RecallTrendsChart.tsx                      RecallTrendsChart
   StatCard.tsx                               StatCard
   TrendCallouts.tsx                          TrendCallouts
+  page-window.ts                             PageSlot, pageWindow
+  useChartTooltip.ts                         useChartTooltip
 
 src/projects/RecallRadar/
-  data.ts                                    recallRadarCopy, techStack, methodologyPoints, categoryLabels, sourceLabels, countryLabels, classesByCountry, sourcesByCountry, recallRadarLinks
-  recall.types.ts                            RecallCategory, RecallClass, RecallSource, RecallCountry, RecallFilterValues, Recall, RecallListResult, CategoryCount, MonthCount, LabelCount, RecallStats, isRecallCategory, isRecallClass, isRecallSource, isRecallCountry, isRecallListResult, isRecallStats
-  trend-callouts.ts                          TrendDirection, TrendCallout, deriveCallouts
+  data.ts                                    recallRadarCopy, techStack, methodologyPoints, categoryLabels, sourceLabels, countryLabels, entityTypeLabels, trendGroupLabels, trendColor, classesByCountry, sourcesByCountry, recallRadarLinks
+  recall.types.ts                            RecallCategory, RecallClass, RecallSource, RecallCountry, EntityType, AnomalyScope, TrendGroup, RecallFilterValues, Recall, RecallEntity, RecallListResult, CategoryCount, MonthCount, LabelCount, EntityCount, AnomalyMonth, Anomaly, RecallStats, TrendBucket, TrendResult, isRecallCategory, isRecallClass, isRecallSource, isRecallCountry, isEntityType, isTrendGroup, isIsoDate, isTrendResult, isRecallListResult, isRecallStats
+  trend-callouts.ts                          TrendDirection, TrendCallout, deriveCallouts, anomalyCallouts
+  trend-chart.ts                             ChartSegment, ChartMonth, toChartMonths
   us-state-grid.ts                           StateTile, STATE_GRID_ROWS, STATE_GRID_COLS, stateGrid
+  useCompanySearch.ts                        CompanySearch, useCompanySearch
   useRecallStats.ts                          useRecallStats
+  useRecallTrend.ts                          useRecallTrend
   useRecalls.ts                              useRecalls
 
 src/routes/
@@ -380,4 +391,5 @@ src/routes/
   routes.config.tsx                          routePaths, funStuffRoutes, routes
   routes.types.ts                            AppRoute
   useDocumentTitle.ts                        useDocumentTitle
+  useQueryParamsState.ts                     QueryParamsState, useQueryParamsState
 ```

@@ -19,6 +19,7 @@ const recall: Recall = {
   reportDate: '2026-06-10',
   category: 'allergen',
   categoryConfidence: 0.92,
+  entities: [{ type: 'allergen', value: 'peanuts' }],
 }
 
 describe('RecallFeed', () => {
@@ -33,6 +34,7 @@ describe('RecallFeed', () => {
     expect(screen.getByText('Nationwide')).toBeTruthy()
     expect(screen.getByText('USDA FSIS')).toBeTruthy() // source badge
     expect(screen.getByText('View original notice ↗')).toBeTruthy() // source_url link
+    expect(screen.getByText('peanuts')).toBeTruthy() // extracted entity chip
   })
 
   it('toggles the detail panel open when the summary is clicked', () => {

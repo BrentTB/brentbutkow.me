@@ -1,8 +1,14 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 4px 0 24px;
+}
+
 .filters {
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
-  margin: 4px 0 20px;
 }
 
 .field {
@@ -36,24 +42,88 @@
   outline-offset: 2px;
 }
 
-.clear {
-  align-self: flex-end;
-  background: transparent;
-  border: 1px solid var(--border-strong);
-  color: var(--text-secondary);
+.date {
+  // Dark-themes the native date picker (calendar glyph + popup).
+  color-scheme: dark;
+  background: var(--surface-strong);
+  color: var(--text);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 8px 14px;
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
+  padding: 7px 12px;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
   cursor: pointer;
 }
 
-.clear:hover {
+.date:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.chipsLabel {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface-strong);
   color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.chip:hover {
   border-color: var(--accent);
 }
 
-.clear:focus-visible {
+.chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.chipX {
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1;
+}
+
+.chip:hover .chipX {
+  color: var(--text);
+}
+
+.clearAll {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 5px 6px;
+}
+
+.clearAll:hover {
+  color: var(--text);
+}
+
+.clearAll:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }

@@ -28,6 +28,22 @@ const stats = {
     { label: 'fda', count: 30 },
     { label: 'usda', count: 12 },
   ],
+  byEntity: [
+    { type: 'allergen', label: 'peanuts', count: 20 },
+    { type: 'pathogen', label: 'Listeria', count: 8 },
+  ],
+  anomalies: [
+    {
+      scope: 'entity',
+      label: 'Listeria',
+      months: [{ month: '2026-06', observed: 22, baseline: 6, z: 3.5 }],
+      series: [
+        { month: '2026-04', count: 6 },
+        { month: '2026-05', count: 7 },
+        { month: '2026-06', count: 22 },
+      ],
+    },
+  ],
   lastIngestAt: '2026-06-13T08:00:00.000Z',
 }
 
@@ -49,9 +65,18 @@ const recalls = {
       reportDate: '2026-06-10',
       category: 'allergen',
       categoryConfidence: 1,
+      entities: [{ type: 'allergen', value: 'peanuts' }],
     },
   ],
   total: 1,
+}
+
+const trend = {
+  group: 'total',
+  buckets: [
+    { month: '2026-05', group: 'total', count: 20 },
+    { month: '2026-06', group: 'total', count: 22 },
+  ],
 }
 
 const mockRes = (body: unknown) => ({ ok: true, status: 200, json: async () => body }) as Response
@@ -62,9 +87,12 @@ describe('RecallRadar page', () => {
   it('renders the overview, breakdowns, and a recall row from the API', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn(async (url: string | URL) =>
-        String(url).includes('/recalls/stats') ? mockRes(stats) : mockRes(recalls)
-      )
+      vi.fn(async (url: string | URL) => {
+        const path = String(url)
+        if (path.includes('/recalls/trend')) return mockRes(trend)
+        if (path.includes('/recalls/stats')) return mockRes(stats)
+        return mockRes(recalls)
+      })
     )
 
     render(
@@ -78,7 +106,7 @@ describe('RecallRadar page', () => {
     expect(screen.getByText('Recall Radar')).toBeTruthy()
     // tech-stack overview + methodology render immediately (not data-gated)
     expect(screen.getByText('FastAPI')).toBeTruthy()
-    expect(screen.getByText('How this works')).toBeTruthy()
+    expect(screen.getByText('How it works')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'United Kingdom' })).toBeTruthy() // country selector
 
     // data-driven sections after the fetch resolves
@@ -87,7 +115,7 @@ describe('RecallRadar page', () => {
     expect(screen.getByText('US recalls by state')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'California: 18 recalls' })).toBeTruthy()
     // trend callouts + per-recall drill-down detail
-    expect(screen.getByText('the leading cause of recalls')).toBeTruthy()
+    expect(screen.getByText('Leading cause')).toBeTruthy()
     expect(screen.getByText('Nationwide')).toBeTruthy()
     expect(screen.getByText('100%')).toBeTruthy() // per-recall classifier confidence
     expect(screen.getByText('Top states')).toBeTruthy()
@@ -95,5 +123,9 @@ describe('RecallRadar page', () => {
     expect(screen.getAllByText('Globex Foods').length).toBeGreaterThan(0)
     expect(screen.getByText('By source')).toBeTruthy() // FDA / USDA breakdown
     expect(screen.getByText('42')).toBeTruthy()
+    // entity leaderboard + a detected anomaly callout (headlined by the spike's count, not σ)
+    expect(screen.getByText('Top allergens')).toBeTruthy()
+    expect(screen.getByText('Anomaly')).toBeTruthy()
+    expect(screen.getByText(/~6\/mo typical/i)).toBeTruthy() // anomaly caption, plain-language
   })
 })

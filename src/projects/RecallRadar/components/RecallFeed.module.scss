@@ -115,6 +115,36 @@
   overflow: visible;
 }
 
+.entities {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+// Allergen → accent (amber), pathogen → danger (red), hazard → neutral.
+.entityChip {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
+}
+
+.entityChip[data-type='allergen'] {
+  background: rgba(var(--accent-rgb), 0.16);
+  color: var(--accent-strong);
+}
+
+.entityChip[data-type='pathogen'] {
+  background: rgba(var(--danger-rgb), 0.16);
+  color: var(--danger);
+}
+
 .detail {
   margin: 14px 0 0;
   padding-top: 14px;

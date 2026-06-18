@@ -1,7 +1,6 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
+import type { SelectOption } from './option.types'
 import styles from './Select.module.scss'
-
-export type SelectOption = { value: string; label: string }
 
 type SelectProps = {
   value: string

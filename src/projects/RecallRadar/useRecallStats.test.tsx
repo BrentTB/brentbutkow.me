@@ -18,6 +18,8 @@ describe('useRecallStats', () => {
         byState: [],
         byCompany: [],
         bySource: [],
+        byEntity: [],
+        anomalies: [],
         lastIngestAt: null,
       })
     )

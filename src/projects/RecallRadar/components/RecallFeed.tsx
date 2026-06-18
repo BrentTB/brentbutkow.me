@@ -1,4 +1,4 @@
-import { categoryLabels, sourceLabels } from '../data'
+import { categoryLabels, entityTypeLabels, sourceLabels } from '../data'
 import { formatDate } from '../chart-format'
 import { SafeLink } from '../../../components/utils/SafeLink'
 import { getLinkArrow } from '../../../components/utils/link-arrow'
@@ -53,6 +53,20 @@ export function RecallFeed({ recalls }: RecallFeedProps) {
               <p className={styles.product}>{recall.productDescription}</p>
               {recall.companyName && <p className={styles.company}>{recall.companyName}</p>}
               <p className={styles.reason}>{recall.reasonText}</p>
+              {recall.entities.length > 0 && (
+                <ul className={styles.entities}>
+                  {recall.entities.map((entity) => (
+                    <li
+                      key={`${entity.type}-${entity.value}`}
+                      className={styles.entityChip}
+                      data-type={entity.type}
+                      title={entityTypeLabels[entity.type]}
+                    >
+                      {entity.value}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </summary>
             <dl className={styles.detail}>
               {detailRows(recall).map((row) => (
