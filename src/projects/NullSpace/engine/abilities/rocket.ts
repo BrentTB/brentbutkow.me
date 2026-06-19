@@ -1,5 +1,6 @@
 import { FIREWORKS, ROCKET } from './ability-data'
 import { damageEnemiesInRadiusFlat } from '../math/aoe'
+import { toroidalDelta } from '../math/toroid'
 import { createParticle, spawnExplosionParticles, uid } from '../entities/entity-creator'
 import { rng } from '../math/random'
 import { AbilityKind, EffectKind } from '../types'
@@ -79,8 +80,9 @@ export function createRocketEffect(
   aoeRadius: number,
   speed: number
 ): RocketEffect {
-  const dx = targetPos.x - shipPos.x
-  const dy = targetPos.y - shipPos.y
+  // Aim along the shortest (torus-wrapped) path so a target across a world seam
+  // is reached the short way, not the long way around.
+  const { x: dx, y: dy } = toroidalDelta(shipPos, targetPos)
   const dist = Math.sqrt(dx * dx + dy * dy)
   const flightTime = dist / speed
   const nx = dist > 0 ? dx / dist : 0

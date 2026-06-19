@@ -1,5 +1,6 @@
 import { PROJECTILE_RADIUS } from '../../data'
 import { uid } from '../entities/entity-creator'
+import { toroidalDelta } from '../math/toroid'
 import { ProjectileOwner, UpgradeCategory } from '../types'
 import type { Projectile, HelperWeaponKind, UpgradeDefinition, Vec2 } from '../types'
 import type { IconName } from '../../icon-names'
@@ -57,8 +58,9 @@ export function buildHelperProjectile(
   damage: number,
   opts: WeaponProjectileOpts
 ): Projectile {
-  const dx = targetPos.x - shipPos.x
-  const dy = targetPos.y - shipPos.y
+  // Aim along the shortest (torus-wrapped) path so a target across a world seam is
+  // shot the short way, not the long way around — matches createProjectile.
+  const { x: dx, y: dy } = toroidalDelta(shipPos, targetPos)
   const dist = Math.sqrt(dx * dx + dy * dy)
   const nx = dist > 0 ? dx / dist : 0
   const ny = dist > 0 ? dy / dist : 1

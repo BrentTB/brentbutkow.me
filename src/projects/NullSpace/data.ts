@@ -317,6 +317,9 @@ export const DASHER = {
 // player can always break away.
 export const WAVE_ESCALATION = {
   gracePeriod: 20,
+  // Boss waves are meant to be long fights, so they get a much longer grace
+  // before enemies start speeding up.
+  bossGracePeriod: 75,
   rampPerSec: 0.04,
   maxMult: 2.2,
 } as const
@@ -442,6 +445,17 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.3.1',
+    date: '2026-06-19',
+    changes: {
+      fixes: [
+        'Boss waves now give you much longer before enemies start speeding up — they are meant to be long fights, so they no longer ramp up on the normal wave timer.',
+        'The Rocket ability (and its Fireworks upgrade) and helper shots now take the short way across the edge of the world instead of flying the long way around it.',
+      ],
+      ui: ['Tutorial: the Next / Finish button now sticks to the right of the card.'],
+    },
+  },
   {
     version: '1.3.0',
     date: '2026-06-19',

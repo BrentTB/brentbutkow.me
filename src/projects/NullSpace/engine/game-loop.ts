@@ -674,7 +674,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   // Soft stall-escalation: time-since-wave-start drives a rising enemy-speed
   // multiplier, so parking and letting enemies trail the ship forever gets worse.
   waveElapsed = waveElapsed + dt
-  const waveSpeedMult = waveSpeedEscalation(waveElapsed)
+  const waveSpeedMult = waveSpeedEscalation(waveElapsed, isBossWave(state.wave))
 
   // --- Boss AI (onSpawn + phase advance + drone spawning + self-motion) ---
   const bossResult = updateBossAI(enemies, dt, { shipPos: ship.pos, worldSize: state.worldSize })

@@ -7,6 +7,7 @@ import {
 } from './index'
 import { HelperWeaponKind } from '../types'
 import { UpgradeId } from '../upgrade-ids'
+import { WORLD_SIZE } from '../../data'
 
 // Registry integrity — adding a new weapon kind to types.ts without wiring it
 // here would silently leave the lookup tables empty for that kind. These tests
@@ -83,6 +84,19 @@ describe('HelperWeaponDefinition.createProjectiles', () => {
     expect(proj.detonate!.wasteRadius).toBeUndefined()
     expect(proj.detonate!.wasteDps).toBeUndefined()
     expect(proj.detonate!.wasteDuration).toBeUndefined()
+  })
+
+  it('aims the short way across a world seam, not the long way around', () => {
+    // Ship near the right edge, target near the left edge: the short path wraps
+    // forward (+x, ~20px) across the seam; the long way would be -x across the
+    // whole world. Regression: helper projectiles used a raw (non-wrapped) delta.
+    const nearRight = { x: WORLD_SIZE.x - 10, y: 100 }
+    const nearLeft = { x: 10, y: 100 }
+    for (const kind of [HelperWeaponKind.missile, HelperWeaponKind.laser, HelperWeaponKind.nuke]) {
+      const [proj] = HELPER_WEAPON_DEFINITIONS[kind].createProjectiles(nearRight, nearLeft, 10)
+      expect(proj.vel.x).toBeGreaterThan(0)
+      expect(proj.vel.y).toBeCloseTo(0, 5)
+    }
   })
 
   it('ricochet tags bounce with remaining > 0 and a bounceRange', () => {
