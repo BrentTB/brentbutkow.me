@@ -5,6 +5,7 @@ import {
   loadChangelogFilters,
   saveChangelogFilters,
   DEFAULT_CHANGELOG_FILTERS,
+  getVisibleChangelogEntries,
   saveGame,
   loadGame,
   clearSave,
@@ -112,6 +113,41 @@ describe('saveChangelogFilters', () => {
     }
     saveChangelogFilters(filters)
     expect(loadChangelogFilters()).toEqual(filters)
+  })
+})
+
+describe('getVisibleChangelogEntries', () => {
+  const sample = [
+    { version: '1.0.0', date: '2026-01-01', changes: { features: ['f1'], fixes: ['x1'] } },
+    { version: '0.9.0', date: '2025-12-01', changes: { balance: ['b1'] } },
+  ]
+  const allOff = {
+    breaking: false,
+    features: false,
+    balance: false,
+    fixes: false,
+    ui: false,
+    architecture: false,
+  }
+
+  // Regression: with every filter off the old inline logic returned null per
+  // entry, collapsing the changelog panel and trapping the filter menu. The
+  // empty list is what now drives the UI's empty state instead.
+  it('returns an empty list when all filters are off', () => {
+    expect(getVisibleChangelogEntries(sample, allOff)).toEqual([])
+  })
+
+  it('keeps only the enabled categories that have items', () => {
+    const result = getVisibleChangelogEntries(sample, { ...allOff, features: true })
+    expect(result).toHaveLength(1)
+    expect(result[0].version).toBe('1.0.0')
+    expect(result[0].groups.map((g) => g.key)).toEqual(['features'])
+    expect(result[0].groups[0].items).toEqual(['f1'])
+  })
+
+  it('drops entries left with no visible groups', () => {
+    const result = getVisibleChangelogEntries(sample, { ...allOff, balance: true })
+    expect(result.map((e) => e.version)).toEqual(['0.9.0'])
   })
 })
 

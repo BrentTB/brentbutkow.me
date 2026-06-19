@@ -117,6 +117,25 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M12 6.5 21 12l-9 5.5z" fill="currentColor" stroke="none" />
     </>
   ),
+  // A core with concentric rings blasting outward — a repulse shockwave.
+  [IconName.repulse]: (
+    <>
+      <circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="6.5" />
+      <circle cx="12" cy="12" r="10.5" />
+    </>
+  ),
+  // Three diagonal comets with trails — a falling shower.
+  [IconName.cometStorm]: (
+    <>
+      <circle cx="6.5" cy="16" r="2" fill="currentColor" stroke="none" />
+      <path d="M8 14.5 12.5 10" />
+      <circle cx="15" cy="9" r="1.6" fill="currentColor" stroke="none" />
+      <path d="M16.2 7.6 19.5 4.5" />
+      <circle cx="12" cy="19.5" r="1.3" fill="currentColor" stroke="none" />
+      <path d="M13 18 15.5 15.2" />
+    </>
+  ),
   // A capsule rounded — the standard "bullet" shape.
   [IconName.bullet]: (
     <>

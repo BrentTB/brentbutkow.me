@@ -443,6 +443,19 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.1.0',
+    date: '2026-06-19',
+    changes: {
+      features: [
+        'New space metal ability — Repulse: blast a shockwave out from the ship that hurls every enemy away and eats their bullets. It follows you and keeps growing, so when it fades you have room to breathe.',
+        'New space metal ability — Comet Storm: call down a few seconds of comets across the screen around you. Each hit is small, but they keep raining wherever you fly — good for wearing down a crowd.',
+      ],
+      fixes: [
+        'The release-notes filters no longer trap you. Switching them all off used to collapse this panel so you could not turn them back on; now it shows a short note and the filter menu stays reachable.',
+      ],
+    },
+  },
+  {
     version: '1.0.0',
     date: '2026-06-16',
     changes: {

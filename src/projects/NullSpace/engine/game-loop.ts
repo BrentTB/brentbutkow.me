@@ -34,6 +34,7 @@ import {
   updateCollectibles,
 } from './systems/collectibles'
 import { applyShieldConstraints } from './abilities/shield'
+import { recentreRepulseFields } from './spaceMetalAbilities/repulse'
 import { updateActiveEffects } from './systems/effects'
 import { updateBurningEnemies } from './systems/burning'
 import { updateModifiedEnemies } from './systems/enemy-modifiers-tick'
@@ -705,6 +706,9 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
 
   // --- Enemy movement (pursues nearest of ship or ally) ---
   enemies = updateEnemyMovement(enemies, ship, allies, dt, waveSpeedMult)
+  // Repulse fields ride the ship: re-centre them on its final position this frame
+  // so the knockback below (and the render) don't trail a frame behind its movement.
+  activeEffects = recentreRepulseFields(activeEffects, ship.pos)
   // Shields block new entries — bounce non-grandfathered enemies back to the
   // boundary after they've moved this frame. Force fields also burn on contact.
   const shieldResult = applyShieldConstraints(activeEffects, enemies, dt)

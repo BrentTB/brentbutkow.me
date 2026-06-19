@@ -315,6 +315,8 @@ export const EffectKind = {
   supernova: 'supernova',
   forceField: 'forceField',
   eventHorizon: 'eventHorizon',
+  repulseField: 'repulseField',
+  cometStorm: 'cometStorm',
 } as const
 export type EffectKind = (typeof EffectKind)[keyof typeof EffectKind]
 
@@ -423,6 +425,37 @@ export type EventHorizonEffect = EffectBase & {
   banishDistance: number
 }
 
+// Repulse (space-metal ability). A dome centred on the ship that follows it,
+// grows from `startRadius` to `maxRadius` over `growDuration`, and absorbs enemy
+// fire crossing it. Enemies it catches are hurled outward at `knockback` via the
+// same constraint path as the Force Field (applyShieldConstraints) — a real
+// launch, not a per-frame nudge. `bumpDamage` is 0 (pure defensive) and
+// `grandfatheredEnemyIds` stays null so it launches every enemy, not just newcomers.
+export type RepulseFieldEffect = EffectBase & {
+  kind: typeof EffectKind.repulseField
+  radius: number
+  startRadius: number
+  maxRadius: number
+  growDuration: number
+  knockback: number
+  bumpDamage: number
+  grandfatheredEnemyIds: string[] | null
+}
+
+// Comet Storm (space-metal ability). A ship-centred emitter: every
+// `spawnInterval` it drops `cometsPerWave` meteorite strikes at random points
+// within `spreadRadius` of the ship (so the rain follows the player), each for
+// `cometDamage` over `cometAoeRadius`. The strikes are ordinary MeteorStrikeEffects.
+export type CometStormEffect = EffectBase & {
+  kind: typeof EffectKind.cometStorm
+  spawnTimer: number
+  spawnInterval: number
+  spreadRadius: number
+  cometsPerWave: number
+  cometDamage: number
+  cometAoeRadius: number
+}
+
 export type ActiveEffect =
   | MeteorStrikeEffect
   | BlackHoleEffect
@@ -433,6 +466,8 @@ export type ActiveEffect =
   | SupernovaEffect
   | ForceFieldEffect
   | EventHorizonEffect
+  | RepulseFieldEffect
+  | CometStormEffect
 
 export const CollectibleKind = {
   powerOrb: 'powerOrb',

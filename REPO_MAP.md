@@ -218,7 +218,7 @@ src/projects/NullSpace/engine/abilities/
   beam-damage.ts                             BeamDamageResult, damageEnemiesInBeam
   black-hole.ts                              BLACK_HOLE_UPGRADE_IDS, createBlackHoleEffect, blackHoleEffect, blackHole
   comet-shower.ts                            COMET_SHOWER_UPGRADE_IDS, cometShower
-  dome-absorption.ts                         tickDomeAbsorption
+  dome-absorption.ts                         absorbEnemyProjectiles, tickDomeAbsorption
   event-horizon.ts                           EVENT_HORIZON_UPGRADE_IDS, createEventHorizonEffect, eventHorizonEffect, eventHorizon
   fireworks.ts                               FIREWORKS_UPGRADE_IDS, fireworks
   force-field-render.ts                      drawForceField
@@ -281,8 +281,10 @@ src/projects/NullSpace/engine/ship/
   ship-data.ts                               ShipVariantStats, ShipVariantConfig, STAT_MAX, SHIP_ORDER, SHIP_VARIANTS
 
 src/projects/NullSpace/engine/spaceMetalAbilities/
+  comet-storm.ts                             COMET_STORM, createCometStormEffect, cometStormEffect, cometStorm
   escape-mode.ts                             ESCAPE_MODE, escapeDash
   index.ts                                   SPACE_METAL_ABILITIES, getSpaceMetalAbility, findSpaceMetalAbilityByKey, tryActivateSpaceMetalAbility, SpaceMetalAbilityKind, type SpaceMetalAbility
+  repulse.ts                                 REPULSE, createRepulseEffect, recentreRepulseFields, repulseFieldEffect, repulse
   shield-regen.ts                            shieldRegen
   space-metal-ability-definition.ts          SpaceMetalAbilityKind, SpaceMetalAbilityUIState, SpaceMetalAbility
 
@@ -303,7 +305,7 @@ src/projects/NullSpace/engine/tutorial/
   tutorial-script.ts                         TutorialTriggerKind, TutorialSpotlightKind, POWER_LOW_FRACTION, TutorialStep, TUTORIAL_STEPS
 
 src/projects/NullSpace/engine/
-  types.ts                                   Vec2, Entity, ShipKind, HelperWeaponKind, EscapeModePhase, EscapeModeState, Ship, EnemyKind, EnemyModifier, MovementBehavior, DeathBehavior, BurningState, DashStage, DasherState, Enemy, ProjectileOwner, Projectile, AbilityKind, Ability, EffectKind, EffectBase, MeteorStrikeEffect, BlackHoleEffect, RocketEffect, ShieldEffect, SunEffect, NuclearWasteEffect, SupernovaEffect, ForceFieldEffect, EventHorizonEffect, ActiveEffect, CollectibleKind, Collectible, HazardKind, Hazard, Ally, Particle, DeathAnim, GamePhase, UpgradeCategory, UpgradeTier, UpgradeDefinition, PlayerUpgrades, BossSelection, GameState, HoldRuntimeState, PlayerInput
+  types.ts                                   Vec2, Entity, ShipKind, HelperWeaponKind, EscapeModePhase, EscapeModeState, Ship, EnemyKind, EnemyModifier, MovementBehavior, DeathBehavior, BurningState, DashStage, DasherState, Enemy, ProjectileOwner, Projectile, AbilityKind, Ability, EffectKind, EffectBase, MeteorStrikeEffect, BlackHoleEffect, RocketEffect, ShieldEffect, SunEffect, NuclearWasteEffect, SupernovaEffect, ForceFieldEffect, EventHorizonEffect, RepulseFieldEffect, CometStormEffect, ActiveEffect, CollectibleKind, Collectible, HazardKind, Hazard, Ally, Particle, DeathAnim, GamePhase, UpgradeCategory, UpgradeTier, UpgradeDefinition, PlayerUpgrades, BossSelection, GameState, HoldRuntimeState, PlayerInput
   ultimates.ts                               COEXIST_ULTIMATES, ultimateShardCost, canPurchaseUltimate, purchaseUltimate, isBaseReplacedByUltimate
   upgrade-ids.ts                             UpgradeId
   upgrades.ts                                SHIP_AND_POWER_UPGRADE_IDS, UNLOCK_UPGRADE_IDS, SLINGSHOT_UPGRADE_IDS, UPGRADE_DEFINITIONS, getWeaponModifierUpgrades, getAllyWeaponUnlocks, isWeaponFullyMaxed, UPGRADE_CATEGORY_LABELS, createInitialUpgrades, canPurchaseUpgrade, purchaseUpgrade, applyUpgradesToAbilities, syncUltimateAbilities, applyUpgradesToShip, applyUpgradesToPowerRegen, getStardustMultiplier, getSpaceMetalDropMultiplier, getPowerOrbMultiplier, getLevel, isUpgradeWave
@@ -321,7 +323,7 @@ src/projects/NullSpace/engine/weapons/
 src/projects/NullSpace/engine/world/
   enemy-modifiers.ts                         modifierChance, rollEnemyModifier, applyModifier
   enemy-scaling.ts                           waveStatScale, scaleEnemy
-  persistence.ts                             loadHighScore, saveHighScore, loadTutorialSeen, saveTutorialSeen, ChangelogCategory, ChangelogFilters, DEFAULT_CHANGELOG_FILTERS, CHANGELOG_CATEGORIES, loadChangelogFilters, saveChangelogFilters, SavedGame, saveGame, loadGame, clearSave
+  persistence.ts                             loadHighScore, saveHighScore, loadTutorialSeen, saveTutorialSeen, ChangelogCategory, ChangelogFilters, DEFAULT_CHANGELOG_FILTERS, CHANGELOG_CATEGORIES, VisibleChangelogGroup, VisibleChangelogEntry, getVisibleChangelogEntries, loadChangelogFilters, saveChangelogFilters, SavedGame, saveGame, loadGame, clearSave
   time.ts                                    MAX_DT, GameTime, createGameTime, tickGameTime, pauseGameTime, resumeGameTime, setGameSpeed, resetGameClock
   wave-escalation.ts                         waveSpeedEscalation
   waves.ts                                   isBossWave, WaveArchetype, getWaveArchetype, getWave, getWaveDelay, sectorProgress

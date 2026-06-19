@@ -1,4 +1,5 @@
 import type { GameState } from '../types'
+import type { ChangelogEntry } from '../../data'
 
 const STORAGE_KEY = 'null-space-high-score'
 
@@ -80,6 +81,37 @@ export const CHANGELOG_CATEGORIES: { key: ChangelogCategory; label: string }[] =
   { key: ChangelogCategory.ui, label: 'User Interface' },
   { key: ChangelogCategory.architecture, label: 'Internal Architecture' },
 ]
+
+export type VisibleChangelogGroup = { key: ChangelogCategory; label: string; items: string[] }
+export type VisibleChangelogEntry = {
+  version: string
+  date: string
+  groups: VisibleChangelogGroup[]
+}
+
+// Projects the changelog through the active filters: keeps only categories that
+// are enabled AND have items, and drops entries left with nothing. Returning []
+// (all filters off) is what the UI uses to show its empty state — the inline
+// version of this once returned null per entry, collapsing the panel.
+export function getVisibleChangelogEntries(
+  entries: ChangelogEntry[],
+  filters: ChangelogFilters
+): VisibleChangelogEntry[] {
+  const result: VisibleChangelogEntry[] = []
+  for (const entry of entries) {
+    const groups: VisibleChangelogGroup[] = []
+    for (const { key, label } of CHANGELOG_CATEGORIES) {
+      const items = entry.changes[key]
+      if (filters[key] && items && items.length > 0) {
+        groups.push({ key, label, items })
+      }
+    }
+    if (groups.length > 0) {
+      result.push({ version: entry.version, date: entry.date, groups })
+    }
+  }
+  return result
+}
 
 function isChangelogFilters(value: unknown): value is ChangelogFilters {
   if (!value || typeof value !== 'object') return false

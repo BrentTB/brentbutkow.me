@@ -4,6 +4,8 @@ import type { IconName } from '../../icon-names'
 export const SpaceMetalAbilityKind = {
   shieldRegen: 'shieldRegen',
   escapeDash: 'escapeDash',
+  repulse: 'repulse',
+  cometStorm: 'cometStorm',
 } as const
 export type SpaceMetalAbilityKind =
   (typeof SpaceMetalAbilityKind)[keyof typeof SpaceMetalAbilityKind]

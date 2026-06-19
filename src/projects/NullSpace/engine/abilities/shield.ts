@@ -3,7 +3,15 @@ import { spawnExplosionParticles, uid } from '../entities/entity-creator'
 import { applyDamageToEnemy } from '../entities/enemy-damage'
 import { canEnemyTakeDamage } from '../bosses/index'
 import { AbilityKind, EffectKind } from '../types'
-import type { ActiveEffect, Enemy, ForceFieldEffect, Particle, ShieldEffect, Vec2 } from '../types'
+import type {
+  ActiveEffect,
+  Enemy,
+  ForceFieldEffect,
+  Particle,
+  RepulseFieldEffect,
+  ShieldEffect,
+  Vec2,
+} from '../types'
 import { tickDomeAbsorption } from './dome-absorption'
 import type { Camera } from '../../renderer/camera'
 import { worldToScreen } from '../../renderer/camera'
@@ -114,9 +122,13 @@ export function applyShieldConstraints(
   enemies: Enemy[],
   dt: number
 ): ShieldConstraintResult {
-  let active: (ShieldEffect | ForceFieldEffect)[] | null = null
+  let active: (ShieldEffect | ForceFieldEffect | RepulseFieldEffect)[] | null = null
   for (const e of effects) {
-    if (e.kind === EffectKind.shield || e.kind === EffectKind.forceField) {
+    if (
+      e.kind === EffectKind.shield ||
+      e.kind === EffectKind.forceField ||
+      e.kind === EffectKind.repulseField
+    ) {
       if (!active) active = []
       active.push(e)
     }
@@ -146,9 +158,9 @@ export function applyShieldConstraints(
         const ny = dist > 0.01 ? dy / dist : 0
         // Snap to the edge so we never have an enemy genuinely inside the dome.
         pos = wrapPosition({ x: zone.pos.x + nx * zone.radius, y: zone.pos.y + ny * zone.radius })
-        if (zone.kind === EffectKind.forceField) {
-          // Force field: hurl the enemy straight out, far harder than a bounce,
-          // and burn it while it touches the field.
+        if (zone.kind === EffectKind.forceField || zone.kind === EffectKind.repulseField) {
+          // Force field / Repulse: hurl the enemy straight out, far harder than a
+          // bounce, and burn it while it touches the field (Repulse's bumpDamage is 0).
           vel = { x: nx * zone.knockback, y: ny * zone.knockback }
           contactDamage += zone.bumpDamage * dt
         } else {

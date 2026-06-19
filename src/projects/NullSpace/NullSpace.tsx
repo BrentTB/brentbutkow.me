@@ -15,7 +15,7 @@ import { GAME_VERSION, CHANGELOG } from './data'
 import { TutorialEntry } from './engine/tutorial/tutorial-machine'
 import { computeHudScale } from './renderer/camera'
 import {
-  CHANGELOG_CATEGORIES,
+  getVisibleChangelogEntries,
   loadChangelogFilters,
   loadTutorialSeen,
   saveChangelogFilters,
@@ -83,6 +83,8 @@ export function NullSpace() {
     setChangelogFilters(next)
     saveChangelogFilters(next)
   }, [])
+
+  const visibleChangelog = getVisibleChangelogEntries(CHANGELOG, changelogFilters)
 
   const handleSetSpeedAndSync = useCallback(
     (speed: number) => {
@@ -218,33 +220,29 @@ export function NullSpace() {
         )}
       </div>
       <div className={styles.changelog}>
-        <ToggleableSection title={`Release Notes (v${GAME_VERSION})`}>
+        <ToggleableSection title={`Release Notes (v${GAME_VERSION})`} allowOverflow>
           <ChangelogFilters filters={changelogFilters} onChange={handleChangelogFiltersChange} />
-          {CHANGELOG.map((entry) => {
-            const visible = CHANGELOG_CATEGORIES.map(({ key, label }) => ({
-              key,
-              label,
-              items: entry.changes[key],
-            })).filter((g) => changelogFilters[g.key] && g.items?.length)
-            if (visible.length === 0) return null
-            return (
+          {visibleChangelog.length === 0 ? (
+            <p className={styles.changelogEmpty}>No release notes match the current filters.</p>
+          ) : (
+            visibleChangelog.map((entry) => (
               <div key={entry.version} className={styles.version}>
                 <h4 className={styles.versionTitle}>
                   v{entry.version} <span className={styles.versionDate}>— {entry.date}</span>
                 </h4>
-                {visible.map((g) => (
+                {entry.groups.map((g) => (
                   <div key={g.key} className={styles.changeGroup}>
                     <span className={styles.changeLabel}>{g.label}</span>
                     <ul className={styles.changeList}>
-                      {g.items!.map((c, i) => (
+                      {g.items.map((c, i) => (
                         <li key={i}>{c}</li>
                       ))}
                     </ul>
                   </div>
                 ))}
               </div>
-            )
-          })}
+            ))
+          )}
         </ToggleableSection>
       </div>
     </div>

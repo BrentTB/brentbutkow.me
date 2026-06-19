@@ -6,6 +6,12 @@
   background: var(--surface);
 }
 
+// Opt-in: don't clip open content, so a child popover stays reachable even when
+// the section is short (the changelog filter menu).
+.section.allowOverflow {
+  overflow: visible;
+}
+
 .header {
   width: 100%;
   padding: 16px 18px;
