@@ -105,6 +105,7 @@ export function devJumpToUpgrades(state: GameState): GameState {
     totalWaveEnemies: 0,
     waveTimer: 0,
     levelUpWeaponOffers: rollLevelUpWeaponOffers(state.abilities, getAbilityCap()),
+    salvageOfferUsed: false,
   })
 }
 

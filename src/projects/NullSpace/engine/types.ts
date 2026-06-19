@@ -666,6 +666,10 @@ export type GameState = {
   // screen. Buying any one clears the array — the player gets one unlock per
   // level-up at most. Empty between upgrade screens.
   levelUpWeaponOffers: AbilityKind[]
+  // True once a Salvage has re-rolled the offers this shop visit. The re-roll
+  // fires only on the FIRST slot-freeing salvage, so a shop shows at most two
+  // offer sets — stops salvage→swap→salvage fishing. Reset on shop entry.
+  salvageOfferUsed: boolean
   // Helper-weapon kinds the player has unlocked this run. Starts with bullet;
   // every successful helper-weapon unlock pushes its kind here. Resets per run.
   unlockedWeapons: HelperWeaponKind[]

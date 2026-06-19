@@ -112,6 +112,23 @@ describe('salvageAbility', () => {
     expect(state.levelUpWeaponOffers).not.toContain(AbilityKind.rocket)
   })
 
+  it('re-rolls offers only on the first slot-freeing salvage of a shop visit', () => {
+    const shieldUnlockId = WEAPON_UNLOCK_UPGRADE[AbilityKind.shield]!
+    let state = ready()
+    state = applyUpgradeToState(state, rocketUnlockId)
+    state = applyUpgradeToState(state, shieldUnlockId)
+    expect(state.salvageOfferUsed).toBe(false)
+
+    state = salvageAbility(state, AbilityKind.rocket)
+    const offersAfterFirst = state.levelUpWeaponOffers
+    expect(state.salvageOfferUsed).toBe(true)
+    expect(offersAfterFirst.length).toBeGreaterThan(0)
+
+    // A second slot-freeing salvage in the same shop does NOT re-roll — no fishing.
+    state = salvageAbility(state, AbilityKind.shield)
+    expect(state.levelUpWeaponOffers).toBe(offersAfterFirst)
+  })
+
   it('refunds an owned ultimate fully in Space Metal + Shards and drops it', () => {
     let state = ready()
     state = applyUpgradeToState(state, rocketUnlockId)

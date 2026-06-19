@@ -141,6 +141,7 @@ export function createInitialState(): GameState {
     waveElapsed: 0,
     holdStates: {},
     levelUpWeaponOffers: [],
+    salvageOfferUsed: false,
     unlockedWeapons: [...INITIAL_UNLOCKED_WEAPONS],
     ultimatesOwned: [],
     escapeTrailAccumulator: 0,
@@ -211,6 +212,7 @@ export function startGame(state: GameState, shipKind: ShipKind): GameState {
     isNewHighScore: false,
     holdStates: {},
     levelUpWeaponOffers: [],
+    salvageOfferUsed: false,
     unlockedWeapons: [...INITIAL_UNLOCKED_WEAPONS],
     ultimatesOwned: [],
     escapeTrailAccumulator: 0,
@@ -394,6 +396,9 @@ export function salvageAbility(state: GameState, baseKind: AbilityKind): GameSta
     : state.unlockedWeapons
 
   const slotFreed = countAbilitySlots(abilities) < countAbilitySlots(state.abilities)
+  // Re-roll only on the first slot-freeing salvage this shop visit — so a shop
+  // shows at most two offer sets and you can't salvage→swap→salvage to fish.
+  const reroll = slotFreed && !state.salvageOfferUsed
   return {
     ...state,
     upgrades,
@@ -403,7 +408,8 @@ export function salvageAbility(state: GameState, baseKind: AbilityKind): GameSta
     currency: state.currency + refund.stardust,
     spaceMetal: state.spaceMetal + refund.spaceMetal,
     singularityShard: state.singularityShard + refund.singularityShard,
-    levelUpWeaponOffers: slotFreed
+    salvageOfferUsed: reroll ? true : state.salvageOfferUsed,
+    levelUpWeaponOffers: reroll
       ? rollLevelUpWeaponOffers(abilities, getAbilityCap(), { exclude: baseKind })
       : state.levelUpWeaponOffers,
   }
@@ -488,6 +494,8 @@ export function completeWarp(state: GameState): GameState {
     ...advanced,
     phase: GamePhase.upgradeScreen,
     levelUpWeaponOffers: rollLevelUpWeaponOffers(advanced.abilities, getAbilityCap()),
+    // Fresh shop → the one salvage re-roll is available again.
+    salvageOfferUsed: false,
   }
 }
 

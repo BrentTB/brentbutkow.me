@@ -200,8 +200,18 @@ export function loadGame(): SavedGame | null {
     if (!isSavedGame(parsed) || parsed.version !== SAVE_VERSION) return null
     // Backfill fields added after this save was written, so resuming an older
     // run doesn't start from `undefined` (which would become NaN once summed).
-    const savedState = parsed.state as Omit<GameState, 'kills'> & { kills?: number }
-    return { ...parsed, state: { ...savedState, kills: savedState.kills ?? 0 } }
+    const savedState = parsed.state as Omit<GameState, 'kills' | 'salvageOfferUsed'> & {
+      kills?: number
+      salvageOfferUsed?: boolean
+    }
+    return {
+      ...parsed,
+      state: {
+        ...savedState,
+        kills: savedState.kills ?? 0,
+        salvageOfferUsed: savedState.salvageOfferUsed ?? false,
+      },
+    }
   } catch {
     return null
   }
