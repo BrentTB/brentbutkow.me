@@ -516,7 +516,7 @@ describe('rollLevelUpWeaponOffers', () => {
   // level-up weapon offers — but ultimates are bought via the shard economy and
   // must never appear in the unlock offers.
   it('never offers ultimate abilities', () => {
-    const offers = rollLevelUpWeaponOffers(createAbilities(), 99)
+    const offers = rollLevelUpWeaponOffers(createAbilities(), 99, { count: 99 })
     expect(offers).not.toContain(AbilityKind.cometShower)
     expect(offers).not.toContain(AbilityKind.meteorShower)
     expect(offers.length).toBeGreaterThan(0)

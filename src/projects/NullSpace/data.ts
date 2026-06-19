@@ -443,6 +443,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.3.0',
+    date: '2026-06-19',
+    changes: {
+      features: [
+        'Ability slots: you can hold up to 4 abilities at once. Once they fill, the shop stops offering new ones — so each run commits to its own kit instead of unlocking everything by the end.',
+        'Salvage an ability from its shop page to clear a slot. You get back half the Stardust you spent on it, plus all the Space Metal and Singularity Shards, then two fresh abilities are offered. Meteorite can be stripped back to basics but never removed, so you always have something to fire.',
+      ],
+    },
+  },
+  {
     version: '1.2.0',
     date: '2026-06-19',
     changes: {

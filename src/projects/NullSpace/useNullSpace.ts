@@ -7,6 +7,7 @@ import {
   updateGameState,
   applyUpgradeToState,
   applyUltimatePurchaseToState,
+  salvageAbility,
   finishUpgradeScreen,
   advanceWarp,
   advanceDeathSequence,
@@ -183,6 +184,19 @@ export function selectionAfterUltimatePurchase(
 ): AbilityKind {
   const ultimateKind = ULTIMATE_KIND_OF[baseKind]
   return purchased && ultimateKind && current === baseKind ? ultimateKind : current
+}
+
+// After salvaging a line, if it (or its ultimate) was the active selection, fall
+// back to the first ability still in the hotbar — Meteorite at worst, which can't
+// be removed.
+export function selectionAfterSalvage(
+  current: AbilityKind,
+  salvagedBase: AbilityKind,
+  abilities: GameState['abilities'],
+  ultimatesOwned: GameState['ultimatesOwned']
+): AbilityKind {
+  if (current !== salvagedBase && current !== ULTIMATE_KIND_OF[salvagedBase]) return current
+  return getUnlockedAbilitiesInOrder(abilities, ultimatesOwned)[0]?.kind ?? AbilityKind.meteorite
 }
 
 export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null>) {
@@ -505,6 +519,20 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
         selectedAbilityRef.current,
         baseKind,
         purchased
+      )
+      syncUI(gameStateRef.current)
+    },
+    [syncUI]
+  )
+
+  const handleSalvageAbility = useCallback(
+    (baseKind: AbilityKind) => {
+      gameStateRef.current = salvageAbility(gameStateRef.current, baseKind)
+      selectedAbilityRef.current = selectionAfterSalvage(
+        selectedAbilityRef.current,
+        baseKind,
+        gameStateRef.current.abilities,
+        gameStateRef.current.ultimatesOwned
       )
       syncUI(gameStateRef.current)
     },
@@ -957,6 +985,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     setSelectedAbility,
     handlePurchaseUpgrade,
     handlePurchaseUltimate,
+    handleSalvageAbility,
     handleFinishUpgrades,
     handlePause,
     handleResume,

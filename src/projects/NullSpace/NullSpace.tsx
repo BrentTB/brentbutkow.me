@@ -42,6 +42,7 @@ export function NullSpace() {
     setSelectedAbility,
     handlePurchaseUpgrade,
     handlePurchaseUltimate,
+    handleSalvageAbility,
     handleFinishUpgrades,
     handlePause,
     handleResume,
@@ -204,6 +205,7 @@ export function NullSpace() {
             onSubmitScore={handleSubmitScore}
             onPurchaseUpgrade={handlePurchaseUpgrade}
             onPurchaseUltimate={handlePurchaseUltimate}
+            onSalvageAbility={handleSalvageAbility}
             onFinishUpgrades={handleFinishUpgrades}
             onResume={handleResume}
             onSetSpeed={handleSetSpeedAndSync}

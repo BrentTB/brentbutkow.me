@@ -1,6 +1,10 @@
 import { useState } from 'react'
-import { ABILITY_META } from '../../engine/abilities'
-import { getAllyWeaponUnlocks, getWeaponModifierUpgrades } from '../../engine/upgrades'
+import { ABILITY_META, BASE_KIND_OF } from '../../engine/abilities'
+import {
+  getAllyWeaponUnlocks,
+  getSalvageRefund,
+  getWeaponModifierUpgrades,
+} from '../../engine/upgrades'
 import { AbilityKind } from '../../engine/types'
 import type { UpgradeId } from '../../engine/upgrade-ids'
 import type { GameUIState } from '../../useNullSpace'
@@ -15,6 +19,7 @@ type WeaponDetailProps = {
   onBack: () => void
   onPurchase: (upgradeId: UpgradeId) => void
   onPurchaseUltimate: (baseKind: AbilityKind) => void
+  onSalvage: (baseKind: AbilityKind) => void
 }
 
 export function WeaponDetail({
@@ -23,8 +28,19 @@ export function WeaponDetail({
   onBack,
   onPurchase,
   onPurchaseUltimate,
+  onSalvage,
 }: WeaponDetailProps) {
   const [showAllyWeapons, setShowAllyWeapons] = useState(false)
+  // Salvage acts on the base line; `weapon` may be the ultimate kind when viewing it.
+  const salvageBase = BASE_KIND_OF[weapon] ?? weapon
+  const refund = getSalvageRefund(uiState.upgrades, uiState.ultimatesOwned, salvageBase)
+  const refundLabel = [
+    refund.stardust > 0 ? `+${refund.stardust} ✦` : null,
+    refund.spaceMetal > 0 ? `+${refund.spaceMetal} ⬢` : null,
+    refund.singularityShard > 0 ? `+${refund.singularityShard} ◆` : null,
+  ]
+    .filter(Boolean)
+    .join('  ')
   const subUpgrades = getWeaponModifierUpgrades(weapon)
   // Non-empty only for the Helper line (base Helper or its Helper Factory ultimate).
   const allyWeapons = getAllyWeaponUnlocks(weapon)
@@ -86,6 +102,17 @@ export function WeaponDetail({
       )}
       {ultimateUpgrades.map(card)}
       <UltimateCard weapon={weapon} uiState={uiState} onPurchaseUltimate={onPurchaseUltimate} />
+      <button
+        type="button"
+        className={styles.salvageBtn}
+        disabled={!refund.reclaimable}
+        onClick={() => {
+          onSalvage(salvageBase)
+          onBack()
+        }}
+      >
+        {refund.reclaimable ? `Salvage · ${refundLabel}` : 'Nothing to salvage'}
+      </button>
     </>
   )
 }

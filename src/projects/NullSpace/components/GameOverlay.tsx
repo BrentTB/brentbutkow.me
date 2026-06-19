@@ -24,6 +24,7 @@ type GameOverlayProps = {
   onSubmitScore: (name: string) => Promise<boolean>
   onPurchaseUpgrade: (upgradeId: UpgradeId) => void
   onPurchaseUltimate: (baseKind: AbilityKind) => void
+  onSalvageAbility: (baseKind: AbilityKind) => void
   onFinishUpgrades: () => void
   onResume: () => void
   onSetSpeed: (speed: number) => void
@@ -46,6 +47,7 @@ export function GameOverlay({
   onSubmitScore,
   onPurchaseUpgrade,
   onPurchaseUltimate,
+  onSalvageAbility,
   onFinishUpgrades,
   onResume,
   onSetSpeed,
@@ -129,6 +131,7 @@ export function GameOverlay({
             uiState={uiState}
             onPurchase={onPurchaseUpgrade}
             onPurchaseUltimate={onPurchaseUltimate}
+            onSalvageAbility={onSalvageAbility}
             onContinue={onFinishUpgrades}
           />
         )}

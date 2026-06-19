@@ -65,13 +65,18 @@ import {
   applyUpgradesToPowerRegen,
   applyUpgradesToShip,
   canPurchaseUpgrade,
+  countAbilitySlots,
   createInitialUpgrades,
+  getAbilityCap,
+  getAbilityLineUpgradeIds,
   getLevel,
   getPowerOrbMultiplier,
+  getSalvageRefund,
   getSpaceMetalDropMultiplier,
   getStardustMultiplier,
   isUpgradeWave,
   purchaseUpgrade,
+  resetUpgradeTiers,
   syncUltimateAbilities,
 } from './upgrades'
 import { purchaseUltimate } from './ultimates'
@@ -219,12 +224,17 @@ export function startGame(state: GameState, shipKind: ShipKind): GameState {
 // same seed across level-ups in one run.
 export function rollLevelUpWeaponOffers(
   abilities: GameState['abilities'],
-  count = 2
+  cap: number,
+  opts: { exclude?: AbilityKind; count?: number } = {}
 ): GameState['levelUpWeaponOffers'] {
+  // At the slot cap, stop offering abilities — the player must Salvage one for room.
+  if (countAbilitySlots(abilities) >= cap) return []
+  const count = opts.count ?? 2
   // Ultimate rows start locked too, but they're bought via the shard economy,
-  // never offered as a level-up weapon — exclude them here.
+  // never offered as a level-up weapon — exclude them here. opts.exclude skips a
+  // just-salvaged ability for this one roll.
   const locked = abilities
-    .filter((a) => !a.unlocked && BASE_KIND_OF[a.kind] === undefined)
+    .filter((a) => !a.unlocked && BASE_KIND_OF[a.kind] === undefined && a.kind !== opts.exclude)
     .map((a) => a.kind)
   const offers: GameState['levelUpWeaponOffers'] = []
   for (let i = 0; i < count && locked.length > 0; i++) {
@@ -350,6 +360,55 @@ export function applyUltimatePurchaseToState(state: GameState, baseKind: Ability
   }
 }
 
+// Salvage an ability line: reset its upgrades + drop its ultimate, refund 50% of
+// the Stardust spent and 100% of the Space Metal + Shards (premium boss currencies),
+// and — when a slot frees — re-roll the level-up offers, skipping the salvaged kind
+// for that one roll. Meteorite has no unlock upgrade, so salvaging it strips only its
+// modifiers/ultimate and it stays unlocked — the player can never reach zero abilities.
+export function salvageAbility(state: GameState, baseKind: AbilityKind): GameState {
+  const refund = getSalvageRefund(state.upgrades, state.ultimatesOwned, baseKind)
+  if (!refund.reclaimable) return state
+
+  const ids = getAbilityLineUpgradeIds(baseKind)
+  const upgrades = resetUpgradeTiers(state.upgrades, ids)
+  const ultimatesOwned = state.ultimatesOwned.filter((u) => BASE_KIND_OF[u] !== baseKind)
+  let abilities = syncUltimateAbilities(
+    applyUpgradesToAbilities(state.abilities, upgrades),
+    ultimatesOwned
+  )
+  // applyUpgradesToAbilities leaves unlockedAt set even after unlock flips false, but
+  // the hotbar order keys on unlockedAt — so clear it for a removed line. Meteorite
+  // stays unlocked (no unlock upgrade), so this never touches it.
+  abilities = abilities.map((a) =>
+    a.kind === baseKind && !a.unlocked ? { ...a, unlockedAt: null } : a
+  )
+
+  // Re-lock any ally weapons the salvaged Helper line had unlocked.
+  const strippedWeapons = new Set(
+    ids
+      .map((id) => getHelperWeaponForUnlockUpgrade(id))
+      .filter((k): k is HelperWeaponKind => k !== undefined)
+  )
+  const unlockedWeapons = strippedWeapons.size
+    ? state.unlockedWeapons.filter((w) => !strippedWeapons.has(w))
+    : state.unlockedWeapons
+
+  const slotFreed = countAbilitySlots(abilities) < countAbilitySlots(state.abilities)
+  return {
+    ...state,
+    upgrades,
+    ultimatesOwned,
+    abilities,
+    unlockedWeapons,
+    currency: state.currency + refund.stardust,
+    spaceMetal: state.spaceMetal + refund.spaceMetal,
+    singularityShard: state.singularityShard + refund.singularityShard,
+    levelUpWeaponOffers: slotFreed
+      ? rollLevelUpWeaponOffers(abilities, getAbilityCap(), { exclude: baseKind })
+      : state.levelUpWeaponOffers,
+  }
+}
+
 // Dev-only: unlock a base ability without paying, by forcing its unlock upgrade
 // to tier 1 and re-deriving the ability rows. Starter abilities (no unlock
 // upgrade) are already unlocked.
@@ -428,7 +487,7 @@ export function completeWarp(state: GameState): GameState {
   return {
     ...advanced,
     phase: GamePhase.upgradeScreen,
-    levelUpWeaponOffers: rollLevelUpWeaponOffers(advanced.abilities),
+    levelUpWeaponOffers: rollLevelUpWeaponOffers(advanced.abilities, getAbilityCap()),
   }
 }
 

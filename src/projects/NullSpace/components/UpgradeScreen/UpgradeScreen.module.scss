@@ -26,6 +26,14 @@
   text-wrap: balance;
 }
 
+.slotsDisplay {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin: 4px 0 0;
+  text-align: center;
+}
+
 // Per-currency colours, shared with the cost rows so a glyph always reads the
 // same: Stardust cyan, Space Metal gold, Singularity Shard violet.
 .stardustValue {
