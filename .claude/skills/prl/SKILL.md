@@ -1,5 +1,5 @@
 ---
-name: pr-light
+name: prl
 description: >-
   Solo-repo fast path to open or update a PR into dev with minimal token cost. Skips heavy
   pre-flight and full-diff reads — pushes if needed, builds a short body from commit subjects
