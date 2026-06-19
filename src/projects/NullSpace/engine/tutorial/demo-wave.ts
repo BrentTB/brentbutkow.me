@@ -11,6 +11,7 @@ import {
 } from '../types'
 import type { Collectible, Enemy, GameState, Hazard, Vec2 } from '../types'
 import { toroidalDelta, wrapPosition } from '../math/toroid'
+import { emptySpawnState } from '../world/waves'
 import type { TutorialStep } from './tutorial-script'
 
 // Power pool for the tutorial — far below a real run (100/1000) so a few
@@ -55,9 +56,9 @@ function aheadOfShip(state: GameState, along: number, side: number): Vec2 {
 }
 
 // Builds the guided demo wave: a fresh fighter run with a few harmless drones
-// placed ahead and no wave economy. `totalWaveEnemies` stays 0 so the
-// wave-complete check in updateGameState can never fire and end the tutorial
-// early; the tutorial machine controls when it ends.
+// placed ahead and no wave economy. `spawn.total` stays 0 so the wave-complete
+// check in updateGameState can never fire and end the tutorial early; the
+// tutorial machine controls when it ends.
 export function startTutorialRun(state: GameState): GameState {
   // Unlock a second ability so the swap beat has something to switch to (it
   // takes hotkey 2 / the next toolbar slot).
@@ -70,7 +71,7 @@ export function startTutorialRun(state: GameState): GameState {
   return {
     ...base,
     enemies,
-    spawn: { waveTimer: 0, queue: [], timer: 0, total: 0, spawned: 0, elapsed: 0 },
+    spawn: emptySpawnState(),
     power: TUTORIAL_POWER,
     maxPower: TUTORIAL_POWER,
   }

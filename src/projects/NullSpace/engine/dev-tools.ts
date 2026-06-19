@@ -8,6 +8,7 @@ import {
 import { advanceBossSelection } from './bosses/boss-selection'
 import { createShip } from './entities/entity-creator'
 import { getAbilityCap, getLevel } from './upgrades'
+import { emptySpawnState } from './world/waves'
 import { AbilityKind, EnemyKind, GamePhase, ShipKind } from './types'
 import type { GameState } from './types'
 
@@ -99,7 +100,7 @@ export function devJumpToUpgrades(state: GameState): GameState {
     enemies: [],
     projectiles: [],
     activeEffects: [],
-    spawn: { waveTimer: 0, queue: [], timer: 0, total: 0, spawned: 0, elapsed: 0 },
+    spawn: emptySpawnState(),
     levelUpWeaponOffers: rollLevelUpWeaponOffers(state.abilities, getAbilityCap()),
     salvageOfferUsed: false,
   })

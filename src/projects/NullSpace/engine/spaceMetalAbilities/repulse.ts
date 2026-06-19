@@ -12,7 +12,8 @@ import type {
   EffectTickResult,
 } from '../systems/effect-definition'
 import type { Camera } from '../../renderer/camera'
-import { worldToScreen } from '../../renderer/camera'
+import { renderDome } from '../abilities/dome-render'
+import type { DomeStyle } from '../abilities/dome-render'
 
 // Repulse: a dome that follows the ship, grows a lot, hurls every enemy outward
 // and soaks up enemy fire — a panic button. The knockback reuses the Force Field
@@ -95,40 +96,25 @@ export function recentreRepulseFields(effects: ActiveEffect[], shipPos: Vec2): A
   return found ? next : effects
 }
 
+// Bright cyan shockwave — distinct from the blue Shield and violet Force Field.
+// Pops in at full strength (no fade-in) so the panic-button blast reads instantly.
+const REPULSE_DOME_STYLE: DomeStyle = {
+  fadeOut: { cap: 0.6, frac: 0.25 },
+  pulseFreq: 8,
+  fillStops: [
+    [0, 'rgba(120, 240, 255, 0.02)'],
+    [0.7, 'rgba(120, 240, 255, 0.06)'],
+    [1, 'rgba(150, 240, 255, 0.22)'],
+  ],
+  rim: { color: '185, 250, 255', alpha: 0.8, width: 2.5 },
+}
+
 function renderRepulse(
   ctx: CanvasRenderingContext2D,
   field: RepulseFieldEffect,
   camera: Camera
 ): void {
-  const screen = worldToScreen(field.pos, camera)
-  const fadeOut = Math.min(0.6, field.duration * 0.25)
-  const fadeOutStart = field.duration - fadeOut
-  const alpha =
-    field.elapsed > fadeOutStart ? Math.max(0, (field.duration - field.elapsed) / fadeOut) : 1
-  const pulse = 0.85 + Math.sin(field.elapsed * 8) * 0.15
-  const r = field.radius
-
-  ctx.save()
-  ctx.globalAlpha = alpha
-  ctx.translate(screen.x, screen.y)
-
-  // Bright cyan shockwave — distinct from the blue Shield and violet Force Field.
-  const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, r)
-  gradient.addColorStop(0, 'rgba(120, 240, 255, 0.02)')
-  gradient.addColorStop(0.7, 'rgba(120, 240, 255, 0.06)')
-  gradient.addColorStop(1, 'rgba(150, 240, 255, 0.22)')
-  ctx.fillStyle = gradient
-  ctx.beginPath()
-  ctx.arc(0, 0, r, 0, Math.PI * 2)
-  ctx.fill()
-
-  ctx.strokeStyle = `rgba(185, 250, 255, ${0.8 * pulse})`
-  ctx.lineWidth = 2.5
-  ctx.beginPath()
-  ctx.arc(0, 0, r, 0, Math.PI * 2)
-  ctx.stroke()
-
-  ctx.restore()
+  renderDome(ctx, field, camera, REPULSE_DOME_STYLE)
 }
 
 export const repulseFieldEffect: EffectDefinition = {

@@ -222,6 +222,7 @@ src/projects/NullSpace/engine/abilities/
   black-hole.ts                              BLACK_HOLE_UPGRADE_IDS, createBlackHoleEffect, blackHoleEffect, blackHole
   comet-shower.ts                            COMET_SHOWER_UPGRADE_IDS, cometShower
   dome-absorption.ts                         absorbEnemyProjectiles, tickDomeAbsorption
+  dome-render.ts                             DomeShape, DomeStyle, renderDome
   event-horizon.ts                           EVENT_HORIZON_UPGRADE_IDS, createEventHorizonEffect, eventHorizonEffect, eventHorizon
   fireworks.ts                               FIREWORKS_UPGRADE_IDS, fireworks
   force-field-render.ts                      drawForceField
@@ -329,7 +330,7 @@ src/projects/NullSpace/engine/world/
   persistence.ts                             loadHighScore, saveHighScore, loadPlayerName, savePlayerName, loadTutorialSeen, saveTutorialSeen, ChangelogCategory, ChangelogFilters, DEFAULT_CHANGELOG_FILTERS, CHANGELOG_CATEGORIES, VisibleChangelogGroup, VisibleChangelogEntry, getVisibleChangelogEntries, loadChangelogFilters, saveChangelogFilters, SavedGame, saveGame, loadGame, clearSave
   time.ts                                    MAX_DT, GameTime, createGameTime, tickGameTime, pauseGameTime, resumeGameTime, setGameSpeed, resetGameClock
   wave-escalation.ts                         waveSpeedEscalation
-  waves.ts                                   isBossWave, WaveArchetype, getWaveArchetype, getWave, getWaveDelay, sectorProgress
+  waves.ts                                   emptySpawnState, isBossWave, WaveArchetype, getWaveArchetype, getWave, getWaveDelay, sectorProgress
 
 src/projects/NullSpace/
   icon-names.ts                              IconName

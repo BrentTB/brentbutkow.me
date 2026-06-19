@@ -1,4 +1,5 @@
 import { EnemyKind } from '../types'
+import type { SpawnState } from '../types'
 import { rng } from '../math/random'
 import {
   BOSS_LEVEL_INTERVAL,
@@ -7,6 +8,13 @@ import {
   WAVE_COMP,
   WAVE_THEME,
 } from '../../data'
+
+// A fresh, between-waves SpawnState — every counter zeroed and the queue empty.
+// Used wherever a run resets to "no wave in progress" (new game, dev jumps, the
+// tutorial sandbox).
+export function emptySpawnState(): SpawnState {
+  return { waveTimer: 0, queue: [], timer: 0, total: 0, spawned: 0, elapsed: 0 }
+}
 
 // Boss waves occur every BOSS_LEVEL_INTERVAL levels (i.e. every 9 waves by default).
 export function isBossWave(waveNumber: number): boolean {

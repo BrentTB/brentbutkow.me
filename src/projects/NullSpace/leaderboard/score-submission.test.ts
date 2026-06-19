@@ -13,6 +13,14 @@ describe('sanitizeName', () => {
   it('caps length at MAX_NAME_LENGTH', () => {
     expect(sanitizeName('x'.repeat(MAX_NAME_LENGTH + 10))).toHaveLength(MAX_NAME_LENGTH)
   })
+
+  it('collapses internal whitespace to single spaces', () => {
+    expect(sanitizeName('A\tcool\n\nname')).toBe('A cool name')
+  })
+
+  it('strips control and zero-width characters', () => {
+    expect(sanitizeName('A\u0000B\u200BC')).toBe('ABC')
+  })
 })
 
 describe('buildScoreSubmission', () => {

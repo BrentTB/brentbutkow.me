@@ -12,6 +12,20 @@ import { BOSS_KINDS } from './engine/bosses/index'
 import { AbilityKind, GamePhase, ShipKind } from './engine/types'
 import { TutorialEntry } from './engine/tutorial/tutorial-machine'
 import { WEAPON_ORDER } from './data'
+import { submitScore } from './leaderboard/score-submission'
+import { savePlayerName } from './engine/world/persistence'
+
+// Stub only the network post and the name persistence — every other export of
+// these modules stays real so the rest of the hook (save/load, buildSubmission)
+// behaves normally.
+vi.mock('./leaderboard/score-submission', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./leaderboard/score-submission')>()
+  return { ...actual, submitScore: vi.fn() }
+})
+vi.mock('./engine/world/persistence', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./engine/world/persistence')>()
+  return { ...actual, savePlayerName: vi.fn() }
+})
 
 describe('useNullSpace', () => {
   it('starts in menu phase with a null canvas ref', () => {
@@ -93,6 +107,58 @@ describe('useNullSpace', () => {
     act(() => result.current.handleSelectShip(ShipKind.fighter))
     act(() => result.current.handleSetSpeed(2))
     expect(result.current.uiState.phase).toBe(GamePhase.playing)
+  })
+})
+
+describe('useNullSpace — handleSubmitScore', () => {
+  beforeEach(() => {
+    vi.mocked(submitScore).mockReset()
+    vi.mocked(savePlayerName).mockReset()
+  })
+
+  it('on success returns true, persists the name, and is a no-op on resubmit', async () => {
+    vi.mocked(submitScore).mockResolvedValue(undefined)
+    const canvasRef = createRef<HTMLCanvasElement>()
+    const { result } = renderHook(() => useNullSpace(canvasRef))
+
+    let ok: boolean | undefined
+    await act(async () => {
+      ok = await result.current.handleSubmitScore('Ace')
+    })
+    expect(ok).toBe(true)
+    expect(submitScore).toHaveBeenCalledTimes(1)
+    expect(submitScore).toHaveBeenCalledWith(expect.objectContaining({ name: 'Ace' }))
+    expect(savePlayerName).toHaveBeenCalledWith('Ace')
+
+    // The one-shot guard stops a second post once a score landed.
+    await act(async () => {
+      ok = await result.current.handleSubmitScore('Ace')
+    })
+    expect(ok).toBe(true)
+    expect(submitScore).toHaveBeenCalledTimes(1)
+  })
+
+  it('on failure returns false, leaves the guard unset, and allows a retry', async () => {
+    vi.mocked(submitScore)
+      .mockRejectedValueOnce(new Error('network'))
+      .mockResolvedValueOnce(undefined)
+    const canvasRef = createRef<HTMLCanvasElement>()
+    const { result } = renderHook(() => useNullSpace(canvasRef))
+
+    let ok: boolean | undefined
+    await act(async () => {
+      ok = await result.current.handleSubmitScore('Ace')
+    })
+    expect(ok).toBe(false)
+    expect(savePlayerName).not.toHaveBeenCalled()
+
+    // Guard never armed, so the next attempt actually re-posts.
+    await act(async () => {
+      ok = await result.current.handleSubmitScore('Ace')
+    })
+    expect(ok).toBe(true)
+    expect(submitScore).toHaveBeenCalledTimes(2)
+    expect(savePlayerName).toHaveBeenCalledTimes(1)
   })
 })
 

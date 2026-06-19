@@ -80,7 +80,7 @@ import {
   syncUltimateAbilities,
 } from './upgrades'
 import { purchaseUltimate } from './ultimates'
-import { getWave, getWaveDelay, isBossWave } from './world/waves'
+import { emptySpawnState, getWave, getWaveDelay, isBossWave } from './world/waves'
 import { waveSpeedEscalation } from './world/wave-escalation'
 import { generateHazardField, updateHazards } from './systems/hazards'
 import { advanceBossSelection, createBossSelection } from './bosses/boss-selection'
@@ -133,7 +133,7 @@ export function createInitialState(): GameState {
     warpTimer: 0,
     warpFlashTimer: 0,
     hazards: [],
-    spawn: { waveTimer: 0, queue: [], timer: 0, total: 0, spawned: 0, elapsed: 0 },
+    spawn: emptySpawnState(),
     holdStates: {},
     levelUpWeaponOffers: [],
     salvageOfferUsed: false,
@@ -197,7 +197,7 @@ export function startGame(state: GameState, shipKind: ShipKind): GameState {
     warpTimer: 0,
     warpFlashTimer: 0,
     hazards: [],
-    spawn: { waveTimer: 0, queue: [], timer: 0, total: 0, spawned: 0, elapsed: 0 },
+    spawn: emptySpawnState(),
     highScore: loadHighScore(),
     isNewHighScore: false,
     holdStates: {},

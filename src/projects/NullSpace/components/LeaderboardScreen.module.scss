@@ -15,7 +15,7 @@
 }
 
 .table th {
-  // Stick to the top of the scroll container so the header stays visible.
+  // Keep the header visible while the list scrolls.
   position: sticky;
   top: 0;
   background: var(--bg-elevated);

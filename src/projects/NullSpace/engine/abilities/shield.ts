@@ -14,7 +14,8 @@ import type {
 } from '../types'
 import { tickDomeAbsorption } from './dome-absorption'
 import type { Camera } from '../../renderer/camera'
-import { worldToScreen } from '../../renderer/camera'
+import { renderDome } from './dome-render'
+import type { DomeShape, DomeStyle } from './dome-render'
 import { toroidalDelta, wrapPosition } from '../math/toroid'
 import {
   makeAbilityUpgrade,
@@ -195,49 +196,31 @@ export function applyShieldConstraints(
   return { enemies: surviving, killedEnemies, scoreGained, particles }
 }
 
-function renderShield(ctx: CanvasRenderingContext2D, dome: ShieldEffect, camera: Camera): void {
-  const screen = worldToScreen(dome.pos, camera)
-  const fadeIn = Math.min(0.4, dome.duration * 0.15)
-  const fadeOut = Math.min(0.8, dome.duration * 0.3)
-  const fadeOutStart = dome.duration - fadeOut
-  let alpha: number
-  if (dome.elapsed < fadeIn) alpha = dome.elapsed / fadeIn
-  else if (dome.elapsed > fadeOutStart)
-    alpha = Math.max(0, (dome.duration - dome.elapsed) / fadeOut)
-  else alpha = 1
+// Translucent cool-blue dome.
+const SHIELD_DOME_STYLE: DomeStyle = {
+  fadeIn: { cap: 0.4, frac: 0.15 },
+  fadeOut: { cap: 0.8, frac: 0.3 },
+  pulseFreq: 5,
+  fillStops: [
+    [0, 'rgba(120, 200, 255, 0.05)'],
+    [0.6, 'rgba(120, 200, 255, 0.1)'],
+    [1, 'rgba(60, 180, 255, 0.25)'],
+  ],
+  rim: { color: '120, 220, 255', alpha: 0.6, width: 2 },
+}
 
-  const pulse = 0.85 + Math.sin(dome.elapsed * 5) * 0.15
-
-  ctx.save()
-  ctx.globalAlpha = alpha
-  ctx.translate(screen.x, screen.y)
-
-  // Translucent dome fill
-  const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, dome.radius)
-  gradient.addColorStop(0, 'rgba(120, 200, 255, 0.05)')
-  gradient.addColorStop(0.6, 'rgba(120, 200, 255, 0.1)')
-  gradient.addColorStop(1, 'rgba(60, 180, 255, 0.25)')
-  ctx.fillStyle = gradient
-  ctx.beginPath()
-  ctx.arc(0, 0, dome.radius, 0, Math.PI * 2)
-  ctx.fill()
-
-  // Pulsing rim
-  ctx.strokeStyle = `rgba(120, 220, 255, ${0.6 * pulse})`
-  ctx.lineWidth = 2
-  ctx.beginPath()
-  ctx.arc(0, 0, dome.radius, 0, Math.PI * 2)
-  ctx.stroke()
-
-  // Shimmer band sweeping around the rim.
+// A band of light sweeping around the shield rim — Shield's signature flourish.
+function shieldShimmer(ctx: CanvasRenderingContext2D, dome: DomeShape, pulse: number): void {
   const sweep = dome.elapsed * 2
   ctx.strokeStyle = `rgba(205, 245, 255, ${0.5 * pulse})`
   ctx.lineWidth = 3
   ctx.beginPath()
   ctx.arc(0, 0, dome.radius, sweep, sweep + Math.PI * 0.5)
   ctx.stroke()
+}
 
-  ctx.restore()
+function renderShield(ctx: CanvasRenderingContext2D, dome: ShieldEffect, camera: Camera): void {
+  renderDome(ctx, dome, camera, SHIELD_DOME_STYLE, shieldShimmer)
 }
 
 export const shieldEffect: EffectDefinition = {

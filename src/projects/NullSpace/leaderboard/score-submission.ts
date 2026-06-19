@@ -6,8 +6,15 @@ import type { ScoreSubmission } from './score-submission.types'
 // Initials/handle cap — keeps the leaderboard tidy and bounds the payload.
 export const MAX_NAME_LENGTH = 20
 
+// Collapse internal whitespace (newlines/tabs included) to single spaces, drop
+// control + zero-width chars, then trim and bound the length — so a pasted name
+// can't render blank/mangled rows or smuggle invisible characters to the server.
 export function sanitizeName(raw: string): string {
-  return raw.trim().slice(0, MAX_NAME_LENGTH)
+  return raw
+    .replace(/\s+/g, ' ')
+    .replace(/[\p{Cc}\p{Cf}]/gu, '')
+    .trim()
+    .slice(0, MAX_NAME_LENGTH)
 }
 
 // Total upgrade tiers bought this run — part of the economy footprint the
