@@ -6,10 +6,17 @@ type MenuScreenProps = {
   onStart: () => void
   onContinue: () => void
   hasSave: boolean
+  onShowLeaderboard: () => void
   onReplayTutorial: () => void
 }
 
-export function MenuScreen({ onStart, onContinue, hasSave, onReplayTutorial }: MenuScreenProps) {
+export function MenuScreen({
+  onStart,
+  onContinue,
+  hasSave,
+  onShowLeaderboard,
+  onReplayTutorial,
+}: MenuScreenProps) {
   return (
     <>
       <h2 className={sharedStyles.title}>{GAME_NAME}</h2>
@@ -26,6 +33,9 @@ export function MenuScreen({ onStart, onContinue, hasSave, onReplayTutorial }: M
         onClick={onStart}
       >
         {hasSave ? 'New Game' : 'Start Game'}
+      </button>
+      <button className={sharedStyles.secondaryBtn} onClick={onShowLeaderboard}>
+        Leaderboard
       </button>
       {/* Replay the tutorial — hidden for first-timers, whose Start Game already
           runs it, so it isn't a redundant second entry point. */}

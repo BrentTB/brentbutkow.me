@@ -12,6 +12,7 @@ type GameOverScreenProps = {
   level: number
   wave: number
   onSubmitScore: (name: string) => Promise<boolean>
+  onShowLeaderboard: () => void
   onRestart: () => void
 }
 
@@ -31,6 +32,7 @@ export function GameOverScreen({
   level,
   wave,
   onSubmitScore,
+  onShowLeaderboard,
   onRestart,
 }: GameOverScreenProps) {
   const waveInLevel = wave > 0 ? ((wave - 1) % WAVES_PER_LEVEL) + 1 : 0
@@ -87,6 +89,9 @@ export function GameOverScreen({
         <p className={sharedStyles.errorText}>Couldn’t submit — try again.</p>
       )}
 
+      <button className={sharedStyles.secondaryBtn} onClick={onShowLeaderboard}>
+        View Leaderboard
+      </button>
       <button className={sharedStyles.primaryBtn} onClick={onRestart}>
         Play Again
       </button>

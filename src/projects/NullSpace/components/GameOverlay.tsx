@@ -11,6 +11,7 @@ import { ShipSelectionScreen } from './StartScreen/ShipSelectionScreen'
 import { WaveCompleteScreen } from './WaveCompleteScreen'
 import { UpgradeScreen } from './UpgradeScreen/UpgradeScreen'
 import { GameOverScreen } from './GameOverScreen'
+import { LeaderboardScreen } from './LeaderboardScreen'
 
 type GameOverlayProps = {
   uiState: GameUIState
@@ -55,11 +56,16 @@ export function GameOverlay({
   gameSpeed,
 }: GameOverlayProps) {
   const [pauseSubPage, setPauseSubPage] = useState<SettingsSubPages | null>(null)
+  // Leaderboard is a pure-UI overlay (not a game phase), opened from the menu or
+  // the game-over screen and dismissed with Back.
+  const [showLeaderboard, setShowLeaderboard] = useState(false)
 
   // Sub-pages only exist while paused. Resuming via the P-key bypasses this
   // component's handlers, so reset here to land back on the pause menu next pause.
+  // Any phase change also closes the leaderboard.
   useEffect(() => {
     if (uiState.phase !== GamePhase.paused) setPauseSubPage(null)
+    setShowLeaderboard(false)
   }, [uiState.phase])
 
   // `dying` (ship-explosion) and `warping` (fly into the portal) both play on the
@@ -88,64 +94,75 @@ export function GameOverlay({
   return (
     <div className={styles.overlay}>
       <div className={styles.content}>
-        {uiState.phase === GamePhase.menu && (
-          <MenuScreen
-            onStart={onStart}
-            onContinue={onContinue}
-            hasSave={hasSave}
-            onReplayTutorial={onReplayTutorial}
-          />
-        )}
-        {uiState.phase === GamePhase.shipSelection && (
-          <ShipSelectionScreen onSelect={onSelectShip} />
-        )}
-        {uiState.phase === GamePhase.paused &&
-          (pauseSubPage === SettingsSubPages.settings ? (
-            <SettingsScreen
-              gameSpeed={gameSpeed}
-              onSetSpeed={onSetSpeed}
-              onClose={() => setPauseSubPage(null)}
-            />
-          ) : pauseSubPage === SettingsSubPages.help ? (
-            <HelpScreen onClose={() => setPauseSubPage(null)} onReplayTutorial={onReplayTutorial} />
-          ) : (
-            <PauseMenu
-              onResume={handleResume}
-              onSettings={() => setPauseSubPage(SettingsSubPages.settings)}
-              onHelp={() => setPauseSubPage(SettingsSubPages.help)}
-              onRestart={handleRestart}
-              onSaveAndExit={handleSaveAndExit}
-              canSaveAndExit={hasSave}
-            />
-          ))}
-        {uiState.phase === GamePhase.waveComplete && (
-          <WaveCompleteScreen
-            wave={uiState.wave}
-            level={uiState.level}
-            score={uiState.score}
-            onNextWave={onNextWave}
-          />
-        )}
-        {uiState.phase === GamePhase.upgradeScreen && (
-          <UpgradeScreen
-            uiState={uiState}
-            onPurchase={onPurchaseUpgrade}
-            onPurchaseUltimate={onPurchaseUltimate}
-            onSalvageAbility={onSalvageAbility}
-            onContinue={onFinishUpgrades}
-          />
-        )}
-        {uiState.phase === GamePhase.gameOver && (
-          <GameOverScreen
-            score={uiState.score}
-            highScore={uiState.highScore}
-            isNewHighScore={uiState.isNewHighScore}
-            kills={uiState.kills}
-            level={uiState.level}
-            wave={uiState.wave}
-            onSubmitScore={onSubmitScore}
-            onRestart={handleRestart}
-          />
+        {showLeaderboard ? (
+          <LeaderboardScreen onClose={() => setShowLeaderboard(false)} />
+        ) : (
+          <>
+            {uiState.phase === GamePhase.menu && (
+              <MenuScreen
+                onStart={onStart}
+                onContinue={onContinue}
+                hasSave={hasSave}
+                onShowLeaderboard={() => setShowLeaderboard(true)}
+                onReplayTutorial={onReplayTutorial}
+              />
+            )}
+            {uiState.phase === GamePhase.shipSelection && (
+              <ShipSelectionScreen onSelect={onSelectShip} />
+            )}
+            {uiState.phase === GamePhase.paused &&
+              (pauseSubPage === SettingsSubPages.settings ? (
+                <SettingsScreen
+                  gameSpeed={gameSpeed}
+                  onSetSpeed={onSetSpeed}
+                  onClose={() => setPauseSubPage(null)}
+                />
+              ) : pauseSubPage === SettingsSubPages.help ? (
+                <HelpScreen
+                  onClose={() => setPauseSubPage(null)}
+                  onReplayTutorial={onReplayTutorial}
+                />
+              ) : (
+                <PauseMenu
+                  onResume={handleResume}
+                  onSettings={() => setPauseSubPage(SettingsSubPages.settings)}
+                  onHelp={() => setPauseSubPage(SettingsSubPages.help)}
+                  onRestart={handleRestart}
+                  onSaveAndExit={handleSaveAndExit}
+                  canSaveAndExit={hasSave}
+                />
+              ))}
+            {uiState.phase === GamePhase.waveComplete && (
+              <WaveCompleteScreen
+                wave={uiState.wave}
+                level={uiState.level}
+                score={uiState.score}
+                onNextWave={onNextWave}
+              />
+            )}
+            {uiState.phase === GamePhase.upgradeScreen && (
+              <UpgradeScreen
+                uiState={uiState}
+                onPurchase={onPurchaseUpgrade}
+                onPurchaseUltimate={onPurchaseUltimate}
+                onSalvageAbility={onSalvageAbility}
+                onContinue={onFinishUpgrades}
+              />
+            )}
+            {uiState.phase === GamePhase.gameOver && (
+              <GameOverScreen
+                score={uiState.score}
+                highScore={uiState.highScore}
+                isNewHighScore={uiState.isNewHighScore}
+                kills={uiState.kills}
+                level={uiState.level}
+                wave={uiState.wave}
+                onSubmitScore={onSubmitScore}
+                onShowLeaderboard={() => setShowLeaderboard(true)}
+                onRestart={handleRestart}
+              />
+            )}
+          </>
         )}
       </div>
     </div>

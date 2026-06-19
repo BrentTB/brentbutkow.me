@@ -448,7 +448,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     changes: {
       features: [
         'Ability slots: you can hold up to 4 abilities at once. Once they fill, the shop stops offering new ones — so each run commits to its own kit instead of unlocking everything by the end.',
-        'Salvage an ability from its shop page to clear a slot. You get back half the Stardust you spent on it, plus all the Space Metal and Singularity Shards, then two fresh abilities are offered. Meteorite can be stripped back to basics but never removed, so you always have something to fire.',
+        'Salvage an ability from its shop page to clear a slot. You get back half the Stardust you spent on it, plus all the Space Metal and Singularity Shards, then a fresh pair of abilities is offered — once per shop visit, so you can swap without endlessly fishing for a weapon. Meteorite can be stripped back to basics but never removed, so you always have something to fire.',
       ],
     },
   },
@@ -458,6 +458,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     changes: {
       features: [
         'Online leaderboard — enter a name when a run ends and your score is saved to the server, not just this browser. Your local best still shows on the game-over screen.',
+        'See the top 50 scores: open the leaderboard from the main menu or the game-over screen.',
         'The game-over screen now shows how many enemies you destroyed that run.',
       ],
     },
