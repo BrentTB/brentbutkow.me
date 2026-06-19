@@ -70,11 +70,7 @@ export function startTutorialRun(state: GameState): GameState {
   return {
     ...base,
     enemies,
-    spawnQueue: [],
-    spawnTimer: 0,
-    totalWaveEnemies: 0,
-    spawnedInWave: 0,
-    waveTimer: 0,
+    spawn: { waveTimer: 0, queue: [], timer: 0, total: 0, spawned: 0, elapsed: 0 },
     power: TUTORIAL_POWER,
     maxPower: TUTORIAL_POWER,
   }

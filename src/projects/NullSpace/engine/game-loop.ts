@@ -133,12 +133,7 @@ export function createInitialState(): GameState {
     warpTimer: 0,
     warpFlashTimer: 0,
     hazards: [],
-    waveTimer: 0,
-    spawnQueue: [],
-    spawnTimer: 0,
-    totalWaveEnemies: 0,
-    spawnedInWave: 0,
-    waveElapsed: 0,
+    spawn: { waveTimer: 0, queue: [], timer: 0, total: 0, spawned: 0, elapsed: 0 },
     holdStates: {},
     levelUpWeaponOffers: [],
     salvageOfferUsed: false,
@@ -202,12 +197,7 @@ export function startGame(state: GameState, shipKind: ShipKind): GameState {
     warpTimer: 0,
     warpFlashTimer: 0,
     hazards: [],
-    waveTimer: 0,
-    spawnQueue: [],
-    spawnTimer: 0,
-    totalWaveEnemies: 0,
-    spawnedInWave: 0,
-    waveElapsed: 0,
+    spawn: { waveTimer: 0, queue: [], timer: 0, total: 0, spawned: 0, elapsed: 0 },
     highScore: loadHighScore(),
     isNewHighScore: false,
     holdStates: {},
@@ -294,12 +284,14 @@ function beginWave(state: GameState): GameState {
   return {
     ...state,
     phase: GamePhase.playing,
-    waveTimer: getWaveDelay(state.wave),
-    spawnQueue: queue,
-    spawnTimer: 0,
-    totalWaveEnemies: queue.length,
-    spawnedInWave: 0,
-    waveElapsed: 0,
+    spawn: {
+      waveTimer: getWaveDelay(state.wave),
+      queue,
+      timer: 0,
+      total: queue.length,
+      spawned: 0,
+      elapsed: 0,
+    },
     bossSelection: bossWave ? advanceBossSelection(state.bossSelection) : state.bossSelection,
   }
 }
@@ -630,12 +622,16 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     spaceMetal,
     singularityShard,
     hazards,
-    spawnQueue,
-    spawnTimer,
-    spawnedInWave,
-    waveElapsed,
   } = state
-  let { waveTimer } = state
+  // Spawn bookkeeping lives in state.spawn; alias to flat locals so the loop body
+  // and the spawner interface stay unchanged, then rebuild state.spawn on return.
+  let {
+    waveTimer,
+    queue: spawnQueue,
+    timer: spawnTimer,
+    spawned: spawnedInWave,
+    elapsed: waveElapsed,
+  } = state.spawn
   const { maxPower, powerRegen } = state
   let holdStates = state.holdStates
 
@@ -1046,18 +1042,21 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       spaceMetal,
       singularityShard,
       hazards,
-      waveTimer: 0,
-      spawnQueue,
-      spawnTimer,
-      spawnedInWave,
-      waveElapsed,
+      spawn: {
+        waveTimer: 0,
+        queue: spawnQueue,
+        timer: spawnTimer,
+        total: state.spawn.total,
+        spawned: spawnedInWave,
+        elapsed: waveElapsed,
+      },
       holdStates: {},
       escapeTrailAccumulator,
     }
   }
 
   // --- Check wave complete ---
-  if (spawnQueue.length === 0 && enemies.length === 0 && state.totalWaveEnemies > 0) {
+  if (spawnQueue.length === 0 && enemies.length === 0 && state.spawn.total > 0) {
     const cleared: GameState = {
       ...state,
       phase: GamePhase.waveComplete,
@@ -1076,11 +1075,14 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       currency,
       spaceMetal,
       singularityShard,
-      waveTimer: 0,
-      spawnQueue,
-      spawnTimer,
-      spawnedInWave,
-      waveElapsed,
+      spawn: {
+        waveTimer: 0,
+        queue: spawnQueue,
+        timer: spawnTimer,
+        total: state.spawn.total,
+        spawned: spawnedInWave,
+        elapsed: waveElapsed,
+      },
       holdStates: {},
       hazards,
       escapeTrailAccumulator,
@@ -1107,11 +1109,14 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     currency,
     spaceMetal,
     singularityShard,
-    waveTimer,
-    spawnQueue,
-    spawnTimer,
-    spawnedInWave,
-    waveElapsed,
+    spawn: {
+      waveTimer,
+      queue: spawnQueue,
+      timer: spawnTimer,
+      total: state.spawn.total,
+      spawned: spawnedInWave,
+      elapsed: waveElapsed,
+    },
     holdStates,
     hazards,
     escapeTrailAccumulator,

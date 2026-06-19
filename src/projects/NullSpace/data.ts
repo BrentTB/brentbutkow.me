@@ -446,6 +446,18 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.3.2',
+    date: '2026-06-19',
+    changes: {
+      fixes: [
+        'On boss waves, enemies no longer flash the red "speeding up" tint before they actually start speeding up.',
+      ],
+      architecture: [
+        'Grouped the wave-spawning fields of the game state into one `spawn` object and sectioned the state type for readability; in-progress saves migrate automatically.',
+      ],
+    },
+  },
+  {
     version: '1.3.1',
     date: '2026-06-19',
     changes: {

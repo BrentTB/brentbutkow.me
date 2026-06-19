@@ -604,22 +604,44 @@ export type PlayerUpgrades = Record<UpgradeId, { currentTier: number }>
 // pre-rolled upcoming boss (visible/settable in the dev console).
 export type BossSelection = { nextBoss: EnemyKind; pool: EnemyKind[] }
 
+// Wave-spawning bookkeeping — the spawner's working set. Grouped so the spawner
+// system takes/returns one cohesive slice instead of six loose fields, and so
+// `state` reads as ~8 concerns instead of a flat wall. Reset per wave.
+export type SpawnState = {
+  // Inter-wave delay countdown; while > 0 the next wave's enemies haven't begun.
+  waveTimer: number
+  // Enemy kinds still waiting to spawn for the current wave.
+  queue: EnemyKind[]
+  // Seconds until the next enemy in the queue spawns.
+  timer: number
+  // Total enemies the current wave will spawn (drives the HUD progress bar).
+  total: number
+  // How many of `total` have spawned so far.
+  spawned: number
+  // Seconds since the wave's enemies began spawning. Drives soft stall-escalation
+  // (enemies speed up the longer a wave drags).
+  elapsed: number
+}
+
 export type GameState = {
+  // --- Run / phase ---
   phase: GamePhase
   shipKind: ShipKind
+
+  // --- Entities ---
   ship: Ship
   enemies: Enemy[]
   projectiles: Projectile[]
   allies: Ally[]
-  abilities: Ability[]
   activeEffects: ActiveEffect[]
   collectibles: Collectible[]
   particles: Particle[]
   // Cosmetic enemy-death disintegrations (see DeathAnim).
   deathAnims: DeathAnim[]
-  // Seconds left in the player-death explosion (GamePhase.dying). 0 elsewhere;
-  // counts down, then the phase flips to gameOver.
-  deathTimer: number
+  // Scattered mine clusters. Not part of the kill/wave economy.
+  hazards: Hazard[]
+
+  // --- Progress / score ---
   wave: number
   level: number
   score: number
@@ -628,37 +650,25 @@ export type GameState = {
   // Cumulative enemies destroyed this run — shown on the game-over screen and
   // sent with the leaderboard score so the server can sanity-check it.
   kills: number
+  // Seconds left in the player-death explosion (GamePhase.dying). 0 elsewhere;
+  // counts down, then the phase flips to gameOver.
+  deathTimer: number
+
+  // --- Economy ---
   currency: number
   spaceMetal: number
   // Run-scoped boss material — the gating currency for Ultimate purchases.
   // Earned 1 per boss kill, spent (with stardust + space metal) on ultimates.
   singularityShard: number
+
+  // --- Power ---
   power: number
   maxPower: number
   powerRegen: number
+
+  // --- Loadout / upgrades ---
+  abilities: Ability[]
   upgrades: PlayerUpgrades
-  // Active world bounds — the torus size, set on each sector reset.
-  worldSize: Vec2
-  // Sector "forward" unit axis (fixed to FORWARD_DIR this version).
-  forwardDir: Vec2
-  // Portal the ship flies into during the end-of-sector warp (spawned just ahead
-  // of the ship when the sector clears).
-  portalPos: Vec2
-  // Safety cap (seconds) on the warp flight; 0 outside the `warping` phase.
-  warpTimer: number
-  // Seconds left in the warp screen flash. 0 during the fly-into-portal flight;
-  // set once the ship reaches the portal, then the jump completes when it hits 0.
-  warpFlashTimer: number
-  // Scattered mine clusters. Not part of the kill/wave economy.
-  hazards: Hazard[]
-  waveTimer: number
-  spawnQueue: EnemyKind[]
-  spawnTimer: number
-  totalWaveEnemies: number
-  spawnedInWave: number
-  // Seconds since the current wave's enemies began spawning. Drives soft
-  // stall-escalation (enemies speed up the longer a wave drags). Reset per wave.
-  waveElapsed: number
   // Per-ability runtime state for hold abilities. Keyed by AbilityKind. Each
   // entry tracks {active, timer, target}. Inactive abilities are simply absent.
   holdStates: Partial<Record<AbilityKind, HoldRuntimeState>>
@@ -677,6 +687,25 @@ export type GameState = {
   // (N = ultimatesOwned.length + 1) and replaces the base in the hotbar/shop.
   // Resets per run.
   ultimatesOwned: AbilityKind[]
+
+  // --- World / sector ---
+  // Active world bounds — the torus size, set on each sector reset.
+  worldSize: Vec2
+  // Sector "forward" unit axis (fixed to FORWARD_DIR this version).
+  forwardDir: Vec2
+  // Portal the ship flies into during the end-of-sector warp (spawned just ahead
+  // of the ship when the sector clears).
+  portalPos: Vec2
+  // Safety cap (seconds) on the warp flight; 0 outside the `warping` phase.
+  warpTimer: number
+  // Seconds left in the warp screen flash. 0 during the fly-into-portal flight;
+  // set once the ship reaches the portal, then the jump completes when it hits 0.
+  warpFlashTimer: number
+
+  // --- Wave spawning ---
+  spawn: SpawnState
+
+  // --- Misc run state ---
   // Accumulator that drives Escape Mode's flame-trail particle emission. Resets
   // to 0 when escape ends.
   escapeTrailAccumulator: number

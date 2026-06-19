@@ -31,6 +31,7 @@ import { ABILITY_LIST } from '../engine/abilities'
 import { getBossDefinition } from '../engine/bosses'
 import { enemyFacing } from '../engine/entities/enemy'
 import { waveSpeedEscalation } from '../engine/world/wave-escalation'
+import { isBossWave } from '../engine/world/waves'
 import type { Camera } from './camera'
 import { isWithinView, worldToScreen } from './camera'
 import type { AnimationCache, SpriteCache } from './sprite-cache'
@@ -350,7 +351,7 @@ function renderEnemies(
 ): void {
   // Wave stall-escalation reddens every enemy as they speed up — a legibility
   // cue that parking is getting dangerous. Zero until past the grace period.
-  const escMult = waveSpeedEscalation(state.waveElapsed)
+  const escMult = waveSpeedEscalation(state.spawn.elapsed, isBossWave(state.wave))
   const escalationAlpha = escMult <= 1 ? 0 : ((escMult - 1) / (WAVE_ESCALATION.maxMult - 1)) * 0.5
   for (const enemy of state.enemies) {
     const screen = worldToScreen(enemy.pos, camera)

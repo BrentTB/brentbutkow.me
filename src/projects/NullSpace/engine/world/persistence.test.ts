@@ -187,4 +187,35 @@ describe('saveGame / loadGame / clearSave', () => {
     localStorage.setItem('null-space-save', JSON.stringify({ version: 999, rngState: 1, state }))
     expect(loadGame()).toBeNull()
   })
+
+  it('migrates a pre-grouping save (flat spawn fields) into state.spawn', () => {
+    // Write a current-version save, then rewrite its state in the old flat shape
+    // (no `spawn`) to simulate a run saved before the spawn fields were grouped.
+    saveGame(createInitialState(), 1)
+    const raw = JSON.parse(localStorage.getItem('null-space-save')!) as {
+      version: number
+      rngState: number
+      state: Record<string, unknown>
+    }
+    const legacy: Record<string, unknown> = {
+      ...raw.state,
+      waveTimer: 5,
+      spawnQueue: ['drone'],
+      spawnTimer: 1,
+      totalWaveEnemies: 7,
+      spawnedInWave: 3,
+      waveElapsed: 2,
+    }
+    delete legacy.spawn
+    localStorage.setItem('null-space-save', JSON.stringify({ ...raw, state: legacy }))
+
+    expect(loadGame()?.state.spawn).toEqual({
+      waveTimer: 5,
+      queue: ['drone'],
+      timer: 1,
+      total: 7,
+      spawned: 3,
+      elapsed: 2,
+    })
+  })
 })

@@ -99,11 +99,7 @@ export function devJumpToUpgrades(state: GameState): GameState {
     enemies: [],
     projectiles: [],
     activeEffects: [],
-    spawnQueue: [],
-    spawnTimer: 0,
-    spawnedInWave: 0,
-    totalWaveEnemies: 0,
-    waveTimer: 0,
+    spawn: { waveTimer: 0, queue: [], timer: 0, total: 0, spawned: 0, elapsed: 0 },
     levelUpWeaponOffers: rollLevelUpWeaponOffers(state.abilities, getAbilityCap()),
     salvageOfferUsed: false,
   })
@@ -124,11 +120,14 @@ export function devJumpToBoss(state: GameState): GameState {
     projectiles: [],
     activeEffects: [],
     collectibles: [],
-    spawnQueue: [state.bossSelection.nextBoss],
-    spawnTimer: 0,
-    totalWaveEnemies: 1,
-    spawnedInWave: 0,
-    waveTimer: 0,
+    spawn: {
+      waveTimer: 0,
+      queue: [state.bossSelection.nextBoss],
+      timer: 0,
+      total: 1,
+      spawned: 0,
+      elapsed: 0,
+    },
     bossSelection: advanceBossSelection(state.bossSelection),
   })
 }

@@ -101,9 +101,9 @@ describe('startNextWave', () => {
     let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     expect(state.wave).toBe(1)
-    expect(state.spawnQueue.length).toBeGreaterThan(0)
-    expect(state.totalWaveEnemies).toBe(state.spawnQueue.length)
-    expect(state.spawnedInWave).toBe(0)
+    expect(state.spawn.queue.length).toBeGreaterThan(0)
+    expect(state.spawn.total).toBe(state.spawn.queue.length)
+    expect(state.spawn.spawned).toBe(0)
     expect(state.level).toBe(1)
   })
 })
@@ -115,7 +115,7 @@ describe('startNextWave — boss selection', () => {
     state = startNextWave({ ...state, wave: 8 })
 
     expect(state.wave).toBe(9)
-    expect(state.spawnQueue[state.spawnQueue.length - 1]).toBe(expected)
+    expect(state.spawn.queue[state.spawn.queue.length - 1]).toBe(expected)
     expect(BOSS_KINDS).toContain(state.bossSelection.nextBoss)
   })
 
@@ -133,7 +133,7 @@ describe('startNextWave — boss selection', () => {
     for (let i = 0; i < BOSS_KINDS.length; i++) {
       const bossWave = (i + 1) * 9
       current = startNextWave({ ...current, wave: bossWave - 1 })
-      consumed.push(current.spawnQueue[current.spawnQueue.length - 1])
+      consumed.push(current.spawn.queue[current.spawn.queue.length - 1])
     }
     expect(consumed.slice().sort()).toEqual([...BOSS_KINDS].sort())
   })
@@ -227,7 +227,12 @@ describe('updateGameState', () => {
     const lethal = (reducedMotion: boolean) => {
       let state = startGame(createInitialState(), ShipKind.fighter)
       state = startNextWave(state)
-      state = { ...state, enemies: [], spawnQueue: [], ship: { ...state.ship, hp: 0, shield: 0 } }
+      state = {
+        ...state,
+        enemies: [],
+        spawn: { ...state.spawn, queue: [] },
+        ship: { ...state.ship, hp: 0, shield: 0 },
+      }
       return updateGameState(state, 0.016, { clicks: [], selectedAbility: null, reducedMotion })
     }
     const calm = lethal(true)
@@ -278,10 +283,7 @@ describe('updateGameState', () => {
     state = {
       ...state,
       enemies: [],
-      spawnQueue: [],
-      totalWaveEnemies: 1,
-      spawnedInWave: 1,
-      waveTimer: 0,
+      spawn: { ...state.spawn, queue: [], total: 1, spawned: 1, waveTimer: 0 },
     }
     state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
     expect(state.phase).toBe(GamePhase.warping) // warp first
@@ -294,9 +296,7 @@ describe('updateGameState', () => {
     state = {
       ...state,
       enemies: [],
-      spawnQueue: [],
-      spawnedInWave: state.totalWaveEnemies,
-      waveTimer: 0,
+      spawn: { ...state.spawn, queue: [], spawned: state.spawn.total, waveTimer: 0 },
     }
     state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
     const expected = isUpgradeWave(state.wave) ? GamePhase.warping : GamePhase.waveComplete
@@ -534,10 +534,8 @@ describe('levelUpWeaponOffers', () => {
       ...state,
       wave: WAVES_PER_LEVEL,
       level: 1,
-      spawnQueue: [],
       enemies: [],
-      totalWaveEnemies: 1,
-      spawnedInWave: 1,
+      spawn: { ...state.spawn, queue: [], total: 1, spawned: 1 },
     }
     // Clearing an upgrade wave warps first; completing the warp opens the shop
     // (which is where the offers are rolled).
@@ -837,7 +835,12 @@ describe('updateGameState — state field round-trip persistence', () => {
     let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     // Empty field + totalWaveEnemies 0 keeps it playing with nothing to kill.
-    state = { ...state, kills: 5, spawnQueue: [], enemies: [], totalWaveEnemies: 0, waveTimer: 0 }
+    state = {
+      ...state,
+      kills: 5,
+      enemies: [],
+      spawn: { ...state.spawn, queue: [], total: 0, waveTimer: 0 },
+    }
     for (let i = 0; i < 30; i++) {
       state = updateGameState(state, 1 / 60, { clicks: [], selectedAbility: null })
     }
@@ -862,10 +865,8 @@ describe('updateGameState — state field round-trip persistence', () => {
       },
       // Force the wave-complete branch: nothing left to spawn or fight.
       wave: 1,
-      spawnQueue: [],
       enemies: [],
-      totalWaveEnemies: 1,
-      spawnedInWave: 1,
+      spawn: { ...state.spawn, queue: [], total: 1, spawned: 1 },
     }
 
     const dt = 0.016
@@ -883,12 +884,12 @@ describe('updateGameState — state field round-trip persistence', () => {
     state = startNextWave(state)
 
     const dt = 1 / 60
-    const before = state.waveElapsed
+    const before = state.spawn.elapsed
     for (let i = 0; i < 3; i++) {
       state = updateGameState(state, dt, { clicks: [], selectedAbility: null })
     }
 
-    expect(state.waveElapsed).toBeCloseTo(before + 3 * dt)
+    expect(state.spawn.elapsed).toBeCloseTo(before + 3 * dt)
   })
 
   // Companion to escapeTrailAccumulator: waveElapsed is incremented before the
@@ -902,19 +903,16 @@ describe('updateGameState — state field round-trip persistence', () => {
     state = {
       ...state,
       phase: GamePhase.playing,
-      waveElapsed: 5,
       wave: 1,
-      spawnQueue: [],
       enemies: [],
-      totalWaveEnemies: 1,
-      spawnedInWave: 1,
+      spawn: { ...state.spawn, elapsed: 5, queue: [], total: 1, spawned: 1 },
     }
 
     const dt = 0.016
     state = updateGameState(state, dt, { clicks: [], selectedAbility: null })
 
     expect(state.phase).toBe(GamePhase.waveComplete)
-    expect(state.waveElapsed).toBeCloseTo(5 + dt)
+    expect(state.spawn.elapsed).toBeCloseTo(5 + dt)
   })
 })
 
@@ -1047,16 +1045,16 @@ describe('updateGameState — paused phase halts simulation', () => {
   it('queued enemies do not spawn while paused', () => {
     let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
-    const queueBefore = state.spawnQueue.length
-    state = { ...state, phase: GamePhase.paused, waveTimer: 0 }
+    const queueBefore = state.spawn.queue.length
+    state = { ...state, phase: GamePhase.paused, spawn: { ...state.spawn, waveTimer: 0 } }
 
     for (let i = 0; i < 240; i++) {
       state = updateGameState(state, 1 / 60, { clicks: [], selectedAbility: null })
     }
 
-    expect(state.spawnQueue.length).toBe(queueBefore)
+    expect(state.spawn.queue.length).toBe(queueBefore)
     expect(state.enemies.length).toBe(0)
-    expect(state.spawnedInWave).toBe(0)
+    expect(state.spawn.spawned).toBe(0)
   })
 
   it('power orbs at the ship are not collected while paused', () => {
@@ -1115,7 +1113,7 @@ describe('updateGameState — wave delay only gates spawning', () => {
     state = {
       ...state,
       wave: 2,
-      waveTimer: 1,
+      spawn: { ...state.spawn, waveTimer: 1 },
       activeEffects: [
         {
           id: 'mid-flight-meteor',
@@ -1143,7 +1141,7 @@ describe('updateGameState — wave delay only gates spawning', () => {
     state = {
       ...state,
       wave: 2,
-      waveTimer: 1,
+      spawn: { ...state.spawn, waveTimer: 1 },
       collectibles: [
         {
           id: 'mid-flight-orb',
@@ -1172,23 +1170,23 @@ describe('updateGameState — wave delay only gates spawning', () => {
   it('the wave delay still prevents enemies from spawning', () => {
     let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
-    state = { ...state, wave: 2, waveTimer: 1, spawnTimer: 0 }
-    const queueBefore = state.spawnQueue.length
+    state = { ...state, wave: 2, spawn: { ...state.spawn, waveTimer: 1, timer: 0 } }
+    const queueBefore = state.spawn.queue.length
 
     const next = updateGameState(state, 0.05, { clicks: [], selectedAbility: null })
 
-    expect(next.spawnQueue.length).toBe(queueBefore)
+    expect(next.spawn.queue.length).toBe(queueBefore)
     expect(next.enemies.length).toBe(0)
-    expect(next.spawnedInWave).toBe(0)
+    expect(next.spawn.spawned).toBe(0)
   })
 
   it('the wave timer decrements down to zero', () => {
     let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
-    state = { ...state, wave: 2, waveTimer: 0.5 }
+    state = { ...state, wave: 2, spawn: { ...state.spawn, waveTimer: 0.5 } }
 
     const next = updateGameState(state, 0.1, { clicks: [], selectedAbility: null })
-    expect(next.waveTimer).toBeCloseTo(0.4, 5)
+    expect(next.spawn.waveTimer).toBeCloseTo(0.4, 5)
   })
 })
 
@@ -1208,8 +1206,7 @@ describe('updateGameState — bomber explodes on death (including by ramming)', 
     // death path (not the projectile/ability paths).
     state = {
       ...state,
-      spawnQueue: [],
-      waveTimer: 0,
+      spawn: { ...state.spawn, queue: [], waveTimer: 0 },
       projectiles: [],
       enemies: [{ ...createEnemy(EnemyKind.bomber, { x: shipPos.x, y: shipPos.y }), hp: 100000 }],
     }
@@ -1242,7 +1239,11 @@ describe('updateGameState — swarm weave is driven by game time, not wall-clock
     // weave does. A wall-clock weave would move them identically.
     const twinA = { ...createEnemy(EnemyKind.swarm, pos), id: 'twin', age: 0 }
     const twinB = { ...createEnemy(EnemyKind.swarm, pos), id: 'twin', age: 0.6 }
-    state = { ...state, spawnQueue: [], waveTimer: 0, enemies: [twinA, twinB] }
+    state = {
+      ...state,
+      spawn: { ...state.spawn, queue: [], waveTimer: 0 },
+      enemies: [twinA, twinB],
+    }
 
     const next = updateGameState(state, 1 / 60, { clicks: [], selectedAbility: null })
     const [a, b] = next.enemies
@@ -1256,7 +1257,7 @@ describe('updateGameState — swarm weave is driven by game time, not wall-clock
       ...createEnemy(EnemyKind.swarm, { x: state.ship.pos.x + 300, y: state.ship.pos.y }),
       age: 0,
     }
-    state = { ...state, spawnQueue: [], waveTimer: 0, enemies: [swarm] }
+    state = { ...state, spawn: { ...state.spawn, queue: [], waveTimer: 0 }, enemies: [swarm] }
     const next = updateGameState(state, 0.05, { clicks: [], selectedAbility: null })
     expect(next.enemies.find((e) => e.id === swarm.id)!.age).toBeCloseTo(0.05, 5)
   })
@@ -1370,7 +1371,12 @@ describe('swept bullet collision — regression', () => {
       10
     )
 
-    state = { ...state, enemies: [enemy], projectiles: [proj], spawnQueue: [] }
+    state = {
+      ...state,
+      enemies: [enemy],
+      projectiles: [proj],
+      spawn: { ...state.spawn, queue: [] },
+    }
     state = updateGameState(state, 0.1, { clicks: [], selectedAbility: null })
 
     const surviving = state.enemies.find((e) => e.id === enemy.id)
@@ -1389,7 +1395,7 @@ describe('Helper ability', () => {
   it('spawns an ally when helper ability is activated', () => {
     let state = makeUnlockedState()
     // totalWaveEnemies=0 prevents wave-complete from firing with empty enemies
-    state = { ...state, enemies: [], spawnQueue: [], totalWaveEnemies: 0 }
+    state = { ...state, enemies: [], spawn: { ...state.spawn, queue: [], total: 0 } }
     const target = { x: state.ship.pos.x + 100, y: state.ship.pos.y }
     state = updateGameState(state, 0.016, {
       clicks: [target],
@@ -1401,7 +1407,7 @@ describe('Helper ability', () => {
   it('ally fires a projectile when an enemy is in range', () => {
     let state = makeUnlockedState()
     const allySpawnPos = { x: state.ship.pos.x + 50, y: state.ship.pos.y }
-    state = { ...state, totalWaveEnemies: 0, spawnQueue: [] }
+    state = { ...state, spawn: { ...state.spawn, total: 0, queue: [] } }
     state = updateGameState(state, 0.016, {
       clicks: [allySpawnPos],
       selectedAbility: AbilityKind.helper,
@@ -1419,7 +1425,7 @@ describe('Helper ability', () => {
 
   it('ally is removed when HP decay drops its hp to 0', () => {
     let state = makeUnlockedState()
-    state = { ...state, enemies: [], spawnQueue: [], totalWaveEnemies: 0 }
+    state = { ...state, enemies: [], spawn: { ...state.spawn, queue: [], total: 0 } }
     const target = { x: state.ship.pos.x + 50, y: state.ship.pos.y }
     state = updateGameState(state, 0.016, {
       clicks: [target],
@@ -1442,7 +1448,7 @@ describe('Helper ability', () => {
     let state = makeUnlockedState()
     const allyPos = { x: 100, y: 100 }
     // totalWaveEnemies=0 prevents the wave-complete check from firing when enemies=[]
-    state = { ...state, enemies: [], spawnQueue: [], totalWaveEnemies: 0 }
+    state = { ...state, enemies: [], spawn: { ...state.spawn, queue: [], total: 0 } }
     state = updateGameState(state, 0.016, {
       clicks: [allyPos],
       selectedAbility: AbilityKind.helper,
@@ -1488,7 +1494,7 @@ describe('Telekinesis ability', () => {
       }),
       speed: 0,
     }
-    state = { ...state, enemies: [nearEnemy, farEnemy], spawnQueue: [] }
+    state = { ...state, enemies: [nearEnemy, farEnemy], spawn: { ...state.spawn, queue: [] } }
     const before = state.enemies.map((e) => e.pos.x)
     state = updateGameState(state, 0.1, {
       clicks: [],
@@ -1615,7 +1621,7 @@ describe('Solar Flare ability', () => {
       x: target.x + 500,
       y: target.y,
     })
-    state = { ...state, enemies: [enemyInside, enemyOutside], spawnQueue: [] }
+    state = { ...state, enemies: [enemyInside, enemyOutside], spawn: { ...state.spawn, queue: [] } }
     state = updateGameState(state, SOLAR_FLARE.drainInterval + 0.01, {
       clicks: [],
       selectedAbility: AbilityKind.solarFlare,
@@ -1684,7 +1690,7 @@ describe('Solar Flare ability', () => {
     let state = makeSFState()
     // Set totalWaveEnemies=0 so the wave-complete branch doesn't fire and
     // reset holdStates while we drain power.
-    state = { ...state, power: 30, totalWaveEnemies: 0, spawnQueue: [] } // Just above arm threshold (20)
+    state = { ...state, power: 30, spawn: { ...state.spawn, total: 0, queue: [] } } // Just above arm threshold (20)
     const target = { x: state.ship.pos.x + 300, y: state.ship.pos.y }
     // dt is capped at MAX_DT (0.1). Loop long enough to drain past 0 even
     // after passive power regen.
@@ -1706,7 +1712,7 @@ describe('Enemy melee damages allies', () => {
     state = startNextWave(state)
     state = applyUpgradeToState({ ...state, currency: 999 }, UpgradeId.unlockHelper)
     const allyPos = { x: 100, y: 100 }
-    state = { ...state, enemies: [], spawnQueue: [], totalWaveEnemies: 0 }
+    state = { ...state, enemies: [], spawn: { ...state.spawn, queue: [], total: 0 } }
     state = updateGameState(state, 0.016, {
       clicks: [allyPos],
       selectedAbility: AbilityKind.helper,
@@ -1755,10 +1761,7 @@ describe('updateGameState — sector progression', () => {
       ...state,
       hazards: [mine({ x: state.ship.pos.x + 9999, y: state.ship.pos.y })],
       enemies: [],
-      spawnQueue: [],
-      totalWaveEnemies: 1,
-      spawnedInWave: 1,
-      waveTimer: 0,
+      spawn: { ...state.spawn, queue: [], total: 1, spawned: 1, waveTimer: 0 },
     }
     const next = updateGameState(state, 0.016, noInput)
     expect(next.phase).not.toBe(GamePhase.playing)
@@ -1771,10 +1774,7 @@ describe('updateGameState — sector progression', () => {
       ...state,
       hazards: [mine({ x: state.ship.pos.x, y: state.ship.pos.y })],
       enemies: [],
-      spawnQueue: [],
-      totalWaveEnemies: 3,
-      spawnedInWave: 3,
-      waveTimer: 0,
+      spawn: { ...state.spawn, queue: [], total: 3, spawned: 3, waveTimer: 0 },
     }
     const next = updateGameState(state, 0.016, noInput)
     expect([GamePhase.waveComplete, GamePhase.upgradeScreen]).toContain(next.phase)
@@ -1782,7 +1782,8 @@ describe('updateGameState — sector progression', () => {
 
   it('hunts toward a nearby enemy instead of ignoring it', () => {
     // Gate spawning so only the planted (stationary, un-killable) enemy is present.
-    let state = { ...playing(), waveTimer: 100 }
+    const planted = playing()
+    let state = { ...planted, spawn: { ...planted.spawn, waveTimer: 100 } }
     const startPos = { ...state.ship.pos }
     const enemyPos = { x: startPos.x, y: startPos.y - 500 } // up, well within half a world
     state = {
@@ -1802,10 +1803,7 @@ describe('updateGameState — sector progression', () => {
       ...state,
       wave: WAVES_PER_LEVEL, // last wave of sector 1 → clearing it warps
       enemies: [],
-      spawnQueue: [],
-      totalWaveEnemies: 1,
-      spawnedInWave: 1,
-      waveTimer: 0,
+      spawn: { ...state.spawn, queue: [], total: 1, spawned: 1, waveTimer: 0 },
       spaceMetal: 0,
       singularityShard: 0,
       collectibles: [
@@ -1845,10 +1843,7 @@ describe('updateGameState — sector progression', () => {
       ...state,
       wave: WAVES_PER_LEVEL,
       enemies: [],
-      spawnQueue: [],
-      totalWaveEnemies: 1,
-      spawnedInWave: 1,
-      waveTimer: 0,
+      spawn: { ...state.spawn, queue: [], total: 1, spawned: 1, waveTimer: 0 },
     }
     state = updateGameState(state, 0.016, noInput)
     expect(state.phase).toBe(GamePhase.warping) // warp comes first
@@ -1861,17 +1856,20 @@ describe('updateGameState — sector progression', () => {
     expect(warped.worldSize).toEqual(WORLD_SIZE)
     // Every sector drops the ship at the centre of the torus.
     expect(warped.ship.pos).toEqual({ x: WORLD_SIZE.x / 2, y: WORLD_SIZE.y / 2 })
-    expect(warped.spawnQueue).toEqual([])
+    expect(warped.spawn.queue).toEqual([])
 
     // Leaving the shop spawns the wave in the sector already laid out.
     const live = finishUpgradeScreen(warped)
     expect(live.phase).toBe(GamePhase.playing)
     expect(live.wave).toBe(WAVES_PER_LEVEL + 1) // not advanced again
-    expect(live.spawnQueue.length).toBeGreaterThan(0)
+    expect(live.spawn.queue.length).toBeGreaterThan(0)
   })
 
   it('makes the same forward progress at 2x sub-steps as one full step', () => {
-    const setup = () => ({ ...playing(), waveTimer: 100 })
+    const setup = () => {
+      const p = playing()
+      return { ...p, spawn: { ...p.spawn, waveTimer: 100 } }
+    }
     const once = updateGameState(setup(), 0.1, noInput)
     let twice = setup()
     twice = updateGameState(twice, 0.05, noInput)

@@ -200,9 +200,25 @@ export function loadGame(): SavedGame | null {
     if (!isSavedGame(parsed) || parsed.version !== SAVE_VERSION) return null
     // Backfill fields added after this save was written, so resuming an older
     // run doesn't start from `undefined` (which would become NaN once summed).
-    const savedState = parsed.state as Omit<GameState, 'kills' | 'salvageOfferUsed'> & {
+    const savedState = parsed.state as Omit<GameState, 'kills' | 'salvageOfferUsed' | 'spawn'> & {
       kills?: number
       salvageOfferUsed?: boolean
+      spawn?: GameState['spawn']
+      // Legacy flat spawn fields (pre-grouping saves) — migrated into `spawn`.
+      waveTimer?: number
+      spawnQueue?: GameState['spawn']['queue']
+      spawnTimer?: number
+      totalWaveEnemies?: number
+      spawnedInWave?: number
+      waveElapsed?: number
+    }
+    const spawn: GameState['spawn'] = savedState.spawn ?? {
+      waveTimer: savedState.waveTimer ?? 0,
+      queue: savedState.spawnQueue ?? [],
+      timer: savedState.spawnTimer ?? 0,
+      total: savedState.totalWaveEnemies ?? 0,
+      spawned: savedState.spawnedInWave ?? 0,
+      elapsed: savedState.waveElapsed ?? 0,
     }
     return {
       ...parsed,
@@ -210,6 +226,7 @@ export function loadGame(): SavedGame | null {
         ...savedState,
         kills: savedState.kills ?? 0,
         salvageOfferUsed: savedState.salvageOfferUsed ?? false,
+        spawn,
       },
     }
   } catch {
