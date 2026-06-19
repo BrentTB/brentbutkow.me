@@ -1,0 +1,55 @@
+.tableWrap {
+  width: 100%;
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.table th {
+  // Keep the header visible while the list scrolls.
+  position: sticky;
+  top: 0;
+  background: var(--bg-elevated);
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  padding: 8px 12px;
+}
+
+.table td {
+  padding: 7px 12px;
+  border-top: 1px solid var(--border);
+}
+
+// Gold for the top run.
+.table tbody tr:first-child td {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.rankCol {
+  width: 2.5rem;
+  text-align: left;
+  color: var(--muted);
+}
+
+.nameCol {
+  text-align: left;
+}
+
+.numCol {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}

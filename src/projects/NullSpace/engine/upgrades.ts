@@ -4,6 +4,7 @@ import {
   ABILITY_UPGRADE_DEFINITIONS,
   BASE_KIND_OF,
   ULTIMATE_DEFINITIONS,
+  ULTIMATE_KIND_OF,
   WEAPON_UNLOCK_UPGRADE,
   applyTierSum,
 } from './abilities'
@@ -217,6 +218,85 @@ export function getAllyWeaponUnlocks(weapon: AbilityKind): UpgradeDefinition[] {
   return Object.values(UPGRADE_DEFINITIONS).filter(
     (def) => def.category === UpgradeCategory.loadout && UNLOCK_UPGRADE_IDS.has(def.id)
   )
+}
+
+// --- Ability slots (cap) + Salvage (respec) ---
+
+// Max ability *lines* a player can hold at once — Meteorite plus this-many-minus-one
+// others. A base+ultimate pair shares one slot (an ultimate isn't a separate line).
+export const BASE_ABILITY_CAP = 4
+
+// A function (not a bare const) so a future "+1 slot" upgrade can fold in here —
+// it'll take `upgrades` then — without a stored GameState field or touching callers' shape.
+export function getAbilityCap(): number {
+  return BASE_ABILITY_CAP
+}
+
+// Slots in use = unlocked BASE ability rows (ultimates ride their base's slot).
+export function countAbilitySlots(abilities: Ability[]): number {
+  return abilities.filter((a) => a.unlocked && BASE_KIND_OF[a.kind] === undefined).length
+}
+
+// Every upgrade id on a base ability's line: its unlock (absent for the starter),
+// its modifiers AND its ultimate's modifiers (getWeaponModifierUpgrades on the
+// ultimate kind folds the base's in), plus the Helper line's ally-weapon unlocks.
+// Salvage resets + refunds exactly this set.
+export function getAbilityLineUpgradeIds(kind: AbilityKind): UpgradeId[] {
+  const ids = new Set<UpgradeId>()
+  const unlock = WEAPON_UNLOCK_UPGRADE[kind]
+  if (unlock) ids.add(unlock)
+  const modWeapon = ULTIMATE_KIND_OF[kind] ?? kind
+  for (const def of getWeaponModifierUpgrades(modWeapon)) ids.add(def.id)
+  for (const def of getAllyWeaponUnlocks(kind)) ids.add(def.id)
+  return [...ids]
+}
+
+// Total Stardust sunk into the given upgrades (sum of every purchased tier's cost).
+export function sumStardustSpent(upgrades: PlayerUpgrades, ids: UpgradeId[]): number {
+  let total = 0
+  for (const id of ids) {
+    const def = UPGRADE_DEFINITIONS[id]
+    const tier = upgrades[id].currentTier
+    for (let i = 0; i < tier; i++) total += def.tiers[i].cost
+  }
+  return total
+}
+
+// A copy of `upgrades` with the given ids reset to tier 0.
+export function resetUpgradeTiers(upgrades: PlayerUpgrades, ids: UpgradeId[]): PlayerUpgrades {
+  const next = { ...upgrades }
+  for (const id of ids) next[id] = { currentTier: 0 }
+  return next
+}
+
+export type SalvageRefund = {
+  stardust: number
+  spaceMetal: number
+  singularityShard: number
+  // False when the line has nothing spent and no ultimate — nothing to reclaim.
+  reclaimable: boolean
+}
+
+// What salvaging `baseKind` returns: 50% of the Stardust spent on the line (plus
+// the ultimate's Stardust), and 100% of the ultimate's Space Metal + Shards (the
+// premium boss currencies shouldn't punish a respec). Shared by the engine action
+// and the shop's Salvage button so the preview can't drift from the payout.
+export function getSalvageRefund(
+  upgrades: PlayerUpgrades,
+  ultimatesOwned: AbilityKind[],
+  baseKind: AbilityKind
+): SalvageRefund {
+  const ids = getAbilityLineUpgradeIds(baseKind)
+  const ultimateKind = ULTIMATE_KIND_OF[baseKind]
+  const hadUltimate = ultimateKind !== undefined && ultimatesOwned.includes(ultimateKind)
+  const ult = hadUltimate ? ULTIMATE_DEFINITIONS[baseKind] : undefined
+  return {
+    stardust: Math.floor(0.5 * (sumStardustSpent(upgrades, ids) + (ult?.cost.stardust ?? 0))),
+    spaceMetal: ult?.cost.spaceMetal ?? 0,
+    // The Nth ultimate cost N shards; refund the marginal cost (= current owned count).
+    singularityShard: hadUltimate ? ultimatesOwned.length : 0,
+    reclaimable: hadUltimate || ids.some((id) => upgrades[id].currentTier > 0),
+  }
 }
 
 // True when there's nothing left to buy for `weapon`. A base ability that still

@@ -317,6 +317,9 @@ export const DASHER = {
 // player can always break away.
 export const WAVE_ESCALATION = {
   gracePeriod: 20,
+  // Boss waves are meant to be long fights, so they get a much longer grace
+  // before enemies start speeding up.
+  bossGracePeriod: 75,
   rampPerSec: 0.04,
   maxMult: 2.2,
 } as const
@@ -442,6 +445,63 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.3.2',
+    date: '2026-06-19',
+    changes: {
+      fixes: [
+        'On boss waves, enemies no longer flash the red "speeding up" tint before they actually start speeding up.',
+      ],
+      architecture: [
+        'Grouped the wave-spawning fields of the game state into one `spawn` object and sectioned the state type for readability; in-progress saves migrate automatically.',
+      ],
+    },
+  },
+  {
+    version: '1.3.1',
+    date: '2026-06-19',
+    changes: {
+      fixes: [
+        'Boss waves now give you much longer before enemies start speeding up — they are meant to be long fights, so they no longer ramp up on the normal wave timer.',
+        'The Rocket ability (and its Fireworks upgrade) and helper shots now take the short way across the edge of the world instead of flying the long way around it.',
+      ],
+      ui: ['Tutorial: the Next / Finish button now sticks to the right of the card.'],
+    },
+  },
+  {
+    version: '1.3.0',
+    date: '2026-06-19',
+    changes: {
+      features: [
+        'Ability slots: you can hold up to 4 abilities at once. Once they fill, the shop stops offering new ones — so each run commits to its own kit instead of unlocking everything by the end.',
+        'Salvage an ability from its shop page to clear a slot. You get back half the Stardust you spent on it, plus all the Space Metal and Singularity Shards, then a fresh pair of abilities is offered — once per shop visit, so you can swap without endlessly fishing for a weapon. Meteorite can be stripped back to basics but never removed, so you always have something to fire.',
+      ],
+    },
+  },
+  {
+    version: '1.2.0',
+    date: '2026-06-19',
+    changes: {
+      features: [
+        'Online leaderboard — enter a name when a run ends and your score is saved to the server, not just this browser. Your local best still shows on the game-over screen.',
+        'See the top 50 scores: open the leaderboard from the main menu or the game-over screen.',
+        'The game-over screen now shows how many enemies you destroyed that run.',
+      ],
+    },
+  },
+  {
+    version: '1.1.0',
+    date: '2026-06-19',
+    changes: {
+      features: [
+        'New space metal ability — Repulse: blast a shockwave out from the ship that hurls every enemy away and eats their bullets. It follows you and keeps growing, so when it fades you have room to breathe.',
+        'New space metal ability — Comet Storm: call down a few seconds of comets across the screen around you. Each hit is small, but they keep raining wherever you fly — good for wearing down a crowd.',
+      ],
+      fixes: [
+        'The release-notes filters no longer trap you. Switching them all off used to collapse this panel so you could not turn them back on; now it shows a short note and the filter menu stays reachable.',
+      ],
+    },
+  },
   {
     version: '1.0.0',
     date: '2026-06-16',

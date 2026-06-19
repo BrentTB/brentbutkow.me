@@ -94,6 +94,46 @@
   }
 }
 
+.submitRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 10px;
+
+  // The shared secondary button carries a stacking margin; drop it inline.
+  .secondaryBtn {
+    margin-top: 0;
+  }
+}
+
+.nameInput {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  width: 140px;
+  transition: border-color 0.15s ease;
+
+  &::placeholder {
+    color: var(--muted);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+}
+
+.errorText {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--danger);
+  margin: 4px 0 0;
+}
+
 .buyBtn {
   font-family: var(--font-mono);
   font-size: 0.65rem;

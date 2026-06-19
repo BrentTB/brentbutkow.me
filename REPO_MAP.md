@@ -183,6 +183,9 @@ src/projects/NullSpace/components/Icon/
   Icon.tsx                                   Icon, IconName
   gallery-entry.tsx                          (no named exports)
 
+src/projects/NullSpace/components/
+  LeaderboardScreen.tsx                      LeaderboardScreen
+
 src/projects/NullSpace/components/PauseMenu/
   HelpScreen.tsx                             HelpScreen
   PauseMenu.tsx                              PauseMenu
@@ -218,7 +221,8 @@ src/projects/NullSpace/engine/abilities/
   beam-damage.ts                             BeamDamageResult, damageEnemiesInBeam
   black-hole.ts                              BLACK_HOLE_UPGRADE_IDS, createBlackHoleEffect, blackHoleEffect, blackHole
   comet-shower.ts                            COMET_SHOWER_UPGRADE_IDS, cometShower
-  dome-absorption.ts                         tickDomeAbsorption
+  dome-absorption.ts                         absorbEnemyProjectiles, tickDomeAbsorption
+  dome-render.ts                             DomeShape, DomeStyle, renderDome
   event-horizon.ts                           EVENT_HORIZON_UPGRADE_IDS, createEventHorizonEffect, eventHorizonEffect, eventHorizon
   fireworks.ts                               FIREWORKS_UPGRADE_IDS, fireworks
   force-field-render.ts                      drawForceField
@@ -265,7 +269,7 @@ src/projects/NullSpace/engine/entities/
   ship.ts                                    applySlingshot, tickSlingHeat, tickFling, applyDamageToShip, tickEscapeMode, updateShipDrift
 
 src/projects/NullSpace/engine/
-  game-loop.ts                               createInitialState, moveToShipSelection, startGame, rollLevelUpWeaponOffers, resetForSector, startNextWave, applyUpgradeToState, applyUltimatePurchaseToState, devUnlockWeapon, devGrantUltimate, beginWarp, completeWarp, advanceWarp, advanceDeathSequence, finishUpgradeScreen, updateGameState
+  game-loop.ts                               createInitialState, moveToShipSelection, startGame, rollLevelUpWeaponOffers, resetForSector, startNextWave, applyUpgradeToState, applyUltimatePurchaseToState, salvageAbility, devUnlockWeapon, devGrantUltimate, beginWarp, completeWarp, advanceWarp, advanceDeathSequence, finishUpgradeScreen, updateGameState
 
 src/projects/NullSpace/engine/math/
   aoe.ts                                     AoeResult, damageEnemiesInRadiusFlat, damageEnemiesInRadius
@@ -281,8 +285,10 @@ src/projects/NullSpace/engine/ship/
   ship-data.ts                               ShipVariantStats, ShipVariantConfig, STAT_MAX, SHIP_ORDER, SHIP_VARIANTS
 
 src/projects/NullSpace/engine/spaceMetalAbilities/
+  comet-storm.ts                             COMET_STORM, createCometStormEffect, cometStormEffect, cometStorm
   escape-mode.ts                             ESCAPE_MODE, escapeDash
   index.ts                                   SPACE_METAL_ABILITIES, getSpaceMetalAbility, findSpaceMetalAbilityByKey, tryActivateSpaceMetalAbility, SpaceMetalAbilityKind, type SpaceMetalAbility
+  repulse.ts                                 REPULSE, createRepulseEffect, recentreRepulseFields, repulseFieldEffect, repulse
   shield-regen.ts                            shieldRegen
   space-metal-ability-definition.ts          SpaceMetalAbilityKind, SpaceMetalAbilityUIState, SpaceMetalAbility
 
@@ -303,10 +309,10 @@ src/projects/NullSpace/engine/tutorial/
   tutorial-script.ts                         TutorialTriggerKind, TutorialSpotlightKind, POWER_LOW_FRACTION, TutorialStep, TUTORIAL_STEPS
 
 src/projects/NullSpace/engine/
-  types.ts                                   Vec2, Entity, ShipKind, HelperWeaponKind, EscapeModePhase, EscapeModeState, Ship, EnemyKind, EnemyModifier, MovementBehavior, DeathBehavior, BurningState, DashStage, DasherState, Enemy, ProjectileOwner, Projectile, AbilityKind, Ability, EffectKind, EffectBase, MeteorStrikeEffect, BlackHoleEffect, RocketEffect, ShieldEffect, SunEffect, NuclearWasteEffect, SupernovaEffect, ForceFieldEffect, EventHorizonEffect, ActiveEffect, CollectibleKind, Collectible, HazardKind, Hazard, Ally, Particle, DeathAnim, GamePhase, UpgradeCategory, UpgradeTier, UpgradeDefinition, PlayerUpgrades, BossSelection, GameState, HoldRuntimeState, PlayerInput
+  types.ts                                   Vec2, Entity, ShipKind, HelperWeaponKind, EscapeModePhase, EscapeModeState, Ship, EnemyKind, EnemyModifier, MovementBehavior, DeathBehavior, BurningState, DashStage, DasherState, Enemy, ProjectileOwner, Projectile, AbilityKind, Ability, EffectKind, EffectBase, MeteorStrikeEffect, BlackHoleEffect, RocketEffect, ShieldEffect, SunEffect, NuclearWasteEffect, SupernovaEffect, ForceFieldEffect, EventHorizonEffect, RepulseFieldEffect, CometStormEffect, ActiveEffect, CollectibleKind, Collectible, HazardKind, Hazard, Ally, Particle, DeathAnim, GamePhase, UpgradeCategory, UpgradeTier, UpgradeDefinition, PlayerUpgrades, BossSelection, SpawnState, GameState, HoldRuntimeState, PlayerInput
   ultimates.ts                               COEXIST_ULTIMATES, ultimateShardCost, canPurchaseUltimate, purchaseUltimate, isBaseReplacedByUltimate
   upgrade-ids.ts                             UpgradeId
-  upgrades.ts                                SHIP_AND_POWER_UPGRADE_IDS, UNLOCK_UPGRADE_IDS, SLINGSHOT_UPGRADE_IDS, UPGRADE_DEFINITIONS, getWeaponModifierUpgrades, getAllyWeaponUnlocks, isWeaponFullyMaxed, UPGRADE_CATEGORY_LABELS, createInitialUpgrades, canPurchaseUpgrade, purchaseUpgrade, applyUpgradesToAbilities, syncUltimateAbilities, applyUpgradesToShip, applyUpgradesToPowerRegen, getStardustMultiplier, getSpaceMetalDropMultiplier, getPowerOrbMultiplier, getLevel, isUpgradeWave
+  upgrades.ts                                SHIP_AND_POWER_UPGRADE_IDS, UNLOCK_UPGRADE_IDS, SLINGSHOT_UPGRADE_IDS, UPGRADE_DEFINITIONS, getWeaponModifierUpgrades, getAllyWeaponUnlocks, BASE_ABILITY_CAP, getAbilityCap, countAbilitySlots, getAbilityLineUpgradeIds, sumStardustSpent, resetUpgradeTiers, SalvageRefund, getSalvageRefund, isWeaponFullyMaxed, UPGRADE_CATEGORY_LABELS, createInitialUpgrades, canPurchaseUpgrade, purchaseUpgrade, applyUpgradesToAbilities, syncUltimateAbilities, applyUpgradesToShip, applyUpgradesToPowerRegen, getStardustMultiplier, getSpaceMetalDropMultiplier, getPowerOrbMultiplier, getLevel, isUpgradeWave
 
 src/projects/NullSpace/engine/weapons/
   bullet.ts                                  bullet
@@ -321,16 +327,22 @@ src/projects/NullSpace/engine/weapons/
 src/projects/NullSpace/engine/world/
   enemy-modifiers.ts                         modifierChance, rollEnemyModifier, applyModifier
   enemy-scaling.ts                           waveStatScale, scaleEnemy
-  persistence.ts                             loadHighScore, saveHighScore, loadTutorialSeen, saveTutorialSeen, ChangelogCategory, ChangelogFilters, DEFAULT_CHANGELOG_FILTERS, CHANGELOG_CATEGORIES, loadChangelogFilters, saveChangelogFilters, SavedGame, saveGame, loadGame, clearSave
+  persistence.ts                             loadHighScore, saveHighScore, loadPlayerName, savePlayerName, loadTutorialSeen, saveTutorialSeen, ChangelogCategory, ChangelogFilters, DEFAULT_CHANGELOG_FILTERS, CHANGELOG_CATEGORIES, VisibleChangelogGroup, VisibleChangelogEntry, getVisibleChangelogEntries, loadChangelogFilters, saveChangelogFilters, SavedGame, saveGame, loadGame, clearSave
   time.ts                                    MAX_DT, GameTime, createGameTime, tickGameTime, pauseGameTime, resumeGameTime, setGameSpeed, resetGameClock
   wave-escalation.ts                         waveSpeedEscalation
-  waves.ts                                   isBossWave, WaveArchetype, getWaveArchetype, getWave, getWaveDelay, sectorProgress
+  waves.ts                                   emptySpawnState, isBossWave, WaveArchetype, getWaveArchetype, getWave, getWaveDelay, sectorProgress
 
 src/projects/NullSpace/
   icon-names.ts                              IconName
 
 src/projects/NullSpace/input/
   sling-gesture.ts                           SLING_MAX_DRAG_PX, SlingGesture, tryGrabShip, moveGesture, releaseGesture
+
+src/projects/NullSpace/leaderboard/
+  leaderboard.types.ts                       LeaderboardEntry, isLeaderboardEntry, isLeaderboardArray
+  score-submission.ts                        MAX_NAME_LENGTH, sanitizeName, buildScoreSubmission, submitScore
+  score-submission.types.ts                  ScoreSubmission
+  useLeaderboard.ts                          useLeaderboard
 
 src/projects/NullSpace/renderer/
   camera.ts                                  REFERENCE_VIEW, DEFAULT_GAME_ZOOM, Camera, createCamera, computeZoom, HUD_SCALE_MIN, HUD_SCALE_MAX, computeHudScale, isWithinView, updateCamera, centerCameraOn, worldToScreen, screenToWorld
@@ -348,7 +360,7 @@ src/projects/NullSpace/renderer/
 src/projects/NullSpace/
   reset-pinch-zoom.ts                        resetPinchZoom
   useCoarsePointer.ts                        useCoarsePointer
-  useNullSpace.ts                            GameUIState, getUnlockedAbilitiesInOrder, abilityKindForHotkey, selectionAfterUltimatePurchase, useNullSpace
+  useNullSpace.ts                            GameUIState, getUnlockedAbilitiesInOrder, abilityKindForHotkey, selectionAfterUltimatePurchase, selectionAfterSalvage, useNullSpace
   usePreventPinchZoom.ts                     usePreventPinchZoom
   usePseudoFullscreenChrome.ts               usePseudoFullscreenChrome
   useReducedMotion.ts                        useReducedMotion

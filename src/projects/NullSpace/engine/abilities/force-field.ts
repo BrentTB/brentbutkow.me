@@ -3,7 +3,8 @@ import { uid } from '../entities/entity-creator'
 import { AbilityKind, EffectKind } from '../types'
 import type { ForceFieldEffect, Vec2 } from '../types'
 import type { Camera } from '../../renderer/camera'
-import { worldToScreen } from '../../renderer/camera'
+import { renderDome } from './dome-render'
+import type { DomeStyle } from './dome-render'
 import {
   makeAbilityUpgrade,
   applyTierSum,
@@ -79,45 +80,25 @@ function tickForceField(field: ForceFieldEffect, ctx: EffectTickContext): Effect
   return tickDomeAbsorption(field, ctx, getForceFieldCurrentRadius(field), '#c8a8ff')
 }
 
+// Violet dome — distinct from the cool-blue base shield.
+const FORCE_FIELD_DOME_STYLE: DomeStyle = {
+  fadeIn: { cap: 0.3, frac: 0.1 },
+  fadeOut: { cap: 0.6, frac: 0.25 },
+  pulseFreq: 6,
+  fillStops: [
+    [0, 'rgba(190, 150, 255, 0.05)'],
+    [0.6, 'rgba(180, 120, 255, 0.12)'],
+    [1, 'rgba(150, 90, 255, 0.3)'],
+  ],
+  rim: { color: '200, 160, 255', alpha: 0.7, width: 2.5 },
+}
+
 function renderForceField(
   ctx: CanvasRenderingContext2D,
   field: ForceFieldEffect,
   camera: Camera
 ): void {
-  const screen = worldToScreen(field.pos, camera)
-  const fadeIn = Math.min(0.3, field.duration * 0.1)
-  const fadeOut = Math.min(0.6, field.duration * 0.25)
-  const fadeOutStart = field.duration - fadeOut
-  let alpha: number
-  if (field.elapsed < fadeIn) alpha = field.elapsed / fadeIn
-  else if (field.elapsed > fadeOutStart)
-    alpha = Math.max(0, (field.duration - field.elapsed) / fadeOut)
-  else alpha = 1
-
-  const pulse = 0.85 + Math.sin(field.elapsed * 6) * 0.15
-  const r = field.radius
-
-  ctx.save()
-  ctx.globalAlpha = alpha
-  ctx.translate(screen.x, screen.y)
-
-  // Violet dome — distinct from the cool-blue base shield.
-  const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, r)
-  gradient.addColorStop(0, 'rgba(190, 150, 255, 0.05)')
-  gradient.addColorStop(0.6, 'rgba(180, 120, 255, 0.12)')
-  gradient.addColorStop(1, 'rgba(150, 90, 255, 0.3)')
-  ctx.fillStyle = gradient
-  ctx.beginPath()
-  ctx.arc(0, 0, r, 0, Math.PI * 2)
-  ctx.fill()
-
-  ctx.strokeStyle = `rgba(200, 160, 255, ${0.7 * pulse})`
-  ctx.lineWidth = 2.5
-  ctx.beginPath()
-  ctx.arc(0, 0, r, 0, Math.PI * 2)
-  ctx.stroke()
-
-  ctx.restore()
+  renderDome(ctx, field, camera, FORCE_FIELD_DOME_STYLE)
 }
 
 export const forceFieldEffect: EffectDefinition = {

@@ -55,7 +55,7 @@ describe('devJumpToUpgrades', () => {
     const state = devJumpToUpgrades(playingState())
     expect(state.phase).toBe(GamePhase.upgradeScreen)
     expect(state.enemies).toEqual([])
-    expect(state.spawnQueue).toEqual([])
+    expect(state.spawn.queue).toEqual([])
     // Post-warp: the first wave of a sector (one past an upgrade boundary).
     expect((state.wave - 1) % WAVES_PER_LEVEL).toBe(0)
   })
@@ -66,8 +66,8 @@ describe('devJumpToBoss', () => {
     const before = playingState()
     const state = devJumpToBoss(before)
     expect(state.phase).toBe(GamePhase.playing)
-    expect(state.spawnQueue).toEqual([before.bossSelection.nextBoss])
-    expect(state.totalWaveEnemies).toBe(1)
+    expect(state.spawn.queue).toEqual([before.bossSelection.nextBoss])
+    expect(state.spawn.total).toBe(1)
     expect(state.bossSelection.nextBoss).not.toBe(before.bossSelection.nextBoss)
   })
 

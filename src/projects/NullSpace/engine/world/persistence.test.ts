@@ -5,6 +5,7 @@ import {
   loadChangelogFilters,
   saveChangelogFilters,
   DEFAULT_CHANGELOG_FILTERS,
+  getVisibleChangelogEntries,
   saveGame,
   loadGame,
   clearSave,
@@ -115,6 +116,41 @@ describe('saveChangelogFilters', () => {
   })
 })
 
+describe('getVisibleChangelogEntries', () => {
+  const sample = [
+    { version: '1.0.0', date: '2026-01-01', changes: { features: ['f1'], fixes: ['x1'] } },
+    { version: '0.9.0', date: '2025-12-01', changes: { balance: ['b1'] } },
+  ]
+  const allOff = {
+    breaking: false,
+    features: false,
+    balance: false,
+    fixes: false,
+    ui: false,
+    architecture: false,
+  }
+
+  // Regression: with every filter off the old inline logic returned null per
+  // entry, collapsing the changelog panel and trapping the filter menu. The
+  // empty list is what now drives the UI's empty state instead.
+  it('returns an empty list when all filters are off', () => {
+    expect(getVisibleChangelogEntries(sample, allOff)).toEqual([])
+  })
+
+  it('keeps only the enabled categories that have items', () => {
+    const result = getVisibleChangelogEntries(sample, { ...allOff, features: true })
+    expect(result).toHaveLength(1)
+    expect(result[0].version).toBe('1.0.0')
+    expect(result[0].groups.map((g) => g.key)).toEqual(['features'])
+    expect(result[0].groups[0].items).toEqual(['f1'])
+  })
+
+  it('drops entries left with no visible groups', () => {
+    const result = getVisibleChangelogEntries(sample, { ...allOff, balance: true })
+    expect(result.map((e) => e.version)).toEqual(['0.9.0'])
+  })
+})
+
 describe('saveGame / loadGame / clearSave', () => {
   it('round-trips the game state and rng state', () => {
     const state = createInitialState()
@@ -150,5 +186,66 @@ describe('saveGame / loadGame / clearSave', () => {
     const state = createInitialState()
     localStorage.setItem('null-space-save', JSON.stringify({ version: 999, rngState: 1, state }))
     expect(loadGame()).toBeNull()
+  })
+
+  it('migrates a pre-grouping save (flat spawn fields) into state.spawn', () => {
+    // Write a current-version save, then rewrite its state in the old flat shape
+    // (no `spawn`) to simulate a run saved before the spawn fields were grouped.
+    saveGame(createInitialState(), 1)
+    const raw = JSON.parse(localStorage.getItem('null-space-save')!) as {
+      version: number
+      rngState: number
+      state: Record<string, unknown>
+    }
+    const legacy: Record<string, unknown> = {
+      ...raw.state,
+      waveTimer: 5,
+      spawnQueue: ['drone'],
+      spawnTimer: 1,
+      totalWaveEnemies: 7,
+      spawnedInWave: 3,
+      waveElapsed: 2,
+    }
+    delete legacy.spawn
+    localStorage.setItem('null-space-save', JSON.stringify({ ...raw, state: legacy }))
+
+    expect(loadGame()?.state.spawn).toEqual({
+      waveTimer: 5,
+      queue: ['drone'],
+      timer: 1,
+      total: 7,
+      spawned: 3,
+      elapsed: 2,
+    })
+  })
+
+  // Guards the loadGame backfill: a save written before kills/salvageOfferUsed
+  // existed must load with those defaulted, not undefined — `kills` feeds the
+  // leaderboard submission and would otherwise become NaN once summed.
+  it('backfills kills and salvageOfferUsed on a save written before they existed', () => {
+    saveGame(createInitialState(), 1)
+    const raw = JSON.parse(localStorage.getItem('null-space-save')!) as {
+      version: number
+      rngState: number
+      state: Record<string, unknown>
+    }
+    delete raw.state.kills
+    delete raw.state.salvageOfferUsed
+    localStorage.setItem('null-space-save', JSON.stringify(raw))
+
+    const loaded = loadGame()
+    expect(loaded?.state.kills).toBe(0)
+    expect(loaded?.state.salvageOfferUsed).toBe(false)
+  })
+
+  it('round-trips kills and salvageOfferUsed', () => {
+    const state = createInitialState()
+    state.kills = 17
+    state.salvageOfferUsed = true
+    saveGame(state, 1)
+
+    const loaded = loadGame()
+    expect(loaded?.state.kills).toBe(17)
+    expect(loaded?.state.salvageOfferUsed).toBe(true)
   })
 })

@@ -1,4 +1,5 @@
 import type { GameState } from '../types'
+import type { ChangelogEntry } from '../../data'
 
 const STORAGE_KEY = 'null-space-high-score'
 
@@ -20,6 +21,26 @@ export function saveHighScore(score: number): void {
     if (score > current) {
       localStorage.setItem(STORAGE_KEY, String(Math.floor(score)))
     }
+  } catch {
+    // localStorage unavailable
+  }
+}
+
+// --- Leaderboard player name (prefilled on the game-over submit form) ---
+
+const PLAYER_NAME_KEY = 'null-space-player-name'
+
+export function loadPlayerName(): string {
+  try {
+    return localStorage.getItem(PLAYER_NAME_KEY) ?? ''
+  } catch {
+    return ''
+  }
+}
+
+export function savePlayerName(name: string): void {
+  try {
+    localStorage.setItem(PLAYER_NAME_KEY, name)
   } catch {
     // localStorage unavailable
   }
@@ -81,6 +102,37 @@ export const CHANGELOG_CATEGORIES: { key: ChangelogCategory; label: string }[] =
   { key: ChangelogCategory.architecture, label: 'Internal Architecture' },
 ]
 
+export type VisibleChangelogGroup = { key: ChangelogCategory; label: string; items: string[] }
+export type VisibleChangelogEntry = {
+  version: string
+  date: string
+  groups: VisibleChangelogGroup[]
+}
+
+// Projects the changelog through the active filters: keeps only categories that
+// are enabled AND have items, and drops entries left with nothing. Returning []
+// (all filters off) is what the UI uses to show its empty state — the inline
+// version of this once returned null per entry, collapsing the panel.
+export function getVisibleChangelogEntries(
+  entries: ChangelogEntry[],
+  filters: ChangelogFilters
+): VisibleChangelogEntry[] {
+  const result: VisibleChangelogEntry[] = []
+  for (const entry of entries) {
+    const groups: VisibleChangelogGroup[] = []
+    for (const { key, label } of CHANGELOG_CATEGORIES) {
+      const items = entry.changes[key]
+      if (filters[key] && items && items.length > 0) {
+        groups.push({ key, label, items })
+      }
+    }
+    if (groups.length > 0) {
+      result.push({ version: entry.version, date: entry.date, groups })
+    }
+  }
+  return result
+}
+
 function isChangelogFilters(value: unknown): value is ChangelogFilters {
   if (!value || typeof value !== 'object') return false
   const obj = value as Record<string, unknown>
@@ -120,6 +172,8 @@ const SAVE_KEY = 'null-space-save'
 // v2: world became a torus (corridor/world dims + positions changed).
 // v3: "You Are the Weapon" rework — ship guns removed, Carrier gone, plus a new
 // waveElapsed field; old runs would be inconsistent, so they're discarded.
+// Later additions (kills, salvageOfferUsed, the grouped `spawn` object) stay on
+// v3 — loadGame backfills them, so they don't break old saves.
 const SAVE_VERSION = 3
 
 export type SavedGame = {
@@ -146,7 +200,37 @@ export function loadGame(): SavedGame | null {
     if (raw === null) return null
     const parsed: unknown = JSON.parse(raw)
     if (!isSavedGame(parsed) || parsed.version !== SAVE_VERSION) return null
-    return parsed
+    // Backfill fields added after this save was written, so resuming an older
+    // run doesn't start from `undefined` (which would become NaN once summed).
+    const savedState = parsed.state as Omit<GameState, 'kills' | 'salvageOfferUsed' | 'spawn'> & {
+      kills?: number
+      salvageOfferUsed?: boolean
+      spawn?: GameState['spawn']
+      // Legacy flat spawn fields (pre-grouping saves) — migrated into `spawn`.
+      waveTimer?: number
+      spawnQueue?: GameState['spawn']['queue']
+      spawnTimer?: number
+      totalWaveEnemies?: number
+      spawnedInWave?: number
+      waveElapsed?: number
+    }
+    const spawn: GameState['spawn'] = savedState.spawn ?? {
+      waveTimer: savedState.waveTimer ?? 0,
+      queue: savedState.spawnQueue ?? [],
+      timer: savedState.spawnTimer ?? 0,
+      total: savedState.totalWaveEnemies ?? 0,
+      spawned: savedState.spawnedInWave ?? 0,
+      elapsed: savedState.waveElapsed ?? 0,
+    }
+    return {
+      ...parsed,
+      state: {
+        ...savedState,
+        kills: savedState.kills ?? 0,
+        salvageOfferUsed: savedState.salvageOfferUsed ?? false,
+        spawn,
+      },
+    }
   } catch {
     return null
   }

@@ -56,8 +56,7 @@ describe('shield damage pipeline', () => {
     const shipPos = state.ship.pos
     return {
       ...state,
-      spawnQueue: [],
-      waveTimer: 0,
+      spawn: { ...state.spawn, queue: [], waveTimer: 0 },
       projectiles: [],
       ship: { ...state.ship, shield: 50, maxShield: 50, shieldCooldownRemaining: 0, ...overrides },
       enemies: [{ ...createEnemy(EnemyKind.drone, { x: shipPos.x, y: shipPos.y }) }],
@@ -95,8 +94,7 @@ describe('shield regen', () => {
     state = {
       ...state,
       phase: GamePhase.playing,
-      spawnQueue: [],
-      waveTimer: 0,
+      spawn: { ...state.spawn, queue: [], waveTimer: 0 },
       enemies: [],
       ship: {
         ...state.ship,
@@ -116,8 +114,7 @@ describe('shield regen', () => {
     state = {
       ...state,
       phase: GamePhase.playing,
-      spawnQueue: [],
-      waveTimer: 0,
+      spawn: { ...state.spawn, queue: [], waveTimer: 0 },
       enemies: [],
       ship: {
         ...state.ship,
@@ -137,8 +134,7 @@ describe('shield regen', () => {
     state = {
       ...state,
       phase: GamePhase.playing,
-      spawnQueue: [],
-      waveTimer: 0,
+      spawn: { ...state.spawn, queue: [], waveTimer: 0 },
       enemies: [],
       ship: {
         ...state.ship,
@@ -215,8 +211,7 @@ describe("projectile-enemy collision — dead enemies don't absorb extra bullets
 
     state = {
       ...state,
-      spawnQueue: [],
-      waveTimer: 0,
+      spawn: { ...state.spawn, queue: [], waveTimer: 0 },
       enemies: [enemy],
       projectiles: [projA, projB],
     }
@@ -254,8 +249,7 @@ describe("projectile-enemy collision — dead enemies don't absorb extra bullets
 
     state = {
       ...state,
-      spawnQueue: [],
-      waveTimer: 0,
+      spawn: { ...state.spawn, queue: [], waveTimer: 0 },
       enemies: [enemy],
       projectiles: [projA, projB],
     }
@@ -297,8 +291,7 @@ describe("projectile-enemy collision — dead enemies don't absorb extra bullets
 
     state = {
       ...state,
-      spawnQueue: [],
-      waveTimer: 0,
+      spawn: { ...state.spawn, queue: [], waveTimer: 0 },
       enemies: [enemy],
       projectiles: [projA, projB],
     }
@@ -345,8 +338,7 @@ describe("projectile-enemy collision — dead enemies don't absorb extra bullets
 
     state = {
       ...state,
-      spawnQueue: [],
-      waveTimer: 0,
+      spawn: { ...state.spawn, queue: [], waveTimer: 0 },
       enemies: [enemyA, enemyB],
       projectiles: [projA, projB],
     }
@@ -374,8 +366,7 @@ describe('ship has no auto-attack', () => {
     ]
     state = {
       ...state,
-      spawnQueue: [],
-      waveTimer: 0,
+      spawn: { ...state.spawn, queue: [], waveTimer: 0 },
       projectiles: [],
       enemies,
     }

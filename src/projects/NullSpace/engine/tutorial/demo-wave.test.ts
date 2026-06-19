@@ -30,8 +30,8 @@ describe('startTutorialRun', () => {
 
   it('keeps the wave economy off so wave-complete can never fire', () => {
     const state = run()
-    expect(state.totalWaveEnemies).toBe(0)
-    expect(state.spawnQueue).toEqual([])
+    expect(state.spawn.total).toBe(0)
+    expect(state.spawn.queue).toEqual([])
   })
 
   it('lowers the power pool so a few casts drain it', () => {

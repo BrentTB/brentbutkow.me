@@ -17,6 +17,8 @@ export const IconName = {
   solarFlare: 'solarFlare',
   shieldRegen: 'shieldRegen',
   escape: 'escape',
+  repulse: 'repulse',
+  cometStorm: 'cometStorm',
   bullet: 'bullet',
   laser: 'laser',
   missile: 'missile',

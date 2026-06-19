@@ -154,6 +154,13 @@
   }
 }
 
+.changelogEmpty {
+  margin: 4px 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
 .version {
   margin-bottom: 16px;
 

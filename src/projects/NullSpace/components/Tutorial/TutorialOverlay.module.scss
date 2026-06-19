@@ -38,11 +38,13 @@
 .footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  // Finish/Next always sits on the right; Skip (when shown) is pushed to the left.
+  justify-content: flex-end;
   gap: 12px;
 }
 
 .skip {
+  margin-right: auto;
   font-family: var(--font-mono);
   font-size: 0.72rem;
   color: var(--text-secondary);

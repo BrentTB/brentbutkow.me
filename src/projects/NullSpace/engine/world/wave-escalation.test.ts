@@ -18,6 +18,16 @@ describe('waveSpeedEscalation', () => {
     expect(waveSpeedEscalation(100000)).toBe(WAVE_ESCALATION.maxMult)
   })
 
+  it('gives boss waves a longer grace before ramping', () => {
+    // Boss waves are long fights — past the normal grace, a boss wave is still
+    // flat while a regular wave has already started speeding up.
+    const elapsed = WAVE_ESCALATION.gracePeriod + 10
+    expect(waveSpeedEscalation(elapsed, false)).toBeGreaterThan(1)
+    expect(waveSpeedEscalation(elapsed, true)).toBe(1)
+    expect(waveSpeedEscalation(WAVE_ESCALATION.bossGracePeriod, true)).toBe(1)
+    expect(waveSpeedEscalation(WAVE_ESCALATION.bossGracePeriod + 10, true)).toBeGreaterThan(1)
+  })
+
   it('keeps escalated enemies below a slingshot fling so the player can escape', () => {
     // A drone escalated to the cap stays under a full slingshot fling, so the
     // player can always outrun a stalled wave.

@@ -315,6 +315,8 @@ export const EffectKind = {
   supernova: 'supernova',
   forceField: 'forceField',
   eventHorizon: 'eventHorizon',
+  repulseField: 'repulseField',
+  cometStorm: 'cometStorm',
 } as const
 export type EffectKind = (typeof EffectKind)[keyof typeof EffectKind]
 
@@ -423,6 +425,37 @@ export type EventHorizonEffect = EffectBase & {
   banishDistance: number
 }
 
+// Repulse (space-metal ability). A dome centred on the ship that follows it,
+// grows from `startRadius` to `maxRadius` over `growDuration`, and absorbs enemy
+// fire crossing it. Enemies it catches are hurled outward at `knockback` via the
+// same constraint path as the Force Field (applyShieldConstraints) — a real
+// launch, not a per-frame nudge. `bumpDamage` is 0 (pure defensive) and
+// `grandfatheredEnemyIds` stays null so it launches every enemy, not just newcomers.
+export type RepulseFieldEffect = EffectBase & {
+  kind: typeof EffectKind.repulseField
+  radius: number
+  startRadius: number
+  maxRadius: number
+  growDuration: number
+  knockback: number
+  bumpDamage: number
+  grandfatheredEnemyIds: string[] | null
+}
+
+// Comet Storm (space-metal ability). A ship-centred emitter: every
+// `spawnInterval` it drops `cometsPerWave` meteorite strikes at random points
+// within `spreadRadius` of the ship (so the rain follows the player), each for
+// `cometDamage` over `cometAoeRadius`. The strikes are ordinary MeteorStrikeEffects.
+export type CometStormEffect = EffectBase & {
+  kind: typeof EffectKind.cometStorm
+  spawnTimer: number
+  spawnInterval: number
+  spreadRadius: number
+  cometsPerWave: number
+  cometDamage: number
+  cometAoeRadius: number
+}
+
 export type ActiveEffect =
   | MeteorStrikeEffect
   | BlackHoleEffect
@@ -433,6 +466,8 @@ export type ActiveEffect =
   | SupernovaEffect
   | ForceFieldEffect
   | EventHorizonEffect
+  | RepulseFieldEffect
+  | CometStormEffect
 
 export const CollectibleKind = {
   powerOrb: 'powerOrb',
@@ -569,36 +604,91 @@ export type PlayerUpgrades = Record<UpgradeId, { currentTier: number }>
 // pre-rolled upcoming boss (visible/settable in the dev console).
 export type BossSelection = { nextBoss: EnemyKind; pool: EnemyKind[] }
 
+// Wave-spawning bookkeeping — the spawner's working set. Grouped so the spawner
+// system takes/returns one cohesive slice instead of six loose fields, and so
+// `state` reads as ~8 concerns instead of a flat wall. Reset per wave.
+export type SpawnState = {
+  // Inter-wave delay countdown; while > 0 the next wave's enemies haven't begun.
+  waveTimer: number
+  // Enemy kinds still waiting to spawn for the current wave.
+  queue: EnemyKind[]
+  // Seconds until the next enemy in the queue spawns.
+  timer: number
+  // Total enemies the current wave will spawn (drives the HUD progress bar).
+  total: number
+  // How many of `total` have spawned so far.
+  spawned: number
+  // Seconds since the wave's enemies began spawning. Drives soft stall-escalation
+  // (enemies speed up the longer a wave drags).
+  elapsed: number
+}
+
 export type GameState = {
+  // --- Run / phase ---
   phase: GamePhase
   shipKind: ShipKind
+
+  // --- Entities ---
   ship: Ship
   enemies: Enemy[]
   projectiles: Projectile[]
   allies: Ally[]
-  abilities: Ability[]
   activeEffects: ActiveEffect[]
   collectibles: Collectible[]
   particles: Particle[]
   // Cosmetic enemy-death disintegrations (see DeathAnim).
   deathAnims: DeathAnim[]
-  // Seconds left in the player-death explosion (GamePhase.dying). 0 elsewhere;
-  // counts down, then the phase flips to gameOver.
-  deathTimer: number
+  // Scattered mine clusters. Not part of the kill/wave economy.
+  hazards: Hazard[]
+
+  // --- Progress / score ---
   wave: number
   level: number
   score: number
   highScore: number
   isNewHighScore: boolean
+  // Cumulative enemies destroyed this run — shown on the game-over screen and
+  // sent with the leaderboard score so the server can sanity-check it.
+  kills: number
+  // Seconds left in the player-death explosion (GamePhase.dying). 0 elsewhere;
+  // counts down, then the phase flips to gameOver.
+  deathTimer: number
+
+  // --- Economy ---
   currency: number
   spaceMetal: number
   // Run-scoped boss material — the gating currency for Ultimate purchases.
   // Earned 1 per boss kill, spent (with stardust + space metal) on ultimates.
   singularityShard: number
+
+  // --- Power ---
   power: number
   maxPower: number
   powerRegen: number
+
+  // --- Loadout / upgrades ---
+  abilities: Ability[]
   upgrades: PlayerUpgrades
+  // Per-ability runtime state for hold abilities. Keyed by AbilityKind. Each
+  // entry tracks {active, timer, target}. Inactive abilities are simply absent.
+  holdStates: Partial<Record<AbilityKind, HoldRuntimeState>>
+  // Up to 2 randomly-picked locked weapons offered on the current upgrade
+  // screen. Buying any one clears the array — the player gets one unlock per
+  // level-up at most. Empty between upgrade screens.
+  levelUpWeaponOffers: AbilityKind[]
+  // True once a Salvage has re-rolled the offers this shop visit. The re-roll
+  // fires only on the FIRST slot-freeing salvage, so a shop shows at most two
+  // offer sets — stops salvage→swap→salvage fishing. Reset on shop entry.
+  salvageOfferUsed: boolean
+  // Helper-weapon kinds the player has unlocked this run. Starts with bullet;
+  // every successful helper-weapon unlock pushes its kind here. Resets per run.
+  unlockedWeapons: HelperWeaponKind[]
+  // Ultimate ability kinds purchased this run. Drives the escalating shard cost
+  // (N = ultimatesOwned.length + 1) and replaces the base in the hotbar/shop.
+  // Resets per run.
+  ultimatesOwned: AbilityKind[]
+
+  // --- World / sector ---
   // Active world bounds — the torus size, set on each sector reset.
   worldSize: Vec2
   // Sector "forward" unit axis (fixed to FORWARD_DIR this version).
@@ -611,30 +701,11 @@ export type GameState = {
   // Seconds left in the warp screen flash. 0 during the fly-into-portal flight;
   // set once the ship reaches the portal, then the jump completes when it hits 0.
   warpFlashTimer: number
-  // Scattered mine clusters. Not part of the kill/wave economy.
-  hazards: Hazard[]
-  waveTimer: number
-  spawnQueue: EnemyKind[]
-  spawnTimer: number
-  totalWaveEnemies: number
-  spawnedInWave: number
-  // Seconds since the current wave's enemies began spawning. Drives soft
-  // stall-escalation (enemies speed up the longer a wave drags). Reset per wave.
-  waveElapsed: number
-  // Per-ability runtime state for hold abilities. Keyed by AbilityKind. Each
-  // entry tracks {active, timer, target}. Inactive abilities are simply absent.
-  holdStates: Partial<Record<AbilityKind, HoldRuntimeState>>
-  // Up to 2 randomly-picked locked weapons offered on the current upgrade
-  // screen. Buying any one clears the array — the player gets one unlock per
-  // level-up at most. Empty between upgrade screens.
-  levelUpWeaponOffers: AbilityKind[]
-  // Helper-weapon kinds the player has unlocked this run. Starts with bullet;
-  // every successful helper-weapon unlock pushes its kind here. Resets per run.
-  unlockedWeapons: HelperWeaponKind[]
-  // Ultimate ability kinds purchased this run. Drives the escalating shard cost
-  // (N = ultimatesOwned.length + 1) and replaces the base in the hotbar/shop.
-  // Resets per run.
-  ultimatesOwned: AbilityKind[]
+
+  // --- Wave spawning ---
+  spawn: SpawnState
+
+  // --- Misc run state ---
   // Accumulator that drives Escape Mode's flame-trail particle emission. Resets
   // to 0 when escape ends.
   escapeTrailAccumulator: number

@@ -34,6 +34,7 @@ import {
   updateCollectibles,
 } from './systems/collectibles'
 import { applyShieldConstraints } from './abilities/shield'
+import { recentreRepulseFields } from './spaceMetalAbilities/repulse'
 import { updateActiveEffects } from './systems/effects'
 import { updateBurningEnemies } from './systems/burning'
 import { updateModifiedEnemies } from './systems/enemy-modifiers-tick'
@@ -64,17 +65,22 @@ import {
   applyUpgradesToPowerRegen,
   applyUpgradesToShip,
   canPurchaseUpgrade,
+  countAbilitySlots,
   createInitialUpgrades,
+  getAbilityCap,
+  getAbilityLineUpgradeIds,
   getLevel,
   getPowerOrbMultiplier,
+  getSalvageRefund,
   getSpaceMetalDropMultiplier,
   getStardustMultiplier,
   isUpgradeWave,
   purchaseUpgrade,
+  resetUpgradeTiers,
   syncUltimateAbilities,
 } from './upgrades'
 import { purchaseUltimate } from './ultimates'
-import { getWave, getWaveDelay, isBossWave } from './world/waves'
+import { emptySpawnState, getWave, getWaveDelay, isBossWave } from './world/waves'
 import { waveSpeedEscalation } from './world/wave-escalation'
 import { generateHazardField, updateHazards } from './systems/hazards'
 import { advanceBossSelection, createBossSelection } from './bosses/boss-selection'
@@ -111,6 +117,7 @@ export function createInitialState(): GameState {
     wave: 0,
     level: 0,
     score: 0,
+    kills: 0,
     highScore: loadHighScore(),
     isNewHighScore: false,
     currency: 0,
@@ -126,14 +133,10 @@ export function createInitialState(): GameState {
     warpTimer: 0,
     warpFlashTimer: 0,
     hazards: [],
-    waveTimer: 0,
-    spawnQueue: [],
-    spawnTimer: 0,
-    totalWaveEnemies: 0,
-    spawnedInWave: 0,
-    waveElapsed: 0,
+    spawn: emptySpawnState(),
     holdStates: {},
     levelUpWeaponOffers: [],
+    salvageOfferUsed: false,
     unlockedWeapons: [...INITIAL_UNLOCKED_WEAPONS],
     ultimatesOwned: [],
     escapeTrailAccumulator: 0,
@@ -180,6 +183,7 @@ export function startGame(state: GameState, shipKind: ShipKind): GameState {
     wave: 0,
     level: 0,
     score: 0,
+    kills: 0,
     currency: 0,
     spaceMetal: 0,
     singularityShard: 0,
@@ -193,16 +197,12 @@ export function startGame(state: GameState, shipKind: ShipKind): GameState {
     warpTimer: 0,
     warpFlashTimer: 0,
     hazards: [],
-    waveTimer: 0,
-    spawnQueue: [],
-    spawnTimer: 0,
-    totalWaveEnemies: 0,
-    spawnedInWave: 0,
-    waveElapsed: 0,
+    spawn: emptySpawnState(),
     highScore: loadHighScore(),
     isNewHighScore: false,
     holdStates: {},
     levelUpWeaponOffers: [],
+    salvageOfferUsed: false,
     unlockedWeapons: [...INITIAL_UNLOCKED_WEAPONS],
     ultimatesOwned: [],
     escapeTrailAccumulator: 0,
@@ -216,12 +216,17 @@ export function startGame(state: GameState, shipKind: ShipKind): GameState {
 // same seed across level-ups in one run.
 export function rollLevelUpWeaponOffers(
   abilities: GameState['abilities'],
-  count = 2
+  cap: number,
+  opts: { exclude?: AbilityKind; count?: number } = {}
 ): GameState['levelUpWeaponOffers'] {
+  // At the slot cap, stop offering abilities — the player must Salvage one for room.
+  if (countAbilitySlots(abilities) >= cap) return []
+  const count = opts.count ?? 2
   // Ultimate rows start locked too, but they're bought via the shard economy,
-  // never offered as a level-up weapon — exclude them here.
+  // never offered as a level-up weapon — exclude them here. opts.exclude skips a
+  // just-salvaged ability for this one roll.
   const locked = abilities
-    .filter((a) => !a.unlocked && BASE_KIND_OF[a.kind] === undefined)
+    .filter((a) => !a.unlocked && BASE_KIND_OF[a.kind] === undefined && a.kind !== opts.exclude)
     .map((a) => a.kind)
   const offers: GameState['levelUpWeaponOffers'] = []
   for (let i = 0; i < count && locked.length > 0; i++) {
@@ -279,12 +284,14 @@ function beginWave(state: GameState): GameState {
   return {
     ...state,
     phase: GamePhase.playing,
-    waveTimer: getWaveDelay(state.wave),
-    spawnQueue: queue,
-    spawnTimer: 0,
-    totalWaveEnemies: queue.length,
-    spawnedInWave: 0,
-    waveElapsed: 0,
+    spawn: {
+      waveTimer: getWaveDelay(state.wave),
+      queue,
+      timer: 0,
+      total: queue.length,
+      spawned: 0,
+      elapsed: 0,
+    },
     bossSelection: bossWave ? advanceBossSelection(state.bossSelection) : state.bossSelection,
   }
 }
@@ -344,6 +351,59 @@ export function applyUltimatePurchaseToState(state: GameState, baseKind: Ability
       applyUpgradesToAbilities(purchased.abilities, purchased.upgrades),
       purchased.ultimatesOwned
     ),
+  }
+}
+
+// Salvage an ability line: reset its upgrades + drop its ultimate, refund 50% of
+// the Stardust spent and 100% of the Space Metal + Shards (premium boss currencies),
+// and — when a slot frees — re-roll the level-up offers, skipping the salvaged kind
+// for that one roll. Meteorite has no unlock upgrade, so salvaging it strips only its
+// modifiers/ultimate and it stays unlocked — the player can never reach zero abilities.
+export function salvageAbility(state: GameState, baseKind: AbilityKind): GameState {
+  const refund = getSalvageRefund(state.upgrades, state.ultimatesOwned, baseKind)
+  if (!refund.reclaimable) return state
+
+  const ids = getAbilityLineUpgradeIds(baseKind)
+  const upgrades = resetUpgradeTiers(state.upgrades, ids)
+  const ultimatesOwned = state.ultimatesOwned.filter((u) => BASE_KIND_OF[u] !== baseKind)
+  let abilities = syncUltimateAbilities(
+    applyUpgradesToAbilities(state.abilities, upgrades),
+    ultimatesOwned
+  )
+  // applyUpgradesToAbilities leaves unlockedAt set even after unlock flips false, but
+  // the hotbar order keys on unlockedAt — so clear it for a removed line. Meteorite
+  // stays unlocked (no unlock upgrade), so this never touches it.
+  abilities = abilities.map((a) =>
+    a.kind === baseKind && !a.unlocked ? { ...a, unlockedAt: null } : a
+  )
+
+  // Re-lock any ally weapons the salvaged Helper line had unlocked.
+  const strippedWeapons = new Set(
+    ids
+      .map((id) => getHelperWeaponForUnlockUpgrade(id))
+      .filter((k): k is HelperWeaponKind => k !== undefined)
+  )
+  const unlockedWeapons = strippedWeapons.size
+    ? state.unlockedWeapons.filter((w) => !strippedWeapons.has(w))
+    : state.unlockedWeapons
+
+  const slotFreed = countAbilitySlots(abilities) < countAbilitySlots(state.abilities)
+  // Re-roll only on the first slot-freeing salvage this shop visit — so a shop
+  // shows at most two offer sets and you can't salvage→swap→salvage to fish.
+  const reroll = slotFreed && !state.salvageOfferUsed
+  return {
+    ...state,
+    upgrades,
+    ultimatesOwned,
+    abilities,
+    unlockedWeapons,
+    currency: state.currency + refund.stardust,
+    spaceMetal: state.spaceMetal + refund.spaceMetal,
+    singularityShard: state.singularityShard + refund.singularityShard,
+    salvageOfferUsed: reroll ? true : state.salvageOfferUsed,
+    levelUpWeaponOffers: reroll
+      ? rollLevelUpWeaponOffers(abilities, getAbilityCap(), { exclude: baseKind })
+      : state.levelUpWeaponOffers,
   }
 }
 
@@ -425,7 +485,9 @@ export function completeWarp(state: GameState): GameState {
   return {
     ...advanced,
     phase: GamePhase.upgradeScreen,
-    levelUpWeaponOffers: rollLevelUpWeaponOffers(advanced.abilities),
+    levelUpWeaponOffers: rollLevelUpWeaponOffers(advanced.abilities, getAbilityCap()),
+    // Fresh shop → the one salvage re-roll is available again.
+    salvageOfferUsed: false,
   }
 }
 
@@ -554,17 +616,22 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     particles,
     deathAnims,
     score,
+    kills,
     power,
     currency,
     spaceMetal,
     singularityShard,
     hazards,
-    spawnQueue,
-    spawnTimer,
-    spawnedInWave,
-    waveElapsed,
   } = state
-  let { waveTimer } = state
+  // Spawn bookkeeping lives in state.spawn; alias to flat locals so the loop body
+  // and the spawner interface stay unchanged, then rebuild state.spawn on return.
+  let {
+    waveTimer,
+    queue: spawnQueue,
+    timer: spawnTimer,
+    spawned: spawnedInWave,
+    elapsed: waveElapsed,
+  } = state.spawn
   const { maxPower, powerRegen } = state
   let holdStates = state.holdStates
 
@@ -603,7 +670,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   // Soft stall-escalation: time-since-wave-start drives a rising enemy-speed
   // multiplier, so parking and letting enemies trail the ship forever gets worse.
   waveElapsed = waveElapsed + dt
-  const waveSpeedMult = waveSpeedEscalation(waveElapsed)
+  const waveSpeedMult = waveSpeedEscalation(waveElapsed, isBossWave(state.wave))
 
   // --- Boss AI (onSpawn + phase advance + drone spawning + self-motion) ---
   const bossResult = updateBossAI(enemies, dt, { shipPos: ship.pos, worldSize: state.worldSize })
@@ -705,6 +772,9 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
 
   // --- Enemy movement (pursues nearest of ship or ally) ---
   enemies = updateEnemyMovement(enemies, ship, allies, dt, waveSpeedMult)
+  // Repulse fields ride the ship: re-centre them on its final position this frame
+  // so the knockback below (and the render) don't trail a frame behind its movement.
+  activeEffects = recentreRepulseFields(activeEffects, ship.pos)
   // Shields block new entries — bounce non-grandfathered enemies back to the
   // boundary after they've moved this frame. Force fields also burn on contact.
   const shieldResult = applyShieldConstraints(activeEffects, enemies, dt)
@@ -839,6 +909,9 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   if (killedThisFrame.length > 0) {
     deathAnims = [...deathAnims, ...killedThisFrame.map(createDeathAnim)]
   }
+  // Tally every enemy destroyed this frame — killedThisFrame is the dedup'd
+  // all-sources kill list, so kills stays coherent with the score awarded above.
+  kills += killedThisFrame.length
 
   // --- Spawn collectibles from kills ---
   // Ship-collision deaths drop nothing — no reward for letting an enemy reach you.
@@ -963,23 +1036,27 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       particles: [...particles, ...wreck],
       deathAnims,
       score,
+      kills,
       power,
       currency,
       spaceMetal,
       singularityShard,
       hazards,
-      waveTimer: 0,
-      spawnQueue,
-      spawnTimer,
-      spawnedInWave,
-      waveElapsed,
+      spawn: {
+        waveTimer: 0,
+        queue: spawnQueue,
+        timer: spawnTimer,
+        total: state.spawn.total,
+        spawned: spawnedInWave,
+        elapsed: waveElapsed,
+      },
       holdStates: {},
       escapeTrailAccumulator,
     }
   }
 
   // --- Check wave complete ---
-  if (spawnQueue.length === 0 && enemies.length === 0 && state.totalWaveEnemies > 0) {
+  if (spawnQueue.length === 0 && enemies.length === 0 && state.spawn.total > 0) {
     const cleared: GameState = {
       ...state,
       phase: GamePhase.waveComplete,
@@ -993,15 +1070,19 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       particles,
       deathAnims,
       score,
+      kills,
       power,
       currency,
       spaceMetal,
       singularityShard,
-      waveTimer: 0,
-      spawnQueue,
-      spawnTimer,
-      spawnedInWave,
-      waveElapsed,
+      spawn: {
+        waveTimer: 0,
+        queue: spawnQueue,
+        timer: spawnTimer,
+        total: state.spawn.total,
+        spawned: spawnedInWave,
+        elapsed: waveElapsed,
+      },
       holdStates: {},
       hazards,
       escapeTrailAccumulator,
@@ -1023,15 +1104,19 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     particles,
     deathAnims,
     score,
+    kills,
     power,
     currency,
     spaceMetal,
     singularityShard,
-    waveTimer,
-    spawnQueue,
-    spawnTimer,
-    spawnedInWave,
-    waveElapsed,
+    spawn: {
+      waveTimer,
+      queue: spawnQueue,
+      timer: spawnTimer,
+      total: state.spawn.total,
+      spawned: spawnedInWave,
+      elapsed: waveElapsed,
+    },
     holdStates,
     hazards,
     escapeTrailAccumulator,

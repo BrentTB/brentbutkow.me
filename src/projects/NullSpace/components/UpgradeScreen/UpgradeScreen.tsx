@@ -4,7 +4,12 @@ import { ULTIMATE_KIND_OF } from '../../engine/abilities'
 import { AbilityKind, UpgradeCategory } from '../../engine/types'
 import type { UpgradeId } from '../../engine/upgrade-ids'
 import type { GameUIState } from '../../useNullSpace'
-import { UPGRADE_CATEGORY_LABELS, UPGRADE_DEFINITIONS } from '../../engine/upgrades'
+import {
+  UPGRADE_CATEGORY_LABELS,
+  UPGRADE_DEFINITIONS,
+  countAbilitySlots,
+  getAbilityCap,
+} from '../../engine/upgrades'
 import { UpgradeCard } from './UpgradeCard'
 import { WeaponDetail } from './WeaponDetail'
 import { WeaponsList } from './WeaponsList'
@@ -22,6 +27,7 @@ type UpgradeScreenProps = {
   uiState: GameUIState
   onPurchase: (upgradeId: UpgradeId) => void
   onPurchaseUltimate: (baseKind: AbilityKind) => void
+  onSalvageAbility: (baseKind: AbilityKind) => void
   onContinue: () => void
 }
 
@@ -29,6 +35,7 @@ export function UpgradeScreen({
   uiState,
   onPurchase,
   onPurchaseUltimate,
+  onSalvageAbility,
   onContinue,
 }: UpgradeScreenProps) {
   const [activeTab, setActiveTab] = useState<UpgradeCategory>(UpgradeCategory.weapons)
@@ -59,6 +66,9 @@ export function UpgradeScreen({
         {SINGULARITY_SHARD_NAME}:{' '}
         <span className={styles.shardValue}>◆ {uiState.singularityShard}</span>
       </p>
+      <p className={styles.slotsDisplay}>
+        Ability slots: {countAbilitySlots(uiState.abilities)} / {getAbilityCap()}
+      </p>
 
       <div className={styles.tabBar}>
         {upgradesByCategory.map((group) => (
@@ -86,6 +96,7 @@ export function UpgradeScreen({
             onBack={() => setSelectedWeapon(null)}
             onPurchase={onPurchase}
             onPurchaseUltimate={handlePurchaseUltimate}
+            onSalvage={onSalvageAbility}
           />
         )}
         {activeTab === UpgradeCategory.ship && (

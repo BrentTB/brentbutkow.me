@@ -7,7 +7,8 @@ import {
 } from './game-loop'
 import { advanceBossSelection } from './bosses/boss-selection'
 import { createShip } from './entities/entity-creator'
-import { getLevel } from './upgrades'
+import { getAbilityCap, getLevel } from './upgrades'
+import { emptySpawnState } from './world/waves'
 import { AbilityKind, EnemyKind, GamePhase, ShipKind } from './types'
 import type { GameState } from './types'
 
@@ -99,12 +100,9 @@ export function devJumpToUpgrades(state: GameState): GameState {
     enemies: [],
     projectiles: [],
     activeEffects: [],
-    spawnQueue: [],
-    spawnTimer: 0,
-    spawnedInWave: 0,
-    totalWaveEnemies: 0,
-    waveTimer: 0,
-    levelUpWeaponOffers: rollLevelUpWeaponOffers(state.abilities),
+    spawn: emptySpawnState(),
+    levelUpWeaponOffers: rollLevelUpWeaponOffers(state.abilities, getAbilityCap()),
+    salvageOfferUsed: false,
   })
 }
 
@@ -123,11 +121,14 @@ export function devJumpToBoss(state: GameState): GameState {
     projectiles: [],
     activeEffects: [],
     collectibles: [],
-    spawnQueue: [state.bossSelection.nextBoss],
-    spawnTimer: 0,
-    totalWaveEnemies: 1,
-    spawnedInWave: 0,
-    waveTimer: 0,
+    spawn: {
+      waveTimer: 0,
+      queue: [state.bossSelection.nextBoss],
+      timer: 0,
+      total: 1,
+      spawned: 0,
+      elapsed: 0,
+    },
     bossSelection: advanceBossSelection(state.bossSelection),
   })
 }
