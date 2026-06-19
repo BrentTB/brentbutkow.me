@@ -21,6 +21,7 @@ type GameOverlayProps = {
   onSelectShip: (kind: ShipKind) => void
   onNextWave: () => void
   onRestart: () => void
+  onSubmitScore: (name: string) => Promise<boolean>
   onPurchaseUpgrade: (upgradeId: UpgradeId) => void
   onPurchaseUltimate: (baseKind: AbilityKind) => void
   onFinishUpgrades: () => void
@@ -42,6 +43,7 @@ export function GameOverlay({
   onSelectShip,
   onNextWave,
   onRestart,
+  onSubmitScore,
   onPurchaseUpgrade,
   onPurchaseUltimate,
   onFinishUpgrades,
@@ -135,8 +137,10 @@ export function GameOverlay({
             score={uiState.score}
             highScore={uiState.highScore}
             isNewHighScore={uiState.isNewHighScore}
+            kills={uiState.kills}
             level={uiState.level}
             wave={uiState.wave}
+            onSubmitScore={onSubmitScore}
             onRestart={handleRestart}
           />
         )}

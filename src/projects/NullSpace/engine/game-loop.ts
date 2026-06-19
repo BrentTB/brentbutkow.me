@@ -112,6 +112,7 @@ export function createInitialState(): GameState {
     wave: 0,
     level: 0,
     score: 0,
+    kills: 0,
     highScore: loadHighScore(),
     isNewHighScore: false,
     currency: 0,
@@ -181,6 +182,7 @@ export function startGame(state: GameState, shipKind: ShipKind): GameState {
     wave: 0,
     level: 0,
     score: 0,
+    kills: 0,
     currency: 0,
     spaceMetal: 0,
     singularityShard: 0,
@@ -555,6 +557,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     particles,
     deathAnims,
     score,
+    kills,
     power,
     currency,
     spaceMetal,
@@ -843,6 +846,9 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   if (killedThisFrame.length > 0) {
     deathAnims = [...deathAnims, ...killedThisFrame.map(createDeathAnim)]
   }
+  // Tally every enemy destroyed this frame — killedThisFrame is the dedup'd
+  // all-sources kill list, so kills stays coherent with the score awarded above.
+  kills += killedThisFrame.length
 
   // --- Spawn collectibles from kills ---
   // Ship-collision deaths drop nothing — no reward for letting an enemy reach you.
@@ -967,6 +973,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       particles: [...particles, ...wreck],
       deathAnims,
       score,
+      kills,
       power,
       currency,
       spaceMetal,
@@ -997,6 +1004,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       particles,
       deathAnims,
       score,
+      kills,
       power,
       currency,
       spaceMetal,
@@ -1027,6 +1035,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     particles,
     deathAnims,
     score,
+    kills,
     power,
     currency,
     spaceMetal,

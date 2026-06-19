@@ -26,6 +26,26 @@ export function saveHighScore(score: number): void {
   }
 }
 
+// --- Leaderboard player name (prefilled on the game-over submit form) ---
+
+const PLAYER_NAME_KEY = 'null-space-player-name'
+
+export function loadPlayerName(): string {
+  try {
+    return localStorage.getItem(PLAYER_NAME_KEY) ?? ''
+  } catch {
+    return ''
+  }
+}
+
+export function savePlayerName(name: string): void {
+  try {
+    localStorage.setItem(PLAYER_NAME_KEY, name)
+  } catch {
+    // localStorage unavailable
+  }
+}
+
 // --- Tutorial seen flag (gates the first-play auto-launch) ---
 
 const TUTORIAL_SEEN_KEY = 'null-space-tutorial-seen'
@@ -178,7 +198,10 @@ export function loadGame(): SavedGame | null {
     if (raw === null) return null
     const parsed: unknown = JSON.parse(raw)
     if (!isSavedGame(parsed) || parsed.version !== SAVE_VERSION) return null
-    return parsed
+    // Backfill fields added after this save was written, so resuming an older
+    // run doesn't start from `undefined` (which would become NaN once summed).
+    const savedState = parsed.state as Omit<GameState, 'kills'> & { kills?: number }
+    return { ...parsed, state: { ...savedState, kills: savedState.kills ?? 0 } }
   } catch {
     return null
   }

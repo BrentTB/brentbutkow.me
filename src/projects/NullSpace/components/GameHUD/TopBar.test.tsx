@@ -12,6 +12,7 @@ function makeUiState(over: Partial<GameUIState> = {}): GameUIState {
     score: 0,
     highScore: 0,
     isNewHighScore: false,
+    kills: 0,
     wave: 0,
     level: 0,
     shipHp: 100,

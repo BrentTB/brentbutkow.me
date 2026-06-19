@@ -805,6 +805,45 @@ describe('updateGameState — state field round-trip persistence', () => {
     }
   })
 
+  it('state.kills increments when an enemy is destroyed, alongside score', () => {
+    let state = startGame(createInitialState(), ShipKind.fighter)
+    state = startNextWave(state)
+    state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
+
+    if (state.enemies.length > 0) {
+      const target = state.enemies[0]
+      const enemyPos = { x: state.ship.pos.x + 600, y: state.ship.pos.y }
+      // One stationary, 1-HP enemy; kill it with a Meteorite and tick past the strike.
+      state = {
+        ...state,
+        kills: 0,
+        score: 0,
+        enemies: [{ ...target, hp: 1, speed: 0, spawnIn: 0, pos: enemyPos }],
+      }
+      state = updateGameState(state, 0.05, {
+        clicks: [enemyPos],
+        selectedAbility: AbilityKind.meteorite,
+      })
+      for (let i = 0; i < 15; i++) {
+        state = updateGameState(state, 0.05, { clicks: [], selectedAbility: null })
+      }
+
+      expect(state.kills).toBe(1)
+      expect(state.score).toBeGreaterThan(0)
+    }
+  })
+
+  it('state.kills stays put across idle frames where nothing dies', () => {
+    let state = startGame(createInitialState(), ShipKind.fighter)
+    state = startNextWave(state)
+    // Empty field + totalWaveEnemies 0 keeps it playing with nothing to kill.
+    state = { ...state, kills: 5, spawnQueue: [], enemies: [], totalWaveEnemies: 0, waveTimer: 0 }
+    for (let i = 0; i < 30; i++) {
+      state = updateGameState(state, 1 / 60, { clicks: [], selectedAbility: null })
+    }
+    expect(state.kills).toBe(5)
+  })
+
   // Regression: the wave-complete early-return spread `...state` but forgot to
   // thread `escapeTrailAccumulator`, so the frame's escape-trail update was lost
   // whenever a wave ended mid-dash. The dash tick advances the accumulator, so a

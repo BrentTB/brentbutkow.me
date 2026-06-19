@@ -443,6 +443,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.2.0',
+    date: '2026-06-19',
+    changes: {
+      features: [
+        'Online leaderboard — enter a name when a run ends and your score is saved to the server, not just this browser. Your local best still shows on the game-over screen.',
+        'The game-over screen now shows how many enemies you destroyed that run.',
+      ],
+    },
+  },
+  {
     version: '1.1.0',
     date: '2026-06-19',
     changes: {

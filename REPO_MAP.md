@@ -323,7 +323,7 @@ src/projects/NullSpace/engine/weapons/
 src/projects/NullSpace/engine/world/
   enemy-modifiers.ts                         modifierChance, rollEnemyModifier, applyModifier
   enemy-scaling.ts                           waveStatScale, scaleEnemy
-  persistence.ts                             loadHighScore, saveHighScore, loadTutorialSeen, saveTutorialSeen, ChangelogCategory, ChangelogFilters, DEFAULT_CHANGELOG_FILTERS, CHANGELOG_CATEGORIES, VisibleChangelogGroup, VisibleChangelogEntry, getVisibleChangelogEntries, loadChangelogFilters, saveChangelogFilters, SavedGame, saveGame, loadGame, clearSave
+  persistence.ts                             loadHighScore, saveHighScore, loadPlayerName, savePlayerName, loadTutorialSeen, saveTutorialSeen, ChangelogCategory, ChangelogFilters, DEFAULT_CHANGELOG_FILTERS, CHANGELOG_CATEGORIES, VisibleChangelogGroup, VisibleChangelogEntry, getVisibleChangelogEntries, loadChangelogFilters, saveChangelogFilters, SavedGame, saveGame, loadGame, clearSave
   time.ts                                    MAX_DT, GameTime, createGameTime, tickGameTime, pauseGameTime, resumeGameTime, setGameSpeed, resetGameClock
   wave-escalation.ts                         waveSpeedEscalation
   waves.ts                                   isBossWave, WaveArchetype, getWaveArchetype, getWave, getWaveDelay, sectorProgress
@@ -333,6 +333,10 @@ src/projects/NullSpace/
 
 src/projects/NullSpace/input/
   sling-gesture.ts                           SLING_MAX_DRAG_PX, SlingGesture, tryGrabShip, moveGesture, releaseGesture
+
+src/projects/NullSpace/leaderboard/
+  score-submission.ts                        MAX_NAME_LENGTH, sanitizeName, buildScoreSubmission, submitScore
+  score-submission.types.ts                  ScoreSubmission
 
 src/projects/NullSpace/renderer/
   camera.ts                                  REFERENCE_VIEW, DEFAULT_GAME_ZOOM, Camera, createCamera, computeZoom, HUD_SCALE_MIN, HUD_SCALE_MAX, computeHudScale, isWithinView, updateCamera, centerCameraOn, worldToScreen, screenToWorld

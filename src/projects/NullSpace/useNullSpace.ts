@@ -69,7 +69,14 @@ import { renderFrame } from './renderer/renderer'
 import { drawSlingAim } from './renderer/sling-aim'
 import { WORLD_SIZE } from './data'
 import { rng } from './engine/math/random'
-import { saveGame, loadGame, clearSave, saveTutorialSeen } from './engine/world/persistence'
+import {
+  saveGame,
+  loadGame,
+  clearSave,
+  saveTutorialSeen,
+  savePlayerName,
+} from './engine/world/persistence'
+import { buildScoreSubmission, submitScore } from './leaderboard/score-submission'
 import {
   advanceTutorial,
   createTutorialState,
@@ -105,6 +112,7 @@ export type GameUIState = {
   score: number
   highScore: number
   isNewHighScore: boolean
+  kills: number
   wave: number
   level: number
   shipHp: number
@@ -186,6 +194,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     score: 0,
     highScore: 0,
     isNewHighScore: false,
+    kills: 0,
     wave: 0,
     level: 0,
     shipHp: 100,
@@ -242,6 +251,12 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
   const starsRef = useRef<Star[]>([])
   const rafRef = useRef<number>(0)
   const gameTimeRef = useRef<GameTime>(createGameTime())
+  // Run timing + one-shot submit guard for the leaderboard. runStart/runEnd
+  // bracket one run (wall-clock); the guard stops a successful score POSTing
+  // twice if the game-over submit button is tapped again.
+  const runStartRef = useRef(0)
+  const runEndRef = useRef(0)
+  const scoreSubmittedRef = useRef(false)
   const inputRef = useRef<PlayerInput>({
     clicks: [],
     selectedAbility: AbilityKind.meteorite,
@@ -274,6 +289,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       score: state.score,
       highScore: state.highScore,
       isNewHighScore: state.isNewHighScore,
+      kills: state.kills,
       wave: state.wave,
       level: state.level,
       shipHp: state.ship.hp,
@@ -326,6 +342,9 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       saveGame(gameStateRef.current, rng.getState())
       setHasSave(true)
     } else if (uiState.phase === GamePhase.gameOver) {
+      // Stamp the run-end here (not at submit) so the duration sent to the
+      // leaderboard excludes time spent reading the game-over screen.
+      runEndRef.current = Date.now()
       clearSave()
       setHasSave(false)
     }
@@ -354,6 +373,8 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     (kind: ShipKind) => {
       gameStateRef.current = startGame(gameStateRef.current, kind)
       gameStateRef.current = startNextWave(gameStateRef.current)
+      runStartRef.current = Date.now()
+      scoreSubmittedRef.current = false
       gameTimeRef.current = resetGameClock(gameTimeRef.current)
       selectedAbilityRef.current = AbilityKind.meteorite
       enterSector()
@@ -371,6 +392,23 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     handleStart()
   }, [handleStart])
 
+  // Submit the finished run to the leaderboard. Best-effort: resolves to whether
+  // it succeeded so the game-over screen can offer a retry; the one-shot guard
+  // stops a successful score being posted twice.
+  const handleSubmitScore = useCallback(async (name: string): Promise<boolean> => {
+    if (scoreSubmittedRef.current) return true
+    const durationMs = Math.max(0, runEndRef.current - runStartRef.current)
+    const submission = buildScoreSubmission(gameStateRef.current, name, durationMs)
+    try {
+      await submitScore(submission)
+      scoreSubmittedRef.current = true
+      savePlayerName(submission.name)
+      return true
+    } catch {
+      return false
+    }
+  }, [])
+
   // Resume the saved run (from the last sector clear). Restores RNG so spawns
   // play out identically, then re-seats the camera/starfield on the loaded world.
   const handleContinue = useCallback(() => {
@@ -378,6 +416,8 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     if (!saved) return
     gameStateRef.current = saved.state
     rng.setState(saved.rngState)
+    runStartRef.current = Date.now()
+    scoreSubmittedRef.current = false
     // Restart the frame clock — otherwise the resumed run stays frozen (dt 0).
     gameTimeRef.current = resetGameClock(gameTimeRef.current)
     selectedAbilityRef.current = AbilityKind.meteorite
@@ -428,6 +468,8 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     handleDevQuickStart = (kind: ShipKind) => {
       gameStateRef.current = startGame(gameStateRef.current, kind)
       gameStateRef.current = startNextWave(gameStateRef.current)
+      runStartRef.current = Date.now()
+      scoreSubmittedRef.current = false
       gameTimeRef.current = resetGameClock(gameTimeRef.current)
       selectedAbilityRef.current = AbilityKind.meteorite
       enterSector()
@@ -911,6 +953,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     handleSelectShip,
     handleNextWave,
     handleRestart,
+    handleSubmitScore,
     setSelectedAbility,
     handlePurchaseUpgrade,
     handlePurchaseUltimate,

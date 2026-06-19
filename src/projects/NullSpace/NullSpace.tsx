@@ -38,6 +38,7 @@ export function NullSpace() {
     handleSelectShip,
     handleNextWave,
     handleRestart,
+    handleSubmitScore,
     setSelectedAbility,
     handlePurchaseUpgrade,
     handlePurchaseUltimate,
@@ -200,6 +201,7 @@ export function NullSpace() {
             onSelectShip={handleSelectShip}
             onNextWave={handleNextWave}
             onRestart={handleRestart}
+            onSubmitScore={handleSubmitScore}
             onPurchaseUpgrade={handlePurchaseUpgrade}
             onPurchaseUltimate={handlePurchaseUltimate}
             onFinishUpgrades={handleFinishUpgrades}

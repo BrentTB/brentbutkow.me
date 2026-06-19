@@ -625,6 +625,9 @@ export type GameState = {
   score: number
   highScore: number
   isNewHighScore: boolean
+  // Cumulative enemies destroyed this run — shown on the game-over screen and
+  // sent with the leaderboard score so the server can sanity-check it.
+  kills: number
   currency: number
   spaceMetal: number
   // Run-scoped boss material — the gating currency for Ultimate purchases.

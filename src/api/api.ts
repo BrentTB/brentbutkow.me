@@ -12,6 +12,10 @@ export const apiRoutes = {
     companies: '/recalls/companies',
   },
   contact: '/contact',
+  nullspace: {
+    score: '/nullspace/score',
+    leaderboard: '/nullspace/leaderboard',
+  },
 } as const
 
 export function apiUrl(path: string): string {
