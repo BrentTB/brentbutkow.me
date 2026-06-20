@@ -100,7 +100,7 @@ import { applyWanderingHoles, createWanderingBlackHole } from './calamities/wand
 import { advanceBossSelection, createBossSelection } from './bosses/boss-selection'
 import { updateBossAI } from './bosses/boss-ai'
 import { loadHighScore, saveHighScore } from './world/persistence'
-import { rng } from './math/random'
+import { reseedForNewSession, rng } from './math/random'
 import { toroidalDelta, wrapPosition } from './math/toroid'
 import { getHelperWeaponForUnlockUpgrade, HELPER_WEAPON_LIST } from './weapons'
 import { CollectibleKind, EffectKind, GamePhase, ShipKind, HelperWeaponKind } from './types'
@@ -122,7 +122,7 @@ const INITIAL_UNLOCKED_WEAPONS: HelperWeaponKind[] = HELPER_WEAPON_LIST.filter(
 ).map((d) => d.kind)
 
 export function createInitialState(): GameState {
-  rng.reseed(Date.now())
+  reseedForNewSession()
   return {
     phase: GamePhase.menu,
     shipKind: ShipKind.fighter,
@@ -188,7 +188,7 @@ export function moveToShipSelection(state: GameState): GameState {
 }
 
 export function startGame(state: GameState, shipKind: ShipKind): GameState {
-  rng.reseed(Date.now())
+  reseedForNewSession()
   const ship = createShip(shipKind, state.worldSize)
   const upgrades = createInitialUpgrades()
   return {
@@ -238,9 +238,7 @@ export function startGame(state: GameState, shipKind: ShipKind): GameState {
   }
 }
 
-// Picks up to `count` random locked weapons (no duplicates). Uses Math.random
-// because rng is reseeded per session — we don't want offers tied to the
-// same seed across level-ups in one run.
+// Picks up to `count` distinct locked weapons at random from the seeded rng.
 export function rollLevelUpWeaponOffers(
   abilities: GameState['abilities'],
   cap: number,
@@ -257,7 +255,7 @@ export function rollLevelUpWeaponOffers(
     .map((a) => a.kind)
   const offers: GameState['levelUpWeaponOffers'] = []
   for (let i = 0; i < count && locked.length > 0; i++) {
-    const idx = Math.floor(Math.random() * locked.length)
+    const idx = rng.intRange(0, locked.length - 1)
     offers.push(locked[idx])
     locked.splice(idx, 1)
   }

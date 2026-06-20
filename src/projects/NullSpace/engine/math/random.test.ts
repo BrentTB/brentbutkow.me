@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { rng } from './random'
+import { rng, reseedForNewSession, setSessionSeed } from './random'
 
 beforeEach(() => {
   rng.reseed(12345)
@@ -70,5 +70,26 @@ describe('rng getState / setState', () => {
   it('setState guards against a 0 state freezing the generator', () => {
     rng.setState(0)
     expect(rng.getState()).not.toBe(0)
+  })
+})
+
+describe('reseedForNewSession', () => {
+  // Regression: a fresh run reseeded straight from Date.now(), so a test that
+  // pinned a seed still drew a wall-clock sequence — the source of the flaky
+  // game-loop suite. With a seed pinned, the reseed must honour it, not the clock.
+  it('reseeds from the pinned session seed verbatim, not the wall clock', () => {
+    setSessionSeed(424242)
+    reseedForNewSession()
+    expect(rng.getState()).toBe(424242)
+    setSessionSeed(null)
+  })
+
+  // Production path: with nothing pinned it falls back to a wall-clock seed, so
+  // every real run still gets its own unique sequence.
+  it('falls back to a fresh seed when no session seed is pinned', () => {
+    setSessionSeed(null)
+    rng.setState(11)
+    reseedForNewSession()
+    expect(rng.getState()).not.toBe(11)
   })
 })

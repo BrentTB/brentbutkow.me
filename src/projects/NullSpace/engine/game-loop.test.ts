@@ -49,9 +49,17 @@ import {
   WORLD_SIZE,
 } from '../data'
 import { TELEKINESIS, SOLAR_FLARE } from './abilities/ability-data'
+import { rng, setSessionSeed } from './math/random'
+
+// startGame/createInitialState reseed the rng from the wall clock in production
+// (a unique sequence per run). Pin a fixed seed so those reseeds are reproducible
+// and rng-dependent assertions can't flake across runs.
+const TEST_SEED = 12345
 
 beforeEach(() => {
   localStorage.clear()
+  setSessionSeed(TEST_SEED)
+  rng.reseed(TEST_SEED)
 })
 
 describe('createInitialState', () => {
@@ -589,6 +597,18 @@ describe('rollLevelUpWeaponOffers', () => {
     expect(offers).not.toContain(AbilityKind.cometShower)
     expect(offers).not.toContain(AbilityKind.meteorShower)
     expect(offers.length).toBeGreaterThan(0)
+  })
+
+  // Regression: the pick used Math.random, so two rolls from the same rng seed
+  // diverged — the offers couldn't be reproduced under test. The seeded rng must
+  // drive the pick so a re-seed replays the same offers.
+  it('is deterministic under a fixed seed (draws from the seeded rng, not Math.random)', () => {
+    rng.reseed(7)
+    const a = rollLevelUpWeaponOffers(createAbilities(), 99, { count: 3 })
+    rng.reseed(7)
+    const b = rollLevelUpWeaponOffers(createAbilities(), 99, { count: 3 })
+    expect(a.length).toBe(3)
+    expect(b).toEqual(a)
   })
 })
 

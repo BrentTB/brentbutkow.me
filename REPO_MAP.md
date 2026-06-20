@@ -283,7 +283,7 @@ src/projects/NullSpace/engine/math/
   aoe.ts                                     AoeResult, damageEnemiesInRadiusFlat, damageEnemiesInRadius
   collision.ts                               checkCollision, distance, segmentIntersectsCircle
   homing.ts                                  homeTowardTarget
-  random.ts                                  rng
+  random.ts                                  rng, setSessionSeed, reseedForNewSession
   steering.ts                                driftWithWeave
   toroid.ts                                  wrapPosition, toroidalDelta, toroidalDistance, nearestImage
   utils.ts                                   clamp
