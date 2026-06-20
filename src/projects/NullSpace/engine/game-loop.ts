@@ -11,6 +11,7 @@ import {
   SECTOR,
   WARP,
   WORLD_SIZE,
+  WORMHOLE,
 } from '../data'
 import {
   createAbilities,
@@ -99,6 +100,7 @@ import { applyRadialDamage } from './calamities/calamity-damage'
 import { createShockwaveEffect, shockwaveRadiusAt } from './calamities/shockwave'
 import { applyWanderingHoles, createWanderingBlackHole } from './calamities/wandering-black-hole'
 import { createNebula } from './calamities/nebula'
+import { applyWormholes, createWormhole, wormholePairPositions } from './calamities/wormhole'
 import { buildNebulaField, enemyVisibleToPlayerSide, inZone } from './calamities/nebula-vision'
 import { advanceBossSelection, createBossSelection } from './bosses/boss-selection'
 import { updateBossAI } from './bosses/boss-ai'
@@ -818,11 +820,12 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
 
   // --- Hunt target: the nearest VISIBLE enemy the ship's auto-drift steers toward.
   // The ship has no weapon — this only points its idle movement. Fog-concealed
-  // enemies are skipped so it never chases something the player can't see. ---
+  // enemies are skipped so it never chases something the player can't see; bosses
+  // ignore fog (always shown + tracked), matching the renderer and enemy AI. ---
   let huntTarget: Vec2 | null = null
   let huntBest = Infinity
   for (const e of enemies) {
-    if (!enemyVisibleToPlayerSide(e.pos, nebulaField)) continue
+    if (!e.boss && !enemyVisibleToPlayerSide(e.pos, nebulaField)) continue
     const { x: hdx, y: hdy } = toroidalDelta(ship.pos, e.pos)
     const d = hdx * hdx + hdy * hdy
     if (d < huntBest) {
@@ -1037,8 +1040,8 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   ))
 
   // Calamity scheduler: on non-boss waves, periodically erupt one calamity near the
-  // ship — a drifting nebula (the most common roll), a telegraphed shock-ring, or a
-  // drifting wandering black hole. Boss fights are left undisturbed.
+  // ship — a drifting nebula (the most common roll), a wormhole pair, a telegraphed
+  // shock-ring, or a drifting wandering black hole. Boss fights are left undisturbed.
   if (!isBossWave(state.wave)) {
     calamityTimer -= dt
     if (calamityTimer <= 0) {
@@ -1066,6 +1069,20 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
           ),
         ]
         calamityTimer = rng.range(NEBULA.intervalMin, NEBULA.intervalMax)
+      } else if (rng.next() < WORMHOLE.weight) {
+        // Wormhole pair: mouth A near the ship, mouth B at a random angle from it (see
+        // wormholePairPositions — separation guarantees no cross-loop). It harms no one
+        // — the rifts growing in are its telegraph. The pair drifts together.
+        const { posA, posB } = wormholePairPositions(ship.pos)
+        const driftAngle = rng.next() * Math.PI * 2
+        activeEffects = [
+          ...activeEffects,
+          createWormhole(posA, posB, {
+            x: Math.cos(driftAngle) * WORMHOLE.driftSpeed,
+            y: Math.sin(driftAngle) * WORMHOLE.driftSpeed,
+          }),
+        ]
+        calamityTimer = rng.range(WORMHOLE.intervalMin, WORMHOLE.intervalMax)
       } else if (rng.next() < CALAMITY.shockwaveShareOfRest) {
         const spawnDist = rng.range(
           CALAMITY.shockwaveSpawnRange * 0.4,
@@ -1153,6 +1170,16 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     collectibles,
     particles
   ))
+
+  // Wormholes: teleport every body that crosses a rift to the far mouth, velocity
+  // preserved. Neutral — no damage; the displacement is the hazard.
+  const wormholes = applyWormholes(activeEffects, ship, enemies, allies, asteroids, projectiles)
+  ship = wormholes.ship
+  enemies = wormholes.enemies
+  allies = wormholes.allies
+  asteroids = wormholes.asteroids
+  projectiles = wormholes.projectiles
+  particles = [...particles, ...wormholes.particles]
 
   // --- Collision: enemies vs allies (melee — enemy dies, ally takes damage) ---
   const allyMeleeResult = resolveEnemyAllyMeleeCollisions(enemies, allies)

@@ -16,7 +16,7 @@ import {
   NebulaVariant,
   ShipKind,
 } from './types'
-import { WAVES_PER_LEVEL, WORLD_SIZE } from '../data'
+import { WAVES_PER_LEVEL, WORLD_SIZE, WORMHOLE } from '../data'
 
 const last = <T>(arr: T[]): T => arr[arr.length - 1]
 
@@ -135,5 +135,17 @@ describe('devSpawnCalamity', () => {
       const d = Math.hypot(eff.pos.x - state.ship.pos.x, eff.pos.y - state.ship.pos.y)
       expect(d).toBeLessThan(200) // dropped right next to the ship
     }
+  })
+
+  it('drops a stationary wormhole pair, mouth A near the ship', () => {
+    const state = playingState()
+    const eff = last(devSpawnCalamity(state, DevCalamity.wormhole).activeEffects)
+    expect(eff.kind).toBe(EffectKind.wormhole)
+    if (eff.kind !== EffectKind.wormhole) return
+    const near = (p: { x: number; y: number }) =>
+      Math.hypot(p.x - state.ship.pos.x, p.y - state.ship.pos.y)
+    expect(near(eff.pos)).toBeCloseTo(WORMHOLE.spawnRangeNear, 5) // mouth A erupts near the ship
+    expect(eff.pos).not.toEqual(eff.posB) // a genuine two-mouth pair
+    expect(eff.vel).toEqual({ x: 0, y: 0 }) // dev pair is deliberately stationary
   })
 })

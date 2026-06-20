@@ -29,6 +29,7 @@ const CALAMITY_BUTTONS: { kind: DevCalamity; label: string }[] = [
   { kind: DevCalamity.nebulaFog, label: 'Fog' },
   { kind: DevCalamity.nebulaSlow, label: 'Slow' },
   { kind: DevCalamity.nebulaHaze, label: 'Haze' },
+  { kind: DevCalamity.wormhole, label: 'Wormhole' },
 ]
 
 export function DevConsole({

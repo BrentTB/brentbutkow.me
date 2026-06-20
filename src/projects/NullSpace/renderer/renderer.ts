@@ -626,13 +626,15 @@ function renderHazeWarp(
   const t = opts.clock * NEBULA.hazeWarpSpeed
   const stripH = Math.max(2, Math.round(3 * dpr))
   const overlap = Math.ceil(amp * 0.5) + 1
+  const vOver = Math.ceil(amp * 0.45) + 1
   for (let y = 0; y < ch; y += stripH) {
     const dx = (Math.sin(y / (38 * dpr) + t) + Math.sin(y / (17 * dpr) + t * 1.7) * 0.5) * amp
     const dy = Math.sin(y / (80 * dpr) + t * 0.6) * amp * 0.45
-    const sh = Math.min(stripH + overlap, ch - y)
-    // Overdraw by `amp` each side so a horizontally-shifted strip never exposes the
-    // backdrop at the viewport's left/right edge.
-    ctx.drawImage(hazeBuffer, 0, y, cw, sh, dx - amp, y + dy, cw + 2 * amp, sh)
+    // Overdraw by `amp` horizontally and `vOver` vertically (>= the dy shift), so a
+    // warped strip never exposes the backdrop at any viewport edge.
+    const sy = Math.max(0, y - vOver)
+    const sh = Math.min(ch - sy, y + stripH + overlap + vOver - sy)
+    ctx.drawImage(hazeBuffer, 0, sy, cw, sh, dx - amp, sy + dy, cw + 2 * amp, sh)
   }
   ctx.restore()
 }

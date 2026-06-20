@@ -256,10 +256,9 @@ export function updateEnemyMovement(
 ): Enemy[] {
   const fog = field?.fog ?? []
   return enemies.map((enemy) => {
-    // Slow nebula drags movement on top of wave escalation; both scale a copy's
-    // speed and the stored base is restored below.
+    // Slow nebula drags movement on top of wave escalation; the speed-scaled copy is
+    // built only on the pursue path (below), and the stored base is restored after.
     const eSpeedMult = field ? speedMult * slowMultAt(enemy.pos, field.slow) : speedMult
-    const forMove = eSpeedMult === 1 ? enemy : { ...enemy, speed: enemy.speed * eSpeedMult }
     // Fog: a non-boss enemy that can see neither the player nor any ally wanders;
     // otherwise it pursues the nearest target it *can* see.
     const seen =
@@ -269,7 +268,7 @@ export function updateEnemyMovement(
       ? avoidHazards(wanderStep(enemy, dt, NEBULA.wanderSpeed * eSpeedMult), hazards, dt)
       : avoidHazards(
           MOVEMENT_FN[enemy.movementBehavior](
-            forMove,
+            eSpeedMult === 1 ? enemy : { ...enemy, speed: enemy.speed * eSpeedMult },
             { ...ship, pos: seen ?? findNearestTarget(enemy.pos, ship, allies) },
             dt
           ),
