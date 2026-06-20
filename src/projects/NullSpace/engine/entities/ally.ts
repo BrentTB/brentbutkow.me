@@ -7,6 +7,13 @@ import { HELPER_WEAPON_DEFINITIONS } from '../weapons'
 import { HelperWeaponKind } from '../types'
 import type { Ally, Enemy, Projectile, Ship, Vec2 } from '../types'
 import { HELPER } from '../abilities/ability-data'
+import {
+  enemyVisibleToPlayerSide,
+  hazeJitterAt,
+  jitterAim,
+  slowMultAt,
+} from '../calamities/nebula-vision'
+import type { NebulaField } from '../calamities/nebula-vision'
 
 // Ally behavior: shoots the nearest enemy in range and orbits the ship at a
 // per-ally angle. Each ally has a unique phase offset from its id hash so
@@ -59,7 +66,8 @@ export function updateAllies(
   ship: Ship,
   projectiles: Projectile[],
   dt: number,
-  unlockedWeapons: HelperWeaponKind[]
+  unlockedWeapons: HelperWeaponKind[],
+  field?: NebulaField
 ): { allies: Ally[]; projectiles: Projectile[] } {
   const surviving: Ally[] = []
   const spawned: Ally[] = []
@@ -94,6 +102,8 @@ export function updateAllies(
       for (const enemy of enemies) {
         // Skip invincible enemies (shielded boss) — don't waste shots on them.
         if (!canEnemyTakeDamage(enemy, enemies)) continue
+        // Fog: skip enemies the player's side can't see (concealed in the murk).
+        if (field && !enemyVisibleToPlayerSide(enemy.pos, field)) continue
         const d = distance(ally.pos, enemy.pos)
         if (d < nearestDist) {
           nearestDist = d
@@ -106,7 +116,10 @@ export function updateAllies(
         // weapon's projectiles + damage scaling (a nuke ally fires slow + rare).
         const def = HELPER_WEAPON_DEFINITIONS[ally.weapon]
         const damage = def.weaponDamage(ally.damage)
-        const shots = def.createProjectiles(ally.pos, nearestEnemy.pos, damage)
+        // Haze: scatter the ally's aim if it sits in a haze zone (symmetric with enemies).
+        const jitter = field ? hazeJitterAt(ally.pos, field.haze) : 0
+        const aim = jitter > 0 ? jitterAim(ally.pos, nearestEnemy.pos, jitter) : nearestEnemy.pos
+        const shots = def.createProjectiles(ally.pos, aim, damage)
         newProjectiles = [...newProjectiles, ...shots]
         updated = { ...updated, fireCooldown: 1 / (ally.fireRate * def.fireRateMultiplier) }
       }
@@ -136,11 +149,13 @@ export function updateAllies(
     steerY += (rng.next() - 0.5) * ALLY_NOISE_STRENGTH
 
     const steerMag = Math.sqrt(steerX * steerX + steerY * steerY)
+    // Slow nebula drags the ally's translation (its turn responsiveness is unchanged).
+    const allySpeed = field ? ally.speed * slowMultAt(ally.pos, field.slow) : ally.speed
     let targetVx = 0
     let targetVy = 0
     if (steerMag > 0.001) {
-      targetVx = (steerX / steerMag) * ally.speed
-      targetVy = (steerY / steerMag) * ally.speed
+      targetVx = (steerX / steerMag) * allySpeed
+      targetVy = (steerY / steerMag) * allySpeed
     }
     const turnRate = ally.speed / 30
     const alpha = 1 - Math.exp(-turnRate * dt)

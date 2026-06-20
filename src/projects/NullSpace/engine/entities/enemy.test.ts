@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { enemyFacing, updateEnemyMovement } from './enemy'
 import { createEnemy, createShip } from './entity-creator'
 import { EnemyKind, HazardKind, MovementBehavior, ShipKind } from '../types'
-import type { Hazard } from '../types'
-import { HAZARD, WORLD_SIZE } from '../../data'
+import type { Enemy, Hazard } from '../types'
+import { HAZARD, NEBULA, WORLD_SIZE } from '../../data'
 
 const ship = createShip(ShipKind.fighter, WORLD_SIZE)
 
@@ -77,5 +77,56 @@ describe('updateEnemyMovement — mine avoidance', () => {
     expect(Math.abs(noMine.vel.y)).toBeLessThan(0.01)
     expect(Math.abs(withMine.vel.y)).toBeGreaterThan(1)
     expect(withMine.vel.x).toBeGreaterThan(0) // still advancing toward the target
+  })
+})
+
+describe('updateEnemyMovement — fog + slow nebula', () => {
+  const center = { x: 1000, y: 1000 }
+  const shipAt = { ...createShip(ShipKind.fighter, WORLD_SIZE), pos: { ...center } }
+  const chaser = (pos: { x: number; y: number }): Enemy => ({
+    ...createEnemy(EnemyKind.drone, pos),
+    movementBehavior: MovementBehavior.chase,
+  })
+  const dist = (e: { pos: { x: number; y: number } }) =>
+    Math.hypot(e.pos.x - center.x, e.pos.y - center.y)
+
+  it('a fog-blinded enemy wanders instead of beelining to the ship', () => {
+    // Ship sits in fog; the enemy is far outside the player bubble → it can't see
+    // the player (no allies), so it should meander rather than home in.
+    const field = { fog: [{ pos: center, radius: 250 }], slow: [], haze: [], circles: [] }
+    let blind = chaser({ x: 2200, y: 1000 })
+    let chase = chaser({ x: 2200, y: 1000 })
+    for (let i = 0; i < 30; i++) {
+      ;[blind] = updateEnemyMovement([blind], shipAt, [], [], 0.1, 1, field)
+      ;[chase] = updateEnemyMovement([chase], shipAt, [], [], 0.1)
+    }
+    expect(dist(chase)).toBeLessThan(dist(blind)) // the sighted chaser closed in; the blind one didn't
+  })
+
+  it('an enemy inside the player bubble still chases despite fog', () => {
+    const field = {
+      fog: [{ pos: center, radius: 600 }],
+      slow: [],
+      haze: [],
+      circles: [{ center, radius: NEBULA.sightRadius }],
+    }
+    let e = chaser({ x: center.x + NEBULA.sightRadius - 30, y: 1000 })
+    const before = dist(e)
+    for (let i = 0; i < 20; i++) [e] = updateEnemyMovement([e], shipAt, [], [], 0.1, 1, field)
+    expect(dist(e)).toBeLessThan(before) // saw the player in its bubble → homed in
+  })
+
+  it('a slow nebula drags enemy movement (still moving, just less ground)', () => {
+    const field = { fog: [], slow: [{ pos: center, radius: 1500 }], haze: [], circles: [] }
+    let slow = chaser({ x: 2200, y: 1000 })
+    let fast = chaser({ x: 2200, y: 1000 })
+    for (let i = 0; i < 10; i++) {
+      ;[slow] = updateEnemyMovement([slow], shipAt, [], [], 0.1, 1, field)
+      ;[fast] = updateEnemyMovement([fast], shipAt, [], [], 0.1, 1)
+    }
+    const movedSlow = 2200 - slow.pos.x
+    const movedFast = 2200 - fast.pos.x
+    expect(movedSlow).toBeGreaterThan(0) // still advancing
+    expect(movedSlow).toBeLessThan(movedFast) // but dragged
   })
 })

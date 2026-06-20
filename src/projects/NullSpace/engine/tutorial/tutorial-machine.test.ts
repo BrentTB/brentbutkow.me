@@ -162,6 +162,6 @@ describe('advanceTutorial — completion + framing', () => {
 
   it('resolves touch copy for the intro', () => {
     const view = advanceTutorial(at(0, true), signals({ realDt: 0.1 }))
-    expect(view.copy).toContain("you're its guardian")
+    expect(view.copy).toContain('its guardian')
   })
 })

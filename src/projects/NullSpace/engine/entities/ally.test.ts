@@ -64,6 +64,30 @@ describe('allies fire their rolled weapon', () => {
   })
 })
 
+describe('allies skip fog-concealed enemies', () => {
+  const ship = createShip(ShipKind.fighter, WORLD_SIZE)
+  const armedAlly = () => ({
+    ...createAlly({ x: 0, y: 0 }),
+    weapon: HelperWeaponKind.bullet,
+    fireCooldown: 0,
+  })
+  const enemyPos = { x: 30, y: 0 }
+
+  it('holds fire on an enemy hidden in fog, fires once a bubble reveals it', () => {
+    const enemy = createEnemy(EnemyKind.drone, { ...enemyPos })
+    const concealed = { fog: [{ pos: enemyPos, radius: 100 }], slow: [], haze: [], circles: [] }
+    expect(
+      updateAllies([armedAlly()], [enemy], ship, [], 0.1, [HelperWeaponKind.bullet], concealed)
+        .projectiles
+    ).toHaveLength(0)
+    const revealed = { ...concealed, circles: [{ center: enemyPos, radius: 60 }] }
+    expect(
+      updateAllies([armedAlly()], [enemy], ship, [], 0.1, [HelperWeaponKind.bullet], revealed)
+        .projectiles.length
+    ).toBeGreaterThan(0)
+  })
+})
+
 describe('applyDamageToAlly', () => {
   it('subtracts damage straight off hp (allies have no shield)', () => {
     const ally = createAlly({ x: 0, y: 0 })
