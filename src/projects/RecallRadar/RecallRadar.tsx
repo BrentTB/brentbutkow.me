@@ -127,7 +127,7 @@ export function RecallRadar() {
     ...queryFilters,
     limit: PAGE_SIZE,
     offset: (page - 1) * PAGE_SIZE,
-    sort: sort === RecallSort.severity ? RecallSort.severity : undefined,
+    sort: sort === RecallSort.recency ? undefined : sort,
   })
 
   // Year options follow the data, then narrow to whatever the date filter admits (2021–2025 for a

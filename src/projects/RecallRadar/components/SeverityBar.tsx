@@ -11,13 +11,15 @@ type SeverityBarProps = {
 // severity to actually surface the severe recalls.
 export function SeverityBar({ data }: SeverityBarProps) {
   const counts = new Map(data.map((entry) => [entry.label, entry.count]))
-  const total = data.reduce((sum, entry) => sum + entry.count, 0)
-  if (total === 0) return null
-
-  const segments = severityOrder
+  // Total tracks only the known bands the bar renders, so widths sum to 100% and "N recalls"
+  // matches the segments even if an unrecognised label slips into the data.
+  const present = severityOrder
     .map((level) => ({ level, count: counts.get(level) ?? 0 }))
     .filter((segment) => segment.count > 0)
-    .map((segment) => ({ ...segment, pct: (segment.count / total) * 100 }))
+  const total = present.reduce((sum, segment) => sum + segment.count, 0)
+  if (total === 0) return null
+
+  const segments = present.map((segment) => ({ ...segment, pct: (segment.count / total) * 100 }))
 
   return (
     <div className={styles.root}>
@@ -39,7 +41,7 @@ export function SeverityBar({ data }: SeverityBarProps) {
         {segments.map((segment) => (
           <li key={segment.level} className={styles.legendItem}>
             <span className={styles.dot} style={{ background: severityColors[segment.level] }} />
-            <span className={styles.legendLabel}>{severityLabels[segment.level]}</span>
+            <span>{severityLabels[segment.level]}</span>
             <span className={styles.legendCount}>{Math.round(segment.pct)}%</span>
           </li>
         ))}
