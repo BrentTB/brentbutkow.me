@@ -46,6 +46,19 @@ describe('useSimilar', () => {
     )
   })
 
+  it('encodes a slash-bearing recall number and honours a custom limit', async () => {
+    const fetchMock = vi.fn(async () => mockRes([{ similarity: 0.8, recall }]))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { result } = renderHook(() => useSimilar(RecallSource.fda, 'F-007/2026', 3))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/recalls/fda/F-007%2F2026/similar?limit=3'),
+      expect.anything()
+    )
+  })
+
   it('rejects a malformed payload', async () => {
     vi.stubGlobal(
       'fetch',

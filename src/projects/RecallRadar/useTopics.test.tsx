@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import { useTopics } from './useTopics'
+import { RecallCountry } from './recall.types'
 
 const mockRes = (body: unknown, status = 200) =>
   ({ ok: status < 400, status, json: async () => body }) as Response
@@ -22,6 +23,27 @@ describe('useTopics', () => {
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining('/recalls/topics?country=us'),
       expect.anything()
+    )
+  })
+
+  it('refetches when the country changes', async () => {
+    const fetchMock = vi.fn(async () => mockRes([]))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const initialProps: { country: RecallCountry } = { country: RecallCountry.us }
+    const { result, rerender } = renderHook(({ country }) => useTopics(country), { initialProps })
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      expect.stringContaining('/recalls/topics?country=us'),
+      expect.anything()
+    )
+
+    rerender({ country: RecallCountry.uk })
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenLastCalledWith(
+        expect.stringContaining('/recalls/topics?country=uk'),
+        expect.anything()
+      )
     )
   })
 

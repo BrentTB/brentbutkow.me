@@ -7,9 +7,10 @@ type ThemesProps = {
   onSelect: (topicId: string) => void
 }
 
-// The discovered themes as a clickable breakdown — a topic's label already IS its top terms
-// ("listeria · deli · meat"). Clicking a theme filters the recalls + trend; clicking the active one
-// clears it (BreakdownList's toggle behaviour).
+// Show every theme — the NMF build yields at most 16.
+const MAX_THEME_ROWS = 16
+
+// Themes as a clickable breakdown — a topic's label already IS its top terms ("listeria · deli · meat").
 export function Themes({ topics, activeTopic, onSelect }: ThemesProps) {
   const rows = topics.map((topic) => ({
     label: topic.label,
@@ -22,7 +23,7 @@ export function Themes({ topics, activeTopic, onSelect }: ThemesProps) {
       rows={rows}
       activeValue={activeTopic}
       onSelect={onSelect}
-      maxRows={16}
+      maxRows={MAX_THEME_ROWS}
     />
   )
 }

@@ -40,7 +40,11 @@ export function SeverityBar({ data }: SeverityBarProps) {
       <ul className={styles.legend}>
         {segments.map((segment) => (
           <li key={segment.level} className={styles.legendItem}>
-            <span className={styles.dot} style={{ background: severityColors[segment.level] }} />
+            <span
+              className={styles.dot}
+              style={{ background: severityColors[segment.level] }}
+              aria-hidden="true"
+            />
             <span>{severityLabels[segment.level]}</span>
             <span className={styles.legendCount}>{Math.round(segment.pct)}%</span>
           </li>

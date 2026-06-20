@@ -71,6 +71,7 @@ export function RecallFilters({
     chips.push({
       key: 'severity',
       label: `${severityLabels[filters.severity]} severity`,
+      remove: 'the severity',
       patch: { severity: '' },
     })
   // Topic is set via the Themes cards / per-card chip; show its resolved label (not the raw id).
