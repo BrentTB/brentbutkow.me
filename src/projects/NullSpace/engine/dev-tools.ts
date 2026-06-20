@@ -1,4 +1,4 @@
-import { ASTEROID, BOSS_LEVEL_INTERVAL, CALAMITY, HAZARD, NEBULA, WAVES_PER_LEVEL } from '../data'
+import { ASTEROID, BOSS_LEVEL_INTERVAL, CALAMITY, NEBULA, WAVES_PER_LEVEL } from '../data'
 import {
   devGrantUltimate,
   devUnlockWeapon,
@@ -6,22 +6,15 @@ import {
   rollLevelUpWeaponOffers,
 } from './game-loop'
 import { advanceBossSelection } from './bosses/boss-selection'
-import { createShip, uid } from './entities/entity-creator'
+import { createShip } from './entities/entity-creator'
+import { createMine } from './calamities/hazards'
 import { createShockwaveEffect } from './calamities/shockwave'
 import { createWanderingBlackHole } from './calamities/wandering-black-hole'
 import { createNebula } from './calamities/nebula'
 import { createAsteroid } from './calamities/asteroids'
 import { getAbilityCap, getLevel } from './upgrades'
 import { emptySpawnState } from './world/waves'
-import {
-  AbilityKind,
-  AsteroidTier,
-  EnemyKind,
-  GamePhase,
-  HazardKind,
-  NebulaVariant,
-  ShipKind,
-} from './types'
+import { AbilityKind, AsteroidTier, EnemyKind, GamePhase, NebulaVariant, ShipKind } from './types'
 import type { GameState, Hazard, Vec2 } from './types'
 
 // Dev-console state manipulation — every mutation the console offers, as pure
@@ -174,13 +167,7 @@ export function devSpawnCalamity(state: GameState, kind: DevCalamity): GameState
     case DevCalamity.mines: {
       const mines: Hazard[] = Array.from({ length: 5 }, (_, i) => {
         const a = (i / 5) * Math.PI * 2
-        return {
-          id: uid(),
-          kind: HazardKind.mine,
-          pos: { x: pos.x + Math.cos(a) * 160, y: pos.y + Math.sin(a) * 160 },
-          radius: HAZARD.mineRadius,
-          damage: HAZARD.mineDamage,
-        }
+        return createMine({ x: pos.x + Math.cos(a) * 160, y: pos.y + Math.sin(a) * 160 })
       })
       return { ...state, hazards: [...state.hazards, ...mines] }
     }

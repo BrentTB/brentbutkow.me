@@ -64,7 +64,7 @@ function cloudPuffs(n: NebulaEffect, radius: number): CloudPuff[] {
   for (let i = 0; i < n.id.length; i++) seed = (Math.imul(seed, 31) + n.id.charCodeAt(i)) | 0
   seed >>>= 0
   const rand = () => {
-    seed = (Math.imul(seed, 1664525) + 1013904859) >>> 0
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0
     return seed / 0x100000000
   }
   const puffs: CloudPuff[] = []

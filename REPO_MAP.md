@@ -261,7 +261,7 @@ src/projects/NullSpace/engine/bosses/
 src/projects/NullSpace/engine/calamities/
   asteroids.ts                               createAsteroid, seedAsteroidField, updateAsteroids, damageAsteroid, markInteracted, splitAsteroid, AsteroidContactResult, resolveAsteroidContacts, ProjectileAsteroidResult, resolveProjectileAsteroidCollisions, EffectAsteroidResult, applyEffectsToAsteroids
   calamity-damage.ts                         RadialDamageResult, applyRadialDamage
-  hazards.ts                                 replenishHazardField, generateHazardField, HazardUpdateResult, updateHazards
+  hazards.ts                                 createMine, replenishHazardField, generateHazardField, HazardUpdateResult, updateHazards
   nebula-vision.ts                           nebulaRadiusAt, NebulaZone, SightCircle, NebulaField, sightCircles, buildNebulaField, inZone, slowMultAt, hazeJitterAt, enemyVisibleToPlayerSide, playerVisibleToEnemy, visibleTargetForEnemy, jitterAim
   nebula.ts                                  createNebula, nebulaAlphaAt, drawNebulaCloud, fogNebulasOf, nebulaEffect
   shockwave.ts                               createShockwaveEffect, shockwaveRadiusAt, shockwaveEffect

@@ -1,15 +1,8 @@
 import { devUnlockWeapon, startGame } from '../game-loop'
 import { createEnemy, uid } from '../entities/entity-creator'
-import { HAZARD } from '../../data'
-import {
-  AbilityKind,
-  CollectibleKind,
-  EnemyKind,
-  HazardKind,
-  MovementBehavior,
-  ShipKind,
-} from '../types'
-import type { Collectible, Enemy, GameState, Hazard, Vec2 } from '../types'
+import { createMine } from '../calamities/hazards'
+import { AbilityKind, CollectibleKind, EnemyKind, MovementBehavior, ShipKind } from '../types'
+import type { Collectible, Enemy, GameState, Vec2 } from '../types'
 import { toroidalDelta, wrapPosition } from '../math/toroid'
 import { emptySpawnState } from '../world/waves'
 import type { TutorialStep } from './tutorial-script'
@@ -90,16 +83,6 @@ function tutorialSpaceMetal(pos: Vec2): Collectible {
   }
 }
 
-function tutorialMine(pos: Vec2): Hazard {
-  return {
-    id: uid(),
-    kind: HazardKind.mine,
-    pos,
-    radius: HAZARD.mineRadius,
-    damage: HAZARD.mineDamage,
-  }
-}
-
 // One-shot setup applied when a beat opens (the caller fires it once per step
 // transition; the guards also make it safe to re-run): drop a space metal pickup
 // ahead, place a mine in the ship's flight path to fly into, or park shield regen
@@ -127,7 +110,7 @@ export function applyTutorialStepEnter(state: GameState, step: TutorialStep): Ga
     // Clear enemies so the ship drifts straight ahead (no flee-orbit), then lay a
     // short row of mines across its weave so it reliably flies into one on its own
     // — the lesson being that the ship won't dodge hazards for you.
-    const row = [-72, 0, 72].map((side) => tutorialMine(aheadOfShip(next, 250, side)))
+    const row = [-72, 0, 72].map((side) => createMine(aheadOfShip(next, 250, side)))
     next = { ...next, enemies: [], hazards: row }
   }
   if (step.refillsPower) {

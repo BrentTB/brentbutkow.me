@@ -630,7 +630,9 @@ function renderHazeWarp(
     const dx = (Math.sin(y / (38 * dpr) + t) + Math.sin(y / (17 * dpr) + t * 1.7) * 0.5) * amp
     const dy = Math.sin(y / (80 * dpr) + t * 0.6) * amp * 0.45
     const sh = Math.min(stripH + overlap, ch - y)
-    ctx.drawImage(hazeBuffer, 0, y, cw, sh, dx, y + dy, cw, sh)
+    // Overdraw by `amp` each side so a horizontally-shifted strip never exposes the
+    // backdrop at the viewport's left/right edge.
+    ctx.drawImage(hazeBuffer, 0, y, cw, sh, dx - amp, y + dy, cw + 2 * amp, sh)
   }
   ctx.restore()
 }

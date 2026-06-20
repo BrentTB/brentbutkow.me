@@ -1036,9 +1036,9 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     particles
   ))
 
-  // Calamity scheduler: on non-boss waves, periodically erupt a telegraphed
-  // shock-ring or a drifting wandering black hole near the ship (rings are the
-  // more frequent of the two). Boss fights are left undisturbed.
+  // Calamity scheduler: on non-boss waves, periodically erupt one calamity near the
+  // ship — a drifting nebula (the most common roll), a telegraphed shock-ring, or a
+  // drifting wandering black hole. Boss fights are left undisturbed.
   if (!isBossWave(state.wave)) {
     calamityTimer -= dt
     if (calamityTimer <= 0) {
@@ -1066,7 +1066,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
           ),
         ]
         calamityTimer = rng.range(NEBULA.intervalMin, NEBULA.intervalMax)
-      } else if (rng.next() < 0.65) {
+      } else if (rng.next() < CALAMITY.shockwaveShareOfRest) {
         const spawnDist = rng.range(
           CALAMITY.shockwaveSpawnRange * 0.4,
           CALAMITY.shockwaveSpawnRange

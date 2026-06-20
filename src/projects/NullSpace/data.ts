@@ -436,6 +436,9 @@ export const CALAMITY = {
   shockwaveSpawnRange: 380, // max distance from the ship a ring can erupt
   shockwaveIntervalMin: 9, // seconds between rings (random within the range)
   shockwaveIntervalMax: 20,
+  // When a calamity roll isn't a nebula, this is its chance of being a shock-ring
+  // (the remainder is a wandering black hole) — keeps rings more frequent than wells.
+  shockwaveShareOfRest: 0.65,
   // Wandering black hole: a neutral drifting gravity well whose job is to inhibit
   // movement, not kill — strong pull, low damage. pullStrength stays under a
   // slingshot fling (SLINGSHOT.baseSpeed) so you can always escape.
