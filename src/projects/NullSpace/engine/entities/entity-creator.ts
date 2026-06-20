@@ -93,6 +93,7 @@ export function createShip(kind: ShipKind, worldSize: Vec2): Ship {
     slingHeat: 0,
     slingOverheated: false,
     hitFlash: 0,
+    hitFlashCooldown: 0,
   }
 }
 

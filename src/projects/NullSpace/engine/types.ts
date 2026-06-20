@@ -87,6 +87,9 @@ export type Ship = Entity & {
   // Cosmetic timer (seconds, counts down to 0) — render-only, never touches the
   // simulation. hitFlash washes the sprite white on damage.
   hitFlash: number
+  // Gates how often hitFlash re-triggers, so continuous damage (a wandering black
+  // hole core) pulses white now and then instead of staying pinned solid white.
+  hitFlashCooldown: number
 }
 
 export const EnemyKind = {
@@ -318,6 +321,7 @@ export const EffectKind = {
   repulseField: 'repulseField',
   cometStorm: 'cometStorm',
   shockwave: 'shockwave',
+  wanderingBlackHole: 'wanderingBlackHole',
 } as const
 export type EffectKind = (typeof EffectKind)[keyof typeof EffectKind]
 
@@ -471,6 +475,21 @@ export type ShockwaveEffect = EffectBase & {
   baseDamage: number
 }
 
+// Wandering black hole calamity: a neutral gravity well that drifts across the
+// sector at `vel`, pulling EVERYONE (ship, allies, enemies, asteroids, projectiles)
+// and burning the core. It winks in small and swells from startRadius to maxRadius
+// over growDuration (no telegraph), then holds until it expires. Pull + damage are
+// applied in the main loop (they need ship + allies + asteroids), like the Shockwave.
+export type WanderingBlackHoleEffect = EffectBase & {
+  kind: typeof EffectKind.wanderingBlackHole
+  vel: Vec2
+  startRadius: number
+  maxRadius: number
+  growDuration: number
+  pullStrength: number
+  damage: number
+}
+
 export type ActiveEffect =
   | MeteorStrikeEffect
   | BlackHoleEffect
@@ -484,6 +503,7 @@ export type ActiveEffect =
   | RepulseFieldEffect
   | CometStormEffect
   | ShockwaveEffect
+  | WanderingBlackHoleEffect
 
 export const CollectibleKind = {
   powerOrb: 'powerOrb',
@@ -519,6 +539,31 @@ export type Hazard = {
   // Trigger radius — an entity this close sets the mine off.
   radius: number
   damage: number
+}
+
+// A drifting asteroid: a destructible neutral body (NOT an enemy). Damages everyone
+// it touches (debounced per-asteroid), splits into smaller tiers when destroyed, and
+// is shoved by the same forces that move enemies (black hole, telekinesis, domes).
+export const AsteroidTier = { large: 'large', medium: 'medium', small: 'small' } as const
+export type AsteroidTier = (typeof AsteroidTier)[keyof typeof AsteroidTier]
+
+export type Asteroid = {
+  id: string
+  tier: AsteroidTier
+  pos: Vec2
+  vel: Vec2
+  radius: number
+  hp: number
+  maxHp: number
+  // Visual roll: current angle and angular velocity (rad, rad/s).
+  spin: number
+  spinVel: number
+  // Which silhouette the renderer draws (cosmetic, picked at spawn).
+  variant: number
+  // Seconds until it can deal contact damage again (0 = ready).
+  hitCooldown: number
+  // Set once the player damages or ability-moves it — gates whether it drops loot.
+  playerInteracted: boolean
 }
 
 export type Ally = {
@@ -656,6 +701,8 @@ export type GameState = {
   deathAnims: DeathAnim[]
   // Scattered mine clusters. Not part of the kill/wave economy.
   hazards: Hazard[]
+  // Drifting destructible asteroids (a calamity): damage everyone, split when destroyed.
+  asteroids: Asteroid[]
 
   // --- Progress / score ---
   wave: number

@@ -1,11 +1,11 @@
-import { POWER_ORB, SHARDS_PER_BOSS, SINGULARITY_SHARD, SPACE_METAL } from '../../data'
+import { ASTEROID, POWER_ORB, SHARDS_PER_BOSS, SINGULARITY_SHARD, SPACE_METAL } from '../../data'
 import { distance } from '../math/collision'
 import { uid } from '../entities/entity-creator'
 import { homeTowardTarget } from '../math/homing'
 import { rng } from '../math/random'
 import { getBossDefinition } from '../bosses/index'
 import { CollectibleKind } from '../types'
-import type { Collectible, Enemy, Ship, Vec2 } from '../types'
+import type { Asteroid, Collectible, Enemy, Ship, Vec2 } from '../types'
 
 export function spawnCollectiblesFromKills(
   killedEnemies: Enemy[],
@@ -75,6 +75,39 @@ export function spawnCollectiblesFromKills(
   }
 
   return collectibles
+}
+
+// Loot a destroyed asteroid drops — only called for player-interacted rocks, so
+// ignoring a drifting asteroid yields nothing. Tier-scaled and modest: a large
+// rock is worth roughly a basic enemy, a small one nothing.
+export function spawnAsteroidLoot(asteroid: Asteroid): Collectible[] {
+  const cfg = ASTEROID.tiers[asteroid.tier]
+  const out: Collectible[] = []
+  for (let i = 0; i < cfg.powerOrbs; i++) {
+    out.push({
+      id: uid(),
+      kind: CollectibleKind.powerOrb,
+      pos: { ...asteroid.pos },
+      vel: { x: rng.range(-30, 30), y: rng.range(-30, 30) },
+      value: ASTEROID.powerOrbValue,
+      elapsed: 0,
+      lifetime: POWER_ORB.lifetime,
+      homing: false,
+    })
+  }
+  for (let i = 0; i < cfg.spaceMetal; i++) {
+    out.push({
+      id: uid(),
+      kind: CollectibleKind.spaceMetal,
+      pos: { x: asteroid.pos.x + rng.range(-12, 12), y: asteroid.pos.y + rng.range(-12, 12) },
+      vel: { x: 0, y: 0 },
+      value: 1,
+      elapsed: 0,
+      lifetime: SPACE_METAL.lifetime,
+      homing: false,
+    })
+  }
+  return out
 }
 
 export function updateCollectibles(

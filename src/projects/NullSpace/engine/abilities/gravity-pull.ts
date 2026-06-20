@@ -49,6 +49,23 @@ function banishPos(enemyPos: Vec2, cfg: BanishConfig): Vec2 {
   return wrapPosition({ x: cfg.shipPos.x + nx * newDist, y: cfg.shipPos.y + ny * newDist })
 }
 
+// The spiral offset a gravity well imparts to a single body at `pos` this frame —
+// mostly tangential (orbit) with a gentle inward draw. Motion only, no damage, so
+// it moves any body: enemies under a Black Hole, or the ship/allies/asteroids
+// caught in a wandering well. Zero outside the well's radius.
+export function gravityWellDisplacement(pos: Vec2, well: GravityWell, dt: number): Vec2 {
+  const { x: dx, y: dy } = toroidalDelta(pos, well.pos)
+  const dist = Math.sqrt(dx * dx + dy * dy)
+  if (dist > well.radius) return { x: 0, y: 0 }
+  const nx = dist > 1 ? dx / dist : 0
+  const ny = dist > 1 ? dy / dist : 0
+  const strength = (1 - dist / well.radius) * well.pullStrength * dt
+  return {
+    x: nx * strength * SPIRAL_RADIAL - ny * strength * SPIRAL_TANGENTIAL,
+    y: ny * strength * SPIRAL_RADIAL + nx * strength * SPIRAL_TANGENTIAL,
+  }
+}
+
 export function applyGravityWell(
   enemies: Enemy[],
   well: GravityWell,
@@ -88,11 +105,7 @@ export function applyGravityWell(
       continue
     }
 
-    const nx = dist > 1 ? dx / dist : 0
-    const ny = dist > 1 ? dy / dist : 0
-    const strength = (1 - dist / well.radius) * well.pullStrength * dt
-    const spiralX = nx * strength * SPIRAL_RADIAL - ny * strength * SPIRAL_TANGENTIAL
-    const spiralY = ny * strength * SPIRAL_RADIAL + nx * strength * SPIRAL_TANGENTIAL
+    const { x: spiralX, y: spiralY } = gravityWellDisplacement(enemy.pos, well, dt)
 
     const distRatio = Math.max(0, 1 - dist / well.radius)
     const damageThisTick = damageable ? well.damage * (0.5 + distRatio * 1.5) * dt : 0

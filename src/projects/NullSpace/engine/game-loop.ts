@@ -1,5 +1,6 @@
 import {
   ANIMATION,
+  ASTEROID,
   BOSS_LEVEL_INTERVAL,
   CALAMITY,
   FORWARD_DIR,
@@ -30,6 +31,7 @@ import {
 import { INACTIVE_HOLD_STATE, runHoldAbility } from './abilities/hold-runtime'
 import type { HoldBag } from './abilities/hold-runtime'
 import {
+  spawnAsteroidLoot,
   spawnCollectiblesFromKills,
   tryCollectSpaceMetal,
   updateCollectibles,
@@ -83,9 +85,18 @@ import {
 import { purchaseUltimate } from './ultimates'
 import { emptySpawnState, getWave, getWaveDelay, isBossWave } from './world/waves'
 import { waveSpeedEscalation } from './world/wave-escalation'
-import { generateHazardField, updateHazards } from './calamities/hazards'
+import { generateHazardField, replenishHazardField, updateHazards } from './calamities/hazards'
+import {
+  applyEffectsToAsteroids,
+  resolveAsteroidContacts,
+  resolveProjectileAsteroidCollisions,
+  seedAsteroidField,
+  splitAsteroid,
+  updateAsteroids,
+} from './calamities/asteroids'
 import { applyRadialDamage } from './calamities/calamity-damage'
 import { createShockwaveEffect, shockwaveRadiusAt } from './calamities/shockwave'
+import { applyWanderingHoles, createWanderingBlackHole } from './calamities/wandering-black-hole'
 import { advanceBossSelection, createBossSelection } from './bosses/boss-selection'
 import { updateBossAI } from './bosses/boss-ai'
 import { loadHighScore, saveHighScore } from './world/persistence'
@@ -93,7 +104,15 @@ import { rng } from './math/random'
 import { toroidalDelta, wrapPosition } from './math/toroid'
 import { getHelperWeaponForUnlockUpgrade, HELPER_WEAPON_LIST } from './weapons'
 import { CollectibleKind, EffectKind, GamePhase, ShipKind, HelperWeaponKind } from './types'
-import type { AbilityKind, GameState, PlayerInput, Vec2 } from './types'
+import type {
+  AbilityKind,
+  Asteroid,
+  Collectible,
+  GameState,
+  Particle,
+  PlayerInput,
+  Vec2,
+} from './types'
 import type { UpgradeId } from './upgrade-ids'
 
 // Weapons a fresh run starts with — derived from each weapon's startsUnlocked
@@ -137,6 +156,7 @@ export function createInitialState(): GameState {
     warpFlashTimer: 0,
     calamityTimer: CALAMITY.shockwaveIntervalMin,
     hazards: [],
+    asteroids: [],
     spawn: emptySpawnState(),
     holdStates: {},
     levelUpWeaponOffers: [],
@@ -163,6 +183,7 @@ export function moveToShipSelection(state: GameState): GameState {
     activeEffects: [],
     collectibles: [],
     hazards: [],
+    asteroids: [],
   }
 }
 
@@ -202,6 +223,7 @@ export function startGame(state: GameState, shipKind: ShipKind): GameState {
     warpFlashTimer: 0,
     calamityTimer: CALAMITY.shockwaveIntervalMin,
     hazards: [],
+    asteroids: [],
     spawn: emptySpawnState(),
     highScore: loadHighScore(),
     isNewHighScore: false,
@@ -251,6 +273,9 @@ export function resetForSector(state: GameState): GameState {
   const center = { x: worldSize.x / 2, y: worldSize.y / 2 }
   const bossSector = state.level > 0 && state.level % BOSS_LEVEL_INTERVAL === 0
   const seedField = !bossSector && state.level % HAZARD.laneEveryWaves === 0
+  // Asteroids ramp in from a later sector, so sector 1 stays a clean intro (and its
+  // spawn layout is undisturbed by the asteroid seed's RNG draws).
+  const seedAsteroids = !bossSector && state.level >= ASTEROID.startSector
   return {
     ...state,
     worldSize,
@@ -259,6 +284,7 @@ export function resetForSector(state: GameState): GameState {
     warpTimer: 0,
     warpFlashTimer: 0,
     hazards: seedField ? generateHazardField(worldSize, center) : [],
+    asteroids: seedAsteroids ? seedAsteroidField(worldSize, center) : [],
     ship: {
       ...state.ship,
       pos: { ...center },
@@ -289,6 +315,12 @@ function beginWave(state: GameState): GameState {
   return {
     ...state,
     phase: GamePhase.playing,
+    // Mines are single-use, so a sector's field thins as they detonate. Top it back
+    // up at every non-boss wave start (clear of the ship) so there's always a field
+    // around — not just a full one at sector start. Boss waves stay clear.
+    hazards: bossWave
+      ? state.hazards
+      : replenishHazardField(state.hazards, state.worldSize, state.ship.pos),
     spawn: {
       waveTimer: getWaveDelay(state.wave),
       queue,
@@ -478,6 +510,7 @@ export function beginWarp(state: GameState): GameState {
     collectibles: [],
     particles: [],
     hazards: [],
+    asteroids: [],
     // Cancel any residual fling / escape so the cutscene flight is clean.
     ship: { ...state.ship, flingVel: { x: 0, y: 0 }, escapeMode: null },
   }
@@ -603,6 +636,26 @@ export function finishUpgradeScreen(state: GameState): GameState {
   return beginWave({ ...state, levelUpWeaponOffers: [] })
 }
 
+// Splits each destroyed asteroid into its fragments, drops loot for the ones the
+// player engaged (playerInteracted), and spawns a debris burst. Shared by every
+// place a rock dies — gunfire, ability AoE, the wandering well.
+function settleKilledAsteroids(
+  killed: Asteroid[],
+  asteroids: Asteroid[],
+  collectibles: Collectible[],
+  particles: Particle[]
+): { asteroids: Asteroid[]; collectibles: Collectible[]; particles: Particle[] } {
+  let nextAsteroids = asteroids
+  let nextCollectibles = collectibles
+  let nextParticles = particles
+  for (const k of killed) {
+    nextAsteroids = [...nextAsteroids, ...splitAsteroid(k)]
+    if (k.playerInteracted) nextCollectibles = [...nextCollectibles, ...spawnAsteroidLoot(k)]
+    nextParticles = [...nextParticles, ...spawnExplosionParticles(k.pos, 14, ASTEROID.color)]
+  }
+  return { asteroids: nextAsteroids, collectibles: nextCollectibles, particles: nextParticles }
+}
+
 export function updateGameState(state: GameState, dt: number, input: PlayerInput): GameState {
   if (state.phase !== GamePhase.playing) return state
 
@@ -627,6 +680,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     spaceMetal,
     singularityShard,
     hazards,
+    asteroids,
     calamityTimer,
   } = state
   // Spawn bookkeeping lives in state.spawn; alias to flat locals so the loop body
@@ -642,7 +696,11 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   let holdStates = state.holdStates
 
   // Cosmetic damage-flash decays each frame; a hit later this frame refreshes it.
-  ship = { ...ship, hitFlash: Math.max(0, ship.hitFlash - dt) }
+  ship = {
+    ...ship,
+    hitFlash: Math.max(0, ship.hitFlash - dt),
+    hitFlashCooldown: Math.max(0, ship.hitFlashCooldown - dt),
+  }
 
   // Upgrade-derived economy multipliers (constant across the frame).
   const stardustMultiplier = getStardustMultiplier(state.upgrades)
@@ -677,6 +735,13 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   // multiplier, so parking and letting enemies trail the ship forever gets worse.
   waveElapsed = waveElapsed + dt
   const waveSpeedMult = waveSpeedEscalation(waveElapsed, isBossWave(state.wave))
+  // The frame escalation kicks in (the warning countdown hits 0): a red burst on
+  // every living enemy so the speed-up reads as an event, not a silent ramp.
+  if (waveSpeedMult > 1 && waveSpeedEscalation(waveElapsed - dt, isBossWave(state.wave)) <= 1) {
+    for (const e of enemies) {
+      particles = [...particles, ...spawnExplosionParticles(e.pos, 6, '#ff4628')]
+    }
+  }
 
   // --- Boss AI (onSpawn + phase advance + drone spawning + self-motion) ---
   const bossResult = updateBossAI(enemies, dt, { shipPos: ship.pos, worldSize: state.worldSize })
@@ -712,6 +777,11 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     })),
   ]
   power -= abilityResult.powerSpent
+
+  // Snapshot effects before updateActiveEffects ticks them: one-shot effects (a
+  // meteor impact) expire on their damage frame, so applyEffectsToAsteroids below
+  // must read them here, before they're filtered out, or asteroids never feel them.
+  const effectsThisFrame = activeEffects
 
   // --- Active effects (meteor strikes, black holes, rockets, shield, sun) ---
   const effectResult = updateActiveEffects(
@@ -783,8 +853,9 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   activeEffects = recentreRepulseFields(activeEffects, ship.pos)
   // Shields block new entries — bounce non-grandfathered enemies back to the
   // boundary after they've moved this frame. Force fields also burn on contact.
-  const shieldResult = applyShieldConstraints(activeEffects, enemies, dt)
+  const shieldResult = applyShieldConstraints(activeEffects, enemies, dt, asteroids)
   enemies = shieldResult.enemies
+  asteroids = shieldResult.asteroids
   score += shieldResult.scoreGained
   currency += computeCurrencyFromKills(shieldResult.killedEnemies, stardustMultiplier)
   particles = [...particles, ...shieldResult.particles]
@@ -802,7 +873,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   // definition file; the runner handles the arm gate, drain, and active flag.
   const isHolding = input.isHolding ?? false
   const holdPos = input.holdPos ?? null
-  let holdBag: HoldBag = { enemies, particles, power, killedEnemies: [] }
+  let holdBag: HoldBag = { enemies, particles, power, killedEnemies: [], asteroids }
   const nextHoldStates: typeof holdStates = { ...holdStates }
   for (const def of ABILITY_LIST) {
     if (!def.hold) continue
@@ -827,6 +898,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   enemies = holdBag.enemies
   particles = holdBag.particles
   power = holdBag.power
+  asteroids = holdBag.asteroids
   const holdKilledEnemies = holdBag.killedEnemies
   score += holdKilledEnemies.reduce((sum, e) => sum + e.scoreValue, 0)
   currency += computeCurrencyFromKills(holdKilledEnemies, stardustMultiplier)
@@ -854,6 +926,23 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   // Nuke detonations spawn lingering "nuclear waste" effects here.
   if (projCollision.newEffects.length > 0) {
     activeEffects = [...activeEffects, ...projCollision.newEffects]
+  }
+
+  // --- Player projectiles vs asteroids (shoot to break; loot only when engaged) ---
+  const projAsteroid = resolveProjectileAsteroidCollisions(projectiles, asteroids)
+  projectiles = projAsteroid.projectiles
+  asteroids = projAsteroid.asteroids
+  particles = [...particles, ...projAsteroid.particles]
+  if (projAsteroid.killedAsteroids.length > 0) {
+    const settled = settleKilledAsteroids(
+      projAsteroid.killedAsteroids,
+      asteroids,
+      collectibles,
+      particles
+    )
+    asteroids = settled.asteroids
+    collectibles = settled.collectibles
+    particles = settled.particles
   }
 
   // --- Collision: enemy projectiles vs ship ---
@@ -888,21 +977,84 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   particles = [...particles, ...hazardResult.particles]
   calamityKilled.push(...hazardResult.killedEnemies)
 
-  // Shockwave scheduler: on non-boss waves, periodically erupt a telegraphed
-  // shock-ring near the ship. Boss fights are left undisturbed.
+  // Player abilities + AoE effects pull / damage asteroids (loot when destroyed).
+  const effectAsteroids = applyEffectsToAsteroids(effectsThisFrame, asteroids, dt)
+  asteroids = effectAsteroids.asteroids
+  particles = [...particles, ...effectAsteroids.particles]
+  if (effectAsteroids.killedAsteroids.length > 0) {
+    const settled = settleKilledAsteroids(
+      effectAsteroids.killedAsteroids,
+      asteroids,
+      collectibles,
+      particles
+    )
+    asteroids = settled.asteroids
+    collectibles = settled.collectibles
+    particles = settled.particles
+  }
+
+  // Asteroids drift + bounce off each other, then chip everyone they touch
+  // (debounced per-rock). Their enemy kills also ride the death pipeline, no score.
+  asteroids = updateAsteroids(asteroids, dt)
+  const asteroidContact = resolveAsteroidContacts(asteroids, ship, enemies, allies)
+  asteroids = asteroidContact.asteroids
+  ship = asteroidContact.ship
+  enemies = asteroidContact.enemies
+  allies = asteroidContact.allies
+  particles = [...particles, ...asteroidContact.particles]
+  calamityKilled.push(...asteroidContact.killedEnemies)
+  // A rock worn down by its own collisions shatters like any other kill — split +
+  // explode, but no loot (the bump damage was non-player, so playerInteracted gates it out).
+  if (asteroidContact.killedAsteroids.length > 0) {
+    const settled = settleKilledAsteroids(
+      asteroidContact.killedAsteroids,
+      asteroids,
+      collectibles,
+      particles
+    )
+    asteroids = settled.asteroids
+    collectibles = settled.collectibles
+    particles = settled.particles
+  }
+
+  // Calamity scheduler: on non-boss waves, periodically erupt a telegraphed
+  // shock-ring or a drifting wandering black hole near the ship (rings are the
+  // more frequent of the two). Boss fights are left undisturbed.
   if (!isBossWave(state.wave)) {
     calamityTimer -= dt
     if (calamityTimer <= 0) {
       const angle = rng.next() * Math.PI * 2
-      const spawnDist = rng.range(CALAMITY.shockwaveSpawnRange * 0.4, CALAMITY.shockwaveSpawnRange)
-      activeEffects = [
-        ...activeEffects,
-        createShockwaveEffect({
-          x: ship.pos.x + Math.cos(angle) * spawnDist,
-          y: ship.pos.y + Math.sin(angle) * spawnDist,
-        }),
-      ]
-      calamityTimer = rng.range(CALAMITY.shockwaveIntervalMin, CALAMITY.shockwaveIntervalMax)
+      if (rng.next() < 0.65) {
+        const spawnDist = rng.range(
+          CALAMITY.shockwaveSpawnRange * 0.4,
+          CALAMITY.shockwaveSpawnRange
+        )
+        activeEffects = [
+          ...activeEffects,
+          createShockwaveEffect({
+            x: ship.pos.x + Math.cos(angle) * spawnDist,
+            y: ship.pos.y + Math.sin(angle) * spawnDist,
+          }),
+        ]
+        calamityTimer = rng.range(CALAMITY.shockwaveIntervalMin, CALAMITY.shockwaveIntervalMax)
+      } else {
+        const spawnDist = rng.range(CALAMITY.wellSpawnRange * 0.5, CALAMITY.wellSpawnRange)
+        const driftAngle = rng.next() * Math.PI * 2
+        activeEffects = [
+          ...activeEffects,
+          createWanderingBlackHole(
+            {
+              x: ship.pos.x + Math.cos(angle) * spawnDist,
+              y: ship.pos.y + Math.sin(angle) * spawnDist,
+            },
+            {
+              x: Math.cos(driftAngle) * CALAMITY.wellDriftSpeed,
+              y: Math.sin(driftAngle) * CALAMITY.wellDriftSpeed,
+            }
+          ),
+        ]
+        calamityTimer = rng.range(CALAMITY.wellIntervalMin, CALAMITY.wellIntervalMax)
+      }
     }
   }
 
@@ -933,6 +1085,36 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     allies = blast.allies
     particles = [...particles, ...blast.particles]
     calamityKilled.push(...blast.killedEnemies)
+  }
+
+  // Wandering black hole: drags every body toward it and burns the core. Neutral,
+  // so no score and no asteroid loot; Escape Mode shrugs off both pull and damage.
+  const wandering = applyWanderingHoles(
+    activeEffects,
+    ship,
+    enemies,
+    allies,
+    asteroids,
+    projectiles,
+    dt
+  )
+  ship = wandering.ship
+  enemies = wandering.enemies
+  allies = wandering.allies
+  asteroids = wandering.asteroids
+  projectiles = wandering.projectiles
+  particles = [...particles, ...wandering.particles]
+  calamityKilled.push(...wandering.killedEnemies)
+  if (wandering.killedAsteroids.length > 0) {
+    const settled = settleKilledAsteroids(
+      wandering.killedAsteroids,
+      asteroids,
+      collectibles,
+      particles
+    )
+    asteroids = settled.asteroids
+    collectibles = settled.collectibles
+    particles = settled.particles
   }
 
   // --- Collision: enemies vs allies (melee — enemy dies, ally takes damage) ---
@@ -1102,6 +1284,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       spaceMetal,
       singularityShard,
       hazards,
+      asteroids,
       spawn: {
         waveTimer: 0,
         queue: spawnQueue,
@@ -1146,6 +1329,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       },
       holdStates: {},
       hazards,
+      asteroids,
       calamityTimer,
       escapeTrailAccumulator,
     }
@@ -1181,6 +1365,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     },
     holdStates,
     hazards,
+    asteroids,
     calamityTimer,
     escapeTrailAccumulator,
   }

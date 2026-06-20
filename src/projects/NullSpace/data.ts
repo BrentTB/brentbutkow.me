@@ -320,6 +320,9 @@ export const WAVE_ESCALATION = {
   // Boss waves are meant to be long fights, so they get a much longer grace
   // before enemies start speeding up.
   bossGracePeriod: 75,
+  // An immediate speed bump the instant the grace ends — so the moment the warning
+  // countdown hits 0 reads as a real jump, not a slow creep.
+  initialStep: 0.12,
   rampPerSec: 0.04,
   maxMult: 2.2,
 } as const
@@ -433,6 +436,44 @@ export const CALAMITY = {
   shockwaveSpawnRange: 380, // max distance from the ship a ring can erupt
   shockwaveIntervalMin: 9, // seconds between rings (random within the range)
   shockwaveIntervalMax: 20,
+  // Wandering black hole: a neutral drifting gravity well whose job is to inhibit
+  // movement, not kill — strong pull, low damage. pullStrength stays under a
+  // slingshot fling (SLINGSHOT.baseSpeed) so you can always escape.
+  wellStartRadius: 60, // winks in this small...
+  wellMaxRadius: 320, // ...and swells to this over wellGrowDuration
+  wellGrowDuration: 2,
+  wellPullStrength: 320, // strong drag (its primary purpose); still escapable
+  wellDamage: 6, // low per-second burn at the rim; ramps toward the core
+  wellDriftSpeed: 28, // how fast the well wanders
+  wellDuration: 11, // total lifetime
+  wellSpawnRange: 420, // distance from the ship it erupts
+  wellIntervalMin: 16, // seconds between wandering wells (random within the range)
+  wellIntervalMax: 26,
+} as const
+
+// Asteroid calamity: slow destructible bodies that drift through the sector, damage
+// everyone they touch, and split into smaller tiers when destroyed. They react to
+// every force that moves enemies (black hole, telekinesis, domes), so you can fling
+// or trap them. Loot drops only when the player engaged the rock (damaged or moved it).
+export const ASTEROID = {
+  tiers: {
+    large: { radius: 46, hp: 130, contactDamage: 30, driftSpeed: 32, spaceMetal: 1, powerOrbs: 1 },
+    medium: { radius: 30, hp: 64, contactDamage: 22, driftSpeed: 46, spaceMetal: 0, powerOrbs: 1 },
+    small: { radius: 18, hp: 30, contactDamage: 14, driftSpeed: 64, spaceMetal: 0, powerOrbs: 0 },
+  },
+  splitCount: 2, // fragments a large/medium asteroid breaks into when destroyed
+  splitScatter: 80, // px/s sideways kick added to each fragment's inherited velocity
+  contactCooldown: 0.8, // seconds before an asteroid can deal contact damage again
+  contactPad: 16, // contact-damage reach beyond the asteroid's radius (covers a touching hull)
+  bumpSelfDamage: 18, // hp the asteroid itself loses each bump — a collision wears it down too (no loot)
+  spinMax: 1.1, // max |angular velocity| for the cosmetic roll (rad/s)
+  restitution: 0.85, // velocity retained in an asteroid-asteroid bounce
+  seedCount: 4, // asteroids drifting in a fresh non-boss sector
+  startSector: 2, // first sector they appear in — sector 1 stays a clean intro
+  forwardMargin: 360, // keep seeded asteroids at least this far from the ship's spawn
+  powerOrbValue: 4, // power granted by each orb a destroyed asteroid drops
+  variantCount: 5, // distinct silhouettes the renderer rotates through
+  color: '#9b8b7a',
 } as const
 
 // The portal the ship warps through when a sector clears. Dormant until then.
@@ -465,6 +506,34 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.5.0',
+    date: '2026-06-20',
+    changes: {
+      features: [
+        'Asteroids: drifting rocks that damage everyone, bounce off each other, and shatter into smaller ones when destroyed. Shoot them, fling them with telekinesis, or pull them into a black hole; they only drop loot if you engaged them. They appear from sector 2 onward.',
+        'Wandering black hole: a neutral gravity well that drifts across the sector, dragging your ship, enemies, allies, and asteroids toward its core and burning everything caught in it. Slingshot away to escape its pull.',
+      ],
+      balance: [
+        'The wandering black hole now pulls much harder but deals far less damage: its job is to trap you, not kill you. It also winks in small and swells to full size over a couple of seconds instead of showing a warning ring.',
+        'When a wave drags on, enemies now jump to a faster speed the instant the countdown ends, then keep ramping, so the speed-up is something you feel rather than a slow creep.',
+        'Asteroids now take damage from their own collisions — bumping the ship or an enemy chips the rock, so enough impacts break it apart (no loot, since the hit was not yours to deal).',
+      ],
+      fixes: [
+        'The ship no longer washes solid white while sitting in a wandering black hole; its damage flash now pulses like enemies do under continuous damage.',
+        'Meteorites and other area abilities now actually damage and break asteroids; their one-shot blasts were previously missing them entirely.',
+        'Mines now stay around for the whole sector instead of thinning out to nothing — the minefield tops back up at the start of every non-boss wave.',
+        'The leaderboard no longer overlaps its Back button across the score rows in fullscreen; the whole board now scales as a single panel.',
+      ],
+      ui: [
+        'Asteroids now come in several silhouettes instead of all looking identical, and show a small health bar once chipped.',
+        'Enemies flash red and burst the moment the wave speed-up kicks in.',
+      ],
+      architecture: [
+        'Generalised the ability force systems (gravity well, radial push/pull, dome knockback) into body-agnostic primitives, so asteroids and the ship react to the same forces as enemies.',
+      ],
+    },
+  },
   {
     version: '1.4.0',
     date: '2026-06-20',

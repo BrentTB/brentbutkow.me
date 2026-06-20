@@ -22,7 +22,7 @@ function makeAbility(overrides: Partial<Ability> = {}): Ability {
 }
 
 function bagWith(enemies: Enemy[]): HoldBag {
-  return { enemies, particles: [], power: 100, killedEnemies: [] }
+  return { enemies, particles: [], power: 100, killedEnemies: [], asteroids: [] }
 }
 
 const CENTER = { x: 0, y: 0 }

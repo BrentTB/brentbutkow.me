@@ -23,7 +23,7 @@ const config: HoldAbilityConfig = {
 }
 
 function bag(power = 100): HoldBag {
-  return { enemies: [], particles: [], power, killedEnemies: [] }
+  return { enemies: [], particles: [], power, killedEnemies: [], asteroids: [] }
 }
 
 const ACTIVE: HoldRuntimeState = { active: true, timer: 0, target: { x: 5, y: 5 } }

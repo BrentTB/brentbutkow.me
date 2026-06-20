@@ -1,4 +1,12 @@
-import type { Ability, Enemy, GameState, HoldRuntimeState, Particle, Vec2 } from '../types'
+import type {
+  Ability,
+  Asteroid,
+  Enemy,
+  GameState,
+  HoldRuntimeState,
+  Particle,
+  Vec2,
+} from '../types'
 import type { Camera } from '../../renderer/camera'
 
 export type { HoldRuntimeState } from '../types'
@@ -28,6 +36,8 @@ export type HoldBag = {
   particles: Particle[]
   power: number
   killedEnemies: Enemy[]
+  // Asteroids the hold can shove (Telekinesis push / Singularity pull).
+  asteroids: Asteroid[]
 }
 
 export type HoldAbilityConfig = {
