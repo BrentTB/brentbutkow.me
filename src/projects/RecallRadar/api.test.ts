@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { buildRecallsPath, buildTrendPath } from './api'
-import { RecallCategory, RecallClass, RecallSort, SeverityLabel, TrendGroup } from './recall.types'
+import { buildRecallsPath, buildSimilarPath, buildTrendPath } from './api'
+import {
+  RecallCategory,
+  RecallClass,
+  RecallSort,
+  RecallSource,
+  SeverityLabel,
+  TrendGroup,
+} from './recall.types'
 
 describe('buildRecallsPath', () => {
   it('defaults the limit and omits unset filters', () => {
@@ -12,6 +19,7 @@ describe('buildRecallsPath', () => {
       category: RecallCategory.pathogen,
       classification: RecallClass.classI,
       severity: SeverityLabel.severe,
+      topic: '3',
       state: 'CA',
       entity: 'peanuts',
       search: 'listeria',
@@ -23,6 +31,7 @@ describe('buildRecallsPath', () => {
     expect(path).toContain('category=pathogen')
     expect(path).toContain('classification=Class+I')
     expect(path).toContain('severity=severe')
+    expect(path).toContain('topic=3')
     expect(path).toContain('state=CA')
     expect(path).toContain('entity=peanuts')
     expect(path).toContain('search=listeria')
@@ -58,5 +67,19 @@ describe('buildTrendPath', () => {
     const path = buildTrendPath({ search: 'listeria' }, TrendGroup.total)
     expect(path).not.toContain('limit')
     expect(path).not.toContain('offset')
+  })
+})
+
+describe('buildSimilarPath', () => {
+  it('builds an encoded similar path with the limit', () => {
+    expect(buildSimilarPath(RecallSource.fda, 'F-1234', 6)).toBe(
+      '/recalls/fda/F-1234/similar?limit=6'
+    )
+  })
+
+  it('encodes recall numbers with special characters and defaults the limit', () => {
+    expect(buildSimilarPath(RecallSource.usda, '007/2026')).toBe(
+      '/recalls/usda/007%2F2026/similar?limit=6'
+    )
   })
 })

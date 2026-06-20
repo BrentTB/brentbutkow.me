@@ -25,6 +25,7 @@ type RecallFiltersProps = {
   filters: RecallFilterValues
   country: RecallCountry
   stateOptions: string[]
+  topicLabel?: string
   onChange: (patch: Partial<RecallFilterValues>) => void
   onClear: () => void
 }
@@ -35,6 +36,7 @@ export function RecallFilters({
   filters,
   country,
   stateOptions,
+  topicLabel,
   onChange,
   onClear,
 }: RecallFiltersProps) {
@@ -69,7 +71,16 @@ export function RecallFilters({
     chips.push({
       key: 'severity',
       label: `${severityLabels[filters.severity]} severity`,
+      remove: 'the severity',
       patch: { severity: '' },
+    })
+  // Topic is set via the Themes cards / per-card chip; show its resolved label (not the raw id).
+  if (filters.topic && topicLabel)
+    chips.push({
+      key: 'topic',
+      label: `Theme: ${topicLabel}`,
+      remove: 'the theme',
+      patch: { topic: '' },
     })
   if (filters.source)
     chips.push({ key: 'source', label: sourceLabels[filters.source], patch: { source: '' } })

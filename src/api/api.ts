@@ -10,6 +10,7 @@ export const apiRoutes = {
     stats: '/recalls/stats',
     trend: '/recalls/trend',
     companies: '/recalls/companies',
+    topics: '/recalls/topics',
   },
   contact: '/contact',
   nullspace: {

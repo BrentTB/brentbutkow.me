@@ -378,12 +378,12 @@ src/projects/NullSpace/
 
 src/projects/RecallRadar/
   RecallRadar.tsx                            RecallRadar
-  api.ts                                     RecallFilters, TrendFilters, buildRecallsPath, buildTrendPath
+  api.ts                                     RecallFilters, TrendFilters, buildRecallsPath, buildTrendPath, buildSimilarPath
   chart-format.ts                            formatMonthLabel, formatNumber, seriesMax, median, formatDate, deriveYears, monthsForYear, IngestFreshness, ingestFreshness
 
 src/projects/RecallRadar/components/
   AnomalyChart.tsx                           AnomalyChart
-  Breakdowns.tsx                             Breakdowns
+  Breakdowns.tsx                             BreakdownList, Breakdowns
   ChartTooltip.tsx                           TooltipState, ChartTooltip
   CompanyFilter.tsx                          CompanyFilter
   CountrySelector.tsx                        CountrySelector
@@ -393,15 +393,17 @@ src/projects/RecallRadar/components/
   RecallFilters.tsx                          RecallFilters
   RecallMap.tsx                              RecallMap
   RecallTrendsChart.tsx                      RecallTrendsChart
+  RelatedRecalls.tsx                         RelatedRecalls
   SeverityBar.tsx                            SeverityBar
   StatCard.tsx                               StatCard
+  Themes.tsx                                 Themes
   TrendCallouts.tsx                          TrendCallouts
   page-window.ts                             PageSlot, pageWindow
   useChartTooltip.ts                         useChartTooltip
 
 src/projects/RecallRadar/
   data.ts                                    recallRadarCopy, techStack, methodologyPoints, categoryLabels, sourceLabels, countryLabels, entityTypeLabels, trendGroupLabels, severityLabels, severityOrder, severityColors, sortLabels, trendColor, classesByCountry, sourcesByCountry, recallRadarLinks
-  recall.types.ts                            RecallCategory, RecallClass, RecallSource, RecallCountry, EntityType, AnomalyScope, TrendGroup, SeverityLabel, RecallSort, RecallFilterValues, Recall, RecallEntity, RecallListResult, CategoryCount, MonthCount, LabelCount, EntityCount, AnomalyMonth, Anomaly, RecallStats, TrendBucket, TrendResult, isRecallCategory, isRecallClass, isRecallSource, isRecallCountry, isEntityType, isTrendGroup, isSeverityLabel, isRecallSort, isIsoDate, isTrendResult, isRecallListResult, isRecallStats
+  recall.types.ts                            RecallCategory, RecallClass, RecallSource, RecallCountry, EntityType, AnomalyScope, TrendGroup, SeverityLabel, RecallSort, RecallFilterValues, Recall, RecallEntity, RecallListResult, TopicOut, SimilarRecall, CategoryCount, MonthCount, LabelCount, EntityCount, AnomalyMonth, Anomaly, RecallStats, TrendBucket, TrendResult, isRecallCategory, isRecallClass, isRecallSource, isRecallCountry, isEntityType, isTrendGroup, isSeverityLabel, isRecallSort, isIsoDate, isTrendResult, isRecallListResult, isTopicOut, isTopicOutArray, isSimilarRecallArray, isRecallStats
   trend-callouts.ts                          TrendDirection, TrendCallout, deriveCallouts, anomalyCallouts
   trend-chart.ts                             ChartSegment, ChartMonth, toChartMonths
   us-state-grid.ts                           StateTile, STATE_GRID_ROWS, STATE_GRID_COLS, stateGrid
@@ -409,6 +411,8 @@ src/projects/RecallRadar/
   useRecallStats.ts                          useRecallStats
   useRecallTrend.ts                          useRecallTrend
   useRecalls.ts                              useRecalls
+  useSimilar.ts                              useSimilar
+  useTopics.ts                               useTopics
 
 src/routes/
   Router.tsx                                 Router

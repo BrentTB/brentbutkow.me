@@ -11,12 +11,19 @@ type BreakdownListProps = {
   rows: Row[]
   activeValue: string
   onSelect: (value: string) => void
+  maxRows?: number
 }
 
 const MAX_ROWS = 6
 
-function BreakdownList({ title, rows, activeValue, onSelect }: BreakdownListProps) {
-  const shown = rows.slice(0, MAX_ROWS)
+export function BreakdownList({
+  title,
+  rows,
+  activeValue,
+  onSelect,
+  maxRows = MAX_ROWS,
+}: BreakdownListProps) {
+  const shown = rows.slice(0, maxRows)
   const max = seriesMax(shown.map((row) => row.count))
   return (
     <div className={styles.card}>

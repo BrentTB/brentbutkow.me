@@ -14,6 +14,7 @@ export type RecallFilters = {
   category?: RecallCategory
   classification?: RecallClass
   severity?: SeverityLabel
+  topic?: string
   state?: string
   company?: string
   source?: RecallSource
@@ -36,6 +37,7 @@ function appendRecallFilters(params: URLSearchParams, filters: RecallFilters): v
   if (filters.category) params.set('category', filters.category)
   if (filters.classification) params.set('classification', filters.classification)
   if (filters.severity) params.set('severity', filters.severity)
+  if (filters.topic) params.set('topic', filters.topic)
   if (filters.state) params.set('state', filters.state)
   if (filters.company) params.set('company', filters.company)
   if (filters.source) params.set('source', filters.source)
@@ -59,4 +61,10 @@ export function buildTrendPath(filters: TrendFilters, group: TrendGroup): string
   params.set('group', group)
   appendRecallFilters(params, filters)
   return `${apiRoutes.recalls.trend}?${params.toString()}`
+}
+
+// A recall's nearest-neighbour path. Segments are encoded — FDA recall numbers can carry slashes.
+export function buildSimilarPath(source: RecallSource, recallNumber: string, limit = 6): string {
+  const recall = `${encodeURIComponent(source)}/${encodeURIComponent(recallNumber)}`
+  return `${apiRoutes.recalls.list}/${recall}/similar?limit=${limit}`
 }

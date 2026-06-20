@@ -1,0 +1,65 @@
+.root {
+  margin: 14px 0 0;
+  padding-top: 14px;
+  border-top: 1px dashed var(--border);
+}
+
+.heading {
+  margin: 0 0 8px;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.sim {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--accent);
+  padding-top: 1px;
+}
+
+.body {
+  min-width: 0;
+}
+
+.product {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.reason {
+  margin: 2px 0 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.status {
+  margin: 14px 0 0;
+  padding-top: 14px;
+  border-top: 1px dashed var(--border);
+  color: var(--muted);
+  font-size: 0.82rem;
+}
