@@ -510,6 +510,26 @@ export const NEBULA = {
   hazeColor: '150, 200, 90', // sickly green
 } as const
 
+// Wormhole pair calamity: two linked rifts that drift across the sector. Anything
+// entering one mouth is teleported to the other with its velocity preserved — the
+// displacement is the hazard (no damage). A neutral disaster you can weaponize:
+// fling an asteroid through into a swarm, or bail through when cornered.
+export const WORMHOLE = {
+  duration: 13, // total lifetime (winks in, holds, dissipates)
+  growDuration: 1.4, // mouths swell from startRadius to maxRadius over this
+  startRadius: 26,
+  maxRadius: 90, // mouth radius — a body within this of either mouth teleports
+  driftSpeed: 22, // the pair drifts together this fast
+  exitMargin: 28, // placed this far beyond the exit mouth's rim, so it never instantly re-enters
+  spawnRangeNear: 320, // mouth A erupts this far from the ship, at a random bearing
+  separationMin: 560, // mouth B sits separationMin..Max from A at a random angle — always wider
+  separationMax: 780, // than 2*maxRadius+exitMargin, so no orientation lets an exit cross-loop
+  intervalMin: 16, // seconds between wormholes (random within the range)
+  intervalMax: 28,
+  weight: 0.3, // share of non-nebula calamity rolls that pick a wormhole
+  color: '60, 200, 210', // teal rift (rgb) — distinct from the purple warp portal / black hole
+} as const
+
 // The portal the ship warps through when a sector clears. Dormant until then.
 export const PORTAL = {
   radius: 120,
@@ -540,6 +560,18 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.7.0',
+    date: '2026-06-20',
+    changes: {
+      features: [
+        'Wormhole pair: two linked rifts drift across the sector — fly into one and you come out the other with your momentum intact. Everything travels through: enemies, allies, asteroids, even shots. It deals no damage; the displacement is the danger. Fling an asteroid through it into a swarm, or bail through one when you are cornered.',
+      ],
+      fixes: [
+        'Allies and your ship now keep engaging a boss caught in a fog cloud — bosses always show through fog, but allies were wrongly holding fire on a concealed one.',
+      ],
+    },
+  },
   {
     version: '1.6.0',
     date: '2026-06-20',

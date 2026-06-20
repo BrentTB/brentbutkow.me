@@ -11,6 +11,7 @@ import { createMine } from './calamities/hazards'
 import { createShockwaveEffect } from './calamities/shockwave'
 import { createWanderingBlackHole } from './calamities/wandering-black-hole'
 import { createNebula } from './calamities/nebula'
+import { createWormhole, wormholePairPositions } from './calamities/wormhole'
 import { createAsteroid } from './calamities/asteroids'
 import { getAbilityCap, getLevel } from './upgrades'
 import { emptySpawnState } from './world/waves'
@@ -147,12 +148,13 @@ export const DevCalamity = {
   nebulaFog: 'nebulaFog',
   nebulaSlow: 'nebulaSlow',
   nebulaHaze: 'nebulaHaze',
+  wormhole: 'wormhole',
 } as const
 export type DevCalamity = (typeof DevCalamity)[keyof typeof DevCalamity]
 
-// Drops one calamity into the live arrays near the ship so it behaves exactly like a
-// scheduler-spawned one — for testing each in isolation. Positioned ahead of the ship
-// (zones overlap it immediately; bodies/wells drift back toward it).
+// Drops one calamity into the live arrays near the ship for testing each in isolation,
+// positioned ahead of the ship (zones overlap it immediately; bodies/wells drift back
+// toward it). Most match a scheduler spawn; the wormhole is deliberately stationary.
 export function devSpawnCalamity(state: GameState, kind: DevCalamity): GameState {
   const { pos } = state.ship
   const fwd = state.forwardDir
@@ -193,5 +195,10 @@ export function devSpawnCalamity(state: GameState, kind: DevCalamity): GameState
       return addEffect(createNebula(NebulaVariant.slow, ahead(120), towardShip(NEBULA.driftSpeed)))
     case DevCalamity.nebulaHaze:
       return addEffect(createNebula(NebulaVariant.haze, ahead(120), towardShip(NEBULA.driftSpeed)))
+    case DevCalamity.wormhole: {
+      // A stationary pair at a random orientation near the ship — fly into one, out the other.
+      const { posA, posB } = wormholePairPositions(pos)
+      return addEffect(createWormhole(posA, posB, { x: 0, y: 0 }))
+    }
   }
 }

@@ -103,7 +103,8 @@ export function updateAllies(
         // Skip invincible enemies (shielded boss) — don't waste shots on them.
         if (!canEnemyTakeDamage(enemy, enemies)) continue
         // Fog: skip enemies the player's side can't see (concealed in the murk).
-        if (field && !enemyVisibleToPlayerSide(enemy.pos, field)) continue
+        // Bosses ignore fog — always visible + targetable, like the renderer/enemy AI.
+        if (field && !enemy.boss && !enemyVisibleToPlayerSide(enemy.pos, field)) continue
         const d = distance(ally.pos, enemy.pos)
         if (d < nearestDist) {
           nearestDist = d

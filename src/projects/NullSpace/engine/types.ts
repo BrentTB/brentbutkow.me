@@ -323,6 +323,7 @@ export const EffectKind = {
   shockwave: 'shockwave',
   wanderingBlackHole: 'wanderingBlackHole',
   nebula: 'nebula',
+  wormhole: 'wormhole',
 } as const
 export type EffectKind = (typeof EffectKind)[keyof typeof EffectKind]
 
@@ -510,6 +511,21 @@ export type NebulaEffect = EffectBase & {
   growDuration: number
 }
 
+// Wormhole pair calamity: two linked rifts (mouths `pos` + `posB`) that drift
+// together at `vel`. Anything entering one mouth is teleported to the other with its
+// velocity preserved — the displacement is the hazard (no damage). It winks in
+// (startRadius → maxRadius over growDuration), holds, then expires. The teleport
+// needs ship + allies + asteroids + projectiles, so it runs in the main loop's
+// calamity pass (see applyWormholes), like the wandering hole.
+export type WormholeEffect = EffectBase & {
+  kind: typeof EffectKind.wormhole
+  posB: Vec2
+  vel: Vec2
+  startRadius: number
+  maxRadius: number
+  growDuration: number
+}
+
 export type ActiveEffect =
   | MeteorStrikeEffect
   | BlackHoleEffect
@@ -525,6 +541,7 @@ export type ActiveEffect =
   | ShockwaveEffect
   | WanderingBlackHoleEffect
   | NebulaEffect
+  | WormholeEffect
 
 export const CollectibleKind = {
   powerOrb: 'powerOrb',
