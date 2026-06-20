@@ -13,10 +13,10 @@ export function SpeedUpWarning({ countdown }: SpeedUpWarningProps) {
   if (countdown === null) return null
   return (
     <div className={styles.warning} role="status" aria-live="polite">
-      <span className={styles.icon} aria-hidden>
-        ⚠
+      <span aria-hidden>
+        <span className={styles.icon}>⚠</span> Enemies speed up in {Math.ceil(countdown)}s
       </span>
-      Enemies speed up in {Math.ceil(countdown)}s
+      <span className={styles.srOnly}>Enemies speeding up soon</span>
     </div>
   )
 }

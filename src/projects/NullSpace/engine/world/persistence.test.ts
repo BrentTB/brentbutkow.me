@@ -13,6 +13,7 @@ import {
   saveTutorialSeen,
 } from './persistence'
 import { createInitialState } from '../game-loop'
+import { CALAMITY } from '../../data'
 
 beforeEach(() => {
   localStorage.clear()
@@ -238,14 +239,32 @@ describe('saveGame / loadGame / clearSave', () => {
     expect(loaded?.state.salvageOfferUsed).toBe(false)
   })
 
-  it('round-trips kills and salvageOfferUsed', () => {
+  // A save written before calamities existed must load with the timer defaulted,
+  // not undefined — the loop counts down from it, so undefined would go NaN.
+  it('backfills calamityTimer on a save written before it existed', () => {
+    saveGame(createInitialState(), 1)
+    const raw = JSON.parse(localStorage.getItem('null-space-save')!) as {
+      version: number
+      rngState: number
+      state: Record<string, unknown>
+    }
+    delete raw.state.calamityTimer
+    localStorage.setItem('null-space-save', JSON.stringify(raw))
+
+    const loaded = loadGame()
+    expect(loaded?.state.calamityTimer).toBe(CALAMITY.shockwaveIntervalMin)
+  })
+
+  it('round-trips kills, salvageOfferUsed, and calamityTimer', () => {
     const state = createInitialState()
     state.kills = 17
     state.salvageOfferUsed = true
+    state.calamityTimer = 4.2
     saveGame(state, 1)
 
     const loaded = loadGame()
     expect(loaded?.state.kills).toBe(17)
     expect(loaded?.state.salvageOfferUsed).toBe(true)
+    expect(loaded?.state.calamityTimer).toBe(4.2)
   })
 })

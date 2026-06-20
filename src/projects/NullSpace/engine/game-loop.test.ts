@@ -1778,7 +1778,6 @@ describe('updateGameState — sector progression', () => {
     pos,
     radius: 26,
     damage: 35,
-    hitCooldown: 0,
   })
 
   it('threads hazards through the normal return', () => {

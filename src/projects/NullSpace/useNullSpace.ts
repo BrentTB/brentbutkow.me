@@ -814,8 +814,8 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       const dt = tick.dt
       const tut = tutorialRef.current
       const tutStep = tut ? tut.steps[tut.stepIndex] : null
-      // One-shot setup when a new beat opens (drop space metal / break shield /
-      // place a mine).
+      // One-shot setup when a new beat opens (drop space metal / park shield
+      // regen / place a mine).
       if (tutStep && tutStep.id !== tutorialPrevStepIdRef.current) {
         tutorialPrevStepIdRef.current = tutStep.id
         gameStateRef.current = applyTutorialStepEnter(gameStateRef.current, tutStep)

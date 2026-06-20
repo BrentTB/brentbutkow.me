@@ -159,14 +159,10 @@ const MOVEMENT_FN: Record<MovementBehavior, MoveFn> = {
   [MovementBehavior.none]: moveNone,
 }
 
-// Enemies steer smoothly around mines instead of bouncing off them. Two blended
-// terms: a dominant tangential bend that arcs the heading past a mine ahead (a
-// smooth curve, not the ugly orbit a pure radial push settles into), plus a
-// gentler radial push-out that's always on and ramps up close — so an enemy
-// circling a mine (player baiting it from the far side) still keeps its distance
-// instead of clipping the edge. The turn eases in, so the path stays natural.
-// Parked enemies (no heading) skip it; they never drift into a mine on their own.
-// An enemy only eats a mine when the player forces it in (black hole, telekinesis).
+// Enemies steer around mines by blending a dominant tangential bend (arcs past a
+// mine ahead, avoiding the ugly orbit a pure radial push settles into) with a
+// gentler always-on radial push-out that ramps up close. Parked enemies (no
+// heading) skip it — they only eat a mine when the player forces them in.
 function avoidHazards(enemy: Enemy, hazards: Hazard[], dt: number): Enemy {
   if (hazards.length === 0) return enemy
   const speed = Math.hypot(enemy.vel.x, enemy.vel.y)
