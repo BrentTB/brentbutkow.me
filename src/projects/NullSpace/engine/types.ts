@@ -322,6 +322,7 @@ export const EffectKind = {
   cometStorm: 'cometStorm',
   shockwave: 'shockwave',
   wanderingBlackHole: 'wanderingBlackHole',
+  nebula: 'nebula',
 } as const
 export type EffectKind = (typeof EffectKind)[keyof typeof EffectKind]
 
@@ -490,6 +491,25 @@ export type WanderingBlackHoleEffect = EffectBase & {
   damage: number
 }
 
+// The three nebula flavours: fog (conceal), slow (drag movement + slingshot),
+// haze (degrade aim + warp the view). Value doubles as the runtime discriminator.
+export const NebulaVariant = { fog: 'fog', slow: 'slow', haze: 'haze' } as const
+export type NebulaVariant = (typeof NebulaVariant)[keyof typeof NebulaVariant]
+
+// Nebula calamity: a neutral drifting zone that applies one symmetric, non-damage
+// modifier to everyone inside it. It winks in small and swells from startRadius to
+// maxRadius over growDuration, then holds until it expires. The modifier (conceal /
+// slow / haze) needs ship + enemies + allies, so it's applied in the main loop's
+// AI/movement passes — the effect itself only ages, drifts, and renders its cloud.
+export type NebulaEffect = EffectBase & {
+  kind: typeof EffectKind.nebula
+  variant: NebulaVariant
+  vel: Vec2
+  startRadius: number
+  maxRadius: number
+  growDuration: number
+}
+
 export type ActiveEffect =
   | MeteorStrikeEffect
   | BlackHoleEffect
@@ -504,6 +524,7 @@ export type ActiveEffect =
   | CometStormEffect
   | ShockwaveEffect
   | WanderingBlackHoleEffect
+  | NebulaEffect
 
 export const CollectibleKind = {
   powerOrb: 'powerOrb',

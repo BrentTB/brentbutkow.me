@@ -476,6 +476,35 @@ export const ASTEROID = {
   color: '#9b8b7a',
 } as const
 
+// Nebula calamity: neutral drifting zones (no damage). The three variants share one
+// spawn/lifetime shape; each applies a single symmetric modifier to whatever is
+// inside. fog conceals entities beyond the clear sight-bubbles (player's + allies');
+// slow drags movement and the slingshot; haze scatters auto-fire aim and warps the
+// player's view. Everyone inside is affected equally — a natural hazard, not a tool.
+export const NEBULA = {
+  duration: 14, // total lifetime (springs up, holds, dissipates)
+  growDuration: 1.6, // winks in from startRadius to maxRadius over this
+  startRadius: 70,
+  maxRadius: 340,
+  driftSpeed: 18, // slow wander across the sector
+  spawnRange: 420, // distance from the ship a nebula erupts
+  intervalMin: 14, // seconds between nebulas (random within the range)
+  intervalMax: 26,
+  weight: 0.45, // share of calamity rolls that pick a nebula (vs shockwave / well)
+  // Fog: clear sight-bubbles — anything inside one is mutually visible despite fog.
+  sightRadius: 200, // the player's clear bubble
+  allySightRadius: 120, // each ally's (smaller) clear bubble
+  wanderSpeed: 70, // speed of a blinded enemy's semi-random meander
+  slowMult: 0.45, // movement multiplier inside a slow nebula (incl. the slingshot)
+  hazeJitterMax: 0.5, // peak aim error (radians) at the haze centre, fading to 0 at the rim
+  hazeWarpAmp: 1, // drunk-ripple amplitude scalar for the player's view
+  hazeWarpSpeed: 2.2, // ripple oscillation speed
+  cloudPuffs: 14, // soft blobs per nebula — overlap into an irregular billowy cloud
+  fogColor: '120, 134, 150', // grey-blue murk (rgb, for the rgba() cloud + vignette)
+  slowColor: '90, 120, 210', // cold blue
+  hazeColor: '150, 200, 90', // sickly green
+} as const
+
 // The portal the ship warps through when a sector clears. Dormant until then.
 export const PORTAL = {
   radius: 120,
@@ -506,6 +535,18 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.6.0',
+    date: '2026-06-20',
+    changes: {
+      features: [
+        'Nebulas: drifting hazard clouds that spring up, linger, then dissipate — and endanger you as much as the enemies. Fog hides everything inside it (you keep a small clear bubble around your ship, allies keep smaller ones), so blinded enemies wander until you or an ally close in. Slow clouds drag every ship, enemy, and ally caught inside and sap your slingshot. Haze clouds warp your view and scatter aim — for you and the enemies alike.',
+      ],
+      fixes: [
+        'The tutorial and in-code text no longer claim the ship fires on its own — it has had no guns since the "You Are the Weapon" rework; your abilities and allies are the offense.',
+      ],
+    },
+  },
   {
     version: '1.5.0',
     date: '2026-06-20',

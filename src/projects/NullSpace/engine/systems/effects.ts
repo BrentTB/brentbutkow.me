@@ -14,6 +14,7 @@ import { repulseFieldEffect } from '../spaceMetalAbilities/repulse'
 import { cometStormEffect } from '../spaceMetalAbilities/comet-storm'
 import { shockwaveEffect } from '../calamities/shockwave'
 import { wanderingBlackHoleEffect } from '../calamities/wandering-black-hole'
+import { nebulaEffect } from '../calamities/nebula'
 
 // Registry: each effect's owner file (ability or helper weapon) declares an
 // EffectDefinition — tick + optional world-layer renderers — and registers it
@@ -36,6 +37,7 @@ export const EFFECT_DEFINITIONS: Record<EffectKind, EffectDefinition> = {
   [EffectKind.cometStorm]: cometStormEffect,
   [EffectKind.shockwave]: shockwaveEffect,
   [EffectKind.wanderingBlackHole]: wanderingBlackHoleEffect,
+  [EffectKind.nebula]: nebulaEffect,
 }
 
 export function updateActiveEffects(

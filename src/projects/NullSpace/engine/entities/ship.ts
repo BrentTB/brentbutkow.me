@@ -20,7 +20,11 @@ const SLING_MIN_SPEED = 60
 // (control slips as you heat up). Adds heat scaled by charge, and overheats at
 // max. No-op while on cooldown; while overheated it still flings, but at half
 // distance for double heat.
-export function applySlingshot(ship: Ship, fling: { dir: Vec2; charge: number }): Ship {
+export function applySlingshot(
+  ship: Ship,
+  fling: { dir: Vec2; charge: number },
+  slowMult = 1
+): Ship {
   if (ship.slingCooldownRemaining > 0) return ship
   const charge = clamp(fling.charge, 0, 1)
   // Overheated flings still work — half the distance for double the heat. A
@@ -34,7 +38,8 @@ export function applySlingshot(ship: Ship, fling: { dir: Vec2; charge: number })
   const sin = Math.sin(jitter)
   const dx = fling.dir.x * cos - fling.dir.y * sin
   const dy = fling.dir.x * sin + fling.dir.y * cos
-  const speed = ship.slingMaxSpeed * charge * speedMult
+  // A slow nebula hinders the launch — a fling from inside it goes less far.
+  const speed = ship.slingMaxSpeed * charge * speedMult * slowMult
   const heat = Math.min(1, ship.slingHeat + SLINGSHOT.heatPerFling * charge * heatMult)
   return {
     ...ship,
@@ -60,7 +65,7 @@ export function tickSlingHeat(ship: Ship, dt: number): Ship {
 // Advances the slingshot coast: moves the ship by its fling velocity and decays
 // it. Returns `active: true` while the coast is meaningful; once it fades the
 // velocity is zeroed and normal auto-movement resumes.
-export function tickFling(ship: Ship, dt: number): { ship: Ship; active: boolean } {
+export function tickFling(ship: Ship, dt: number, slowMult = 1): { ship: Ship; active: boolean } {
   const speed = Math.hypot(ship.flingVel.x, ship.flingVel.y)
   if (speed < SLING_MIN_SPEED) {
     if (ship.flingVel.x === 0 && ship.flingVel.y === 0) return { ship, active: false }
@@ -68,13 +73,18 @@ export function tickFling(ship: Ship, dt: number): { ship: Ship; active: boolean
   }
 
   // No walls on the torus — the coast just carries the ship and the world-wrap
-  // pass brings it back around. Velocity decays so auto-movement resumes.
+  // pass brings it back around. Velocity decays so auto-movement resumes. A slow
+  // nebula drags this frame's travel without sapping the stored momentum, so the
+  // coast resumes full speed once the ship clears the zone.
   const decay = Math.exp(-SLING_DECAY * dt)
   return {
     ship: {
       ...ship,
-      pos: { x: ship.pos.x + ship.flingVel.x * dt, y: ship.pos.y + ship.flingVel.y * dt },
-      vel: { x: ship.flingVel.x, y: ship.flingVel.y },
+      pos: {
+        x: ship.pos.x + ship.flingVel.x * dt * slowMult,
+        y: ship.pos.y + ship.flingVel.y * dt * slowMult,
+      },
+      vel: { x: ship.flingVel.x * slowMult, y: ship.flingVel.y * slowMult },
       flingVel: { x: ship.flingVel.x * decay, y: ship.flingVel.y * decay },
       lastHeading: { x: ship.flingVel.x / speed, y: ship.flingVel.y / speed },
     },
@@ -192,9 +202,12 @@ export function updateShipDrift(
   ctx: {
     forwardDir: Vec2
     target: Vec2 | null
+    slowMult?: number
   }
 ): Ship {
   const { forwardDir, target } = ctx
+  // A slow nebula drags the auto-drift the same way it drags everyone else.
+  const slowMult = ctx.slowMult ?? 1
 
   const weavePhase = ship.weavePhase + dt * SECTOR.weaveFrequency
   // Overheating the slingshot saps engine power — the ship limps until it cools.
@@ -213,7 +226,7 @@ export function updateShipDrift(
     const dist = Math.hypot(dx, dy) || 1
     const dirX = dx / dist
     const dirY = dy / dist
-    const speed = ship.speed * overheatMult
+    const speed = ship.speed * overheatMult * slowMult
     const orbitRange = SECTOR.orbitRange
     // Outward lean (fleeBias) shifts the equilibrium a little past orbitRange, so
     // the resting behaviour reads as backing away rather than circling in place.
@@ -249,7 +262,7 @@ export function updateShipDrift(
     const drift = driftWithWeave(
       ship.pos,
       fwd,
-      SECTOR.driftSpeed * overheatMult,
+      SECTOR.driftSpeed * overheatMult * slowMult,
       { amplitude: SECTOR.weaveAmplitude, phase: weavePhase },
       dt
     )

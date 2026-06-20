@@ -21,12 +21,12 @@ const TUTORIAL_POWER = 32
 
 // Target drones placed ahead of the ship. damage 0 so the ship can never die
 // mid-tutorial; speed 0 so they hold position and stay predictable. HP high
-// enough to outlast the ship's fire through the intro, so the marked target is
-// still alive when the player is asked to hit it.
+// enough that the target outlasts ally fire through the intro, so the marked
+// target is still alive when the player is asked to hit it.
 const DEMO_DRONE_HP = 80
 
-// Refill drones (the "fire until power runs low" beat) get extra HP so the
-// ship's own guns don't clear them before the player has cast a few meteorites.
+// Refill drones (the "cast until power runs low" beat) get extra HP so they're
+// not cleared before the player has cast a few meteorites.
 const REFILL_DRONE_HP = 240
 
 function demoDrone(pos: Vec2, hp: number): Enemy {
@@ -136,9 +136,9 @@ export function applyTutorialStepEnter(state: GameState, step: TutorialStep): Ga
   return next
 }
 
-// Keeps a target on screen for the beats that need one: if the ship's own fire
-// has cleared the demo drones, spawn a fresh (tougher) one ahead. No-op while an
-// enemy still lives, so the player always has something to shoot at.
+// Keeps a target on screen for the beats that need one: if the demo drones have
+// been cleared, spawn a fresh (tougher) one ahead. No-op while an enemy still
+// lives, so the player always has something to aim at.
 export function ensureTutorialEnemy(state: GameState): GameState {
   if (state.enemies.length > 0) return state
   return { ...state, enemies: [demoDrone(aheadOfShip(state, 220, 0), REFILL_DRONE_HP)] }

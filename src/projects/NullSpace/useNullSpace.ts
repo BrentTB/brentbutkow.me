@@ -820,8 +820,8 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
         tutorialPrevStepIdRef.current = tutStep.id
         gameStateRef.current = applyTutorialStepEnter(gameStateRef.current, tutStep)
       }
-      // Keep a target on screen for beats that need one — the ship's own guns may
-      // have cleared the demo drones (e.g. the "fire until power runs low" beat).
+      // Keep a target on screen for beats that need one — the demo drones may have
+      // been cleared (e.g. the "cast until power runs low" beat).
       if (tutStep?.keepEnemyAlive && gameStateRef.current.enemies.length === 0) {
         gameStateRef.current = ensureTutorialEnemy(gameStateRef.current)
       }

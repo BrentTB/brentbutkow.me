@@ -5,6 +5,7 @@ import {
   CALAMITY,
   FORWARD_DIR,
   HAZARD,
+  NEBULA,
   PARTICLE_DEFAULTS,
   POWER_DEFAULTS,
   SECTOR,
@@ -97,13 +98,22 @@ import {
 import { applyRadialDamage } from './calamities/calamity-damage'
 import { createShockwaveEffect, shockwaveRadiusAt } from './calamities/shockwave'
 import { applyWanderingHoles, createWanderingBlackHole } from './calamities/wandering-black-hole'
+import { createNebula } from './calamities/nebula'
+import { buildNebulaField, enemyVisibleToPlayerSide, slowMultAt } from './calamities/nebula-vision'
 import { advanceBossSelection, createBossSelection } from './bosses/boss-selection'
 import { updateBossAI } from './bosses/boss-ai'
 import { loadHighScore, saveHighScore } from './world/persistence'
 import { reseedForNewSession, rng } from './math/random'
 import { toroidalDelta, wrapPosition } from './math/toroid'
 import { getHelperWeaponForUnlockUpgrade, HELPER_WEAPON_LIST } from './weapons'
-import { CollectibleKind, EffectKind, GamePhase, ShipKind, HelperWeaponKind } from './types'
+import {
+  CollectibleKind,
+  EffectKind,
+  GamePhase,
+  NebulaVariant,
+  ShipKind,
+  HelperWeaponKind,
+} from './types'
 import type {
   AbilityKind,
   Asteroid,
@@ -707,8 +717,8 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   const powerOrbMultiplier = getPowerOrbMultiplier(state.upgrades)
 
   // Wave delay only gates enemy spawning — the rest of the simulation
-  // (in-flight meteors, homing power orbs, projectiles, ship attacks against
-  // any stragglers) keeps running so nothing visibly freezes between waves.
+  // (in-flight meteors, homing power orbs, projectiles, allies engaging any
+  // stragglers) keeps running so nothing visibly freezes between waves.
   if (waveTimer > 0) {
     waveTimer = Math.max(0, waveTimer - dt)
   }
@@ -802,11 +812,17 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   score += effectResult.scoreGained
   currency += computeCurrencyFromKills(effectResult.killedEnemies, stardustMultiplier)
 
-  // --- Hunt target: the nearest enemy the ship's movement steers toward. The
-  // attack system decides what's actually damageable; movement just engages. ---
+  // Per-frame nebula context (zones by variant + the player/ally sight bubbles),
+  // shared by the hunt, ship, enemy, and ally passes below.
+  const nebulaField = buildNebulaField(activeEffects, ship, allies)
+
+  // --- Hunt target: the nearest VISIBLE enemy the ship's auto-drift steers toward.
+  // The ship has no weapon — this only points its idle movement. Fog-concealed
+  // enemies are skipped so it never chases something the player can't see. ---
   let huntTarget: Vec2 | null = null
   let huntBest = Infinity
   for (const e of enemies) {
+    if (!enemyVisibleToPlayerSide(e.pos, nebulaField)) continue
     const { x: hdx, y: hdy } = toroidalDelta(ship.pos, e.pos)
     const d = hdx * hdx + hdy * hdy
     if (d < huntBest) {
@@ -819,8 +835,10 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   // Priority: Escape Mode (invincible dash) > slingshot coast > auto-movement.
   // A flick sets the coast velocity; while it lasts the ship overrides its
   // auto-movement, then resumes hunting/drifting from wherever it landed.
+  // A slow nebula drags every mode of ship movement (and weakens the fling launch).
+  const shipSlow = slowMultAt(ship.pos, nebulaField.slow)
   if (input.fling && ship.escapeMode === null) {
-    ship = applySlingshot(ship, input.fling)
+    ship = applySlingshot(ship, input.fling, shipSlow)
   }
   let escapeTrailAccumulator = state.escapeTrailAccumulator
   const escape = tickEscapeMode(ship, dt, escapeTrailAccumulator)
@@ -828,7 +846,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   particles = [...particles, ...escape.particles]
   escapeTrailAccumulator = escape.trailAccumulator
   if (ship.escapeMode === null) {
-    const flung = tickFling(ship, dt)
+    const flung = tickFling(ship, dt, shipSlow)
     ship = flung.ship
     if (flung.active) {
       // Coasting: arm the momentum window so the drift that resumes after the
@@ -838,6 +856,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       ship = updateShipDrift(ship, dt, {
         forwardDir: state.forwardDir,
         target: huntTarget,
+        slowMult: shipSlow,
       })
     }
   }
@@ -845,12 +864,13 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   // Ship has no weapons — all damage comes from player abilities and allies.
 
   // --- Enemy shooting (targets nearest of ship or ally) ---
-  const enemyFireResult = updateEnemyShooting(enemies, ship, allies, projectiles, dt)
+  const enemyFireResult = updateEnemyShooting(enemies, ship, allies, projectiles, dt, nebulaField)
   enemies = enemyFireResult.enemies
   projectiles = enemyFireResult.projectiles
 
-  // --- Enemy movement (pursues nearest of ship or ally) ---
-  enemies = updateEnemyMovement(enemies, ship, allies, hazards, dt, waveSpeedMult)
+  // --- Enemy movement (pursues the nearest target it can see; wanders when fog
+  // blinds it, drags inside a slow nebula) ---
+  enemies = updateEnemyMovement(enemies, ship, allies, hazards, dt, waveSpeedMult, nebulaField)
   // Repulse fields ride the ship: re-centre them on its final position this frame
   // so the knockback below (and the render) don't trail a frame behind its movement.
   activeEffects = recentreRepulseFields(activeEffects, ship.pos)
@@ -863,8 +883,16 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   currency += computeCurrencyFromKills(shieldResult.killedEnemies, stardustMultiplier)
   particles = [...particles, ...shieldResult.particles]
 
-  // --- Ally update (movement + shooting) ---
-  const allyResult = updateAllies(allies, enemies, ship, projectiles, dt, state.unlockedWeapons)
+  // --- Ally update (movement + shooting; fog gates targeting, slow drags, haze scatters aim) ---
+  const allyResult = updateAllies(
+    allies,
+    enemies,
+    ship,
+    projectiles,
+    dt,
+    state.unlockedWeapons,
+    nebulaField
+  )
   allies = allyResult.allies
   projectiles = allyResult.projectiles
 
@@ -1012,7 +1040,30 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     calamityTimer -= dt
     if (calamityTimer <= 0) {
       const angle = rng.next() * Math.PI * 2
-      if (rng.next() < 0.65) {
+      if (rng.next() < NEBULA.weight) {
+        // Nebula: roll a variant, erupt near the ship, drift slowly. It harms no one
+        // — only conceals / slows / distorts — so the cloud fading in is its only
+        // telegraph. Each variant is equally likely.
+        const variants = [NebulaVariant.fog, NebulaVariant.slow, NebulaVariant.haze]
+        const variant = variants[rng.intRange(0, variants.length - 1)]
+        const spawnDist = rng.range(NEBULA.spawnRange * 0.4, NEBULA.spawnRange)
+        const driftAngle = rng.next() * Math.PI * 2
+        activeEffects = [
+          ...activeEffects,
+          createNebula(
+            variant,
+            {
+              x: ship.pos.x + Math.cos(angle) * spawnDist,
+              y: ship.pos.y + Math.sin(angle) * spawnDist,
+            },
+            {
+              x: Math.cos(driftAngle) * NEBULA.driftSpeed,
+              y: Math.sin(driftAngle) * NEBULA.driftSpeed,
+            }
+          ),
+        ]
+        calamityTimer = rng.range(NEBULA.intervalMin, NEBULA.intervalMax)
+      } else if (rng.next() < 0.65) {
         const spawnDist = rng.range(
           CALAMITY.shockwaveSpawnRange * 0.4,
           CALAMITY.shockwaveSpawnRange

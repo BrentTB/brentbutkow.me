@@ -1,8 +1,15 @@
-import { ANIMATION, ENEMY_STATS, HAZARD } from '../../data'
+import { ANIMATION, ENEMY_STATS, HAZARD, NEBULA } from '../../data'
 import { distance } from '../math/collision'
 import { toroidalDelta } from '../math/toroid'
 import { createProjectile } from './entity-creator'
 import { tickDasher } from './dasher'
+import {
+  hazeJitterAt,
+  jitterAim,
+  slowMultAt,
+  visibleTargetForEnemy,
+} from '../calamities/nebula-vision'
+import type { NebulaField } from '../calamities/nebula-vision'
 import { MovementBehavior, ProjectileOwner } from '../types'
 import type { Ally, Enemy, Hazard, Projectile, Ship, Vec2 } from '../types'
 
@@ -213,25 +220,62 @@ function avoidHazards(enemy: Enemy, hazards: Hazard[], dt: number): Enemy {
   }
 }
 
+// A stable [0, 2π) phase per enemy id, so each blinded enemy meanders differently
+// without storing any wander state on the enemy.
+function wanderPhase(id: string): number {
+  let h = 0
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0
+  return ((Math.abs(h) % 1000) / 1000) * Math.PI * 2
+}
+
+// Fog wander: a blinded enemy eases its heading along a slow oscillation (no fixed
+// target) and drifts at `speed`, so it meanders instead of beelining to the ship.
+function wanderStep(enemy: Enemy, dt: number, speed: number): Enemy {
+  const phase = wanderPhase(enemy.id)
+  const heading =
+    enemy.vel.x !== 0 || enemy.vel.y !== 0 ? Math.atan2(enemy.vel.y, enemy.vel.x) : phase
+  const angle = heading + Math.sin(enemy.age * 0.8 + phase) * 0.5
+  const turn = 1 - Math.exp(-2.5 * dt)
+  const vx = enemy.vel.x + (Math.cos(angle) * speed - enemy.vel.x) * turn
+  const vy = enemy.vel.y + (Math.sin(angle) * speed - enemy.vel.y) * turn
+  return {
+    ...enemy,
+    pos: { x: enemy.pos.x + vx * dt, y: enemy.pos.y + vy * dt },
+    vel: { x: vx, y: vy },
+  }
+}
+
 export function updateEnemyMovement(
   enemies: Enemy[],
   ship: Ship,
   allies: Ally[],
   hazards: Hazard[],
   dt: number,
-  speedMult = 1
+  speedMult = 1,
+  field?: NebulaField
 ): Enemy[] {
+  const fog = field?.fog ?? []
   return enemies.map((enemy) => {
-    const target = findNearestTarget(enemy.pos, ship, allies)
-    const targetAsShip = { ...ship, pos: target }
-    // Stall-escalation scales movement speed without mutating the stored base:
-    // run the MoveFn on a sped-up copy, then restore enemy.speed on the result.
-    const forMove = speedMult === 1 ? enemy : { ...enemy, speed: enemy.speed * speedMult }
-    const moved = avoidHazards(
-      MOVEMENT_FN[enemy.movementBehavior](forMove, targetAsShip, dt),
-      hazards,
-      dt
-    )
+    // Slow nebula drags movement on top of wave escalation; both scale a copy's
+    // speed and the stored base is restored below.
+    const eSpeedMult = field ? speedMult * slowMultAt(enemy.pos, field.slow) : speedMult
+    const forMove = eSpeedMult === 1 ? enemy : { ...enemy, speed: enemy.speed * eSpeedMult }
+    // Fog: a non-boss enemy that can see neither the player nor any ally wanders;
+    // otherwise it pursues the nearest target it *can* see.
+    const seen =
+      fog.length > 0 && !enemy.boss ? visibleTargetForEnemy(enemy.pos, ship, allies, fog) : null
+    const blinded = fog.length > 0 && !enemy.boss && seen === null
+    const moved = blinded
+      ? avoidHazards(wanderStep(enemy, dt, NEBULA.wanderSpeed * eSpeedMult), hazards, dt)
+      : avoidHazards(
+          MOVEMENT_FN[enemy.movementBehavior](
+            forMove,
+            { ...ship, pos: seen ?? findNearestTarget(enemy.pos, ship, allies) },
+            dt
+          ),
+          hazards,
+          dt
+        )
     return {
       ...moved,
       speed: enemy.speed,
@@ -248,10 +292,12 @@ export function updateEnemyShooting(
   ship: Ship,
   allies: Ally[],
   projectiles: Projectile[],
-  dt: number
+  dt: number,
+  field?: NebulaField
 ): { enemies: Enemy[]; projectiles: Projectile[] } {
   const updatedEnemies: Enemy[] = []
   let newProjectiles = projectiles
+  const fog = field?.fog ?? []
 
   for (const enemy of enemies) {
     const fireFlash = Math.max(0, enemy.fireFlash - dt)
@@ -263,20 +309,28 @@ export function updateEnemyShooting(
     let cooldown = enemy.fireCooldown - dt
     let nextFireFlash = fireFlash
     if (cooldown <= 0) {
-      const target = findNearestTarget(enemy.pos, ship, allies)
-      const dist = distance(enemy.pos, target)
+      // Fog: a non-boss enemy only fires at a target it can actually see (else null
+      // → hold fire). Without fog this is the plain nearest target, as before.
+      const target =
+        fog.length > 0 && !enemy.boss
+          ? visibleTargetForEnemy(enemy.pos, ship, allies, fog)
+          : findNearestTarget(enemy.pos, ship, allies)
       const stats = ENEMY_STATS[enemy.kind]
       // Boss + generators fire from a longer `fireRange` than their movement
       // standoff; everything else uses its attackRange.
       const fireRange = 'fireRange' in stats ? stats.fireRange : enemy.attackRange
-      if (dist < fireRange) {
+      if (target !== null && distance(enemy.pos, target) < fireRange) {
         const projDamage =
           'projectileDamage' in stats
             ? stats.projectileDamage
             : ENEMY_STATS.shooter.projectileDamage
         const speed = 'projectileSpeed' in stats ? stats.projectileSpeed : undefined
         const beam = 'projectileBeam' in stats ? stats.projectileBeam : undefined
-        const proj = createProjectile(enemy.pos, target, ProjectileOwner.enemy, projDamage, {
+        // Haze: scatter the aim when the shooter sits in a haze zone (symmetric —
+        // ally fire degrades the same way).
+        const jitter = field ? hazeJitterAt(enemy.pos, field.haze) : 0
+        const aim = jitter > 0 ? jitterAim(enemy.pos, target, jitter) : target
+        const proj = createProjectile(enemy.pos, aim, ProjectileOwner.enemy, projDamage, {
           speed,
           beam,
         })
