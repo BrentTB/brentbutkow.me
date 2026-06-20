@@ -91,7 +91,7 @@ export const trendGroupLabels: Record<TrendGroup, string> = {
 export const severityLabels: Record<SeverityLabel, string> = {
   [SeverityLabel.severe]: 'Severe',
   [SeverityLabel.high]: 'High',
-  [SeverityLabel.elevated]: 'Elevated',
+  [SeverityLabel.moderate]: 'Moderate',
   [SeverityLabel.low]: 'Low',
 }
 
@@ -99,7 +99,7 @@ export const severityLabels: Record<SeverityLabel, string> = {
 export const severityOrder: SeverityLabel[] = [
   SeverityLabel.severe,
   SeverityLabel.high,
-  SeverityLabel.elevated,
+  SeverityLabel.moderate,
   SeverityLabel.low,
 ]
 
@@ -107,7 +107,7 @@ export const severityOrder: SeverityLabel[] = [
 export const severityColors: Record<SeverityLabel, string> = {
   [SeverityLabel.severe]: '#e0675c',
   [SeverityLabel.high]: '#e0954a',
-  [SeverityLabel.elevated]: '#d8c074',
+  [SeverityLabel.moderate]: '#d8c074',
   [SeverityLabel.low]: '#8d8a82',
 }
 

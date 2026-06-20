@@ -17,7 +17,7 @@ describe('SeverityBar', () => {
     )
     expect(screen.getByText('Severity mix')).toBeTruthy()
     expect(screen.getByText('50 recalls')).toBeTruthy()
-    // Worst-first order, each with its share; elevated absent (no count). 30/50 = 60% severe.
+    // Worst-first order, each with its share; moderate absent (no count). 30/50 = 60% severe.
     const legend = screen.getAllByRole('listitem').map((li) => li.textContent)
     expect(legend).toEqual(['Severe60%', 'High20%', 'Low20%'])
   })

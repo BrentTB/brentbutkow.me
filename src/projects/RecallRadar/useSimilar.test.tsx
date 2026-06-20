@@ -21,7 +21,7 @@ const recall: Recall = {
   category: 'allergen',
   categoryConfidence: 0.9,
   severityScore: 50,
-  severityLabel: 'elevated',
+  severityLabel: 'moderate',
   entities: [],
 }
 

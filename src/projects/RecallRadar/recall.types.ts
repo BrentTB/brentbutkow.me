@@ -57,7 +57,7 @@ export type TrendGroup = (typeof TrendGroup)[keyof typeof TrendGroup]
 
 export const SeverityLabel = {
   low: 'low',
-  elevated: 'elevated',
+  moderate: 'moderate',
   high: 'high',
   severe: 'severe',
 } as const

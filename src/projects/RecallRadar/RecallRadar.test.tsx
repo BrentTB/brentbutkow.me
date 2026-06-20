@@ -22,7 +22,7 @@ const stats = {
   bySeverity: [
     { label: 'severe', count: 25 },
     { label: 'high', count: 12 },
-    { label: 'elevated', count: 3 },
+    { label: 'moderate', count: 3 },
     { label: 'low', count: 2 },
   ],
   byState: [
