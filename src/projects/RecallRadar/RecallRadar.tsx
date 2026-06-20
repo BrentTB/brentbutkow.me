@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { PageLayout } from '../../components/PageFormatting/PageLayout'
 import { PageHeader } from '../../components/PageFormatting/PageHeader'
 import { SafeLink } from '../../components/utils/SafeLink'
@@ -15,6 +16,7 @@ import { RecallTrendsChart } from './components/RecallTrendsChart'
 import { SeverityBar } from './components/SeverityBar'
 import { StatCard } from './components/StatCard'
 import { TrendCallouts } from './components/TrendCallouts'
+import { Themes } from './components/Themes'
 import { Select } from '../../components/inputs/Select'
 import type { SelectOption } from '../../components/inputs/option.types'
 import {
@@ -45,12 +47,14 @@ import { useQueryParamsState } from '../../routes/useQueryParamsState'
 import { useRecalls } from './useRecalls'
 import { useRecallStats } from './useRecallStats'
 import { useRecallTrend } from './useRecallTrend'
+import { useTopics } from './useTopics'
 import styles from './RecallRadar.module.scss'
 
 const EMPTY_FILTERS: RecallFilterValues = {
   category: '',
   classification: '',
   severity: '',
+  topic: '',
   state: '',
   company: '',
   source: '',
@@ -87,6 +91,8 @@ export function RecallRadar() {
     category: isRecallCategory(values.category) ? values.category : '',
     classification: isRecallClass(values.classification) ? values.classification : '',
     severity: isSeverityLabel(values.severity) ? values.severity : '',
+    // Topic is a numeric id in the URL; guard junk so a bad ?topic= can't reach the API.
+    topic: /^\d+$/.test(values.topic) ? values.topic : '',
     state: values.state,
     company: values.company,
     source: isRecallSource(values.source) ? values.source : '',
@@ -113,6 +119,7 @@ export function RecallRadar() {
     category: filters.category || undefined,
     classification: filters.classification || undefined,
     severity: filters.severity || undefined,
+    topic: filters.topic || undefined,
     state: filters.state || undefined,
     company: filters.company || undefined,
     source: filters.source || undefined,
@@ -129,6 +136,14 @@ export function RecallRadar() {
     offset: (page - 1) * PAGE_SIZE,
     sort: sort === RecallSort.recency ? undefined : sort,
   })
+  // Themes are global (not country/filter-scoped), so this fetches once. The id→label map labels the
+  // per-card theme chip and the active-topic filter chip (topic is a raw id in the URL).
+  const topics = useTopics()
+  const topicLabels = useMemo(
+    () => new Map(topics.data?.map((topic): [number, string] => [topic.id, topic.label]) ?? []),
+    [topics.data]
+  )
+  const activeTopicLabel = filters.topic ? topicLabels.get(Number(filters.topic)) : undefined
 
   // Year options follow the data, then narrow to whatever the date filter admits (2021–2025 for a
   // 2021-01-05 → 2025-02-03 range), so the chart can't offer a year the filters exclude.
@@ -218,6 +233,7 @@ export function RecallRadar() {
         filters={filters}
         country={country}
         stateOptions={stateOptions}
+        topicLabel={activeTopicLabel}
         onChange={patch}
         onClear={clearFilters}
       />
@@ -276,6 +292,20 @@ export function RecallRadar() {
         </section>
       )}
 
+      {topics.data && topics.data.length > 0 && (
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>Themes</h2>
+          <p className={styles.hint}>
+            Auto-discovered topics across recall text. Click one to filter the recalls below.
+          </p>
+          <Themes
+            topics={topics.data}
+            activeTopic={filters.topic}
+            onSelect={(id) => patch({ topic: id })}
+          />
+        </section>
+      )}
+
       <section className={styles.section}>
         <div className={styles.sectionHead}>
           <h2 className={styles.sectionTitle}>
@@ -294,7 +324,13 @@ export function RecallRadar() {
         </div>
         {recalls.loading && <p className={styles.status}>Loading recalls…</p>}
         {recalls.error && <p className={styles.status}>Couldn’t reach the recall service.</p>}
-        {recalls.data && <RecallFeed recalls={recalls.data.items} />}
+        {recalls.data && (
+          <RecallFeed
+            recalls={recalls.data.items}
+            topicLabels={topicLabels}
+            onTopicSelect={(id) => patch({ topic: String(id) })}
+          />
+        )}
         {recalls.data && (
           <Pagination
             page={page}

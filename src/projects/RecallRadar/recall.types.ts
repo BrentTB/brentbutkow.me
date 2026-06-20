@@ -74,6 +74,7 @@ export type RecallFilterValues = {
   category: RecallCategory | ''
   classification: RecallClass | ''
   severity: SeverityLabel | ''
+  topic: string // topic id as a string; '' = no filter
   state: string
   company: string
   source: RecallSource | ''
@@ -101,6 +102,7 @@ export type Recall = {
   categoryConfidence: number
   severityScore: number
   severityLabel: SeverityLabel
+  topicId?: number | null // NMF theme id; absent/null until the analytics build runs
   entities: RecallEntity[]
 }
 
@@ -110,6 +112,10 @@ export type RecallListResult = {
   items: Recall[]
   total: number
 }
+
+// Analytics (Phase 2): a discovered theme and a recall's nearest neighbour.
+export type TopicOut = { id: number; label: string; topTerms: string[]; size: number }
+export type SimilarRecall = { similarity: number; recall: Recall }
 
 export type CategoryCount = { category: RecallCategory; count: number }
 export type MonthCount = { month: string; count: number } // month is 'YYYY-MM'
@@ -249,6 +255,8 @@ const isRecall = (value: unknown): value is Recall =>
   typeof value.severityScore === 'number' &&
   typeof value.severityLabel === 'string' &&
   isSeverityLabel(value.severityLabel) &&
+  // topicId is tolerant — absent (older payloads/fixtures) or null (not yet built) or a number.
+  (value.topicId === undefined || value.topicId === null || typeof value.topicId === 'number') &&
   isStringOrNull(value.status) &&
   isStringOrNull(value.classification) &&
   isStringOrNull(value.companyName) &&
@@ -265,6 +273,23 @@ export const isRecallListResult = (value: unknown): value is RecallListResult =>
   typeof value.total === 'number' &&
   Array.isArray(value.items) &&
   value.items.every(isRecall)
+
+export const isTopicOut = (value: unknown): value is TopicOut =>
+  isRecord(value) &&
+  typeof value.id === 'number' &&
+  typeof value.label === 'string' &&
+  Array.isArray(value.topTerms) &&
+  value.topTerms.every((term) => typeof term === 'string') &&
+  typeof value.size === 'number'
+
+export const isTopicOutArray = (value: unknown): value is TopicOut[] =>
+  Array.isArray(value) && value.every(isTopicOut)
+
+const isSimilarRecall = (value: unknown): value is SimilarRecall =>
+  isRecord(value) && typeof value.similarity === 'number' && isRecall(value.recall)
+
+export const isSimilarRecallArray = (value: unknown): value is SimilarRecall[] =>
+  Array.isArray(value) && value.every(isSimilarRecall)
 
 export const isRecallStats = (value: unknown): value is RecallStats =>
   isRecord(value) &&

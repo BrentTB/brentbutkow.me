@@ -73,6 +73,7 @@ const recalls = {
       categoryConfidence: 1,
       severityScore: 91,
       severityLabel: 'severe',
+      topicId: 0,
       entities: [{ type: 'allergen', value: 'peanuts' }],
     },
   ],
@@ -87,21 +88,24 @@ const trend = {
   ],
 }
 
+const topics = [
+  { id: 0, label: 'listeria · deli · meat', topTerms: ['listeria', 'deli', 'meat'], size: 9 },
+]
+
 const mockRes = (body: unknown) => ({ ok: true, status: 200, json: async () => body }) as Response
 
 describe('RecallRadar page', () => {
   afterEach(() => vi.unstubAllGlobals())
 
   it('renders the overview, breakdowns, and a recall row from the API', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (url: string | URL) => {
-        const path = String(url)
-        if (path.includes('/recalls/trend')) return mockRes(trend)
-        if (path.includes('/recalls/stats')) return mockRes(stats)
-        return mockRes(recalls)
-      })
-    )
+    const fetchMock = vi.fn(async (url: string | URL) => {
+      const path = String(url)
+      if (path.includes('/recalls/trend')) return mockRes(trend)
+      if (path.includes('/recalls/stats')) return mockRes(stats)
+      if (path.includes('/recalls/topics')) return mockRes(topics)
+      return mockRes(recalls)
+    })
+    vi.stubGlobal('fetch', fetchMock)
 
     render(
       <MemoryRouter>
@@ -138,5 +142,13 @@ describe('RecallRadar page', () => {
     expect(screen.getAllByText('Severe').length).toBeGreaterThan(0)
     expect(screen.getByText('Anomaly')).toBeTruthy()
     expect(screen.getByText(/~6\/mo typical/i)).toBeTruthy() // anomaly caption, plain-language
+    // themes section + the per-card theme chip both render the topic label
+    expect(screen.getByText('Themes')).toBeTruthy()
+    expect(screen.getAllByText('listeria · deli · meat').length).toBeGreaterThan(0)
+    // similar recalls are lazy — nothing is fetched until a row is expanded
+    expect(fetchMock).not.toHaveBeenCalledWith(
+      expect.stringContaining('/similar'),
+      expect.anything()
+    )
   })
 })

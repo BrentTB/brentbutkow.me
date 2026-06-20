@@ -10,6 +10,7 @@ const empty: RecallFilterValues = {
   category: '',
   classification: '',
   severity: '',
+  topic: '',
   state: '',
   company: '',
   source: '',
@@ -95,5 +96,17 @@ describe('RecallFilters', () => {
     // A chip clears only its own filter.
     fireEvent.click(screen.getByRole('button', { name: 'Remove CA filter' }))
     expect(onChange).toHaveBeenCalledWith({ state: '' })
+  })
+
+  it('shows a removable theme chip from the resolved topic label', () => {
+    const onChange = vi.fn()
+    renderFilters({
+      filters: { ...empty, topic: '3' },
+      topicLabel: 'listeria · deli · meat',
+      onChange,
+    })
+    expect(screen.getByText('Theme: listeria · deli · meat')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Remove the theme filter' }))
+    expect(onChange).toHaveBeenCalledWith({ topic: '' })
   })
 })
