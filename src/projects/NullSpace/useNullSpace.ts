@@ -12,7 +12,14 @@ import {
   advanceWarp,
   advanceDeathSequence,
 } from './engine/game-loop'
-import { devJumpToBoss, devJumpToUpgrades, devPatchState, type DevPatch } from './engine/dev-tools'
+import {
+  devJumpToBoss,
+  devJumpToUpgrades,
+  devPatchState,
+  devSpawnCalamity,
+  type DevCalamity,
+  type DevPatch,
+} from './engine/dev-tools'
 import { isBaseReplacedByUltimate } from './engine/ultimates'
 import { ULTIMATE_KIND_OF } from './engine/abilities'
 import {
@@ -474,6 +481,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
   let handleDevJumpToUpgrades: () => void = noop
   let handleDevJumpToBoss: () => void = noop
   let handleDevQuickStart: (kind: ShipKind) => void = noop
+  let handleDevSpawnCalamity: (kind: DevCalamity) => void = noop
 
   if (DEV_MODE) {
     handleDevPatch = (patch: DevPatch) => {
@@ -489,6 +497,12 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     handleDevJumpToBoss = () => {
       gameStateRef.current = devJumpToBoss(gameStateRef.current)
       syncUI(gameStateRef.current)
+    }
+
+    handleDevSpawnCalamity = (kind: DevCalamity) => {
+      // Engine-only: the running loop picks the new effect/body up next frame; no
+      // console-visible field changes, so no syncUI needed.
+      gameStateRef.current = devSpawnCalamity(gameStateRef.current, kind)
     }
 
     handleDevQuickStart = (kind: ShipKind) => {
@@ -1010,6 +1024,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     handleDevJumpToUpgrades,
     handleDevJumpToBoss,
     handleDevQuickStart,
+    handleDevSpawnCalamity,
     spaceMetalAbilities: SPACE_METAL_ABILITIES,
   }
 }

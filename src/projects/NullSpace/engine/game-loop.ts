@@ -99,7 +99,7 @@ import { applyRadialDamage } from './calamities/calamity-damage'
 import { createShockwaveEffect, shockwaveRadiusAt } from './calamities/shockwave'
 import { applyWanderingHoles, createWanderingBlackHole } from './calamities/wandering-black-hole'
 import { createNebula } from './calamities/nebula'
-import { buildNebulaField, enemyVisibleToPlayerSide, slowMultAt } from './calamities/nebula-vision'
+import { buildNebulaField, enemyVisibleToPlayerSide, inZone } from './calamities/nebula-vision'
 import { advanceBossSelection, createBossSelection } from './bosses/boss-selection'
 import { updateBossAI } from './bosses/boss-ai'
 import { loadHighScore, saveHighScore } from './world/persistence'
@@ -835,10 +835,13 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   // Priority: Escape Mode (invincible dash) > slingshot coast > auto-movement.
   // A flick sets the coast velocity; while it lasts the ship overrides its
   // auto-movement, then resumes hunting/drifting from wherever it landed.
-  // A slow nebula drags every mode of ship movement (and weakens the fling launch).
-  const shipSlow = slowMultAt(ship.pos, nebulaField.slow)
+  // A slow nebula heavily drags drift (and enemies/allies), but only gently hinders
+  // the slingshot — your escape tool stays usable.
+  const shipInSlow = inZone(ship.pos, nebulaField.slow)
+  const shipSlingSlow = shipInSlow ? NEBULA.slowSlingMult : 1
+  const shipDriftSlow = shipInSlow ? NEBULA.slowMult : 1
   if (input.fling && ship.escapeMode === null) {
-    ship = applySlingshot(ship, input.fling, shipSlow)
+    ship = applySlingshot(ship, input.fling, shipSlingSlow)
   }
   let escapeTrailAccumulator = state.escapeTrailAccumulator
   const escape = tickEscapeMode(ship, dt, escapeTrailAccumulator)
@@ -846,7 +849,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   particles = [...particles, ...escape.particles]
   escapeTrailAccumulator = escape.trailAccumulator
   if (ship.escapeMode === null) {
-    const flung = tickFling(ship, dt, shipSlow)
+    const flung = tickFling(ship, dt, shipSlingSlow)
     ship = flung.ship
     if (flung.active) {
       // Coasting: arm the momentum window so the drift that resumes after the
@@ -856,7 +859,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       ship = updateShipDrift(ship, dt, {
         forwardDir: state.forwardDir,
         target: huntTarget,
-        slowMult: shipSlow,
+        slowMult: shipDriftSlow,
       })
     }
   }

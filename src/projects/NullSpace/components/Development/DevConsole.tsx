@@ -4,7 +4,7 @@ import { BOSS_KINDS, getBossDefinition } from '../../engine/bosses/index'
 import { SHIP_ORDER, SHIP_VARIANTS } from '../../engine/ship/ship-data'
 import { WEAPON_ORDER } from '../../data'
 import { GamePhase, ShipKind } from '../../engine/types'
-import type { DevPatch } from '../../engine/dev-tools'
+import { DevCalamity, type DevPatch } from '../../engine/dev-tools'
 import type { GameUIState } from '../../useNullSpace'
 import styles from './DevConsole.module.scss'
 
@@ -14,10 +14,22 @@ type DevConsoleProps = {
   onJumpToUpgrades: () => void
   onJumpToBoss: () => void
   onQuickStart: (kind: ShipKind) => void
+  onSpawnCalamity: (kind: DevCalamity) => void
 }
 
 // Base abilities only (ultimates are reached by clicking their already-unlocked base).
 const BASE_ABILITIES = WEAPON_ORDER.filter((kind) => BASE_KIND_OF[kind] === undefined)
+
+// One button per spawnable calamity (near the ship), for testing each in isolation.
+const CALAMITY_BUTTONS: { kind: DevCalamity; label: string }[] = [
+  { kind: DevCalamity.mines, label: 'Mines' },
+  { kind: DevCalamity.shockwave, label: 'Shockwave' },
+  { kind: DevCalamity.asteroid, label: 'Asteroid' },
+  { kind: DevCalamity.wanderingBlackHole, label: 'Black Hole' },
+  { kind: DevCalamity.nebulaFog, label: 'Fog' },
+  { kind: DevCalamity.nebulaSlow, label: 'Slow' },
+  { kind: DevCalamity.nebulaHaze, label: 'Haze' },
+]
 
 export function DevConsole({
   uiState,
@@ -25,6 +37,7 @@ export function DevConsole({
   onJumpToUpgrades,
   onJumpToBoss,
   onQuickStart,
+  onSpawnCalamity,
 }: DevConsoleProps) {
   const inGame = uiState.phase !== GamePhase.menu && uiState.phase !== GamePhase.shipSelection
   const [showAdvanced, setShowAdvanced] = useState(false)
@@ -127,6 +140,23 @@ export function DevConsole({
             Super Shield
           </button>
         </div>
+      </Section>
+
+      <Section label="Spawn Calamity">
+        <div className={styles.shipGrid}>
+          {CALAMITY_BUTTONS.map(({ kind, label }) => (
+            <button
+              key={kind}
+              type="button"
+              className={styles.shipBtn}
+              disabled={!inGame}
+              onClick={() => onSpawnCalamity(kind)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <p className={styles.hint}>Spawns one near the ship.</p>
       </Section>
 
       <Section label="Abilities">

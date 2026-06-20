@@ -55,6 +55,7 @@ export function NullSpace() {
     handleDevJumpToUpgrades,
     handleDevJumpToBoss,
     handleDevQuickStart,
+    handleDevSpawnCalamity,
   } = useNullSpace(canvasRef)
 
   // Start Game routes a first-ever player (never seen the tutorial) through the
@@ -220,6 +221,7 @@ export function NullSpace() {
             onJumpToUpgrades={handleDevJumpToUpgrades}
             onJumpToBoss={handleDevJumpToBoss}
             onQuickStart={handleDevQuickStart}
+            onSpawnCalamity={handleDevSpawnCalamity}
           />
         )}
       </div>

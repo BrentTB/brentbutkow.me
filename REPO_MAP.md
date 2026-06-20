@@ -263,12 +263,12 @@ src/projects/NullSpace/engine/calamities/
   calamity-damage.ts                         RadialDamageResult, applyRadialDamage
   hazards.ts                                 replenishHazardField, generateHazardField, HazardUpdateResult, updateHazards
   nebula-vision.ts                           nebulaRadiusAt, NebulaZone, SightCircle, NebulaField, sightCircles, buildNebulaField, inZone, slowMultAt, hazeJitterAt, enemyVisibleToPlayerSide, playerVisibleToEnemy, visibleTargetForEnemy, jitterAim
-  nebula.ts                                  createNebula, nebulaAlphaAt, drawNebulaCloud, fogNebulasOf, nebulaEffect
+  nebula.ts                                  createNebula, nebulaAlphaAt, drawNebulaCloud, drawFogMass, fogNebulasOf, nebulaEffect
   shockwave.ts                               createShockwaveEffect, shockwaveRadiusAt, shockwaveEffect
   wandering-black-hole.ts                    createWanderingBlackHole, wanderingRadiusAt, WanderingHoleResult, applyWanderingHoles, wanderingBlackHoleEffect
 
 src/projects/NullSpace/engine/
-  dev-tools.ts                               DevPatch, devPatchState, devJumpToUpgrades, devJumpToBoss
+  dev-tools.ts                               DevPatch, devPatchState, devJumpToUpgrades, devJumpToBoss, DevCalamity, devSpawnCalamity
 
 src/projects/NullSpace/engine/entities/
   ally.ts                                    rollAllyWeapon, applyDamageToAlly, updateAllies

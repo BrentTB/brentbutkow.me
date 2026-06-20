@@ -495,7 +495,8 @@ export const NEBULA = {
   sightRadius: 200, // the player's clear bubble
   allySightRadius: 120, // each ally's (smaller) clear bubble
   wanderSpeed: 70, // speed of a blinded enemy's semi-random meander
-  slowMult: 0.45, // movement multiplier inside a slow nebula (incl. the slingshot)
+  slowMult: 0.35, // movement multiplier for drift + enemies + allies inside a slow nebula
+  slowSlingMult: 0.75, // gentler drag on the slingshot launch + coast — you can still escape
   hazeJitterMax: 0.5, // peak aim error (radians) at the haze centre, fading to 0 at the rim
   hazeWarpAmp: 1, // drunk-ripple amplitude scalar for the player's view
   hazeWarpSpeed: 2.2, // ripple oscillation speed

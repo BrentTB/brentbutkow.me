@@ -1,8 +1,24 @@
 import { describe, it, expect } from 'vitest'
-import { devJumpToBoss, devJumpToUpgrades, devPatchState } from './dev-tools'
+import {
+  DevCalamity,
+  devJumpToBoss,
+  devJumpToUpgrades,
+  devPatchState,
+  devSpawnCalamity,
+} from './dev-tools'
 import { createInitialState, startGame, startNextWave } from './game-loop'
-import { EnemyKind, GamePhase, ShipKind } from './types'
+import {
+  AsteroidTier,
+  EffectKind,
+  EnemyKind,
+  GamePhase,
+  HazardKind,
+  NebulaVariant,
+  ShipKind,
+} from './types'
 import { WAVES_PER_LEVEL, WORLD_SIZE } from '../data'
+
+const last = <T>(arr: T[]): T => arr[arr.length - 1]
 
 // Every sector resets the ship to the centre of the torus.
 const worldCenter = { x: WORLD_SIZE.x / 2, y: WORLD_SIZE.y / 2 }
@@ -76,5 +92,48 @@ describe('devJumpToBoss', () => {
     expect(state.ship.pos).toEqual(worldCenter)
     // Boss sectors never scatter mines — the boss is the gate.
     expect(state.hazards).toEqual([])
+  })
+})
+
+describe('devSpawnCalamity', () => {
+  it('drops a mine field into hazards', () => {
+    const state = playingState()
+    const out = devSpawnCalamity(state, DevCalamity.mines)
+    expect(out.hazards.length).toBeGreaterThan(state.hazards.length)
+    expect(out.hazards.every((h) => h.kind === HazardKind.mine)).toBe(true)
+  })
+
+  it('drops a large asteroid into the asteroid field', () => {
+    const state = playingState()
+    const out = devSpawnCalamity(state, DevCalamity.asteroid)
+    expect(out.asteroids.length).toBe(state.asteroids.length + 1)
+    expect(last(out.asteroids).tier).toBe(AsteroidTier.large)
+  })
+
+  it('adds the shockwave + wandering black hole to activeEffects', () => {
+    const state = playingState()
+    expect(last(devSpawnCalamity(state, DevCalamity.shockwave).activeEffects).kind).toBe(
+      EffectKind.shockwave
+    )
+    expect(last(devSpawnCalamity(state, DevCalamity.wanderingBlackHole).activeEffects).kind).toBe(
+      EffectKind.wanderingBlackHole
+    )
+  })
+
+  it('spawns each nebula variant near the ship', () => {
+    const state = playingState()
+    const cases = [
+      [DevCalamity.nebulaFog, NebulaVariant.fog],
+      [DevCalamity.nebulaSlow, NebulaVariant.slow],
+      [DevCalamity.nebulaHaze, NebulaVariant.haze],
+    ] as const
+    for (const [kind, variant] of cases) {
+      const eff = last(devSpawnCalamity(state, kind).activeEffects)
+      expect(eff.kind).toBe(EffectKind.nebula)
+      if (eff.kind !== EffectKind.nebula) continue
+      expect(eff.variant).toBe(variant)
+      const d = Math.hypot(eff.pos.x - state.ship.pos.x, eff.pos.y - state.ship.pos.y)
+      expect(d).toBeLessThan(200) // dropped right next to the ship
+    }
   })
 })

@@ -1,10 +1,9 @@
 import { NEBULA } from '../../data'
 import { uid } from '../entities/entity-creator'
-import { toroidalDistance, wrapPosition } from '../math/toroid'
+import { wrapPosition } from '../math/toroid'
 import { EffectKind, NebulaVariant } from '../types'
 import type { ActiveEffect, NebulaEffect, Vec2 } from '../types'
 import { nebulaRadiusAt } from './nebula-vision'
-import type { SightCircle } from './nebula-vision'
 import type { Camera } from '../../renderer/camera'
 import { worldToScreen } from '../../renderer/camera'
 import { passThroughTick } from '../systems/effect-definition'
@@ -83,26 +82,13 @@ function cloudPuffs(n: NebulaEffect, radius: number): CloudPuff[] {
   return puffs
 }
 
-// How much a puff at `pos` survives the fog's clear sight-bubbles: 0 in the inner
-// core of any bubble, ramping to 1 at the bubble's rim — so the fog parts softly
-// around the ship + allies instead of cutting a hard hole.
-function clearingFade(pos: Vec2, clearings: SightCircle[]): number {
-  let f = 1
-  for (const c of clearings) {
-    const t = toroidalDistance(pos, c.center) / c.radius
-    f = Math.min(f, Math.max(0, (t - 0.45) / 0.55))
-  }
-  return f
-}
-
-// Draws a nebula as an irregular billowy cloud. `clearings` (fog only) thin the
-// puffs near the sight bubbles so concealed enemies stay hidden behind the murk
-// while the area around the ship reads clear.
+// Draws a nebula as an irregular billowy cloud beneath the entities (renderBack) —
+// the translucent slow + haze atmosphere you can still see through. (Fog is opaque
+// and drawn OVER the entities to hide them; see drawFogMass.)
 export function drawNebulaCloud(
   ctx: CanvasRenderingContext2D,
   n: NebulaEffect,
-  camera: Camera,
-  clearings?: SightCircle[]
+  camera: Camera
 ): void {
   const baseAlpha = nebulaAlphaAt(n, n.elapsed)
   if (baseAlpha <= 0) return
@@ -113,10 +99,7 @@ export function drawNebulaCloud(
   ctx.save()
   ctx.translate(s.x, s.y)
   for (const p of cloudPuffs(n, radius)) {
-    let alpha = baseAlpha * p.a
-    if (clearings && clearings.length > 0) {
-      alpha *= clearingFade({ x: n.pos.x + p.dx, y: n.pos.y + p.dy }, clearings)
-    }
+    const alpha = baseAlpha * p.a
     if (alpha <= 0.002) continue
     const grad = ctx.createRadialGradient(p.dx, p.dy, 0, p.dx, p.dy, p.r)
     grad.addColorStop(0, `rgba(${rgb}, ${alpha})`)
@@ -128,6 +111,51 @@ export function drawNebulaCloud(
     ctx.fill()
   }
   ctx.restore()
+}
+
+// Draws one fog cloud as an OPAQUE billowy mass in device pixels (the caller's ctx is
+// an identity-transform offscreen buffer). A base disc guarantees no see-through gaps;
+// the puffs poke past it for the irregular silhouette. Opaque so enemies inside are
+// genuinely hidden — the renderer then punches the sight bubbles back out so close
+// enemies (and the ship) show. `scale` converts world units → device px.
+export function drawFogMass(
+  ctx: CanvasRenderingContext2D,
+  fog: NebulaEffect,
+  camera: Camera
+): void {
+  const alpha = nebulaAlphaAt(fog, fog.elapsed)
+  if (alpha <= 0) return
+  const scale = camera.zoom * camera.dpr
+  const radius = nebulaRadiusAt(fog, fog.elapsed)
+  const s = worldToScreen(fog.pos, camera)
+  const cx = s.x * scale
+  const cy = s.y * scale
+  const rgb = NEBULA.fogColor
+
+  // Base disc — solid coverage so nothing peeks through between the puffs.
+  const base = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius * scale)
+  base.addColorStop(0, `rgba(${rgb}, ${alpha * 0.95})`)
+  base.addColorStop(0.78, `rgba(${rgb}, ${alpha * 0.85})`)
+  base.addColorStop(1, `rgba(${rgb}, 0)`)
+  ctx.fillStyle = base
+  ctx.beginPath()
+  ctx.arc(cx, cy, radius * scale, 0, Math.PI * 2)
+  ctx.fill()
+
+  for (const p of cloudPuffs(fog, radius)) {
+    const px = cx + p.dx * scale
+    const py = cy + p.dy * scale
+    const pr = p.r * scale
+    const a = Math.min(1, alpha * (p.a + 0.55)) // denser than the cosmetic clouds
+    const g = ctx.createRadialGradient(px, py, 0, px, py, pr)
+    g.addColorStop(0, `rgba(${rgb}, ${a})`)
+    g.addColorStop(0.7, `rgba(${rgb}, ${a})`)
+    g.addColorStop(1, `rgba(${rgb}, 0)`)
+    ctx.fillStyle = g
+    ctx.beginPath()
+    ctx.arc(px, py, pr, 0, Math.PI * 2)
+    ctx.fill()
+  }
 }
 
 // The live fog nebulas — the renderer draws these over the entities (occluding the
