@@ -152,9 +152,9 @@ export const DevCalamity = {
 } as const
 export type DevCalamity = (typeof DevCalamity)[keyof typeof DevCalamity]
 
-// Drops one calamity into the live arrays near the ship so it behaves exactly like a
-// scheduler-spawned one — for testing each in isolation. Positioned ahead of the ship
-// (zones overlap it immediately; bodies/wells drift back toward it).
+// Drops one calamity into the live arrays near the ship for testing each in isolation,
+// positioned ahead of the ship (zones overlap it immediately; bodies/wells drift back
+// toward it). Most match a scheduler spawn; the wormhole is deliberately stationary.
 export function devSpawnCalamity(state: GameState, kind: DevCalamity): GameState {
   const { pos } = state.ship
   const fwd = state.forwardDir

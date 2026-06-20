@@ -86,6 +86,17 @@ describe('allies skip fog-concealed enemies', () => {
         .projectiles.length
     ).toBeGreaterThan(0)
   })
+
+  // Regression: bosses ignore fog (always rendered + tracked by enemy AI), so ally
+  // targeting must not skip a fog-concealed boss the way it skips concealed minions.
+  it('still fires on a boss concealed by fog', () => {
+    const boss = createEnemy(EnemyKind.phaseShifter, { ...enemyPos })
+    const concealed = { fog: [{ pos: enemyPos, radius: 100 }], slow: [], haze: [], circles: [] }
+    expect(
+      updateAllies([armedAlly()], [boss], ship, [], 0.1, [HelperWeaponKind.bullet], concealed)
+        .projectiles.length
+    ).toBeGreaterThan(0)
+  })
 })
 
 describe('applyDamageToAlly', () => {

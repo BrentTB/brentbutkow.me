@@ -820,11 +820,12 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
 
   // --- Hunt target: the nearest VISIBLE enemy the ship's auto-drift steers toward.
   // The ship has no weapon — this only points its idle movement. Fog-concealed
-  // enemies are skipped so it never chases something the player can't see. ---
+  // enemies are skipped so it never chases something the player can't see; bosses
+  // ignore fog (always shown + tracked), matching the renderer and enemy AI. ---
   let huntTarget: Vec2 | null = null
   let huntBest = Infinity
   for (const e of enemies) {
-    if (!enemyVisibleToPlayerSide(e.pos, nebulaField)) continue
+    if (!e.boss && !enemyVisibleToPlayerSide(e.pos, nebulaField)) continue
     const { x: hdx, y: hdy } = toroidalDelta(ship.pos, e.pos)
     const d = hdx * hdx + hdy * hdy
     if (d < huntBest) {

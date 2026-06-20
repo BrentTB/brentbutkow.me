@@ -23,8 +23,8 @@ import type {
   EffectTickResult,
 } from '../systems/effect-definition'
 
-// Teal teleport flash, matching WORMHOLE.color.
-const FLASH_COLOR = '#3cc8d2'
+// Teal teleport flash — the rift's own colour, so a data tweak carries through.
+const FLASH_COLOR = `rgb(${WORMHOLE.color})`
 
 export function createWormhole(posA: Vec2, posB: Vec2, vel: Vec2): WormholeEffect {
   return {
@@ -208,7 +208,8 @@ function renderRift(
   ctx.translate(s.x, s.y)
 
   const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, radius)
-  grad.addColorStop(0, 'rgba(60, 200, 210, 0.85)')
+  // Core is the rift token colour; outer stops are deliberately darker shades.
+  grad.addColorStop(0, `rgba(${WORMHOLE.color}, 0.85)`)
   grad.addColorStop(0.4, 'rgba(40, 150, 180, 0.5)')
   grad.addColorStop(0.75, 'rgba(30, 110, 150, 0.18)')
   grad.addColorStop(1, 'rgba(30, 110, 150, 0)')
@@ -227,7 +228,7 @@ function renderRift(
     ctx.stroke()
   }
 
-  ctx.strokeStyle = 'rgba(60, 200, 210, 0.9)'
+  ctx.strokeStyle = `rgba(${WORMHOLE.color}, 0.9)`
   ctx.lineWidth = 2
   ctx.beginPath()
   ctx.arc(0, 0, radius * 0.5, 0, Math.PI * 2)

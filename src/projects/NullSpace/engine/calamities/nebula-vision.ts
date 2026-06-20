@@ -45,7 +45,13 @@ export function sightCircles(ship: Ship, allies: Ally[]): SightCircle[] {
   ]
 }
 
+// Shared empty field for frames with no nebula active — consumers only read it, so a
+// single frozen instance avoids per-frame array + sight-circle allocation (every frame
+// in the menu, between calamities, etc.).
+const EMPTY_FIELD: NebulaField = Object.freeze({ fog: [], slow: [], haze: [], circles: [] })
+
 export function buildNebulaField(effects: ActiveEffect[], ship: Ship, allies: Ally[]): NebulaField {
+  if (!effects.some((e) => e.kind === EffectKind.nebula)) return EMPTY_FIELD
   return {
     fog: zonesOf(effects, NebulaVariant.fog),
     slow: zonesOf(effects, NebulaVariant.slow),

@@ -567,6 +567,9 @@ export const CHANGELOG: ChangelogEntry[] = [
       features: [
         'Wormhole pair: two linked rifts drift across the sector — fly into one and you come out the other with your momentum intact. Everything travels through: enemies, allies, asteroids, even shots. It deals no damage; the displacement is the danger. Fling an asteroid through it into a swarm, or bail through one when you are cornered.',
       ],
+      fixes: [
+        'Allies and your ship now keep engaging a boss caught in a fog cloud — bosses always show through fog, but allies were wrongly holding fire on a concealed one.',
+      ],
     },
   },
   {
