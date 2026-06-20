@@ -11,6 +11,7 @@ import {
   SECTOR,
   WARP,
   WORLD_SIZE,
+  WORMHOLE,
 } from '../data'
 import {
   createAbilities,
@@ -99,6 +100,7 @@ import { applyRadialDamage } from './calamities/calamity-damage'
 import { createShockwaveEffect, shockwaveRadiusAt } from './calamities/shockwave'
 import { applyWanderingHoles, createWanderingBlackHole } from './calamities/wandering-black-hole'
 import { createNebula } from './calamities/nebula'
+import { applyWormholes, createWormhole } from './calamities/wormhole'
 import { buildNebulaField, enemyVisibleToPlayerSide, inZone } from './calamities/nebula-vision'
 import { advanceBossSelection, createBossSelection } from './bosses/boss-selection'
 import { updateBossAI } from './bosses/boss-ai'
@@ -1037,8 +1039,8 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   ))
 
   // Calamity scheduler: on non-boss waves, periodically erupt one calamity near the
-  // ship — a drifting nebula (the most common roll), a telegraphed shock-ring, or a
-  // drifting wandering black hole. Boss fights are left undisturbed.
+  // ship — a drifting nebula (the most common roll), a wormhole pair, a telegraphed
+  // shock-ring, or a drifting wandering black hole. Boss fights are left undisturbed.
   if (!isBossWave(state.wave)) {
     calamityTimer -= dt
     if (calamityTimer <= 0) {
@@ -1066,6 +1068,30 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
           ),
         ]
         calamityTimer = rng.range(NEBULA.intervalMin, NEBULA.intervalMax)
+      } else if (rng.next() < WORMHOLE.weight) {
+        // Wormhole pair: mouth A near the ship, mouth B far + roughly opposite, so
+        // their exit-offsets can't land in each other (no cross-loop). It harms no
+        // one — the rifts growing in are its telegraph. The pair drifts together.
+        const angleB = angle + Math.PI + rng.range(-0.6, 0.6)
+        const driftAngle = rng.next() * Math.PI * 2
+        activeEffects = [
+          ...activeEffects,
+          createWormhole(
+            {
+              x: ship.pos.x + Math.cos(angle) * WORMHOLE.spawnRangeNear,
+              y: ship.pos.y + Math.sin(angle) * WORMHOLE.spawnRangeNear,
+            },
+            {
+              x: ship.pos.x + Math.cos(angleB) * WORMHOLE.spawnRangeFar,
+              y: ship.pos.y + Math.sin(angleB) * WORMHOLE.spawnRangeFar,
+            },
+            {
+              x: Math.cos(driftAngle) * WORMHOLE.driftSpeed,
+              y: Math.sin(driftAngle) * WORMHOLE.driftSpeed,
+            }
+          ),
+        ]
+        calamityTimer = rng.range(WORMHOLE.intervalMin, WORMHOLE.intervalMax)
       } else if (rng.next() < CALAMITY.shockwaveShareOfRest) {
         const spawnDist = rng.range(
           CALAMITY.shockwaveSpawnRange * 0.4,
@@ -1153,6 +1179,16 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     collectibles,
     particles
   ))
+
+  // Wormholes: teleport every body that crosses a rift to the far mouth, velocity
+  // preserved. Neutral — no damage; the displacement is the hazard.
+  const wormholes = applyWormholes(activeEffects, ship, enemies, allies, asteroids, projectiles)
+  ship = wormholes.ship
+  enemies = wormholes.enemies
+  allies = wormholes.allies
+  asteroids = wormholes.asteroids
+  projectiles = wormholes.projectiles
+  particles = [...particles, ...wormholes.particles]
 
   // --- Collision: enemies vs allies (melee — enemy dies, ally takes damage) ---
   const allyMeleeResult = resolveEnemyAllyMeleeCollisions(enemies, allies)

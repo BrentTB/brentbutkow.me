@@ -41,7 +41,9 @@ import { UpgradeId } from './upgrade-ids'
 import { isUpgradeWave } from './upgrades'
 import { BOSS_KINDS } from './bosses/index'
 import { createNebula } from './calamities/nebula'
+import { createWormhole } from './calamities/wormhole'
 import { isBossWave } from './world/waves'
+import { toroidalDistance } from './math/toroid'
 import {
   ANIMATION,
   ENEMY_STATS,
@@ -51,6 +53,7 @@ import {
   WARP,
   WAVES_PER_LEVEL,
   WORLD_SIZE,
+  WORMHOLE,
 } from '../data'
 import { TELEKINESIS, SOLAR_FLARE } from './abilities/ability-data'
 import { rng, setSessionSeed } from './math/random'
@@ -2021,5 +2024,25 @@ describe('nebula calamity — scheduler gate + no reward', () => {
     expect(next.currency).toBe(state.currency)
     expect(next.kills).toBe(state.kills)
     expect(next.enemies).toHaveLength(1) // the nebula harms nothing
+  })
+
+  it('a wormhole teleports an enemy that touches a mouth, granting nothing', () => {
+    const base = liveWave({ calamityTimer: 999 })
+    const mouthA = { ...base.enemies[0].pos }
+    const mouthB = { x: mouthA.x + 600, y: mouthA.y }
+    const wormhole = {
+      ...createWormhole(mouthA, mouthB, { x: 0, y: 0 }),
+      elapsed: WORMHOLE.growDuration + 1,
+    }
+    const next = updateGameState({ ...base, activeEffects: [wormhole] }, 0.1, input)
+    const pos = next.enemies[0].pos
+    // Jumped across the ~600px gap to the far mouth — far more than one frame of
+    // movement, so this is the teleport, not drift.
+    expect(toroidalDistance(pos, mouthA)).toBeGreaterThan(400)
+    expect(toroidalDistance(pos, mouthB)).toBeLessThan(
+      WORMHOLE.maxRadius + WORMHOLE.exitMargin + 30
+    )
+    expect(next.score).toBe(base.score)
+    expect(next.kills).toBe(base.kills)
   })
 })
