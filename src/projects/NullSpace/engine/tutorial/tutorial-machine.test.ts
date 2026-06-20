@@ -103,6 +103,22 @@ describe('advanceTutorial — triggers', () => {
     const stay = advanceTutorial(atId('useBlackHole'), signals({ swapAbilityUsed: false }))
     expect(currentId(stay.state)).toBe('useBlackHole')
     const { state } = advanceTutorial(atId('useBlackHole'), signals({ swapAbilityUsed: true }))
+    expect(currentId(state)).toBe('blackHoleResolve')
+  })
+
+  it('pauses on the black-hole resolve beat so the pull is visible, then shows the mines', () => {
+    const stay = advanceTutorial(atId('blackHoleResolve'), signals({ realDt: 0.5 }))
+    expect(currentId(stay.state)).toBe('blackHoleResolve')
+    const { state } = advanceTutorial(atId('blackHoleResolve'), signals({ realDt: 4 }))
+    expect(currentId(state)).toBe('mineIntro')
+  })
+
+  it('freezes the mine intro until the player presses Next, then lets the ship fly in', () => {
+    const stay = advanceTutorial(atId('mineIntro'), signals({ realDt: 5 }))
+    expect(currentId(stay.state)).toBe('mineIntro')
+    expect(stay.frozen).toBe(true)
+    expect(stay.awaitingAck).toBe(true)
+    const { state } = advanceTutorial(atId('mineIntro'), signals({ acknowledged: true }))
     expect(currentId(state)).toBe('mineHit')
   })
 

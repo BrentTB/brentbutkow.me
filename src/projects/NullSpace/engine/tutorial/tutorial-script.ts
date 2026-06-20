@@ -169,16 +169,33 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
     copyTouch: 'Now tap beside the enemy to drop your Black Hole. It pulls enemies in.',
   },
   {
+    id: 'blackHoleResolve',
+    trigger: TutorialTriggerKind.time,
+    spotlight: TutorialSpotlightKind.none,
+    freeze: false,
+    durationSeconds: 4,
+    keepEnemyAlive: true,
+    copyDesktop: 'Watch the Black Hole drag everything caught in it toward the centre.',
+    copyTouch: 'Watch the Black Hole drag everything caught in it toward the centre.',
+  },
+  {
+    id: 'mineIntro',
+    trigger: TutorialTriggerKind.acknowledge,
+    spotlight: TutorialSpotlightKind.mine,
+    freeze: true,
+    spawnsMine: true,
+    copyDesktop:
+      "Those blinking objects are mines, and they damage anything that touches them. The ship flies on its own and won't dodge them.",
+    copyTouch:
+      "Those blinking objects are mines, and they damage anything that touches them. The ship flies on its own and won't dodge them.",
+  },
+  {
     id: 'mineHit',
     trigger: TutorialTriggerKind.shipDamaged,
     spotlight: TutorialSpotlightKind.mine,
     freeze: false,
-    allowFling: true,
-    spawnsMine: true,
-    copyDesktop:
-      'That blinking object is a mine, it damages anything that touches it, your ship included. Slingshot the ship into it.',
-    copyTouch:
-      'That blinking object is a mine, it damages anything that touches it, your ship included. Drag the ship to slingshot it into the mine.',
+    copyDesktop: 'Watch: with no input from you, it drifts straight into one.',
+    copyTouch: 'Watch: with no input from you, it drifts straight into one.',
   },
   {
     id: 'collectMetal',

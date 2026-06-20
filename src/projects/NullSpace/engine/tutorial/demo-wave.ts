@@ -106,10 +106,16 @@ function tutorialMine(pos: Vec2): Hazard {
 // so the mine's hit sticks until the player repairs it.
 export function applyTutorialStepEnter(state: GameState, step: TutorialStep): GameState {
   let next = state
-  if (step.spawnsMetal && !next.collectibles.some((c) => c.kind === CollectibleKind.spaceMetal)) {
+  if (step.spawnsMetal) {
+    // Opening the collect beat clears any leftover mines from the mine beat (so
+    // they don't keep peppering the ship) and drops a space metal to grab.
+    const hasMetal = next.collectibles.some((c) => c.kind === CollectibleKind.spaceMetal)
     next = {
       ...next,
-      collectibles: [...next.collectibles, tutorialSpaceMetal(aheadOfShip(next, 110, 0))],
+      hazards: [],
+      collectibles: hasMetal
+        ? next.collectibles
+        : [...next.collectibles, tutorialSpaceMetal(aheadOfShip(next, 110, 0))],
     }
   }
   if (step.parksShieldRegen) {
@@ -118,8 +124,11 @@ export function applyTutorialStepEnter(state: GameState, step: TutorialStep): Ga
     next = { ...next, ship: { ...next.ship, shieldCooldownRemaining: 9999 } }
   }
   if (step.spawnsMine && next.hazards.length === 0) {
-    // Directly ahead, in the ship's flight path, so it flies into the mine.
-    next = { ...next, hazards: [...next.hazards, tutorialMine(aheadOfShip(next, 140, 0))] }
+    // Clear enemies so the ship drifts straight ahead (no flee-orbit), then lay a
+    // short row of mines across its weave so it reliably flies into one on its own
+    // — the lesson being that the ship won't dodge hazards for you.
+    const row = [-72, 0, 72].map((side) => tutorialMine(aheadOfShip(next, 250, side)))
+    next = { ...next, enemies: [], hazards: row }
   }
   if (step.refillsPower) {
     next = { ...next, power: next.maxPower }

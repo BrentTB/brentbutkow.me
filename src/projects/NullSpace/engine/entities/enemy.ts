@@ -159,29 +159,61 @@ const MOVEMENT_FN: Record<MovementBehavior, MoveFn> = {
   [MovementBehavior.none]: moveNone,
 }
 
-// Enemies steer clear of mines by default, so an enemy only eats one when the
-// player forces it (a black hole, telekinesis, or a shove). Mirrors the
-// ally-avoidance repulsion: each nearby mine adds an outward push that fades with
-// distance, blended into the enemy's velocity after its own movement.
+// Enemies steer smoothly around mines instead of bouncing off them. Two blended
+// terms: a dominant tangential bend that arcs the heading past a mine ahead (a
+// smooth curve, not the ugly orbit a pure radial push settles into), plus a
+// gentler radial push-out that's always on and ramps up close — so an enemy
+// circling a mine (player baiting it from the far side) still keeps its distance
+// instead of clipping the edge. The turn eases in, so the path stays natural.
+// Parked enemies (no heading) skip it; they never drift into a mine on their own.
+// An enemy only eats a mine when the player forces it in (black hole, telekinesis).
 function avoidHazards(enemy: Enemy, hazards: Hazard[], dt: number): Enemy {
   if (hazards.length === 0) return enemy
-  let pushX = 0
-  let pushY = 0
+  const speed = Math.hypot(enemy.vel.x, enemy.vel.y)
+  if (speed < 0.01) return enemy
+
+  const headingX = enemy.vel.x / speed
+  const headingY = enemy.vel.y / speed
+  let steerX = 0
+  let steerY = 0
   for (const h of hazards) {
-    const { x: dx, y: dy } = toroidalDelta(h.pos, enemy.pos)
-    const d = Math.sqrt(dx * dx + dy * dy)
-    const avoidRadius = h.radius + HAZARD.avoidRadius
-    if (d < avoidRadius && d > 0.01) {
-      const weight = (1 - d / avoidRadius) * HAZARD.avoidWeight
-      pushX += (dx / d) * weight * enemy.speed
-      pushY += (dy / d) * weight * enemy.speed
+    const { x: dx, y: dy } = toroidalDelta(enemy.pos, h.pos) // enemy → mine
+    const d = Math.hypot(dx, dy)
+    const reach = h.radius + HAZARD.avoidRadius
+    if (d >= reach || d < 0.01) continue
+    const toMineX = dx / d
+    const toMineY = dy / d
+    const closeness = 1 - d / reach // 0 at the edge → 1 at the centre
+    // Radial push straight out, always on — keeps distance even when the mine is
+    // beside or behind (a circling enemy), ramping up sharply as it nears.
+    steerX += -toMineX * closeness * closeness
+    steerY += -toMineY * closeness * closeness
+    // Tangential bend to arc around a mine that's ahead, for a smooth path past it.
+    const ahead = headingX * toMineX + headingY * toMineY
+    if (ahead > 0) {
+      const perpX = -toMineY
+      const perpY = toMineX
+      const side = headingX * perpX + headingY * perpY >= 0 ? 1 : -1
+      const urgency = closeness * ahead // closer + more head-on = sharper turn
+      steerX += side * perpX * urgency * HAZARD.avoidTangent
+      steerY += side * perpY * urgency * HAZARD.avoidTangent
     }
   }
-  if (pushX === 0 && pushY === 0) return enemy
+  if (steerX === 0 && steerY === 0) return enemy
+
+  // Bend the heading toward the tangent, keep the speed, and ease the velocity over
+  // so the path curves instead of snapping. Correct position by the velocity delta
+  // the MoveFn already integrated this frame.
+  const desiredX = headingX + steerX * HAZARD.avoidStrength
+  const desiredY = headingY + steerY * HAZARD.avoidStrength
+  const desiredMag = Math.hypot(desiredX, desiredY) || 1
+  const turn = 1 - Math.exp(-HAZARD.avoidTurnRate * dt)
+  const vx = enemy.vel.x + ((desiredX / desiredMag) * speed - enemy.vel.x) * turn
+  const vy = enemy.vel.y + ((desiredY / desiredMag) * speed - enemy.vel.y) * turn
   return {
     ...enemy,
-    pos: { x: enemy.pos.x + pushX * dt, y: enemy.pos.y + pushY * dt },
-    vel: { x: enemy.vel.x + pushX, y: enemy.vel.y + pushY },
+    pos: { x: enemy.pos.x + (vx - enemy.vel.x) * dt, y: enemy.pos.y + (vy - enemy.vel.y) * dt },
+    vel: { x: vx, y: vy },
   }
 }
 

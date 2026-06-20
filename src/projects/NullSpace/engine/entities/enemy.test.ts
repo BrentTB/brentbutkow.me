@@ -56,23 +56,26 @@ describe('updateEnemyMovement — knockback coast', () => {
 })
 
 describe('updateEnemyMovement — mine avoidance', () => {
-  // Enemies steer clear of mines so one only goes off when the player forces it in.
-  it('steers a resting enemy away from a nearby mine', () => {
+  // A chasing enemy with a mine directly in its path should arc around it (gain a
+  // sideways velocity) rather than drive straight through or settle into an orbit.
+  it('curves a chasing enemy around a mine in its path', () => {
     const enemy = {
-      ...createEnemy(EnemyKind.drone, { x: 500, y: 500 }),
-      movementBehavior: MovementBehavior.stationary,
-      vel: { x: 0, y: 0 },
+      ...createEnemy(EnemyKind.drone, { x: 400, y: 500 }),
+      movementBehavior: MovementBehavior.chase,
     }
+    const target = { ...createShip(ShipKind.fighter, WORLD_SIZE), pos: { x: 600, y: 500 } }
     const mine: Hazard = {
       id: 'm',
       kind: HazardKind.mine,
-      pos: { x: 500 + HAZARD.mineRadius + 10, y: 500 },
+      pos: { x: 500, y: 500 },
       radius: HAZARD.mineRadius,
       damage: HAZARD.mineDamage,
     }
-    const [moved] = updateEnemyMovement([enemy], ship, [], [mine], 0.1)
-    // The mine sits to its right, so the repulsion shoves it left.
-    expect(moved.vel.x).toBeLessThan(0)
-    expect(moved.pos.x).toBeLessThan(500)
+    const [withMine] = updateEnemyMovement([enemy], target, [], [mine], 0.1)
+    const [noMine] = updateEnemyMovement([enemy], target, [], [], 0.1)
+    // Without the mine it heads straight along x; the mine bends it off that line.
+    expect(Math.abs(noMine.vel.y)).toBeLessThan(0.01)
+    expect(Math.abs(withMine.vel.y)).toBeGreaterThan(1)
+    expect(withMine.vel.x).toBeGreaterThan(0) // still advancing toward the target
   })
 })

@@ -412,8 +412,10 @@ export const HAZARD = {
   mineBlastRadius: 72, // single-use detonation damages everyone within this radius
   forwardMargin: 500, // keep mines at least this far from the ship's spawn point
   laneEveryWaves: 1, // a minefield appears every non-boss sector
-  avoidRadius: 80, // enemies steer clear of a mine within this gap beyond its trigger radius
-  avoidWeight: 1.4, // how hard enemies veer off (scaled by their own speed)
+  avoidRadius: 110, // enemies begin steering around a mine within this gap beyond its trigger radius
+  avoidStrength: 2, // overall strength of the heading bend away from / around a mine
+  avoidTangent: 2.5, // arc-around weight vs the straight push-out (higher = smoother but tighter)
+  avoidTurnRate: 7, // how fast the heading eases into the avoidance arc (higher = snappier)
   color: '#d6533a',
 } as const
 
@@ -472,8 +474,12 @@ export const CHANGELOG: ChangelogEntry[] = [
         'Mines reworked - they now detonate once on contact (no more lurking forever) and blast everything nearby, and enemies steer around them. Shove an enemy into one with a black hole or telekinesis.',
         'New Shockwave calamity: a telegraphed ring that erupts and sweeps the sector, hitting hardest at its centre and fading toward the edge.',
       ],
+      fixes: [
+        'Enemies now arc smoothly around mines instead of charging straight in and circling them.',
+      ],
       ui: [
-        'Tutorial: you now slingshot the ship into a mine to feel the hit, then repair the shield with space metal, instead of the shield dropping on its own.',
+        'A countdown now warns you in the final 10 seconds before enemies start speeding up, so the ramp no longer feels like it comes out of nowhere.',
+        'Tutorial: the ship now flies into a mine on its own (you cannot fling it away), showing that it will not dodge hazards, then you repair the shield with space metal.',
       ],
       architecture: [
         'Added a shared radial-damage primitive (applyRadialDamage) and a single applyDamageToAlly path, reused by mines and shockwaves.',

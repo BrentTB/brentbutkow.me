@@ -173,6 +173,7 @@ src/projects/NullSpace/components/GameHUD/
   RechargeRing.tsx                           RechargeRing
   SectorProgress.tsx                         SectorProgress
   SpaceMetalRail.tsx                         SpaceMetalRail
+  SpeedUpWarning.tsx                         SpeedUpWarning
   TopBar.tsx                                 TopBar
 
 src/projects/NullSpace/components/
@@ -333,7 +334,7 @@ src/projects/NullSpace/engine/world/
   enemy-scaling.ts                           waveStatScale, scaleEnemy
   persistence.ts                             loadHighScore, saveHighScore, loadPlayerName, savePlayerName, loadTutorialSeen, saveTutorialSeen, ChangelogCategory, ChangelogFilters, DEFAULT_CHANGELOG_FILTERS, CHANGELOG_CATEGORIES, VisibleChangelogGroup, VisibleChangelogEntry, getVisibleChangelogEntries, loadChangelogFilters, saveChangelogFilters, SavedGame, saveGame, loadGame, clearSave
   time.ts                                    MAX_DT, GameTime, createGameTime, tickGameTime, pauseGameTime, resumeGameTime, setGameSpeed, resetGameClock
-  wave-escalation.ts                         waveSpeedEscalation
+  wave-escalation.ts                         waveSpeedEscalation, SPEEDUP_WARNING_LEAD, secondsUntilSpeedUp
   waves.ts                                   emptySpawnState, isBossWave, WaveArchetype, getWaveArchetype, getWave, getWaveDelay, sectorProgress
 
 src/projects/NullSpace/
