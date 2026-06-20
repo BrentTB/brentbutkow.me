@@ -193,10 +193,6 @@ export function createHelperFactory(pos: Vec2, maxHp: number, spawnInterval: num
   }
 }
 
-// Ability creation lives in engine/abilities/ to keep all per-ability logic in
-// one folder. Re-exported here so existing callers don't break.
-export { createAbilities } from '../abilities'
-
 export function createParticle(
   pos: Vec2,
   vel: Vec2,

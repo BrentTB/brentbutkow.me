@@ -20,6 +20,10 @@ import { fireworks } from './fireworks'
 import { eventHorizon } from './event-horizon'
 import { solarPlague } from './solar-plague'
 import { singularity } from './singularity'
+import { radiation } from './radiation'
+import { meltdown } from './meltdown'
+import { chainLightning } from './chain-lightning'
+import { ionStorm } from './ion-storm'
 import type { UpgradeId } from '../upgrade-ids'
 import type { AbilityDefinition, UltimateDescriptor } from './ability-definition'
 import type { IconName } from '../../icon-names'
@@ -59,6 +63,10 @@ export const ABILITY_DEFINITIONS: Record<AbilityKind, AbilityDefinition> = {
   [AbilityKind.eventHorizon]: eventHorizon,
   [AbilityKind.solarPlague]: solarPlague,
   [AbilityKind.singularity]: singularity,
+  [AbilityKind.radiation]: radiation,
+  [AbilityKind.meltdown]: meltdown,
+  [AbilityKind.chainLightning]: chainLightning,
+  [AbilityKind.ionStorm]: ionStorm,
 }
 
 export const ABILITY_LIST: AbilityDefinition[] = Object.values(ABILITY_DEFINITIONS)

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { orderWeaponsForShop } from './weapons-list-order'
-import { createAbilities } from '../../engine/entities/entity-creator'
+import { createAbilities } from '../../engine/abilities'
 import { AbilityKind } from '../../engine/types'
 
 function setAbility(

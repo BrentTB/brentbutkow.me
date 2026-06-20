@@ -177,6 +177,19 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M4.21 16 9 14l-.46 4.5A5 5 0 0 1 4.21 16z" fill="currentColor" stroke="none" />
     </>
   ),
+  // Atom — a nucleus crossed by three orbital rings.
+  [IconName.radiation]: (
+    <>
+      <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none" />
+      <ellipse cx="12" cy="12" rx="10" ry="4" />
+      <ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(60 12 12)" />
+      <ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(120 12 12)" />
+    </>
+  ),
+  // Lightning bolt.
+  [IconName.chainLightning]: (
+    <path d="M13 2 4 14h6l-1 8 9-12h-6z" fill="currentColor" stroke="none" />
+  ),
 }
 
 type IconProps = { name: IconName } & SVGProps<SVGSVGElement>

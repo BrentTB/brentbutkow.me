@@ -16,6 +16,10 @@ import { FIREWORKS_UPGRADE_IDS } from './abilities/fireworks'
 import { EVENT_HORIZON_UPGRADE_IDS } from './abilities/event-horizon'
 import { SOLAR_PLAGUE_UPGRADE_IDS } from './abilities/solar-plague'
 import { SINGULARITY_UPGRADE_IDS } from './abilities/singularity'
+import { RADIATION_UPGRADE_IDS } from './abilities/radiation'
+import { MELTDOWN_UPGRADE_IDS } from './abilities/meltdown'
+import { CHAIN_LIGHTNING_UPGRADE_IDS } from './abilities/chain-lightning'
+import { ION_STORM_UPGRADE_IDS } from './abilities/ion-storm'
 import { LASER_UPGRADE_IDS } from './weapons/laser'
 import { MISSILE_UPGRADE_IDS } from './weapons/missile'
 import { RICOCHET_UPGRADE_IDS } from './weapons/ricochet'
@@ -46,6 +50,10 @@ export const UpgradeId = {
   ...EVENT_HORIZON_UPGRADE_IDS,
   ...SOLAR_PLAGUE_UPGRADE_IDS,
   ...SINGULARITY_UPGRADE_IDS,
+  ...RADIATION_UPGRADE_IDS,
+  ...MELTDOWN_UPGRADE_IDS,
+  ...CHAIN_LIGHTNING_UPGRADE_IDS,
+  ...ION_STORM_UPGRADE_IDS,
   ...LASER_UPGRADE_IDS,
   ...MISSILE_UPGRADE_IDS,
   ...RICOCHET_UPGRADE_IDS,

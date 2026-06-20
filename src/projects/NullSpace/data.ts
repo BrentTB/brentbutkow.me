@@ -69,6 +69,8 @@ export const WEAPON_ORDER: readonly AbilityKind[] = [
   AbilityKind.helper,
   AbilityKind.telekinesis,
   AbilityKind.solarFlare,
+  AbilityKind.radiation,
+  AbilityKind.chainLightning,
   // Ultimates sit at the end — their hotbar slot is inherited from the base
   // they replace, so this position only governs row creation, not display.
   AbilityKind.cometShower,
@@ -80,6 +82,8 @@ export const WEAPON_ORDER: readonly AbilityKind[] = [
   AbilityKind.eventHorizon,
   AbilityKind.solarPlague,
   AbilityKind.singularity,
+  AbilityKind.meltdown,
+  AbilityKind.ionStorm,
 ]
 
 export const ENEMY_STATS = {
@@ -560,6 +564,16 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.8.0',
+    date: '2026-06-20',
+    changes: {
+      features: [
+        'Radiation: drop a radioactive pool and enemies that linger in it stack radiation — each stack adds damage, and the stacks keep burning for a while after they walk out. Trivial on its own, lethal when you funnel a crowd through it (black hole, telekinesis) or pin a boss in it. Its Meltdown ultimate stacks higher and turns contagious: max-stacked enemies spread the glow to their neighbours.',
+        'Chain Lightning: a bolt that strikes the nearest enemy then leaps between them, weakening with every jump — superb against packs, deliberately weak against a lone target. Its Ion Storm ultimate forks to two enemies per hit, branching across the whole swarm.',
+      ],
+    },
+  },
   {
     version: '1.7.0',
     date: '2026-06-20',

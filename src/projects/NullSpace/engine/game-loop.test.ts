@@ -16,13 +16,13 @@ import {
   advanceDeathSequence,
 } from './game-loop'
 import {
-  createAbilities,
   createAlly,
   createDeathAnim,
   createEnemy,
   createParticle,
   createProjectile,
 } from './entities/entity-creator'
+import { createAbilities } from './abilities'
 import { tickEscapeMode } from './entities/ship'
 import {
   AbilityKind,

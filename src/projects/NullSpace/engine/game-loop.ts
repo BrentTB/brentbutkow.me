@@ -14,7 +14,6 @@ import {
   WORMHOLE,
 } from '../data'
 import {
-  createAbilities,
   createDeathAnim,
   createParticle,
   createShip,
@@ -27,6 +26,7 @@ import {
   BASE_KIND_OF,
   ULTIMATE_KIND_OF,
   WEAPON_UNLOCK_UPGRADE,
+  createAbilities,
   resolveAbilityInput,
   updateAbilityCooldowns,
 } from './abilities'
@@ -42,6 +42,7 @@ import { applyShieldConstraints } from './abilities/shield'
 import { recentreRepulseFields } from './spaceMetalAbilities/repulse'
 import { updateActiveEffects } from './systems/effects'
 import { updateBurningEnemies } from './systems/burning'
+import { updateRadiatedEnemies } from './systems/radiation'
 import { updateModifiedEnemies } from './systems/enemy-modifiers-tick'
 import { MAX_DT } from './world/time'
 import { processSpawnQueue } from './systems/spawner'
@@ -123,6 +124,7 @@ import type {
   GameState,
   Particle,
   PlayerInput,
+  RadiationFieldEffect,
   Vec2,
 } from './types'
 import type { UpgradeId } from './upgrade-ids'
@@ -948,6 +950,24 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   const burnKilledEnemies = burnResult.killedEnemies
   currency += computeCurrencyFromKills(burnKilledEnemies, stardustMultiplier)
 
+  // --- Radiation pools (stacking DOT that lingers after enemies leave) ---
+  // Every active radiation pool is a zone; the stacks + decay live on the enemy.
+  const radiationZones = activeEffects
+    .filter((e): e is RadiationFieldEffect => e.kind === EffectKind.radiationField)
+    .map((e) => ({
+      pos: e.pos,
+      radius: e.radius,
+      dpsPerStack: e.dpsPerStack,
+      maxStacks: e.maxStacks,
+      spreadRange: e.spreadRange,
+    }))
+  const radiationResult = updateRadiatedEnemies(enemies, radiationZones, dt)
+  enemies = radiationResult.enemies
+  particles = [...particles, ...radiationResult.particles]
+  score += radiationResult.scoreGained
+  const radiationKilledEnemies = radiationResult.killedEnemies
+  currency += computeCurrencyFromKills(radiationKilledEnemies, stardustMultiplier)
+
   // --- Enemy modifiers (shield regen + speed-enemy trail particles) ---
   const modifierResult = updateModifiedEnemies(enemies, dt)
   enemies = modifierResult.enemies
@@ -1197,6 +1217,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     ...allyMeleeResult.killedEnemies,
     ...holdKilledEnemies,
     ...burnKilledEnemies,
+    ...radiationKilledEnemies,
     ...calamityKilled,
   ]
   if (killedForDeathEffects.length > 0) {
@@ -1226,6 +1247,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     ...projCollision.killedEnemies,
     ...holdKilledEnemies,
     ...burnKilledEnemies,
+    ...radiationKilledEnemies,
   ]
   if (killedForCollectibles.length > 0) {
     collectibles = [

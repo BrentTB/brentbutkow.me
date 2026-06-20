@@ -16,6 +16,8 @@ import { shockwaveEffect } from '../calamities/shockwave'
 import { wanderingBlackHoleEffect } from '../calamities/wandering-black-hole'
 import { nebulaEffect } from '../calamities/nebula'
 import { wormholeEffect } from '../calamities/wormhole'
+import { radiationFieldEffect } from '../abilities/radiation'
+import { chainArcEffect } from '../abilities/chain-lightning'
 
 // Registry: each effect's owner file (ability or helper weapon) declares an
 // EffectDefinition — tick + optional world-layer renderers — and registers it
@@ -40,6 +42,8 @@ export const EFFECT_DEFINITIONS: Record<EffectKind, EffectDefinition> = {
   [EffectKind.wanderingBlackHole]: wanderingBlackHoleEffect,
   [EffectKind.nebula]: nebulaEffect,
   [EffectKind.wormhole]: wormholeEffect,
+  [EffectKind.radiationField]: radiationFieldEffect,
+  [EffectKind.chainArc]: chainArcEffect,
 }
 
 export function updateActiveEffects(

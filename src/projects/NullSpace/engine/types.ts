@@ -151,6 +151,20 @@ export type BurningState = {
   spreadRange: number
 }
 
+// Radiation status seeded by a Radiation pool. Stacks build while an enemy stands
+// in a pool (capped at maxStacks) and decay one at a time once it leaves; total
+// DOT is stacks × dpsPerStack, so it lingers after the enemy walks out. A
+// `spreadRange` > 0 (Meltdown ultimate) makes a max-stacked enemy seed radiation
+// on touching neighbours. gain/decay cooldowns count down per frame in/out of a pool.
+export type RadiationState = {
+  stacks: number
+  maxStacks: number
+  dpsPerStack: number
+  spreadRange: number
+  gainCooldown: number
+  decayCooldown: number
+}
+
 // Dasher attack cycle. The stage timer counts DOWN; `heading` is the lunge
 // direction, locked at the windup→charge transition so the charge commits to a
 // straight line the player dodges. Present only on dasher enemies.
@@ -186,6 +200,8 @@ export type Enemy = Entity & {
   boss?: BossRuntimeState
   // Solar Plague fire. Present while alight; absent otherwise.
   burning?: BurningState
+  // Radiation stacks (Radiation pool). Present while irradiated; absent at 0 stacks.
+  radiation?: RadiationState
   // Late-game modifier (absent on plain enemies). Set at spawn.
   modifier?: EnemyModifier
   // Present only on shield-modifier enemies — a player-style absorb-first pool
@@ -253,6 +269,8 @@ export const AbilityKind = {
   helper: 'helper',
   telekinesis: 'telekinesis',
   solarFlare: 'solarFlare',
+  radiation: 'radiation',
+  chainLightning: 'chainLightning',
   // Ultimates — upgraded variants of a base ability, purchased with the
   // Singularity Shard economy. Each links to its base via `ultimateOf`.
   cometShower: 'cometShower',
@@ -264,6 +282,8 @@ export const AbilityKind = {
   eventHorizon: 'eventHorizon',
   solarPlague: 'solarPlague',
   singularity: 'singularity',
+  meltdown: 'meltdown',
+  ionStorm: 'ionStorm',
 } as const
 export type AbilityKind = (typeof AbilityKind)[keyof typeof AbilityKind]
 
@@ -324,6 +344,8 @@ export const EffectKind = {
   wanderingBlackHole: 'wanderingBlackHole',
   nebula: 'nebula',
   wormhole: 'wormhole',
+  radiationField: 'radiationField',
+  chainArc: 'chainArc',
 } as const
 export type EffectKind = (typeof EffectKind)[keyof typeof EffectKind]
 
@@ -526,6 +548,33 @@ export type WormholeEffect = EffectBase & {
   growDuration: number
 }
 
+// Radiation pool (Radiation ability). A stationary zone that seeds + refreshes
+// radiation stacks on enemies inside it; the DOT + decay live on the enemy
+// (updateRadiatedEnemies), so this effect only holds the zone params, ages, and
+// renders. `spreadRange` > 0 marks a Meltdown pool (contagious at max stacks).
+export type RadiationFieldEffect = EffectBase & {
+  kind: typeof EffectKind.radiationField
+  radius: number
+  dpsPerStack: number
+  maxStacks: number
+  spreadRange: number
+}
+
+// Chain Lightning arc. Resolves its whole bolt on the first tick (jumps between
+// nearest enemies, damage falling by `falloff` per generation, `forks` branches
+// per hit for Ion Storm), then lingers `duration` purely to render the fading
+// segments. `resolved` gates the one-time damage; `segments` are the drawn bolts.
+export type ChainArcEffect = EffectBase & {
+  kind: typeof EffectKind.chainArc
+  damage: number
+  jumpRange: number
+  maxJumps: number
+  forks: number
+  falloff: number
+  resolved: boolean
+  segments: { from: Vec2; to: Vec2 }[]
+}
+
 export type ActiveEffect =
   | MeteorStrikeEffect
   | BlackHoleEffect
@@ -542,6 +591,8 @@ export type ActiveEffect =
   | WanderingBlackHoleEffect
   | NebulaEffect
   | WormholeEffect
+  | RadiationFieldEffect
+  | ChainArcEffect
 
 export const CollectibleKind = {
   powerOrb: 'powerOrb',

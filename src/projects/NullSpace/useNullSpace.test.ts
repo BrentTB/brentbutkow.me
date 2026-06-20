@@ -7,7 +7,7 @@ import {
   useNullSpace,
 } from './useNullSpace'
 import { createRef } from 'react'
-import { createAbilities } from './engine/entities/entity-creator'
+import { createAbilities } from './engine/abilities'
 import { BOSS_KINDS } from './engine/bosses/index'
 import { AbilityKind, GamePhase, ShipKind } from './engine/types'
 import { TutorialEntry } from './engine/tutorial/tutorial-machine'

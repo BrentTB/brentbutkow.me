@@ -211,3 +211,57 @@ export const SINGULARITY = {
   baseExplosionDamage: 60,
   maxChargeSeconds: 2,
 } as const
+
+// Radiation pool. Drops a lingering zone; enemies inside accrue stacks (capped at
+// maxStacks) and take stacks × dpsPerStack — trivial alone, but the ramp + stacks
+// that linger after they leave are the payoff. `stackInterval`/`decayInterval` are
+// the seconds to gain a stack in a pool / lose one outside.
+export const RADIATION = {
+  cooldown: 6,
+  powerCost: 45,
+  dpsPerStack: 1.5,
+  radius: 120,
+  duration: 6,
+  maxStacks: 8,
+  stackInterval: 0.4,
+  decayInterval: 1.5,
+} as const
+
+// Meltdown (Radiation ultimate). A bigger, longer, hotter pool that stacks higher
+// — and turns contagious: a max-stacked enemy seeds radiation on neighbours within
+// `spreadRange` (edge gap). Contamination widens that reach.
+export const MELTDOWN = {
+  costMultiplier: 3,
+  radiusScale: 1.4,
+  durationScale: 1.5,
+  dpsPerStackBonus: 1.5,
+  maxStacks: 12,
+  spreadRange: 60,
+} as const
+
+// Chain Lightning. A click bolt that strikes the nearest enemy, then leaps to the
+// nearest unhit enemy within `jumpRange`, up to `maxJumps` hits, damage scaled by
+// `falloff` each jump. `forks` is branches-per-hit (1 = a single chain). The arc
+// lingers `arcDuration` seconds purely to render. Weak vs a lone boss by design.
+export const CHAIN_LIGHTNING = {
+  cooldown: 3,
+  powerCost: 25,
+  damage: 30,
+  jumpRange: 140,
+  maxJumps: 3,
+  falloff: 0.78,
+  forks: 1,
+  arcDuration: 0.22,
+} as const
+
+// Ion Storm (Chain Lightning ultimate). The bolt forks to the two nearest enemies
+// per hit (a branching tree, damage scaled by `falloff` per generation) and reaches
+// further across more jumps.
+export const ION_STORM = {
+  costMultiplier: 3,
+  jumpRange: 170,
+  maxJumps: 6,
+  forks: 2,
+  falloff: 0.82,
+  arcDuration: 0.28,
+} as const
