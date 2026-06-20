@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildRecallsPath, buildTrendPath } from './api'
-import { RecallCategory, RecallClass, TrendGroup } from './recall.types'
+import { RecallCategory, RecallClass, RecallSort, SeverityLabel, TrendGroup } from './recall.types'
 
 describe('buildRecallsPath', () => {
   it('defaults the limit and omits unset filters', () => {
@@ -11,6 +11,7 @@ describe('buildRecallsPath', () => {
     const path = buildRecallsPath({
       category: RecallCategory.pathogen,
       classification: RecallClass.classI,
+      severity: SeverityLabel.severe,
       state: 'CA',
       entity: 'peanuts',
       search: 'listeria',
@@ -21,6 +22,7 @@ describe('buildRecallsPath', () => {
     })
     expect(path).toContain('category=pathogen')
     expect(path).toContain('classification=Class+I')
+    expect(path).toContain('severity=severe')
     expect(path).toContain('state=CA')
     expect(path).toContain('entity=peanuts')
     expect(path).toContain('search=listeria')
@@ -32,6 +34,11 @@ describe('buildRecallsPath', () => {
 
   it('omits offset when it is zero (the first page)', () => {
     expect(buildRecallsPath({ offset: 0 })).toBe('/recalls?limit=50')
+  })
+
+  it('sets sort when provided and omits it by default', () => {
+    expect(buildRecallsPath({ sort: RecallSort.severity })).toContain('sort=severity')
+    expect(buildRecallsPath({})).not.toContain('sort')
   })
 })
 

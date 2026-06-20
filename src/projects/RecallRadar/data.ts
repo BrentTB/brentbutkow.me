@@ -3,7 +3,9 @@ import {
   RecallCategory,
   RecallClass,
   RecallCountry,
+  RecallSort,
   RecallSource,
+  SeverityLabel,
   TrendGroup,
   isRecallCategory,
   isRecallSource,
@@ -84,6 +86,34 @@ export const trendGroupLabels: Record<TrendGroup, string> = {
   [TrendGroup.total]: 'Total',
   [TrendGroup.category]: 'By cause',
   [TrendGroup.source]: 'By source',
+}
+
+export const severityLabels: Record<SeverityLabel, string> = {
+  [SeverityLabel.severe]: 'Severe',
+  [SeverityLabel.high]: 'High',
+  [SeverityLabel.elevated]: 'Elevated',
+  [SeverityLabel.low]: 'Low',
+}
+
+// Worst → least: the order the distribution bar stacks and the legend reads.
+export const severityOrder: SeverityLabel[] = [
+  SeverityLabel.severe,
+  SeverityLabel.high,
+  SeverityLabel.elevated,
+  SeverityLabel.low,
+]
+
+// Red → amber → muted gold → grey: hotter means more severe, harmonised with the dark/amber theme.
+export const severityColors: Record<SeverityLabel, string> = {
+  [SeverityLabel.severe]: '#e0675c',
+  [SeverityLabel.high]: '#e0954a',
+  [SeverityLabel.elevated]: '#d8c074',
+  [SeverityLabel.low]: '#8d8a82',
+}
+
+export const sortLabels: Record<RecallSort, string> = {
+  [RecallSort.recency]: 'Newest first',
+  [RecallSort.severity]: 'Most severe',
 }
 
 // Muted, warm-leaning palette for stacked trend segments — harmonises with the amber/dark theme.

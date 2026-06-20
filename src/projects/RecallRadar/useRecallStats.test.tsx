@@ -15,6 +15,7 @@ describe('useRecallStats', () => {
         byCategory: [],
         byMonth: [],
         byClassification: [],
+        bySeverity: [],
         byState: [],
         byCompany: [],
         bySource: [],

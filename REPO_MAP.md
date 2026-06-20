@@ -390,14 +390,15 @@ src/projects/RecallRadar/components/
   RecallFilters.tsx                          RecallFilters
   RecallMap.tsx                              RecallMap
   RecallTrendsChart.tsx                      RecallTrendsChart
+  SeverityBar.tsx                            SeverityBar
   StatCard.tsx                               StatCard
   TrendCallouts.tsx                          TrendCallouts
   page-window.ts                             PageSlot, pageWindow
   useChartTooltip.ts                         useChartTooltip
 
 src/projects/RecallRadar/
-  data.ts                                    recallRadarCopy, techStack, methodologyPoints, categoryLabels, sourceLabels, countryLabels, entityTypeLabels, trendGroupLabels, trendColor, classesByCountry, sourcesByCountry, recallRadarLinks
-  recall.types.ts                            RecallCategory, RecallClass, RecallSource, RecallCountry, EntityType, AnomalyScope, TrendGroup, RecallFilterValues, Recall, RecallEntity, RecallListResult, CategoryCount, MonthCount, LabelCount, EntityCount, AnomalyMonth, Anomaly, RecallStats, TrendBucket, TrendResult, isRecallCategory, isRecallClass, isRecallSource, isRecallCountry, isEntityType, isTrendGroup, isIsoDate, isTrendResult, isRecallListResult, isRecallStats
+  data.ts                                    recallRadarCopy, techStack, methodologyPoints, categoryLabels, sourceLabels, countryLabels, entityTypeLabels, trendGroupLabels, severityLabels, severityOrder, severityColors, sortLabels, trendColor, classesByCountry, sourcesByCountry, recallRadarLinks
+  recall.types.ts                            RecallCategory, RecallClass, RecallSource, RecallCountry, EntityType, AnomalyScope, TrendGroup, SeverityLabel, RecallSort, RecallFilterValues, Recall, RecallEntity, RecallListResult, CategoryCount, MonthCount, LabelCount, EntityCount, AnomalyMonth, Anomaly, RecallStats, TrendBucket, TrendResult, isRecallCategory, isRecallClass, isRecallSource, isRecallCountry, isEntityType, isTrendGroup, isSeverityLabel, isRecallSort, isIsoDate, isTrendResult, isRecallListResult, isRecallStats
   trend-callouts.ts                          TrendDirection, TrendCallout, deriveCallouts, anomalyCallouts
   trend-chart.ts                             ChartSegment, ChartMonth, toChartMonths
   us-state-grid.ts                           StateTile, STATE_GRID_ROWS, STATE_GRID_COLS, stateGrid

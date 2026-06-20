@@ -1,4 +1,10 @@
-import { categoryLabels, entityTypeLabels, sourceLabels } from '../data'
+import {
+  categoryLabels,
+  entityTypeLabels,
+  severityColors,
+  severityLabels,
+  sourceLabels,
+} from '../data'
 import { formatDate } from '../chart-format'
 import { SafeLink } from '../../../components/utils/SafeLink'
 import { getLinkArrow } from '../../../components/utils/link-arrow'
@@ -38,6 +44,13 @@ export function RecallFeed({ recalls }: RecallFeedProps) {
             <summary className={styles.summary}>
               <div className={styles.meta}>
                 <span className={styles.badge}>{categoryLabels[recall.category]}</span>
+                <span
+                  className={styles.severity}
+                  style={{ color: severityColors[recall.severityLabel] }}
+                  title={`Severity ${recall.severityScore}/100`}
+                >
+                  {severityLabels[recall.severityLabel]}
+                </span>
                 <span className={styles.source}>{sourceLabels[recall.source]}</span>
                 <span className={styles.confidence} title="Classifier confidence">
                   {Math.round(recall.categoryConfidence * 100)}%

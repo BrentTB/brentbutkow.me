@@ -55,10 +55,25 @@ export const TrendGroup = {
 } as const
 export type TrendGroup = (typeof TrendGroup)[keyof typeof TrendGroup]
 
+export const SeverityLabel = {
+  low: 'low',
+  elevated: 'elevated',
+  high: 'high',
+  severe: 'severe',
+} as const
+export type SeverityLabel = (typeof SeverityLabel)[keyof typeof SeverityLabel]
+
+export const RecallSort = {
+  recency: 'recency',
+  severity: 'severity',
+} as const
+export type RecallSort = (typeof RecallSort)[keyof typeof RecallSort]
+
 // UI filter state — '' means "no filter".
 export type RecallFilterValues = {
   category: RecallCategory | ''
   classification: RecallClass | ''
+  severity: SeverityLabel | ''
   state: string
   company: string
   source: RecallSource | ''
@@ -84,6 +99,8 @@ export type Recall = {
   reportDate: string | null
   category: RecallCategory
   categoryConfidence: number
+  severityScore: number
+  severityLabel: SeverityLabel
   entities: RecallEntity[]
 }
 
@@ -116,6 +133,7 @@ export type RecallStats = {
   byCategory: CategoryCount[]
   byMonth: MonthCount[]
   byClassification: LabelCount[]
+  bySeverity: LabelCount[]
   byState: LabelCount[]
   byCompany: LabelCount[]
   bySource: LabelCount[]
@@ -154,6 +172,12 @@ export const isEntityType = (value: string): value is EntityType =>
 
 export const isTrendGroup = (value: string): value is TrendGroup =>
   (Object.values(TrendGroup) as string[]).includes(value)
+
+export const isSeverityLabel = (value: string): value is SeverityLabel =>
+  (Object.values(SeverityLabel) as string[]).includes(value)
+
+export const isRecallSort = (value: string): value is RecallSort =>
+  (Object.values(RecallSort) as string[]).includes(value)
 
 // A 'YYYY-MM-DD' calendar date — the shape the date filters and the backend expect. Guards the
 // raw `since`/`until` URL params so a malformed value can't reach the API or break year derivation.
@@ -222,6 +246,9 @@ const isRecall = (value: unknown): value is Recall =>
   typeof value.reasonText === 'string' &&
   typeof value.category === 'string' &&
   typeof value.categoryConfidence === 'number' &&
+  typeof value.severityScore === 'number' &&
+  typeof value.severityLabel === 'string' &&
+  isSeverityLabel(value.severityLabel) &&
   isStringOrNull(value.status) &&
   isStringOrNull(value.classification) &&
   isStringOrNull(value.companyName) &&
@@ -248,6 +275,8 @@ export const isRecallStats = (value: unknown): value is RecallStats =>
   value.byMonth.every(isMonthCount) &&
   Array.isArray(value.byClassification) &&
   value.byClassification.every(isLabelCount) &&
+  Array.isArray(value.bySeverity) &&
+  value.bySeverity.every(isLabelCount) &&
   Array.isArray(value.byState) &&
   value.byState.every(isLabelCount) &&
   Array.isArray(value.byCompany) &&
