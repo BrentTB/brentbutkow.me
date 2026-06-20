@@ -436,6 +436,9 @@ export const CALAMITY = {
   shockwaveSpawnRange: 380, // max distance from the ship a ring can erupt
   shockwaveIntervalMin: 9, // seconds between rings (random within the range)
   shockwaveIntervalMax: 20,
+  // When a calamity roll isn't a nebula, this is its chance of being a shock-ring
+  // (the remainder is a wandering black hole) — keeps rings more frequent than wells.
+  shockwaveShareOfRest: 0.65,
   // Wandering black hole: a neutral drifting gravity well whose job is to inhibit
   // movement, not kill — strong pull, low damage. pullStrength stays under a
   // slingshot fling (SLINGSHOT.baseSpeed) so you can always escape.
@@ -476,6 +479,37 @@ export const ASTEROID = {
   color: '#9b8b7a',
 } as const
 
+// Nebula calamity: neutral drifting zones (no damage). The three variants share one
+// spawn/lifetime shape; each applies a single symmetric modifier to whatever is
+// inside. fog conceals entities beyond the clear sight-bubbles (player's + allies');
+// slow drags movement and the slingshot; haze scatters auto-fire aim and warps the
+// player's view. Everyone inside is affected equally — a natural hazard, not a tool.
+export const NEBULA = {
+  duration: 16, // total lifetime (springs up, holds, dissipates)
+  growDuration: 3, // winks in from startRadius to maxRadius over this
+  startRadius: 140,
+  maxRadius: 500,
+  driftSpeed: 28, // slow wander across the sector
+  spawnRange: 420, // distance from the ship a nebula erupts
+  intervalMin: 14, // seconds between nebulas (random within the range)
+  intervalMax: 26,
+  weight: 0.45, // share of calamity rolls that pick a nebula (vs shockwave / well)
+  // Fog: clear sight-bubbles — anything inside one is mutually visible despite fog.
+  sightRadius: 150, // the player's clear bubble
+  allySightRadius: 100, // each ally's (smaller) clear bubble
+  fogDensity: 1.7, // fog puffs drawn denser than the slow/haze clouds — thick outside the cleared bubble
+  wanderSpeed: 70, // speed of a blinded enemy's semi-random meander
+  slowMult: 0.35, // movement multiplier for drift + enemies + allies inside a slow nebula
+  slowSlingMult: 0.75, // gentler drag on the slingshot launch + coast — you can still escape
+  hazeJitterMax: 0.5, // peak aim error (radians) at the haze centre, fading to 0 at the rim
+  hazeWarpAmp: 1, // drunk-ripple amplitude scalar for the player's view
+  hazeWarpSpeed: 2.2, // ripple oscillation speed
+  cloudPuffs: 14, // soft blobs per nebula — overlap into an irregular billowy cloud
+  fogColor: '120, 134, 150', // grey-blue murk (rgb, for the rgba() cloud + vignette)
+  slowColor: '90, 120, 210', // cold blue
+  hazeColor: '150, 200, 90', // sickly green
+} as const
+
 // The portal the ship warps through when a sector clears. Dormant until then.
 export const PORTAL = {
   radius: 120,
@@ -506,6 +540,18 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.6.0',
+    date: '2026-06-20',
+    changes: {
+      features: [
+        'Nebulas: drifting hazard clouds that spring up, linger, then dissipate — and endanger you as much as the enemies. Fog hides everything inside it (you keep a small clear bubble around your ship, allies keep smaller ones), so blinded enemies wander until you or an ally close in. Slow clouds drag every ship, enemy, and ally caught inside and sap your slingshot. Haze clouds warp your view and scatter aim — for you and the enemies alike.',
+      ],
+      fixes: [
+        'The tutorial and in-code text no longer claim the ship fires on its own — it has had no guns since the "You Are the Weapon" rework; your abilities and allies are the offense.',
+      ],
+    },
+  },
   {
     version: '1.5.0',
     date: '2026-06-20',

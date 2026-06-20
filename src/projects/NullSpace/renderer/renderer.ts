@@ -20,6 +20,7 @@ import {
   ANIMATION,
   DASHER,
   ENEMY_MODIFIERS,
+  NEBULA,
   POWER_ORB,
   SINGULARITY_SHARD,
   SPACE_METAL,
@@ -27,6 +28,14 @@ import {
   WAVE_ESCALATION,
 } from '../data'
 import { EFFECT_DEFINITIONS } from '../engine/systems/effects'
+import {
+  buildNebulaField,
+  enemyVisibleToPlayerSide,
+  hazeJitterAt,
+  sightCircles,
+} from '../engine/calamities/nebula-vision'
+import type { NebulaField } from '../engine/calamities/nebula-vision'
+import { drawNebulaCloud, fogNebulasOf } from '../engine/calamities/nebula'
 import { ABILITY_LIST } from '../engine/abilities'
 import { getBossDefinition } from '../engine/bosses'
 import { enemyFacing } from '../engine/entities/enemy'
@@ -115,6 +124,9 @@ export function renderFrame(
     state.phase !== GamePhase.dying &&
     state.phase !== GamePhase.gameOver
 
+  // Nebula context for this frame — drives the fog occlusion + the in-haze overlays.
+  const nebulaField = buildNebulaField(state.activeEffects, state.ship, state.allies)
+
   renderStarfield(ctx, stars, camera)
   if (SHOW_WORLD_BORDER) renderWorldBorder(ctx, camera)
   const warping = state.phase === GamePhase.warping
@@ -126,11 +138,14 @@ export function renderFrame(
   }
   if (warping) renderPortal(ctx, state, camera)
   renderActiveEffects(ctx, state.activeEffects, camera, sprites, 'renderBack')
+  // Fog clouds draw at the atmosphere layer (beneath the entities), with their sight
+  // bubbles muted so the player's range reads as a clearer patch in the murk.
+  if (shipInWorld) renderFogClouds(ctx, state, camera)
   renderBossOverlays(ctx, state, camera)
   renderHoldOverlays(ctx, state, camera, 'renderBack')
   renderCollectibles(ctx, state.collectibles, camera)
   renderParticles(ctx, state.particles, camera)
-  renderEnemies(ctx, state, camera, sprites, opts.reducedMotion)
+  renderEnemies(ctx, state, camera, sprites, opts.reducedMotion, nebulaField)
   renderDeathAnims(ctx, state.deathAnims, camera, sprites, opts.animations, opts.reducedMotion)
   renderAllies(ctx, state.allies, camera, sprites)
   renderProjectiles(ctx, state, camera, sprites)
@@ -143,8 +158,15 @@ export function renderFrame(
 
   ctx.restore()
 
+  // Haze ripple: warp the rendered world (screen-space) before the stable overlays
+  // go on top, so the HUD vignettes don't ripple along with it.
+  if (shipInWorld) renderHazeWarp(ctx, state, camera, nebulaField, opts)
+
   // Low-HP danger vignette — screen space, hugging the viewport edges.
   if (shipInWorld) renderLowHpVignette(ctx, state, camera, opts)
+
+  // Haze colour wash over the (rippled) view.
+  if (shipInWorld) renderHazeTint(ctx, state, camera, nebulaField, opts)
 
   // Warp flash lives in screen space. It plays ONLY after the ship reaches the
   // portal (the flash stage) — never during the fly-in — then the shop opens.
@@ -349,7 +371,8 @@ function renderEnemies(
   state: GameState,
   camera: Camera,
   sprites: SpriteCache,
-  reducedMotion: boolean
+  reducedMotion: boolean,
+  field: NebulaField
 ): void {
   // Wave stall-escalation reddens every enemy as they speed up — a legibility
   // cue that parking is getting dangerous. Zero until past the grace period.
@@ -359,6 +382,9 @@ function renderEnemies(
   const escalationAlpha =
     escMult <= 1 ? 0 : 0.2 + ((escMult - 1) / (WAVE_ESCALATION.maxMult - 1)) * 0.4
   for (const enemy of state.enemies) {
+    // Fog: a concealed enemy (in fog, outside every sight bubble) isn't drawn — it's
+    // hidden in the murk. Its shots + impacts still flash. Bosses are never concealed.
+    if (!enemy.boss && !enemyVisibleToPlayerSide(enemy.pos, field)) continue
     const screen = worldToScreen(enemy.pos, camera)
 
     if (!isWithinView(screen, camera, 60)) continue
@@ -553,6 +579,142 @@ function renderDeathShockwave(
   ctx.beginPath()
   ctx.arc(screen.x, screen.y, 10 + ringT * 120, 0, Math.PI * 2)
   ctx.stroke()
+  ctx.restore()
+}
+
+// Reused scratch canvas for the haze ripple — snapshots the rendered frame so it can
+// be re-drawn warped. Lazily created (never in headless/test paths, which don't render).
+let hazeBuffer: HTMLCanvasElement | null = null
+
+// Haze: a wavy, underwater "drunk" distortion while the ship sits in a haze zone.
+// Snapshots the rendered world, then re-draws it as horizontal strips each shifted by
+// a travelling sine (two frequencies + a vertical wobble → woozy, not a clean shear),
+// scaled by haze depth. Screen-space pixels only — the camera's click→world mapping is
+// untouched, so the ripple is purely the player's symmetric aim handicap. Reduced
+// motion skips it (the colour wash carries the effect instead).
+function renderHazeWarp(
+  ctx: CanvasRenderingContext2D,
+  state: GameState,
+  camera: Camera,
+  field: NebulaField,
+  opts: RenderOptions
+): void {
+  if (opts.reducedMotion) return
+  const intensity = hazeJitterAt(state.ship.pos, field.haze) / NEBULA.hazeJitterMax
+  if (intensity <= 0) return
+  const cw = ctx.canvas.width
+  const ch = ctx.canvas.height
+  if (cw === 0 || ch === 0) return
+  if (!hazeBuffer) hazeBuffer = document.createElement('canvas')
+  if (hazeBuffer.width !== cw || hazeBuffer.height !== ch) {
+    hazeBuffer.width = cw
+    hazeBuffer.height = ch
+  }
+  const bctx = hazeBuffer.getContext('2d')
+  if (!bctx) return
+
+  bctx.setTransform(1, 0, 0, 1, 0, 0)
+  bctx.clearRect(0, 0, cw, ch)
+  bctx.drawImage(ctx.canvas, 0, 0)
+
+  ctx.save()
+  ctx.setTransform(1, 0, 0, 1, 0, 0)
+  ctx.fillStyle = '#06080e'
+  ctx.fillRect(0, 0, cw, ch)
+  const dpr = camera.dpr
+  const amp = NEBULA.hazeWarpAmp * 16 * dpr * intensity
+  const t = opts.clock * NEBULA.hazeWarpSpeed
+  const stripH = Math.max(2, Math.round(3 * dpr))
+  const overlap = Math.ceil(amp * 0.5) + 1
+  for (let y = 0; y < ch; y += stripH) {
+    const dx = (Math.sin(y / (38 * dpr) + t) + Math.sin(y / (17 * dpr) + t * 1.7) * 0.5) * amp
+    const dy = Math.sin(y / (80 * dpr) + t * 0.6) * amp * 0.45
+    const sh = Math.min(stripH + overlap, ch - y)
+    // Overdraw by `amp` each side so a horizontally-shifted strip never exposes the
+    // backdrop at the viewport's left/right edge.
+    ctx.drawImage(hazeBuffer, 0, y, cw, sh, dx - amp, y + dy, cw + 2 * amp, sh)
+  }
+  ctx.restore()
+}
+
+// Haze: a sickly colour wash over the view, scaled by haze depth. Pairs with the
+// warp; under reduced motion it runs a touch stronger to carry the disorientation.
+function renderHazeTint(
+  ctx: CanvasRenderingContext2D,
+  state: GameState,
+  camera: Camera,
+  field: NebulaField,
+  opts: RenderOptions
+): void {
+  const intensity = hazeJitterAt(state.ship.pos, field.haze) / NEBULA.hazeJitterMax
+  if (intensity <= 0) return
+  const w = camera.width
+  const h = camera.height
+  const pulse = opts.reducedMotion ? 1 : 0.8 + Math.sin(opts.clock * 3) * 0.2
+  const a = 0.28 * intensity * pulse
+  const grad = ctx.createRadialGradient(
+    w / 2,
+    h / 2,
+    Math.min(w, h) * 0.2,
+    w / 2,
+    h / 2,
+    Math.max(w, h) * 0.7
+  )
+  grad.addColorStop(0, `rgba(${NEBULA.hazeColor}, ${a * 0.5})`)
+  grad.addColorStop(1, `rgba(${NEBULA.hazeColor}, ${a})`)
+  ctx.save()
+  ctx.fillStyle = grad
+  ctx.fillRect(0, 0, w, h)
+  ctx.restore()
+}
+
+// Reused scratch canvas for the fog clear-hole layer.
+let fogBuffer: HTMLCanvasElement | null = null
+
+// Fog: render the (dense, translucent, billowy) clouds into an offscreen buffer, then
+// punch a clean clear hole for each sight bubble (ship + allies) — so inside the range
+// is fully clear and outside is thick fog, with a crisp circular edge. destination-out
+// runs on the fog-only buffer, so it erases just the fog and reveals the world, never
+// black. Composited at the atmosphere layer (beneath entities), so revealed enemies
+// draw over it.
+function renderFogClouds(ctx: CanvasRenderingContext2D, state: GameState, camera: Camera): void {
+  const fogs = fogNebulasOf(state.activeEffects)
+  if (fogs.length === 0) return
+  const cw = ctx.canvas.width
+  const ch = ctx.canvas.height
+  if (cw === 0 || ch === 0) return
+  if (!fogBuffer) fogBuffer = document.createElement('canvas')
+  if (fogBuffer.width !== cw || fogBuffer.height !== ch) {
+    fogBuffer.width = cw
+    fogBuffer.height = ch
+  }
+  const f = fogBuffer.getContext('2d')
+  if (!f) return
+
+  // Match the main canvas's world transform so the clouds land identically.
+  const m = camera.dpr * camera.zoom
+  f.setTransform(1, 0, 0, 1, 0, 0)
+  f.clearRect(0, 0, cw, ch)
+  f.setTransform(m, 0, 0, m, 0, 0)
+  for (const fog of fogs) drawNebulaCloud(f, fog, camera, NEBULA.fogDensity)
+
+  // Clean clear bubbles: fully clear within the core, a crisp edge out to the radius.
+  f.globalCompositeOperation = 'destination-out'
+  for (const c of sightCircles(state.ship, state.allies)) {
+    const s = worldToScreen(c.center, camera)
+    const hole = f.createRadialGradient(s.x, s.y, c.radius * 0.82, s.x, s.y, c.radius)
+    hole.addColorStop(0, 'rgba(0, 0, 0, 1)')
+    hole.addColorStop(1, 'rgba(0, 0, 0, 0)')
+    f.fillStyle = hole
+    f.beginPath()
+    f.arc(s.x, s.y, c.radius, 0, Math.PI * 2)
+    f.fill()
+  }
+  f.globalCompositeOperation = 'source-over'
+
+  ctx.save()
+  ctx.setTransform(1, 0, 0, 1, 0, 0)
+  ctx.drawImage(fogBuffer, 0, 0)
   ctx.restore()
 }
 

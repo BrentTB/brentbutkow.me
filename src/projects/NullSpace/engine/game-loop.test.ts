@@ -32,6 +32,7 @@ import {
   EscapeModePhase,
   GamePhase,
   HazardKind,
+  NebulaVariant,
   ProjectileOwner,
   ShipKind,
   HelperWeaponKind,
@@ -39,10 +40,13 @@ import {
 import { UpgradeId } from './upgrade-ids'
 import { isUpgradeWave } from './upgrades'
 import { BOSS_KINDS } from './bosses/index'
+import { createNebula } from './calamities/nebula'
+import { isBossWave } from './world/waves'
 import {
   ANIMATION,
   ENEMY_STATS,
   HAZARD,
+  NEBULA,
   POWER_DEFAULTS,
   WARP,
   WAVES_PER_LEVEL,
@@ -1974,5 +1978,48 @@ describe('updateGameState — sector progression', () => {
     twice = updateGameState(twice, 0.05, noInput)
     twice = updateGameState(twice, 0.05, noInput)
     expect(twice.ship.pos.y).toBeCloseTo(once.ship.pos.y, 3)
+  })
+})
+
+describe('nebula calamity — scheduler gate + no reward', () => {
+  const input = { clicks: [], selectedAbility: null }
+  // A live, single-enemy wave so updateGameState doesn't early-return (wave done).
+  const liveWave = (over: Partial<ReturnType<typeof startGame>> = {}) => {
+    const base = startNextWave(startGame(createInitialState(), ShipKind.fighter))
+    const enemy = {
+      ...createEnemy(EnemyKind.drone, { x: base.ship.pos.x + 800, y: base.ship.pos.y }),
+      hp: 1000,
+    }
+    return {
+      ...base,
+      enemies: [enemy],
+      spawn: { ...base.spawn, queue: [], spawned: base.spawn.total, waveTimer: 0 },
+      ...over,
+    }
+  }
+
+  it('erupts a calamity when the timer elapses on a non-boss wave, never on a boss wave', () => {
+    const ready = liveWave({ calamityTimer: 0.001, activeEffects: [] })
+    expect(updateGameState(ready, 0.1, input).activeEffects.length).toBeGreaterThan(0)
+
+    let bossWave = 1
+    while (!isBossWave(bossWave)) bossWave++
+    const onBoss = { ...ready, wave: bossWave }
+    expect(updateGameState(onBoss, 0.1, input).activeEffects).toHaveLength(0)
+  })
+
+  it('a fog nebula grants no score, currency, or kills (calamities never pay)', () => {
+    const grown = NEBULA.growDuration + 1
+    const base = liveWave({ calamityTimer: 999 })
+    const fog = {
+      ...createNebula(NebulaVariant.fog, { ...base.ship.pos }, { x: 0, y: 0 }),
+      elapsed: grown,
+    }
+    const state = { ...base, hazards: [], activeEffects: [fog] }
+    const next = updateGameState(state, 0.1, input)
+    expect(next.score).toBe(state.score)
+    expect(next.currency).toBe(state.currency)
+    expect(next.kills).toBe(state.kills)
+    expect(next.enemies).toHaveLength(1) // the nebula harms nothing
   })
 })

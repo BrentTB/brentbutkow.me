@@ -1,8 +1,8 @@
 // Ordered script for the onboarding demo wave. Pure data — the machine
 // (tutorial-machine.ts) walks these steps and the UI projects them. The core
-// lesson is that the player is independent from the ship: the ship flies and
-// fires on its own; the player attacks by clicking and can only nudge the ship
-// with a slingshot fling.
+// lesson is that the player is independent from the ship: the ship flies on its
+// own; the player defends it by clicking (abilities + allies) and can only nudge
+// the ship with a slingshot fling.
 
 export const TutorialTriggerKind = {
   // Advances once the beat has been shown for `durationSeconds`.
@@ -61,8 +61,8 @@ export type TutorialStep = {
   // Whether the player can grab + fling the ship on this beat. Off everywhere
   // except the slingshot beat, so a frozen beat can't be flung past. Defaults false.
   allowFling?: boolean
-  // Keep a target enemy alive on this beat (respawn a tougher drone if the
-  // ship's own fire clears them), so there's always something to shoot. Defaults false.
+  // Keep a target enemy alive on this beat (respawn a tougher drone if it's
+  // destroyed), so there's always something to aim at. Defaults false.
   keepEnemyAlive?: boolean
   // Let ability hotkeys (1-9) / toolbar taps select on this beat (the swap beat).
   // Other beats swallow them so the player can't drift off the guided path. Defaults false.
@@ -86,9 +86,9 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
     freeze: false,
     durationSeconds: 2.8,
     copyDesktop:
-      "Watch the ship. It flies and fires on its own. You don't control it; you're its guardian.",
+      "Watch the ship. It flies on its own, you don't pilot it. You're its guardian: keep it alive.",
     copyTouch:
-      "Watch the ship. It flies and fires on its own. You don't control it; you're its guardian.",
+      "Watch the ship. It flies on its own, you don't pilot it. You're its guardian: keep it alive.",
   },
   {
     id: 'attackPrompt',

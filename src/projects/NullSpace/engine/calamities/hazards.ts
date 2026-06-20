@@ -6,6 +6,18 @@ import { rng } from '../math/random'
 import { HazardKind } from '../types'
 import type { Ally, Enemy, Hazard, Particle, Ship, Vec2 } from '../types'
 
+// A single mine at `pos` — the shared shape used by the field, refills, dev tools,
+// and the tutorial.
+export function createMine(pos: Vec2): Hazard {
+  return {
+    id: uid(),
+    kind: HazardKind.mine,
+    pos,
+    radius: HAZARD.mineRadius,
+    damage: HAZARD.mineDamage,
+  }
+}
+
 // Tops the mine field back up to HAZARD.mineCount, scattering replacements clear of
 // `safeCenter` (so a refill never drops one on the ship). Existing mines are kept —
 // only the shortfall is added. Mines are single-use, so a sector thins out as they
@@ -22,13 +34,7 @@ export function replenishHazardField(
     attempts++
     const pos = { x: rng.range(0, worldSize.x), y: rng.range(0, worldSize.y) }
     if (toroidalDistance(pos, safeCenter) < HAZARD.forwardMargin) continue
-    mines.push({
-      id: uid(),
-      kind: HazardKind.mine,
-      pos,
-      radius: HAZARD.mineRadius,
-      damage: HAZARD.mineDamage,
-    })
+    mines.push(createMine(pos))
   }
   return mines
 }
