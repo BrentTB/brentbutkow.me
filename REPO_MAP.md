@@ -237,7 +237,7 @@ src/projects/NullSpace/engine/abilities/
   meteor-strike.ts                           createMeteoriteEffect, createMeteorEffect, meteorStrikeEffect
   meteor.ts                                  METEOR_UPGRADE_IDS, meteor
   meteorite.ts                               METEORITE_UPGRADE_IDS, meteorite
-  radial-force.ts                            RadialForceMode, radialForceDisplacement, applyRadialForce, applyRadialForceToAsteroids
+  radial-force.ts                            RadialForceMode, radialForceDisplacement, applyRadialForce, impartAsteroidImpulse, applyRadialForceToAsteroids
   resolution.ts                              AbilityResult, tryUseAbility, updateAbilityCooldowns, resolveAbilityInput
   rocket.ts                                  ROCKET_UPGRADE_IDS, createRocketEffect, rocketEffect, rocket
   shield.ts                                  SHIELD_UPGRADE_IDS, createShieldEffect, ShieldConstraintResult, applyShieldConstraints, shieldEffect, shield

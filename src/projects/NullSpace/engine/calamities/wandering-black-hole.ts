@@ -3,6 +3,7 @@ import { applyRadialDamage } from './calamity-damage'
 import { damageAsteroid } from './asteroids'
 import { gravityWellDisplacement } from '../abilities/gravity-pull'
 import type { GravityWell } from '../abilities/gravity-pull'
+import { impartAsteroidImpulse } from '../abilities/radial-force'
 import { uid } from '../entities/entity-creator'
 import { toroidalDistance, wrapPosition } from '../math/toroid'
 import { EffectKind } from '../types'
@@ -123,7 +124,11 @@ export function applyWanderingHoles(
     curEnemies = pull(curEnemies, well, dt)
     curAllies = pull(curAllies, well, dt)
     curProjectiles = pull(curProjectiles, well, dt)
-    curAsteroids = pull(curAsteroids, well, dt)
+    // Asteroids gain momentum (not just a position nudge), so they keep drifting
+    // after the well wanders off — flung, not merely shoved while it overlaps.
+    curAsteroids = curAsteroids.map((a) =>
+      impartAsteroidImpulse(a, gravityWellDisplacement(a.pos, well, dt))
+    )
 
     const blast = applyRadialDamage(
       well.pos,

@@ -731,9 +731,13 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   enemies = spawnResult.enemies
   spawnedInWave = spawnResult.spawnedInWave
 
-  // Soft stall-escalation: time-since-wave-start drives a rising enemy-speed
-  // multiplier, so parking and letting enemies trail the ship forever gets worse.
-  waveElapsed = waveElapsed + dt
+  // Soft stall-escalation: a rising enemy-speed multiplier the longer a wave drags.
+  // The clock starts only once the last enemy has spawned (the queue is drained), so
+  // the grace period is time given AFTER the wave is fully on the field — a slow
+  // spawn-in never eats into it. Parking past that makes enemies steadily speed up.
+  if (spawnQueue.length === 0) {
+    waveElapsed = waveElapsed + dt
+  }
   const waveSpeedMult = waveSpeedEscalation(waveElapsed, isBossWave(state.wave))
   // The frame escalation kicks in (the warning countdown hits 0): a red burst on
   // every living enemy so the speed-up reads as an event, not a silent ramp.

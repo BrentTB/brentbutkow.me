@@ -75,6 +75,14 @@ describe('applyWanderingHoles', () => {
     expect(r.asteroids[0].playerInteracted).toBe(false)
   })
 
+  it('gives a caught asteroid momentum, so it keeps drifting after the well moves on', () => {
+    const ship = { ...createShip(ShipKind.fighter, WORLD_SIZE), pos: { x: 0, y: 0 } } // far away
+    const a = createAsteroid(AsteroidTier.large, { x: center.x + 100, y: center.y }, { x: 0, y: 0 })
+    const r = applyWanderingHoles([activeWell()], ship, [], [], [a], [], 0.1)
+    expect(r.asteroids[0].vel).not.toEqual({ x: 0, y: 0 }) // momentum imparted, not just a nudge
+    expect(r.asteroids[0].vel.x).toBeLessThan(0) // drawn toward the well (−x)
+  })
+
   it('keeps the pull escapable — weaker than a slingshot fling', () => {
     expect(CALAMITY.wellPullStrength).toBeLessThan(SLINGSHOT.baseSpeed)
   })

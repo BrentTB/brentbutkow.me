@@ -160,11 +160,12 @@ describe('resolveAsteroidContacts', () => {
 })
 
 describe('applyEffectsToAsteroids', () => {
-  it('a black hole pulls and burns asteroids in range (loot-eligible)', () => {
+  it('a black hole gives asteroids momentum + burns them in range (loot-eligible)', () => {
     const a = createAsteroid(AsteroidTier.large, { x: 1100, y: 1000 }, { x: 0, y: 0 })
     const well = createBlackHoleEffect({ x: 1000, y: 1000 }, 300, 200, 20, 5)
     const r = applyEffectsToAsteroids([well], [a], 0.1)
-    expect(r.asteroids[0].pos.x).toBeLessThan(a.pos.x) // drawn toward the well
+    expect(r.asteroids[0].vel.x).toBeLessThan(0) // gains momentum toward the well (−x)...
+    expect(r.asteroids[0].pos.x).toBe(a.pos.x) // ...velocity-driven now, not teleported this frame
     expect(r.asteroids[0].hp).toBeLessThan(a.hp) // burned by the core
     expect(r.asteroids[0].playerInteracted).toBe(true) // a player ability → loot-eligible
   })

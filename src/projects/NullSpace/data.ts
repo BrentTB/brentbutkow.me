@@ -518,6 +518,8 @@ export const CHANGELOG: ChangelogEntry[] = [
         'The wandering black hole now pulls much harder but deals far less damage: its job is to trap you, not kill you. It also winks in small and swells to full size over a couple of seconds instead of showing a warning ring.',
         'When a wave drags on, enemies now jump to a faster speed the instant the countdown ends, then keep ramping, so the speed-up is something you feel rather than a slow creep.',
         'Asteroids now take damage from their own collisions — bumping the ship or an enemy chips the rock, so enough impacts break it apart (no loot, since the hit was not yours to deal).',
+        'Telekinesis, black holes, and the wandering black hole now change how an asteroid actually moves — fling one and it keeps going, or slow its drift and it stays slowed, instead of snapping back to its original course the moment the force lets go.',
+        'The wave speed-up grace timer now starts only once the last enemy of a wave has finished spawning in, so a slow spawn no longer eats into your breathing room before enemies escalate.',
       ],
       fixes: [
         'The ship no longer washes solid white while sitting in a wandering black hole; its damage flash now pulses like enemies do under continuous damage.',

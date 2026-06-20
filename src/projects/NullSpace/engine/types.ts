@@ -679,8 +679,9 @@ export type SpawnState = {
   total: number
   // How many of `total` have spawned so far.
   spawned: number
-  // Seconds since the wave's enemies began spawning. Drives soft stall-escalation
-  // (enemies speed up the longer a wave drags).
+  // Seconds since the wave's last enemy spawned (the queue drained) — the
+  // stall-escalation grace clock. Stays 0 while enemies are still spawning in, so
+  // the grace period is time given after the wave is fully on the field.
   elapsed: number
 }
 

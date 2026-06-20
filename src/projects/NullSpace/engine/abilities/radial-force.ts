@@ -1,4 +1,4 @@
-import { toroidalDelta, wrapPosition } from '../math/toroid'
+import { toroidalDelta } from '../math/toroid'
 import type { Asteroid, Enemy, Vec2 } from '../types'
 
 // Direction of the force: pull bodies toward the center, or push them away.
@@ -51,6 +51,16 @@ export function applyRadialForce(
   })
 }
 
+// Asteroids carry real momentum, so a force changes their velocity rather than
+// teleporting their position the way the inertia-less enemies move — the imparted
+// motion then persists after the force stops (fling it, redirect its drift, stall
+// it). `d` is the force's per-frame displacement (force·dt), applied as a velocity
+// impulse. Shared by every asteroid force: telekinesis, singularity, and the wells.
+export function impartAsteroidImpulse(a: Asteroid, d: Vec2): Asteroid {
+  if (d.x === 0 && d.y === 0) return a
+  return { ...a, vel: { x: a.vel.x + d.x, y: a.vel.y + d.y } }
+}
+
 // Shoves asteroids by the same radial force and latches their loot flag (the
 // player moved them). Lives here, not in calamities/, so the hold abilities can
 // fling asteroids without an abilities↔calamities import cycle.
@@ -65,10 +75,6 @@ export function applyRadialForceToAsteroids(
   return asteroids.map((a) => {
     const d = radialForceDisplacement(a.pos, center, radius, peakForce, mode, dt)
     if (d.x === 0 && d.y === 0) return a
-    return {
-      ...a,
-      pos: wrapPosition({ x: a.pos.x + d.x, y: a.pos.y + d.y }),
-      playerInteracted: true,
-    }
+    return { ...impartAsteroidImpulse(a, d), playerInteracted: true }
   })
 }
