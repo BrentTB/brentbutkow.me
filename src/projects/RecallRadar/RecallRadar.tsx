@@ -138,7 +138,7 @@ export function RecallRadar() {
   })
   // Themes are global (not country/filter-scoped), so this fetches once. The id→label map labels the
   // per-card theme chip and the active-topic filter chip (topic is a raw id in the URL).
-  const topics = useTopics()
+  const topics = useTopics(country)
   const topicLabels = useMemo(
     () => new Map(topics.data?.map((topic): [number, string] => [topic.id, topic.label]) ?? []),
     [topics.data]

@@ -15,12 +15,12 @@ describe('useTopics', () => {
     const fetchMock = vi.fn(async () => mockRes(topics))
     vi.stubGlobal('fetch', fetchMock)
 
-    const { result } = renderHook(() => useTopics())
+    const { result } = renderHook(() => useTopics('us'))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     expect(result.current.data).toEqual(topics)
     expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining('/recalls/topics'),
+      expect.stringContaining('/recalls/topics?country=us'),
       expect.anything()
     )
   })
@@ -30,7 +30,7 @@ describe('useTopics', () => {
       'fetch',
       vi.fn(async () => mockRes([{ id: 'nope' }]))
     )
-    const { result } = renderHook(() => useTopics())
+    const { result } = renderHook(() => useTopics('us'))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     expect(result.current.data).toBeNull()
