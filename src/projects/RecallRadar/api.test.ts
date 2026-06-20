@@ -19,7 +19,7 @@ describe('buildRecallsPath', () => {
       category: RecallCategory.pathogen,
       classification: RecallClass.classI,
       severity: SeverityLabel.severe,
-      topic: '3',
+      topic: 'listeria-deli-meat',
       state: 'CA',
       entity: 'peanuts',
       search: 'listeria',
@@ -31,7 +31,7 @@ describe('buildRecallsPath', () => {
     expect(path).toContain('category=pathogen')
     expect(path).toContain('classification=Class+I')
     expect(path).toContain('severity=severe')
-    expect(path).toContain('topic=3')
+    expect(path).toContain('topic=listeria-deli-meat')
     expect(path).toContain('state=CA')
     expect(path).toContain('entity=peanuts')
     expect(path).toContain('search=listeria')

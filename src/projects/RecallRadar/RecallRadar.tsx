@@ -42,6 +42,7 @@ import {
   isTrendGroup,
   isIsoDate,
   type RecallFilterValues,
+  type TopicOut,
 } from './recall.types'
 import { useQueryParamsState } from '../../routes/useQueryParamsState'
 import { useRecalls } from './useRecalls'
@@ -91,8 +92,9 @@ export function RecallRadar() {
     category: isRecallCategory(values.category) ? values.category : '',
     classification: isRecallClass(values.classification) ? values.classification : '',
     severity: isSeverityLabel(values.severity) ? values.severity : '',
-    // Topic is a numeric id in the URL; guard junk so a bad ?topic= can't reach the API.
-    topic: /^\d+$/.test(values.topic) ? values.topic : '',
+    // Topic is a slug in the URL (lowercase, digits, hyphens); guard junk so a bad ?topic= can't
+    // reach the API.
+    topic: /^[a-z0-9-]+$/.test(values.topic) ? values.topic : '',
     state: values.state,
     company: values.company,
     source: isRecallSource(values.source) ? values.source : '',
@@ -136,14 +138,16 @@ export function RecallRadar() {
     offset: (page - 1) * PAGE_SIZE,
     sort: sort === RecallSort.recency ? undefined : sort,
   })
-  // Themes are per-country; refetches on country change. The id→label map labels the per-card theme
-  // chip and the active-topic filter chip (topic is a raw id in the URL).
+  // Themes are per-country; refetches on country change. The id→topic map lets the per-card chip
+  // show a recall's theme and filter by its slug; the active-topic chip resolves the slug → label.
   const topics = useTopics(country)
-  const topicLabels = useMemo(
-    () => new Map(topics.data?.map((topic): [number, string] => [topic.id, topic.label]) ?? []),
+  const topicsById = useMemo(
+    () => new Map(topics.data?.map((topic): [number, TopicOut] => [topic.id, topic]) ?? []),
     [topics.data]
   )
-  const activeTopicLabel = filters.topic ? topicLabels.get(Number(filters.topic)) : undefined
+  const activeTopicLabel = filters.topic
+    ? topics.data?.find((topic) => topic.slug === filters.topic)?.label
+    : undefined
 
   // Year options follow the data, then narrow to whatever the date filter admits (2021–2025 for a
   // 2021-01-05 → 2025-02-03 range), so the chart can't offer a year the filters exclude.
@@ -301,7 +305,7 @@ export function RecallRadar() {
           <Themes
             topics={topics.data}
             activeTopic={filters.topic}
-            onSelect={(id) => patch({ topic: id })}
+            onSelect={(slug) => patch({ topic: slug })}
           />
         </section>
       )}
@@ -327,8 +331,8 @@ export function RecallRadar() {
         {recalls.data && (
           <RecallFeed
             recalls={recalls.data.items}
-            topicLabels={topicLabels}
-            onTopicSelect={(id) => patch({ topic: String(id) })}
+            topicsById={topicsById}
+            onTopicSelect={(slug) => patch({ topic: slug })}
           />
         )}
         {recalls.data && (

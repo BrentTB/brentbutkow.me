@@ -11,7 +11,13 @@ describe('useTopics', () => {
 
   it('loads themes from /recalls/topics', async () => {
     const topics = [
-      { id: 0, label: 'listeria · deli · meat', topTerms: ['listeria', 'deli', 'meat'], size: 9 },
+      {
+        id: 0,
+        slug: 'listeria-deli-meat',
+        label: 'listeria · deli · meat',
+        topTerms: ['listeria', 'deli', 'meat'],
+        size: 9,
+      },
     ]
     const fetchMock = vi.fn(async () => mockRes(topics))
     vi.stubGlobal('fetch', fetchMock)

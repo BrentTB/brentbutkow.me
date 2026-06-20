@@ -64,13 +64,26 @@ describe('RecallFeed', () => {
     const { container } = render(
       <RecallFeed
         recalls={[{ ...recall, topicId: 2 }]}
-        topicLabels={new Map([[2, 'listeria · deli · meat']])}
+        topicsById={
+          new Map([
+            [
+              2,
+              {
+                id: 2,
+                slug: 'listeria-deli-meat',
+                label: 'listeria · deli · meat',
+                topTerms: ['listeria', 'deli', 'meat'],
+                size: 9,
+              },
+            ],
+          ])
+        }
         onTopicSelect={onTopicSelect}
       />
     )
     const details = container.querySelector('details')
     fireEvent.click(screen.getByRole('button', { name: 'listeria · deli · meat' }))
-    expect(onTopicSelect).toHaveBeenCalledWith(2)
+    expect(onTopicSelect).toHaveBeenCalledWith('listeria-deli-meat')
     expect(details?.open).toBe(false) // the chip click must not expand the row
   })
 

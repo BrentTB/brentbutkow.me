@@ -101,7 +101,7 @@ describe('RecallFilters', () => {
   it('shows a removable theme chip from the resolved topic label', () => {
     const onChange = vi.fn()
     renderFilters({
-      filters: { ...empty, topic: '3' },
+      filters: { ...empty, topic: 'listeria-deli-meat' },
       topicLabel: 'listeria · deli · meat',
       onChange,
     })

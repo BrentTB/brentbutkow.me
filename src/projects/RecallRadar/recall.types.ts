@@ -74,7 +74,7 @@ export type RecallFilterValues = {
   category: RecallCategory | ''
   classification: RecallClass | ''
   severity: SeverityLabel | ''
-  topic: string // topic id as a string; '' = no filter
+  topic: string // topic slug (stable theme key); '' = no filter
   state: string
   company: string
   source: RecallSource | ''
@@ -114,7 +114,7 @@ export type RecallListResult = {
 }
 
 // Analytics (Phase 2): a discovered theme and a recall's nearest neighbour.
-export type TopicOut = { id: number; label: string; topTerms: string[]; size: number }
+export type TopicOut = { id: number; slug: string; label: string; topTerms: string[]; size: number }
 export type SimilarRecall = { similarity: number; recall: Recall }
 
 export type CategoryCount = { category: RecallCategory; count: number }
@@ -277,6 +277,7 @@ export const isRecallListResult = (value: unknown): value is RecallListResult =>
 export const isTopicOut = (value: unknown): value is TopicOut =>
   isRecord(value) &&
   typeof value.id === 'number' &&
+  typeof value.slug === 'string' &&
   typeof value.label === 'string' &&
   Array.isArray(value.topTerms) &&
   value.topTerms.every((term) => typeof term === 'string') &&

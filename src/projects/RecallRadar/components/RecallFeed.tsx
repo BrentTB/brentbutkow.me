@@ -10,13 +10,14 @@ import { formatDate } from '../chart-format'
 import { SafeLink } from '../../../components/utils/SafeLink'
 import { getLinkArrow } from '../../../components/utils/link-arrow'
 import { RelatedRecalls } from './RelatedRecalls'
-import type { Recall } from '../recall.types'
+import type { Recall, TopicOut } from '../recall.types'
 import styles from './RecallFeed.module.scss'
 
 type RecallFeedProps = {
   recalls: Recall[]
-  topicLabels?: Map<number, string>
-  onTopicSelect?: (topicId: number) => void
+  // Themes keyed by the recall's topicId, so the chip can show the label and filter by the slug.
+  topicsById?: Map<number, TopicOut>
+  onTopicSelect?: (slug: string) => void
 }
 
 type DetailRow = { term: string; value: string }
@@ -35,7 +36,7 @@ function detailRows(recall: Recall): DetailRow[] {
   return rows
 }
 
-export function RecallFeed({ recalls, topicLabels, onTopicSelect }: RecallFeedProps) {
+export function RecallFeed({ recalls, topicsById, onTopicSelect }: RecallFeedProps) {
   // Track which rows are open so the Related-recalls child mounts (and fetches) only on expand.
   const [openRows, setOpenRows] = useState<Set<string>>(new Set())
 
@@ -46,7 +47,7 @@ export function RecallFeed({ recalls, topicLabels, onTopicSelect }: RecallFeedPr
   return (
     <ul className={styles.list}>
       {recalls.map((recall) => {
-        const themeLabel = recall.topicId != null ? topicLabels?.get(recall.topicId) : undefined
+        const theme = recall.topicId != null ? topicsById?.get(recall.topicId) : undefined
         return (
           <li key={recall.recallNumber} className={styles.row}>
             <details
@@ -70,18 +71,18 @@ export function RecallFeed({ recalls, topicLabels, onTopicSelect }: RecallFeedPr
                   >
                     {severityLabels[recall.severityLabel]}
                   </span>
-                  {themeLabel && (
+                  {theme && (
                     <button
                       type="button"
                       className={styles.themeChip}
                       // Inside <summary>, so stop the click from toggling the row.
                       onClick={(event) => {
                         event.preventDefault()
-                        if (recall.topicId != null) onTopicSelect?.(recall.topicId)
+                        onTopicSelect?.(theme.slug)
                       }}
                       title="Filter by this theme"
                     >
-                      {themeLabel}
+                      {theme.label}
                     </button>
                   )}
                   <span className={styles.source}>{sourceLabels[recall.source]}</span>

@@ -89,7 +89,13 @@ const trend = {
 }
 
 const topics = [
-  { id: 0, label: 'listeria · deli · meat', topTerms: ['listeria', 'deli', 'meat'], size: 9 },
+  {
+    id: 0,
+    slug: 'listeria-deli-meat',
+    label: 'listeria · deli · meat',
+    topTerms: ['listeria', 'deli', 'meat'],
+    size: 9,
+  },
 ]
 
 const mockRes = (body: unknown) => ({ ok: true, status: 200, json: async () => body }) as Response
