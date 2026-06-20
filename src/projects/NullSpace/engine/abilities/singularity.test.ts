@@ -2,11 +2,12 @@ import { describe, it, expect } from 'vitest'
 import { ABILITY_DEFINITIONS } from '.'
 import { SINGULARITY, TELEKINESIS } from './ability-data'
 import { createEnemy } from '../entities/entity-creator'
+import { createAsteroid } from '../calamities/asteroids'
 import { createInitialUpgrades } from '../upgrades'
 import { distance } from '../math/collision'
-import { AbilityKind, EnemyKind } from '../types'
+import { AbilityKind, AsteroidTier, EnemyKind } from '../types'
 import { UpgradeId } from '../upgrade-ids'
-import type { Ability, Enemy } from '../types'
+import type { Ability, Asteroid, Enemy } from '../types'
 import type { HoldBag } from './hold-runtime'
 
 const singularity = ABILITY_DEFINITIONS[AbilityKind.singularity]
@@ -21,8 +22,8 @@ function makeAbility(overrides: Partial<Ability> = {}): Ability {
   }
 }
 
-function bagWith(enemies: Enemy[]): HoldBag {
-  return { enemies, particles: [], power: 100, killedEnemies: [] }
+function bagWith(enemies: Enemy[], asteroids: Asteroid[] = []): HoldBag {
+  return { enemies, particles: [], power: 100, killedEnemies: [], asteroids }
 }
 
 const CENTER = { x: 0, y: 0 }
@@ -43,6 +44,15 @@ describe('singularity', () => {
     const before = distance(enemy.pos, CENTER)
     const result = singularity.hold!.onFrame!(bagWith([enemy]), makeAbility(), CENTER, 0.1)
     expect(distance(result.enemies[0].pos, CENTER)).toBeLessThan(before)
+  })
+
+  it('pulls an asteroid inward and returns it in the bag (loot-eligible)', () => {
+    const asteroid = createAsteroid(AsteroidTier.medium, { x: 100, y: 0 }, { x: 0, y: 0 })
+    const result = singularity.hold!.onFrame!(bagWith([], [asteroid]), makeAbility(), CENTER, 0.1)
+    expect(result.asteroids).toHaveLength(1)
+    expect(result.asteroids[0].vel.x).toBeLessThan(0) // drawn inward toward CENTER...
+    expect(result.asteroids[0].pos.x).toBe(asteroid.pos.x) // ...via momentum, not a teleport
+    expect(result.asteroids[0].playerInteracted).toBe(true)
   })
 
   it('a single enemy in the core takes no crushing damage', () => {

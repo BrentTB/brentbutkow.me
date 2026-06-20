@@ -11,7 +11,11 @@ export function LeaderboardScreen({ onClose }: LeaderboardScreenProps) {
   const entries = data ?? []
 
   return (
-    <>
+    // One scaled panel (not separate scaled children): GameOverlay scales each
+    // `.content > *` by --hud-scale via transform, which doesn't reserve layout
+    // space — with the tall table as its own child the Back button overlapped it
+    // in fullscreen. Wrapping makes the whole board scale as a unit and flow inside.
+    <div className={styles.panel}>
       <h2 className={sharedStyles.title}>Leaderboard</h2>
       {loading && <p className={sharedStyles.stat}>Loading…</p>}
       {!loading && error && (
@@ -47,6 +51,6 @@ export function LeaderboardScreen({ onClose }: LeaderboardScreenProps) {
       <button className={sharedStyles.secondaryBtn} onClick={onClose}>
         Back
       </button>
-    </>
+    </div>
   )
 }

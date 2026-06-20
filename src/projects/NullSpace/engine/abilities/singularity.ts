@@ -4,7 +4,7 @@ import { applyDamageToEnemy } from '../entities/enemy-damage'
 import { distance } from '../math/collision'
 import { spawnExplosionParticles } from '../entities/entity-creator'
 import { damageEnemiesInRadiusFlat } from '../math/aoe'
-import { applyRadialForce, RadialForceMode } from './radial-force'
+import { applyRadialForce, applyRadialForceToAsteroids, RadialForceMode } from './radial-force'
 import { drawForceField } from './force-field-render'
 import { AbilityKind } from '../types'
 import type { Enemy } from '../types'
@@ -50,6 +50,14 @@ const singularityHold: HoldAbilityConfig = {
       RadialForceMode.pull,
       dt
     )
+    const asteroids = applyRadialForceToAsteroids(
+      bag.asteroids,
+      holdPos,
+      radius,
+      ability.force ?? TELEKINESIS.force,
+      RadialForceMode.pull,
+      dt
+    )
 
     // Crushing damage scales with the crowd: 1 enemy in the core takes none, the
     // rest take (count − 1) × perEnemyDps each per second.
@@ -80,7 +88,7 @@ const singularityHold: HoldAbilityConfig = {
       }
       enemies = next
     }
-    return { ...bag, enemies, particles, killedEnemies }
+    return { ...bag, enemies, particles, killedEnemies, asteroids }
   },
   // Letting go detonates the compressed cluster — a flat AoE burst that charges
   // with hold time: linear from 0 to full over maxChargeSeconds, so a quick tap

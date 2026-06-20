@@ -1,3 +1,13 @@
+// The whole board scales as one GameOverlay child, so it flows top-to-bottom
+// internally (title, table, Back) without the per-child scale overlapping.
+.panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+}
+
 .tableWrap {
   width: 100%;
   max-height: 300px;

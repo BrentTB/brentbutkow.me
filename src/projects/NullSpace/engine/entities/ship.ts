@@ -88,6 +88,10 @@ export function applyDamageToShip(ship: Ship, damage: number): Ship {
   if (ship.escapeMode !== null) return ship
   const shieldAbsorb = Math.min(ship.shield, damage)
   const hpDamage = damage - shieldAbsorb
+  // Flash white only on HP damage (a shield absorb reads via its ring), throttled
+  // so continuous damage — a wandering black hole core — pulses white now and then
+  // instead of pinning the sprite solid white.
+  const flashing = hpDamage > 0 && ship.hitFlashCooldown <= 0
   return {
     ...ship,
     shield: ship.shield - shieldAbsorb,
@@ -95,8 +99,8 @@ export function applyDamageToShip(ship: Ship, damage: number): Ship {
     // 3 seconds with no damage taken.
     shieldCooldownRemaining: shieldAbsorb > 0 ? SHIELD_COOLDOWN : ship.shieldCooldownRemaining,
     hp: ship.hp - hpDamage,
-    // Flash white only on HP damage — a shield absorb already reads via its ring.
-    hitFlash: hpDamage > 0 ? ANIMATION.hitFlash : ship.hitFlash,
+    hitFlash: flashing ? ANIMATION.hitFlash : ship.hitFlash,
+    hitFlashCooldown: flashing ? ANIMATION.hitFlashThrottle : ship.hitFlashCooldown,
   }
 }
 

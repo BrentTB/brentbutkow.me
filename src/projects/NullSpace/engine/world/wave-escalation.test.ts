@@ -8,10 +8,18 @@ describe('waveSpeedEscalation', () => {
     expect(waveSpeedEscalation(WAVE_ESCALATION.gracePeriod)).toBe(1)
   })
 
-  it('ramps up linearly after the grace period', () => {
+  it('jumps by initialStep the instant the grace period ends', () => {
+    expect(waveSpeedEscalation(WAVE_ESCALATION.gracePeriod)).toBe(1)
+    expect(waveSpeedEscalation(WAVE_ESCALATION.gracePeriod + 0.001)).toBeCloseTo(
+      1 + WAVE_ESCALATION.initialStep,
+      2
+    )
+  })
+
+  it('ramps up linearly on top of the initial step after the grace period', () => {
     const after = waveSpeedEscalation(WAVE_ESCALATION.gracePeriod + 10)
     expect(after).toBeGreaterThan(1)
-    expect(after).toBeCloseTo(1 + 10 * WAVE_ESCALATION.rampPerSec, 5)
+    expect(after).toBeCloseTo(1 + WAVE_ESCALATION.initialStep + 10 * WAVE_ESCALATION.rampPerSec, 5)
   })
 
   it('caps at maxMult and never exceeds it', () => {

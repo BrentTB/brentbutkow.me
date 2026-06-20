@@ -7,7 +7,7 @@ import {
   applyTierSum,
   type AbilityDefinition,
 } from './ability-definition'
-import { applyRadialForce } from './radial-force'
+import { applyRadialForce, applyRadialForceToAsteroids } from './radial-force'
 import { drawForceField } from './force-field-render'
 import { IconName } from '../../icon-names'
 import type { HoldAbilityConfig } from './hold-runtime'
@@ -63,15 +63,24 @@ const telekinesisHold: HoldAbilityConfig = {
   armSeconds: TELEKINESIS.armSeconds,
   // No drainInterval → continuous drain + onFrame every frame.
   onFrame: (bag, ability, holdPos, dt) => {
+    const force = ability.force ?? TELEKINESIS.force
     const enemies = applyRadialForce(
       bag.enemies,
       holdPos,
       ability.aoeRadius,
-      ability.force ?? TELEKINESIS.force,
+      force,
       TELEKINESIS.mode,
       dt
     )
-    return { ...bag, enemies }
+    const asteroids = applyRadialForceToAsteroids(
+      bag.asteroids,
+      holdPos,
+      ability.aoeRadius,
+      force,
+      TELEKINESIS.mode,
+      dt
+    )
+    return { ...bag, enemies, asteroids }
   },
   // Dashed ripple ring at the field edge + force lines to affected enemies.
   // Radius is in world units — the render transform applies the camera zoom, so

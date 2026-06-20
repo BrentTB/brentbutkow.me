@@ -6,11 +6,17 @@ import { rng } from '../math/random'
 import { HazardKind } from '../types'
 import type { Ally, Enemy, Hazard, Particle, Ship, Vec2 } from '../types'
 
-// Mines scattered sparsely across the torus, kept clear of the ship's spawn so a
-// fresh sector never drops one on the player. Thread between them as you fly —
-// Escape Mode dashes through.
-export function generateHazardField(worldSize: Vec2, safeCenter: Vec2): Hazard[] {
-  const mines: Hazard[] = []
+// Tops the mine field back up to HAZARD.mineCount, scattering replacements clear of
+// `safeCenter` (so a refill never drops one on the ship). Existing mines are kept —
+// only the shortfall is added. Mines are single-use, so a sector thins out as they
+// detonate; topping up each wave keeps a field always present.
+export function replenishHazardField(
+  existing: Hazard[],
+  worldSize: Vec2,
+  safeCenter: Vec2
+): Hazard[] {
+  if (existing.length >= HAZARD.mineCount) return existing
+  const mines = [...existing]
   let attempts = 0
   while (mines.length < HAZARD.mineCount && attempts < HAZARD.mineCount * 12) {
     attempts++
@@ -25,6 +31,12 @@ export function generateHazardField(worldSize: Vec2, safeCenter: Vec2): Hazard[]
     })
   }
   return mines
+}
+
+// A fresh mine field scattered across the torus, kept clear of the ship's spawn.
+// Thread between them as you fly — Escape Mode dashes through.
+export function generateHazardField(worldSize: Vec2, safeCenter: Vec2): Hazard[] {
+  return replenishHazardField([], worldSize, safeCenter)
 }
 
 export type HazardUpdateResult = {

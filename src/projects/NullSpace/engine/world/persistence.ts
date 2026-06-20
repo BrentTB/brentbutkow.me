@@ -173,8 +173,8 @@ const SAVE_KEY = 'null-space-save'
 // v2: world became a torus (corridor/world dims + positions changed).
 // v3: "You Are the Weapon" rework — ship guns removed, Carrier gone, plus a new
 // waveElapsed field; old runs would be inconsistent, so they're discarded.
-// Later additions (kills, salvageOfferUsed, the grouped `spawn` object) stay on
-// v3 — loadGame backfills them, so they don't break old saves.
+// Later additions (kills, salvageOfferUsed, calamityTimer, asteroids, the grouped
+// `spawn` object) stay on v3 — loadGame backfills them, so they don't break old saves.
 const SAVE_VERSION = 3
 
 export type SavedGame = {
@@ -205,11 +205,12 @@ export function loadGame(): SavedGame | null {
     // run doesn't start from `undefined` (which would become NaN once summed).
     const savedState = parsed.state as Omit<
       GameState,
-      'kills' | 'salvageOfferUsed' | 'spawn' | 'calamityTimer'
+      'kills' | 'salvageOfferUsed' | 'spawn' | 'calamityTimer' | 'asteroids'
     > & {
       kills?: number
       salvageOfferUsed?: boolean
       calamityTimer?: number
+      asteroids?: GameState['asteroids']
       spawn?: GameState['spawn']
       // Legacy flat spawn fields (pre-grouping saves) — migrated into `spawn`.
       waveTimer?: number
@@ -234,6 +235,7 @@ export function loadGame(): SavedGame | null {
         kills: savedState.kills ?? 0,
         salvageOfferUsed: savedState.salvageOfferUsed ?? false,
         calamityTimer: savedState.calamityTimer ?? CALAMITY.shockwaveIntervalMin,
+        asteroids: savedState.asteroids ?? [],
         spawn,
       },
     }

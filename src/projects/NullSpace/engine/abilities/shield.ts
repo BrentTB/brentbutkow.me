@@ -5,6 +5,7 @@ import { canEnemyTakeDamage } from '../bosses/index'
 import { AbilityKind, EffectKind } from '../types'
 import type {
   ActiveEffect,
+  Asteroid,
   Enemy,
   ForceFieldEffect,
   Particle,
@@ -100,6 +101,7 @@ function tickShield(zone: ShieldEffect, ctx: EffectTickContext): EffectTickResul
 
 export type ShieldConstraintResult = {
   enemies: Enemy[]
+  asteroids: Asteroid[]
   killedEnemies: Enemy[]
   scoreGained: number
   particles: Particle[]
@@ -121,7 +123,8 @@ export type ShieldConstraintResult = {
 export function applyShieldConstraints(
   effects: ActiveEffect[],
   enemies: Enemy[],
-  dt: number
+  dt: number,
+  asteroids: Asteroid[] = []
 ): ShieldConstraintResult {
   let active: (ShieldEffect | ForceFieldEffect | RepulseFieldEffect)[] | null = null
   for (const e of effects) {
@@ -134,7 +137,7 @@ export function applyShieldConstraints(
       active.push(e)
     }
   }
-  if (!active) return { enemies, killedEnemies: [], scoreGained: 0, particles: [] }
+  if (!active) return { enemies, asteroids, killedEnemies: [], scoreGained: 0, particles: [] }
 
   const surviving: Enemy[] = []
   const killedEnemies: Enemy[] = []
@@ -193,7 +196,33 @@ export function applyShieldConstraints(
     surviving.push({ ...enemy, pos, vel })
   }
 
-  return { enemies: surviving, killedEnemies, scoreGained, particles }
+  // Domes deflect asteroids too — snap them to the edge and bounce them out (a
+  // force field / repulse hurls; a base shield reflects). Marks them interacted so
+  // a rock you deflect into something is still loot-eligible.
+  const bouncedAsteroids = asteroids.map((a) => {
+    let pos = a.pos
+    let vel = a.vel
+    let bumped = false
+    for (const zone of active) {
+      const { x: dx, y: dy } = toroidalDelta(zone.pos, pos)
+      const distSq = dx * dx + dy * dy
+      if (distSq >= zone.radius * zone.radius) continue
+      const dist = Math.sqrt(distSq)
+      const nx = dist > 0.01 ? dx / dist : 1
+      const ny = dist > 0.01 ? dy / dist : 0
+      pos = wrapPosition({ x: zone.pos.x + nx * zone.radius, y: zone.pos.y + ny * zone.radius })
+      if (zone.kind === EffectKind.forceField || zone.kind === EffectKind.repulseField) {
+        vel = { x: nx * zone.knockback, y: ny * zone.knockback }
+      } else {
+        const vDotN = vel.x * nx + vel.y * ny
+        if (vDotN < 0) vel = { x: vel.x - 2 * vDotN * nx, y: vel.y - 2 * vDotN * ny }
+      }
+      bumped = true
+    }
+    return bumped ? { ...a, pos, vel, playerInteracted: true } : a
+  })
+
+  return { enemies: surviving, asteroids: bouncedAsteroids, killedEnemies, scoreGained, particles }
 }
 
 // Translucent cool-blue dome.

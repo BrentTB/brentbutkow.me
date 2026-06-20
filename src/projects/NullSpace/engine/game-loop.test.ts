@@ -49,9 +49,17 @@ import {
   WORLD_SIZE,
 } from '../data'
 import { TELEKINESIS, SOLAR_FLARE } from './abilities/ability-data'
+import { rng, setSessionSeed } from './math/random'
+
+// startGame/createInitialState reseed the rng from the wall clock in production
+// (a unique sequence per run). Pin a fixed seed so those reseeds are reproducible
+// and rng-dependent assertions can't flake across runs.
+const TEST_SEED = 12345
 
 beforeEach(() => {
   localStorage.clear()
+  setSessionSeed(TEST_SEED)
+  rng.reseed(TEST_SEED)
 })
 
 describe('createInitialState', () => {
@@ -129,6 +137,39 @@ describe('calamities — kills count but pay nothing', () => {
     expect(next.score).toBe(state.score) // ...but no score
     expect(next.currency).toBe(state.currency) // ...no currency
     expect(next.collectibles).toHaveLength(0) // ...no loot
+  })
+})
+
+describe('wave stall-escalation timing', () => {
+  // The grace clock must not run while enemies are still spawning in — it starts
+  // only once the last enemy has reached the field (the spawn queue is drained).
+  const input = { clicks: [], selectedAbility: null }
+
+  it('freezes the clock while spawning, then runs it once every enemy is in', () => {
+    const base = startNextWave(startGame(createInitialState(), ShipKind.fighter)) // queues wave 1
+
+    // Still spawning: queue non-empty + spawn delay not elapsed → clock pinned at 0.
+    const spawning = { ...base, spawn: { ...base.spawn, waveTimer: 5, elapsed: 0 } }
+    expect(updateGameState(spawning, 0.1, input).spawn.elapsed).toBe(0)
+
+    // Last enemy spawned (queue empty), one still alive so the wave isn't over → clock runs.
+    const enemy = {
+      ...createEnemy(EnemyKind.drone, { x: base.ship.pos.x + 800, y: base.ship.pos.y }),
+      hp: 1000,
+    }
+    const spawned = {
+      ...base,
+      enemies: [enemy],
+      spawn: {
+        ...base.spawn,
+        queue: [],
+        spawned: base.spawn.total,
+        waveTimer: 0,
+        timer: 0,
+        elapsed: 5,
+      },
+    }
+    expect(updateGameState(spawned, 0.1, input).spawn.elapsed).toBeGreaterThan(5)
   })
 })
 
@@ -557,6 +598,18 @@ describe('rollLevelUpWeaponOffers', () => {
     expect(offers).not.toContain(AbilityKind.meteorShower)
     expect(offers.length).toBeGreaterThan(0)
   })
+
+  // Regression: the pick used Math.random, so two rolls from the same rng seed
+  // diverged — the offers couldn't be reproduced under test. The seeded rng must
+  // drive the pick so a re-seed replays the same offers.
+  it('is deterministic under a fixed seed (draws from the seeded rng, not Math.random)', () => {
+    rng.reseed(7)
+    const a = rollLevelUpWeaponOffers(createAbilities(), 99, { count: 3 })
+    rng.reseed(7)
+    const b = rollLevelUpWeaponOffers(createAbilities(), 99, { count: 3 })
+    expect(a.length).toBe(3)
+    expect(b).toEqual(a)
+  })
 })
 
 describe('levelUpWeaponOffers', () => {
@@ -918,6 +971,17 @@ describe('updateGameState — state field round-trip persistence', () => {
   it('waveElapsed accumulates dt across frames in the returned state', () => {
     let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
+    // The escalation clock only runs once the wave is fully spawned, so drain the
+    // queue; keep one enemy alive (far off) so the wave stays in play across frames.
+    const enemy = {
+      ...createEnemy(EnemyKind.drone, { x: state.ship.pos.x + 800, y: state.ship.pos.y }),
+      hp: 1000,
+    }
+    state = {
+      ...state,
+      enemies: [enemy],
+      spawn: { ...state.spawn, queue: [], spawned: state.spawn.total, waveTimer: 0 },
+    }
 
     const dt = 1 / 60
     const before = state.spawn.elapsed

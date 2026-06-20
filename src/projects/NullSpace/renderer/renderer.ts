@@ -41,6 +41,7 @@ import type { Star } from './starfield'
 import { renderStarfield } from './starfield'
 import { renderPortal } from './portal'
 import { renderHazardField } from './hazard-field'
+import { renderAsteroidField } from './asteroid-field'
 import { renderWarpTransition } from './warp'
 
 // Dev-only (env-gated, set in .env.local): draw the torus wrap seam so the
@@ -121,6 +122,7 @@ export function renderFrame(
   // as the ship flies in.
   if (shipInWorld && !warping) {
     renderHazardField(ctx, state, camera)
+    renderAsteroidField(ctx, state, camera)
   }
   if (warping) renderPortal(ctx, state, camera)
   renderActiveEffects(ctx, state.activeEffects, camera, sprites, 'renderBack')
@@ -352,7 +354,10 @@ function renderEnemies(
   // Wave stall-escalation reddens every enemy as they speed up — a legibility
   // cue that parking is getting dangerous. Zero until past the grace period.
   const escMult = waveSpeedEscalation(state.spawn.elapsed, isBossWave(state.wave))
-  const escalationAlpha = escMult <= 1 ? 0 : ((escMult - 1) / (WAVE_ESCALATION.maxMult - 1)) * 0.5
+  // Floor the wash so it's visible the instant escalation kicks in (escMult jumps
+  // past 1), not a barely-there tint that creeps in over many seconds.
+  const escalationAlpha =
+    escMult <= 1 ? 0 : 0.2 + ((escMult - 1) / (WAVE_ESCALATION.maxMult - 1)) * 0.4
   for (const enemy of state.enemies) {
     const screen = worldToScreen(enemy.pos, camera)
 

@@ -41,3 +41,16 @@ class SeededRandom {
 }
 
 export const rng = new SeededRandom(Date.now())
+
+// Seed for the next fresh run. Production leaves this null and reseeds from the
+// wall clock for a unique sequence each session; tests pin it via setSessionSeed
+// so every startGame/createInitialState reseed is reproducible.
+let sessionSeedOverride: number | null = null
+
+export function setSessionSeed(seed: number | null): void {
+  sessionSeedOverride = seed
+}
+
+export function reseedForNewSession(): void {
+  rng.reseed(sessionSeedOverride ?? Date.now())
+}
