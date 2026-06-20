@@ -33,7 +33,7 @@ import {
 } from './engine/types'
 import type { GameState, PlayerInput, Vec2, PlayerUpgrades } from './engine/types'
 import type { UpgradeId } from './engine/upgrade-ids'
-import { getBossDefinition } from './engine/bosses/index'
+import { getBossDefinition } from './engine/bosses'
 import { HOLD_ABILITIES } from './engine/abilities'
 import {
   SLING_MAX_DRAG_PX,

@@ -1,7 +1,7 @@
 import { distance } from '../math/collision'
 import { toroidalDelta } from '../math/toroid'
 import { createAlly } from './entity-creator'
-import { canEnemyTakeDamage } from '../bosses/index'
+import { canEnemyTakeDamage } from '../bosses'
 import { rng } from '../math/random'
 import { HELPER_WEAPON_DEFINITIONS } from '../weapons'
 import { HelperWeaponKind } from '../types'

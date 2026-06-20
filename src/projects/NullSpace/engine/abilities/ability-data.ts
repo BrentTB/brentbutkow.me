@@ -3,7 +3,7 @@
 // inside engine/abilities/. Older code may still re-export these from data.ts
 // for back-compat; new code should import from this file directly.
 
-import { RadialForceMode } from './radial-force'
+import { RadialForceMode } from './telekinesis/radial-force'
 
 export const METEORITE_STRIKE = {
   delay: 0.3,

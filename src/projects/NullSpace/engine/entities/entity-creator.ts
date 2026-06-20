@@ -20,7 +20,7 @@ import type { DeathAnim, Ship, Enemy, Projectile, Vec2, Ally, Particle } from '.
 import { rng } from '../math/random'
 import { toroidalDelta } from '../math/toroid'
 import { SHIP_VARIANTS } from '../ship/ship-data'
-import { getBossDefinition } from '../bosses/index'
+import { getBossDefinition } from '../bosses'
 import type { BossEnemyKind } from '../bosses/boss-definition'
 
 // Bosses aren't listed here — they declare movement on their BossDefinition

@@ -1,4 +1,4 @@
-import { canEnemyTakeDamage } from '../bosses/index'
+import { canEnemyTakeDamage } from '../bosses'
 import { applyDamageToEnemy } from '../entities/enemy-damage'
 import { toroidalDelta } from './toroid'
 import type { Enemy, Vec2 } from '../types'

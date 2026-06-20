@@ -38,7 +38,7 @@ import {
   tryCollectSpaceMetal,
   updateCollectibles,
 } from './systems/collectibles'
-import { applyShieldConstraints } from './abilities/shield'
+import { applyShieldConstraints } from './abilities/shield/shield'
 import { recentreRepulseFields } from './spaceMetalAbilities/repulse'
 import { updateActiveEffects } from './systems/effects'
 import { updateBurningEnemies } from './systems/burning'

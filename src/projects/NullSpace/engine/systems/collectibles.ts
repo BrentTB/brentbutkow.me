@@ -3,7 +3,7 @@ import { distance } from '../math/collision'
 import { uid } from '../entities/entity-creator'
 import { homeTowardTarget } from '../math/homing'
 import { rng } from '../math/random'
-import { getBossDefinition } from '../bosses/index'
+import { getBossDefinition } from '../bosses'
 import { CollectibleKind } from '../types'
 import type { Asteroid, Collectible, Enemy, Ship, Vec2 } from '../types'
 

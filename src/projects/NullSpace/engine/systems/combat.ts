@@ -7,7 +7,7 @@ import { applyDamageToAlly } from '../entities/ally'
 import { applyDamageToEnemy } from '../entities/enemy-damage'
 import { applyDamageToShip } from '../entities/ship'
 import { createNuclearWasteEffect } from '../weapons/nuke'
-import { canEnemyTakeDamage } from '../bosses/index'
+import { canEnemyTakeDamage } from '../bosses'
 import { DeathBehavior, EffectKind, ProjectileOwner } from '../types'
 import type { ActiveEffect, Ally, Enemy, Particle, Projectile, Ship, Vec2 } from '../types'
 

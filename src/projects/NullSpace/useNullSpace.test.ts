@@ -8,7 +8,7 @@ import {
 } from './useNullSpace'
 import { createRef } from 'react'
 import { createAbilities } from './engine/abilities'
-import { BOSS_KINDS } from './engine/bosses/index'
+import { BOSS_KINDS } from './engine/bosses'
 import { AbilityKind, GamePhase, ShipKind } from './engine/types'
 import { TutorialEntry } from './engine/tutorial/tutorial-machine'
 import { WEAPON_ORDER } from './data'

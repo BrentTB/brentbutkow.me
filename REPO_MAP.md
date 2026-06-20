@@ -219,37 +219,61 @@ src/projects/NullSpace/
 src/projects/NullSpace/engine/abilities/
   ability-data.ts                            METEORITE_STRIKE, METEOR_STRIKE, COMET_SHOWER, METEOR_SHOWER, BLACK_HOLE, ROCKET, SHIELD, FORCE_FIELD, SUN, SUPERNOVA, HELPER, HELPER_FACTORY, TELEKINESIS, SOLAR_FLARE, FIREWORKS, EVENT_HORIZON, SOLAR_PLAGUE, SINGULARITY, RADIATION, MELTDOWN, CHAIN_LIGHTNING, ION_STORM
   ability-definition.ts                      AbilityActivation, UltimateCost, UltimateContext, UltimatePrerequisite, UltimateDescriptor, AbilityDefinition, composeUltimateUpgrades, makeAbilityUpgrade, applyTierSum, applyCostReduction
-  beam-damage.ts                             BeamDamageResult, damageEnemiesInBeam
+
+src/projects/NullSpace/engine/abilities/blackHole/
   black-hole.ts                              BLACK_HOLE_UPGRADE_IDS, createBlackHoleEffect, blackHoleEffect, blackHole
-  chain-lightning.ts                         CHAIN_LIGHTNING_UPGRADE_IDS, resolveChain, createChainArcEffect, chainArcEffect, chainLightning
-  comet-shower.ts                            COMET_SHOWER_UPGRADE_IDS, cometShower
-  dome-absorption.ts                         absorbEnemyProjectiles, tickDomeAbsorption
-  dome-render.ts                             DomeShape, DomeStyle, renderDome
   event-horizon.ts                           EVENT_HORIZON_UPGRADE_IDS, createEventHorizonEffect, eventHorizonEffect, eventHorizon
-  fireworks.ts                               FIREWORKS_UPGRADE_IDS, fireworks
-  force-field-render.ts                      drawForceField
-  force-field.ts                             FORCE_FIELD_UPGRADE_IDS, createForceFieldEffect, getForceFieldCurrentRadius, forceFieldEffect, forceField
   gravity-pull.ts                            GravityWell, BanishConfig, GravityWellResult, gravityWellDisplacement, gravityWellBurn, gravityWellImpulse, applyGravityWell
+
+src/projects/NullSpace/engine/abilities/chainLightning/
+  chain-lightning.ts                         CHAIN_LIGHTNING_UPGRADE_IDS, resolveChain, createChainArcEffect, chainArcEffect, chainLightning
+  ion-storm.ts                               ION_STORM_UPGRADE_IDS, ionStorm
+
+src/projects/NullSpace/engine/abilities/helper/
   helper-factory.ts                          HELPER_FACTORY_UPGRADE_IDS, helperFactory
   helper.ts                                  HELPER_UPGRADE_IDS, helper
+
+src/projects/NullSpace/engine/abilities/
   hold-runtime.ts                            HoldRenderFn, INACTIVE_HOLD_STATE, HoldBag, HoldAbilityConfig, runHoldAbility
   index.ts                                   ABILITY_DEFINITIONS, ABILITY_LIST, ABILITY_META, HOLD_ABILITIES, EFFECT_FACTORY, ALLY_FACTORY, WEAPON_UNLOCK_UPGRADE, ULTIMATE_DEFINITIONS, ULTIMATE_KIND_OF, BASE_KIND_OF, ABILITY_UPGRADE_DEFINITIONS, createAbilities, applyTierSum, applyCostReduction, tryUseAbility, updateAbilityCooldowns, resolveAbilityInput, type AbilityResult
-  ion-storm.ts                               ION_STORM_UPGRADE_IDS, ionStorm
-  meltdown.ts                                MELTDOWN_UPGRADE_IDS, meltdown
+
+src/projects/NullSpace/engine/abilities/meteors/
+  comet-shower.ts                            COMET_SHOWER_UPGRADE_IDS, cometShower
   meteor-shower.ts                           METEOR_SHOWER_UPGRADE_IDS, meteorShower
   meteor-strike.ts                           createMeteoriteEffect, createMeteorEffect, meteorStrikeEffect
   meteor.ts                                  METEOR_UPGRADE_IDS, meteor
   meteorite.ts                               METEORITE_UPGRADE_IDS, meteorite
-  radial-force.ts                            RadialForceMode, radialForceDisplacement, applyRadialForce, impartAsteroidImpulse, applyRadialForceToAsteroids
+
+src/projects/NullSpace/engine/abilities/radiation/
+  meltdown.ts                                MELTDOWN_UPGRADE_IDS, meltdown
   radiation.ts                               RADIATION_UPGRADE_IDS, createRadiationFieldEffect, radiationFieldEffect, radiation
+
+src/projects/NullSpace/engine/abilities/
   resolution.ts                              AbilityResult, tryUseAbility, updateAbilityCooldowns, resolveAbilityInput
+
+src/projects/NullSpace/engine/abilities/rocket/
+  fireworks.ts                               FIREWORKS_UPGRADE_IDS, fireworks
   rocket.ts                                  ROCKET_UPGRADE_IDS, createRocketEffect, rocketEffect, rocket
+
+src/projects/NullSpace/engine/abilities/shield/
+  dome-absorption.ts                         absorbEnemyProjectiles, tickDomeAbsorption
+  dome-render.ts                             DomeShape, DomeStyle, renderDome
+  force-field-render.ts                      drawForceField
+  force-field.ts                             FORCE_FIELD_UPGRADE_IDS, createForceFieldEffect, getForceFieldCurrentRadius, forceFieldEffect, forceField
   shield.ts                                  SHIELD_UPGRADE_IDS, createShieldEffect, ShieldConstraintResult, applyShieldConstraints, shieldEffect, shield
-  singularity.ts                             SINGULARITY_UPGRADE_IDS, singularity
+
+src/projects/NullSpace/engine/abilities/solarFlare/
+  beam-damage.ts                             BeamDamageResult, damageEnemiesInBeam
   solar-flare.ts                             SOLAR_FLARE_UPGRADE_IDS, solarFlare
   solar-plague.ts                            SOLAR_PLAGUE_UPGRADE_IDS, solarPlague
+
+src/projects/NullSpace/engine/abilities/sun/
   sun.ts                                     SUN_UPGRADE_IDS, createSunEffect, sunEffect, sun
   supernova.ts                               SUPERNOVA_UPGRADE_IDS, createSupernovaEffect, getSupernovaState, supernovaEffect, supernova
+
+src/projects/NullSpace/engine/abilities/telekinesis/
+  radial-force.ts                            RadialForceMode, radialForceDisplacement, applyRadialForce, impartAsteroidImpulse, applyRadialForceToAsteroids
+  singularity.ts                             SINGULARITY_UPGRADE_IDS, singularity
   telekinesis.ts                             TELEKINESIS_UPGRADE_IDS, telekinesis
 
 src/projects/NullSpace/engine/bosses/
