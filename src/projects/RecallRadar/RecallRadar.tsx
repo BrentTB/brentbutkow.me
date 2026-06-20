@@ -12,20 +12,29 @@ import { RecallFeed } from './components/RecallFeed'
 import { RecallFilters } from './components/RecallFilters'
 import { RecallMap } from './components/RecallMap'
 import { RecallTrendsChart } from './components/RecallTrendsChart'
+import { SeverityBar } from './components/SeverityBar'
 import { StatCard } from './components/StatCard'
 import { TrendCallouts } from './components/TrendCallouts'
 import { Select } from '../../components/inputs/Select'
 import type { SelectOption } from '../../components/inputs/option.types'
-import { categoryLabels, recallRadarCopy, recallRadarLinks, trendGroupLabels } from './data'
+import {
+  categoryLabels,
+  recallRadarCopy,
+  recallRadarLinks,
+  sortLabels,
+  trendGroupLabels,
+} from './data'
 import { deriveYears, formatDate, formatNumber, ingestFreshness } from './chart-format'
 import { anomalyCallouts, deriveCallouts } from './trend-callouts'
 import { toChartMonths } from './trend-chart'
 import {
   RecallCountry,
+  RecallSort,
   TrendGroup,
   isRecallCategory,
   isRecallClass,
   isRecallCountry,
+  isRecallSort,
   isRecallSource,
   isTrendGroup,
   isIsoDate,
@@ -55,6 +64,7 @@ const DEFAULT_PARAMS = {
   ...EMPTY_FILTERS,
   location: RecallCountry.us,
   group: TrendGroup.category,
+  sort: RecallSort.recency,
   year: '',
   page: '',
 }
@@ -69,6 +79,7 @@ export function RecallRadar() {
   // URL strings → typed UI state, validated rather than cast (query params are untrusted input).
   const country = isRecallCountry(values.location) ? values.location : RecallCountry.us
   const group = isTrendGroup(values.group) ? values.group : TrendGroup.category
+  const sort = isRecallSort(values.sort) ? values.sort : RecallSort.recency
   const year = values.year ? Number(values.year) : null
   const filters: RecallFilterValues = {
     category: isRecallCategory(values.category) ? values.category : '',
@@ -108,7 +119,12 @@ export function RecallRadar() {
   }
   const stats = useRecallStats(country)
   const trend = useRecallTrend(queryFilters, group)
-  const recalls = useRecalls({ ...queryFilters, limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE })
+  const recalls = useRecalls({
+    ...queryFilters,
+    limit: PAGE_SIZE,
+    offset: (page - 1) * PAGE_SIZE,
+    sort: sort === RecallSort.severity ? RecallSort.severity : undefined,
+  })
 
   // Year options follow the data, then narrow to whatever the date filter admits (2021–2025 for a
   // 2021-01-05 → 2025-02-03 range), so the chart can't offer a year the filters exclude.
@@ -125,6 +141,10 @@ export function RecallRadar() {
   const groupOptions: SelectOption[] = [TrendGroup.total, TrendGroup.category].map((value) => ({
     value,
     label: trendGroupLabels[value],
+  }))
+  const sortOptions: SelectOption[] = [RecallSort.recency, RecallSort.severity].map((value) => ({
+    value,
+    label: sortLabels[value],
   }))
   const freshness = stats.data ? ingestFreshness(stats.data.lastIngestAt, new Date()) : null
 
@@ -160,27 +180,32 @@ export function RecallRadar() {
       </div>
 
       {stats.data && (
-        <div className={styles.stats}>
-          <StatCard label="Recalls tracked" value={formatNumber(stats.data.total)} />
-          {topCategory && (
+        <>
+          <div className={styles.stats}>
+            <StatCard label="Recalls tracked" value={formatNumber(stats.data.total)} />
+            {topCategory && (
+              <StatCard
+                label="Most common cause"
+                value={categoryLabels[topCategory.category]}
+                hint={`${formatNumber(topCategory.count)} recalls`}
+              />
+            )}
+            {topState && (
+              <StatCard
+                label="Top state"
+                value={topState.label}
+                hint={`${formatNumber(topState.count)} recalls`}
+              />
+            )}
             <StatCard
-              label="Most common cause"
-              value={categoryLabels[topCategory.category]}
-              hint={`${formatNumber(topCategory.count)} recalls`}
+              label="Last updated"
+              value={
+                stats.data.lastIngestAt ? formatDate(stats.data.lastIngestAt.slice(0, 10)) : '—'
+              }
             />
-          )}
-          {topState && (
-            <StatCard
-              label="Top state"
-              value={topState.label}
-              hint={`${formatNumber(topState.count)} recalls`}
-            />
-          )}
-          <StatCard
-            label="Last updated"
-            value={stats.data.lastIngestAt ? formatDate(stats.data.lastIngestAt.slice(0, 10)) : '—'}
-          />
-        </div>
+          </div>
+          <SeverityBar data={stats.data.bySeverity} />
+        </>
       )}
 
       <TrendCallouts callouts={callouts} />
@@ -248,9 +273,21 @@ export function RecallRadar() {
       )}
 
       <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>
-          Recalls{recalls.data ? ` (${formatNumber(recalls.data.total)})` : ''}
-        </h2>
+        <div className={styles.sectionHead}>
+          <h2 className={styles.sectionTitle}>
+            Recalls{recalls.data ? ` (${formatNumber(recalls.data.total)})` : ''}
+          </h2>
+          <div className={styles.controls}>
+            <Select
+              ariaLabel="Sort recalls"
+              value={sort}
+              options={sortOptions}
+              onChange={(value) =>
+                patchParams({ sort: isRecallSort(value) ? value : RecallSort.recency, page: '' })
+              }
+            />
+          </div>
+        </div>
         {recalls.loading && <p className={styles.status}>Loading recalls…</p>}
         {recalls.error && <p className={styles.status}>Couldn’t reach the recall service.</p>}
         {recalls.data && <RecallFeed recalls={recalls.data.items} />}

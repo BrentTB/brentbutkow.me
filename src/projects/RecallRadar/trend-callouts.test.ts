@@ -19,6 +19,7 @@ const baseStats: RecallStats = {
     { month: '2026-06', count: 20 },
   ],
   byClassification: [],
+  bySeverity: [],
   byState: [
     { label: 'CA', count: 25 },
     { label: 'TX', count: 10 },

@@ -19,6 +19,8 @@ const recall: Recall = {
   reportDate: '2026-06-10',
   category: 'allergen',
   categoryConfidence: 0.92,
+  severityScore: 91,
+  severityLabel: 'severe',
   entities: [{ type: 'allergen', value: 'peanuts' }],
 }
 
@@ -29,6 +31,7 @@ describe('RecallFeed', () => {
     render(<RecallFeed recalls={[recall]} />)
     expect(screen.getByText('Test cookies')).toBeTruthy()
     expect(screen.getByText('92%')).toBeTruthy()
+    expect(screen.getByText('Severe')).toBeTruthy() // color-graded severity badge
     // fields revealed in the expandable detail panel
     expect(screen.getByText('F-1234')).toBeTruthy()
     expect(screen.getByText('Nationwide')).toBeTruthy()

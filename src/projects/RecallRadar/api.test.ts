@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildRecallsPath, buildTrendPath } from './api'
-import { RecallCategory, RecallClass, TrendGroup } from './recall.types'
+import { RecallCategory, RecallClass, RecallSort, TrendGroup } from './recall.types'
 
 describe('buildRecallsPath', () => {
   it('defaults the limit and omits unset filters', () => {
@@ -32,6 +32,11 @@ describe('buildRecallsPath', () => {
 
   it('omits offset when it is zero (the first page)', () => {
     expect(buildRecallsPath({ offset: 0 })).toBe('/recalls?limit=50')
+  })
+
+  it('sets sort when provided and omits it by default', () => {
+    expect(buildRecallsPath({ sort: RecallSort.severity })).toContain('sort=severity')
+    expect(buildRecallsPath({})).not.toContain('sort')
   })
 })
 

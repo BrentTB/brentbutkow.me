@@ -19,6 +19,12 @@ const stats = {
     { label: 'Class I', count: 25 },
     { label: 'Class II', count: 17 },
   ],
+  bySeverity: [
+    { label: 'severe', count: 25 },
+    { label: 'high', count: 12 },
+    { label: 'elevated', count: 3 },
+    { label: 'low', count: 2 },
+  ],
   byState: [
     { label: 'CA', count: 18 },
     { label: 'TX', count: 9 },
@@ -65,6 +71,8 @@ const recalls = {
       reportDate: '2026-06-10',
       category: 'allergen',
       categoryConfidence: 1,
+      severityScore: 91,
+      severityLabel: 'severe',
       entities: [{ type: 'allergen', value: 'peanuts' }],
     },
   ],
@@ -125,6 +133,9 @@ describe('RecallRadar page', () => {
     expect(screen.getByText('42')).toBeTruthy()
     // entity leaderboard + a detected anomaly callout (headlined by the spike's count, not σ)
     expect(screen.getByText('Top allergens')).toBeTruthy()
+    // severity surface: the distribution bar + a color-graded per-recall badge
+    expect(screen.getByText('Severity mix')).toBeTruthy()
+    expect(screen.getAllByText('Severe').length).toBeGreaterThan(0)
     expect(screen.getByText('Anomaly')).toBeTruthy()
     expect(screen.getByText(/~6\/mo typical/i)).toBeTruthy() // anomaly caption, plain-language
   })
