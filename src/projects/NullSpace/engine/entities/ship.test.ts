@@ -8,14 +8,16 @@ import { rng } from '../math/random'
 beforeEach(() => rng.reseed(3))
 
 describe('slow nebula hinders the ship', () => {
-  it('weakens the slingshot launch by the slow multiplier', () => {
+  it('only gently weakens the slingshot launch (the gentler sling multiplier)', () => {
     const ship = createShip(ShipKind.fighter, WORLD_SIZE)
     const fling = { dir: { x: 1, y: 0 }, charge: 1 }
     const full = applySlingshot(ship, fling, 1)
-    const dragged = applySlingshot(ship, fling, NEBULA.slowMult)
+    const dragged = applySlingshot(ship, fling, NEBULA.slowSlingMult)
     const fullSpeed = Math.hypot(full.flingVel.x, full.flingVel.y)
     const dragSpeed = Math.hypot(dragged.flingVel.x, dragged.flingVel.y)
-    expect(dragSpeed).toBeCloseTo(fullSpeed * NEBULA.slowMult, 4)
+    expect(dragSpeed).toBeCloseTo(fullSpeed * NEBULA.slowSlingMult, 4)
+    // The sling is hindered far less than the general drag, so escape stays viable.
+    expect(NEBULA.slowSlingMult).toBeGreaterThan(NEBULA.slowMult)
   })
 
   it('drags the auto-drift (covers less ground, but still moves)', () => {

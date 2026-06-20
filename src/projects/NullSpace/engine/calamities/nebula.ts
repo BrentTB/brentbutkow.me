@@ -82,13 +82,15 @@ function cloudPuffs(n: NebulaEffect, radius: number): CloudPuff[] {
   return puffs
 }
 
-// Draws a nebula as an irregular billowy cloud beneath the entities (renderBack) —
-// the translucent slow + haze atmosphere you can still see through. (Fog is opaque
-// and drawn OVER the entities to hide them; see drawFogMass.)
+// Draws a nebula as an irregular billowy cloud — the translucent atmosphere you see
+// through. `density` scales the puff opacity (fog draws denser than the slow/haze
+// clouds); clamped so it stays translucent + billowy rather than a flat fill. The
+// fog's clear sight-bubble is punched out separately by the renderer, not here.
 export function drawNebulaCloud(
   ctx: CanvasRenderingContext2D,
   n: NebulaEffect,
-  camera: Camera
+  camera: Camera,
+  density = 1
 ): void {
   const baseAlpha = nebulaAlphaAt(n, n.elapsed)
   if (baseAlpha <= 0) return
@@ -99,7 +101,7 @@ export function drawNebulaCloud(
   ctx.save()
   ctx.translate(s.x, s.y)
   for (const p of cloudPuffs(n, radius)) {
-    const alpha = baseAlpha * p.a
+    const alpha = Math.min(0.95, baseAlpha * p.a * density)
     if (alpha <= 0.002) continue
     const grad = ctx.createRadialGradient(p.dx, p.dy, 0, p.dx, p.dy, p.r)
     grad.addColorStop(0, `rgba(${rgb}, ${alpha})`)
@@ -113,62 +115,17 @@ export function drawNebulaCloud(
   ctx.restore()
 }
 
-// Draws one fog cloud as an OPAQUE billowy mass in device pixels (the caller's ctx is
-// an identity-transform offscreen buffer). A base disc guarantees no see-through gaps;
-// the puffs poke past it for the irregular silhouette. Opaque so enemies inside are
-// genuinely hidden — the renderer then punches the sight bubbles back out so close
-// enemies (and the ship) show. `scale` converts world units → device px.
-export function drawFogMass(
-  ctx: CanvasRenderingContext2D,
-  fog: NebulaEffect,
-  camera: Camera
-): void {
-  const alpha = nebulaAlphaAt(fog, fog.elapsed)
-  if (alpha <= 0) return
-  const scale = camera.zoom * camera.dpr
-  const radius = nebulaRadiusAt(fog, fog.elapsed)
-  const s = worldToScreen(fog.pos, camera)
-  const cx = s.x * scale
-  const cy = s.y * scale
-  const rgb = NEBULA.fogColor
-
-  // Base disc — solid coverage so nothing peeks through between the puffs.
-  const base = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius * scale)
-  base.addColorStop(0, `rgba(${rgb}, ${alpha * 0.95})`)
-  base.addColorStop(0.78, `rgba(${rgb}, ${alpha * 0.85})`)
-  base.addColorStop(1, `rgba(${rgb}, 0)`)
-  ctx.fillStyle = base
-  ctx.beginPath()
-  ctx.arc(cx, cy, radius * scale, 0, Math.PI * 2)
-  ctx.fill()
-
-  for (const p of cloudPuffs(fog, radius)) {
-    const px = cx + p.dx * scale
-    const py = cy + p.dy * scale
-    const pr = p.r * scale
-    const a = Math.min(1, alpha * (p.a + 0.55)) // denser than the cosmetic clouds
-    const g = ctx.createRadialGradient(px, py, 0, px, py, pr)
-    g.addColorStop(0, `rgba(${rgb}, ${a})`)
-    g.addColorStop(0.7, `rgba(${rgb}, ${a})`)
-    g.addColorStop(1, `rgba(${rgb}, 0)`)
-    ctx.fillStyle = g
-    ctx.beginPath()
-    ctx.arc(px, py, pr, 0, Math.PI * 2)
-    ctx.fill()
-  }
-}
-
-// The live fog nebulas — the renderer draws these over the entities (occluding the
-// concealed ones) rather than beneath, so it pulls them out here.
+// The live fog nebulas — the renderer draws these in its own pass (with the sight
+// bubbles muted), so it pulls them out here.
 export function fogNebulasOf(effects: ActiveEffect[]): NebulaEffect[] {
   return effects.filter(
     (e): e is NebulaEffect => e.kind === EffectKind.nebula && e.variant === NebulaVariant.fog
   )
 }
 
-// renderBack draws the slow + haze clouds beneath entities (atmosphere you fight
-// inside). Fog draws nothing here — it renders OVER entities in the loop's fog pass
-// so concealed enemies sit behind the cloud.
+// renderBack draws the slow + haze clouds beneath the entities (uniform translucent
+// atmosphere). Fog is skipped here — the renderer draws it in a pass that has the
+// ship + allies, so it can mute the sight bubbles.
 function renderNebulaBack(ctx: CanvasRenderingContext2D, n: NebulaEffect, camera: Camera): void {
   if (n.variant === NebulaVariant.fog) return
   drawNebulaCloud(ctx, n, camera)

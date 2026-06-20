@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { createNebula, fogNebulasOf, nebulaAlphaAt, nebulaEffect } from './nebula'
+import { createNebula, nebulaAlphaAt, nebulaEffect } from './nebula'
 import { NEBULA, WORLD_SIZE } from '../../data'
 import { EffectKind, NebulaVariant, ShipKind } from '../types'
 import { createShip } from '../entities/entity-creator'
@@ -40,21 +40,6 @@ describe('nebulaEffect tick', () => {
     expect(r.killedEnemies).toHaveLength(0)
     expect(r.scoreGained).toBe(0)
     expect(r.particles).toHaveLength(0)
-  })
-})
-
-describe('fogNebulasOf', () => {
-  it('picks out only the fog nebulas (the ones drawn over entities)', () => {
-    const at = { x: 0, y: 0 }
-    const effects = [
-      createNebula(NebulaVariant.fog, at, { x: 0, y: 0 }),
-      createNebula(NebulaVariant.slow, at, { x: 0, y: 0 }),
-      createNebula(NebulaVariant.haze, at, { x: 0, y: 0 }),
-      createNebula(NebulaVariant.fog, at, { x: 0, y: 0 }),
-    ]
-    const fogs = fogNebulasOf(effects)
-    expect(fogs).toHaveLength(2)
-    expect(fogs.every((n) => n.variant === NebulaVariant.fog)).toBe(true)
   })
 })
 

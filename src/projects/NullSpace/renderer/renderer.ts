@@ -28,9 +28,14 @@ import {
   WAVE_ESCALATION,
 } from '../data'
 import { EFFECT_DEFINITIONS } from '../engine/systems/effects'
-import { buildNebulaField, hazeJitterAt, sightCircles } from '../engine/calamities/nebula-vision'
+import {
+  buildNebulaField,
+  enemyVisibleToPlayerSide,
+  hazeJitterAt,
+  sightCircles,
+} from '../engine/calamities/nebula-vision'
 import type { NebulaField } from '../engine/calamities/nebula-vision'
-import { drawFogMass, fogNebulasOf } from '../engine/calamities/nebula'
+import { drawNebulaCloud, fogNebulasOf } from '../engine/calamities/nebula'
 import { ABILITY_LIST } from '../engine/abilities'
 import { getBossDefinition } from '../engine/bosses'
 import { enemyFacing } from '../engine/entities/enemy'
@@ -133,11 +138,14 @@ export function renderFrame(
   }
   if (warping) renderPortal(ctx, state, camera)
   renderActiveEffects(ctx, state.activeEffects, camera, sprites, 'renderBack')
+  // Fog clouds draw at the atmosphere layer (beneath the entities), with their sight
+  // bubbles muted so the player's range reads as a clearer patch in the murk.
+  if (shipInWorld) renderFogClouds(ctx, state, camera)
   renderBossOverlays(ctx, state, camera)
   renderHoldOverlays(ctx, state, camera, 'renderBack')
   renderCollectibles(ctx, state.collectibles, camera)
   renderParticles(ctx, state.particles, camera)
-  renderEnemies(ctx, state, camera, sprites, opts.reducedMotion)
+  renderEnemies(ctx, state, camera, sprites, opts.reducedMotion, nebulaField)
   renderDeathAnims(ctx, state.deathAnims, camera, sprites, opts.animations, opts.reducedMotion)
   renderAllies(ctx, state.allies, camera, sprites)
   renderProjectiles(ctx, state, camera, sprites)
@@ -153,10 +161,6 @@ export function renderFrame(
   // Haze ripple: warp the rendered world (screen-space) before the stable overlays
   // go on top, so the HUD vignettes don't ripple along with it.
   if (shipInWorld) renderHazeWarp(ctx, state, camera, nebulaField, opts)
-
-  // Fog occlusion: opaque clouds over the whole view, with the sight bubbles around
-  // the ship + allies punched clear — enemies hide in the murk unless they're close.
-  if (shipInWorld) renderFogClouds(ctx, state, camera)
 
   // Low-HP danger vignette — screen space, hugging the viewport edges.
   if (shipInWorld) renderLowHpVignette(ctx, state, camera, opts)
@@ -367,7 +371,8 @@ function renderEnemies(
   state: GameState,
   camera: Camera,
   sprites: SpriteCache,
-  reducedMotion: boolean
+  reducedMotion: boolean,
+  field: NebulaField
 ): void {
   // Wave stall-escalation reddens every enemy as they speed up — a legibility
   // cue that parking is getting dangerous. Zero until past the grace period.
@@ -376,9 +381,10 @@ function renderEnemies(
   // past 1), not a barely-there tint that creeps in over many seconds.
   const escalationAlpha =
     escMult <= 1 ? 0 : 0.2 + ((escMult - 1) / (WAVE_ESCALATION.maxMult - 1)) * 0.4
-  // Fog-concealed enemies are still drawn — the fog cloud renders over them (see
-  // renderFogClouds), so they read as hidden behind the murk rather than vanishing.
   for (const enemy of state.enemies) {
+    // Fog: a concealed enemy (in fog, outside every sight bubble) isn't drawn — it's
+    // hidden in the murk. Its shots + impacts still flash. Bosses are never concealed.
+    if (!enemy.boss && !enemyVisibleToPlayerSide(enemy.pos, field)) continue
     const screen = worldToScreen(enemy.pos, camera)
 
     if (!isWithinView(screen, camera, 60)) continue
@@ -576,59 +582,6 @@ function renderDeathShockwave(
   ctx.restore()
 }
 
-// Red danger vignette hugging the viewport edges when the ship nears death.
-// Screen space — drawn after the world transform is restored.
-// Reused scratch canvas for the fog occlusion layer (see renderFogClouds).
-let fogBuffer: HTMLCanvasElement | null = null
-
-// Fog: render the (opaque) fog clouds into an offscreen buffer, punch the sight
-// bubbles back out of it, then composite the result over the world. The clouds hide
-// every enemy inside them; only the punched bubbles — around the ship + allies —
-// reveal the world beneath, so close enemies show and distant ones stay hidden.
-// destination-out runs on the fog-only buffer (never the main canvas), so it erases
-// just the fog and reveals the world, never black. Screen-space (device px).
-function renderFogClouds(ctx: CanvasRenderingContext2D, state: GameState, camera: Camera): void {
-  const fogs = fogNebulasOf(state.activeEffects)
-  if (fogs.length === 0) return
-  const cw = ctx.canvas.width
-  const ch = ctx.canvas.height
-  if (cw === 0 || ch === 0) return
-  if (!fogBuffer) fogBuffer = document.createElement('canvas')
-  if (fogBuffer.width !== cw || fogBuffer.height !== ch) {
-    fogBuffer.width = cw
-    fogBuffer.height = ch
-  }
-  const f = fogBuffer.getContext('2d')
-  if (!f) return
-
-  f.setTransform(1, 0, 0, 1, 0, 0)
-  f.clearRect(0, 0, cw, ch)
-  for (const fog of fogs) drawFogMass(f, fog, camera)
-
-  // Carve the clear bubbles (ship's + each ally's sight radius) out of the fog.
-  const scale = camera.zoom * camera.dpr
-  f.globalCompositeOperation = 'destination-out'
-  for (const circle of sightCircles(state.ship, state.allies)) {
-    const s = worldToScreen(circle.center, camera)
-    const cx = s.x * scale
-    const cy = s.y * scale
-    const r = circle.radius * scale
-    const hole = f.createRadialGradient(cx, cy, r * 0.4, cx, cy, r)
-    hole.addColorStop(0, 'rgba(0, 0, 0, 1)') // fully clear core
-    hole.addColorStop(1, 'rgba(0, 0, 0, 0)') // soft edge back into fog
-    f.fillStyle = hole
-    f.beginPath()
-    f.arc(cx, cy, r, 0, Math.PI * 2)
-    f.fill()
-  }
-  f.globalCompositeOperation = 'source-over'
-
-  ctx.save()
-  ctx.setTransform(1, 0, 0, 1, 0, 0)
-  ctx.drawImage(fogBuffer, 0, 0)
-  ctx.restore()
-}
-
 // Reused scratch canvas for the haze ripple — snapshots the rendered frame so it can
 // be re-drawn warped. Lazily created (never in headless/test paths, which don't render).
 let hazeBuffer: HTMLCanvasElement | null = null
@@ -713,6 +666,58 @@ function renderHazeTint(
   ctx.restore()
 }
 
+// Reused scratch canvas for the fog clear-hole layer.
+let fogBuffer: HTMLCanvasElement | null = null
+
+// Fog: render the (dense, translucent, billowy) clouds into an offscreen buffer, then
+// punch a clean clear hole for each sight bubble (ship + allies) — so inside the range
+// is fully clear and outside is thick fog, with a crisp circular edge. destination-out
+// runs on the fog-only buffer, so it erases just the fog and reveals the world, never
+// black. Composited at the atmosphere layer (beneath entities), so revealed enemies
+// draw over it.
+function renderFogClouds(ctx: CanvasRenderingContext2D, state: GameState, camera: Camera): void {
+  const fogs = fogNebulasOf(state.activeEffects)
+  if (fogs.length === 0) return
+  const cw = ctx.canvas.width
+  const ch = ctx.canvas.height
+  if (cw === 0 || ch === 0) return
+  if (!fogBuffer) fogBuffer = document.createElement('canvas')
+  if (fogBuffer.width !== cw || fogBuffer.height !== ch) {
+    fogBuffer.width = cw
+    fogBuffer.height = ch
+  }
+  const f = fogBuffer.getContext('2d')
+  if (!f) return
+
+  // Match the main canvas's world transform so the clouds land identically.
+  const m = camera.dpr * camera.zoom
+  f.setTransform(1, 0, 0, 1, 0, 0)
+  f.clearRect(0, 0, cw, ch)
+  f.setTransform(m, 0, 0, m, 0, 0)
+  for (const fog of fogs) drawNebulaCloud(f, fog, camera, NEBULA.fogDensity)
+
+  // Clean clear bubbles: fully clear within the core, a crisp edge out to the radius.
+  f.globalCompositeOperation = 'destination-out'
+  for (const c of sightCircles(state.ship, state.allies)) {
+    const s = worldToScreen(c.center, camera)
+    const hole = f.createRadialGradient(s.x, s.y, c.radius * 0.82, s.x, s.y, c.radius)
+    hole.addColorStop(0, 'rgba(0, 0, 0, 1)')
+    hole.addColorStop(1, 'rgba(0, 0, 0, 0)')
+    f.fillStyle = hole
+    f.beginPath()
+    f.arc(s.x, s.y, c.radius, 0, Math.PI * 2)
+    f.fill()
+  }
+  f.globalCompositeOperation = 'source-over'
+
+  ctx.save()
+  ctx.setTransform(1, 0, 0, 1, 0, 0)
+  ctx.drawImage(fogBuffer, 0, 0)
+  ctx.restore()
+}
+
+// Red danger vignette hugging the viewport edges when the ship nears death.
+// Screen space — drawn after the world transform is restored.
 function renderLowHpVignette(
   ctx: CanvasRenderingContext2D,
   state: GameState,

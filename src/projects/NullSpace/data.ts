@@ -482,18 +482,19 @@ export const ASTEROID = {
 // slow drags movement and the slingshot; haze scatters auto-fire aim and warps the
 // player's view. Everyone inside is affected equally — a natural hazard, not a tool.
 export const NEBULA = {
-  duration: 14, // total lifetime (springs up, holds, dissipates)
-  growDuration: 1.6, // winks in from startRadius to maxRadius over this
-  startRadius: 70,
-  maxRadius: 340,
-  driftSpeed: 18, // slow wander across the sector
+  duration: 16, // total lifetime (springs up, holds, dissipates)
+  growDuration: 3, // winks in from startRadius to maxRadius over this
+  startRadius: 140,
+  maxRadius: 500,
+  driftSpeed: 28, // slow wander across the sector
   spawnRange: 420, // distance from the ship a nebula erupts
   intervalMin: 14, // seconds between nebulas (random within the range)
   intervalMax: 26,
   weight: 0.45, // share of calamity rolls that pick a nebula (vs shockwave / well)
   // Fog: clear sight-bubbles — anything inside one is mutually visible despite fog.
-  sightRadius: 200, // the player's clear bubble
-  allySightRadius: 120, // each ally's (smaller) clear bubble
+  sightRadius: 150, // the player's clear bubble
+  allySightRadius: 100, // each ally's (smaller) clear bubble
+  fogDensity: 1.7, // fog puffs drawn denser than the slow/haze clouds — thick outside the cleared bubble
   wanderSpeed: 70, // speed of a blinded enemy's semi-random meander
   slowMult: 0.35, // movement multiplier for drift + enemies + allies inside a slow nebula
   slowSlingMult: 0.75, // gentler drag on the slingshot launch + coast — you can still escape
