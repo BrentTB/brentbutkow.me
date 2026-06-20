@@ -1,9 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { applyWormholes, createWormhole, wormholeEffect, wormholeRadiusAt } from './wormhole'
+import {
+  applyWormholes,
+  createWormhole,
+  wormholeEffect,
+  wormholePairPositions,
+  wormholeRadiusAt,
+} from './wormhole'
 import { createEnemy, createProjectile, createShip } from '../entities/entity-creator'
 import { WORMHOLE, WORLD_SIZE } from '../../data'
 import { EffectKind, EnemyKind, ProjectileOwner, ShipKind } from '../types'
-import { toroidalDistance } from '../math/toroid'
+import { toroidalDelta, toroidalDistance } from '../math/toroid'
 import { rng } from '../math/random'
 import type { EffectTickContext } from '../systems/effect-definition'
 
@@ -93,5 +99,33 @@ describe('applyWormholes', () => {
     const enemy = { ...createEnemy(EnemyKind.drone, { ...A }), vel: { x: 100, y: 0 } }
     const r = applyWormholes([], farShip(), [enemy], [], [], [])
     expect(r.enemies[0].pos).toEqual(A)
+  })
+})
+
+describe('wormholePairPositions', () => {
+  // Mid-world anchor: the pair never wraps, so toroidalDistance is the true separation.
+  const anchor = { x: 1300, y: 1300 }
+
+  it('separates the mouths wider than a mouth-exit reach, so no orientation cross-loops', () => {
+    const safeGap = 2 * WORMHOLE.maxRadius + WORMHOLE.exitMargin
+    for (let seed = 1; seed <= 50; seed++) {
+      rng.reseed(seed)
+      const { posA, posB } = wormholePairPositions(anchor)
+      const sep = toroidalDistance(posA, posB)
+      expect(sep).toBeGreaterThan(safeGap)
+      expect(sep).toBeGreaterThanOrEqual(WORMHOLE.separationMin)
+      expect(sep).toBeLessThan(WORMHOLE.separationMax)
+    }
+  })
+
+  it('orients the pair at a random angle, never the same stacked axis', () => {
+    const bearings = new Set<number>()
+    for (let seed = 1; seed <= 16; seed++) {
+      rng.reseed(seed)
+      const { posA, posB } = wormholePairPositions(anchor)
+      const d = toroidalDelta(posA, posB)
+      bearings.add(Math.round((Math.atan2(d.y, d.x) * 180) / Math.PI))
+    }
+    expect(bearings.size).toBeGreaterThan(10) // many distinct orientations, not one column
   })
 })

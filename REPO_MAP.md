@@ -266,7 +266,7 @@ src/projects/NullSpace/engine/calamities/
   nebula.ts                                  createNebula, nebulaAlphaAt, drawNebulaCloud, fogNebulasOf, nebulaEffect
   shockwave.ts                               createShockwaveEffect, shockwaveRadiusAt, shockwaveEffect
   wandering-black-hole.ts                    createWanderingBlackHole, wanderingRadiusAt, WanderingHoleResult, applyWanderingHoles, wanderingBlackHoleEffect
-  wormhole.ts                                createWormhole, wormholeRadiusAt, WormholeResult, applyWormholes, wormholeEffect
+  wormhole.ts                                createWormhole, wormholePairPositions, wormholeRadiusAt, WormholeResult, applyWormholes, wormholeEffect
 
 src/projects/NullSpace/engine/
   dev-tools.ts                               DevPatch, devPatchState, devJumpToUpgrades, devJumpToBoss, DevCalamity, devSpawnCalamity

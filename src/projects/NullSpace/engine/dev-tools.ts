@@ -11,7 +11,7 @@ import { createMine } from './calamities/hazards'
 import { createShockwaveEffect } from './calamities/shockwave'
 import { createWanderingBlackHole } from './calamities/wandering-black-hole'
 import { createNebula } from './calamities/nebula'
-import { createWormhole } from './calamities/wormhole'
+import { createWormhole, wormholePairPositions } from './calamities/wormhole'
 import { createAsteroid } from './calamities/asteroids'
 import { getAbilityCap, getLevel } from './upgrades'
 import { emptySpawnState } from './world/waves'
@@ -195,8 +195,10 @@ export function devSpawnCalamity(state: GameState, kind: DevCalamity): GameState
       return addEffect(createNebula(NebulaVariant.slow, ahead(120), towardShip(NEBULA.driftSpeed)))
     case DevCalamity.nebulaHaze:
       return addEffect(createNebula(NebulaVariant.haze, ahead(120), towardShip(NEBULA.driftSpeed)))
-    case DevCalamity.wormhole:
-      // A stationary pair straddling the ship — fly forward into one, out the other.
-      return addEffect(createWormhole(ahead(240), ahead(-300), { x: 0, y: 0 }))
+    case DevCalamity.wormhole: {
+      // A stationary pair at a random orientation near the ship — fly into one, out the other.
+      const { posA, posB } = wormholePairPositions(pos)
+      return addEffect(createWormhole(posA, posB, { x: 0, y: 0 }))
+    }
   }
 }

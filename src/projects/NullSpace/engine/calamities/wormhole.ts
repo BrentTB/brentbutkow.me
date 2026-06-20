@@ -1,5 +1,6 @@
 import { WORMHOLE } from '../../data'
 import { spawnExplosionParticles, uid } from '../entities/entity-creator'
+import { rng } from '../math/random'
 import { toroidalDelta, toroidalDistance, wrapPosition } from '../math/toroid'
 import { EffectKind } from '../types'
 import type {
@@ -38,6 +39,25 @@ export function createWormhole(posA: Vec2, posB: Vec2, vel: Vec2): WormholeEffec
     maxRadius: WORMHOLE.maxRadius,
     growDuration: WORMHOLE.growDuration,
   }
+}
+
+// Positions for a fresh pair near the ship: mouth A at a random bearing, mouth B at an
+// independent random angle from A and a bit further out. The separation is always wider
+// than a mouth's exit reach (2*maxRadius + exitMargin), so no orientation lets one mouth's
+// exit land inside the other — the pair can't cross-loop, however it ends up tilted.
+export function wormholePairPositions(shipPos: Vec2): { posA: Vec2; posB: Vec2 } {
+  const bearing = rng.next() * Math.PI * 2
+  const posA = wrapPosition({
+    x: shipPos.x + Math.cos(bearing) * WORMHOLE.spawnRangeNear,
+    y: shipPos.y + Math.sin(bearing) * WORMHOLE.spawnRangeNear,
+  })
+  const sepAngle = rng.next() * Math.PI * 2
+  const sep = rng.range(WORMHOLE.separationMin, WORMHOLE.separationMax)
+  const posB = wrapPosition({
+    x: posA.x + Math.cos(sepAngle) * sep,
+    y: posA.y + Math.sin(sepAngle) * sep,
+  })
+  return { posA, posB }
 }
 
 // Live mouth radius: swells startRadius → maxRadius over growDuration, then holds.

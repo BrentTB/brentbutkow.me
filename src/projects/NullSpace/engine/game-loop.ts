@@ -100,7 +100,7 @@ import { applyRadialDamage } from './calamities/calamity-damage'
 import { createShockwaveEffect, shockwaveRadiusAt } from './calamities/shockwave'
 import { applyWanderingHoles, createWanderingBlackHole } from './calamities/wandering-black-hole'
 import { createNebula } from './calamities/nebula'
-import { applyWormholes, createWormhole } from './calamities/wormhole'
+import { applyWormholes, createWormhole, wormholePairPositions } from './calamities/wormhole'
 import { buildNebulaField, enemyVisibleToPlayerSide, inZone } from './calamities/nebula-vision'
 import { advanceBossSelection, createBossSelection } from './bosses/boss-selection'
 import { updateBossAI } from './bosses/boss-ai'
@@ -1069,27 +1069,17 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
         ]
         calamityTimer = rng.range(NEBULA.intervalMin, NEBULA.intervalMax)
       } else if (rng.next() < WORMHOLE.weight) {
-        // Wormhole pair: mouth A near the ship, mouth B far + roughly opposite, so
-        // their exit-offsets can't land in each other (no cross-loop). It harms no
-        // one — the rifts growing in are its telegraph. The pair drifts together.
-        const angleB = angle + Math.PI + rng.range(-0.6, 0.6)
+        // Wormhole pair: mouth A near the ship, mouth B at a random angle from it (see
+        // wormholePairPositions — separation guarantees no cross-loop). It harms no one
+        // — the rifts growing in are its telegraph. The pair drifts together.
+        const { posA, posB } = wormholePairPositions(ship.pos)
         const driftAngle = rng.next() * Math.PI * 2
         activeEffects = [
           ...activeEffects,
-          createWormhole(
-            {
-              x: ship.pos.x + Math.cos(angle) * WORMHOLE.spawnRangeNear,
-              y: ship.pos.y + Math.sin(angle) * WORMHOLE.spawnRangeNear,
-            },
-            {
-              x: ship.pos.x + Math.cos(angleB) * WORMHOLE.spawnRangeFar,
-              y: ship.pos.y + Math.sin(angleB) * WORMHOLE.spawnRangeFar,
-            },
-            {
-              x: Math.cos(driftAngle) * WORMHOLE.driftSpeed,
-              y: Math.sin(driftAngle) * WORMHOLE.driftSpeed,
-            }
-          ),
+          createWormhole(posA, posB, {
+            x: Math.cos(driftAngle) * WORMHOLE.driftSpeed,
+            y: Math.sin(driftAngle) * WORMHOLE.driftSpeed,
+          }),
         ]
         calamityTimer = rng.range(WORMHOLE.intervalMin, WORMHOLE.intervalMax)
       } else if (rng.next() < CALAMITY.shockwaveShareOfRest) {

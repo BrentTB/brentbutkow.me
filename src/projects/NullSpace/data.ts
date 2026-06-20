@@ -521,8 +521,9 @@ export const WORMHOLE = {
   maxRadius: 90, // mouth radius — a body within this of either mouth teleports
   driftSpeed: 22, // the pair drifts together this fast
   exitMargin: 28, // placed this far beyond the exit mouth's rim, so it never instantly re-enters
-  spawnRangeNear: 320, // mouth A erupts this far from the ship
-  spawnRangeFar: 620, // mouth B erupts this far, ~opposite — far enough that exits can't cross-loop
+  spawnRangeNear: 320, // mouth A erupts this far from the ship, at a random bearing
+  separationMin: 560, // mouth B sits separationMin..Max from A at a random angle — always wider
+  separationMax: 780, // than 2*maxRadius+exitMargin, so no orientation lets an exit cross-loop
   intervalMin: 16, // seconds between wormholes (random within the range)
   intervalMax: 28,
   weight: 0.3, // share of non-nebula calamity rolls that pick a wormhole
