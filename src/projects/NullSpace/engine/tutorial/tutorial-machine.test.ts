@@ -59,13 +59,11 @@ describe('advanceTutorial — triggers', () => {
     expect(view.copy).toContain('on its own')
   })
 
-  it('advances an acknowledge beat only on a button press', () => {
-    const stay = advanceTutorial(atId('mineWarning'), signals({ realDt: 5 }))
-    expect(currentId(stay.state)).toBe('mineWarning')
-    expect(stay.awaitingAck).toBe(true)
-    expect(stay.ackLabel).toBe('Next')
-    const { state } = advanceTutorial(atId('mineWarning'), signals({ acknowledged: true }))
-    expect(currentId(state)).toBe('outro')
+  it('advances the mine beat once the ship takes damage (flew into the mine)', () => {
+    const stay = advanceTutorial(atId('mineHit'), signals({ shieldFraction: 1 }))
+    expect(currentId(stay.state)).toBe('mineHit')
+    const { state } = advanceTutorial(atId('mineHit'), signals({ shieldFraction: 0.6 }))
+    expect(currentId(state)).toBe('collectMetal')
   })
 
   it('advances the attack beat on a click and freezes until then', () => {
@@ -105,7 +103,7 @@ describe('advanceTutorial — triggers', () => {
     const stay = advanceTutorial(atId('useBlackHole'), signals({ swapAbilityUsed: false }))
     expect(currentId(stay.state)).toBe('useBlackHole')
     const { state } = advanceTutorial(atId('useBlackHole'), signals({ swapAbilityUsed: true }))
-    expect(currentId(state)).toBe('collectMetal')
+    expect(currentId(state)).toBe('mineHit')
   })
 
   it('advances the collect beat once space metal is picked up', () => {
@@ -119,7 +117,7 @@ describe('advanceTutorial — triggers', () => {
     const stay = advanceTutorial(atId('shieldRefresh'), signals({ shieldFraction: 0 }))
     expect(currentId(stay.state)).toBe('shieldRefresh')
     const { state } = advanceTutorial(atId('shieldRefresh'), signals({ shieldFraction: 1 }))
-    expect(currentId(state)).toBe('mineWarning')
+    expect(currentId(state)).toBe('outro')
   })
 })
 

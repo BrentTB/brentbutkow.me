@@ -39,7 +39,15 @@ import {
 import { UpgradeId } from './upgrade-ids'
 import { isUpgradeWave } from './upgrades'
 import { BOSS_KINDS } from './bosses/index'
-import { ANIMATION, ENEMY_STATS, POWER_DEFAULTS, WARP, WAVES_PER_LEVEL, WORLD_SIZE } from '../data'
+import {
+  ANIMATION,
+  ENEMY_STATS,
+  HAZARD,
+  POWER_DEFAULTS,
+  WARP,
+  WAVES_PER_LEVEL,
+  WORLD_SIZE,
+} from '../data'
 import { TELEKINESIS, SOLAR_FLARE } from './abilities/ability-data'
 
 beforeEach(() => {
@@ -93,6 +101,34 @@ describe('moveToShipSelection', () => {
     expect(next.phase).toBe(GamePhase.shipSelection)
     expect(next.enemies).toEqual([])
     expect(next.particles).toEqual([])
+  })
+})
+
+describe('calamities — kills count but pay nothing', () => {
+  // Locked rule: a mine/shockwave kill tallies and animates, but drops no score,
+  // currency, or loot — so hazards can't be farmed (mirrors ship-collision kills).
+  it('a mine kill increments kills without granting score, currency, or loot', () => {
+    const base = startGame(createInitialState(), ShipKind.fighter)
+    // A lone, near-dead enemy parked on a mine, far from the ship so only the mine
+    // can reach it. calamityTimer is parked high so no shockwave erupts this step.
+    const minePos = { x: base.ship.pos.x + 600, y: base.ship.pos.y }
+    const enemy = { ...createEnemy(EnemyKind.drone, { ...minePos }), hp: 1 }
+    const mine = {
+      id: 'm',
+      kind: HazardKind.mine,
+      pos: { ...minePos },
+      radius: HAZARD.mineRadius,
+      damage: HAZARD.mineDamage,
+    }
+    const state = { ...base, enemies: [enemy], hazards: [mine], calamityTimer: 999 }
+    const next = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
+
+    expect(next.enemies).toHaveLength(0) // the blast killed it
+    expect(next.hazards).toHaveLength(0) // single-use mine consumed
+    expect(next.kills).toBe(base.kills + 1) // the kill still counts
+    expect(next.score).toBe(state.score) // ...but no score
+    expect(next.currency).toBe(state.currency) // ...no currency
+    expect(next.collectibles).toHaveLength(0) // ...no loot
   })
 })
 

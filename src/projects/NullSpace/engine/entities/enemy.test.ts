@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { enemyFacing, updateEnemyMovement } from './enemy'
 import { createEnemy, createShip } from './entity-creator'
-import { EnemyKind, MovementBehavior, ShipKind } from '../types'
-import { WORLD_SIZE } from '../../data'
+import { EnemyKind, HazardKind, MovementBehavior, ShipKind } from '../types'
+import type { Hazard } from '../types'
+import { HAZARD, WORLD_SIZE } from '../../data'
 
 const ship = createShip(ShipKind.fighter, WORLD_SIZE)
 
@@ -36,7 +37,7 @@ describe('updateEnemyMovement — knockback coast', () => {
       movementBehavior: MovementBehavior.stationary,
       vel: { x: 200, y: 0 },
     }
-    const [moved] = updateEnemyMovement([enemy], ship, [], 0.1)
+    const [moved] = updateEnemyMovement([enemy], ship, [], [], 0.1)
     expect(moved.pos.x).toBeGreaterThan(500) // coasted outward
     expect(Math.abs(moved.vel.x)).toBeLessThan(200) // impulse decaying
     expect(moved.vel.x).toBeGreaterThan(0) // still heading out
@@ -48,8 +49,30 @@ describe('updateEnemyMovement — knockback coast', () => {
       movementBehavior: MovementBehavior.stationary,
       vel: { x: 0, y: 0 },
     }
-    const [moved] = updateEnemyMovement([enemy], ship, [], 0.1)
+    const [moved] = updateEnemyMovement([enemy], ship, [], [], 0.1)
     expect(moved.pos).toEqual({ x: 500, y: 500 })
     expect(moved.vel).toEqual({ x: 0, y: 0 })
+  })
+})
+
+describe('updateEnemyMovement — mine avoidance', () => {
+  // Enemies steer clear of mines so one only goes off when the player forces it in.
+  it('steers a resting enemy away from a nearby mine', () => {
+    const enemy = {
+      ...createEnemy(EnemyKind.drone, { x: 500, y: 500 }),
+      movementBehavior: MovementBehavior.stationary,
+      vel: { x: 0, y: 0 },
+    }
+    const mine: Hazard = {
+      id: 'm',
+      kind: HazardKind.mine,
+      pos: { x: 500 + HAZARD.mineRadius + 10, y: 500 },
+      radius: HAZARD.mineRadius,
+      damage: HAZARD.mineDamage,
+    }
+    const [moved] = updateEnemyMovement([enemy], ship, [], [mine], 0.1)
+    // The mine sits to its right, so the repulsion shoves it left.
+    expect(moved.vel.x).toBeLessThan(0)
+    expect(moved.pos.x).toBeLessThan(500)
   })
 })

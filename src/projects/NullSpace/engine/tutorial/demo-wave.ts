@@ -97,14 +97,13 @@ function tutorialMine(pos: Vec2): Hazard {
     pos,
     radius: HAZARD.mineRadius,
     damage: HAZARD.mineDamage,
-    hitCooldown: 0,
   }
 }
 
 // One-shot setup applied when a beat opens (the caller fires it once per step
 // transition; the guards also make it safe to re-run): drop a space metal pickup
-// ahead, break the shield so the refresh beat has something to restore, or place
-// a mine to point out. Frozen beats keep the ship off the mine.
+// ahead, place a mine in the ship's flight path to fly into, or park shield regen
+// so the mine's hit sticks until the player repairs it.
 export function applyTutorialStepEnter(state: GameState, step: TutorialStep): GameState {
   let next = state
   if (step.spawnsMetal && !next.collectibles.some((c) => c.kind === CollectibleKind.spaceMetal)) {
@@ -113,12 +112,14 @@ export function applyTutorialStepEnter(state: GameState, step: TutorialStep): Ga
       collectibles: [...next.collectibles, tutorialSpaceMetal(aheadOfShip(next, 110, 0))],
     }
   }
-  if (step.breaksShield) {
-    // shieldCooldownRemaining parks regen so the bar stays empty until refreshed.
-    next = { ...next, ship: { ...next.ship, shield: 0, shieldCooldownRemaining: 9999 } }
+  if (step.parksShieldRegen) {
+    // Park regen (no auto-heal) so the mine's hit to the shield sticks until the
+    // player spends space metal to repair it.
+    next = { ...next, ship: { ...next.ship, shieldCooldownRemaining: 9999 } }
   }
   if (step.spawnsMine && next.hazards.length === 0) {
-    next = { ...next, hazards: [...next.hazards, tutorialMine(aheadOfShip(next, 180, 70))] }
+    // Directly ahead, in the ship's flight path, so it flies into the mine.
+    next = { ...next, hazards: [...next.hazards, tutorialMine(aheadOfShip(next, 140, 0))] }
   }
   if (step.refillsPower) {
     next = { ...next, power: next.maxPower }

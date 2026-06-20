@@ -1,10 +1,10 @@
-import { ANIMATION, ENEMY_STATS } from '../../data'
+import { ANIMATION, ENEMY_STATS, HAZARD } from '../../data'
 import { distance } from '../math/collision'
 import { toroidalDelta } from '../math/toroid'
 import { createProjectile } from './entity-creator'
 import { tickDasher } from './dasher'
 import { MovementBehavior, ProjectileOwner } from '../types'
-import type { Ally, Enemy, Projectile, Ship, Vec2 } from '../types'
+import type { Ally, Enemy, Hazard, Projectile, Ship, Vec2 } from '../types'
 
 // Returns the position of the nearest entity to a given point (ship or any ally).
 export function findNearestTarget(pos: Vec2, ship: Ship, allies: Ally[]): Vec2 {
@@ -159,10 +159,37 @@ const MOVEMENT_FN: Record<MovementBehavior, MoveFn> = {
   [MovementBehavior.none]: moveNone,
 }
 
+// Enemies steer clear of mines by default, so an enemy only eats one when the
+// player forces it (a black hole, telekinesis, or a shove). Mirrors the
+// ally-avoidance repulsion: each nearby mine adds an outward push that fades with
+// distance, blended into the enemy's velocity after its own movement.
+function avoidHazards(enemy: Enemy, hazards: Hazard[], dt: number): Enemy {
+  if (hazards.length === 0) return enemy
+  let pushX = 0
+  let pushY = 0
+  for (const h of hazards) {
+    const { x: dx, y: dy } = toroidalDelta(h.pos, enemy.pos)
+    const d = Math.sqrt(dx * dx + dy * dy)
+    const avoidRadius = h.radius + HAZARD.avoidRadius
+    if (d < avoidRadius && d > 0.01) {
+      const weight = (1 - d / avoidRadius) * HAZARD.avoidWeight
+      pushX += (dx / d) * weight * enemy.speed
+      pushY += (dy / d) * weight * enemy.speed
+    }
+  }
+  if (pushX === 0 && pushY === 0) return enemy
+  return {
+    ...enemy,
+    pos: { x: enemy.pos.x + pushX * dt, y: enemy.pos.y + pushY * dt },
+    vel: { x: enemy.vel.x + pushX, y: enemy.vel.y + pushY },
+  }
+}
+
 export function updateEnemyMovement(
   enemies: Enemy[],
   ship: Ship,
   allies: Ally[],
+  hazards: Hazard[],
   dt: number,
   speedMult = 1
 ): Enemy[] {
@@ -172,7 +199,11 @@ export function updateEnemyMovement(
     // Stall-escalation scales movement speed without mutating the stored base:
     // run the MoveFn on a sped-up copy, then restore enemy.speed on the result.
     const forMove = speedMult === 1 ? enemy : { ...enemy, speed: enemy.speed * speedMult }
-    const moved = MOVEMENT_FN[enemy.movementBehavior](forMove, targetAsShip, dt)
+    const moved = avoidHazards(
+      MOVEMENT_FN[enemy.movementBehavior](forMove, targetAsShip, dt),
+      hazards,
+      dt
+    )
     return {
       ...moved,
       speed: enemy.speed,

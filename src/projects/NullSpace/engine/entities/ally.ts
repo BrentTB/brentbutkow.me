@@ -33,6 +33,14 @@ export function rollAllyWeapon(unlockedWeapons: HelperWeaponKind[]): HelperWeapo
   return unlockedWeapons.includes(slot) ? slot : HelperWeaponKind.bullet
 }
 
+// Allies have no shield — damage comes straight off HP. Mirrors applyDamageToEnemy's
+// shape so one call handles every source (enemy fire, melee, blasts, calamities). The
+// caller still reads `.hp <= 0` to detect death and filters the ally out.
+export function applyDamageToAlly(ally: Ally, damage: number): Ally {
+  if (damage <= 0) return ally
+  return { ...ally, hp: ally.hp - damage }
+}
+
 function allyOrbitTarget(ally: Ally, ship: Ship): Vec2 {
   // Per-ally phase from id hash; slowly drifts so each ally weaves around the
   // ship instead of locking to a fixed offset.

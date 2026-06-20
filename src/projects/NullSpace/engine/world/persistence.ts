@@ -1,4 +1,5 @@
 import type { GameState } from '../types'
+import { CALAMITY } from '../../data'
 import type { ChangelogEntry } from '../../data'
 
 const STORAGE_KEY = 'null-space-high-score'
@@ -202,9 +203,13 @@ export function loadGame(): SavedGame | null {
     if (!isSavedGame(parsed) || parsed.version !== SAVE_VERSION) return null
     // Backfill fields added after this save was written, so resuming an older
     // run doesn't start from `undefined` (which would become NaN once summed).
-    const savedState = parsed.state as Omit<GameState, 'kills' | 'salvageOfferUsed' | 'spawn'> & {
+    const savedState = parsed.state as Omit<
+      GameState,
+      'kills' | 'salvageOfferUsed' | 'spawn' | 'calamityTimer'
+    > & {
       kills?: number
       salvageOfferUsed?: boolean
+      calamityTimer?: number
       spawn?: GameState['spawn']
       // Legacy flat spawn fields (pre-grouping saves) — migrated into `spawn`.
       waveTimer?: number
@@ -228,6 +233,7 @@ export function loadGame(): SavedGame | null {
         ...savedState,
         kills: savedState.kills ?? 0,
         salvageOfferUsed: savedState.salvageOfferUsed ?? false,
+        calamityTimer: savedState.calamityTimer ?? CALAMITY.shockwaveIntervalMin,
         spawn,
       },
     }

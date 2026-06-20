@@ -317,6 +317,7 @@ export const EffectKind = {
   eventHorizon: 'eventHorizon',
   repulseField: 'repulseField',
   cometStorm: 'cometStorm',
+  shockwave: 'shockwave',
 } as const
 export type EffectKind = (typeof EffectKind)[keyof typeof EffectKind]
 
@@ -456,6 +457,20 @@ export type CometStormEffect = EffectBase & {
   cometAoeRadius: number
 }
 
+// Shockwave calamity. After a `delay` telegraph, an expanding front grows from
+// `startRadius` to `maxRadius` over `growDuration`, dealing one-time damage to
+// everyone it sweeps (strongest at the centre). The damage is applied in the
+// main loop's calamity pass (it needs ship + allies, which the effect tick does
+// not carry); the effect itself only ages and renders.
+export type ShockwaveEffect = EffectBase & {
+  kind: typeof EffectKind.shockwave
+  delay: number
+  startRadius: number
+  maxRadius: number
+  growDuration: number
+  baseDamage: number
+}
+
 export type ActiveEffect =
   | MeteorStrikeEffect
   | BlackHoleEffect
@@ -468,6 +483,7 @@ export type ActiveEffect =
   | EventHorizonEffect
   | RepulseFieldEffect
   | CometStormEffect
+  | ShockwaveEffect
 
 export const CollectibleKind = {
   powerOrb: 'powerOrb',
@@ -490,8 +506,9 @@ export type Collectible = {
   homing: boolean
 }
 
-// Static hazard scattered across the world. Damages the ship on overlap (per-hazard debounce),
-// but is NOT an enemy — it never blocks wave completion.
+// A mine scattered across the world. Single-use: the first entity to touch it detonates it,
+// dealing blast damage to everyone (ship, enemies, allies) nearby. NOT an enemy — it never
+// blocks wave completion.
 export const HazardKind = { mine: 'mine' } as const
 export type HazardKind = (typeof HazardKind)[keyof typeof HazardKind]
 
@@ -499,10 +516,9 @@ export type Hazard = {
   id: string
   kind: HazardKind
   pos: Vec2
+  // Trigger radius — an entity this close sets the mine off.
   radius: number
   damage: number
-  // Seconds until this hazard can hit the ship again (0 = ready).
-  hitCooldown: number
 }
 
 export type Ally = {
@@ -701,6 +717,9 @@ export type GameState = {
   // Seconds left in the warp screen flash. 0 during the fly-into-portal flight;
   // set once the ship reaches the portal, then the jump completes when it hits 0.
   warpFlashTimer: number
+  // Seconds until the next ambient calamity (a Shockwave) erupts. Counts down
+  // only on non-boss waves; rerolled after each eruption.
+  calamityTimer: number
 
   // --- Wave spawning ---
   spawn: SpawnState
