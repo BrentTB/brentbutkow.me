@@ -9,6 +9,7 @@ const mockRes = (body: unknown) => ({ ok: true, status: 200, json: async () => b
 const empty: RecallFilterValues = {
   category: '',
   classification: '',
+  severity: '',
   state: '',
   company: '',
   source: '',
@@ -59,6 +60,14 @@ describe('RecallFilters', () => {
     fireEvent.click(screen.getByLabelText('Source')) // open the source dropdown
     fireEvent.click(screen.getByText('USDA FSIS'))
     expect(onChange).toHaveBeenCalledWith({ source: 'usda' })
+  })
+
+  it('reports a chosen severity band through the Select', () => {
+    const onChange = vi.fn()
+    renderFilters({ onChange })
+    fireEvent.click(screen.getByLabelText('Severity')) // open the severity dropdown
+    fireEvent.click(screen.getByText('Severe'))
+    expect(onChange).toHaveBeenCalledWith({ severity: 'severe' })
   })
 
   it('shows UK classifications and hides the source filter for the UK', () => {

@@ -36,6 +36,7 @@ import {
   isRecallCountry,
   isRecallSort,
   isRecallSource,
+  isSeverityLabel,
   isTrendGroup,
   isIsoDate,
   type RecallFilterValues,
@@ -49,6 +50,7 @@ import styles from './RecallRadar.module.scss'
 const EMPTY_FILTERS: RecallFilterValues = {
   category: '',
   classification: '',
+  severity: '',
   state: '',
   company: '',
   source: '',
@@ -84,6 +86,7 @@ export function RecallRadar() {
   const filters: RecallFilterValues = {
     category: isRecallCategory(values.category) ? values.category : '',
     classification: isRecallClass(values.classification) ? values.classification : '',
+    severity: isSeverityLabel(values.severity) ? values.severity : '',
     state: values.state,
     company: values.company,
     source: isRecallSource(values.source) ? values.source : '',
@@ -109,6 +112,7 @@ export function RecallRadar() {
     country,
     category: filters.category || undefined,
     classification: filters.classification || undefined,
+    severity: filters.severity || undefined,
     state: filters.state || undefined,
     company: filters.company || undefined,
     source: filters.source || undefined,

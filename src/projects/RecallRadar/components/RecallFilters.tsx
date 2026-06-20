@@ -1,9 +1,17 @@
-import { categoryLabels, classesByCountry, sourceLabels, sourcesByCountry } from '../data'
+import {
+  categoryLabels,
+  classesByCountry,
+  severityLabels,
+  severityOrder,
+  sourceLabels,
+  sourcesByCountry,
+} from '../data'
 import {
   RecallCategory,
   isRecallCategory,
   isRecallClass,
   isRecallSource,
+  isSeverityLabel,
   type RecallCountry,
   type RecallFilterValues,
 } from '../recall.types'
@@ -57,6 +65,12 @@ export function RecallFilters({
       label: filters.classification,
       patch: { classification: '' },
     })
+  if (filters.severity)
+    chips.push({
+      key: 'severity',
+      label: `${severityLabels[filters.severity]} severity`,
+      patch: { severity: '' },
+    })
   if (filters.source)
     chips.push({ key: 'source', label: sourceLabels[filters.source], patch: { source: '' } })
   if (filters.state) chips.push({ key: 'state', label: filters.state, patch: { state: '' } })
@@ -85,6 +99,10 @@ export function RecallFilters({
   const classificationOptions: SelectOption[] = [
     ALL,
     ...classOptions.map((value) => ({ value, label: value })),
+  ]
+  const severityOptions: SelectOption[] = [
+    ALL,
+    ...severityOrder.map((value) => ({ value, label: severityLabels[value] })),
   ]
   const sourceFilterOptions: SelectOption[] = [
     ALL,
@@ -121,6 +139,16 @@ export function RecallFilters({
             value={filters.classification}
             options={classificationOptions}
             onChange={(value) => onChange({ classification: isRecallClass(value) ? value : '' })}
+          />
+        </div>
+
+        <div className={styles.field}>
+          <span className={styles.label}>Severity</span>
+          <Select
+            ariaLabel="Severity"
+            value={filters.severity}
+            options={severityOptions}
+            onChange={(value) => onChange({ severity: isSeverityLabel(value) ? value : '' })}
           />
         </div>
 
