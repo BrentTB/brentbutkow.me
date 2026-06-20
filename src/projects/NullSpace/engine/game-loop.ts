@@ -643,6 +643,7 @@ function settleKilledAsteroids(
   collectibles: Collectible[],
   particles: Particle[]
 ): { asteroids: Asteroid[]; collectibles: Collectible[]; particles: Particle[] } {
+  if (killed.length === 0) return { asteroids, collectibles, particles }
   let nextAsteroids = asteroids
   let nextCollectibles = collectibles
   let nextParticles = particles
@@ -935,17 +936,12 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   projectiles = projAsteroid.projectiles
   asteroids = projAsteroid.asteroids
   particles = [...particles, ...projAsteroid.particles]
-  if (projAsteroid.killedAsteroids.length > 0) {
-    const settled = settleKilledAsteroids(
-      projAsteroid.killedAsteroids,
-      asteroids,
-      collectibles,
-      particles
-    )
-    asteroids = settled.asteroids
-    collectibles = settled.collectibles
-    particles = settled.particles
-  }
+  ;({ asteroids, collectibles, particles } = settleKilledAsteroids(
+    projAsteroid.killedAsteroids,
+    asteroids,
+    collectibles,
+    particles
+  ))
 
   // --- Collision: enemy projectiles vs ship ---
   const enemyProjResult = resolveEnemyProjectileShipCollisions(projectiles, ship)
@@ -983,17 +979,12 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   const effectAsteroids = applyEffectsToAsteroids(effectsThisFrame, asteroids, dt)
   asteroids = effectAsteroids.asteroids
   particles = [...particles, ...effectAsteroids.particles]
-  if (effectAsteroids.killedAsteroids.length > 0) {
-    const settled = settleKilledAsteroids(
-      effectAsteroids.killedAsteroids,
-      asteroids,
-      collectibles,
-      particles
-    )
-    asteroids = settled.asteroids
-    collectibles = settled.collectibles
-    particles = settled.particles
-  }
+  ;({ asteroids, collectibles, particles } = settleKilledAsteroids(
+    effectAsteroids.killedAsteroids,
+    asteroids,
+    collectibles,
+    particles
+  ))
 
   // Asteroids drift + bounce off each other, then chip everyone they touch
   // (debounced per-rock). Their enemy kills also ride the death pipeline, no score.
@@ -1007,17 +998,12 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   calamityKilled.push(...asteroidContact.killedEnemies)
   // A rock worn down by its own collisions shatters like any other kill — split +
   // explode, but no loot (the bump damage was non-player, so playerInteracted gates it out).
-  if (asteroidContact.killedAsteroids.length > 0) {
-    const settled = settleKilledAsteroids(
-      asteroidContact.killedAsteroids,
-      asteroids,
-      collectibles,
-      particles
-    )
-    asteroids = settled.asteroids
-    collectibles = settled.collectibles
-    particles = settled.particles
-  }
+  ;({ asteroids, collectibles, particles } = settleKilledAsteroids(
+    asteroidContact.killedAsteroids,
+    asteroids,
+    collectibles,
+    particles
+  ))
 
   // Calamity scheduler: on non-boss waves, periodically erupt a telegraphed
   // shock-ring or a drifting wandering black hole near the ship (rings are the
@@ -1107,17 +1093,12 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   projectiles = wandering.projectiles
   particles = [...particles, ...wandering.particles]
   calamityKilled.push(...wandering.killedEnemies)
-  if (wandering.killedAsteroids.length > 0) {
-    const settled = settleKilledAsteroids(
-      wandering.killedAsteroids,
-      asteroids,
-      collectibles,
-      particles
-    )
-    asteroids = settled.asteroids
-    collectibles = settled.collectibles
-    particles = settled.particles
-  }
+  ;({ asteroids, collectibles, particles } = settleKilledAsteroids(
+    wandering.killedAsteroids,
+    asteroids,
+    collectibles,
+    particles
+  ))
 
   // --- Collision: enemies vs allies (melee — enemy dies, ally takes damage) ---
   const allyMeleeResult = resolveEnemyAllyMeleeCollisions(enemies, allies)

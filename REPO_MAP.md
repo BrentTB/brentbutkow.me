@@ -228,7 +228,7 @@ src/projects/NullSpace/engine/abilities/
   fireworks.ts                               FIREWORKS_UPGRADE_IDS, fireworks
   force-field-render.ts                      drawForceField
   force-field.ts                             FORCE_FIELD_UPGRADE_IDS, createForceFieldEffect, getForceFieldCurrentRadius, forceFieldEffect, forceField
-  gravity-pull.ts                            GravityWell, BanishConfig, GravityWellResult, gravityWellDisplacement, applyGravityWell
+  gravity-pull.ts                            GravityWell, BanishConfig, GravityWellResult, gravityWellDisplacement, gravityWellBurn, gravityWellImpulse, applyGravityWell
   helper-factory.ts                          HELPER_FACTORY_UPGRADE_IDS, helperFactory
   helper.ts                                  HELPER_UPGRADE_IDS, helper
   hold-runtime.ts                            HoldRenderFn, INACTIVE_HOLD_STATE, HoldBag, HoldAbilityConfig, runHoldAbility

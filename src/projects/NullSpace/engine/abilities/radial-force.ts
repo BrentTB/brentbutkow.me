@@ -29,7 +29,6 @@ export function radialForceDisplacement(
     x <= PLATEAU
       ? peakForce
       : peakForce * 0.5 * (Math.cos(Math.PI * ((x - PLATEAU) / (1 - PLATEAU))) + 1)
-  if (force === 0) return { x: 0, y: 0 }
   const step = force * dt * (mode === RadialForceMode.pull ? 1 : -1)
   return { x: (dx / dist) * step, y: (dy / dist) * step }
 }

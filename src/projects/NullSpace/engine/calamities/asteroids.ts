@@ -1,7 +1,6 @@
 import { ASTEROID } from '../../data'
 import { applyRadialDamage } from './calamity-damage'
-import { gravityWellDisplacement } from '../abilities/gravity-pull'
-import { impartAsteroidImpulse } from '../abilities/radial-force'
+import { gravityWellBurn, gravityWellImpulse } from '../abilities/gravity-pull'
 import { getSupernovaState } from '../abilities/supernova'
 import { spawnExplosionParticles, uid } from '../entities/entity-creator'
 import { segmentIntersectsCircle } from '../math/collision'
@@ -344,9 +343,12 @@ export function applyEffectsToAsteroids(
         working = working.map((a) => {
           const dist = toroidalDistance(a.pos, effect.pos)
           if (dist > effect.radius) return a
-          const moved = impartAsteroidImpulse(a, gravityWellDisplacement(a.pos, effect, dt))
-          const ratio = Math.max(0, 1 - dist / effect.radius)
-          return damageAsteroid(moved, effect.damage * (0.5 + ratio * 1.5) * dt, true)
+          const moved = gravityWellImpulse(a, effect, dt)
+          return damageAsteroid(
+            moved,
+            gravityWellBurn(effect.damage, dist, effect.radius, dt),
+            true
+          )
         })
         break
       }

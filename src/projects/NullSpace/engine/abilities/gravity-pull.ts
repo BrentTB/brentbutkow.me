@@ -1,9 +1,10 @@
 import { canEnemyTakeDamage } from '../bosses/index'
 import { applyDamageToEnemy } from '../entities/enemy-damage'
 import { spawnExplosionParticles } from '../entities/entity-creator'
+import { impartAsteroidImpulse } from './radial-force'
 import { toroidalDelta, wrapPosition } from '../math/toroid'
 import { rng } from '../math/random'
-import type { Enemy, Particle, Vec2 } from '../types'
+import type { Asteroid, Enemy, Particle, Vec2 } from '../types'
 
 // A gravity well that spirals enemies inward and burns them while they're caught.
 // Shared by Black Hole and Event Horizon (which adds the core banish).
@@ -66,6 +67,21 @@ export function gravityWellDisplacement(pos: Vec2, well: GravityWell, dt: number
   }
 }
 
+// Per-second core burn a gravity well deals at `dist` from its centre — flat-ish at
+// the rim, ramping up toward the core. Shared by Black Hole spirals, the wandering
+// well's blast, and asteroid damage.
+export function gravityWellBurn(damage: number, dist: number, radius: number, dt: number): number {
+  const ratio = Math.max(0, 1 - dist / radius)
+  return damage * (0.5 + ratio * 1.5) * dt
+}
+
+// A gravity well's spiral applied to an asteroid as a velocity impulse — it keeps
+// drifting after the well passes (vs the position nudge enemies get). Neutral: the
+// loot flag is set by the damage pass, not the shove.
+export function gravityWellImpulse(a: Asteroid, well: GravityWell, dt: number): Asteroid {
+  return impartAsteroidImpulse(a, gravityWellDisplacement(a.pos, well, dt))
+}
+
 export function applyGravityWell(
   enemies: Enemy[],
   well: GravityWell,
@@ -107,8 +123,7 @@ export function applyGravityWell(
 
     const { x: spiralX, y: spiralY } = gravityWellDisplacement(enemy.pos, well, dt)
 
-    const distRatio = Math.max(0, 1 - dist / well.radius)
-    const damageThisTick = damageable ? well.damage * (0.5 + distRatio * 1.5) * dt : 0
+    const damageThisTick = damageable ? gravityWellBurn(well.damage, dist, well.radius, dt) : 0
 
     const moved = {
       ...applyDamageToEnemy(enemy, damageThisTick),

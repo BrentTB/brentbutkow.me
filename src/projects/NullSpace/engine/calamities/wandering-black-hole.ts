@@ -1,9 +1,12 @@
 import { CALAMITY } from '../../data'
 import { applyRadialDamage } from './calamity-damage'
 import { damageAsteroid } from './asteroids'
-import { gravityWellDisplacement } from '../abilities/gravity-pull'
+import {
+  gravityWellBurn,
+  gravityWellDisplacement,
+  gravityWellImpulse,
+} from '../abilities/gravity-pull'
 import type { GravityWell } from '../abilities/gravity-pull'
-import { impartAsteroidImpulse } from '../abilities/radial-force'
 import { uid } from '../entities/entity-creator'
 import { toroidalDistance, wrapPosition } from '../math/toroid'
 import { EffectKind } from '../types'
@@ -63,12 +66,6 @@ function tickWanderingBlackHole(
   return passThroughTick(drifted, ctx)
 }
 
-// Per-second damage at a distance from the core — flat-ish at the rim, ramping in.
-function coreDamage(well: { damage: number; radius: number }, dist: number, dt: number): number {
-  const ratio = Math.max(0, 1 - dist / well.radius)
-  return well.damage * (0.5 + ratio * 1.5) * dt
-}
-
 function pull<T extends { pos: Vec2 }>(bodies: T[], well: GravityWell, dt: number): T[] {
   return bodies.map((b) => {
     const d = gravityWellDisplacement(b.pos, well, dt)
@@ -126,15 +123,13 @@ export function applyWanderingHoles(
     curProjectiles = pull(curProjectiles, well, dt)
     // Asteroids gain momentum (not just a position nudge), so they keep drifting
     // after the well wanders off — flung, not merely shoved while it overlaps.
-    curAsteroids = curAsteroids.map((a) =>
-      impartAsteroidImpulse(a, gravityWellDisplacement(a.pos, well, dt))
-    )
+    curAsteroids = curAsteroids.map((a) => gravityWellImpulse(a, well, dt))
 
     const blast = applyRadialDamage(
       well.pos,
       0,
       radius,
-      (dist) => coreDamage(well, dist, dt),
+      (dist) => gravityWellBurn(well.damage, dist, well.radius, dt),
       curShip,
       curEnemies,
       curAllies,
@@ -148,7 +143,9 @@ export function applyWanderingHoles(
 
     curAsteroids = curAsteroids.map((a) => {
       const dist = toroidalDistance(a.pos, well.pos)
-      return dist <= radius ? damageAsteroid(a, coreDamage(well, dist, dt), false) : a
+      return dist <= radius
+        ? damageAsteroid(a, gravityWellBurn(well.damage, dist, well.radius, dt), false)
+        : a
     })
   }
 

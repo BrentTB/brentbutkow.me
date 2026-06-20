@@ -5,8 +5,8 @@ import { LeaderboardScreen } from './LeaderboardScreen'
 vi.mock('../leaderboard/useLeaderboard', () => ({
   useLeaderboard: () => ({
     data: [
-      { id: '1', name: 'AAA', wave: 5, score: 1000 },
-      { id: '2', name: 'BBB', wave: 3, score: 500 },
+      { id: 1, name: 'AAA', wave: 5, score: 1000 },
+      { id: 2, name: 'BBB', wave: 3, score: 500 },
     ],
     loading: false,
     error: null,

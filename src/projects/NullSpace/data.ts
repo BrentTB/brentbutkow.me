@@ -311,10 +311,10 @@ export const DASHER = {
 } as const
 
 // Soft stall-escalation. A wave runs at normal speed through gracePeriod, then
-// surviving enemies speed up (rampPerSec per second, capped at maxMult) the longer
-// it drags — so parking and watching enemies trail the ship gets steadily worse.
-// The cap keeps even escalated enemies under a slingshot fling (600), so the
-// player can always break away.
+// surviving enemies jump by initialStep the instant it ends and keep speeding up
+// (rampPerSec per second, capped at maxMult) the longer it drags — so parking and
+// watching enemies trail the ship gets steadily worse. The cap keeps even escalated
+// enemies under a slingshot fling (600), so the player can always break away.
 export const WAVE_ESCALATION = {
   gracePeriod: 20,
   // Boss waves are meant to be long fights, so they get a much longer grace
