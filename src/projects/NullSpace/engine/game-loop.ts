@@ -1,6 +1,7 @@
 import {
   ANIMATION,
   BOSS_LEVEL_INTERVAL,
+  CALAMITY,
   FORWARD_DIR,
   HAZARD,
   PARTICLE_DEFAULTS,
@@ -82,14 +83,16 @@ import {
 import { purchaseUltimate } from './ultimates'
 import { emptySpawnState, getWave, getWaveDelay, isBossWave } from './world/waves'
 import { waveSpeedEscalation } from './world/wave-escalation'
-import { generateHazardField, updateHazards } from './systems/hazards'
+import { generateHazardField, updateHazards } from './calamities/hazards'
+import { applyRadialDamage } from './calamities/calamity-damage'
+import { createShockwaveEffect, shockwaveRadiusAt } from './calamities/shockwave'
 import { advanceBossSelection, createBossSelection } from './bosses/boss-selection'
 import { updateBossAI } from './bosses/boss-ai'
 import { loadHighScore, saveHighScore } from './world/persistence'
 import { rng } from './math/random'
 import { toroidalDelta, wrapPosition } from './math/toroid'
 import { getHelperWeaponForUnlockUpgrade, HELPER_WEAPON_LIST } from './weapons'
-import { CollectibleKind, GamePhase, ShipKind, HelperWeaponKind } from './types'
+import { CollectibleKind, EffectKind, GamePhase, ShipKind, HelperWeaponKind } from './types'
 import type { AbilityKind, GameState, PlayerInput, Vec2 } from './types'
 import type { UpgradeId } from './upgrade-ids'
 
@@ -132,6 +135,7 @@ export function createInitialState(): GameState {
     portalPos: { x: WORLD_SIZE.x / 2, y: WORLD_SIZE.y },
     warpTimer: 0,
     warpFlashTimer: 0,
+    calamityTimer: CALAMITY.shockwaveIntervalMin,
     hazards: [],
     spawn: emptySpawnState(),
     holdStates: {},
@@ -196,6 +200,7 @@ export function startGame(state: GameState, shipKind: ShipKind): GameState {
     portalPos: { x: WORLD_SIZE.x / 2, y: WORLD_SIZE.y },
     warpTimer: 0,
     warpFlashTimer: 0,
+    calamityTimer: CALAMITY.shockwaveIntervalMin,
     hazards: [],
     spawn: emptySpawnState(),
     highScore: loadHighScore(),
@@ -622,6 +627,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     spaceMetal,
     singularityShard,
     hazards,
+    calamityTimer,
   } = state
   // Spawn bookkeeping lives in state.spawn; alias to flat locals so the loop body
   // and the spawner interface stay unchanged, then rebuild state.spawn on return.
@@ -771,7 +777,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   projectiles = enemyFireResult.projectiles
 
   // --- Enemy movement (pursues nearest of ship or ally) ---
-  enemies = updateEnemyMovement(enemies, ship, allies, dt, waveSpeedMult)
+  enemies = updateEnemyMovement(enemies, ship, allies, hazards, dt, waveSpeedMult)
   // Repulse fields ride the ship: re-centre them on its final position this frame
   // so the knockback below (and the render) don't trail a frame behind its movement.
   activeEffects = recentreRepulseFields(activeEffects, ship.pos)
@@ -868,12 +874,65 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   ship = shipCollision.ship
   particles = [...particles, ...shipCollision.particles]
 
-  // --- Hazards (scattered mines) ---
-  // Routed through applyDamageToShip, so an Escape-Mode dash across is free.
-  const hazardResult = updateHazards(hazards, ship, dt)
+  // --- Calamities (neutral world hazards that damage everyone) ---
+  // Mines detonate on contact, blasting ship + enemies + allies through the
+  // shared radial primitive (Escape-Mode immunity + shields handled inside it).
+  // Calamity kills count toward `kills` but drop no score/currency/loot, so they
+  // can't be farmed — they ride the death pipeline below, not the reward tallies.
+  const calamityKilled: typeof enemies = []
+  const hazardResult = updateHazards(hazards, ship, enemies, allies)
   hazards = hazardResult.hazards
-  if (hazardResult.shipDamage > 0) {
-    ship = applyDamageToShip(ship, hazardResult.shipDamage)
+  ship = hazardResult.ship
+  enemies = hazardResult.enemies
+  allies = hazardResult.allies
+  particles = [...particles, ...hazardResult.particles]
+  calamityKilled.push(...hazardResult.killedEnemies)
+
+  // Shockwave scheduler: on non-boss waves, periodically erupt a telegraphed
+  // shock-ring near the ship. Boss fights are left undisturbed.
+  if (!isBossWave(state.wave)) {
+    calamityTimer -= dt
+    if (calamityTimer <= 0) {
+      const angle = rng.next() * Math.PI * 2
+      const spawnDist = rng.range(CALAMITY.shockwaveSpawnRange * 0.4, CALAMITY.shockwaveSpawnRange)
+      activeEffects = [
+        ...activeEffects,
+        createShockwaveEffect({
+          x: ship.pos.x + Math.cos(angle) * spawnDist,
+          y: ship.pos.y + Math.sin(angle) * spawnDist,
+        }),
+      ]
+      calamityTimer = rng.range(CALAMITY.shockwaveIntervalMin, CALAMITY.shockwaveIntervalMax)
+    }
+  }
+
+  // Shockwave damage: the expanding front hits only the annulus it swept this
+  // frame (prev→curr radius), so each entity takes one centre-weighted hit as the
+  // ring passes — strongest near the origin, weakest at the rim.
+  for (const effect of activeEffects) {
+    if (effect.kind !== EffectKind.shockwave || effect.elapsed < effect.delay) continue
+    const outer = shockwaveRadiusAt(effect, effect.elapsed)
+    const inner = shockwaveRadiusAt(effect, effect.elapsed - dt)
+    if (outer <= inner) continue
+    const blast = applyRadialDamage(
+      effect.pos,
+      inner,
+      outer,
+      (d) => {
+        const ratio = Math.max(0, 1 - d / effect.maxRadius)
+        const frac = CALAMITY.shockwaveEdgeFraction
+        return effect.baseDamage * (frac + (1 - frac) * ratio)
+      },
+      ship,
+      enemies,
+      allies,
+      '#ffb347'
+    )
+    ship = blast.ship
+    enemies = blast.enemies
+    allies = blast.allies
+    particles = [...particles, ...blast.particles]
+    calamityKilled.push(...blast.killedEnemies)
   }
 
   // --- Collision: enemies vs allies (melee — enemy dies, ally takes damage) ---
@@ -892,6 +951,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     ...allyMeleeResult.killedEnemies,
     ...holdKilledEnemies,
     ...burnKilledEnemies,
+    ...calamityKilled,
   ]
   if (killedForDeathEffects.length > 0) {
     const deathResult = resolveDeathEffects(killedForDeathEffects, ship, allies, activeEffects)
@@ -1051,6 +1111,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
         elapsed: waveElapsed,
       },
       holdStates: {},
+      calamityTimer,
       escapeTrailAccumulator,
     }
   }
@@ -1085,6 +1146,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       },
       holdStates: {},
       hazards,
+      calamityTimer,
       escapeTrailAccumulator,
     }
     // Sector cleared (every 3rd wave) → warp first; the shop opens once the warp
@@ -1119,6 +1181,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     },
     holdStates,
     hazards,
+    calamityTimer,
     escapeTrailAccumulator,
   }
 }

@@ -12,6 +12,7 @@ import { forceFieldEffect } from '../abilities/force-field'
 import { nuclearWasteEffect } from '../weapons/nuke'
 import { repulseFieldEffect } from '../spaceMetalAbilities/repulse'
 import { cometStormEffect } from '../spaceMetalAbilities/comet-storm'
+import { shockwaveEffect } from '../calamities/shockwave'
 
 // Registry: each effect's owner file (ability or helper weapon) declares an
 // EffectDefinition — tick + optional world-layer renderers — and registers it
@@ -32,6 +33,7 @@ export const EFFECT_DEFINITIONS: Record<EffectKind, EffectDefinition> = {
   [EffectKind.nuclearWaste]: nuclearWasteEffect,
   [EffectKind.repulseField]: repulseFieldEffect,
   [EffectKind.cometStorm]: cometStormEffect,
+  [EffectKind.shockwave]: shockwaveEffect,
 }
 
 export function updateActiveEffects(

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { rollAllyWeapon, updateAllies } from './ally'
+import { applyDamageToAlly, rollAllyWeapon, updateAllies } from './ally'
 import { createAlly, createEnemy, createShip } from './entity-creator'
 import { EnemyKind, ShipKind, HelperWeaponKind } from '../types'
 import { WORLD_SIZE } from '../../data'
@@ -61,5 +61,23 @@ describe('allies fire their rolled weapon', () => {
     expect(nuke.projectiles.length).toBeGreaterThan(0)
     // Nuke's low fireRateMultiplier means a much longer post-fire cooldown.
     expect(nuke.allies[0].fireCooldown).toBeGreaterThan(bulletCooldown)
+  })
+})
+
+describe('applyDamageToAlly', () => {
+  it('subtracts damage straight off hp (allies have no shield)', () => {
+    const ally = createAlly({ x: 0, y: 0 })
+    expect(applyDamageToAlly(ally, 10).hp).toBe(ally.hp - 10)
+  })
+
+  it('ignores non-positive damage', () => {
+    const ally = createAlly({ x: 0, y: 0 })
+    expect(applyDamageToAlly(ally, 0)).toBe(ally)
+    expect(applyDamageToAlly(ally, -5)).toBe(ally)
+  })
+
+  it('can drive hp to zero or below — the caller filters the death', () => {
+    const ally = createAlly({ x: 0, y: 0 })
+    expect(applyDamageToAlly(ally, ally.hp + 50).hp).toBeLessThanOrEqual(0)
   })
 })

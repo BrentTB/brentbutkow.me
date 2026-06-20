@@ -166,7 +166,7 @@ describe('Dreadnought movement — approach then hold', () => {
       pos: { x: CENTER.x + 1000, y: CENTER.y },
     }
     const before = distance(boss.pos, ship.pos)
-    const [moved] = updateEnemyMovement([boss], ship, [], 0.1)
+    const [moved] = updateEnemyMovement([boss], ship, [], [], 0.1)
     expect(distance(moved.pos, ship.pos)).toBeLessThan(before)
   })
 
@@ -177,7 +177,7 @@ describe('Dreadnought movement — approach then hold', () => {
       ...createShip(ShipKind.fighter, WORLD_SIZE),
       pos: { x: CENTER.x + 100, y: CENTER.y },
     }
-    const [moved] = updateEnemyMovement([boss], ship, [], 0.1)
+    const [moved] = updateEnemyMovement([boss], ship, [], [], 0.1)
     expect(moved.vel.x).toBe(0)
     expect(moved.vel.y).toBe(0)
     expect(moved.pos).toEqual(CENTER)

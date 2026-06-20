@@ -1,10 +1,10 @@
-import { ANIMATION, ENEMY_STATS } from '../../data'
+import { ANIMATION, ENEMY_STATS, HAZARD } from '../../data'
 import { distance } from '../math/collision'
 import { toroidalDelta } from '../math/toroid'
 import { createProjectile } from './entity-creator'
 import { tickDasher } from './dasher'
 import { MovementBehavior, ProjectileOwner } from '../types'
-import type { Ally, Enemy, Projectile, Ship, Vec2 } from '../types'
+import type { Ally, Enemy, Hazard, Projectile, Ship, Vec2 } from '../types'
 
 // Returns the position of the nearest entity to a given point (ship or any ally).
 export function findNearestTarget(pos: Vec2, ship: Ship, allies: Ally[]): Vec2 {
@@ -159,10 +159,65 @@ const MOVEMENT_FN: Record<MovementBehavior, MoveFn> = {
   [MovementBehavior.none]: moveNone,
 }
 
+// Enemies steer around mines by blending a dominant tangential bend (arcs past a
+// mine ahead, avoiding the ugly orbit a pure radial push settles into) with a
+// gentler always-on radial push-out that ramps up close. Parked enemies (no
+// heading) skip it — they only eat a mine when the player forces them in.
+function avoidHazards(enemy: Enemy, hazards: Hazard[], dt: number): Enemy {
+  if (hazards.length === 0) return enemy
+  const speed = Math.hypot(enemy.vel.x, enemy.vel.y)
+  if (speed < 0.01) return enemy
+
+  const headingX = enemy.vel.x / speed
+  const headingY = enemy.vel.y / speed
+  let steerX = 0
+  let steerY = 0
+  for (const h of hazards) {
+    const { x: dx, y: dy } = toroidalDelta(enemy.pos, h.pos) // enemy → mine
+    const d = Math.hypot(dx, dy)
+    const reach = h.radius + HAZARD.avoidRadius
+    if (d >= reach || d < 0.01) continue
+    const toMineX = dx / d
+    const toMineY = dy / d
+    const closeness = 1 - d / reach // 0 at the edge → 1 at the centre
+    // Radial push straight out, always on — keeps distance even when the mine is
+    // beside or behind (a circling enemy), ramping up sharply as it nears.
+    steerX += -toMineX * closeness * closeness
+    steerY += -toMineY * closeness * closeness
+    // Tangential bend to arc around a mine that's ahead, for a smooth path past it.
+    const ahead = headingX * toMineX + headingY * toMineY
+    if (ahead > 0) {
+      const perpX = -toMineY
+      const perpY = toMineX
+      const side = headingX * perpX + headingY * perpY >= 0 ? 1 : -1
+      const urgency = closeness * ahead // closer + more head-on = sharper turn
+      steerX += side * perpX * urgency * HAZARD.avoidTangent
+      steerY += side * perpY * urgency * HAZARD.avoidTangent
+    }
+  }
+  if (steerX === 0 && steerY === 0) return enemy
+
+  // Bend the heading toward the tangent, keep the speed, and ease the velocity over
+  // so the path curves instead of snapping. Correct position by the velocity delta
+  // the MoveFn already integrated this frame.
+  const desiredX = headingX + steerX * HAZARD.avoidStrength
+  const desiredY = headingY + steerY * HAZARD.avoidStrength
+  const desiredMag = Math.hypot(desiredX, desiredY) || 1
+  const turn = 1 - Math.exp(-HAZARD.avoidTurnRate * dt)
+  const vx = enemy.vel.x + ((desiredX / desiredMag) * speed - enemy.vel.x) * turn
+  const vy = enemy.vel.y + ((desiredY / desiredMag) * speed - enemy.vel.y) * turn
+  return {
+    ...enemy,
+    pos: { x: enemy.pos.x + (vx - enemy.vel.x) * dt, y: enemy.pos.y + (vy - enemy.vel.y) * dt },
+    vel: { x: vx, y: vy },
+  }
+}
+
 export function updateEnemyMovement(
   enemies: Enemy[],
   ship: Ship,
   allies: Ally[],
+  hazards: Hazard[],
   dt: number,
   speedMult = 1
 ): Enemy[] {
@@ -172,7 +227,11 @@ export function updateEnemyMovement(
     // Stall-escalation scales movement speed without mutating the stored base:
     // run the MoveFn on a sped-up copy, then restore enemy.speed on the result.
     const forMove = speedMult === 1 ? enemy : { ...enemy, speed: enemy.speed * speedMult }
-    const moved = MOVEMENT_FN[enemy.movementBehavior](forMove, targetAsShip, dt)
+    const moved = avoidHazards(
+      MOVEMENT_FN[enemy.movementBehavior](forMove, targetAsShip, dt),
+      hazards,
+      dt
+    )
     return {
       ...moved,
       speed: enemy.speed,

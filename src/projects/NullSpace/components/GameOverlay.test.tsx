@@ -34,6 +34,7 @@ function makeUiState(phase: GameUIState['phase']): GameUIState {
     spawnedInWave: 0,
     totalWaveEnemies: 0,
     enemiesAlive: 0,
+    speedUpCountdown: null,
     levelUpWeaponOffers: [],
     unlockedWeapons: [HelperWeaponKind.bullet],
     escapeModeActive: false,

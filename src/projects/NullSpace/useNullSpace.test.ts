@@ -417,6 +417,12 @@ describe('useNullSpace — slingshot', () => {
     // enemiesAlive mirrors the live enemy count (state.enemies.length), not a
     // static value — the HUD sector bar reads it to size the kill progress.
     it('exposes the live enemy count once a wave starts spawning', () => {
+      // The engine reseeds rng from Date.now() on game start, so wave 1's mine
+      // field and enemy spawn points are otherwise non-deterministic — on an
+      // unlucky seed an enemy spawns onto a mine and detonates in the same tick,
+      // leaving enemiesAlive at 0 (flaky in CI). Pin the seed to a layout where
+      // the first spawn survives.
+      vi.spyOn(Date, 'now').mockReturnValue(424242)
       const canvasRef = { current: canvas }
       const { result } = renderHook(() => useNullSpace(canvasRef))
       startPlaying(result)

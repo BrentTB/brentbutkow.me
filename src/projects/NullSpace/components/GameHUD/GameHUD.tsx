@@ -2,6 +2,7 @@ import { GamePhase } from '../../engine/types'
 import type { GameUIState } from '../../useNullSpace'
 import styles from './GameHUD.module.scss'
 import { SectorProgress } from './SectorProgress'
+import { SpeedUpWarning } from './SpeedUpWarning'
 import { TopBar } from './TopBar'
 import { BossHpBar } from './BossHpBar'
 
@@ -28,6 +29,7 @@ export function GameHUD({
   return (
     <div className={styles.hud}>
       <SectorProgress uiState={uiState} dimmed={uiState.boss !== null} />
+      <SpeedUpWarning countdown={uiState.speedUpCountdown} />
       <BossHpBar boss={uiState.boss} />
       <TopBar
         uiState={uiState}

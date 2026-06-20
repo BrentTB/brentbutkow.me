@@ -33,6 +33,7 @@ function makeUiState(over: Partial<GameUIState> = {}): GameUIState {
     spawnedInWave: 0,
     totalWaveEnemies: 0,
     enemiesAlive: 0,
+    speedUpCountdown: null,
     levelUpWeaponOffers: [],
     unlockedWeapons: [HelperWeaponKind.bullet],
     escapeModeActive: false,

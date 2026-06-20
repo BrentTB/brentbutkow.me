@@ -3,6 +3,7 @@ import { checkCollision, distance, segmentIntersectsCircle } from '../math/colli
 import { homeTowardTarget } from '../math/homing'
 import { toroidalDelta } from '../math/toroid'
 import { spawnExplosionParticles } from '../entities/entity-creator'
+import { applyDamageToAlly } from '../entities/ally'
 import { applyDamageToEnemy } from '../entities/enemy-damage'
 import { applyDamageToShip } from '../entities/ship'
 import { createNuclearWasteEffect } from '../weapons/nuke'
@@ -330,7 +331,7 @@ export function resolveEnemyProjectileAllyCollisions(
       if (ally.hp <= 0) continue
       const { x: dx, y: dy } = toroidalDelta(ally.pos, proj.pos)
       if (dx * dx + dy * dy < (proj.radius + ally.radius) ** 2) {
-        updatedAllies[i] = { ...ally, hp: ally.hp - proj.damage }
+        updatedAllies[i] = applyDamageToAlly(ally, proj.damage)
         allParticles.push(...spawnExplosionParticles(proj.pos, 4, '#88ff88'))
         hit = true
         break
@@ -423,7 +424,7 @@ export function resolveEnemyAllyMeleeCollisions(
       continue
     }
     const ally = updatedAllies[hitAllyIndex]
-    updatedAllies[hitAllyIndex] = { ...ally, hp: ally.hp - enemy.damage }
+    updatedAllies[hitAllyIndex] = applyDamageToAlly(ally, enemy.damage)
     if (enemy.deathBehavior === DeathBehavior.explode) {
       killedEnemies.push(enemy)
       allParticles.push(...spawnExplosionParticles(enemy.pos, 8, '#ff8866'))
@@ -486,7 +487,7 @@ export function resolveDeathEffects(
       if (distance(enemy.pos, ally.pos) < stats.explosionRadius) {
         hitSomething = true
         if (!isBlocked(ally.pos, enemy.pos)) {
-          updatedAllies[i] = { ...ally, hp: ally.hp - stats.explosionDamage }
+          updatedAllies[i] = applyDamageToAlly(ally, stats.explosionDamage)
         }
       }
     }

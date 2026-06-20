@@ -407,12 +407,32 @@ export const SPAWN_CONE = {
 // so the player must slingshot to navigate, not just sit and tap enemies.
 export const HAZARD = {
   mineCount: 22, // mines scattered across the world
-  mineRadius: 26,
+  mineRadius: 26, // trigger radius — an entity this close sets the mine off
   mineDamage: 35,
+  mineBlastRadius: 72, // single-use detonation damages everyone within this radius
   forwardMargin: 500, // keep mines at least this far from the ship's spawn point
   laneEveryWaves: 1, // a minefield appears every non-boss sector
-  hitCooldown: 1, // seconds before a mine can re-hit the ship
+  avoidRadius: 110, // enemies begin steering around a mine within this gap beyond its trigger radius
+  avoidStrength: 2, // overall strength of the heading bend away from / around a mine
+  avoidTangent: 2.5, // arc-around weight vs the straight push-out (higher = smoother but tighter)
+  avoidTurnRate: 7, // how fast the heading eases into the avoidance arc (higher = snappier)
   color: '#d6533a',
+} as const
+
+// Shockwave calamity: a neutral shock-ring that periodically erupts near the
+// ship. After a brief telegraph it expands outward, dealing one-time damage to
+// everyone the front sweeps — strongest at the centre, weakest at the rim. A
+// natural disaster, so it endangers the player as much as the enemies.
+export const CALAMITY = {
+  shockwaveStartRadius: 24,
+  shockwaveMaxRadius: 350,
+  shockwaveGrowDuration: 1.1, // seconds for the front to reach max radius
+  shockwaveDelay: 2, // telegraph lead before the ring fires
+  shockwaveBaseDamage: 30, // damage at the centre; falls off toward the rim
+  shockwaveEdgeFraction: 0.3, // fraction of base damage dealt at the very rim
+  shockwaveSpawnRange: 380, // max distance from the ship a ring can erupt
+  shockwaveIntervalMin: 9, // seconds between rings (random within the range)
+  shockwaveIntervalMax: 20,
 } as const
 
 // The portal the ship warps through when a sector clears. Dormant until then.
@@ -445,6 +465,28 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.4.0',
+    date: '2026-06-20',
+    changes: {
+      features: [
+        'Calamities: neutral space disasters that endanger everyone: your ship, the enemies, and your allies alike.',
+        'Mines reworked - they now detonate once on contact (no more lurking forever) and blast everything nearby, and enemies steer around them. Shove an enemy into one with a black hole or telekinesis.',
+        'New Shockwave calamity: a telegraphed ring that erupts and sweeps the sector, hitting hardest at its centre and fading toward the edge.',
+      ],
+      fixes: [
+        'Enemies now arc smoothly around mines instead of charging straight in and circling them.',
+      ],
+      ui: [
+        'A countdown now warns you in the final 10 seconds before enemies start speeding up, so the ramp no longer feels like it comes out of nowhere.',
+        'Tutorial: the ship now flies into a mine on its own (you cannot fling it away), showing that it will not dodge hazards, then you repair the shield with space metal.',
+      ],
+      architecture: [
+        'Added a shared radial-damage primitive (applyRadialDamage) and a single applyDamageToAlly path, reused by mines and shockwaves.',
+        'Grouped the calamity code (mines, Shockwave, shared radial damage) under engine/calamities/.',
+      ],
+    },
+  },
   {
     version: '1.3.2',
     date: '2026-06-19',

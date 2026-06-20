@@ -21,6 +21,9 @@ export const TutorialTriggerKind = {
   spaceMetalCollected: 'spaceMetalCollected',
   // Advances when the shield has been restored (the shield space-metal ability).
   shieldRestored: 'shieldRestored',
+  // Advances once the ship has taken damage (shield dropped below full) — the
+  // mine beat, where the player slingshots into a mine and feels the hit.
+  shipDamaged: 'shipDamaged',
   // Advances only when the player presses the Next / Finish button.
   acknowledge: 'acknowledge',
 } as const
@@ -66,12 +69,12 @@ export type TutorialStep = {
   allowAbilityKeys?: boolean
   // Let the space-metal hotkeys (F/G) fire on this beat (the shield-refresh beat). Defaults false.
   allowSpaceMetalKeys?: boolean
-  // One-shot setup applied when this beat opens: drop a space metal pickup,
-  // break the ship's shield (to demo the refresh), place a mine to avoid, or
-  // refill power (so an expensive ability the beat teaches is affordable).
+  // One-shot setup applied when this beat opens: drop a space metal pickup, place
+  // a mine in the ship's path to fly into, park shield regen (so the mine's hit
+  // sticks until repaired), or refill power (so a costly ability is affordable).
   spawnsMetal?: boolean
-  breaksShield?: boolean
   spawnsMine?: boolean
+  parksShieldRegen?: boolean
   refillsPower?: boolean
 }
 
@@ -166,17 +169,51 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
     copyTouch: 'Now tap beside the enemy to drop your Black Hole. It pulls enemies in.',
   },
   {
+    id: 'blackHoleResolve',
+    trigger: TutorialTriggerKind.time,
+    spotlight: TutorialSpotlightKind.none,
+    freeze: false,
+    durationSeconds: 4,
+    keepEnemyAlive: true,
+    copyDesktop: 'Watch the Black Hole drag everything caught in it toward the centre.',
+    copyTouch: 'Watch the Black Hole drag everything caught in it toward the centre.',
+  },
+  {
+    id: 'mineIntro',
+    trigger: TutorialTriggerKind.acknowledge,
+    spotlight: TutorialSpotlightKind.mine,
+    freeze: true,
+    spawnsMine: true,
+    copyDesktop:
+      "Those blinking objects are mines, and they damage anything that touches them. The ship flies on its own and won't dodge them.",
+    copyTouch:
+      "Those blinking objects are mines, and they damage anything that touches them. The ship flies on its own and won't dodge them.",
+  },
+  {
+    id: 'mineHit',
+    trigger: TutorialTriggerKind.shipDamaged,
+    spotlight: TutorialSpotlightKind.mine,
+    freeze: false,
+    copyDesktop: 'Watch: with no input from you, it drifts straight into one.',
+    copyTouch: 'Watch: with no input from you, it drifts straight into one.',
+  },
+  {
     id: 'collectMetal',
     trigger: TutorialTriggerKind.spaceMetalCollected,
     spotlight: TutorialSpotlightKind.metal,
     freeze: false,
     allowCast: true,
     spawnsMetal: true,
+    // Park the shield's regen so the mine's hit sticks until the player repairs
+    // it on the next beat — otherwise it would quietly heal on its own here.
+    parksShieldRegen: true,
     // Anchor the ship (orbit a target) so it doesn't drift off and carry the
     // camera away from the static pickup before the player clicks it.
     keepEnemyAlive: true,
-    copyDesktop: 'Some enemies drop ⬢ space metal. Click it to collect it.',
-    copyTouch: 'Some enemies drop ⬢ space metal. Tap it to collect it.',
+    copyDesktop:
+      'The mine dented your shield. Some enemies drop ⬢ space metal — click it to grab some.',
+    copyTouch:
+      'The mine dented your shield. Some enemies drop ⬢ space metal — tap it to grab some.',
   },
   {
     id: 'shieldRefresh',
@@ -184,19 +221,8 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
     spotlight: TutorialSpotlightKind.ship,
     freeze: true,
     allowSpaceMetalKeys: true,
-    breaksShield: true,
-    copyDesktop: 'Your shield is down. Spend ⬢ space metal to instantly restore it: press F.',
-    copyTouch:
-      'Your shield is down. Spend ⬢ space metal to instantly restore it: tap the Shield button.',
-  },
-  {
-    id: 'mineWarning',
-    trigger: TutorialTriggerKind.acknowledge,
-    spotlight: TutorialSpotlightKind.mine,
-    freeze: true,
-    spawnsMine: true,
-    copyDesktop: 'Careful: that blinking object is a mine. It damages your ship, so steer clear.',
-    copyTouch: 'Careful: that blinking object is a mine. It damages your ship, so steer clear.',
+    copyDesktop: 'Now spend that ⬢ space metal to repair your shield: press F.',
+    copyTouch: 'Now spend that ⬢ space metal to repair your shield: tap the Shield button.',
   },
   {
     id: 'outro',

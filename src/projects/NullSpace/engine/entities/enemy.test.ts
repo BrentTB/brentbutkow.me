@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { enemyFacing, updateEnemyMovement } from './enemy'
 import { createEnemy, createShip } from './entity-creator'
-import { EnemyKind, MovementBehavior, ShipKind } from '../types'
-import { WORLD_SIZE } from '../../data'
+import { EnemyKind, HazardKind, MovementBehavior, ShipKind } from '../types'
+import type { Hazard } from '../types'
+import { HAZARD, WORLD_SIZE } from '../../data'
 
 const ship = createShip(ShipKind.fighter, WORLD_SIZE)
 
@@ -36,7 +37,7 @@ describe('updateEnemyMovement — knockback coast', () => {
       movementBehavior: MovementBehavior.stationary,
       vel: { x: 200, y: 0 },
     }
-    const [moved] = updateEnemyMovement([enemy], ship, [], 0.1)
+    const [moved] = updateEnemyMovement([enemy], ship, [], [], 0.1)
     expect(moved.pos.x).toBeGreaterThan(500) // coasted outward
     expect(Math.abs(moved.vel.x)).toBeLessThan(200) // impulse decaying
     expect(moved.vel.x).toBeGreaterThan(0) // still heading out
@@ -48,8 +49,33 @@ describe('updateEnemyMovement — knockback coast', () => {
       movementBehavior: MovementBehavior.stationary,
       vel: { x: 0, y: 0 },
     }
-    const [moved] = updateEnemyMovement([enemy], ship, [], 0.1)
+    const [moved] = updateEnemyMovement([enemy], ship, [], [], 0.1)
     expect(moved.pos).toEqual({ x: 500, y: 500 })
     expect(moved.vel).toEqual({ x: 0, y: 0 })
+  })
+})
+
+describe('updateEnemyMovement — mine avoidance', () => {
+  // A chasing enemy with a mine directly in its path should arc around it (gain a
+  // sideways velocity) rather than drive straight through or settle into an orbit.
+  it('curves a chasing enemy around a mine in its path', () => {
+    const enemy = {
+      ...createEnemy(EnemyKind.drone, { x: 400, y: 500 }),
+      movementBehavior: MovementBehavior.chase,
+    }
+    const target = { ...createShip(ShipKind.fighter, WORLD_SIZE), pos: { x: 600, y: 500 } }
+    const mine: Hazard = {
+      id: 'm',
+      kind: HazardKind.mine,
+      pos: { x: 500, y: 500 },
+      radius: HAZARD.mineRadius,
+      damage: HAZARD.mineDamage,
+    }
+    const [withMine] = updateEnemyMovement([enemy], target, [], [mine], 0.1)
+    const [noMine] = updateEnemyMovement([enemy], target, [], [], 0.1)
+    // Without the mine it heads straight along x; the mine bends it off that line.
+    expect(Math.abs(noMine.vel.y)).toBeLessThan(0.01)
+    expect(Math.abs(withMine.vel.y)).toBeGreaterThan(1)
+    expect(withMine.vel.x).toBeGreaterThan(0) // still advancing toward the target
   })
 })

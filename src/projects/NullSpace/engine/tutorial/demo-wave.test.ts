@@ -52,7 +52,7 @@ describe('startTutorialRun', () => {
     const state = run()
     let drone = { ...state.enemies[0], vel: { x: 240, y: 0 } }
     for (let i = 0; i < 180; i++) {
-      drone = updateEnemyMovement([drone], state.ship, [], 1 / 60)[0]
+      drone = updateEnemyMovement([drone], state.ship, [], [], 1 / 60)[0]
     }
     expect(Math.hypot(drone.vel.x, drone.vel.y)).toBeLessThan(1)
   })
@@ -85,20 +85,34 @@ describe('applyTutorialStepEnter', () => {
     expect(after.collectibles.some((c) => c.kind === CollectibleKind.spaceMetal)).toBe(true)
   })
 
-  it('breaks the shield on the refresh beat', () => {
+  it('parks shield regen on the collect beat so the mine damage sticks until repaired', () => {
     const after = applyTutorialStepEnter(
       base(),
-      stepWhere((s) => !!s.breaksShield)
+      stepWhere((s) => !!s.parksShieldRegen)
     )
-    expect(after.ship.shield).toBe(0)
+    expect(after.ship.shieldCooldownRemaining).toBeGreaterThan(100)
   })
 
-  it('places a mine on the mine beat', () => {
+  it('lays a row of mines in the ship path and clears enemies so it flies into one', () => {
     const after = applyTutorialStepEnter(
       base(),
       stepWhere((s) => !!s.spawnsMine)
     )
-    expect(after.hazards.length).toBeGreaterThan(0)
+    expect(after.hazards.length).toBeGreaterThan(1)
+    expect(after.enemies).toHaveLength(0)
+  })
+
+  it('clears leftover mines when the collect beat opens', () => {
+    const mined = applyTutorialStepEnter(
+      base(),
+      stepWhere((s) => !!s.spawnsMine)
+    )
+    expect(mined.hazards.length).toBeGreaterThan(0)
+    const collected = applyTutorialStepEnter(
+      mined,
+      stepWhere((s) => !!s.spawnsMetal)
+    )
+    expect(collected.hazards).toHaveLength(0)
   })
 })
 

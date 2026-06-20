@@ -50,6 +50,8 @@ import {
   setGameSpeed,
   type GameTime,
 } from './engine/world/time'
+import { isBossWave } from './engine/world/waves'
+import { secondsUntilSpeedUp } from './engine/world/wave-escalation'
 import {
   buildAnimationCache,
   buildSpriteCache,
@@ -134,6 +136,9 @@ export type GameUIState = {
   spawnedInWave: number
   totalWaveEnemies: number
   enemiesAlive: number
+  // Seconds until this wave's enemies speed up — set only in the final warning
+  // window, else null. Purely a UI telegraph for the existing escalation.
+  speedUpCountdown: number | null
   levelUpWeaponOffers: GameState['levelUpWeaponOffers']
   unlockedWeapons: GameState['unlockedWeapons']
   escapeModeActive: boolean
@@ -229,6 +234,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     spawnedInWave: 0,
     totalWaveEnemies: 0,
     enemiesAlive: 0,
+    speedUpCountdown: null,
     levelUpWeaponOffers: [],
     unlockedWeapons: [HelperWeaponKind.bullet],
     escapeModeActive: false,
@@ -297,6 +303,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
   const tutorialAckRef = useRef(false)
 
   const syncUI = useCallback((state: GameState) => {
+    const tutorialActive = tutorialRef.current !== null && !tutorialRef.current.done
     setUiState({
       phase: state.phase,
       shipKind: state.shipKind,
@@ -324,6 +331,11 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       spawnedInWave: state.spawn.spawned,
       totalWaveEnemies: state.spawn.total,
       enemiesAlive: state.enemies.length,
+      // The wave timer ticks during the tutorial too, but the speed-up warning
+      // isn't part of the guided lesson — hide it there.
+      speedUpCountdown: tutorialActive
+        ? null
+        : secondsUntilSpeedUp(state.spawn.elapsed, isBossWave(state.wave)),
       levelUpWeaponOffers: state.levelUpWeaponOffers,
       unlockedWeapons: state.unlockedWeapons,
       escapeModeActive: state.ship.escapeMode !== null,
@@ -340,7 +352,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
         return { ...value, label: def?.hpBarLabel ?? 'BOSS' }
       })(),
       nextBoss: state.bossSelection.nextBoss,
-      tutorialActive: tutorialRef.current !== null && !tutorialRef.current.done,
+      tutorialActive,
       tutorialCopy: tutorialViewRef.current?.copy ?? '',
       tutorialAwaitingAck: tutorialViewRef.current?.awaitingAck ?? false,
       tutorialAckLabel: tutorialViewRef.current?.ackLabel ?? null,
@@ -802,8 +814,8 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       const dt = tick.dt
       const tut = tutorialRef.current
       const tutStep = tut ? tut.steps[tut.stepIndex] : null
-      // One-shot setup when a new beat opens (drop space metal / break shield /
-      // place a mine).
+      // One-shot setup when a new beat opens (drop space metal / park shield
+      // regen / place a mine).
       if (tutStep && tutStep.id !== tutorialPrevStepIdRef.current) {
         tutorialPrevStepIdRef.current = tutStep.id
         gameStateRef.current = applyTutorialStepEnter(gameStateRef.current, tutStep)

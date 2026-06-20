@@ -87,6 +87,8 @@ function isSatisfied(step: TutorialStep, elapsedInStep: number, signals: Tutoria
       return signals.spaceMetal >= 1
     case TutorialTriggerKind.shieldRestored:
       return signals.shieldFraction >= 0.99
+    case TutorialTriggerKind.shipDamaged:
+      return signals.shieldFraction < 0.99
     case TutorialTriggerKind.acknowledge:
       return signals.acknowledged
     default:

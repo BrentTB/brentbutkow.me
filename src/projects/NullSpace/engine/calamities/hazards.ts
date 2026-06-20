@@ -1,0 +1,100 @@
+import { HAZARD } from '../../data'
+import { applyRadialDamage } from './calamity-damage'
+import { spawnExplosionParticles, uid } from '../entities/entity-creator'
+import { toroidalDistance } from '../math/toroid'
+import { rng } from '../math/random'
+import { HazardKind } from '../types'
+import type { Ally, Enemy, Hazard, Particle, Ship, Vec2 } from '../types'
+
+// Mines scattered sparsely across the torus, kept clear of the ship's spawn so a
+// fresh sector never drops one on the player. Thread between them as you fly —
+// Escape Mode dashes through.
+export function generateHazardField(worldSize: Vec2, safeCenter: Vec2): Hazard[] {
+  const mines: Hazard[] = []
+  let attempts = 0
+  while (mines.length < HAZARD.mineCount && attempts < HAZARD.mineCount * 12) {
+    attempts++
+    const pos = { x: rng.range(0, worldSize.x), y: rng.range(0, worldSize.y) }
+    if (toroidalDistance(pos, safeCenter) < HAZARD.forwardMargin) continue
+    mines.push({
+      id: uid(),
+      kind: HazardKind.mine,
+      pos,
+      radius: HAZARD.mineRadius,
+      damage: HAZARD.mineDamage,
+    })
+  }
+  return mines
+}
+
+export type HazardUpdateResult = {
+  hazards: Hazard[]
+  ship: Ship
+  enemies: Enemy[]
+  allies: Ally[]
+  killedEnemies: Enemy[]
+  particles: Particle[]
+}
+
+// A mine detonates the moment any entity — ship, enemy, or ally — touches its
+// trigger radius, then is consumed (single-use). Detonation deals blast damage to
+// everyone within HAZARD.mineBlastRadius via the shared calamity primitive, so a
+// black-holed enemy shoved into a mine takes the hit too. Killed enemies flow back
+// to the caller for the normal death pipeline; the ship's Escape-Mode immunity and
+// shields are handled inside applyRadialDamage.
+export function updateHazards(
+  hazards: Hazard[],
+  ship: Ship,
+  enemies: Enemy[],
+  allies: Ally[]
+): HazardUpdateResult {
+  if (hazards.length === 0) {
+    return { hazards, ship, enemies, allies, killedEnemies: [], particles: [] }
+  }
+  let curShip = ship
+  let curEnemies = enemies
+  let curAllies = allies
+  const surviving: Hazard[] = []
+  const killedEnemies: Enemy[] = []
+  const particles: Particle[] = []
+
+  for (const mine of hazards) {
+    if (!isTriggered(mine, curShip, curEnemies, curAllies)) {
+      surviving.push(mine)
+      continue
+    }
+    const blast = applyRadialDamage(
+      mine.pos,
+      0,
+      HAZARD.mineBlastRadius,
+      () => mine.damage,
+      curShip,
+      curEnemies,
+      curAllies,
+      HAZARD.color
+    )
+    curShip = blast.ship
+    curEnemies = blast.enemies
+    curAllies = blast.allies
+    killedEnemies.push(...blast.killedEnemies)
+    particles.push(...blast.particles, ...spawnExplosionParticles(mine.pos, 14, HAZARD.color))
+    // Mine consumed — left out of `surviving`.
+  }
+
+  return {
+    hazards: surviving,
+    ship: curShip,
+    enemies: curEnemies,
+    allies: curAllies,
+    killedEnemies,
+    particles,
+  }
+}
+
+function isTriggered(mine: Hazard, ship: Ship, enemies: Enemy[], allies: Ally[]): boolean {
+  const touches = (pos: Vec2, radius: number): boolean =>
+    toroidalDistance(mine.pos, pos) < mine.radius + radius
+  if (touches(ship.pos, ship.radius)) return true
+  if (enemies.some((e) => touches(e.pos, e.radius))) return true
+  return allies.some((a) => touches(a.pos, a.radius))
+}

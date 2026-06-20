@@ -1,0 +1,52 @@
+// Centered pill near the top of the play area; amber, gently pulsing, hovering
+// above the sector bar without disturbing the HUD stack.
+.warning {
+  position: absolute;
+  top: calc(46px * var(--hud-scale, 1));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: calc(6px * var(--hud-scale, 1));
+  padding: calc(4px * var(--hud-scale, 1)) calc(14px * var(--hud-scale, 1));
+  border-radius: 999px;
+  font-size: calc(0.72rem * var(--hud-scale, 1));
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  color: #ffd27a;
+  background: rgba(38, 20, 8, 0.72);
+  border: 1px solid rgba(255, 150, 60, 0.5);
+  pointer-events: none;
+  animation: speedUpPulse 1s ease-in-out infinite;
+}
+
+.icon {
+  color: #ff8a3c;
+}
+
+// Visually hidden, still announced — carries one stable sentence so the live
+// region speaks once instead of re-reading the per-second count.
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+// Fun mode: add the warm glow the rest of the HUD uses.
+:global(html.fun-mode) .warning {
+  box-shadow: 0 0 calc(10px * var(--hud-scale, 1)) rgba(255, 140, 50, 0.55);
+}
+
+@keyframes speedUpPulse {
+  0%,
+  100% {
+    opacity: 0.82;
+  }
+  50% {
+    opacity: 1;
+  }
+}
