@@ -1,7 +1,7 @@
 import { formatMonthLabel, formatNumber } from './chart-format'
 import { categoryLabels } from './data'
 import { AnomalyScope, isRecallCategory } from './recall.types'
-import type { Anomaly, AnomalyMonth, MonthCount, RecallStats } from './recall.types'
+import type { Anomaly, AnomalyMonth, ForecastPoint, MonthCount, RecallStats } from './recall.types'
 import { stateGrid } from './us-state-grid'
 
 // Direction of a trend — values double as the CSS-module class names.
@@ -80,6 +80,45 @@ export function deriveCallouts(stats: RecallStats): TrendCallout[] {
   }
 
   return callouts
+}
+
+// Forward-looking outlook from the self-built seasonal forecaster (overall volume). Headlines the
+// projected monthly average + a ±band, and reads the direction off the projection vs recent actuals.
+// Returns null when there's no forecast (history too short) — no card rather than a hollow one.
+export function forecastCallout(
+  forecast: ForecastPoint[],
+  byMonth: MonthCount[]
+): TrendCallout | null {
+  if (forecast.length === 0) return null
+  const horizon = forecast.length
+  const projectedAvg = forecast.reduce((sum, point) => sum + point.predicted, 0) / horizon
+  // The ±: average half-width of the band across the horizon.
+  const band = forecast.reduce((sum, point) => sum + (point.upper - point.lower) / 2, 0) / horizon
+
+  // Direction: projected average vs the same number of recent *complete* months (drop the
+  // in-progress final month so the baseline isn't understated by a partial count).
+  const months = byMonth.slice().sort((a, b) => a.month.localeCompare(b.month))
+  const recent = months.slice(-(horizon + 1), -1)
+  const recentAvg = recent.length
+    ? recent.reduce((sum, month) => sum + month.count, 0) / recent.length
+    : projectedAvg
+  const change = recentAvg > 0 ? ((projectedAvg - recentAvg) / recentAvg) * 100 : 0
+  const direction =
+    change > 5 ? TrendDirection.up : change < -5 ? TrendDirection.down : TrendDirection.flat
+  const trend =
+    direction === TrendDirection.up
+      ? 'trending up'
+      : direction === TrendDirection.down
+        ? 'trending down'
+        : 'holding steady'
+
+  return {
+    id: 'forecast',
+    eyebrow: 'Outlook',
+    value: `~${formatNumber(Math.round(projectedAvg))}/mo`,
+    caption: `next ${horizon} months · ±${formatNumber(Math.round(band))} · ${trend}`,
+    direction,
+  }
 }
 
 // Backend-detected spikes (robust z-score) → callouts, flagged so the UI marks them as anomalies.

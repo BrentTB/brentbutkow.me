@@ -50,6 +50,11 @@ const stats = {
       ],
     },
   ],
+  forecast: [
+    { month: '2026-06', predicted: 21, lower: 15, upper: 27 },
+    { month: '2026-07', predicted: 20, lower: 12, upper: 28 },
+    { month: '2026-08', predicted: 20, lower: 11, upper: 29 },
+  ],
   lastIngestAt: '2026-06-13T08:00:00.000Z',
 }
 
@@ -166,6 +171,9 @@ describe('RecallRadar page', () => {
     expect(screen.getAllByText('Severe').length).toBeGreaterThan(0)
     expect(screen.getByText('Anomaly')).toBeTruthy()
     expect(screen.getByText(/~6\/mo typical/i)).toBeTruthy() // anomaly caption, plain-language
+    // forward-looking forecast: the Outlook callout + the chart's projected overlay note
+    expect(screen.getByText('Outlook')).toBeTruthy()
+    expect(screen.getByText(/Projected/i)).toBeTruthy()
     // themes section + the per-card theme chip both render the topic label
     expect(screen.getByText('Themes')).toBeTruthy()
     expect(screen.getAllByText('listeria · deli · meat').length).toBeGreaterThan(0)

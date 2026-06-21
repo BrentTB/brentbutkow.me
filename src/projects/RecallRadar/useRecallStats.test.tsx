@@ -21,6 +21,7 @@ describe('useRecallStats', () => {
         bySource: [],
         byEntity: [],
         anomalies: [],
+        forecast: [],
         lastIngestAt: null,
       })
     )

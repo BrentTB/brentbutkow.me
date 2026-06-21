@@ -53,6 +53,7 @@ export const methodologyPoints: string[] = [
   'The model is weakly supervised by a keyword baseline (no human-labelled gold set), so it generalises that taxonomy rather than beating an independent ground truth.',
   'Allergens, pathogens, and physical hazards are pulled from each reason with a curated gazetteer (the FDA/UK regulated allergen lists and named pathogens) — deterministic and fully explainable.',
   'Trend callouts come from a robust z-score (median + MAD) over the monthly counts — a flag means a month is unusual versus its own recent history, never a forecast. We surface the most significant from the last ~2 years, newest first. A statsmodels STL decomposition validates the detector offline against seasonality.',
+  'The Outlook looks the other way: a short-horizon projection of overall monthly volume from a self-built multiplicative seasonal model (a 12-month seasonal index plus a linear trend, fit in log space so a seasonal swing scales with the level; pure numpy computed on read) with a ±band from recent forecast error — shown as the dashed bars on the chart. A statsmodels Holt-Winters backtest validates it offline. It is a projection, not a promise, and a short history shows no forecast at all.',
   'The dashboard flags when the last successful ingest is more than two days old.',
 ]
 
