@@ -108,7 +108,7 @@ import { buildNebulaField, enemyVisibleToPlayerSide } from './calamities/nebula-
 import { inZone } from './math/zone'
 import { advanceBossSelection, createBossSelection } from './bosses/boss-selection'
 import { updateBossAI } from './bosses/boss-ai'
-import { miniWormsFromSegmentDeaths } from './bosses/void-worm'
+import { miniWormsFromSegmentDeaths, orphanedSegmentIds } from './bosses/void-worm'
 import { scaleEnemy } from './world/enemy-scaling'
 import { detonateExpiredEnemies } from './systems/enemy-lifetime'
 import { loadHighScore, saveHighScore } from './world/persistence'
@@ -1341,6 +1341,17 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
         scaleEnemy(createEnemy(EnemyKind.miniVoidWorm, m.pos), m.spawnWave)
       ),
     ]
+  }
+
+  // A Void Worm's body can't outlive its head — kill the head and any remaining
+  // segments crumble with it (death anim, no mini worms).
+  const culledSegmentIds = orphanedSegmentIds(killedThisFrame)
+  if (culledSegmentIds.size > 0) {
+    const orphans = enemies.filter((e) => culledSegmentIds.has(e.id))
+    if (orphans.length > 0) {
+      deathAnims = [...deathAnims, ...orphans.map(createDeathAnim)]
+      enemies = enemies.filter((e) => !culledSegmentIds.has(e.id))
+    }
   }
 
   // --- Spawn collectibles from kills ---

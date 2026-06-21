@@ -68,8 +68,7 @@ const ENEMY_SPRITE: Record<EnemyKind, SpriteKey> = {
   [EnemyKind.shieldGenerator]: SpriteKey.shieldGenerator,
   [EnemyKind.voidWorm]: SpriteKey.voidWormBoss,
   [EnemyKind.wormSegment]: SpriteKey.wormSegment,
-  // Reuses the body-segment sprite — drawn small via the mini worm's radius.
-  [EnemyKind.miniVoidWorm]: SpriteKey.wormSegment,
+  [EnemyKind.miniVoidWorm]: SpriteKey.miniVoidWorm,
   [EnemyKind.phaseShifter]: SpriteKey.phaseShifterBoss,
 }
 

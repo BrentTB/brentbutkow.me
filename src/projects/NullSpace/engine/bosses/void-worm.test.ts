@@ -4,7 +4,13 @@ import { applyDamageToEnemy } from '../entities/enemy-damage'
 import { resolveEnemyShipCollisions } from '../systems/combat'
 import { updateBossAI } from './boss-ai'
 import { scaleEnemy } from '../world/enemy-scaling'
-import { VOID_WORM, VOID_WORM_BOSS, WormStage, miniWormsFromSegmentDeaths } from './void-worm'
+import {
+  VOID_WORM,
+  VOID_WORM_BOSS,
+  WormStage,
+  miniWormsFromSegmentDeaths,
+  orphanedSegmentIds,
+} from './void-worm'
 import { getBossRuntime } from './boss-definition'
 import { EnemyKind, ShipKind } from '../types'
 import type { Enemy } from '../types'
@@ -362,5 +368,19 @@ describe('Void Worm — body contact i-frame', () => {
     const ship = { ...shipAt(CENTER), wormContactCooldown: 0.5 }
     const result = resolveEnemyShipCollisions([seg], ship)
     expect(result.ship.hp).toBe(ship.hp)
+  })
+})
+
+describe('Void Worm — head death culls the body', () => {
+  it('marks every linked segment for culling when the head dies', () => {
+    const { head, segments } = spawnedWorm()
+    const ids = orphanedSegmentIds([{ ...head, hp: 0 }])
+    expect(ids.size).toBe(segments.length)
+    expect(segments.every((s) => ids.has(s.id))).toBe(true)
+  })
+
+  it('culls nothing when only a body segment died', () => {
+    const { segments } = spawnedWorm()
+    expect(orphanedSegmentIds([{ ...segments[0], hp: 0 }]).size).toBe(0)
   })
 })

@@ -418,6 +418,26 @@ export const WORM_SEGMENT_SPRITE: SpriteData = [
   [_, _, _, m, m, m, m, _, _, _],
 ]
 
+// Mini Void Worm (9×14) — a baby of the boss erupted from a dying body segment.
+// Same magenta-and-purple palette and toothy maw on a short segmented body that
+// tapers to a tail; one entity, drawn nose-up and rotated to its lunge direction.
+export const MINI_VOID_WORM_SPRITE: SpriteData = [
+  [_, _, _, m, M, m, _, _, _],
+  [_, _, m, M, M, M, m, _, _],
+  [_, m, P, M, M, M, P, m, _],
+  [m, P, R, P, M, P, R, P, m],
+  [m, P, P, P, P, P, P, P, m],
+  [m, P, B, B, B, B, B, P, m],
+  [m, P, B, W, B, W, B, P, m],
+  [_, m, P, B, B, B, P, m, _],
+  [_, m, P, M, M, M, P, m, _],
+  [_, _, m, P, M, P, m, _, _],
+  [_, _, m, P, M, P, m, _, _],
+  [_, _, _, m, M, m, _, _, _],
+  [_, _, _, m, M, m, _, _, _],
+  [_, _, _, _, m, _, _, _, _],
+]
+
 // Phase Shifter (20×20) — mid-teleport crystal: all four tips of its steel
 // octagon have sheared off and float free across a spark-lit gap, with cyan
 // energy glowing at every break line. A white slit eye glares from a dark
@@ -479,6 +499,7 @@ export const SpriteKey = {
   shieldGenerator: 'shieldGenerator',
   voidWormBoss: 'voidWormBoss',
   wormSegment: 'wormSegment',
+  miniVoidWorm: 'miniVoidWorm',
   phaseShifterBoss: 'phaseShifterBoss',
   projectile: 'projectile',
   enemyProjectile: 'enemyProjectile',
@@ -506,6 +527,7 @@ export const SPRITE_MAP: Record<SpriteKey, SpriteData> = {
   shieldGenerator: SHIELD_GENERATOR_SPRITE,
   voidWormBoss: VOID_WORM_BOSS_SPRITE,
   wormSegment: WORM_SEGMENT_SPRITE,
+  miniVoidWorm: MINI_VOID_WORM_SPRITE,
   phaseShifterBoss: PHASE_SHIFTER_BOSS_SPRITE,
   projectile: PROJECTILE_SPRITE,
   enemyProjectile: ENEMY_PROJECTILE_SPRITE,

@@ -239,3 +239,14 @@ export function miniWormsFromSegmentDeaths(
   }
   return spawns
 }
+
+// A Void Worm can't outlive its head: when a head dies this frame, its remaining
+// body segments are culled with it. Returns those segment ids — they crumble
+// rather than erupting into mini worms (only combat kills do that).
+export function orphanedSegmentIds(killedThisFrame: Enemy[]): Set<string> {
+  return new Set(
+    killedThisFrame
+      .filter((e) => e.kind === EnemyKind.voidWorm && e.boss)
+      .flatMap((e) => e.boss!.linkedIds)
+  )
+}

@@ -605,6 +605,9 @@ export const CHANGELOG: ChangelogEntry[] = [
         'A single rocket no longer near-deletes the Void Worm. A burst now loses bite as it tears down the chain — each further body segment it catches takes less — so flattening the whole worm takes more than a couple of well-placed blasts.',
         'The Void Worm body now bites. Brushing the head or a segment hurts, but a brief contact i-frame means a lunge that sweeps you through several parts lands a single hit, not one per segment — so a longer worm is a bigger hazard to weave through, not just more health.',
       ],
+      fixes: [
+        'Killing a Void Worm now ends it outright — destroying the head takes the whole body with it, instead of leaving stray segments drifting in place.',
+      ],
     },
   },
   {
