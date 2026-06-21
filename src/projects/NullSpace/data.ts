@@ -71,6 +71,8 @@ export const WEAPON_ORDER: readonly AbilityKind[] = [
   AbilityKind.solarFlare,
   AbilityKind.radiation,
   AbilityKind.chainLightning,
+  AbilityKind.gravityLure,
+  AbilityKind.overdrive,
   // Ultimates sit at the end — their hotbar slot is inherited from the base
   // they replace, so this position only governs row creation, not display.
   AbilityKind.cometShower,
@@ -84,6 +86,8 @@ export const WEAPON_ORDER: readonly AbilityKind[] = [
   AbilityKind.singularity,
   AbilityKind.meltdown,
   AbilityKind.ionStorm,
+  AbilityKind.collapsar,
+  AbilityKind.overloadCore,
 ]
 
 export const ENEMY_STATS = {
@@ -564,6 +568,24 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.10.0',
+    date: '2026-06-20',
+    changes: {
+      features: [
+        'Overdrive: drop a field that turns the ground against your enemies — everything inside takes more damage (so your meteors, radiation, and bolts all hit harder there), moves slower, and deals less, while your own cooldowns race as long as you stand in it. A force multiplier, not a weapon: set it down, then pour everything into it. Its Overload Core ultimate is bigger, amplifies harder, and slows enemies to a crawl.',
+      ],
+    },
+  },
+  {
+    version: '1.9.0',
+    date: '2026-06-20',
+    changes: {
+      features: [
+        'Gravity Lure: drop a beacon and nearby enemies swarm it instead of your ship — peel a mob off yourself, or herd a crowd onto one spot and drop Sun, Radiation, or a Meteor on top. Enemies tear the beacon down by attacking it, so it lasts as long as you can keep them off it. Its Collapsar ultimate reaches further, takes more punishment, and detonates on everything it gathered when it finally dies.',
+      ],
+    },
+  },
   {
     version: '1.8.0',
     date: '2026-06-20',

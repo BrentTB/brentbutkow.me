@@ -18,6 +18,8 @@ import { nebulaEffect } from '../calamities/nebula'
 import { wormholeEffect } from '../calamities/wormhole'
 import { radiationFieldEffect } from '../abilities/radiation/radiation'
 import { chainArcEffect } from '../abilities/chainLightning/chain-lightning'
+import { gravityLureEffect } from '../abilities/gravityLure/gravity-lure'
+import { overdriveFieldEffect } from '../abilities/overdrive/overdrive'
 
 // Registry: each effect's owner file (ability or helper weapon) declares an
 // EffectDefinition — tick + optional world-layer renderers — and registers it
@@ -44,6 +46,8 @@ export const EFFECT_DEFINITIONS: Record<EffectKind, EffectDefinition> = {
   [EffectKind.wormhole]: wormholeEffect,
   [EffectKind.radiationField]: radiationFieldEffect,
   [EffectKind.chainArc]: chainArcEffect,
+  [EffectKind.gravityLure]: gravityLureEffect,
+  [EffectKind.overdriveField]: overdriveFieldEffect,
 }
 
 export function updateActiveEffects(

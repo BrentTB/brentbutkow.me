@@ -190,6 +190,21 @@ const PATHS: Record<IconName, ReactNode> = {
   [IconName.chainLightning]: (
     <path d="M13 2 4 14h6l-1 8 9-12h-6z" fill="currentColor" stroke="none" />
   ),
+  // Map-pin beacon — a decoy location.
+  [IconName.gravityLure]: (
+    <>
+      <path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11z" />
+      <circle cx="12" cy="10" r="2.5" fill="currentColor" stroke="none" />
+    </>
+  ),
+  // Tachometer pegged into the redline — an overdrive boost.
+  [IconName.overdrive]: (
+    <>
+      <path d="M4 16a8 8 0 0 1 16 0" />
+      <path d="m12 16 4.5-7" />
+      <circle cx="12" cy="16" r="1.6" fill="currentColor" stroke="none" />
+    </>
+  ),
 }
 
 type IconProps = { name: IconName } & SVGProps<SVGSVGElement>

@@ -20,6 +20,10 @@ import { RADIATION_UPGRADE_IDS } from './abilities/radiation/radiation'
 import { MELTDOWN_UPGRADE_IDS } from './abilities/radiation/meltdown'
 import { CHAIN_LIGHTNING_UPGRADE_IDS } from './abilities/chainLightning/chain-lightning'
 import { ION_STORM_UPGRADE_IDS } from './abilities/chainLightning/ion-storm'
+import { GRAVITY_LURE_UPGRADE_IDS } from './abilities/gravityLure/gravity-lure'
+import { COLLAPSAR_UPGRADE_IDS } from './abilities/gravityLure/collapsar'
+import { OVERDRIVE_UPGRADE_IDS } from './abilities/overdrive/overdrive'
+import { OVERLOAD_CORE_UPGRADE_IDS } from './abilities/overdrive/overload-core'
 import { LASER_UPGRADE_IDS } from './weapons/laser'
 import { MISSILE_UPGRADE_IDS } from './weapons/missile'
 import { RICOCHET_UPGRADE_IDS } from './weapons/ricochet'
@@ -54,6 +58,10 @@ export const UpgradeId = {
   ...MELTDOWN_UPGRADE_IDS,
   ...CHAIN_LIGHTNING_UPGRADE_IDS,
   ...ION_STORM_UPGRADE_IDS,
+  ...GRAVITY_LURE_UPGRADE_IDS,
+  ...COLLAPSAR_UPGRADE_IDS,
+  ...OVERDRIVE_UPGRADE_IDS,
+  ...OVERLOAD_CORE_UPGRADE_IDS,
   ...LASER_UPGRADE_IDS,
   ...MISSILE_UPGRADE_IDS,
   ...RICOCHET_UPGRADE_IDS,

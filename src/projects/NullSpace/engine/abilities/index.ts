@@ -24,6 +24,10 @@ import { radiation } from './radiation/radiation'
 import { meltdown } from './radiation/meltdown'
 import { chainLightning } from './chainLightning/chain-lightning'
 import { ionStorm } from './chainLightning/ion-storm'
+import { gravityLure } from './gravityLure/gravity-lure'
+import { collapsar } from './gravityLure/collapsar'
+import { overdrive } from './overdrive/overdrive'
+import { overloadCore } from './overdrive/overload-core'
 import type { UpgradeId } from '../upgrade-ids'
 import type { AbilityDefinition, UltimateDescriptor } from './ability-definition'
 import type { IconName } from '../../icon-names'
@@ -67,6 +71,10 @@ export const ABILITY_DEFINITIONS: Record<AbilityKind, AbilityDefinition> = {
   [AbilityKind.meltdown]: meltdown,
   [AbilityKind.chainLightning]: chainLightning,
   [AbilityKind.ionStorm]: ionStorm,
+  [AbilityKind.gravityLure]: gravityLure,
+  [AbilityKind.collapsar]: collapsar,
+  [AbilityKind.overdrive]: overdrive,
+  [AbilityKind.overloadCore]: overloadCore,
 }
 
 export const ABILITY_LIST: AbilityDefinition[] = Object.values(ABILITY_DEFINITIONS)

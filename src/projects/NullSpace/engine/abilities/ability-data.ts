@@ -265,3 +265,56 @@ export const ION_STORM = {
   falloff: 0.82,
   arcDuration: 0.28,
 } as const
+
+// Gravity Lure. Drops a beacon; non-boss enemies within `lureRadius` chase it
+// instead of the ship. Pure repositioning — no damage. Pairs with any AoE (lure a
+// crowd onto the beacon, then drop Sun/Radiation/Meteor on it).
+export const GRAVITY_LURE = {
+  cooldown: 10,
+  powerCost: 35,
+  lureRadius: 200,
+  hp: 100,
+  // Beacon body size — an enemy within this (+ its own radius) is touching the
+  // beacon and chips its HP. Lured enemies rush in, so they all reach it.
+  contactRadius: 28,
+  // HP bleeds on its own (like a helper) so an un-attacked beacon still winds down —
+  // visibly, via its HP ring — instead of vanishing on a hidden timer.
+  hpDecayPerSec: 10,
+} as const
+
+// Collapsar (Gravity Lure ultimate). A wider, tougher beacon that detonates for
+// `detonateDamage` over `detonateRadius` when it dies — the gathered crowd eats
+// the blast. Implosion raises the detonation damage.
+export const COLLAPSAR = {
+  costMultiplier: 2,
+  lureRadiusScale: 1.3,
+  hp: 180,
+  detonateDamage: 100,
+  detonateRadius: 180,
+} as const
+
+// Overdrive. Drops a zone that makes enemies inside take `ampMult`× damage (the
+// headline — it amplifies every other ability dropped on top), move at `slowMult`×,
+// and deal `enemyDamageMult`×; while the ship sits inside, its cooldowns tick
+// `selfHaste`× faster. A force-multiplier, not a damage source of its own.
+export const OVERDRIVE = {
+  cooldown: 14,
+  powerCost: 90,
+  radius: 160,
+  duration: 6,
+  ampMult: 1.5,
+  slowMult: 0.6,
+  enemyDamageMult: 0.6,
+  selfHaste: 1.4,
+} as const
+
+// Overload Core (Overdrive ultimate). Bigger, higher amp, a much harder slow, and a
+// stronger self-haste. Resonance pushes the damage amp further.
+export const OVERLOAD_CORE = {
+  costMultiplier: 3,
+  radiusScale: 1.4,
+  ampMult: 1.8,
+  slowMult: 0.45,
+  enemyDamageMult: 0.5,
+  selfHaste: 1.6,
+} as const

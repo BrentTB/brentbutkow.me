@@ -3,7 +3,6 @@ import {
   buildNebulaField,
   enemyVisibleToPlayerSide,
   hazeJitterAt,
-  inZone,
   jitterAim,
   nebulaRadiusAt,
   playerVisibleToEnemy,
@@ -12,6 +11,7 @@ import {
   visibleTargetForEnemy,
 } from './nebula-vision'
 import type { NebulaField } from './nebula-vision'
+import { inZone } from '../math/zone'
 import { createNebula } from './nebula'
 import { createAlly, createShip } from '../entities/entity-creator'
 import { NEBULA, WORLD_SIZE } from '../../data'

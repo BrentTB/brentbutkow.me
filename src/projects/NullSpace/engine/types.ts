@@ -202,6 +202,11 @@ export type Enemy = Entity & {
   burning?: BurningState
   // Radiation stacks (Radiation pool). Present while irradiated; absent at 0 stacks.
   radiation?: RadiationState
+  // Per-frame Overdrive zone debuffs (absent ⇒ 1×), stamped each frame by the
+  // overdrive pass: incoming-damage ×, movement-speed ×, outgoing-damage ×.
+  damageTakenMult?: number
+  speedMult?: number
+  damageDealtMult?: number
   // Late-game modifier (absent on plain enemies). Set at spawn.
   modifier?: EnemyModifier
   // Present only on shield-modifier enemies — a player-style absorb-first pool
@@ -271,6 +276,8 @@ export const AbilityKind = {
   solarFlare: 'solarFlare',
   radiation: 'radiation',
   chainLightning: 'chainLightning',
+  gravityLure: 'gravityLure',
+  overdrive: 'overdrive',
   // Ultimates — upgraded variants of a base ability, purchased with the
   // Singularity Shard economy. Each links to its base via `ultimateOf`.
   cometShower: 'cometShower',
@@ -284,6 +291,8 @@ export const AbilityKind = {
   singularity: 'singularity',
   meltdown: 'meltdown',
   ionStorm: 'ionStorm',
+  collapsar: 'collapsar',
+  overloadCore: 'overloadCore',
 } as const
 export type AbilityKind = (typeof AbilityKind)[keyof typeof AbilityKind]
 
@@ -346,6 +355,8 @@ export const EffectKind = {
   wormhole: 'wormhole',
   radiationField: 'radiationField',
   chainArc: 'chainArc',
+  gravityLure: 'gravityLure',
+  overdriveField: 'overdriveField',
 } as const
 export type EffectKind = (typeof EffectKind)[keyof typeof EffectKind]
 
@@ -575,6 +586,33 @@ export type ChainArcEffect = EffectBase & {
   segments: { from: Vec2; to: Vec2 }[]
 }
 
+// Gravity Lure beacon. Non-boss enemies within `lureRadius` steer toward it instead
+// of the ship — the taunt runs in the enemy AI pass (which has the enemy list).
+// Enemies engaging it drain its `hp` (they tear it down), and it also bleeds HP on
+// its own so an un-attacked beacon still winds down. It dies at 0 HP — Collapsar
+// sets `detonate` to blast on death.
+export type GravityLureEffect = EffectBase & {
+  kind: typeof EffectKind.gravityLure
+  lureRadius: number
+  hp: number
+  maxHp: number
+  detonate?: { damage: number; radius: number }
+}
+
+// Overdrive field. A stationary zone that debuffs enemies inside (take `ampMult`×
+// damage, move at `slowMult`×, deal `enemyDamageMult`×) and hastes the player's
+// ability cooldowns by `selfHaste` while the ship stands in it. The per-enemy
+// debuffs are stamped each frame by the overdrive pass (it has the enemy list); the
+// effect itself only ages + renders.
+export type OverdriveFieldEffect = EffectBase & {
+  kind: typeof EffectKind.overdriveField
+  radius: number
+  ampMult: number
+  slowMult: number
+  enemyDamageMult: number
+  selfHaste: number
+}
+
 export type ActiveEffect =
   | MeteorStrikeEffect
   | BlackHoleEffect
@@ -593,6 +631,8 @@ export type ActiveEffect =
   | WormholeEffect
   | RadiationFieldEffect
   | ChainArcEffect
+  | GravityLureEffect
+  | OverdriveFieldEffect
 
 export const CollectibleKind = {
   powerOrb: 'powerOrb',
