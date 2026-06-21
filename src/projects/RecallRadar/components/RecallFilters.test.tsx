@@ -11,6 +11,7 @@ const empty: RecallFilterValues = {
   classification: '',
   severity: '',
   topic: '',
+  event: '',
   state: '',
   company: '',
   source: '',
@@ -108,5 +109,17 @@ describe('RecallFilters', () => {
     expect(screen.getByText('Theme: listeria · deli · meat')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Remove the theme filter' }))
     expect(onChange).toHaveBeenCalledWith({ topic: '' })
+  })
+
+  it('shows a removable outbreak chip from the resolved event label', () => {
+    const onChange = vi.fn()
+    renderFilters({
+      filters: { ...empty, event: 'listeria-2026-03' },
+      eventLabel: 'Listeria · 7 recalls',
+      onChange,
+    })
+    expect(screen.getByText('Outbreak: Listeria · 7 recalls')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Remove the outbreak filter' }))
+    expect(onChange).toHaveBeenCalledWith({ event: '' })
   })
 })

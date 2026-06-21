@@ -15,6 +15,7 @@ export type RecallFilters = {
   classification?: RecallClass
   severity?: SeverityLabel
   topic?: string
+  event?: string
   state?: string
   company?: string
   source?: RecallSource
@@ -38,6 +39,7 @@ function appendRecallFilters(params: URLSearchParams, filters: RecallFilters): v
   if (filters.classification) params.set('classification', filters.classification)
   if (filters.severity) params.set('severity', filters.severity)
   if (filters.topic) params.set('topic', filters.topic)
+  if (filters.event) params.set('event', filters.event)
   if (filters.state) params.set('state', filters.state)
   if (filters.company) params.set('company', filters.company)
   if (filters.source) params.set('source', filters.source)

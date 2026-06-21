@@ -10,7 +10,7 @@ import { formatDate } from '../chart-format'
 import { SafeLink } from '../../../components/utils/SafeLink'
 import { getLinkArrow } from '../../../components/utils/link-arrow'
 import { RelatedRecalls } from './RelatedRecalls'
-import type { Recall, TopicOut } from '../recall.types'
+import type { EventOut, Recall, TopicOut } from '../recall.types'
 import styles from './RecallFeed.module.scss'
 
 type RecallFeedProps = {
@@ -18,6 +18,13 @@ type RecallFeedProps = {
   // Themes keyed by the recall's topicId, so the chip can show the label and filter by the slug.
   topicsById?: Map<number, TopicOut>
   onTopicSelect?: (slug: string) => void
+  // The currently-active topic/event slugs, so a chip for the active filter clears it on re-click
+  // (toggle), matching how the Themes / Outbreaks cards behave.
+  activeTopic?: string
+  // Event clusters keyed by the recall's eventClusterId — the badge shows only for outbreaks.
+  eventsById?: Map<number, EventOut>
+  onEventSelect?: (slug: string) => void
+  activeEvent?: string
 }
 
 type DetailRow = { term: string; value: string }
@@ -36,7 +43,15 @@ function detailRows(recall: Recall): DetailRow[] {
   return rows
 }
 
-export function RecallFeed({ recalls, topicsById, onTopicSelect }: RecallFeedProps) {
+export function RecallFeed({
+  recalls,
+  topicsById,
+  onTopicSelect,
+  activeTopic,
+  eventsById,
+  onEventSelect,
+  activeEvent,
+}: RecallFeedProps) {
   // Track which rows are open so the Related-recalls child mounts (and fetches) only on expand.
   const [openRows, setOpenRows] = useState<Set<string>>(new Set())
 
@@ -48,6 +63,8 @@ export function RecallFeed({ recalls, topicsById, onTopicSelect }: RecallFeedPro
     <ul className={styles.list}>
       {recalls.map((recall) => {
         const theme = recall.topicId != null ? topicsById?.get(recall.topicId) : undefined
+        const cluster =
+          recall.eventClusterId != null ? eventsById?.get(recall.eventClusterId) : undefined
         return (
           <li key={recall.recallNumber} className={styles.row}>
             <details
@@ -75,14 +92,30 @@ export function RecallFeed({ recalls, topicsById, onTopicSelect }: RecallFeedPro
                     <button
                       type="button"
                       className={styles.themeChip}
-                      // Inside <summary>, so stop the click from toggling the row.
+                      // Inside <summary>, so stop the click from toggling the row. Re-clicking the
+                      // active theme clears it (toggle), like the Themes cards.
                       onClick={(event) => {
                         event.preventDefault()
-                        onTopicSelect?.(theme.slug)
+                        onTopicSelect?.(theme.slug === activeTopic ? '' : theme.slug)
                       }}
                       title="Filter by this theme"
                     >
                       {theme.label}
+                    </button>
+                  )}
+                  {cluster?.isOutbreak && (
+                    <button
+                      type="button"
+                      className={styles.outbreakChip}
+                      // Inside <summary>, so stop the click from toggling the row. Re-clicking the
+                      // active outbreak clears it (toggle), like the Outbreaks cards.
+                      onClick={(e) => {
+                        e.preventDefault()
+                        onEventSelect?.(cluster.slug === activeEvent ? '' : cluster.slug)
+                      }}
+                      title="Part of an outbreak — filter to it"
+                    >
+                      ⚠ Outbreak
                     </button>
                   )}
                   <span className={styles.source}>{sourceLabels[recall.source]}</span>

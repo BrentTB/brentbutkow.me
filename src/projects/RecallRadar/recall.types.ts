@@ -52,6 +52,8 @@ export const TrendGroup = {
   total: 'total',
   category: 'category',
   source: 'source',
+  severity: 'severity',
+  classification: 'classification',
 } as const
 export type TrendGroup = (typeof TrendGroup)[keyof typeof TrendGroup]
 
@@ -75,6 +77,7 @@ export type RecallFilterValues = {
   classification: RecallClass | ''
   severity: SeverityLabel | ''
   topic: string // topic slug (stable theme key); '' = no filter
+  event: string // event/outbreak slug (stable cluster key); '' = no filter
   state: string
   company: string
   source: RecallSource | ''
@@ -103,6 +106,7 @@ export type Recall = {
   severityScore: number
   severityLabel: SeverityLabel
   topicId?: number | null // NMF theme id; absent/null until the analytics build runs
+  eventClusterId?: number | null // event/outbreak cluster id; absent/null until events are built
   entities: RecallEntity[]
 }
 
@@ -116,6 +120,20 @@ export type RecallListResult = {
 // Analytics (Phase 2): a discovered theme and a recall's nearest neighbour.
 export type TopicOut = { id: number; slug: string; label: string; topTerms: string[]; size: number }
 export type SimilarRecall = { similarity: number; recall: Recall }
+// A recall cluster: recalls grouped into one incident. Outbreaks are the high-signal pathogen ones.
+export type EventOut = {
+  id: number
+  slug: string
+  label: string
+  isOutbreak: boolean
+  dominantEntity: string | null
+  recallCount: number
+  companyCount: number
+  stateCount: number
+  firstDate: string | null
+  lastDate: string | null
+  severityMax: number
+}
 
 export type CategoryCount = { category: RecallCategory; count: number }
 export type MonthCount = { month: string; count: number } // month is 'YYYY-MM'
@@ -257,6 +275,10 @@ const isRecall = (value: unknown): value is Recall =>
   isSeverityLabel(value.severityLabel) &&
   // topicId is tolerant — absent (older payloads/fixtures) or null (not yet built) or a number.
   (value.topicId === undefined || value.topicId === null || typeof value.topicId === 'number') &&
+  // eventClusterId is tolerant the same way.
+  (value.eventClusterId === undefined ||
+    value.eventClusterId === null ||
+    typeof value.eventClusterId === 'number') &&
   isStringOrNull(value.status) &&
   isStringOrNull(value.classification) &&
   isStringOrNull(value.companyName) &&
@@ -285,6 +307,23 @@ export const isTopicOut = (value: unknown): value is TopicOut =>
 
 export const isTopicOutArray = (value: unknown): value is TopicOut[] =>
   Array.isArray(value) && value.every(isTopicOut)
+
+export const isEventOut = (value: unknown): value is EventOut =>
+  isRecord(value) &&
+  typeof value.id === 'number' &&
+  typeof value.slug === 'string' &&
+  typeof value.label === 'string' &&
+  typeof value.isOutbreak === 'boolean' &&
+  (value.dominantEntity === null || typeof value.dominantEntity === 'string') &&
+  typeof value.recallCount === 'number' &&
+  typeof value.companyCount === 'number' &&
+  typeof value.stateCount === 'number' &&
+  isStringOrNull(value.firstDate) &&
+  isStringOrNull(value.lastDate) &&
+  typeof value.severityMax === 'number'
+
+export const isEventOutArray = (value: unknown): value is EventOut[] =>
+  Array.isArray(value) && value.every(isEventOut)
 
 const isSimilarRecall = (value: unknown): value is SimilarRecall =>
   isRecord(value) && typeof value.similarity === 'number' && isRecall(value.recall)

@@ -26,6 +26,7 @@ type RecallFiltersProps = {
   country: RecallCountry
   stateOptions: string[]
   topicLabel?: string
+  eventLabel?: string
   onChange: (patch: Partial<RecallFilterValues>) => void
   onClear: () => void
 }
@@ -37,6 +38,7 @@ export function RecallFilters({
   country,
   stateOptions,
   topicLabel,
+  eventLabel,
   onChange,
   onClear,
 }: RecallFiltersProps) {
@@ -81,6 +83,14 @@ export function RecallFilters({
       label: `Theme: ${topicLabel}`,
       remove: 'the theme',
       patch: { topic: '' },
+    })
+  // Event is set via the Outbreaks cards / per-card outbreak badge; show its resolved label.
+  if (filters.event && eventLabel)
+    chips.push({
+      key: 'event',
+      label: `Outbreak: ${eventLabel}`,
+      remove: 'the outbreak',
+      patch: { event: '' },
     })
   if (filters.source)
     chips.push({ key: 'source', label: sourceLabels[filters.source], patch: { source: '' } })

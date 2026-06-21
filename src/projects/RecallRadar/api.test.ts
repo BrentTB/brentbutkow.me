@@ -20,6 +20,7 @@ describe('buildRecallsPath', () => {
       classification: RecallClass.classI,
       severity: SeverityLabel.severe,
       topic: 'listeria-deli-meat',
+      event: 'listeria-2026-03',
       state: 'CA',
       entity: 'peanuts',
       search: 'listeria',
@@ -32,6 +33,7 @@ describe('buildRecallsPath', () => {
     expect(path).toContain('classification=Class+I')
     expect(path).toContain('severity=severe')
     expect(path).toContain('topic=listeria-deli-meat')
+    expect(path).toContain('event=listeria-2026-03')
     expect(path).toContain('state=CA')
     expect(path).toContain('entity=peanuts')
     expect(path).toContain('search=listeria')
