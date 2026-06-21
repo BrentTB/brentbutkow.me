@@ -4,7 +4,7 @@ import type { SpaceMetalAbility } from './space-metal-ability-definition'
 import { SpaceMetalAbilityKind } from './space-metal-ability-definition'
 import { IconName } from '../../icon-names'
 import { uid } from '../entities/entity-creator'
-import { createMeteoriteEffect } from '../abilities/meteor-strike'
+import { createMeteoriteEffect } from '../abilities/meteors/meteor-strike'
 import { rng } from '../math/random'
 import { passThroughTick } from '../systems/effect-definition'
 import type {

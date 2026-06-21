@@ -4,11 +4,11 @@ import {
   createEnemy,
   createDeathAnim,
   createProjectile,
-  createAbilities,
   createParticle,
   spawnExplosionParticles,
   updateDeathAnims,
 } from './entity-creator'
+import { createAbilities } from '../abilities'
 import { AbilityKind, DeathBehavior, EnemyKind, MovementBehavior, ShipKind } from '../types'
 import { ANIMATION, WEAPON_ORDER, WORLD_SIZE } from '../../data'
 import { rng } from '../math/random'

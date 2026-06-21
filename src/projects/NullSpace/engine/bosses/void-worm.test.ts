@@ -1,11 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { createEnemy, createProjectile } from '../entities/entity-creator'
+import { createEnemy } from '../entities/entity-creator'
+import { applyDamageToEnemy } from '../entities/enemy-damage'
 import { updateBossAI } from './boss-ai'
-import { getBossDefinition } from './index'
 import { VOID_WORM, VOID_WORM_BOSS, WormStage } from './void-worm'
 import { getBossRuntime } from './boss-definition'
-import { resolveProjectileEnemyCollisions } from '../systems/combat'
-import { EnemyKind, ProjectileOwner } from '../types'
+import { EnemyKind } from '../types'
 import type { Enemy } from '../types'
 import { ENEMY_STATS, WORLD_SIZE } from '../../data'
 import { rng } from '../math/random'
@@ -107,37 +106,35 @@ describe('Void Worm — chain positioning', () => {
   })
 })
 
-describe('Void Worm — head damage gate', () => {
-  it('head cannot be damaged while any segment is alive', () => {
+describe('Void Worm — head damage', () => {
+  it('shields the head (reduced damage) while any segment is alive', () => {
     const { head, segments } = spawnedWorm()
-    const def = getBossDefinition(EnemyKind.voidWorm)!
-    expect(def.canTakeDamage!(head, [head, ...segments])).toBe(false)
+    const moved = updateBossAI([head, ...segments], 0.016, CTX).enemies.find(
+      (e) => e.kind === EnemyKind.voidWorm
+    )!
+    expect(moved.shieldDamageMult).toBe(VOID_WORM.shieldedDamageMult)
+    expect(moved.shieldDamageMult).toBeLessThan(1)
   })
 
-  it('head becomes damageable once every segment is dead', () => {
+  it('exposes the head (full damage) once every segment is dead', () => {
     const { head, segments } = spawnedWorm()
-    const def = getBossDefinition(EnemyKind.voidWorm)!
     const dead = segments.map((s) => ({ ...s, hp: 0 }))
-    expect(def.canTakeDamage!(head, [head, ...dead])).toBe(true)
+    const moved = updateBossAI([head, ...dead], 0.016, CTX).enemies.find(
+      (e) => e.kind === EnemyKind.voidWorm
+    )!
+    expect(moved.shieldDamageMult).toBe(1)
   })
 
-  it('projectile is consumed without damaging the head while the body lives', () => {
-    const { head, segments } = spawnedWorm()
-    // Park the body away from the projectile path so only the head is struck.
-    const farSegments = segments.map((s, i) => ({
-      ...s,
-      pos: { x: 100 + i * 50, y: 100 },
-    }))
-    const proj = {
-      ...createProjectile({ x: CENTER.x - 50, y: CENTER.y }, CENTER, ProjectileOwner.ship, 50),
-      prevPos: { x: CENTER.x - 50, y: CENTER.y },
-      pos: { x: CENTER.x + 50, y: CENTER.y },
-    }
-
-    const result = resolveProjectileEnemyCollisions([proj], [head, ...farSegments])
-    const headAfter = result.enemies.find((e) => e.kind === EnemyKind.voidWorm)!
-    expect(headAfter.hp).toBe(head.hp)
-    expect(result.projectiles).toHaveLength(0)
+  it('takes reduced damage from a hit while shielded, full once exposed', () => {
+    // No enemy-shield on the head, so the multiplier shows directly in HP lost.
+    const head = { ...spawnedWorm().head, enemyShield: undefined }
+    const shielded = applyDamageToEnemy(
+      { ...head, shieldDamageMult: VOID_WORM.shieldedDamageMult },
+      100
+    )
+    const exposed = applyDamageToEnemy({ ...head, shieldDamageMult: 1 }, 100)
+    expect(head.hp - shielded.hp).toBeCloseTo(100 * VOID_WORM.shieldedDamageMult)
+    expect(head.hp - exposed.hp).toBeCloseTo(100)
   })
 })
 
@@ -164,7 +161,7 @@ describe('Void Worm — attack cycle', () => {
     expect(stalled.vel.x).toBeGreaterThan(0)
   })
 
-  it('charge lunges at full speed along a heading locked at windup end', () => {
+  it('charge lunges at full speed, curving to track the ship', () => {
     let { head } = spawnedWorm()
     head = {
       ...head,
@@ -179,13 +176,18 @@ describe('Void Worm — attack cycle', () => {
     let result = updateBossAI([head], 0.016, CTX)
     let moved = result.enemies.find((e) => e.kind === EnemyKind.voidWorm)!
     expect(wormState(moved).stage).toBe(WormStage.charge)
-    const lockedHeading = wormState(moved).heading
+    const startHeading = wormState(moved).heading
 
-    // Ship dodges hard mid-charge — the heading must not follow it.
-    const dodgedCtx = { ...CTX, shipPos: { x: 1500, y: 300 } }
+    // Ship dodges hard to the side mid-charge — the lunge now CURVES to follow it
+    // (capped) instead of committing to the locked line a sidestep would beat.
+    const dodgedCtx = { ...CTX, shipPos: { x: CTX.shipPos.x, y: CTX.shipPos.y + 600 } }
     result = updateBossAI([moved], 0.05, dodgedCtx)
     moved = result.enemies.find((e) => e.kind === EnemyKind.voidWorm)!
-    expect(wormState(moved).heading).toEqual(lockedHeading)
+    const curved = wormState(moved).heading
+    expect(curved).not.toEqual(startHeading) // it tracked the dodge
+    expect(curved.y).toBeGreaterThan(0) // bent toward where the ship went
+    expect(curved.x).toBeGreaterThan(curved.y) // but capped — it didn't snap onto it
+    expect(Math.hypot(curved.x, curved.y)).toBeCloseTo(1) // still a unit heading
     expect(Math.hypot(moved.vel.x, moved.vel.y)).toBeCloseTo(VOID_WORM.chargeSpeed)
   })
 

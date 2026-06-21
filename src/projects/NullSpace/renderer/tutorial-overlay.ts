@@ -1,5 +1,5 @@
 import type { Camera } from './camera'
-import { worldToScreen } from './camera'
+import { worldToScreenPx, pinDprTransform } from './camera'
 import type { Vec2 } from '../engine/types'
 
 export type TutorialFocusOpts = {
@@ -13,11 +13,12 @@ export type TutorialFocusOpts = {
 const HOLE_RADIUS = 70
 
 // Tutorial spotlight: a vignette that's transparent over the focus target (the
-// ship, or the enemy to hit) and darkens away from it, plus a pulsing ring.
-// Drawn after the world frame at the DPR baseline transform — so positions are
-// render-space × zoom, matching drawSlingAim. The dim is a single radial-gradient
-// fill (NOT a dim + destination-out hole, which would erase the ship under it to
-// transparent). No target → nothing drawn (the beat has no spotlight).
+// ship, or the enemy to hit) and darkens away from it, plus a pulsing ring. Drawn
+// after the world frame; it sets its OWN DPR-baseline transform (like drawSlingAim)
+// so a leaked transform from a world-layer renderer can't shove it off-screen.
+// Positions are render-space × zoom. The dim is a single radial-gradient fill (NOT a
+// dim + destination-out hole, which would erase the ship under it to transparent).
+// No target → nothing drawn (the beat has no spotlight).
 export function drawTutorialFocus(
   ctx: CanvasRenderingContext2D,
   camera: Camera,
@@ -26,13 +27,14 @@ export function drawTutorialFocus(
 ): void {
   if (!target) return
 
-  const rs = worldToScreen(target, camera)
-  const x = rs.x * camera.zoom
-  const y = rs.y * camera.zoom
+  const { x, y } = worldToScreenPx(target, camera)
   const pulse = opts.reducedMotion ? 0 : Math.sin(opts.pulseClock * 3) * 5
   const ringRadius = HOLE_RADIUS + 8 + pulse
 
   ctx.save()
+  // Pin the DPR baseline so the spotlight is immune to any transform a world-layer
+  // renderer may have left on the context.
+  pinDprTransform(ctx, camera)
 
   // Clear at the focus, darkening to a dim surround — the ship/enemy stays fully
   // visible while everything else recedes.

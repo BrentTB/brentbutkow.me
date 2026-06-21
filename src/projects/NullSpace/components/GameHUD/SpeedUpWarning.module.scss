@@ -25,6 +25,20 @@
   color: #ff8a3c;
 }
 
+// The confirmed-speed-up sign: a hotter red than the amber countdown, popping in
+// then fading over its brief life (JS unmounts it on the same timer). Declared
+// after .warning so it overrides the gentle amber pulse.
+.spedUp {
+  color: #ffb4a0;
+  background: rgba(60, 16, 10, 0.82);
+  border-color: rgba(255, 90, 60, 0.7);
+  animation: spedUpFlash 2.5s ease-out forwards;
+}
+
+.spedUp .icon {
+  color: #ff5a3c;
+}
+
 // Visually hidden, still announced — carries one stable sentence so the live
 // region speaks once instead of re-reading the per-second count.
 .srOnly {
@@ -47,6 +61,49 @@
     opacity: 0.82;
   }
   50% {
+    opacity: 1;
+  }
+}
+
+// Pop in, hold, fade out — a one-shot beat that lands the lurch.
+@keyframes spedUpFlash {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.7);
+  }
+  12% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.08);
+  }
+  22% {
+    transform: translateX(-50%) scale(1);
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+// Reduced motion: stop the countdown pulse, swap the sped-up pop for a plain fade.
+@media (prefers-reduced-motion: reduce) {
+  .warning {
+    animation: none;
+  }
+  .spedUp {
+    animation: spedUpFade 2.5s ease-out forwards;
+  }
+}
+
+@keyframes spedUpFade {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  10%,
+  80% {
     opacity: 1;
   }
 }

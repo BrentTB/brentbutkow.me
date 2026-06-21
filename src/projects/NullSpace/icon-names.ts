@@ -24,6 +24,10 @@ export const IconName = {
   missile: 'missile',
   ricochet: 'ricochet',
   nuke: 'nuke',
+  radiation: 'radiation',
+  chainLightning: 'chainLightning',
+  gravityLure: 'gravityLure',
+  overdrive: 'overdrive',
 } as const
 
 export type IconName = (typeof IconName)[keyof typeof IconName]

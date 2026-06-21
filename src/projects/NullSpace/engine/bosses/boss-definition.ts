@@ -32,9 +32,28 @@ export function getBossRuntime<K extends BossEnemyKind>(
     : undefined
 }
 
-export type SpawnSpec = { kind: EnemyKind; pos: Vec2 }
+export type SpawnSpec = {
+  kind: EnemyKind
+  pos: Vec2
+  // Optional timed self-destruct (Phase Shifter swarms), carried onto the spawned enemy.
+  expiresIn?: number
+  expireBlast?: { radius: number; damage: number }
+}
 // Loot drop spec — position + initial velocity. Caller creates the Collectible.
 export type DropSpec = { pos: Vec2; vel: Vec2 }
+// A projectile a boss fires this tick — boss-ai turns it into an enemy-owned
+// Projectile aimed from `from` toward `toward`.
+export type BossProjectileSpec = {
+  from: Vec2
+  toward: Vec2
+  damage: number
+  speed: number
+  beam: boolean
+  // Capped homing toward the ship (rad/s); omit for a straight shot.
+  homingTurnRate?: number
+  // Lifetime (seconds) override; omit for the default projectile lifetime.
+  lifetime?: number
+}
 
 // Per-tick world context handed to boss hooks: ship position (aiming, teleport
 // targeting), world bounds (clamping charges/landings), and the live enemy
@@ -48,12 +67,17 @@ export type BossUpdateResult = {
   // replaces `linkedIds`, re-arming the shield (used at the phase-2 transition).
   linkedSpawns?: SpawnSpec[]
   // Patch applied to the boss entity itself — movement bursts, teleports.
-  self?: Partial<Pick<Enemy, 'pos' | 'vel' | 'speed'>>
+  self?: Partial<Pick<Enemy, 'pos' | 'vel' | 'speed' | 'shieldDamageMult'>>
+  // Projectiles the boss fires this tick (e.g. the Dreadnought's charged laser).
+  projectiles?: BossProjectileSpec[]
 }
 
 export type BossDefinition = {
   kind: EnemyKind
   hpBarLabel: string
+  // Cryptic, in-fiction heads-up shown in the pre-boss shop. Names no boss — a
+  // veteran reads the clue and knows what's coming; a newcomer just knows to gear up.
+  warning: string
   // How the movement system steers this boss (entity-creator reads it at
   // spawn, so boss movement isn't hard-coded in a central table).
   movement: MovementBehavior
@@ -64,9 +88,8 @@ export type BossDefinition = {
   // Gates projectile damage. Return false to absorb the hit without dealing damage.
   canTakeDamage?: (boss: Enemy, enemies: Enemy[]) => boolean
   // Suppresses the cyan damage-gate bubble the renderer draws while
-  // canTakeDamage is false. The worm always hides it (its body IS the shield);
-  // the Phase Shifter hides it mid-shift (the ghost sprite carries
-  // "untouchable" there).
+  // canTakeDamage is false. The Phase Shifter hides it mid-shift — the ghost
+  // sprite already carries "untouchable" there.
   hideShieldBubble?: (boss: Enemy) => boolean
   // Alpha the boss sprite is drawn with — e.g. the Phase Shifter's 0.35 ghost
   // mid-shift. Absent → fully opaque.
@@ -83,12 +106,13 @@ export type BossDefinition = {
   // Called when the boss dies. Returns loot drop specs (positions + velocities).
   onDeath?: (boss: Enemy) => DropSpec[]
   // Aggregate HP for the HUD bar. Default: boss.hp / boss.maxHp. The worm sums
-  // head + alive segments so the bar moves while the head is still damage-gated.
+  // head + alive segments so the bar moves while the body still shields the head.
   hpBarValue?: (boss: Enemy, enemies: Enemy[]) => { hp: number; maxHp: number }
 }
 
-// True while any of the boss's linked entities is still alive. Dreadnought and
-// worm invert this for canTakeDamage.
+// True while any of the boss's linked entities is still alive. The Dreadnought
+// inverts this for canTakeDamage; the worm uses it to reduce head damage while
+// its body segments still shield it.
 export function hasAliveLinked(boss: Enemy, enemies: Enemy[]): boolean {
   if (!boss.boss) return false
   return boss.boss.linkedIds.some((id) => enemies.some((e) => e.id === id && e.hp > 0))

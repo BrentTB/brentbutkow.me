@@ -33,7 +33,7 @@ import {
 } from './engine/types'
 import type { GameState, PlayerInput, Vec2, PlayerUpgrades } from './engine/types'
 import type { UpgradeId } from './engine/upgrade-ids'
-import { getBossDefinition } from './engine/bosses/index'
+import { getBossDefinition } from './engine/bosses'
 import { HOLD_ABILITIES } from './engine/abilities'
 import {
   SLING_MAX_DRAG_PX,
@@ -153,6 +153,8 @@ export type GameUIState = {
   slingOverheated: boolean
   boss: { hp: number; maxHp: number; label: string } | null
   nextBoss: EnemyKind
+  // Cryptic boss warning shown in the pre-boss shop; null in every other shop.
+  bossWarning: string | null
   // Tutorial overlay state (the demo-wave onboarding). Inactive → tutorialActive false.
   tutorialActive: boolean
   tutorialCopy: string
@@ -249,6 +251,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     slingOverheated: false,
     boss: null,
     nextBoss: gameStateRef.current.bossSelection.nextBoss,
+    bossWarning: null,
     tutorialActive: false,
     tutorialCopy: '',
     tutorialAwaitingAck: false,
@@ -359,6 +362,11 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
         return { ...value, label: def?.hpBarLabel ?? 'BOSS' }
       })(),
       nextBoss: state.bossSelection.nextBoss,
+      // The pre-boss shop (boss queued on the next wave) shows a cryptic heads-up.
+      bossWarning:
+        state.phase === GamePhase.upgradeScreen && isBossWave(state.wave)
+          ? (getBossDefinition(state.bossSelection.nextBoss)?.warning ?? null)
+          : null,
       tutorialActive,
       tutorialCopy: tutorialViewRef.current?.copy ?? '',
       tutorialAwaitingAck: tutorialViewRef.current?.awaitingAck ?? false,
@@ -367,11 +375,12 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     })
   }, [])
 
-  // Autosave the run when a sector clears (the shop opens); drop the save when a
-  // run ends. Keyed on the synced phase so it fires for the warp path and dev
-  // jumps alike, independent of the rAF loop's timing.
+  // Autosave the run on every wave clear: the between-waves screen (waveComplete)
+  // and the sector / pre-boss shop (upgradeScreen) both land here. Drop the save when
+  // a run ends. Keyed on the synced phase so it fires for the warp path and dev jumps
+  // alike, independent of the rAF loop's timing.
   useEffect(() => {
-    if (uiState.phase === GamePhase.upgradeScreen) {
+    if (uiState.phase === GamePhase.waveComplete || uiState.phase === GamePhase.upgradeScreen) {
       saveGame(gameStateRef.current, rng.getState())
       setHasSave(true)
     } else if (uiState.phase === GamePhase.gameOver) {
@@ -458,7 +467,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     syncUI(gameStateRef.current)
   }, [syncUI, enterSector])
 
-  // Save & Exit: the run was already auto-saved at the last sector clear, so this
+  // Save & Exit: the run was already auto-saved at the last wave clear, so this
   // just returns to a fresh menu; the save on disk stays for Continue.
   const handleSaveAndExit = useCallback(() => {
     gameStateRef.current = createInitialState()

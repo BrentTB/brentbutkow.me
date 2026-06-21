@@ -20,7 +20,7 @@ import type { DeathAnim, Ship, Enemy, Projectile, Vec2, Ally, Particle } from '.
 import { rng } from '../math/random'
 import { toroidalDelta } from '../math/toroid'
 import { SHIP_VARIANTS } from '../ship/ship-data'
-import { getBossDefinition } from '../bosses/index'
+import { getBossDefinition } from '../bosses'
 import type { BossEnemyKind } from '../bosses/boss-definition'
 
 // Bosses aren't listed here — they declare movement on their BossDefinition
@@ -134,7 +134,7 @@ export function createProjectile(
   targetPos: Vec2,
   owner: Projectile['owner'],
   damage: number,
-  opts?: { speed?: number; beam?: boolean }
+  opts?: { speed?: number; beam?: boolean; homingTurnRate?: number; lifetime?: number }
 ): Projectile {
   // Aim along the shortest (wrapped) path to the target.
   const { x: dx, y: dy } = toroidalDelta(pos, targetPos)
@@ -153,8 +153,9 @@ export function createProjectile(
     maxHp: 1,
     owner,
     damage,
-    lifetime: PROJECTILE_LIFETIME,
+    lifetime: opts?.lifetime ?? PROJECTILE_LIFETIME,
     ...(opts?.beam ? { beam: true } : {}),
+    ...(opts?.homingTurnRate !== undefined ? { homingTurnRate: opts.homingTurnRate } : {}),
   }
 }
 
@@ -192,10 +193,6 @@ export function createHelperFactory(pos: Vec2, maxHp: number, spawnInterval: num
     spawnTimer: Math.min(HELPER_FACTORY.firstSpawnDelay, spawnInterval),
   }
 }
-
-// Ability creation lives in engine/abilities/ to keep all per-ability logic in
-// one folder. Re-exported here so existing callers don't break.
-export { createAbilities } from '../abilities'
 
 export function createParticle(
   pos: Vec2,

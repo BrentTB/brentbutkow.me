@@ -9,8 +9,8 @@ import {
   splitAsteroid,
   updateAsteroids,
 } from './asteroids'
-import { createBlackHoleEffect } from '../abilities/black-hole'
-import { createMeteoriteEffect } from '../abilities/meteor-strike'
+import { createBlackHoleEffect } from '../abilities/blackHole/black-hole'
+import { createMeteoriteEffect } from '../abilities/meteors/meteor-strike'
 import { ASTEROID, WORLD_SIZE } from '../../data'
 import { createEnemy, createShip } from '../entities/entity-creator'
 import { AsteroidTier, EnemyKind, ShipKind } from '../types'

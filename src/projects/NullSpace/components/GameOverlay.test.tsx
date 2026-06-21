@@ -42,6 +42,7 @@ function makeUiState(phase: GameUIState['phase']): GameUIState {
     slingOverheated: false,
     boss: null,
     nextBoss: EnemyKind.dreadnought,
+    bossWarning: null,
     tutorialActive: false,
     tutorialCopy: '',
     tutorialAwaitingAck: false,

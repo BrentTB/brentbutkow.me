@@ -2,24 +2,32 @@ import { WEAPON_ORDER } from '../../data'
 import { AbilityKind } from '../types'
 import type { Ability, ActiveEffect, Ally, Ship, UpgradeDefinition, Vec2 } from '../types'
 
-import { meteorite } from './meteorite'
-import { meteor } from './meteor'
-import { blackHole } from './black-hole'
-import { rocket } from './rocket'
-import { shield } from './shield'
-import { sun } from './sun'
-import { helper } from './helper'
-import { telekinesis } from './telekinesis'
-import { solarFlare } from './solar-flare'
-import { cometShower } from './comet-shower'
-import { meteorShower } from './meteor-shower'
-import { helperFactory } from './helper-factory'
-import { supernova } from './supernova'
-import { forceField } from './force-field'
-import { fireworks } from './fireworks'
-import { eventHorizon } from './event-horizon'
-import { solarPlague } from './solar-plague'
-import { singularity } from './singularity'
+import { meteorite } from './meteors/meteorite'
+import { meteor } from './meteors/meteor'
+import { blackHole } from './blackHole/black-hole'
+import { rocket } from './rocket/rocket'
+import { shield } from './shield/shield'
+import { sun } from './sun/sun'
+import { helper } from './helper/helper'
+import { telekinesis } from './telekinesis/telekinesis'
+import { solarFlare } from './solarFlare/solar-flare'
+import { cometShower } from './meteors/comet-shower'
+import { meteorShower } from './meteors/meteor-shower'
+import { helperFactory } from './helper/helper-factory'
+import { supernova } from './sun/supernova'
+import { forceField } from './shield/force-field'
+import { fireworks } from './rocket/fireworks'
+import { eventHorizon } from './blackHole/event-horizon'
+import { solarPlague } from './solarFlare/solar-plague'
+import { singularity } from './telekinesis/singularity'
+import { radiation } from './radiation/radiation'
+import { meltdown } from './radiation/meltdown'
+import { chainLightning } from './chainLightning/chain-lightning'
+import { ionStorm } from './chainLightning/ion-storm'
+import { gravityLure } from './gravityLure/gravity-lure'
+import { collapsar } from './gravityLure/collapsar'
+import { overdrive } from './overdrive/overdrive'
+import { overloadCore } from './overdrive/overload-core'
 import type { UpgradeId } from '../upgrade-ids'
 import type { AbilityDefinition, UltimateDescriptor } from './ability-definition'
 import type { IconName } from '../../icon-names'
@@ -59,6 +67,14 @@ export const ABILITY_DEFINITIONS: Record<AbilityKind, AbilityDefinition> = {
   [AbilityKind.eventHorizon]: eventHorizon,
   [AbilityKind.solarPlague]: solarPlague,
   [AbilityKind.singularity]: singularity,
+  [AbilityKind.radiation]: radiation,
+  [AbilityKind.meltdown]: meltdown,
+  [AbilityKind.chainLightning]: chainLightning,
+  [AbilityKind.ionStorm]: ionStorm,
+  [AbilityKind.gravityLure]: gravityLure,
+  [AbilityKind.collapsar]: collapsar,
+  [AbilityKind.overdrive]: overdrive,
+  [AbilityKind.overloadCore]: overloadCore,
 }
 
 export const ABILITY_LIST: AbilityDefinition[] = Object.values(ABILITY_DEFINITIONS)

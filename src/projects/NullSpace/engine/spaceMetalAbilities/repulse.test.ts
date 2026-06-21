@@ -4,7 +4,7 @@ import { EffectKind, EnemyKind, ProjectileOwner, ShipKind } from '../types'
 import type { RepulseFieldEffect } from '../types'
 import { SpaceMetalAbilityKind, tryActivateSpaceMetalAbility } from '.'
 import { REPULSE, recentreRepulseFields, repulseFieldEffect } from './repulse'
-import { applyShieldConstraints } from '../abilities/shield'
+import { applyShieldConstraints } from '../abilities/shield/shield'
 import { createEnemy, createProjectile } from '../entities/entity-creator'
 
 beforeEach(() => {

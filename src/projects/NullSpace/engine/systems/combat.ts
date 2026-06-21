@@ -1,20 +1,33 @@
 import { ENEMY_STATS } from '../../data'
 import { checkCollision, distance, segmentIntersectsCircle } from '../math/collision'
 import { homeTowardTarget } from '../math/homing'
+import { steerToward } from '../math/steering'
 import { toroidalDelta } from '../math/toroid'
 import { spawnExplosionParticles } from '../entities/entity-creator'
 import { applyDamageToAlly } from '../entities/ally'
 import { applyDamageToEnemy } from '../entities/enemy-damage'
 import { applyDamageToShip } from '../entities/ship'
 import { createNuclearWasteEffect } from '../weapons/nuke'
-import { canEnemyTakeDamage } from '../bosses/index'
+import { canEnemyTakeDamage } from '../bosses'
 import { DeathBehavior, EffectKind, ProjectileOwner } from '../types'
 import type { ActiveEffect, Ally, Enemy, Particle, Projectile, Ship, Vec2 } from '../types'
+
+// Where to aim to intercept a target moving at `targetVel`: its position plus its
+// velocity over the time a projectile at `speed` needs to close the current gap. Pure
+// pursuit (aiming at the live position) just curves in behind a drifting target and
+// orbits without connecting; leading converges, so only a course change slips it.
+function leadPoint(from: Vec2, targetPos: Vec2, targetVel: Vec2, speed: number): Vec2 {
+  const { x: dx, y: dy } = toroidalDelta(from, targetPos)
+  const t = Math.hypot(dx, dy) / speed
+  return { x: targetPos.x + targetVel.x * t, y: targetPos.y + targetVel.y * t }
+}
 
 export function updateProjectiles(
   projectiles: Projectile[],
   enemies: Enemy[],
-  dt: number
+  dt: number,
+  shipPos?: Vec2,
+  shipVel?: Vec2
 ): Projectile[] {
   return projectiles
     .map((p) => {
@@ -44,6 +57,29 @@ export function updateProjectiles(
             vel: motion.vel,
             lifetime: p.lifetime - dt,
           }
+        }
+      }
+      if (p.homingTurnRate !== undefined && shipPos) {
+        // Capped homing toward where the ship is HEADING (its lead point), not where it
+        // is — a pursuit just curves in behind a drifting ship and orbits, never
+        // connecting. Leading converges on it; the turn cap means a slingshot (a hard
+        // course change) still slips the shot.
+        const speed = Math.hypot(p.vel.x, p.vel.y) || 1
+        const target = shipVel ? leadPoint(p.pos, shipPos, shipVel, speed) : shipPos
+        const heading = steerToward(
+          p.pos,
+          { x: p.vel.x / speed, y: p.vel.y / speed },
+          target,
+          p.homingTurnRate,
+          dt
+        )
+        const vel = { x: heading.x * speed, y: heading.y * speed }
+        return {
+          ...p,
+          prevPos: p.pos,
+          pos: { x: p.pos.x + vel.x * dt, y: p.pos.y + vel.y * dt },
+          vel,
+          lifetime: p.lifetime - dt,
         }
       }
       return {
@@ -384,7 +420,7 @@ export function resolveEnemyShipCollisions(
       surviving.push(enemy)
       continue
     }
-    damagedShip = applyDamageToShip(damagedShip, enemy.damage)
+    damagedShip = applyDamageToShip(damagedShip, enemy.damage * (enemy.damageDealtMult ?? 1))
     // Bombers commit suicide on contact; everything else just bounces.
     if (enemy.deathBehavior === DeathBehavior.explode) {
       killedEnemies.push(enemy)
@@ -424,7 +460,10 @@ export function resolveEnemyAllyMeleeCollisions(
       continue
     }
     const ally = updatedAllies[hitAllyIndex]
-    updatedAllies[hitAllyIndex] = applyDamageToAlly(ally, enemy.damage)
+    updatedAllies[hitAllyIndex] = applyDamageToAlly(
+      ally,
+      enemy.damage * (enemy.damageDealtMult ?? 1)
+    )
     if (enemy.deathBehavior === DeathBehavior.explode) {
       killedEnemies.push(enemy)
       allParticles.push(...spawnExplosionParticles(enemy.pos, 8, '#ff8866'))

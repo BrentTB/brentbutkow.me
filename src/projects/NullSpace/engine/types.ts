@@ -151,6 +151,20 @@ export type BurningState = {
   spreadRange: number
 }
 
+// Radiation status seeded by a Radiation pool. Stacks build while an enemy stands
+// in a pool (capped at maxStacks) and decay one at a time once it leaves; total
+// DOT is stacks × dpsPerStack, so it lingers after the enemy walks out. A
+// `spreadRange` > 0 (Meltdown ultimate) makes a max-stacked enemy seed radiation
+// on touching neighbours. gain/decay cooldowns count down per frame in/out of a pool.
+export type RadiationState = {
+  stacks: number
+  maxStacks: number
+  dpsPerStack: number
+  spreadRange: number
+  gainCooldown: number
+  decayCooldown: number
+}
+
 // Dasher attack cycle. The stage timer counts DOWN; `heading` is the lunge
 // direction, locked at the windup→charge transition so the charge commits to a
 // straight line the player dodges. Present only on dasher enemies.
@@ -186,6 +200,23 @@ export type Enemy = Entity & {
   boss?: BossRuntimeState
   // Solar Plague fire. Present while alight; absent otherwise.
   burning?: BurningState
+  // Radiation stacks (Radiation pool). Present while irradiated; absent at 0 stacks.
+  radiation?: RadiationState
+  // Per-frame Overdrive zone debuffs (absent ⇒ 1×), stamped each frame by the
+  // overdrive pass: incoming-damage ×, movement-speed ×, outgoing-damage ×.
+  damageTakenMult?: number
+  speedMult?: number
+  damageDealtMult?: number
+  // Boss body-shield reduction (absent ⇒ 1×): a boss whose body shields it takes
+  // reduced — not zero — damage while shielded (the Void Worm head) instead of being
+  // fully invincible. Stamped each frame by the boss tick.
+  shieldDamageMult?: number
+  // Optional self-destruct timer (seconds): when it reaches 0 the enemy pops via
+  // detonateExpiredEnemies. Caps the Phase Shifter's swarm rings so they can't pile
+  // up. Absent on enemies that don't time out.
+  expiresIn?: number
+  // Blast dealt to ship + allies when an expiresIn timer pops. Absent ⇒ a silent puff.
+  expireBlast?: { radius: number; damage: number }
   // Late-game modifier (absent on plain enemies). Set at spawn.
   modifier?: EnemyModifier
   // Present only on shield-modifier enemies — a player-style absorb-first pool
@@ -219,6 +250,10 @@ export type Projectile = Entity & {
   // bullet leaves them undefined and takes the default collision path.
   pierce?: { maxHits: number; hitEnemyIds: string[] }
   homing?: boolean
+  // Capped homing toward the ship (rad/s), for enemy projectiles — the Dreadnought
+  // laser. Unlike `homing` (instant re-aim at enemies), this curves gently so a drift
+  // can't escape but a slingshot can. Steered in updateProjectiles via shipPos.
+  homingTurnRate?: number
   bounce?: {
     // Redirects left after the initial hit. The first enemy struck is free
     // (checked before this decrements), so a round hits remaining + 1 enemies.
@@ -253,6 +288,10 @@ export const AbilityKind = {
   helper: 'helper',
   telekinesis: 'telekinesis',
   solarFlare: 'solarFlare',
+  radiation: 'radiation',
+  chainLightning: 'chainLightning',
+  gravityLure: 'gravityLure',
+  overdrive: 'overdrive',
   // Ultimates — upgraded variants of a base ability, purchased with the
   // Singularity Shard economy. Each links to its base via `ultimateOf`.
   cometShower: 'cometShower',
@@ -264,6 +303,10 @@ export const AbilityKind = {
   eventHorizon: 'eventHorizon',
   solarPlague: 'solarPlague',
   singularity: 'singularity',
+  meltdown: 'meltdown',
+  ionStorm: 'ionStorm',
+  collapsar: 'collapsar',
+  overloadCore: 'overloadCore',
 } as const
 export type AbilityKind = (typeof AbilityKind)[keyof typeof AbilityKind]
 
@@ -290,6 +333,9 @@ export type Ability = {
   // Multi-projectile abilities (Comet Shower): how many strikes a single
   // activation spawns. Upgradable. Absent for single-strike abilities.
   count?: number
+  // Chain Lightning / Ion Storm: number of parallel chains ("forks"), each seeded on
+  // a distinct enemy. Upgradable (Ion Storm's Overload). Absent for other abilities.
+  forks?: number
   // Comet Shower: seconds between successive comets landing. Upgradable
   // (smaller = faster volley). Absent for abilities without a staggered volley.
   staggerStep?: number
@@ -324,6 +370,10 @@ export const EffectKind = {
   wanderingBlackHole: 'wanderingBlackHole',
   nebula: 'nebula',
   wormhole: 'wormhole',
+  radiationField: 'radiationField',
+  chainArc: 'chainArc',
+  gravityLure: 'gravityLure',
+  overdriveField: 'overdriveField',
 } as const
 export type EffectKind = (typeof EffectKind)[keyof typeof EffectKind]
 
@@ -526,6 +576,61 @@ export type WormholeEffect = EffectBase & {
   growDuration: number
 }
 
+// Radiation pool (Radiation ability). A stationary zone that seeds + refreshes
+// radiation stacks on enemies inside it; the DOT + decay live on the enemy
+// (updateRadiatedEnemies), so this effect only holds the zone params, ages, and
+// renders. `spreadRange` > 0 marks a Meltdown pool (contagious at max stacks).
+export type RadiationFieldEffect = EffectBase & {
+  kind: typeof EffectKind.radiationField
+  radius: number
+  dpsPerStack: number
+  maxStacks: number
+  spreadRange: number
+}
+
+// Chain Lightning arc. Resolves its whole bolt on the first tick: `forks` parallel
+// chains, each seeded on a distinct nearest enemy, then hopping `depth` times (damage
+// falling by `falloff` per hop). Hops prefer enemies no fork has hit yet — so tendrils
+// cover a group before doubling up on a small cluster. Lingers `duration` to render;
+// `resolved` gates the one-time damage; `segments` are the drawn bolts.
+export type ChainArcEffect = EffectBase & {
+  kind: typeof EffectKind.chainArc
+  damage: number
+  jumpRange: number
+  depth: number
+  forks: number
+  falloff: number
+  resolved: boolean
+  segments: { from: Vec2; to: Vec2 }[]
+}
+
+// Gravity Lure beacon. Non-boss enemies within `lureRadius` steer toward it instead
+// of the ship — the taunt runs in the enemy AI pass (which has the enemy list).
+// Enemies engaging it drain its `hp` (they tear it down), and it also bleeds HP on
+// its own so an un-attacked beacon still winds down. It dies at 0 HP — Collapsar
+// sets `detonate` to blast on death.
+export type GravityLureEffect = EffectBase & {
+  kind: typeof EffectKind.gravityLure
+  lureRadius: number
+  hp: number
+  maxHp: number
+  detonate?: { damage: number; radius: number }
+}
+
+// Overdrive field. A stationary zone that debuffs enemies inside (take `ampMult`×
+// damage, move at `slowMult`×, deal `enemyDamageMult`×) and hastes the player's
+// ability cooldowns by `selfHaste` while the ship stands in it. The per-enemy
+// debuffs are stamped each frame by the overdrive pass (it has the enemy list); the
+// effect itself only ages + renders.
+export type OverdriveFieldEffect = EffectBase & {
+  kind: typeof EffectKind.overdriveField
+  radius: number
+  ampMult: number
+  slowMult: number
+  enemyDamageMult: number
+  selfHaste: number
+}
+
 export type ActiveEffect =
   | MeteorStrikeEffect
   | BlackHoleEffect
@@ -542,6 +647,10 @@ export type ActiveEffect =
   | WanderingBlackHoleEffect
   | NebulaEffect
   | WormholeEffect
+  | RadiationFieldEffect
+  | ChainArcEffect
+  | GravityLureEffect
+  | OverdriveFieldEffect
 
 export const CollectibleKind = {
   powerOrb: 'powerOrb',
@@ -803,6 +912,9 @@ export type GameState = {
   // Seconds left in the warp screen flash. 0 during the fly-into-portal flight;
   // set once the ship reaches the portal, then the jump completes when it hits 0.
   warpFlashTimer: number
+  // Seconds the ship keeps flying under player control after a sector clears, before
+  // the warp begins — so control isn't yanked mid-drift. 0 outside that brief beat.
+  warpDelay: number
   // Seconds until the next ambient calamity (a Shockwave) erupts. Counts down
   // only on non-boss waves; rerolled after each eruption.
   calamityTimer: number

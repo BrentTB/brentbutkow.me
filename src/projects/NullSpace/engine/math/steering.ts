@@ -1,4 +1,25 @@
 import type { Vec2 } from '../types'
+import { unitToward } from './vec'
+
+// Turns a unit `heading` toward the direction of `target` (from `pos`) by a capped
+// rate, returning the new unit heading. A charge that re-steers with this curves to
+// chase its prey instead of committing to a straight line a lazy sidestep beats — but
+// the cap keeps it dodgeable: out-juke the turn or slingshot clear. `turnRate` is the
+// responsiveness (higher = sharper curve); the blend matches moveChase's easing. Pure.
+export function steerToward(
+  pos: Vec2,
+  heading: Vec2,
+  target: Vec2,
+  turnRate: number,
+  dt: number
+): Vec2 {
+  const desired = unitToward(pos, target)
+  const alpha = 1 - Math.exp(-turnRate * dt)
+  const x = heading.x + (desired.x - heading.x) * alpha
+  const y = heading.y + (desired.y - heading.y) * alpha
+  const m = Math.hypot(x, y) || 1
+  return { x: x / m, y: y / m }
+}
 
 // Cruise along unit `dir` at `speed`, plus a sinusoidal lateral weave
 // perpendicular to `dir` (so the path bends gently instead of running dead

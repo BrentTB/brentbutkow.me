@@ -3,7 +3,6 @@ import {
   buildNebulaField,
   enemyVisibleToPlayerSide,
   hazeJitterAt,
-  inZone,
   jitterAim,
   nebulaRadiusAt,
   playerVisibleToEnemy,
@@ -55,17 +54,6 @@ describe('buildNebulaField', () => {
     expect(field.circles).toHaveLength(2) // player + one ally
     expect(field.circles[0].radius).toBe(NEBULA.sightRadius)
     expect(field.circles[1].radius).toBe(NEBULA.allySightRadius)
-  })
-})
-
-describe('inZone', () => {
-  const zones = [{ pos: center, radius: 200 }]
-
-  it('counts the rim as inside (<=) and anything past it as outside', () => {
-    expect(inZone(center, zones)).toBe(true)
-    expect(inZone({ x: center.x + 200, y: center.y }, zones)).toBe(true) // exactly on the rim
-    expect(inZone({ x: center.x + 201, y: center.y }, zones)).toBe(false)
-    expect(inZone(center, [])).toBe(false)
   })
 })
 

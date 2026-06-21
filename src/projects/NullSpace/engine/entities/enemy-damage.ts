@@ -18,6 +18,10 @@ function damageFlash(enemy: Enemy): Pick<Enemy, 'hitFlash' | 'hitFlashCooldown'>
 // is gated separately by canEnemyTakeDamage; this only runs once damage lands.
 export function applyDamageToEnemy(enemy: Enemy, damage: number): Enemy {
   if (damage <= 0) return enemy
+  // Damage modifiers, all routed through this one choke point: Overdrive vulnerability
+  // (damageTakenMult, >1 amplifies) and a boss body-shield reduction (shieldDamageMult,
+  // <1 while the Void Worm's body still shields its head).
+  damage *= (enemy.damageTakenMult ?? 1) * (enemy.shieldDamageMult ?? 1)
   const s = enemy.enemyShield
   if (!s) return { ...enemy, hp: enemy.hp - damage, ...damageFlash(enemy) }
 

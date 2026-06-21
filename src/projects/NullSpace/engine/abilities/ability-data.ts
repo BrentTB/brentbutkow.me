@@ -3,7 +3,7 @@
 // inside engine/abilities/. Older code may still re-export these from data.ts
 // for back-compat; new code should import from this file directly.
 
-import { RadialForceMode } from './radial-force'
+import { RadialForceMode } from './telekinesis/radial-force'
 
 export const METEORITE_STRIKE = {
   delay: 0.3,
@@ -210,4 +210,113 @@ export const SINGULARITY = {
   perEnemyDps: 7,
   baseExplosionDamage: 60,
   maxChargeSeconds: 2,
+} as const
+
+// Radiation pool. Drops a lingering zone; enemies inside accrue stacks (capped at
+// maxStacks) and take stacks × dpsPerStack — trivial alone, but the ramp + stacks
+// that linger after they leave are the payoff. `stackInterval`/`decayInterval` are
+// the seconds to gain a stack in a pool / lose one outside.
+export const RADIATION = {
+  cooldown: 6,
+  powerCost: 45,
+  dpsPerStack: 1.5,
+  radius: 120,
+  duration: 6,
+  maxStacks: 8,
+  stackInterval: 0.8,
+  decayInterval: 1.5,
+} as const
+
+// Meltdown (Radiation ultimate). A bigger, longer, hotter pool that stacks higher
+// — and turns contagious: a max-stacked enemy seeds radiation on neighbours within
+// `spreadRange` (edge gap). Contamination widens that reach.
+export const MELTDOWN = {
+  costMultiplier: 3,
+  radiusScale: 1.4,
+  durationScale: 1.5,
+  dpsPerStackBonus: 1.5,
+  maxStacks: 12,
+  spreadRange: 60,
+} as const
+
+// Chain Lightning. A click bolt: `forks` parallel chains, each seeded on a distinct
+// nearest enemy and hopping `depth` times to its own nearest-unhit within `jumpRange`,
+// damage scaled by `falloff` per hop. Base is a single chain (forks 1). The arc
+// lingers `arcDuration` seconds purely to render. Weak vs a lone target by design.
+export const CHAIN_LIGHTNING = {
+  cooldown: 3,
+  powerCost: 25,
+  damage: 30,
+  jumpRange: 140,
+  depth: 3,
+  falloff: 0.78,
+  forks: 1,
+  arcDuration: 0.5,
+} as const
+
+// Ion Storm (Chain Lightning ultimate). Fires `forks` parallel chains seeded on
+// distinct enemies; on a cluster they overlap and pile multiple zaps onto each enemy
+// (up to forks × (depth + 1) hits), while a lone target only feeds one chain — so it
+// stays a swarm-clearer, not a single-target nuke. Overload adds forks.
+export const ION_STORM = {
+  costMultiplier: 3,
+  damage: 50,
+  jumpRange: 170,
+  depth: 3,
+  forks: 2,
+  falloff: 0.78,
+  arcDuration: 0.7,
+} as const
+
+// Gravity Lure. Drops a beacon; non-boss enemies within `lureRadius` chase it
+// instead of the ship. Pure repositioning — no damage. Pairs with any AoE (lure a
+// crowd onto the beacon, then drop Sun/Radiation/Meteor on it).
+export const GRAVITY_LURE = {
+  cooldown: 10,
+  powerCost: 35,
+  lureRadius: 200,
+  hp: 100,
+  // Beacon body size — an enemy within this (+ its own radius) is touching the
+  // beacon and chips its HP. Lured enemies rush in, so they all reach it.
+  contactRadius: 28,
+  // HP bleeds on its own (like a helper) so an un-attacked beacon still winds down —
+  // visibly, via its HP ring — instead of vanishing on a hidden timer.
+  hpDecayPerSec: 10,
+} as const
+
+// Collapsar (Gravity Lure ultimate). A wider, tougher beacon that detonates for
+// `detonateDamage` over `detonateRadius` when it dies — the gathered crowd eats
+// the blast. Implosion raises the detonation damage.
+export const COLLAPSAR = {
+  costMultiplier: 2,
+  lureRadiusScale: 1.3,
+  hp: 180,
+  detonateDamage: 100,
+  detonateRadius: 180,
+} as const
+
+// Overdrive. Drops a zone that makes enemies inside take `ampMult`× damage (the
+// headline — it amplifies every other ability dropped on top), move at `slowMult`×,
+// and deal `enemyDamageMult`×; while the ship sits inside, its cooldowns tick
+// `selfHaste`× faster. A force-multiplier, not a damage source of its own.
+export const OVERDRIVE = {
+  cooldown: 14,
+  powerCost: 90,
+  radius: 160,
+  duration: 6,
+  ampMult: 1.5,
+  slowMult: 0.6,
+  enemyDamageMult: 0.6,
+  selfHaste: 1.4,
+} as const
+
+// Overload Core (Overdrive ultimate). Bigger, higher amp, a much harder slow, and a
+// stronger self-haste. Resonance pushes the damage amp further.
+export const OVERLOAD_CORE = {
+  costMultiplier: 2,
+  radiusScale: 1.4,
+  ampMult: 1.8,
+  slowMult: 0.45,
+  enemyDamageMult: 0.5,
+  selfHaste: 1.6,
 } as const

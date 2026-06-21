@@ -7,13 +7,14 @@ import {
   useNullSpace,
 } from './useNullSpace'
 import { createRef } from 'react'
-import { createAbilities } from './engine/entities/entity-creator'
-import { BOSS_KINDS } from './engine/bosses/index'
+import { createAbilities } from './engine/abilities'
+import { BOSS_KINDS } from './engine/bosses'
 import { AbilityKind, GamePhase, ShipKind } from './engine/types'
 import { TutorialEntry } from './engine/tutorial/tutorial-machine'
 import { WEAPON_ORDER } from './data'
 import { submitScore } from './leaderboard/score-submission'
-import { savePlayerName } from './engine/world/persistence'
+import { clearSave, savePlayerName, saveGame } from './engine/world/persistence'
+import { createInitialState } from './engine/game-loop'
 
 // Stub only the network post and the name persistence — every other export of
 // these modules stays real so the rest of the hook (save/load, buildSubmission)
@@ -107,6 +108,20 @@ describe('useNullSpace', () => {
     act(() => result.current.handleSelectShip(ShipKind.fighter))
     act(() => result.current.handleSetSpeed(2))
     expect(result.current.uiState.phase).toBe(GamePhase.playing)
+  })
+
+  it('resumes a run saved mid-sector (waveComplete) straight into the Next Wave screen', () => {
+    // Autosave now fires on every wave clear, so a save can carry a mid-sector
+    // waveComplete phase — Continue must restore directly into it.
+    clearSave()
+    const saved = { ...createInitialState(), phase: GamePhase.waveComplete, wave: 2, level: 1 }
+    saveGame(saved, 12345)
+    const canvasRef = createRef<HTMLCanvasElement>()
+    const { result } = renderHook(() => useNullSpace(canvasRef))
+    act(() => result.current.handleContinue())
+    expect(result.current.uiState.phase).toBe(GamePhase.waveComplete)
+    expect(result.current.uiState.wave).toBe(2)
+    clearSave()
   })
 })
 

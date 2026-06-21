@@ -1,4 +1,4 @@
-import { canEnemyTakeDamage } from '../bosses/index'
+import { canEnemyTakeDamage } from '../bosses'
 import { applyDamageToEnemy } from '../entities/enemy-damage'
 import { createParticle, spawnExplosionParticles } from '../entities/entity-creator'
 import { rng } from '../math/random'
