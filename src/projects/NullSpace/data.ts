@@ -585,7 +585,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         'Overdrive: drop a field that turns the ground against your enemies — everything inside takes more damage (so your meteors, radiation, and bolts all hit harder there), moves slower, and deals less, while your own cooldowns race as long as you stand in it. A force multiplier, not a weapon: set it down, then pour everything into it. Its Overload Core ultimate is bigger, amplifies harder, and slows enemies to a crawl.',
       ],
       balance: [
-        'Increase chain lightning jumps from 3->4, and increase Ion storm max jumps from 6->12',
+        'Chain Lightning arcs through up to 4 enemies per bolt; Ion Storm forks into 2 chains for up to 8 hits across a packed cluster.',
       ],
     },
   },
@@ -604,7 +604,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     changes: {
       features: [
         'Radiation: drop a radioactive pool and enemies that linger in it stack radiation — each stack adds damage, and the stacks keep burning for a while after they walk out. Trivial on its own, lethal when you funnel a crowd through it (black hole, telekinesis) or pin a boss in it. Its Meltdown ultimate stacks higher and turns contagious: max-stacked enemies spread the glow to their neighbours.',
-        'Chain Lightning: a bolt that strikes the nearest enemy then leaps between them, weakening with every jump — superb against packs, deliberately weak against a lone target. Its Ion Storm ultimate forks to two enemies per hit, branching across the whole swarm.',
+        'Chain Lightning: a bolt that strikes the nearest enemy then leaps between them, weakening with every jump — superb against packs, deliberately weak against a lone target. Its Ion Storm ultimate splits into two parallel chains seeded on different enemies — on a tight cluster they overlap to pile extra zaps onto each one.',
       ],
     },
   },

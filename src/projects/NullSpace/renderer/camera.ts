@@ -150,6 +150,24 @@ export function worldToScreen(pos: Vec2, camera: Camera): Vec2 {
   return { x: vw / 2 + d.x, y: vh / 2 + d.y }
 }
 
+/**
+ * World coord → CSS-pixel position, for overlays drawn AFTER the world frame in
+ * the DPR baseline (no `ctx.scale(zoom)` active). `worldToScreen` is render-space;
+ * multiplying by `zoom` lands it in CSS pixels. Pair with `pinDprTransform`.
+ */
+export function worldToScreenPx(pos: Vec2, camera: Camera): Vec2 {
+  const rs = worldToScreen(pos, camera)
+  return { x: rs.x * camera.zoom, y: rs.y * camera.zoom }
+}
+
+/**
+ * Reset the context to the DPR baseline so a screen-space overlay is immune to any
+ * transform a world-layer renderer left behind. Call before drawing the overlay.
+ */
+export function pinDprTransform(ctx: CanvasRenderingContext2D, camera: Camera): void {
+  ctx.setTransform(camera.dpr, 0, 0, camera.dpr, 0, 0)
+}
+
 /** Canvas pixel → world coord (click input), wrapped back into the torus. */
 export function screenToWorld(screenPos: Vec2, camera: Camera): Vec2 {
   return wrapPosition({

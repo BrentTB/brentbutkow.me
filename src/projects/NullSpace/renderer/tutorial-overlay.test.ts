@@ -22,9 +22,9 @@ function mockCtx() {
 }
 
 describe('drawTutorialFocus', () => {
-  // Regression: the spotlight must pin its own DPR baseline so a leaked transform
-  // can't push it off-screen.
-  it('sets its own DPR-baseline transform before drawing', () => {
+  // Regression: the spotlight must pin its own DPR baseline BEFORE drawing, so a leaked
+  // transform can't push it off-screen.
+  it('pins the DPR-baseline transform before the first draw op', () => {
     const ctx = mockCtx()
     drawTutorialFocus(
       ctx as unknown as CanvasRenderingContext2D,
@@ -33,6 +33,9 @@ describe('drawTutorialFocus', () => {
       opts
     )
     expect(ctx.setTransform).toHaveBeenCalledWith(2, 0, 0, 2, 0, 0)
+    expect(ctx.setTransform.mock.invocationCallOrder[0]).toBeLessThan(
+      ctx.fillRect.mock.invocationCallOrder[0]
+    )
     expect(ctx.stroke).toHaveBeenCalled()
   })
 

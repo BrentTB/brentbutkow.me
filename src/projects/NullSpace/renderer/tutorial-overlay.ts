@@ -1,5 +1,5 @@
 import type { Camera } from './camera'
-import { worldToScreen } from './camera'
+import { worldToScreenPx, pinDprTransform } from './camera'
 import type { Vec2 } from '../engine/types'
 
 export type TutorialFocusOpts = {
@@ -27,16 +27,14 @@ export function drawTutorialFocus(
 ): void {
   if (!target) return
 
-  const rs = worldToScreen(target, camera)
-  const x = rs.x * camera.zoom
-  const y = rs.y * camera.zoom
+  const { x, y } = worldToScreenPx(target, camera)
   const pulse = opts.reducedMotion ? 0 : Math.sin(opts.pulseClock * 3) * 5
   const ringRadius = HOLE_RADIUS + 8 + pulse
 
   ctx.save()
-  // Pin the DPR baseline ourselves so the spotlight is immune to any transform a
-  // world-layer renderer may have left on the context.
-  ctx.setTransform(camera.dpr, 0, 0, camera.dpr, 0, 0)
+  // Pin the DPR baseline so the spotlight is immune to any transform a world-layer
+  // renderer may have left on the context.
+  pinDprTransform(ctx, camera)
 
   // Clear at the focus, darkening to a dim surround — the ship/enemy stays fully
   // visible while everything else recedes.

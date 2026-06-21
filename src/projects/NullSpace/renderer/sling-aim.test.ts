@@ -28,9 +28,9 @@ function mockCtx() {
 }
 
 describe('drawSlingAim', () => {
-  // Regression: the arrow must pin its own DPR baseline. A fresh ship isn't blocked,
-  // so a real drag should draw — and reset the transform first, immune to any leak.
-  it('sets its own DPR-baseline transform before drawing', () => {
+  // Regression: the arrow must pin its own DPR baseline BEFORE drawing, so a leaked
+  // transform can't survive into the path. A fresh ship isn't blocked, so a real drag draws.
+  it('pins the DPR-baseline transform before the first path op', () => {
     const ctx = mockCtx()
     const ship = createShip(ShipKind.fighter, WORLD_SIZE)
     drawSlingAim(
@@ -42,6 +42,9 @@ describe('drawSlingAim', () => {
       100
     )
     expect(ctx.setTransform).toHaveBeenCalledWith(2, 0, 0, 2, 0, 0)
+    expect(ctx.setTransform.mock.invocationCallOrder[0]).toBeLessThan(
+      ctx.beginPath.mock.invocationCallOrder[0]
+    )
     expect(ctx.stroke).toHaveBeenCalled()
   })
 

@@ -1,5 +1,5 @@
 import type { Camera } from './camera'
-import { worldToScreen } from './camera'
+import { worldToScreenPx, pinDprTransform } from './camera'
 import type { Ship, Vec2 } from '../engine/types'
 
 // Slingshot aim arrow, drawn in CSS-pixel space. The ship's origin comes from
@@ -20,9 +20,7 @@ export function drawSlingAim(
   const len = Math.hypot(dx, dy)
   if (len < 1) return
 
-  const rs = worldToScreen(ship.pos, camera)
-  const sx = rs.x * camera.zoom
-  const sy = rs.y * camera.zoom
+  const { x: sx, y: sy } = worldToScreenPx(ship.pos, camera)
   const charge = Math.min(1, len / maxDragPx)
   const ux = dx / len
   const uy = dy / len
@@ -34,9 +32,9 @@ export function drawSlingAim(
   const blocked = ship.slingCooldownRemaining > 0 || ship.slingOverheated
 
   ctx.save()
-  // Pin the DPR baseline ourselves so the arrow is immune to any transform a
-  // world-layer renderer may have left on the context.
-  ctx.setTransform(camera.dpr, 0, 0, camera.dpr, 0, 0)
+  // Pin the DPR baseline so the arrow is immune to any transform a world-layer
+  // renderer may have left on the context.
+  pinDprTransform(ctx, camera)
   ctx.globalAlpha = blocked ? 0.3 : 0.4 + charge * 0.5
   ctx.strokeStyle = blocked ? '#667788' : charge >= 1 ? '#ffcc33' : '#6ae8f5'
   ctx.lineWidth = 2 + charge * 2

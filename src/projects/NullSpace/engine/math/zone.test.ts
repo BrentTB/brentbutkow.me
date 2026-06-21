@@ -10,6 +10,12 @@ describe('inZone', () => {
     expect(inZone(at(1200, 1000), zones)).toBe(false)
   })
 
+  it('counts the rim as inside (<=) and anything past it as outside', () => {
+    const zones: Zone[] = [{ pos: at(1000, 1000), radius: 200 }]
+    expect(inZone(at(1200, 1000), zones)).toBe(true) // exactly on the rim
+    expect(inZone(at(1201, 1000), zones)).toBe(false)
+  })
+
   it('is false when there are no zones', () => {
     expect(inZone(at(0, 0), [])).toBe(false)
   })

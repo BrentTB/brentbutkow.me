@@ -395,7 +395,7 @@ src/projects/NullSpace/leaderboard/
 
 src/projects/NullSpace/renderer/
   asteroid-field.ts                          renderAsteroidField
-  camera.ts                                  REFERENCE_VIEW, DEFAULT_GAME_ZOOM, Camera, createCamera, computeZoom, HUD_SCALE_MIN, HUD_SCALE_MAX, computeHudScale, isWithinView, updateCamera, centerCameraOn, worldToScreen, screenToWorld
+  camera.ts                                  REFERENCE_VIEW, DEFAULT_GAME_ZOOM, Camera, createCamera, computeZoom, HUD_SCALE_MIN, HUD_SCALE_MAX, computeHudScale, isWithinView, updateCamera, centerCameraOn, worldToScreen, worldToScreenPx, pinDprTransform, screenToWorld
   draw.ts                                    fillRadialGlow
   hazard-field.ts                            renderHazardField
   portal.ts                                  renderPortal
