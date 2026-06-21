@@ -375,11 +375,12 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     })
   }, [])
 
-  // Autosave the run when a sector clears (the shop opens); drop the save when a
-  // run ends. Keyed on the synced phase so it fires for the warp path and dev
-  // jumps alike, independent of the rAF loop's timing.
+  // Autosave the run on every wave clear: the between-waves screen (waveComplete)
+  // and the sector / pre-boss shop (upgradeScreen) both land here. Drop the save when
+  // a run ends. Keyed on the synced phase so it fires for the warp path and dev jumps
+  // alike, independent of the rAF loop's timing.
   useEffect(() => {
-    if (uiState.phase === GamePhase.upgradeScreen) {
+    if (uiState.phase === GamePhase.waveComplete || uiState.phase === GamePhase.upgradeScreen) {
       saveGame(gameStateRef.current, rng.getState())
       setHasSave(true)
     } else if (uiState.phase === GamePhase.gameOver) {
@@ -466,7 +467,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     syncUI(gameStateRef.current)
   }, [syncUI, enterSector])
 
-  // Save & Exit: the run was already auto-saved at the last sector clear, so this
+  // Save & Exit: the run was already auto-saved at the last wave clear, so this
   // just returns to a fresh menu; the save on disk stays for Continue.
   const handleSaveAndExit = useCallback(() => {
     gameStateRef.current = createInitialState()

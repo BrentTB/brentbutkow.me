@@ -577,6 +577,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     changes: {
       features: [
         'Every ability now has an Efficiency upgrade that trims its power cost — the ones that were missing it (Sun, Black Hole, Chain Lightning, Radiation, Gravity Lure, Overdrive) have one now, and their ultimates inherit it.',
+        'The run now autosaves after every wave, not just every sector — Continue picks up from the wave you were on.',
       ],
       ui: [
         'When the speed-up countdown runs out, a brief "Enemies sped up!" sign now flashes instead of the timer simply vanishing — so the lurch reads as a confirmed event.',
@@ -587,7 +588,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         'Calamities (mines, asteroids, nebula clouds) no longer blink out the instant a sector is cleared — they linger as harmless scenery through the warp rather than popping.',
         'The sector progress bar no longer briefly shows the first wave of the next sector as already cleared while you sit in the shop.',
       ],
-      balance: ['Increase the wave escalation gracePeriod from '],
+      balance: ['Increase the wave escalation gracePeriod from 20s to 30s'],
     },
   },
   {
