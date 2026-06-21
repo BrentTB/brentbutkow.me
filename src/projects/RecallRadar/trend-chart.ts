@@ -1,12 +1,18 @@
-import { categoryLabels, sourceLabels, trendColor } from './data'
+import { categoryLabels, severityLabels, sourceLabels, trendColor } from './data'
 import {
   RecallCategory,
+  RecallClass,
   RecallSource,
+  SeverityLabel,
   TrendGroup,
   isRecallCategory,
   isRecallSource,
+  isSeverityLabel,
 } from './recall.types'
 import type { TrendResult } from './recall.types'
+
+// Mirrors the backend's coalesce of the nullable classification column (service.get_trend).
+const UNCLASSIFIED = 'Unclassified'
 
 export type ChartSegment = { key: string; label: string; color: string; count: number }
 export type ChartMonth = { month: string; segments: ChartSegment[] }
@@ -16,12 +22,17 @@ export type ChartMonth = { month: string; segments: ChartSegment[] }
 function keysFor(group: TrendGroup): string[] {
   if (group === TrendGroup.category) return Object.values(RecallCategory)
   if (group === TrendGroup.source) return Object.values(RecallSource)
+  if (group === TrendGroup.severity) return Object.values(SeverityLabel)
+  // Both countries' classes (filtered to present), plus the coalesced-null segment.
+  if (group === TrendGroup.classification) return [...Object.values(RecallClass), UNCLASSIFIED]
   return ['total']
 }
 
 function labelFor(group: TrendGroup, key: string): string {
   if (group === TrendGroup.category && isRecallCategory(key)) return categoryLabels[key]
   if (group === TrendGroup.source && isRecallSource(key)) return sourceLabels[key]
+  if (group === TrendGroup.severity && isSeverityLabel(key)) return severityLabels[key]
+  if (group === TrendGroup.classification) return key // class names are already human labels
   return 'Recalls'
 }
 

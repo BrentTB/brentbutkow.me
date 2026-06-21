@@ -54,6 +54,31 @@ describe('RecallFeed', () => {
     expect(details?.open).toBe(true)
   })
 
+  it('mounts related recalls on open and unmounts them on close across a rapid toggle', async () => {
+    // Exercises the onToggle add/remove path the rapid-toggle fix lives in: opening adds the row to
+    // openRows (mounting RelatedRecalls), closing removes it (unmounting). The crash the fix guards
+    // (currentTarget null in the deferred updater) only reproduces in a real browser, not jsdom.
+    const fetchMock = vi.fn(async () =>
+      mockRes([
+        {
+          similarity: 0.7,
+          recall: { ...recall, recallNumber: 'F-2', productDescription: 'Similar cookies' },
+        },
+      ])
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    const { container } = render(<RecallFeed recalls={[recall]} />)
+    const details = container.querySelector('details') as HTMLDetailsElement
+
+    details.open = true
+    fireEvent(details, new Event('toggle'))
+    await waitFor(() => expect(screen.getByText('Similar cookies')).toBeTruthy())
+
+    details.open = false
+    fireEvent(details, new Event('toggle'))
+    expect(screen.queryByText('Similar cookies')).toBeNull() // closing unmounts related recalls
+  })
+
   it('renders an empty state when there are no recalls', () => {
     render(<RecallFeed recalls={[]} />)
     expect(screen.getByText('No recalls match these filters.')).toBeTruthy()
@@ -64,14 +89,109 @@ describe('RecallFeed', () => {
     const { container } = render(
       <RecallFeed
         recalls={[{ ...recall, topicId: 2 }]}
-        topicLabels={new Map([[2, 'listeria · deli · meat']])}
+        topicsById={
+          new Map([
+            [
+              2,
+              {
+                id: 2,
+                slug: 'listeria-deli-meat',
+                label: 'listeria · deli · meat',
+                topTerms: ['listeria', 'deli', 'meat'],
+                size: 9,
+              },
+            ],
+          ])
+        }
         onTopicSelect={onTopicSelect}
       />
     )
     const details = container.querySelector('details')
     fireEvent.click(screen.getByRole('button', { name: 'listeria · deli · meat' }))
-    expect(onTopicSelect).toHaveBeenCalledWith(2)
+    expect(onTopicSelect).toHaveBeenCalledWith('listeria-deli-meat')
     expect(details?.open).toBe(false) // the chip click must not expand the row
+  })
+
+  const outbreak = (over = {}) => ({
+    id: 5,
+    slug: 'listeria-2026-03',
+    label: 'Listeria · 7 recalls',
+    isOutbreak: true,
+    dominantEntity: 'Listeria',
+    recallCount: 7,
+    companyCount: 3,
+    stateCount: 4,
+    firstDate: null,
+    lastDate: null,
+    severityMax: 92,
+    ...over,
+  })
+
+  it('shows an outbreak badge that filters without toggling the row open', () => {
+    const onEventSelect = vi.fn()
+    const { container } = render(
+      <RecallFeed
+        recalls={[{ ...recall, eventClusterId: 5 }]}
+        eventsById={new Map([[5, outbreak()]])}
+        onEventSelect={onEventSelect}
+      />
+    )
+    const details = container.querySelector('details')
+    fireEvent.click(screen.getByRole('button', { name: /Outbreak/i }))
+    expect(onEventSelect).toHaveBeenCalledWith('listeria-2026-03')
+    expect(details?.open).toBe(false) // the badge click must not expand the row
+  })
+
+  it('shows no badge for a recall in a non-outbreak cluster', () => {
+    render(
+      <RecallFeed
+        recalls={[{ ...recall, eventClusterId: 5 }]}
+        eventsById={new Map([[5, outbreak({ isOutbreak: false })]])}
+        onEventSelect={vi.fn()}
+      />
+    )
+    expect(screen.queryByText('⚠ Outbreak')).toBeNull()
+  })
+
+  it('clears the theme filter when its already-active chip is re-clicked', () => {
+    const onTopicSelect = vi.fn()
+    render(
+      <RecallFeed
+        recalls={[{ ...recall, topicId: 2 }]}
+        topicsById={
+          new Map([
+            [
+              2,
+              {
+                id: 2,
+                slug: 'listeria-deli-meat',
+                label: 'listeria · deli · meat',
+                topTerms: ['listeria', 'deli', 'meat'],
+                size: 9,
+              },
+            ],
+          ])
+        }
+        onTopicSelect={onTopicSelect}
+        activeTopic="listeria-deli-meat"
+      />
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'listeria · deli · meat' }))
+    expect(onTopicSelect).toHaveBeenCalledWith('') // toggles off, not re-set
+  })
+
+  it('clears the outbreak filter when its already-active badge is re-clicked', () => {
+    const onEventSelect = vi.fn()
+    render(
+      <RecallFeed
+        recalls={[{ ...recall, eventClusterId: 5 }]}
+        eventsById={new Map([[5, outbreak()]])}
+        onEventSelect={onEventSelect}
+        activeEvent="listeria-2026-03"
+      />
+    )
+    fireEvent.click(screen.getByRole('button', { name: /Outbreak/i }))
+    expect(onEventSelect).toHaveBeenCalledWith('')
   })
 
   it('fetches and renders related recalls only once a row is expanded', async () => {

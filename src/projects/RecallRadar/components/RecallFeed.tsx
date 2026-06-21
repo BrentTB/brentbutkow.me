@@ -10,13 +10,21 @@ import { formatDate } from '../chart-format'
 import { SafeLink } from '../../../components/utils/SafeLink'
 import { getLinkArrow } from '../../../components/utils/link-arrow'
 import { RelatedRecalls } from './RelatedRecalls'
-import type { Recall } from '../recall.types'
+import type { EventOut, Recall, TopicOut } from '../recall.types'
 import styles from './RecallFeed.module.scss'
 
 type RecallFeedProps = {
   recalls: Recall[]
-  topicLabels?: Map<number, string>
-  onTopicSelect?: (topicId: number) => void
+  // Themes keyed by the recall's topicId, so the chip can show the label and filter by the slug.
+  topicsById?: Map<number, TopicOut>
+  onTopicSelect?: (slug: string) => void
+  // The currently-active topic/event slugs, so a chip for the active filter clears it on re-click
+  // (toggle), matching how the Themes / Outbreaks cards behave.
+  activeTopic?: string
+  // Event clusters keyed by the recall's eventClusterId — the badge shows only for outbreaks.
+  eventsById?: Map<number, EventOut>
+  onEventSelect?: (slug: string) => void
+  activeEvent?: string
 }
 
 type DetailRow = { term: string; value: string }
@@ -35,7 +43,15 @@ function detailRows(recall: Recall): DetailRow[] {
   return rows
 }
 
-export function RecallFeed({ recalls, topicLabels, onTopicSelect }: RecallFeedProps) {
+export function RecallFeed({
+  recalls,
+  topicsById,
+  onTopicSelect,
+  activeTopic,
+  eventsById,
+  onEventSelect,
+  activeEvent,
+}: RecallFeedProps) {
   // Track which rows are open so the Related-recalls child mounts (and fetches) only on expand.
   const [openRows, setOpenRows] = useState<Set<string>>(new Set())
 
@@ -46,19 +62,24 @@ export function RecallFeed({ recalls, topicLabels, onTopicSelect }: RecallFeedPr
   return (
     <ul className={styles.list}>
       {recalls.map((recall) => {
-        const themeLabel = recall.topicId != null ? topicLabels?.get(recall.topicId) : undefined
+        const theme = recall.topicId != null ? topicsById?.get(recall.topicId) : undefined
+        const cluster =
+          recall.eventClusterId != null ? eventsById?.get(recall.eventClusterId) : undefined
         return (
           <li key={recall.recallNumber} className={styles.row}>
             <details
               className={styles.details}
-              onToggle={(event) =>
+              onToggle={(event) => {
+                // Read `open` synchronously: `currentTarget` is null by the time the (deferred)
+                // state updater runs, which crashes on rapid toggles.
+                const isOpen = event.currentTarget.open
                 setOpenRows((prev) => {
                   const next = new Set(prev)
-                  if (event.currentTarget.open) next.add(recall.recallNumber)
+                  if (isOpen) next.add(recall.recallNumber)
                   else next.delete(recall.recallNumber)
                   return next
                 })
-              }
+              }}
             >
               <summary className={styles.summary}>
                 <div className={styles.meta}>
@@ -70,18 +91,34 @@ export function RecallFeed({ recalls, topicLabels, onTopicSelect }: RecallFeedPr
                   >
                     {severityLabels[recall.severityLabel]}
                   </span>
-                  {themeLabel && (
+                  {theme && (
                     <button
                       type="button"
                       className={styles.themeChip}
-                      // Inside <summary>, so stop the click from toggling the row.
+                      // Inside <summary>, so stop the click from toggling the row. Re-clicking the
+                      // active theme clears it (toggle), like the Themes cards.
                       onClick={(event) => {
                         event.preventDefault()
-                        if (recall.topicId != null) onTopicSelect?.(recall.topicId)
+                        onTopicSelect?.(theme.slug === activeTopic ? '' : theme.slug)
                       }}
                       title="Filter by this theme"
                     >
-                      {themeLabel}
+                      {theme.label}
+                    </button>
+                  )}
+                  {cluster?.isOutbreak && (
+                    <button
+                      type="button"
+                      className={styles.outbreakChip}
+                      // Inside <summary>, so stop the click from toggling the row. Re-clicking the
+                      // active outbreak clears it (toggle), like the Outbreaks cards.
+                      onClick={(e) => {
+                        e.preventDefault()
+                        onEventSelect?.(cluster.slug === activeEvent ? '' : cluster.slug)
+                      }}
+                      title="Part of an outbreak — filter to it"
+                    >
+                      ⚠ Outbreak
                     </button>
                   )}
                   <span className={styles.source}>{sourceLabels[recall.source]}</span>

@@ -9,6 +9,7 @@ import {
   TrendGroup,
   isRecallCategory,
   isRecallSource,
+  isSeverityLabel,
 } from './recall.types'
 
 export const recallRadarCopy = {
@@ -86,6 +87,8 @@ export const trendGroupLabels: Record<TrendGroup, string> = {
   [TrendGroup.total]: 'Total',
   [TrendGroup.category]: 'By cause',
   [TrendGroup.source]: 'By source',
+  [TrendGroup.severity]: 'By severity',
+  [TrendGroup.classification]: 'By classification',
 }
 
 export const severityLabels: Record<SeverityLabel, string> = {
@@ -135,6 +138,8 @@ const SOURCE_COLORS: Record<RecallSource, string> = {
 export function trendColor(group: TrendGroup, key: string): string {
   if (group === TrendGroup.category && isRecallCategory(key)) return CATEGORY_COLORS[key]
   if (group === TrendGroup.source && isRecallSource(key)) return SOURCE_COLORS[key]
+  // Severity reuses its semantic band colors; classification falls to the hashed palette below.
+  if (group === TrendGroup.severity && isSeverityLabel(key)) return severityColors[key]
   if (group === TrendGroup.total) return '#e9b872'
   // Stable per-key fallback for any unrecognised key — hashed so the color never shifts with order.
   let hash = 0

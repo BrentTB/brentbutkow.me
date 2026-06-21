@@ -33,7 +33,9 @@ export function BreakdownList({
       ) : (
         <ul className={styles.rows}>
           {shown.map((row) => {
-            const active = row.value === activeValue
+            // Guard the empty active value: with no filter set (activeValue ''), nothing is active —
+            // otherwise a row that happens to carry an empty value would light up the whole list.
+            const active = activeValue !== '' && row.value === activeValue
             return (
               <li key={row.value}>
                 <button

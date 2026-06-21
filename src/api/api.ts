@@ -11,6 +11,7 @@ export const apiRoutes = {
     trend: '/recalls/trend',
     companies: '/recalls/companies',
     topics: '/recalls/topics',
+    events: '/recalls/events',
   },
   contact: '/contact',
   nullspace: {

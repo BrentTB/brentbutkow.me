@@ -74,6 +74,7 @@ const recalls = {
       severityScore: 91,
       severityLabel: 'severe',
       topicId: 0,
+      eventClusterId: 0,
       entities: [{ type: 'allergen', value: 'peanuts' }],
     },
   ],
@@ -89,7 +90,29 @@ const trend = {
 }
 
 const topics = [
-  { id: 0, label: 'listeria · deli · meat', topTerms: ['listeria', 'deli', 'meat'], size: 9 },
+  {
+    id: 0,
+    slug: 'listeria-deli-meat',
+    label: 'listeria · deli · meat',
+    topTerms: ['listeria', 'deli', 'meat'],
+    size: 9,
+  },
+]
+
+const events = [
+  {
+    id: 0,
+    slug: 'listeria-2026-06',
+    label: 'Listeria · 5 recalls',
+    isOutbreak: true,
+    dominantEntity: 'Listeria',
+    recallCount: 5,
+    companyCount: 3,
+    stateCount: 4,
+    firstDate: '2026-06-01',
+    lastDate: '2026-06-10',
+    severityMax: 95,
+  },
 ]
 
 const mockRes = (body: unknown) => ({ ok: true, status: 200, json: async () => body }) as Response
@@ -103,6 +126,7 @@ describe('RecallRadar page', () => {
       if (path.includes('/recalls/trend')) return mockRes(trend)
       if (path.includes('/recalls/stats')) return mockRes(stats)
       if (path.includes('/recalls/topics')) return mockRes(topics)
+      if (path.includes('/recalls/events')) return mockRes(events)
       return mockRes(recalls)
     })
     vi.stubGlobal('fetch', fetchMock)
@@ -145,6 +169,10 @@ describe('RecallRadar page', () => {
     // themes section + the per-card theme chip both render the topic label
     expect(screen.getByText('Themes')).toBeTruthy()
     expect(screen.getAllByText('listeria · deli · meat').length).toBeGreaterThan(0)
+    // outbreaks section renders its card, and the recall in that cluster gets an outbreak badge
+    expect(screen.getByText('Outbreaks')).toBeTruthy()
+    expect(screen.getByText('5 recalls')).toBeTruthy() // the outbreak card
+    expect(screen.getByText('⚠ Outbreak')).toBeTruthy() // the per-recall badge
     // similar recalls are lazy — nothing is fetched until a row is expanded
     expect(fetchMock).not.toHaveBeenCalledWith(
       expect.stringContaining('/similar'),
