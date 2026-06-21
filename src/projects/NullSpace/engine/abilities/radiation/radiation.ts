@@ -166,7 +166,7 @@ export const radiation: AbilityDefinition = {
   ultimate: {
     kind: AbilityKind.meltdown,
     label: 'Meltdown',
-    description: 'Let it reach critical — and the glow spreads on its own.',
+    description: 'Let it reach critical and the glow spreads on its own.',
     cost: { stardust: 420, spaceMetal: 16 },
   },
 }

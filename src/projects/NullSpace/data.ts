@@ -578,6 +578,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       ui: [
         'Redrew the Void Worm boss head — an angled, heavy-browed glare over a gaping fanged maw, in place of the old round-eyed face.',
       ],
+      balance: ["Increase the Radiation ability's stackInterval from 0.4s to 0.8s"],
     },
   },
   {
