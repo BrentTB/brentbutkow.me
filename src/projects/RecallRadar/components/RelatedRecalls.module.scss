@@ -46,6 +46,33 @@
   color: var(--text);
 }
 
+// Compact identifying line — mirrors the feed row's meta vocabulary (recall number · severity ·
+// source · class · date), so a neighbour reads the same as a recall in the main list.
+.meta {
+  margin: 4px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+
+.recallNumber {
+  color: var(--text-secondary);
+}
+
+.severity {
+  font-weight: 600;
+}
+
+.company {
+  margin: 4px 0 0;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
 .reason {
   margin: 2px 0 0;
   font-size: 0.78rem;

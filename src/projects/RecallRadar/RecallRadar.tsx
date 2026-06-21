@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import { PageLayout } from '../../components/PageFormatting/PageLayout'
 import { PageHeader } from '../../components/PageFormatting/PageHeader'
 import { SafeLink } from '../../components/utils/SafeLink'
@@ -16,6 +16,7 @@ import { RecallTrendsChart } from './components/RecallTrendsChart'
 import { SeverityBar } from './components/SeverityBar'
 import { StatCard } from './components/StatCard'
 import { TrendCallouts } from './components/TrendCallouts'
+import { HelpHint } from './components/HelpHint'
 import { Themes } from './components/Themes'
 import { Outbreaks } from './components/Outbreaks'
 import { Select } from '../../components/inputs/Select'
@@ -118,7 +119,14 @@ export function RecallRadar() {
   const changeCountry = (next: RecallCountry) =>
     patchParams({ location: next, ...EMPTY_FILTERS, year: '', page: '' })
   const page = Math.max(1, Number(values.page) || 1)
-  const goToPage = (next: number) => patchParams({ page: next <= 1 ? '' : String(next) })
+  // Paging only swaps the rows in place, so bring the recalls section back into view — otherwise
+  // you're left wherever you scrolled to click the pager. Scroll only here (the user-initiated pager
+  // click), never in an effect on `page`, so a first load or a shared ?page=N URL doesn't yank.
+  const recallsRef = useRef<HTMLElement>(null)
+  const goToPage = (next: number) => {
+    patchParams({ page: next <= 1 ? '' : String(next) })
+    recallsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   // One filter set drives both the chart and the list, so they always describe the same recalls.
   // Stats (breakdowns, map, callouts) stay country-only — a global overview that also picks filters.
@@ -352,7 +360,14 @@ export function RecallRadar() {
 
       {topics.data && topics.data.length > 0 && (
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Themes</h2>
+          <h2 className={styles.sectionTitle}>
+            Themes{' '}
+            <HelpHint label="What is a theme?">
+              A theme is a group of recalls that describe their problem in similar words, found
+              automatically, not from a preset list. Its label is the words that set it apart (e.g.
+              “listeria · deli · meat”), and a recall joins it only if its text uses them.
+            </HelpHint>
+          </h2>
           <p className={styles.hint}>
             Auto-discovered topics across recall text. Click one to filter the recalls below.
           </p>
@@ -364,7 +379,7 @@ export function RecallRadar() {
         </section>
       )}
 
-      <section className={styles.section}>
+      <section className={styles.section} ref={recallsRef}>
         <div className={styles.sectionHead}>
           <h2 className={styles.sectionTitle}>
             Recalls{recalls.data ? ` (${formatNumber(recalls.data.total)})` : ''}

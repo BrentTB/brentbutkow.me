@@ -1,4 +1,4 @@
-import { methodologyPoints, recallRadarCopy, techStack } from '../data'
+import { methodologyPoints, methodologySimple, recallRadarCopy, techStack } from '../data'
 import styles from './ProjectOverview.module.scss'
 
 export function ProjectOverview() {
@@ -9,10 +9,18 @@ export function ProjectOverview() {
       <div className={styles.block}>
         <h3 className={styles.area}>How it works</h3>
         <ul className={styles.points}>
-          {methodologyPoints.map((point) => (
+          {methodologySimple.map((point) => (
             <li key={point}>{point}</li>
           ))}
         </ul>
+        <details className={styles.technical}>
+          <summary className={styles.technicalToggle}>The technical detail</summary>
+          <ul className={styles.points}>
+            {methodologyPoints.map((point) => (
+              <li key={point}>{point}</li>
+            ))}
+          </ul>
+        </details>
       </div>
 
       <div className={styles.block}>

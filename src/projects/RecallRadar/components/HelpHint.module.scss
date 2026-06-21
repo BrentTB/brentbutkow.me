@@ -1,0 +1,62 @@
+.root {
+  position: relative;
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+.button {
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  line-height: 1;
+  cursor: help;
+}
+
+.button:hover,
+.button:focus-visible {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.bubble {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 20;
+  width: max-content;
+  max-width: 260px;
+  padding: 9px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  // Opaque elevated surface (not --surface, which is a ~2.5%-opacity overlay) + a shadow, so the
+  // popover reads as floating above the theme rows it overlaps rather than letting them show through.
+  background: var(--bg-elevated);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+  line-height: 1.5;
+  // Hidden until hover, keyboard focus, or a click-toggle (data-open) reveals it.
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.root:hover .bubble,
+.root:focus-within .bubble,
+.root[data-open] .bubble {
+  visibility: visible;
+  opacity: 1;
+}

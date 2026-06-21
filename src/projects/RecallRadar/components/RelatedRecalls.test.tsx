@@ -42,6 +42,26 @@ describe('RelatedRecalls', () => {
     expect(screen.getByText('82%')).toBeTruthy()
   })
 
+  it('surfaces each neighbour’s identifying fields (recall number, company, severity, date)', async () => {
+    const full: Recall = {
+      ...neighbour,
+      recallNumber: 'F-42',
+      companyName: 'Globex Foods',
+      classification: 'Class I',
+      reportDate: '2026-06-10',
+    }
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => mockRes([{ similarity: 0.7, recall: full }]))
+    )
+    render(<RelatedRecalls source={RecallSource.fda} recallNumber="F-1" />)
+    await waitFor(() => expect(screen.getByText('F-42')).toBeTruthy())
+    expect(screen.getByText('Globex Foods')).toBeTruthy()
+    expect(screen.getByText('Severe')).toBeTruthy() // severityLabel 'severe' → label
+    expect(screen.getByText('Class I')).toBeTruthy()
+    expect(screen.getByText(/Jun 10, 2026/)).toBeTruthy()
+  })
+
   it('shows an empty state when there are no neighbours', async () => {
     vi.stubGlobal(
       'fetch',

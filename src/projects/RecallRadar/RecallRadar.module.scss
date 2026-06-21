@@ -58,6 +58,9 @@
 
 .section {
   margin-top: 40px;
+  // The navbar is sticky (~68px), so a plain scrollIntoView would tuck a section heading under it.
+  // Leave room for the bar plus a little breathing space when the pager scrolls here.
+  scroll-margin-top: 90px;
 }
 
 .sectionTitle {

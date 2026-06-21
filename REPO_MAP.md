@@ -387,6 +387,7 @@ src/projects/RecallRadar/components/
   ChartTooltip.tsx                           TooltipState, ChartTooltip
   CompanyFilter.tsx                          CompanyFilter
   CountrySelector.tsx                        CountrySelector
+  HelpHint.tsx                               HelpHint
   Outbreaks.tsx                              Outbreaks
   Pagination.tsx                             Pagination
   ProjectOverview.tsx                        ProjectOverview
@@ -403,7 +404,7 @@ src/projects/RecallRadar/components/
   useChartTooltip.ts                         useChartTooltip
 
 src/projects/RecallRadar/
-  data.ts                                    recallRadarCopy, techStack, methodologyPoints, categoryLabels, sourceLabels, countryLabels, entityTypeLabels, trendGroupLabels, severityLabels, severityOrder, severityColors, sortLabels, trendColor, classesByCountry, sourcesByCountry, recallRadarLinks
+  data.ts                                    recallRadarCopy, techStack, methodologyPoints, methodologySimple, categoryLabels, sourceLabels, countryLabels, entityTypeLabels, trendGroupLabels, severityLabels, severityOrder, severityColors, sortLabels, trendColor, classesByCountry, sourcesByCountry, recallRadarLinks
   recall.types.ts                            RecallCategory, RecallClass, RecallSource, RecallCountry, EntityType, AnomalyScope, TrendGroup, SeverityLabel, RecallSort, RecallFilterValues, Recall, RecallEntity, RecallListResult, TopicOut, SimilarRecall, EventOut, CategoryCount, MonthCount, LabelCount, EntityCount, AnomalyMonth, Anomaly, ForecastPoint, RecallStats, TrendBucket, TrendResult, isRecallCategory, isRecallClass, isRecallSource, isRecallCountry, isEntityType, isTrendGroup, isSeverityLabel, isRecallSort, isIsoDate, isTrendResult, isRecallListResult, isTopicOut, isTopicOutArray, isEventOut, isEventOutArray, isSimilarRecallArray, isRecallStats
   trend-callouts.ts                          TrendDirection, TrendCallout, deriveCallouts, forecastCallout, anomalyCallouts
   trend-chart.ts                             ChartSegment, ChartMonth, toChartMonths

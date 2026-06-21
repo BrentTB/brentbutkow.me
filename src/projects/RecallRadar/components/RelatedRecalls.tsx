@@ -1,3 +1,5 @@
+import { formatDate } from '../chart-format'
+import { severityColors, severityLabels, sourceLabels } from '../data'
 import { useSimilar } from '../useSimilar'
 import { SafeLink } from '../../../components/utils/SafeLink'
 import { getLinkArrow } from '../../../components/utils/link-arrow'
@@ -10,7 +12,9 @@ type RelatedRecallsProps = {
 }
 
 // Rendered only while a feed row is open (see RecallFeed), so it fetches a recall's nearest
-// neighbours on demand. Compact by design — no nested expandable rows, no recursion.
+// neighbours on demand. The /similar payload already carries each neighbour's full record, so we
+// surface its identifying fields (recall number, company, date, severity) inline — there's no way
+// to open a neighbour on its own yet, so this is where its details are read.
 export function RelatedRecalls({ source, recallNumber }: RelatedRecallsProps) {
   const { data, loading, error } = useSimilar(source, recallNumber)
 
@@ -31,6 +35,20 @@ export function RelatedRecalls({ source, recallNumber }: RelatedRecallsProps) {
             </span>
             <div className={styles.body}>
               <p className={styles.product}>{recall.productDescription}</p>
+              <div className={styles.meta}>
+                <span className={styles.recallNumber}>{recall.recallNumber}</span>
+                <span
+                  className={styles.severity}
+                  style={{ color: severityColors[recall.severityLabel] }}
+                  title={`Severity ${recall.severityScore}/100`}
+                >
+                  {severityLabels[recall.severityLabel]}
+                </span>
+                <span>{sourceLabels[recall.source]}</span>
+                {recall.classification && <span>{recall.classification}</span>}
+                <span>{formatDate(recall.reportDate)}</span>
+              </div>
+              {recall.companyName && <p className={styles.company}>{recall.companyName}</p>}
               <p className={styles.reason}>{recall.reasonText}</p>
               {recall.sourceUrl && (
                 <SafeLink href={recall.sourceUrl}>View notice {getLinkArrow(false)}</SafeLink>
