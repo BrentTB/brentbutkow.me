@@ -15,22 +15,23 @@ type OutbreaksProps = {
 const MAX_OUTBREAKS = 8
 
 // Recent matters more day-to-day, so it's the default; Biggest surfaces the all-time largest.
-type SortMode = 'recent' | 'biggest'
+const SortMode = { recent: 'recent', biggest: 'biggest' } as const
+type SortMode = (typeof SortMode)[keyof typeof SortMode]
 const SORT_OPTIONS: SelectOption[] = [
-  { value: 'recent', label: 'Most recent' },
-  { value: 'biggest', label: 'Biggest' },
+  { value: SortMode.recent, label: 'Most recent' },
+  { value: SortMode.biggest, label: 'Biggest' },
 ]
 
 // The high-signal clusters (pathogen-driven, multi-recall) as clickable cards. Clicking one filters
 // the recall list + trend to that incident's recalls (its stable slug rides the URL).
 export function Outbreaks({ events, activeEvent, onSelect }: OutbreaksProps) {
-  const [mode, setMode] = useState<SortMode>('recent')
+  const [mode, setMode] = useState<SortMode>(SortMode.recent)
   const outbreaks = events.filter((event) => event.isOutbreak)
   if (outbreaks.length === 0) return null
   // Recent = latest member report date first; Biggest = most recalls first (ISO dates sort lexically).
   const shown = [...outbreaks]
     .sort((a, b) =>
-      mode === 'recent'
+      mode === SortMode.recent
         ? (b.lastDate ?? '').localeCompare(a.lastDate ?? '')
         : b.recallCount - a.recallCount
     )
@@ -42,7 +43,9 @@ export function Outbreaks({ events, activeEvent, onSelect }: OutbreaksProps) {
           ariaLabel="Sort outbreaks"
           value={mode}
           options={SORT_OPTIONS}
-          onChange={(value) => setMode(value === 'biggest' ? 'biggest' : 'recent')}
+          onChange={(value) =>
+            setMode(value === SortMode.biggest ? SortMode.biggest : SortMode.recent)
+          }
         />
       </div>
       <ul className={styles.grid}>

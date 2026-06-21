@@ -54,6 +54,31 @@ describe('RecallFeed', () => {
     expect(details?.open).toBe(true)
   })
 
+  it('mounts related recalls on open and unmounts them on close across a rapid toggle', async () => {
+    // Exercises the onToggle add/remove path the rapid-toggle fix lives in: opening adds the row to
+    // openRows (mounting RelatedRecalls), closing removes it (unmounting). The crash the fix guards
+    // (currentTarget null in the deferred updater) only reproduces in a real browser, not jsdom.
+    const fetchMock = vi.fn(async () =>
+      mockRes([
+        {
+          similarity: 0.7,
+          recall: { ...recall, recallNumber: 'F-2', productDescription: 'Similar cookies' },
+        },
+      ])
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    const { container } = render(<RecallFeed recalls={[recall]} />)
+    const details = container.querySelector('details') as HTMLDetailsElement
+
+    details.open = true
+    fireEvent(details, new Event('toggle'))
+    await waitFor(() => expect(screen.getByText('Similar cookies')).toBeTruthy())
+
+    details.open = false
+    fireEvent(details, new Event('toggle'))
+    expect(screen.queryByText('Similar cookies')).toBeNull() // closing unmounts related recalls
+  })
+
   it('renders an empty state when there are no recalls', () => {
     render(<RecallFeed recalls={[]} />)
     expect(screen.getByText('No recalls match these filters.')).toBeTruthy()
