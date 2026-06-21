@@ -419,9 +419,9 @@ describe('updateGameState', () => {
 
 // The progression fix lives here: on sector clear the portal spawns just ahead
 // of the ship (not at a fixed far point), residual fling/escape is cancelled so
-// the cutscene flight is clean, and dropped loot is banked first. A regression
-// that mis-places the portal or skips the cleanup passes every advanceWarp test,
-// so beginWarp needs its own guard.
+// the cutscene flight is clean, and dropped loot is set homing for the fly-in
+// vacuum. A regression that mis-places the portal or skips the cleanup passes
+// every advanceWarp test, so beginWarp needs its own guard.
 describe('beginWarp', () => {
   it('spawns the portal ahead of the ship and primes the cutscene', () => {
     let state = startGame(createInitialState(), ShipKind.fighter)
@@ -461,12 +461,14 @@ describe('beginWarp', () => {
     // Residual fling / escape cleared so the cutscene flight is clean.
     expect(warped.ship.flingVel).toEqual({ x: 0, y: 0 })
     expect(warped.ship.escapeMode).toBeNull()
-    // Enemies + dropped loot clear (the metal banked into currency), but the calamity
-    // field rides the cutscene as UI instead of popping the instant the sector clears.
+    // Enemies clear, but dropped loot rides the cutscene — now homing — to be
+    // vacuumed to the ship during the fly-in rather than auto-banked. The calamity
+    // field also rides along as UI instead of popping the instant the sector clears.
     expect(warped.enemies).toEqual([])
-    expect(warped.collectibles).toEqual([])
+    expect(warped.collectibles).toHaveLength(1)
+    expect(warped.collectibles[0].homing).toBe(true)
     expect(warped.hazards).toBe(state.hazards) // preserved, not wiped
-    expect(warped.spaceMetal).toBe(2 + 3)
+    expect(warped.spaceMetal).toBe(2) // not banked yet — it flies in during the warp
   })
 
   // Regression: helpers + the helper factory used to ride the warp into the next
@@ -548,6 +550,43 @@ describe('advanceWarp', () => {
     const { state, landed } = advanceWarp(s, 0.05)
     expect(landed).toBe(true)
     expect(state.phase).toBe(GamePhase.upgradeScreen)
+  })
+
+  it('vacuums dropped loot to the ship and banks it during the fly-in', () => {
+    const base = warpingState(WARP.maxDuration)
+    // A homing metal sitting on the ship → collected on the first vacuum tick.
+    const metal = {
+      id: 'm',
+      kind: CollectibleKind.spaceMetal,
+      pos: { ...base.ship.pos },
+      vel: { x: 0, y: 0 },
+      value: 3,
+      elapsed: 0,
+      lifetime: 12,
+      homing: true,
+    }
+    const { state } = advanceWarp({ ...base, collectibles: [metal], spaceMetal: 0 }, 0.1)
+    expect(state.spaceMetal).toBe(3)
+    expect(state.collectibles).toHaveLength(0)
+  })
+
+  it('banks any loot still in flight when the warp completes (no loss)', () => {
+    const base = { ...warpingState(WARP.maxDuration), warpFlashTimer: 0.01 }
+    // Far enough that the vacuum can't reach it before the flash ends.
+    const metal = {
+      id: 'm',
+      kind: CollectibleKind.spaceMetal,
+      pos: { x: base.ship.pos.x + 5000, y: base.ship.pos.y },
+      vel: { x: 0, y: 0 },
+      value: 4,
+      elapsed: 0,
+      lifetime: 999,
+      homing: true,
+    }
+    const { state, landed } = advanceWarp({ ...base, collectibles: [metal], spaceMetal: 0 }, 0.05)
+    expect(landed).toBe(true)
+    expect(state.spaceMetal).toBe(4) // safety sweep banked it
+    expect(state.collectibles).toHaveLength(0)
   })
 })
 
@@ -1933,7 +1972,7 @@ describe('updateGameState — sector progression', () => {
     expect(state.ship.pos.y).toBeLessThan(startPos.y) // moved up toward the enemy
   })
 
-  it('auto-collects dropped collectibles when warping after a sector clear', () => {
+  it('banks dropped loot through the warp (flies in, none lost) after a sector clear', () => {
     let state = playing()
     state = {
       ...state,
@@ -1965,13 +2004,25 @@ describe('updateGameState — sector progression', () => {
         },
       ],
     }
-    // Coast through the brief pre-warp beat, then the warp banks the drops.
+    // Coast through the brief pre-warp beat into the warp cutscene.
     let next = updateGameState(state, 0.016, noInput)
     for (let i = 0; i < 200 && next.phase === GamePhase.playing; i++) {
       next = updateGameState(next, 0.016, noInput)
     }
     expect(next.phase).toBe(GamePhase.warping)
-    expect(next.spaceMetal).toBe(2) // banked, not lost to the warp
+    // Loot rides in homing — not banked yet; it flies to the ship during the fly-in.
+    expect(next.spaceMetal).toBe(0)
+    expect(next.collectibles.every((c) => c.homing)).toBe(true)
+    // Drive the cutscene to completion: the loot is vacuumed in (safety-swept if any
+    // straggler remains), so nothing is lost to the warp.
+    let landed = false
+    for (let i = 0; i < 500 && !landed; i++) {
+      const result = advanceWarp(next, 0.05)
+      next = result.state
+      landed = result.landed
+    }
+    expect(landed).toBe(true)
+    expect(next.spaceMetal).toBe(2)
     expect(next.singularityShard).toBe(1)
     expect(next.collectibles).toEqual([])
   })

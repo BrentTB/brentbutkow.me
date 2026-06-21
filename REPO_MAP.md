@@ -411,7 +411,7 @@ src/projects/NullSpace/renderer/
 src/projects/NullSpace/
   reset-pinch-zoom.ts                        resetPinchZoom
   useCoarsePointer.ts                        useCoarsePointer
-  useNullSpace.ts                            GameUIState, getUnlockedAbilitiesInOrder, abilityKindForHotkey, selectionAfterUltimatePurchase, selectionAfterSalvage, useNullSpace
+  useNullSpace.ts                            GameUIState, getUnlockedAbilitiesInOrder, abilityKindForHotkey, selectionAfterUltimatePurchase, selectionAfterSalvage, shouldSyncUI, useNullSpace
   usePreventPinchZoom.ts                     usePreventPinchZoom
   usePseudoFullscreenChrome.ts               usePseudoFullscreenChrome
   useReducedMotion.ts                        useReducedMotion

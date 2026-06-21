@@ -427,6 +427,10 @@ export const WARP = {
   // Once the ship reaches the portal, the screen flash plays for this long
   // (the only time the warp effect shows) before the shop opens.
   flashDuration: 0.55,
+  // Magnet speed dropped loot homes to the ship at during the fly-in. Well above
+  // flySpeed so it visibly rushes in and catches the moving ship; a safety sweep
+  // at warp completion banks any straggler so nothing is lost.
+  lootMagnetStrength: 1000,
 } as const
 
 // Enemy spawn angle bias. Most spawns arrive ahead of the ship; the forward cone
@@ -607,6 +611,9 @@ export const CHANGELOG: ChangelogEntry[] = [
       ],
       fixes: [
         'Killing a Void Worm now ends it outright — destroying the head takes the whole body with it, instead of leaving stray segments drifting in place.',
+      ],
+      ui: [
+        'End-of-sector loot now flies to your ship during the warp instead of being silently auto-collected, so you can actually see it get picked up.',
       ],
     },
   },

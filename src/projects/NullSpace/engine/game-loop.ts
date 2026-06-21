@@ -503,16 +503,11 @@ function getWeaponForUnlockUpgrade(upgradeId: UpgradeId): AbilityKind | null {
 }
 
 // Begins the end-of-sector warp cutscene: spawns the portal just offscreen ahead
-// of the ship, then hands off to advanceWarp which flies the ship into it. Auto-
-// collects dropped loot first, then clears the field. updateGameState early-returns
-// while warping, so the player has no slingshot control during the cutscene.
+// of the ship, then hands off to advanceWarp which flies the ship into it. Dropped
+// loot isn't auto-pocketed — it's marked homing so it visibly flies to the ship
+// during the cutscene (a safety sweep at completion banks any straggler). The
+// player has no slingshot control while warping (updateGameState early-returns).
 export function beginWarp(state: GameState): GameState {
-  let { power, spaceMetal, singularityShard } = state
-  for (const c of state.collectibles) {
-    if (c.kind === CollectibleKind.spaceMetal) spaceMetal += c.value
-    else if (c.kind === CollectibleKind.singularityShard) singularityShard += c.value
-    else power = Math.min(state.maxPower, power + c.value)
-  }
   // Portal spawns far ahead along the ship's current heading (its travel direction),
   // so the fly-in continues straight instead of snapping the ship around. Falls back
   // to its last heading when it's essentially still — never the fixed "up" axis.
@@ -532,15 +527,13 @@ export function beginWarp(state: GameState): GameState {
     warpFlashTimer: 0,
     warpDelay: 0,
     portalPos,
-    power,
-    spaceMetal,
-    singularityShard,
     enemies: [],
     // Helpers (and the helper factory) don't follow the ship through the warp —
     // each sector starts with no allies, so a fresh squad can't be banked.
     allies: [],
     projectiles: [],
-    collectibles: [],
+    // Loot rides along, now homing — advanceWarp vacuums it to the ship in flight.
+    collectibles: state.collectibles.map((c) => ({ ...c, homing: true })),
     particles: [],
     // The leftover field — calamities (mines, asteroids, nebulas/shockwaves) and any
     // lingering ability effects — rides along as pure UI through the cutscene instead
@@ -578,6 +571,18 @@ export function completeWarp(state: GameState): GameState {
   return openUpgradeScreen(state)
 }
 
+// Banks any loot still on the field — the safety net at warp completion so a
+// straggler the fly-in vacuum didn't catch is never lost.
+function pocketRemainingLoot(state: GameState): GameState {
+  let { power, spaceMetal, singularityShard } = state
+  for (const c of state.collectibles) {
+    if (c.kind === CollectibleKind.spaceMetal) spaceMetal += c.value
+    else if (c.kind === CollectibleKind.singularityShard) singularityShard += c.value
+    else power = Math.min(state.maxPower, power + c.value)
+  }
+  return { ...state, power, spaceMetal, singularityShard, collectibles: [] }
+}
+
 // Drives the warp cutscene each frame (no player control). The sim is suspended
 // while warping — updateGameState early-returns — so it runs entirely here. Two
 // stages: (1) the ship flies into the portal with NO screen effect; (2) once it
@@ -591,13 +596,25 @@ export function advanceWarp(state: GameState, dt: number): { state: GameState; l
   // frozen "star") and lingering particles fade as the ship flies in.
   const particles = updateParticles(state.particles, dt)
   const deathAnims = updateDeathAnims(state.deathAnims, dt)
-  const animated = { ...state, particles, deathAnims }
+  // Vacuum dropped loot toward the ship during the fly-in (strong magnet so it
+  // visibly rushes in and catches the moving ship) and bank what reaches it.
+  const loot = updateCollectibles(state.collectibles, state.ship, dt, WARP.lootMagnetStrength)
+  const animated = {
+    ...state,
+    particles,
+    deathAnims,
+    collectibles: loot.collectibles,
+    power: Math.min(state.maxPower, state.power + loot.powerGained),
+    spaceMetal: state.spaceMetal + loot.spaceMetalGained,
+    singularityShard: state.singularityShard + loot.singularityShardGained,
+  }
 
   // Stage 2 — flash: the ship has reached the portal; hold there while the
-  // screen flash plays, then open the shop.
+  // screen flash plays, then open the shop (pocketing any loot still in flight).
   if (state.warpFlashTimer > 0) {
     const warpFlashTimer = state.warpFlashTimer - dt
-    if (warpFlashTimer <= 0) return { state: completeWarp(animated), landed: true }
+    if (warpFlashTimer <= 0)
+      return { state: completeWarp(pocketRemainingLoot(animated)), landed: true }
     return { state: { ...animated, warpFlashTimer }, landed: false }
   }
 

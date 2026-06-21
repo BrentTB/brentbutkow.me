@@ -113,7 +113,8 @@ export function spawnAsteroidLoot(asteroid: Asteroid): Collectible[] {
 export function updateCollectibles(
   collectibles: Collectible[],
   ship: Ship,
-  dt: number
+  dt: number,
+  magnetStrength: number = POWER_ORB.magnetStrength
 ): {
   collectibles: Collectible[]
   powerGained: number
@@ -148,7 +149,7 @@ export function updateCollectibles(
     }
 
     if (updated.homing) {
-      const motion = homeTowardTarget(updated.pos, ship.pos, POWER_ORB.magnetStrength, dt)
+      const motion = homeTowardTarget(updated.pos, ship.pos, magnetStrength, dt)
       updated = { ...updated, pos: motion.pos, vel: motion.vel }
 
       if (distance(updated.pos, ship.pos) < ship.radius + POWER_ORB.radius + 4) {
