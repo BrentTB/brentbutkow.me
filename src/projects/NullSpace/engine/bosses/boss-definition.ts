@@ -1,3 +1,4 @@
+import { BOSS_LEVEL_INTERVAL, WAVES_PER_LEVEL } from '../../data'
 import type { Enemy, EnemyKind, MovementBehavior, Vec2 } from '../types'
 import type { Camera } from '../../renderer/camera'
 import type { DreadnoughtRuntime } from './dreadnought'
@@ -10,6 +11,10 @@ export type BossRuntimeBase = {
   phase: number
   linkedIds: string[]
   hasSpawned: boolean
+  // The wave this boss spawned on, stamped by scaleEnemy. Drives bossTier so a
+  // boss's signature mechanic (segment/generator/ring count) escalates with depth,
+  // and lets boss-ai scale the boss's spawned minions by the same wave.
+  spawnWave: number
 }
 
 // Discriminated union of per-boss runtime state — narrowing on `kind` gives a
@@ -121,4 +126,11 @@ export function hasAliveLinked(boss: Enemy, enemies: Enemy[]): boolean {
 // The shared two-phase pattern: phase 1 above half HP, phase 2 at or below.
 export function bossPhase(boss: Enemy): number {
   return boss.hp <= boss.maxHp * 0.5 ? 2 : 1
+}
+
+// Boss-encounter index (1st boss = 1) for the wave a boss spawned on — bosses
+// appear every WAVES_PER_LEVEL × BOSS_LEVEL_INTERVAL waves. tier - 1 is how many
+// steps of signature-mechanic escalation a boss has earned by its spawn depth.
+export function bossTier(spawnWave: number): number {
+  return Math.max(1, Math.round(spawnWave / (WAVES_PER_LEVEL * BOSS_LEVEL_INTERVAL)))
 }

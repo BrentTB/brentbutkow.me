@@ -214,7 +214,7 @@ src/projects/NullSpace/components/
   WaveCompleteScreen.tsx                     WaveCompleteScreen
 
 src/projects/NullSpace/
-  data.ts                                    GAME_NAME, WORLD_SIZE, SHIELD_COOLDOWN, SLINGSHOT, POWER_DEFAULTS, ANIMATION, WEAPON_ORDER, ENEMY_STATS, CURRENCY_DROPS, CURRENCY_NAME, POWER_ORB, SPACE_METAL_NAME, SINGULARITY_SHARD_NAME, SHARDS_PER_BOSS, SINGULARITY_SHARD, SPACE_METAL, WAVES_PER_LEVEL, BOSS_LEVEL_INTERVAL, BOSS_WAVE_ENEMY_MULTIPLIER, STAT_SCALING, WAVE_COMP, DASHER, WAVE_ESCALATION, WAVE_THEME, ENEMY_MODIFIERS, SPAWN_DELAY, SPAWN_DISTANCE, SWARM_SPAWN_SPREAD, FORWARD_DIR, SECTOR, WARP, SPAWN_CONE, HAZARD, CALAMITY, ASTEROID, NEBULA, WORMHOLE, PORTAL, PROJECTILE_SPEED, PROJECTILE_LIFETIME, PROJECTILE_RADIUS, PARTICLE_DEFAULTS, ChangelogEntry, CHANGELOG, GAME_VERSION
+  data.ts                                    GAME_NAME, WORLD_SIZE, SHIELD_COOLDOWN, WORM_CONTACT_IFRAME, SLINGSHOT, POWER_DEFAULTS, ANIMATION, WEAPON_ORDER, ENEMY_STATS, CURRENCY_DROPS, CURRENCY_NAME, POWER_ORB, SPACE_METAL_NAME, SINGULARITY_SHARD_NAME, SHARDS_PER_BOSS, SINGULARITY_SHARD, SPACE_METAL, WAVES_PER_LEVEL, BOSS_LEVEL_INTERVAL, BOSS_WAVE_ENEMY_MULTIPLIER, STAT_SCALING, WAVE_COMP, DASHER, WAVE_ESCALATION, WAVE_THEME, ENEMY_MODIFIERS, SPAWN_DELAY, SPAWN_DISTANCE, SWARM_SPAWN_SPREAD, FORWARD_DIR, SECTOR, WARP, SPAWN_CONE, HAZARD, CALAMITY, ASTEROID, NEBULA, WORMHOLE, PORTAL, PROJECTILE_SPEED, PROJECTILE_LIFETIME, PROJECTILE_RADIUS, PARTICLE_DEFAULTS, ChangelogEntry, CHANGELOG, GAME_VERSION
 
 src/projects/NullSpace/engine/abilities/
   ability-data.ts                            METEORITE_STRIKE, METEOR_STRIKE, COMET_SHOWER, METEOR_SHOWER, BLACK_HOLE, ROCKET, SHIELD, FORCE_FIELD, SUN, SUPERNOVA, HELPER, HELPER_FACTORY, TELEKINESIS, SOLAR_FLARE, FIREWORKS, EVENT_HORIZON, SOLAR_PLAGUE, SINGULARITY, RADIATION, MELTDOWN, CHAIN_LIGHTNING, ION_STORM, GRAVITY_LURE, COLLAPSAR, OVERDRIVE, OVERLOAD_CORE
@@ -286,13 +286,13 @@ src/projects/NullSpace/engine/abilities/telekinesis/
 
 src/projects/NullSpace/engine/bosses/
   boss-ai.ts                                 updateBossAI
-  boss-definition.ts                         BossRuntimeBase, BossRuntimeState, BossEnemyKind, getBossRuntime, SpawnSpec, DropSpec, BossProjectileSpec, BossTickContext, BossUpdateResult, BossDefinition, hasAliveLinked, bossPhase
+  boss-definition.ts                         BossRuntimeBase, BossRuntimeState, BossEnemyKind, getBossRuntime, SpawnSpec, DropSpec, BossProjectileSpec, BossTickContext, BossUpdateResult, BossDefinition, hasAliveLinked, bossPhase, bossTier
   boss-selection.ts                          createBossSelection, advanceBossSelection
   dreadnought.ts                             LaserStage, DreadnoughtRuntime, DREADNOUGHT_LASER, DREADNOUGHT_BOSS
   index.ts                                   BOSS_KINDS, getBossDefinition, canEnemyTakeDamage
   loot.ts                                    metalBurst
   phase-shifter.ts                           ShifterStage, PhaseShifterRuntime, PHASE_SHIFTER, PHASE_SHIFTER_BOSS
-  void-worm.ts                               WormStage, VoidWormRuntime, VOID_WORM, VOID_WORM_BOSS
+  void-worm.ts                               WormStage, VoidWormRuntime, VOID_WORM, VOID_WORM_BOSS, MiniWormSpawn, miniWormsFromSegmentDeaths
 
 src/projects/NullSpace/engine/calamities/
   asteroids.ts                               createAsteroid, seedAsteroidField, updateAsteroids, damageAsteroid, markInteracted, splitAsteroid, AsteroidContactResult, resolveAsteroidContacts, ProjectileAsteroidResult, resolveProjectileAsteroidCollisions, EffectAsteroidResult, applyEffectsToAsteroids

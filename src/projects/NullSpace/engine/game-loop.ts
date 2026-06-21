@@ -15,6 +15,7 @@ import {
 } from '../data'
 import {
   createDeathAnim,
+  createEnemy,
   createParticle,
   createShip,
   spawnExplosionParticles,
@@ -107,6 +108,8 @@ import { buildNebulaField, enemyVisibleToPlayerSide } from './calamities/nebula-
 import { inZone } from './math/zone'
 import { advanceBossSelection, createBossSelection } from './bosses/boss-selection'
 import { updateBossAI } from './bosses/boss-ai'
+import { miniWormsFromSegmentDeaths } from './bosses/void-worm'
+import { scaleEnemy } from './world/enemy-scaling'
 import { detonateExpiredEnemies } from './systems/enemy-lifetime'
 import { loadHighScore, saveHighScore } from './world/persistence'
 import { reseedForNewSession, rng } from './math/random'
@@ -115,6 +118,7 @@ import { getHelperWeaponForUnlockUpgrade, HELPER_WEAPON_LIST } from './weapons'
 import {
   CollectibleKind,
   EffectKind,
+  EnemyKind,
   GamePhase,
   NebulaVariant,
   ShipKind,
@@ -742,10 +746,12 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   let holdStates = state.holdStates
 
   // Cosmetic damage-flash decays each frame; a hit later this frame refreshes it.
+  // The Void Worm contact i-frame ticks down here too, re-armed on a worm hit.
   ship = {
     ...ship,
     hitFlash: Math.max(0, ship.hitFlash - dt),
     hitFlashCooldown: Math.max(0, ship.hitFlashCooldown - dt),
+    wormContactCooldown: Math.max(0, ship.wormContactCooldown - dt),
   }
 
   // Upgrade-derived economy multipliers (constant across the frame).
@@ -1323,6 +1329,19 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   // Tally every enemy destroyed this frame — killedThisFrame is the dedup'd
   // all-sources kill list, so kills stays coherent with the score awarded above.
   kills += killedThisFrame.length
+
+  // A dying Void Worm body segment erupts into lunging mini worms — more of them
+  // once half the body is gone. They scale on the worm's spawn wave like the rest of
+  // the encounter and persist until killed (finite per fight, so no expiry).
+  const miniWormSpawns = miniWormsFromSegmentDeaths(killedThisFrame, enemies)
+  if (miniWormSpawns.length > 0) {
+    enemies = [
+      ...enemies,
+      ...miniWormSpawns.map((m) =>
+        scaleEnemy(createEnemy(EnemyKind.miniVoidWorm, m.pos), m.spawnWave)
+      ),
+    ]
+  }
 
   // --- Spawn collectibles from kills ---
   // Ship-collision deaths drop nothing — no reward for letting an enemy reach you.

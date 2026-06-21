@@ -36,6 +36,7 @@ const ENEMY_MOVEMENT: Record<NonBossEnemyKind, MovementBehavior> = {
   [EnemyKind.dasher]: MovementBehavior.dash,
   [EnemyKind.shieldGenerator]: MovementBehavior.stationary,
   [EnemyKind.wormSegment]: MovementBehavior.none,
+  [EnemyKind.miniVoidWorm]: MovementBehavior.dash,
 }
 
 const ENEMY_DEATH: Record<NonBossEnemyKind, DeathBehavior> = {
@@ -47,6 +48,7 @@ const ENEMY_DEATH: Record<NonBossEnemyKind, DeathBehavior> = {
   [EnemyKind.dasher]: DeathBehavior.none,
   [EnemyKind.shieldGenerator]: DeathBehavior.none,
   [EnemyKind.wormSegment]: DeathBehavior.none,
+  [EnemyKind.miniVoidWorm]: DeathBehavior.none,
 }
 
 // IDs must be unique across the whole session — including across Vite HMR
@@ -94,6 +96,7 @@ export function createShip(kind: ShipKind, worldSize: Vec2): Ship {
     slingOverheated: false,
     hitFlash: 0,
     hitFlashCooldown: 0,
+    wormContactCooldown: 0,
   }
 }
 

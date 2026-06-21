@@ -5,7 +5,7 @@ import { worldToScreen } from '../../renderer/camera'
 import { rng } from '../math/random'
 import { ringPositions, unitToward } from '../math/vec'
 import { toroidalDelta } from '../math/toroid'
-import { bossPhase, getBossRuntime, hasAliveLinked } from './boss-definition'
+import { bossPhase, bossTier, getBossRuntime, hasAliveLinked } from './boss-definition'
 import type {
   BossDefinition,
   BossProjectileSpec,
@@ -37,6 +37,18 @@ const DRONE_INTERVAL_P2 = 5
 const SHIELD_RING_DIST = 90
 const PHASE1_GENERATORS = 3
 const PHASE2_GENERATORS = 5
+// Deeper runs armour the boss with more generators: +GEN_PER_TIER per boss tier
+// past the first, capped per phase.
+const GEN_PER_TIER = 1
+const MAX_GENERATORS_P1 = 6
+const MAX_GENERATORS_P2 = 8
+
+function p1Generators(tier: number): number {
+  return Math.min(MAX_GENERATORS_P1, PHASE1_GENERATORS + (tier - 1) * GEN_PER_TIER)
+}
+function p2Generators(tier: number): number {
+  return Math.min(MAX_GENERATORS_P2, PHASE2_GENERATORS + (tier - 1) * GEN_PER_TIER)
+}
 // Sibling generators within this range push each other apart; GEN_REPEL_PUSH is
 // the max tangential nudge (px) before re-projection onto the ring. Together
 // they spread the ring evenly and stop the boss's motion dragging them into a
@@ -159,9 +171,10 @@ export const DREADNOUGHT_BOSS: BossDefinition = {
     laserStage: LaserStage.idle,
     laserTimer: DREADNOUGHT_LASER.cooldownP1,
     laserAim: null,
+    spawnWave: 0,
   }),
 
-  onSpawn: (boss) => ringSpecs(boss, PHASE1_GENERATORS),
+  onSpawn: (boss) => ringSpecs(boss, p1Generators(bossTier(boss.boss?.spawnWave ?? 0))),
 
   canTakeDamage: (boss, enemies) => !hasAliveLinked(boss, enemies),
 
@@ -236,7 +249,9 @@ export const DREADNOUGHT_BOSS: BossDefinition = {
     // dead — canTakeDamage gates all damage otherwise), so replacing linkedIds
     // here can never orphan a still-living generator.
     const linkedSpawns =
-      runtime.phase === 1 && newPhase === 2 ? ringSpecs(boss, PHASE2_GENERATORS) : undefined
+      runtime.phase === 1 && newPhase === 2
+        ? ringSpecs(boss, p2Generators(bossTier(runtime.spawnWave)))
+        : undefined
 
     return {
       updatedRuntime: {

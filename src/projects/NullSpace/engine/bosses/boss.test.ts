@@ -5,6 +5,7 @@ import { updateBossAI } from './boss-ai'
 import { BOSS_KINDS, getBossDefinition } from './index'
 import { DREADNOUGHT_BOSS, DREADNOUGHT_LASER, LaserStage } from './dreadnought'
 import type { DreadnoughtRuntime } from './dreadnought'
+import { bossTier } from './boss-definition'
 import { resolveProjectileEnemyCollisions, updateProjectiles } from '../systems/combat'
 import { damageEnemiesInRadiusFlat } from '../math/aoe'
 import { distance } from '../math/collision'
@@ -283,6 +284,51 @@ describe('updateBossAI — phase-2 shield regeneration', () => {
     const result = updateBossAI([boss], 0.016, CTX)
     const regen = result.newEnemies.filter((e) => e.kind === EnemyKind.shieldGenerator)
     expect(regen).toHaveLength(0)
+  })
+})
+
+describe('Dreadnought — depth scaling', () => {
+  function generatorsAtWave(spawnWave: number): number {
+    const base = createEnemy(EnemyKind.dreadnought, CENTER)
+    const boss = { ...base, boss: { ...base.boss!, spawnWave } }
+    return updateBossAI([boss], 0.016, CTX).newEnemies.filter(
+      (e) => e.kind === EnemyKind.shieldGenerator
+    ).length
+  }
+
+  it('armours phase 1 with more generators the later it appears', () => {
+    expect(generatorsAtWave(0)).toBe(3) // tier 1 base
+    expect(generatorsAtWave(27)).toBeGreaterThan(3) // tier 3
+  })
+
+  it('caps the phase-1 generator count', () => {
+    expect(generatorsAtWave(99999)).toBeLessThanOrEqual(6)
+  })
+
+  it('regenerates a bigger phase-2 ring at higher tiers', () => {
+    const base = createEnemy(EnemyKind.dreadnought, CENTER)
+    const boss = {
+      ...base,
+      hp: Math.floor(base.maxHp * 0.5),
+      boss: { ...base.boss!, phase: 1, linkedIds: [], hasSpawned: true, spawnWave: 27 },
+    }
+    const regen = updateBossAI([boss], 0.016, CTX).newEnemies.filter(
+      (e) => e.kind === EnemyKind.shieldGenerator
+    )
+    expect(regen.length).toBeGreaterThan(5) // base phase-2 is 5
+  })
+})
+
+describe('bossTier', () => {
+  it('maps spawn wave to the boss-encounter index', () => {
+    expect(bossTier(9)).toBe(1)
+    expect(bossTier(18)).toBe(2)
+    expect(bossTier(27)).toBe(3)
+  })
+
+  it('never drops below tier 1', () => {
+    expect(bossTier(0)).toBe(1)
+    expect(bossTier(1)).toBe(1)
   })
 })
 

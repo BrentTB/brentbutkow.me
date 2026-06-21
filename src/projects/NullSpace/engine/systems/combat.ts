@@ -1,4 +1,4 @@
-import { ENEMY_STATS } from '../../data'
+import { ENEMY_STATS, WORM_CONTACT_IFRAME } from '../../data'
 import { checkCollision, distance, segmentIntersectsCircle } from '../math/collision'
 import { homeTowardTarget } from '../math/homing'
 import { steerToward } from '../math/steering'
@@ -9,7 +9,7 @@ import { applyDamageToEnemy } from '../entities/enemy-damage'
 import { applyDamageToShip } from '../entities/ship'
 import { createNuclearWasteEffect } from '../weapons/nuke'
 import { canEnemyTakeDamage } from '../bosses'
-import { DeathBehavior, EffectKind, ProjectileOwner } from '../types'
+import { DeathBehavior, EffectKind, EnemyKind, ProjectileOwner } from '../types'
 import type { ActiveEffect, Ally, Enemy, Particle, Projectile, Ship, Vec2 } from '../types'
 
 // Where to aim to intercept a target moving at `targetVel`: its position plus its
@@ -417,6 +417,17 @@ export function resolveEnemyShipCollisions(
 
   for (const enemy of enemies) {
     if (!checkCollision(enemy, damagedShip)) {
+      surviving.push(enemy)
+      continue
+    }
+    // Void Worm head + body share one contact i-frame: a lunge that sweeps the ship
+    // through several parts lands a single hit. Worm parts are re-pinned / boss-driven,
+    // so they don't bounce — they just pass through.
+    if (enemy.kind === EnemyKind.voidWorm || enemy.kind === EnemyKind.wormSegment) {
+      if (damagedShip.wormContactCooldown <= 0) {
+        damagedShip = applyDamageToShip(damagedShip, enemy.damage * (enemy.damageDealtMult ?? 1))
+        damagedShip = { ...damagedShip, wormContactCooldown: WORM_CONTACT_IFRAME }
+      }
       surviving.push(enemy)
       continue
     }

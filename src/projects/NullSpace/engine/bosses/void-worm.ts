@@ -5,7 +5,7 @@ import { wrapPosition } from '../math/toroid'
 import { homeTowardTarget } from '../math/homing'
 import { steerToward } from '../math/steering'
 import { unitToward } from '../math/vec'
-import { getBossRuntime, hasAliveLinked } from './boss-definition'
+import { bossTier, getBossRuntime, hasAliveLinked } from './boss-definition'
 import type {
   BossDefinition,
   BossRuntimeBase,
@@ -31,6 +31,10 @@ type WormCycle = Pick<VoidWormRuntime, 'stage' | 'stageTimer' | 'heading'>
 
 export const VOID_WORM = {
   segmentCount: 8,
+  // Deeper runs spawn a longer worm: +segmentsPerTier per boss tier past the
+  // first, capped at maxSegments so it can't grow without bound.
+  segmentsPerTier: 2,
+  maxSegments: 16,
   // Below the segment sprite width so the body reads as one continuous worm.
   segmentSpacing: 40,
   cruiseSpeed: 80,
@@ -47,7 +51,22 @@ export const VOID_WORM = {
   // hits register and chip it, but clearing the body is far faster (and stops it
   // hurting you). Full damage once every segment is dead.
   shieldedDamageMult: 0.3,
+  // A burst loses bite tearing down the chain: segments are damaged in order of
+  // distance from the blast, each taking aoeFalloff^index of the hit (nearest =
+  // full), floored at aoeFalloffFloor so deep segments still chip. Stops one
+  // rocket from deleting the whole body. Applied to burst AoE only (not DOT).
+  aoeFalloff: 0.88,
+  aoeFalloffFloor: 0.4,
 } as const
+
+// How many body segments this worm spawns with — base length plus segmentsPerTier
+// for each boss tier past the first, capped at maxSegments.
+function segmentCount(tier: number): number {
+  return Math.min(
+    VOID_WORM.maxSegments,
+    VOID_WORM.segmentCount + (tier - 1) * VOID_WORM.segmentsPerTier
+  )
+}
 
 // Each alive segment sits segmentSpacing behind the piece ahead of it, in
 // linkedIds order, facing its leader (vel orients the capsule sprite along the
@@ -82,6 +101,7 @@ export const VOID_WORM_BOSS: BossDefinition = {
     phase: 1,
     linkedIds: [],
     hasSpawned: false,
+    spawnWave: 0,
     stage: WormStage.cruise,
     stageTimer: VOID_WORM.cruiseDuration,
     heading: { x: 1, y: 0 },
@@ -90,7 +110,8 @@ export const VOID_WORM_BOSS: BossDefinition = {
   // Segments trail off to one side; the chain pin rearranges them next tick.
   onSpawn: (boss) => {
     const specs: SpawnSpec[] = []
-    for (let i = 0; i < VOID_WORM.segmentCount; i++) {
+    const count = segmentCount(bossTier(boss.boss?.spawnWave ?? 0))
+    for (let i = 0; i < count; i++) {
       specs.push({
         kind: EnemyKind.wormSegment,
         pos: { x: boss.pos.x + (i + 1) * VOID_WORM.segmentSpacing, y: boss.pos.y },
@@ -167,11 +188,54 @@ export const VOID_WORM_BOSS: BossDefinition = {
       const seg = enemies.find((e) => e.id === id)
       return sum + (seg && seg.hp > 0 ? seg.hp : 0)
     }, 0)
+    // Head and segments scaled by the same wave multiplier, so recover it from the
+    // head (maxHp / base) to size each segment's contribution to the denominator.
+    const hpMult = boss.maxHp / ENEMY_STATS.voidWorm.hp
     return {
       hp: boss.hp + segmentHp,
-      maxHp: boss.maxHp + runtime.linkedIds.length * ENEMY_STATS.wormSegment.hp,
+      maxHp: boss.maxHp + runtime.linkedIds.length * ENEMY_STATS.wormSegment.hp * hpMult,
     }
   },
 
   onDeath: (boss): DropSpec[] => metalBurst(boss.pos, 2, 4),
+}
+
+// One mini worm to spawn from a body segment that died this frame.
+export type MiniWormSpawn = { pos: Vec2; spawnWave: number }
+
+// A dying body segment erupts into mini worms. Pseudo-phase by body count, not HP:
+// while more than half the original body still lives, each segment death spawns one
+// mini worm; once half or fewer remain, each death spawns two. Stateless — the death
+// index is derived from how many of the head's linked segments survive this frame, so
+// it stays correct even when one blast kills several segments at once.
+export function miniWormsFromSegmentDeaths(
+  killedThisFrame: Enemy[],
+  enemies: Enemy[]
+): MiniWormSpawn[] {
+  const spawns: MiniWormSpawn[] = []
+  for (const head of enemies) {
+    if (head.kind !== EnemyKind.voidWorm || !head.boss) continue
+    const linked = new Set(head.boss.linkedIds)
+    const deadThisFrame = killedThisFrame.filter(
+      (e) => e.kind === EnemyKind.wormSegment && linked.has(e.id)
+    )
+    if (deadThisFrame.length === 0) continue
+
+    const total = head.boss.linkedIds.length
+    const aliveAfter = enemies.filter((e) => linked.has(e.id) && e.hp > 0).length
+    // This frame's deaths occupy the indices just past those already dead.
+    let deathIndex = total - aliveAfter - deadThisFrame.length
+    for (const seg of deadThisFrame) {
+      deathIndex++
+      const count = deathIndex > total / 2 ? 2 : 1
+      for (let i = 0; i < count; i++) {
+        // Fixed per-spawn offset so a pair doesn't stack on a single pixel.
+        spawns.push({
+          pos: { x: seg.pos.x + (i * 10 - (count - 1) * 5), y: seg.pos.y },
+          spawnWave: head.boss.spawnWave,
+        })
+      }
+    }
+  }
+  return spawns
 }

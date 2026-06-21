@@ -11,6 +11,10 @@ export const WORLD_SIZE = { x: 2600, y: 2600 }
 
 export const SHIELD_COOLDOWN = 3
 
+// Seconds the ship is immune to Void Worm contact (head + body) after a worm hit.
+// Caps a lunge that sweeps through the head and several segments to a single hit.
+export const WORM_CONTACT_IFRAME = 0.8
+
 // Slingshot (flick the ship). Base values are deliberately weak + wild; the
 // ship upgrades (Power / Control / Cadence / Heat Sink) push toward strong,
 // precise, fast, and sustainable.
@@ -188,13 +192,24 @@ export const ENEMY_STATS = {
   wormSegment: {
     hp: 120,
     speed: 0,
-    // damage 0: the chain re-pins segments right after knockback, so contact
-    // damage would re-apply every frame as the body crosses the ship. Only the
-    // head bites.
-    damage: 0,
+    // The body bites too, but ship-side WORM_CONTACT_IFRAME gates worm contact to
+    // one hit per lunge — so the re-pinned chain crossing the ship can't melt it,
+    // yet flying through the body still costs you.
+    damage: 12,
     radius: 14,
     scoreValue: 25,
     powerReward: 8,
+  },
+  // Erupts from a dying body segment: a small, fast, low-HP lunger (dash cycle).
+  // Contact damage is dealt the normal way (no worm i-frame) — these are separate
+  // threats, not part of the worm body.
+  miniVoidWorm: {
+    hp: 18,
+    speed: 90,
+    damage: 12,
+    radius: 9,
+    scoreValue: 10,
+    powerReward: 2,
   },
   phaseShifter: {
     hp: 350,
@@ -223,6 +238,8 @@ export const CURRENCY_DROPS: Record<EnemyKind, { min: number; max: number }> = {
   shieldGenerator: { min: 1, max: 3 },
   voidWorm: { min: 5, max: 15 },
   wormSegment: { min: 1, max: 3 },
+  // Mini worms drop nothing — they're finite per fight but shouldn't be farmable.
+  miniVoidWorm: { min: 0, max: 0 },
   phaseShifter: { min: 5, max: 15 },
 }
 
@@ -279,6 +296,7 @@ export const SPACE_METAL = {
     shieldGenerator: 0,
     voidWorm: 0,
     wormSegment: 0,
+    miniVoidWorm: 0,
     phaseShifter: 0,
   } as Record<EnemyKind, number>,
 } as const
@@ -575,6 +593,20 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.14.0',
+    date: '2026-06-21',
+    changes: {
+      features: [
+        'Bosses now grow more dangerous the deeper into a run they appear. Their health and damage scale with the wave like every other enemy, and their signature threat escalates too: the Void Worm arrives with a longer body, the Dreadnought rings itself with more shield generators, and the Phase Shifter drops bigger swarm rings that start folding in tougher (but still fast) units.',
+        'Destroying a Void Worm body segment now erupts it into small, fast mini worms that lunge at you — and once you have torn through half the body, every segment bursts into two. The worm is no longer a single attack you can simply out-fly.',
+      ],
+      balance: [
+        'A single rocket no longer near-deletes the Void Worm. A burst now loses bite as it tears down the chain — each further body segment it catches takes less — so flattening the whole worm takes more than a couple of well-placed blasts.',
+        'The Void Worm body now bites. Brushing the head or a segment hurts, but a brief contact i-frame means a lunge that sweeps you through several parts lands a single hit, not one per segment — so a longer worm is a bigger hazard to weave through, not just more health.',
+      ],
+    },
+  },
   {
     version: '1.13.0',
     date: '2026-06-21',

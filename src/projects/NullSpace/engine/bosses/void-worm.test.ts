@@ -1,12 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { createEnemy } from '../entities/entity-creator'
+import { createEnemy, createShip } from '../entities/entity-creator'
 import { applyDamageToEnemy } from '../entities/enemy-damage'
+import { resolveEnemyShipCollisions } from '../systems/combat'
 import { updateBossAI } from './boss-ai'
-import { VOID_WORM, VOID_WORM_BOSS, WormStage } from './void-worm'
+import { scaleEnemy } from '../world/enemy-scaling'
+import { VOID_WORM, VOID_WORM_BOSS, WormStage, miniWormsFromSegmentDeaths } from './void-worm'
 import { getBossRuntime } from './boss-definition'
-import { EnemyKind } from '../types'
+import { EnemyKind, ShipKind } from '../types'
 import type { Enemy } from '../types'
-import { ENEMY_STATS, WORLD_SIZE } from '../../data'
+import { ENEMY_STATS, WORLD_SIZE, WORM_CONTACT_IFRAME } from '../../data'
 import { rng } from '../math/random'
 
 beforeEach(() => {
@@ -43,6 +45,36 @@ describe('Void Worm — spawn', () => {
     expect(segments).toHaveLength(VOID_WORM.segmentCount)
     expect(segments.every((s) => s.kind === EnemyKind.wormSegment)).toBe(true)
     expect(head.boss!.linkedIds).toEqual(segments.map((s) => s.id))
+  })
+})
+
+describe('Void Worm — depth scaling', () => {
+  // Segments spawned by a worm that arrived on the given wave.
+  function segmentsAtWave(spawnWave: number): Enemy[] {
+    const base = createEnemy(EnemyKind.voidWorm, CENTER)
+    const head = { ...base, boss: { ...wormState(base), spawnWave } }
+    return updateBossAI([head], 0.016, CTX).newEnemies
+  }
+
+  it('spawns a longer body the later it appears', () => {
+    expect(segmentsAtWave(0)).toHaveLength(VOID_WORM.segmentCount) // tier 1
+    expect(segmentsAtWave(27)).toHaveLength(
+      VOID_WORM.segmentCount + 2 * VOID_WORM.segmentsPerTier // tier 3
+    )
+  })
+
+  it('caps the segment count', () => {
+    expect(segmentsAtWave(9999)).toHaveLength(VOID_WORM.maxSegments)
+  })
+
+  it('hpBarValue scales the segment denominator with the wave-scaled encounter', () => {
+    const head = scaleEnemy(createEnemy(EnemyKind.voidWorm, CENTER), 18)
+    const { enemies, newEnemies } = updateBossAI([head], 0.016, CTX)
+    const liveHead = enemies.find((e) => e.kind === EnemyKind.voidWorm)!
+    const bar = VOID_WORM_BOSS.hpBarValue!(liveHead, [liveHead, ...newEnemies])
+    const segMax = newEnemies.reduce((sum, e) => sum + e.maxHp, 0)
+    expect(bar.maxHp).toBeCloseTo(liveHead.maxHp + segMax, 3)
+    expect(bar.hp).toBeCloseTo(bar.maxHp, 3) // full health at spawn
   })
 })
 
@@ -249,5 +281,86 @@ describe('VOID_WORM_BOSS onDeath', () => {
     const drops = VOID_WORM_BOSS.onDeath!(head)
     expect(drops.length).toBeGreaterThanOrEqual(2)
     expect(drops.length).toBeLessThanOrEqual(4)
+  })
+})
+
+describe('Void Worm — mini worms from segment deaths', () => {
+  // Run the helper after killing `kill` segments (indices in the spawned chain),
+  // with `alreadyDead` earlier segments already gone from the field.
+  function killAndSpawn(opts: { kill: number[]; alreadyDead?: number[] }) {
+    const { head, segments } = spawnedWorm()
+    const dead = new Set(opts.alreadyDead ?? [])
+    const killSet = new Set(opts.kill)
+    const killedThisFrame = opts.kill.map((i) => ({ ...segments[i], hp: 0 }))
+    const enemies: Enemy[] = [head, ...segments.filter((_, i) => !dead.has(i) && !killSet.has(i))]
+    return miniWormsFromSegmentDeaths(killedThisFrame, enemies)
+  }
+
+  it('spawns one mini worm per death while over half the body remains', () => {
+    expect(killAndSpawn({ kill: [0] })).toHaveLength(1) // death #1 of 8
+  })
+
+  it('spawns two per death once half or fewer segments remain', () => {
+    // 4 of 8 already dead → killing the 5th is past the halfway mark.
+    expect(killAndSpawn({ kill: [4], alreadyDead: [0, 1, 2, 3] })).toHaveLength(2)
+  })
+
+  it('classifies each death in a multi-kill blast by its own index', () => {
+    // Kill the first 5 at once: deaths 1–4 give one each, death 5 gives two = 6.
+    expect(killAndSpawn({ kill: [0, 1, 2, 3, 4] })).toHaveLength(6)
+  })
+
+  it('spawns mini worms at the dead segment position', () => {
+    const { head, segments } = spawnedWorm()
+    const killed = [{ ...segments[0], hp: 0 }]
+    const spawns = miniWormsFromSegmentDeaths(killed, [head, ...segments.slice(1)])
+    expect(spawns[0].pos.x).toBeCloseTo(segments[0].pos.x, 0)
+    expect(spawns[0].pos.y).toBeCloseTo(segments[0].pos.y, 0)
+  })
+
+  it('carries the worm spawn wave onto each mini worm', () => {
+    const base = createEnemy(EnemyKind.voidWorm, CENTER)
+    const head = { ...base, boss: { ...wormState(base), spawnWave: 18 } }
+    const { newEnemies: segments } = updateBossAI([head], 0.016, CTX)
+    const spawns = miniWormsFromSegmentDeaths(
+      [{ ...segments[0], hp: 0 }],
+      [head, ...segments.slice(1)]
+    )
+    expect(spawns.every((s) => s.spawnWave === 18)).toBe(true)
+  })
+
+  it('ignores non-segment kills', () => {
+    const drone = createEnemy(EnemyKind.drone, CENTER)
+    expect(miniWormsFromSegmentDeaths([{ ...drone, hp: 0 }], [drone])).toHaveLength(0)
+  })
+
+  it('the spawned kind is a finite, lunging enemy that never expires', () => {
+    const mini = createEnemy(EnemyKind.miniVoidWorm, CENTER)
+    expect(mini.movementBehavior).toBe('dash')
+    expect(mini.damage).toBeGreaterThan(0)
+    expect(mini.expiresIn).toBeUndefined()
+  })
+})
+
+describe('Void Worm — body contact i-frame', () => {
+  function shipAt(pos: { x: number; y: number }) {
+    return { ...createShip(ShipKind.fighter, WORLD_SIZE), pos, shield: 0 }
+  }
+
+  it('caps a lunge through the head and several segments to a single hit', () => {
+    const head = createEnemy(EnemyKind.voidWorm, CENTER)
+    const segs = [0, 1, 2].map(() => createEnemy(EnemyKind.wormSegment, CENTER))
+    const ship = shipAt(CENTER)
+    const result = resolveEnemyShipCollisions([head, ...segs], ship)
+    // Only the first worm part lands; the rest are absorbed by the i-frame.
+    expect(ship.hp - result.ship.hp).toBe(ENEMY_STATS.voidWorm.damage)
+    expect(result.ship.wormContactCooldown).toBe(WORM_CONTACT_IFRAME)
+  })
+
+  it('deals no contact damage while the i-frame is still active', () => {
+    const seg = createEnemy(EnemyKind.wormSegment, CENTER)
+    const ship = { ...shipAt(CENTER), wormContactCooldown: 0.5 }
+    const result = resolveEnemyShipCollisions([seg], ship)
+    expect(result.ship.hp).toBe(ship.hp)
   })
 })

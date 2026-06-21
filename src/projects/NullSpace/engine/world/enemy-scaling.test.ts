@@ -49,8 +49,16 @@ describe('scaleEnemy', () => {
     expect(scaled.hp).toBeCloseTo(scaled.maxHp)
   })
 
-  it('leaves bosses untouched', () => {
+  it('scales bosses on the same curve and stamps their spawn wave', () => {
     const boss = createEnemy(EnemyKind.dreadnought, { x: 0, y: 0 })
-    expect(scaleEnemy(boss, 30)).toEqual(boss)
+    const scaled = scaleEnemy(boss, 30)
+    const mult = waveStatScale(30)
+    expect(scaled.hp).toBeCloseTo(boss.hp * mult.hp)
+    expect(scaled.maxHp).toBeCloseTo(boss.maxHp * mult.hp)
+    expect(scaled.damage).toBeCloseTo(boss.damage * mult.damage)
+    // bossTier reads spawnWave to grow the boss's signature mechanic.
+    expect(scaled.boss?.spawnWave).toBe(30)
+    // The source runtime isn't mutated.
+    expect(boss.boss?.spawnWave).toBe(0)
   })
 })
