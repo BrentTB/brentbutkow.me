@@ -10,6 +10,7 @@ import {
   visibleTargetForEnemy,
 } from '../calamities/nebula-vision'
 import type { NebulaField } from '../calamities/nebula-vision'
+import { nearestZoneWithin, type Zone } from '../math/zone'
 import { MovementBehavior, ProjectileOwner } from '../types'
 import type { Ally, Enemy, Hazard, Projectile, Ship, Vec2 } from '../types'
 
@@ -252,24 +253,32 @@ export function updateEnemyMovement(
   hazards: Hazard[],
   dt: number,
   speedMult = 1,
-  field?: NebulaField
+  field?: NebulaField,
+  decoys: Zone[] = []
 ): Enemy[] {
   const fog = field?.fog ?? []
   return enemies.map((enemy) => {
     // Slow nebula drags movement on top of wave escalation; the speed-scaled copy is
     // built only on the pursue path (below), and the stored base is restored after.
-    const eSpeedMult = field ? speedMult * slowMultAt(enemy.pos, field.slow) : speedMult
+    const eSpeedMult =
+      (field ? speedMult * slowMultAt(enemy.pos, field.slow) : speedMult) * (enemy.speedMult ?? 1)
     // Fog: a non-boss enemy that can see neither the player nor any ally wanders;
     // otherwise it pursues the nearest target it *can* see.
+    // A Gravity Lure beacon in range taunts a non-boss enemy: it RUSHES the beacon
+    // (chase, whatever its normal behaviour) and commits — so a keep-range shooter
+    // can't park its standoff outside the radius and flip back to the player. Also
+    // overrides fog wander.
+    const lure = !enemy.boss && decoys.length > 0 ? nearestZoneWithin(enemy.pos, decoys) : null
     const seen =
       fog.length > 0 && !enemy.boss ? visibleTargetForEnemy(enemy.pos, ship, allies, fog) : null
-    const blinded = fog.length > 0 && !enemy.boss && seen === null
+    const blinded = fog.length > 0 && !enemy.boss && seen === null && !lure
+    const moveFn = lure ? moveChase : MOVEMENT_FN[enemy.movementBehavior]
     const moved = blinded
       ? avoidHazards(wanderStep(enemy, dt, NEBULA.wanderSpeed * eSpeedMult), hazards, dt)
       : avoidHazards(
-          MOVEMENT_FN[enemy.movementBehavior](
+          moveFn(
             eSpeedMult === 1 ? enemy : { ...enemy, speed: enemy.speed * eSpeedMult },
-            { ...ship, pos: seen ?? findNearestTarget(enemy.pos, ship, allies) },
+            { ...ship, pos: lure ?? seen ?? findNearestTarget(enemy.pos, ship, allies) },
             dt
           ),
           hazards,
@@ -292,7 +301,8 @@ export function updateEnemyShooting(
   allies: Ally[],
   projectiles: Projectile[],
   dt: number,
-  field?: NebulaField
+  field?: NebulaField,
+  decoys: Zone[] = []
 ): { enemies: Enemy[]; projectiles: Projectile[] } {
   const updatedEnemies: Enemy[] = []
   let newProjectiles = projectiles
@@ -308,10 +318,13 @@ export function updateEnemyShooting(
     let cooldown = enemy.fireCooldown - dt
     let nextFireFlash = fireFlash
     if (cooldown <= 0) {
-      // Fog: a non-boss enemy only fires at a target it can actually see (else null
-      // → hold fire). Without fog this is the plain nearest target, as before.
-      const target =
-        fog.length > 0 && !enemy.boss
+      // A lured enemy is charging the beacon — it holds fire (target null), so it
+      // throws no stray shots through the beacon and ignores the player it was lured
+      // off. Fog: otherwise a non-boss only fires at a target it can actually see.
+      const lure = !enemy.boss && decoys.length > 0 ? nearestZoneWithin(enemy.pos, decoys) : null
+      const target = lure
+        ? null
+        : fog.length > 0 && !enemy.boss
           ? visibleTargetForEnemy(enemy.pos, ship, allies, fog)
           : findNearestTarget(enemy.pos, ship, allies)
       const stats = ENEMY_STATS[enemy.kind]
@@ -320,9 +333,9 @@ export function updateEnemyShooting(
       const fireRange = 'fireRange' in stats ? stats.fireRange : enemy.attackRange
       if (target !== null && distance(enemy.pos, target) < fireRange) {
         const projDamage =
-          'projectileDamage' in stats
+          ('projectileDamage' in stats
             ? stats.projectileDamage
-            : ENEMY_STATS.shooter.projectileDamage
+            : ENEMY_STATS.shooter.projectileDamage) * (enemy.damageDealtMult ?? 1)
         const speed = 'projectileSpeed' in stats ? stats.projectileSpeed : undefined
         const beam = 'projectileBeam' in stats ? stats.projectileBeam : undefined
         // Haze: scatter the aim when the shooter sits in a haze zone (symmetric —

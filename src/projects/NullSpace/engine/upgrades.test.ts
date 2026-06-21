@@ -19,8 +19,8 @@ import {
   UPGRADE_DEFINITIONS,
   UNLOCK_UPGRADE_IDS,
 } from './upgrades'
-import { createAbilities, createShip } from './entities/entity-creator'
-import { BASE_KIND_OF, WEAPON_UNLOCK_UPGRADE } from './abilities'
+import { createShip } from './entities/entity-creator'
+import { BASE_KIND_OF, WEAPON_UNLOCK_UPGRADE, createAbilities } from './abilities'
 import { AbilityKind, ShipKind, UpgradeCategory } from './types'
 import { UpgradeId } from './upgrade-ids'
 

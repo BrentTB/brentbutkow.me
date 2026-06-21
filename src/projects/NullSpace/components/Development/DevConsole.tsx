@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ABILITY_META, BASE_KIND_OF, ULTIMATE_KIND_OF } from '../../engine/abilities'
-import { BOSS_KINDS, getBossDefinition } from '../../engine/bosses/index'
+import { BOSS_KINDS, getBossDefinition } from '../../engine/bosses'
 import { SHIP_ORDER, SHIP_VARIANTS } from '../../engine/ship/ship-data'
 import { WEAPON_ORDER } from '../../data'
 import { GamePhase, ShipKind } from '../../engine/types'

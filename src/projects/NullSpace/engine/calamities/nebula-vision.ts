@@ -1,6 +1,7 @@
 import { NEBULA } from '../../data'
 import { rng } from '../math/random'
 import { toroidalDelta, toroidalDistance } from '../math/toroid'
+import { inZone } from '../math/zone'
 import { EffectKind, NebulaVariant } from '../types'
 import type { ActiveEffect, Ally, NebulaEffect, Ship, Vec2 } from '../types'
 
@@ -58,10 +59,6 @@ export function buildNebulaField(effects: ActiveEffect[], ship: Ship, allies: Al
     haze: zonesOf(effects, NebulaVariant.haze),
     circles: sightCircles(ship, allies),
   }
-}
-
-export function inZone(pos: Vec2, zones: NebulaZone[]): boolean {
-  return zones.some((z) => toroidalDistance(pos, z.pos) <= z.radius)
 }
 
 function inAnyCircle(pos: Vec2, circles: SightCircle[]): boolean {

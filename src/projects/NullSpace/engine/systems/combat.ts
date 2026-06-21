@@ -7,7 +7,7 @@ import { applyDamageToAlly } from '../entities/ally'
 import { applyDamageToEnemy } from '../entities/enemy-damage'
 import { applyDamageToShip } from '../entities/ship'
 import { createNuclearWasteEffect } from '../weapons/nuke'
-import { canEnemyTakeDamage } from '../bosses/index'
+import { canEnemyTakeDamage } from '../bosses'
 import { DeathBehavior, EffectKind, ProjectileOwner } from '../types'
 import type { ActiveEffect, Ally, Enemy, Particle, Projectile, Ship, Vec2 } from '../types'
 
@@ -384,7 +384,7 @@ export function resolveEnemyShipCollisions(
       surviving.push(enemy)
       continue
     }
-    damagedShip = applyDamageToShip(damagedShip, enemy.damage)
+    damagedShip = applyDamageToShip(damagedShip, enemy.damage * (enemy.damageDealtMult ?? 1))
     // Bombers commit suicide on contact; everything else just bounces.
     if (enemy.deathBehavior === DeathBehavior.explode) {
       killedEnemies.push(enemy)
@@ -424,7 +424,10 @@ export function resolveEnemyAllyMeleeCollisions(
       continue
     }
     const ally = updatedAllies[hitAllyIndex]
-    updatedAllies[hitAllyIndex] = applyDamageToAlly(ally, enemy.damage)
+    updatedAllies[hitAllyIndex] = applyDamageToAlly(
+      ally,
+      enemy.damage * (enemy.damageDealtMult ?? 1)
+    )
     if (enemy.deathBehavior === DeathBehavior.explode) {
       killedEnemies.push(enemy)
       allParticles.push(...spawnExplosionParticles(enemy.pos, 8, '#ff8866'))

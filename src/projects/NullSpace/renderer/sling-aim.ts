@@ -1,10 +1,12 @@
 import type { Camera } from './camera'
+import { worldToScreenPx, pinDprTransform } from './camera'
 import type { Ship, Vec2 } from '../engine/types'
 
-// Slingshot aim arrow, drawn in CSS-pixel space (after the world frame, which
-// leaves the transform at the DPR baseline). Points from the ship toward the
-// live drag; length, width, and colour read the charge, and it greys out while
-// the slingshot is recharging or overheated — a flick won't fire yet.
+// Slingshot aim arrow, drawn in CSS-pixel space. The ship's origin comes from
+// worldToScreen so the arrow tracks it across a world seam — raw (pos − camera.x)
+// ignores the torus and flings the arrow a full world off-screen when the ship wraps
+// over the border. Points from the ship toward the live drag; length, width, and
+// colour read the charge, greying out while recharging or overheated (no fire yet).
 export function drawSlingAim(
   ctx: CanvasRenderingContext2D,
   ship: Ship,
@@ -18,8 +20,7 @@ export function drawSlingAim(
   const len = Math.hypot(dx, dy)
   if (len < 1) return
 
-  const sx = (ship.pos.x - camera.x) * camera.zoom
-  const sy = (ship.pos.y - camera.y) * camera.zoom
+  const { x: sx, y: sy } = worldToScreenPx(ship.pos, camera)
   const charge = Math.min(1, len / maxDragPx)
   const ux = dx / len
   const uy = dy / len
@@ -31,6 +32,9 @@ export function drawSlingAim(
   const blocked = ship.slingCooldownRemaining > 0 || ship.slingOverheated
 
   ctx.save()
+  // Pin the DPR baseline so the arrow is immune to any transform a world-layer
+  // renderer may have left on the context.
+  pinDprTransform(ctx, camera)
   ctx.globalAlpha = blocked ? 0.3 : 0.4 + charge * 0.5
   ctx.strokeStyle = blocked ? '#667788' : charge >= 1 ? '#ffcc33' : '#6ae8f5'
   ctx.lineWidth = 2 + charge * 2

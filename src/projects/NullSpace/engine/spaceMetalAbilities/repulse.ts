@@ -4,7 +4,7 @@ import type { SpaceMetalAbility } from './space-metal-ability-definition'
 import { SpaceMetalAbilityKind } from './space-metal-ability-definition'
 import { IconName } from '../../icon-names'
 import { uid } from '../entities/entity-creator'
-import { absorbEnemyProjectiles } from '../abilities/dome-absorption'
+import { absorbEnemyProjectiles } from '../abilities/shield/dome-absorption'
 import { passThroughTick } from '../systems/effect-definition'
 import type {
   EffectDefinition,
@@ -12,8 +12,8 @@ import type {
   EffectTickResult,
 } from '../systems/effect-definition'
 import type { Camera } from '../../renderer/camera'
-import { renderDome } from '../abilities/dome-render'
-import type { DomeStyle } from '../abilities/dome-render'
+import { renderDome } from '../abilities/shield/dome-render'
+import type { DomeStyle } from '../abilities/shield/dome-render'
 
 // Repulse: a dome that follows the ship, grows a lot, hurls every enemy outward
 // and soaks up enemy fire — a panic button. The knockback reuses the Force Field

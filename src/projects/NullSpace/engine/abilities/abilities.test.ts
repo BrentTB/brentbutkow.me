@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { tryUseAbility, updateAbilityCooldowns } from '.'
-import { createAbilities, createShip } from '../entities/entity-creator'
+import { tryUseAbility, updateAbilityCooldowns, createAbilities } from '.'
+import { createShip } from '../entities/entity-creator'
 import { AbilityKind, EffectKind, ShipKind } from '../types'
 import { WORLD_SIZE } from '../../data'
 

@@ -16,13 +16,13 @@ import {
   advanceDeathSequence,
 } from './game-loop'
 import {
-  createAbilities,
   createAlly,
   createDeathAnim,
   createEnemy,
   createParticle,
   createProjectile,
 } from './entities/entity-creator'
+import { createAbilities } from './abilities'
 import { tickEscapeMode } from './entities/ship'
 import {
   AbilityKind,
@@ -39,7 +39,7 @@ import {
 } from './types'
 import { UpgradeId } from './upgrade-ids'
 import { isUpgradeWave } from './upgrades'
-import { BOSS_KINDS } from './bosses/index'
+import { BOSS_KINDS } from './bosses'
 import { createNebula } from './calamities/nebula'
 import { createWormhole } from './calamities/wormhole'
 import { isBossWave } from './world/waves'

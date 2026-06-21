@@ -14,7 +14,6 @@ import {
   WORMHOLE,
 } from '../data'
 import {
-  createAbilities,
   createDeathAnim,
   createParticle,
   createShip,
@@ -27,6 +26,7 @@ import {
   BASE_KIND_OF,
   ULTIMATE_KIND_OF,
   WEAPON_UNLOCK_UPGRADE,
+  createAbilities,
   resolveAbilityInput,
   updateAbilityCooldowns,
 } from './abilities'
@@ -38,10 +38,12 @@ import {
   tryCollectSpaceMetal,
   updateCollectibles,
 } from './systems/collectibles'
-import { applyShieldConstraints } from './abilities/shield'
+import { applyShieldConstraints } from './abilities/shield/shield'
 import { recentreRepulseFields } from './spaceMetalAbilities/repulse'
 import { updateActiveEffects } from './systems/effects'
 import { updateBurningEnemies } from './systems/burning'
+import { updateRadiatedEnemies } from './systems/radiation'
+import { stampOverdriveDebuffs, overdriveHasteAt } from './systems/overdrive'
 import { updateModifiedEnemies } from './systems/enemy-modifiers-tick'
 import { MAX_DT } from './world/time'
 import { processSpawnQueue } from './systems/spawner'
@@ -101,7 +103,8 @@ import { createShockwaveEffect, shockwaveRadiusAt } from './calamities/shockwave
 import { applyWanderingHoles, createWanderingBlackHole } from './calamities/wandering-black-hole'
 import { createNebula } from './calamities/nebula'
 import { applyWormholes, createWormhole, wormholePairPositions } from './calamities/wormhole'
-import { buildNebulaField, enemyVisibleToPlayerSide, inZone } from './calamities/nebula-vision'
+import { buildNebulaField, enemyVisibleToPlayerSide } from './calamities/nebula-vision'
+import { inZone } from './math/zone'
 import { advanceBossSelection, createBossSelection } from './bosses/boss-selection'
 import { updateBossAI } from './bosses/boss-ai'
 import { loadHighScore, saveHighScore } from './world/persistence'
@@ -121,8 +124,11 @@ import type {
   Asteroid,
   Collectible,
   GameState,
+  GravityLureEffect,
+  OverdriveFieldEffect,
   Particle,
   PlayerInput,
+  RadiationFieldEffect,
   Vec2,
 } from './types'
 import type { UpgradeId } from './upgrade-ids'
@@ -793,6 +799,21 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   ]
   power -= abilityResult.powerSpent
 
+  // Overdrive fields: stamp each enemy's per-frame debuffs now — before the first
+  // damage of the frame lands (the active-effects pass below) — and keep the zones
+  // for the ship's cooldown haste later. Fields are stationary, so this is exact.
+  const overdriveZones = activeEffects
+    .filter((e): e is OverdriveFieldEffect => e.kind === EffectKind.overdriveField)
+    .map((e) => ({
+      pos: e.pos,
+      radius: e.radius,
+      ampMult: e.ampMult,
+      slowMult: e.slowMult,
+      enemyDamageMult: e.enemyDamageMult,
+      selfHaste: e.selfHaste,
+    }))
+  enemies = stampOverdriveDebuffs(enemies, overdriveZones)
+
   // Snapshot effects before updateActiveEffects ticks them: one-shot effects (a
   // meteor impact) expire on their damage frame, so applyEffectsToAsteroids below
   // must read them here, before they're filtered out, or asteroids never feel them.
@@ -817,6 +838,12 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   // Per-frame nebula context (zones by variant + the player/ally sight bubbles),
   // shared by the hunt, ship, enemy, and ally passes below.
   const nebulaField = buildNebulaField(activeEffects, ship, allies)
+
+  // Gravity Lure beacons: every active lure becomes a taunt zone the enemy AI
+  // steers toward (and fires at) ahead of the ship.
+  const decoys = activeEffects
+    .filter((e): e is GravityLureEffect => e.kind === EffectKind.gravityLure)
+    .map((e) => ({ pos: e.pos, radius: e.lureRadius }))
 
   // --- Hunt target: the nearest VISIBLE enemy the ship's auto-drift steers toward.
   // The ship has no weapon — this only points its idle movement. Fog-concealed
@@ -870,13 +897,30 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   // Ship has no weapons — all damage comes from player abilities and allies.
 
   // --- Enemy shooting (targets nearest of ship or ally) ---
-  const enemyFireResult = updateEnemyShooting(enemies, ship, allies, projectiles, dt, nebulaField)
+  const enemyFireResult = updateEnemyShooting(
+    enemies,
+    ship,
+    allies,
+    projectiles,
+    dt,
+    nebulaField,
+    decoys
+  )
   enemies = enemyFireResult.enemies
   projectiles = enemyFireResult.projectiles
 
   // --- Enemy movement (pursues the nearest target it can see; wanders when fog
   // blinds it, drags inside a slow nebula) ---
-  enemies = updateEnemyMovement(enemies, ship, allies, hazards, dt, waveSpeedMult, nebulaField)
+  enemies = updateEnemyMovement(
+    enemies,
+    ship,
+    allies,
+    hazards,
+    dt,
+    waveSpeedMult,
+    nebulaField,
+    decoys
+  )
   // Repulse fields ride the ship: re-centre them on its final position this frame
   // so the knockback below (and the render) don't trail a frame behind its movement.
   activeEffects = recentreRepulseFields(activeEffects, ship.pos)
@@ -947,6 +991,24 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   score += burnResult.scoreGained
   const burnKilledEnemies = burnResult.killedEnemies
   currency += computeCurrencyFromKills(burnKilledEnemies, stardustMultiplier)
+
+  // --- Radiation pools (stacking DOT that lingers after enemies leave) ---
+  // Every active radiation pool is a zone; the stacks + decay live on the enemy.
+  const radiationZones = activeEffects
+    .filter((e): e is RadiationFieldEffect => e.kind === EffectKind.radiationField)
+    .map((e) => ({
+      pos: e.pos,
+      radius: e.radius,
+      dpsPerStack: e.dpsPerStack,
+      maxStacks: e.maxStacks,
+      spreadRange: e.spreadRange,
+    }))
+  const radiationResult = updateRadiatedEnemies(enemies, radiationZones, dt)
+  enemies = radiationResult.enemies
+  particles = [...particles, ...radiationResult.particles]
+  score += radiationResult.scoreGained
+  const radiationKilledEnemies = radiationResult.killedEnemies
+  currency += computeCurrencyFromKills(radiationKilledEnemies, stardustMultiplier)
 
   // --- Enemy modifiers (shield regen + speed-enemy trail particles) ---
   const modifierResult = updateModifiedEnemies(enemies, dt)
@@ -1197,6 +1259,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     ...allyMeleeResult.killedEnemies,
     ...holdKilledEnemies,
     ...burnKilledEnemies,
+    ...radiationKilledEnemies,
     ...calamityKilled,
   ]
   if (killedForDeathEffects.length > 0) {
@@ -1226,6 +1289,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     ...projCollision.killedEnemies,
     ...holdKilledEnemies,
     ...burnKilledEnemies,
+    ...radiationKilledEnemies,
   ]
   if (killedForCollectibles.length > 0) {
     collectibles = [
@@ -1246,7 +1310,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   singularityShard += collectibleResult.singularityShardGained
 
   // --- Ability cooldowns ---
-  abilities = updateAbilityCooldowns(abilities, dt)
+  abilities = updateAbilityCooldowns(abilities, dt * overdriveHasteAt(ship.pos, overdriveZones))
 
   // --- Power regen ---
   power = Math.min(maxPower, power + powerRegen * dt)

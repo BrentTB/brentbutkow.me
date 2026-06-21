@@ -5,8 +5,8 @@ import {
   gravityWellBurn,
   gravityWellDisplacement,
   gravityWellImpulse,
-} from '../abilities/gravity-pull'
-import type { GravityWell } from '../abilities/gravity-pull'
+} from '../abilities/blackHole/gravity-pull'
+import type { GravityWell } from '../abilities/blackHole/gravity-pull'
 import { uid } from '../entities/entity-creator'
 import { toroidalDistance, wrapPosition } from '../math/toroid'
 import { EffectKind } from '../types'

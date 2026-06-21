@@ -1,21 +1,29 @@
-import { METEORITE_UPGRADE_IDS } from './abilities/meteorite'
-import { METEOR_UPGRADE_IDS } from './abilities/meteor'
-import { BLACK_HOLE_UPGRADE_IDS } from './abilities/black-hole'
-import { ROCKET_UPGRADE_IDS } from './abilities/rocket'
-import { SHIELD_UPGRADE_IDS } from './abilities/shield'
-import { SUN_UPGRADE_IDS } from './abilities/sun'
-import { HELPER_UPGRADE_IDS } from './abilities/helper'
-import { TELEKINESIS_UPGRADE_IDS } from './abilities/telekinesis'
-import { SOLAR_FLARE_UPGRADE_IDS } from './abilities/solar-flare'
-import { COMET_SHOWER_UPGRADE_IDS } from './abilities/comet-shower'
-import { METEOR_SHOWER_UPGRADE_IDS } from './abilities/meteor-shower'
-import { HELPER_FACTORY_UPGRADE_IDS } from './abilities/helper-factory'
-import { SUPERNOVA_UPGRADE_IDS } from './abilities/supernova'
-import { FORCE_FIELD_UPGRADE_IDS } from './abilities/force-field'
-import { FIREWORKS_UPGRADE_IDS } from './abilities/fireworks'
-import { EVENT_HORIZON_UPGRADE_IDS } from './abilities/event-horizon'
-import { SOLAR_PLAGUE_UPGRADE_IDS } from './abilities/solar-plague'
-import { SINGULARITY_UPGRADE_IDS } from './abilities/singularity'
+import { METEORITE_UPGRADE_IDS } from './abilities/meteors/meteorite'
+import { METEOR_UPGRADE_IDS } from './abilities/meteors/meteor'
+import { BLACK_HOLE_UPGRADE_IDS } from './abilities/blackHole/black-hole'
+import { ROCKET_UPGRADE_IDS } from './abilities/rocket/rocket'
+import { SHIELD_UPGRADE_IDS } from './abilities/shield/shield'
+import { SUN_UPGRADE_IDS } from './abilities/sun/sun'
+import { HELPER_UPGRADE_IDS } from './abilities/helper/helper'
+import { TELEKINESIS_UPGRADE_IDS } from './abilities/telekinesis/telekinesis'
+import { SOLAR_FLARE_UPGRADE_IDS } from './abilities/solarFlare/solar-flare'
+import { COMET_SHOWER_UPGRADE_IDS } from './abilities/meteors/comet-shower'
+import { METEOR_SHOWER_UPGRADE_IDS } from './abilities/meteors/meteor-shower'
+import { HELPER_FACTORY_UPGRADE_IDS } from './abilities/helper/helper-factory'
+import { SUPERNOVA_UPGRADE_IDS } from './abilities/sun/supernova'
+import { FORCE_FIELD_UPGRADE_IDS } from './abilities/shield/force-field'
+import { FIREWORKS_UPGRADE_IDS } from './abilities/rocket/fireworks'
+import { EVENT_HORIZON_UPGRADE_IDS } from './abilities/blackHole/event-horizon'
+import { SOLAR_PLAGUE_UPGRADE_IDS } from './abilities/solarFlare/solar-plague'
+import { SINGULARITY_UPGRADE_IDS } from './abilities/telekinesis/singularity'
+import { RADIATION_UPGRADE_IDS } from './abilities/radiation/radiation'
+import { MELTDOWN_UPGRADE_IDS } from './abilities/radiation/meltdown'
+import { CHAIN_LIGHTNING_UPGRADE_IDS } from './abilities/chainLightning/chain-lightning'
+import { ION_STORM_UPGRADE_IDS } from './abilities/chainLightning/ion-storm'
+import { GRAVITY_LURE_UPGRADE_IDS } from './abilities/gravityLure/gravity-lure'
+import { COLLAPSAR_UPGRADE_IDS } from './abilities/gravityLure/collapsar'
+import { OVERDRIVE_UPGRADE_IDS } from './abilities/overdrive/overdrive'
+import { OVERLOAD_CORE_UPGRADE_IDS } from './abilities/overdrive/overload-core'
 import { LASER_UPGRADE_IDS } from './weapons/laser'
 import { MISSILE_UPGRADE_IDS } from './weapons/missile'
 import { RICOCHET_UPGRADE_IDS } from './weapons/ricochet'
@@ -46,6 +54,14 @@ export const UpgradeId = {
   ...EVENT_HORIZON_UPGRADE_IDS,
   ...SOLAR_PLAGUE_UPGRADE_IDS,
   ...SINGULARITY_UPGRADE_IDS,
+  ...RADIATION_UPGRADE_IDS,
+  ...MELTDOWN_UPGRADE_IDS,
+  ...CHAIN_LIGHTNING_UPGRADE_IDS,
+  ...ION_STORM_UPGRADE_IDS,
+  ...GRAVITY_LURE_UPGRADE_IDS,
+  ...COLLAPSAR_UPGRADE_IDS,
+  ...OVERDRIVE_UPGRADE_IDS,
+  ...OVERLOAD_CORE_UPGRADE_IDS,
   ...LASER_UPGRADE_IDS,
   ...MISSILE_UPGRADE_IDS,
   ...RICOCHET_UPGRADE_IDS,
