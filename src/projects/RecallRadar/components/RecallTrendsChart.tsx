@@ -50,6 +50,7 @@ export function RecallTrendsChart({ data, year, legend, forecast }: RecallTrends
   const barW = Math.min(slot * 0.6, 48)
   const stacked = legend.length > 1
   const y = (count: number) => PADDING.top + plotH - (count / maxCount) * plotH
+  const barX = (index: number) => PADDING.left + index * slot + (slot - barW) / 2
 
   return (
     <figure className={styles.figure} ref={figureRef}>
@@ -98,7 +99,7 @@ export function RecallTrendsChart({ data, year, legend, forecast }: RecallTrends
         </text>
 
         {months.map((month, index) => {
-          const x = PADDING.left + index * slot + (slot - barW) / 2
+          const x = barX(index)
           const fullLabel = formatMonthLabel(month.month)
           const showLabel = months.length <= 6 || index % 2 === 0
           let top = PADDING.top + plotH // stack upward from the axis
@@ -143,7 +144,7 @@ export function RecallTrendsChart({ data, year, legend, forecast }: RecallTrends
         {months.map((month, index) => {
           const point = forecastByMonth.get(month.month)
           if (!point) return null
-          const x = PADDING.left + index * slot + (slot - barW) / 2
+          const x = barX(index)
           const cx = x + barW / 2
           const predicted = Math.round(point.predicted)
           const text =
