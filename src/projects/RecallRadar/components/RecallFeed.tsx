@@ -69,14 +69,17 @@ export function RecallFeed({
           <li key={recall.recallNumber} className={styles.row}>
             <details
               className={styles.details}
-              onToggle={(event) =>
+              onToggle={(event) => {
+                // Read `open` synchronously: `currentTarget` is null by the time the (deferred)
+                // state updater runs, which crashes on rapid toggles.
+                const isOpen = event.currentTarget.open
                 setOpenRows((prev) => {
                   const next = new Set(prev)
-                  if (event.currentTarget.open) next.add(recall.recallNumber)
+                  if (isOpen) next.add(recall.recallNumber)
                   else next.delete(recall.recallNumber)
                   return next
                 })
-              }
+              }}
             >
               <summary className={styles.summary}>
                 <div className={styles.meta}>
