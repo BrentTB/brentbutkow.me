@@ -32,9 +32,28 @@ export function getBossRuntime<K extends BossEnemyKind>(
     : undefined
 }
 
-export type SpawnSpec = { kind: EnemyKind; pos: Vec2 }
+export type SpawnSpec = {
+  kind: EnemyKind
+  pos: Vec2
+  // Optional timed self-destruct (Phase Shifter swarms), carried onto the spawned enemy.
+  expiresIn?: number
+  expireBlast?: { radius: number; damage: number }
+}
 // Loot drop spec — position + initial velocity. Caller creates the Collectible.
 export type DropSpec = { pos: Vec2; vel: Vec2 }
+// A projectile a boss fires this tick — boss-ai turns it into an enemy-owned
+// Projectile aimed from `from` toward `toward`.
+export type BossProjectileSpec = {
+  from: Vec2
+  toward: Vec2
+  damage: number
+  speed: number
+  beam: boolean
+  // Capped homing toward the ship (rad/s); omit for a straight shot.
+  homingTurnRate?: number
+  // Lifetime (seconds) override; omit for the default projectile lifetime.
+  lifetime?: number
+}
 
 // Per-tick world context handed to boss hooks: ship position (aiming, teleport
 // targeting), world bounds (clamping charges/landings), and the live enemy
@@ -49,6 +68,8 @@ export type BossUpdateResult = {
   linkedSpawns?: SpawnSpec[]
   // Patch applied to the boss entity itself — movement bursts, teleports.
   self?: Partial<Pick<Enemy, 'pos' | 'vel' | 'speed' | 'shieldDamageMult'>>
+  // Projectiles the boss fires this tick (e.g. the Dreadnought's charged laser).
+  projectiles?: BossProjectileSpec[]
 }
 
 export type BossDefinition = {

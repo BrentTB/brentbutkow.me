@@ -211,6 +211,12 @@ export type Enemy = Entity & {
   // reduced — not zero — damage while shielded (the Void Worm head) instead of being
   // fully invincible. Stamped each frame by the boss tick.
   shieldDamageMult?: number
+  // Optional self-destruct timer (seconds): when it reaches 0 the enemy pops via
+  // detonateExpiredEnemies. Caps the Phase Shifter's swarm rings so they can't pile
+  // up. Absent on enemies that don't time out.
+  expiresIn?: number
+  // Blast dealt to ship + allies when an expiresIn timer pops. Absent ⇒ a silent puff.
+  expireBlast?: { radius: number; damage: number }
   // Late-game modifier (absent on plain enemies). Set at spawn.
   modifier?: EnemyModifier
   // Present only on shield-modifier enemies — a player-style absorb-first pool
@@ -244,6 +250,10 @@ export type Projectile = Entity & {
   // bullet leaves them undefined and takes the default collision path.
   pierce?: { maxHits: number; hitEnemyIds: string[] }
   homing?: boolean
+  // Capped homing toward the ship (rad/s), for enemy projectiles — the Dreadnought
+  // laser. Unlike `homing` (instant re-aim at enemies), this curves gently so a drift
+  // can't escape but a slingshot can. Steered in updateProjectiles via shipPos.
+  homingTurnRate?: number
   bounce?: {
     // Redirects left after the initial hit. The first enemy struck is free
     // (checked before this decrements), so a round hits remaining + 1 enemies.

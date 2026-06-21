@@ -579,8 +579,12 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: '1.13.0',
     date: '2026-06-21',
     changes: {
+      features: [
+        'The Dreadnought now charges and fires a heavy laser whenever its shield is down — telegraphed by a brightening beam line, and the bolt gently homes, so you have to slingshot clear instead of just drifting aside. Phase 2 fires it on a tighter cooldown.',
+      ],
       balance: [
         'The Void Worm and Dasher now curve to track you mid-charge instead of lunging in a straight line. A flat sidestep no longer shakes them; you have to juke hard or slingshot clear. Their wind-up is a touch shorter too.',
+        'Phase Shifter swarm rings now burn out the moment it teleports again, popping for a little splash damage if you are sitting on them — so they can no longer pile up faster than you clear them.',
       ],
       fixes: [
         "The Void Worm's head no longer feels invincible: it takes reduced damage while the body still shields it (so your hits land and chip it) and full damage once every segment is destroyed.",

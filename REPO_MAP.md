@@ -286,9 +286,9 @@ src/projects/NullSpace/engine/abilities/telekinesis/
 
 src/projects/NullSpace/engine/bosses/
   boss-ai.ts                                 updateBossAI
-  boss-definition.ts                         BossRuntimeBase, BossRuntimeState, BossEnemyKind, getBossRuntime, SpawnSpec, DropSpec, BossTickContext, BossUpdateResult, BossDefinition, hasAliveLinked, bossPhase
+  boss-definition.ts                         BossRuntimeBase, BossRuntimeState, BossEnemyKind, getBossRuntime, SpawnSpec, DropSpec, BossProjectileSpec, BossTickContext, BossUpdateResult, BossDefinition, hasAliveLinked, bossPhase
   boss-selection.ts                          createBossSelection, advanceBossSelection
-  dreadnought.ts                             DreadnoughtRuntime, DREADNOUGHT_BOSS
+  dreadnought.ts                             LaserStage, DreadnoughtRuntime, DREADNOUGHT_LASER, DREADNOUGHT_BOSS
   index.ts                                   BOSS_KINDS, getBossDefinition, canEnemyTakeDamage
   loot.ts                                    metalBurst
   phase-shifter.ts                           ShifterStage, PhaseShifterRuntime, PHASE_SHIFTER, PHASE_SHIFTER_BOSS
@@ -347,6 +347,7 @@ src/projects/NullSpace/engine/systems/
   economy.ts                                 computeCurrencyFromKills
   effect-definition.ts                       EffectTickContext, EffectTickResult, EffectTickFn, EffectRenderFn, EffectDefinition, passThroughTick
   effects.ts                                 EFFECT_DEFINITIONS, updateActiveEffects
+  enemy-lifetime.ts                          detonateExpiredEnemies
   enemy-modifiers-tick.ts                    ModifierTickResult, updateModifiedEnemies
   overdrive.ts                               OverdriveZone, stampOverdriveDebuffs, overdriveHasteAt
   radiation.ts                               RadiationResult, RadiationZone, updateRadiatedEnemies

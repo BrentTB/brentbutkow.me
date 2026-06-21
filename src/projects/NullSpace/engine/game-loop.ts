@@ -107,6 +107,7 @@ import { buildNebulaField, enemyVisibleToPlayerSide } from './calamities/nebula-
 import { inZone } from './math/zone'
 import { advanceBossSelection, createBossSelection } from './bosses/boss-selection'
 import { updateBossAI } from './bosses/boss-ai'
+import { detonateExpiredEnemies } from './systems/enemy-lifetime'
 import { loadHighScore, saveHighScore } from './world/persistence'
 import { reseedForNewSession, rng } from './math/random'
 import { toroidalDelta, wrapPosition } from './math/toroid'
@@ -949,6 +950,13 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     nebulaField,
     decoys
   )
+  // Timed-out enemies (Phase Shifter swarm rings) pop and despawn, so they can't pile
+  // up; the blast hurts the ship + allies caught on the dispersing ring.
+  const expiry = detonateExpiredEnemies(enemies, ship, allies, dt)
+  enemies = expiry.enemies
+  ship = expiry.ship
+  allies = expiry.allies
+  particles = [...particles, ...expiry.particles]
   // Repulse fields ride the ship: re-centre them on its final position this frame
   // so the knockback below (and the render) don't trail a frame behind its movement.
   activeEffects = recentreRepulseFields(activeEffects, ship.pos)
@@ -974,8 +982,14 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   allies = allyResult.allies
   projectiles = allyResult.projectiles
 
+  // Boss-fired projectiles (e.g. the Dreadnought's charged laser) join the pool just
+  // before collision resolution, like enemy fire.
+  if (bossResult.newProjectiles.length > 0) {
+    projectiles = [...projectiles, ...bossResult.newProjectiles]
+  }
+
   // --- Projectile movement ---
-  projectiles = updateProjectiles(projectiles, enemies, dt)
+  projectiles = updateProjectiles(projectiles, enemies, dt, ship.pos, ship.vel)
 
   // --- Hold abilities (Telekinesis, Solar Flare, etc.) ---
   // Each hold ability registers an `onFrame` and/or `onTick` callback in its

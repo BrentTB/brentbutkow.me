@@ -1,7 +1,8 @@
-import { createEnemy } from '../entities/entity-creator'
+import { createEnemy, createProjectile } from '../entities/entity-creator'
 import { getBossDefinition } from './index'
 import type { BossTickContext } from './boss-definition'
-import type { Enemy, Vec2 } from '../types'
+import { ProjectileOwner } from '../types'
+import type { Enemy, Projectile, Vec2 } from '../types'
 
 // Asks each boss's positionLinked hook where its alive linked entities belong
 // this tick (generator rings, worm chains). `linked` preserves linkedIds order —
@@ -33,8 +34,9 @@ export function updateBossAI(
   enemies: Enemy[],
   dt: number,
   ctx: Omit<BossTickContext, 'enemies'>
-): { enemies: Enemy[]; newEnemies: Enemy[] } {
+): { enemies: Enemy[]; newEnemies: Enemy[]; newProjectiles: Projectile[] } {
   let newEnemies: Enemy[] = []
+  let newProjectiles: Projectile[] = []
 
   const linkedPositions = computeLinkedPositions(enemies)
 
@@ -66,7 +68,12 @@ export function updateBossAI(
         worldSize: ctx.worldSize,
         enemies,
       })
-      const drones = result.spawns.map((s) => createEnemy(s.kind, s.pos))
+      const drones = result.spawns.map((s) => {
+        const e = createEnemy(s.kind, s.pos)
+        return s.expiresIn === undefined
+          ? e
+          : { ...e, expiresIn: s.expiresIn, expireBlast: s.expireBlast }
+      })
       newEnemies = [...newEnemies, ...drones]
       let runtime = result.updatedRuntime
       // Regenerated shield ring: create the new generators and re-point linkedIds.
@@ -75,11 +82,26 @@ export function updateBossAI(
         newEnemies = [...newEnemies, ...regenerated]
         runtime = { ...runtime, linkedIds: regenerated.map((e) => e.id) }
       }
+      // Boss-fired projectiles (e.g. the Dreadnought's charged laser) become
+      // enemy-owned Projectiles, hitting the ship through the normal collision pass.
+      if (result.projectiles && result.projectiles.length > 0) {
+        newProjectiles = [
+          ...newProjectiles,
+          ...result.projectiles.map((p) =>
+            createProjectile(p.from, p.toward, ProjectileOwner.enemy, p.damage, {
+              speed: p.speed,
+              beam: p.beam,
+              homingTurnRate: p.homingTurnRate,
+              lifetime: p.lifetime,
+            })
+          ),
+        ]
+      }
       updated = { ...updated, ...result.self, boss: runtime }
     }
 
     return updated
   })
 
-  return { enemies: updatedEnemies, newEnemies }
+  return { enemies: updatedEnemies, newEnemies, newProjectiles }
 }

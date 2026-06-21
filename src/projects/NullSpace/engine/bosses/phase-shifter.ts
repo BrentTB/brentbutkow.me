@@ -41,6 +41,11 @@ export const PHASE_SHIFTER = {
   ringCountP1: 8,
   ringCountP2: 12,
   ringRadius: 80,
+  // Swarm rings self-destruct exactly as the next ring spawns (their lifetime is the
+  // full teleport cycle), so they can't pile up; the pop's small blast punishes
+  // camping on the dispersing swarm.
+  swarmBlastRadius: 60,
+  swarmBlastDamage: 8,
 } as const
 
 function rollTeleportTarget(shipPos: Vec2): Vec2 {
@@ -53,10 +58,14 @@ function rollTeleportTarget(shipPos: Vec2): Vec2 {
 }
 
 // Evenly-spaced swarm ring around the arrival point.
-function ringSpecs(center: Vec2, count: number): SpawnSpec[] {
+// Evenly-spaced swarm ring around the arrival point. `lifetime` is the full teleport
+// cycle (this idle + the telegraph), so the ring pops the instant the next one spawns.
+function ringSpecs(center: Vec2, count: number, lifetime: number): SpawnSpec[] {
   return ringPositions(center, PHASE_SHIFTER.ringRadius, count).map((pos) => ({
     kind: EnemyKind.swarm,
     pos,
+    expiresIn: lifetime,
+    expireBlast: { radius: PHASE_SHIFTER.swarmBlastRadius, damage: PHASE_SHIFTER.swarmBlastDamage },
   }))
 }
 
@@ -146,9 +155,13 @@ export const PHASE_SHIFTER_BOSS: BossDefinition = {
       // Arrive: jump to the marked spot and materialise the swarm ring.
       const target = shifter.targetPos ?? boss.pos
       self = { pos: { ...target }, vel: { x: 0, y: 0 } }
+      // Lifetime = this idle + the telegraph that follows, so the ring burns out the
+      // instant the next teleport lands its replacement.
+      const lifetime = idleDuration + PHASE_SHIFTER.telegraphDuration
       spawns = ringSpecs(
         target,
-        phase === 2 ? PHASE_SHIFTER.ringCountP2 : PHASE_SHIFTER.ringCountP1
+        phase === 2 ? PHASE_SHIFTER.ringCountP2 : PHASE_SHIFTER.ringCountP1,
+        lifetime
       )
       next = { stage: ShifterStage.idle, stageTimer: idleDuration, targetPos: null }
     }

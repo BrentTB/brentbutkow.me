@@ -1,16 +1,33 @@
 import { EnemyKind, MovementBehavior } from '../types'
 import type { Enemy, Vec2 } from '../types'
+import type { Camera } from '../../renderer/camera'
+import { worldToScreen } from '../../renderer/camera'
 import { rng } from '../math/random'
 import { ringPositions, unitToward } from '../math/vec'
 import { toroidalDelta } from '../math/toroid'
 import { bossPhase, getBossRuntime, hasAliveLinked } from './boss-definition'
-import type { BossDefinition, BossRuntimeBase, DropSpec, SpawnSpec } from './boss-definition'
+import type {
+  BossDefinition,
+  BossProjectileSpec,
+  BossRuntimeBase,
+  BossUpdateResult,
+  DropSpec,
+  SpawnSpec,
+} from './boss-definition'
 import { metalBurst } from './loot'
 
-// Dreadnought runtime: the drone-spawn cadence on top of the shared fields.
+export const LaserStage = { idle: 'idle', charging: 'charging' } as const
+export type LaserStage = (typeof LaserStage)[keyof typeof LaserStage]
+
+// Dreadnought runtime: drone-spawn cadence + the charged-laser cycle (live only once
+// the shield is down) on top of the shared fields.
 export type DreadnoughtRuntime = BossRuntimeBase & {
   kind: typeof EnemyKind.dreadnought
   droneSpawnTimer: number
+  laserStage: LaserStage
+  laserTimer: number
+  // Where the charging laser is aimed (the ship); null when idle. Drives the telegraph.
+  laserAim: Vec2 | null
 }
 
 // Phase 1 (HP > 50%): drone pair every 10s. Phase 2 (HP ≤ 50%): every 5s.
@@ -26,6 +43,27 @@ const PHASE2_GENERATORS = 5
 // single clump behind it.
 const GEN_REPEL_RANGE = 200
 const GEN_REPEL_PUSH = 18
+
+// Charged heavy laser — the boss's teeth, fired only while the shield is down (every
+// generator dead). A brightening beam line telegraphs it for chargeDuration, then a
+// fast, hard-hitting bolt fires where the ship was: you slingshot off the line, not
+// tank it. Phase 2 fires it on a tighter cooldown.
+export const DREADNOUGHT_LASER = {
+  chargeDuration: 1.2,
+  cooldownP1: 2.8,
+  cooldownP2: 1.6,
+  damage: 35,
+  // Faster than a slingshot fling — you dodge by breaking its line, not racing it.
+  speed: 900,
+  // Capped homing (rad/s): the bolt curves toward the ship as it flies, so natural
+  // drift can't shake it — but a slingshot out-turns it. 0 would be a straight shot.
+  homingTurnRate: 2,
+  // Self-destructs after this long, so a missed bolt fizzles instead of looping back
+  // around behind the ship in a big homing circle.
+  lifetime: 2,
+  // Telegraph beam length (world units) — how far the warning line is drawn.
+  range: 900,
+} as const
 
 // Evenly-spaced shield generator spawn specs around the boss.
 function ringSpecs(boss: Enemy, count: number): SpawnSpec[] {
@@ -76,6 +114,34 @@ function positionGeneratorRing(boss: Enemy, gens: Enemy[]): Map<string, { pos: V
   return positions
 }
 
+// Telegraph for the charged laser: a beam line from the boss along its aim that
+// brightens and thickens as the charge completes, so the player knows where — and
+// when — to slingshot clear. Drawn only while charging.
+function renderLaserCharge(ctx: CanvasRenderingContext2D, boss: Enemy, camera: Camera): void {
+  const runtime = getBossRuntime(boss, EnemyKind.dreadnought)
+  if (runtime?.laserStage !== LaserStage.charging || !runtime.laserAim) return
+  const progress = 1 - Math.max(0, runtime.laserTimer) / DREADNOUGHT_LASER.chargeDuration
+  const dir = unitToward(boss.pos, runtime.laserAim)
+  const a = worldToScreen(boss.pos, camera)
+  const b = worldToScreen(
+    {
+      x: boss.pos.x + dir.x * DREADNOUGHT_LASER.range,
+      y: boss.pos.y + dir.y * DREADNOUGHT_LASER.range,
+    },
+    camera
+  )
+  ctx.save()
+  ctx.globalAlpha = 0.25 + progress * 0.55
+  ctx.strokeStyle = '#ff5a3c'
+  ctx.lineWidth = 1 + progress * 5
+  ctx.lineCap = 'round'
+  ctx.beginPath()
+  ctx.moveTo(a.x, a.y)
+  ctx.lineTo(b.x, b.y)
+  ctx.stroke()
+  ctx.restore()
+}
+
 export const DREADNOUGHT_BOSS: BossDefinition = {
   kind: EnemyKind.dreadnought,
   hpBarLabel: 'DREADNOUGHT',
@@ -90,6 +156,9 @@ export const DREADNOUGHT_BOSS: BossDefinition = {
     droneSpawnTimer: DRONE_INTERVAL_P1,
     linkedIds: [],
     hasSpawned: false,
+    laserStage: LaserStage.idle,
+    laserTimer: DREADNOUGHT_LASER.cooldownP1,
+    laserAim: null,
   }),
 
   onSpawn: (boss) => ringSpecs(boss, PHASE1_GENERATORS),
@@ -97,8 +166,9 @@ export const DREADNOUGHT_BOSS: BossDefinition = {
   canTakeDamage: (boss, enemies) => !hasAliveLinked(boss, enemies),
 
   positionLinked: positionGeneratorRing,
+  renderBack: renderLaserCharge,
 
-  onUpdate: (boss, dt) => {
+  onUpdate: (boss, dt, ctx): BossUpdateResult => {
     // boss-ai only invokes onUpdate on this boss's own enemies.
     const runtime = getBossRuntime(boss, EnemyKind.dreadnought)!
     const newPhase = bossPhase(boss)
@@ -125,6 +195,42 @@ export const DREADNOUGHT_BOSS: BossDefinition = {
       droneSpawnTimer = interval
     }
 
+    // Charged laser — only with the shield down (every generator dead). It charges
+    // (telegraph), then fires a fast bolt where the ship is. Re-shielding at the
+    // phase-2 transition cancels any charge. Phase 2 fires it on a tighter cooldown.
+    const laserCooldown =
+      newPhase === 2 ? DREADNOUGHT_LASER.cooldownP2 : DREADNOUGHT_LASER.cooldownP1
+    let laserStage = runtime.laserStage
+    let laserTimer = runtime.laserTimer - dt
+    let laserAim = runtime.laserAim
+    const projectiles: BossProjectileSpec[] = []
+    if (hasAliveLinked(boss, ctx.enemies)) {
+      // Shielded: hold fire and reset, so it must charge fresh once exposed again.
+      laserStage = LaserStage.idle
+      laserTimer = laserCooldown
+      laserAim = null
+    } else if (laserStage === LaserStage.charging) {
+      laserAim = { ...ctx.shipPos } // track the ship so the telegraph shows the live line
+      if (laserTimer <= 0) {
+        projectiles.push({
+          from: { ...boss.pos },
+          toward: laserAim,
+          damage: DREADNOUGHT_LASER.damage,
+          speed: DREADNOUGHT_LASER.speed,
+          beam: true,
+          homingTurnRate: DREADNOUGHT_LASER.homingTurnRate,
+          lifetime: DREADNOUGHT_LASER.lifetime,
+        })
+        laserStage = LaserStage.idle
+        laserTimer = laserCooldown
+        laserAim = null
+      }
+    } else if (laserTimer <= 0) {
+      laserStage = LaserStage.charging
+      laserTimer = DREADNOUGHT_LASER.chargeDuration
+      laserAim = { ...ctx.shipPos }
+    }
+
     // Phase 1 → 2 transition: re-arm the shield with a larger generator ring.
     // Reaching ≤50% HP requires the phase-1 shield fully down (every generator
     // dead — canTakeDamage gates all damage otherwise), so replacing linkedIds
@@ -133,9 +239,17 @@ export const DREADNOUGHT_BOSS: BossDefinition = {
       runtime.phase === 1 && newPhase === 2 ? ringSpecs(boss, PHASE2_GENERATORS) : undefined
 
     return {
-      updatedRuntime: { ...runtime, phase: newPhase, droneSpawnTimer },
+      updatedRuntime: {
+        ...runtime,
+        phase: newPhase,
+        droneSpawnTimer,
+        laserStage,
+        laserTimer,
+        laserAim,
+      },
       spawns,
       linkedSpawns,
+      projectiles,
     }
   },
 

@@ -3,7 +3,8 @@ import { createEnemy, createProjectile, createShip } from '../entities/entity-cr
 import { updateEnemyMovement } from '../entities/enemy'
 import { updateBossAI } from './boss-ai'
 import { BOSS_KINDS, getBossDefinition } from './index'
-import { DREADNOUGHT_BOSS } from './dreadnought'
+import { DREADNOUGHT_BOSS, DREADNOUGHT_LASER, LaserStage } from './dreadnought'
+import type { DreadnoughtRuntime } from './dreadnought'
 import { resolveProjectileEnemyCollisions, updateProjectiles } from '../systems/combat'
 import { damageEnemiesInRadiusFlat } from '../math/aoe'
 import { distance } from '../math/collision'
@@ -337,5 +338,49 @@ describe('boss warnings', () => {
         expect(warning.toUpperCase()).not.toContain(word)
       }
     }
+  })
+})
+
+describe('Dreadnought charged laser', () => {
+  function exposed() {
+    const boss = createEnemy(EnemyKind.dreadnought, CENTER)
+    // Shield down: no live generators, already spawned (so onSpawn won't re-arm it).
+    boss.boss = { ...boss.boss!, linkedIds: [], hasSpawned: true }
+    return boss
+  }
+
+  it('stays idle while the shield is up', () => {
+    const boss = createEnemy(EnemyKind.dreadnought, CENTER)
+    const gen = createEnemy(EnemyKind.shieldGenerator, { x: CENTER.x + 90, y: CENTER.y })
+    boss.boss = {
+      ...(boss.boss as DreadnoughtRuntime),
+      linkedIds: [gen.id],
+      hasSpawned: true,
+      laserStage: LaserStage.idle,
+      laserTimer: 0,
+    }
+    const res = updateBossAI([boss, gen], 0.1, CTX)
+    const after = res.enemies.find((e) => e.kind === EnemyKind.dreadnought)!
+    expect((after.boss as DreadnoughtRuntime).laserStage).toBe(LaserStage.idle)
+    expect(res.newProjectiles).toHaveLength(0)
+  })
+
+  it('charges, then fires a hard-hitting beam at the ship once the shield is down', () => {
+    let boss = exposed()
+    boss.boss = { ...(boss.boss as DreadnoughtRuntime), laserStage: LaserStage.idle, laserTimer: 0 }
+    // Cooldown elapsed → starts charging, no shot yet.
+    let res = updateBossAI([boss], 0.1, CTX)
+    boss = res.enemies[0]
+    expect((boss.boss as DreadnoughtRuntime).laserStage).toBe(LaserStage.charging)
+    expect(res.newProjectiles).toHaveLength(0)
+    // Charge completes → a single fast beam fires, then it returns to idle.
+    boss = { ...boss, boss: { ...(boss.boss as DreadnoughtRuntime), laserTimer: 0 } }
+    res = updateBossAI([boss], 0.1, CTX)
+    expect(res.newProjectiles).toHaveLength(1)
+    expect(res.newProjectiles[0].beam).toBe(true)
+    expect(res.newProjectiles[0].damage).toBe(DREADNOUGHT_LASER.damage)
+    expect(res.newProjectiles[0].homingTurnRate).toBe(DREADNOUGHT_LASER.homingTurnRate)
+    expect(res.newProjectiles[0].lifetime).toBe(DREADNOUGHT_LASER.lifetime) // fizzles, no big circle
+    expect((res.enemies[0].boss as DreadnoughtRuntime).laserStage).toBe(LaserStage.idle)
   })
 })
