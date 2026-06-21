@@ -64,3 +64,54 @@
   color: var(--muted);
   font-size: 0.9rem;
 }
+
+// Projected bars read as "not yet real": amber hatch fill + a dashed outline, set apart from the
+// solid actual bars. The fill pattern is defined in the SVG (#forecastHatch).
+.forecastBar {
+  stroke: var(--muted);
+  stroke-width: 1;
+  stroke-dasharray: 3 2;
+  transition: opacity 0.15s ease;
+}
+
+.forecastBar:hover {
+  opacity: 0.7;
+}
+
+.hatchBg {
+  fill: rgba(233, 184, 114, 0.1);
+}
+
+.hatchLine {
+  stroke: rgba(233, 184, 114, 0.55);
+  stroke-width: 1.2;
+}
+
+// Error-bar whisker spanning the forecast's lower–upper band.
+.whisker {
+  stroke: var(--text-secondary);
+  stroke-width: 1.5;
+}
+
+.forecastNote {
+  margin: 10px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.forecastSwatch {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  display: inline-block;
+  border: 1px dashed var(--muted);
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(233, 184, 114, 0.5) 0 1.5px,
+    transparent 1.5px 4px
+  );
+}
