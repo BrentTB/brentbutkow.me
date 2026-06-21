@@ -7,7 +7,12 @@ import { AbilityKind, EffectKind } from '../../types'
 import type { ChainArcEffect, Enemy, Particle, Vec2 } from '../../types'
 import type { Camera } from '../../../renderer/camera'
 import { worldToScreen } from '../../../renderer/camera'
-import { makeAbilityUpgrade, applyTierSum, type AbilityDefinition } from '../ability-definition'
+import {
+  makeAbilityUpgrade,
+  applyTierSum,
+  applyCostReduction,
+  type AbilityDefinition,
+} from '../ability-definition'
 import type {
   EffectDefinition,
   EffectTickContext,
@@ -21,6 +26,7 @@ export const CHAIN_LIGHTNING_UPGRADE_IDS = {
   chainLightningDamage: 'chainLightningDamage',
   chainLightningJumps: 'chainLightningJumps',
   chainLightningRange: 'chainLightningRange',
+  chainLightningCostReduction: 'chainLightningCostReduction',
 } as const
 
 const upgrade = makeAbilityUpgrade(AbilityKind.chainLightning)
@@ -62,6 +68,16 @@ const rangeUpgrade = upgrade({
   tiers: [
     { cost: 20, value: 25 },
     { cost: 80, value: 35 },
+  ],
+})
+
+const costUpgrade = upgrade({
+  id: CHAIN_LIGHTNING_UPGRADE_IDS.chainLightningCostReduction,
+  label: 'Efficiency',
+  description: 'Reduce chain lightning power cost',
+  tiers: [
+    { cost: 12, value: 3 },
+    { cost: 48, value: 4 },
   ],
 })
 
@@ -288,9 +304,10 @@ export const chainLightning: AbilityDefinition = {
     damage: applyTierSum(CHAIN_LIGHTNING.damage, upgrades, damageUpgrade),
     aoeRadius: applyTierSum(CHAIN_LIGHTNING.jumpRange, upgrades, rangeUpgrade),
     count: applyTierSum(CHAIN_LIGHTNING.depth, upgrades, jumpsUpgrade),
+    powerCost: applyCostReduction(CHAIN_LIGHTNING.powerCost, upgrades, costUpgrade),
   }),
   unlockUpgrade,
-  modifierUpgrades: [damageUpgrade, jumpsUpgrade, rangeUpgrade],
+  modifierUpgrades: [damageUpgrade, jumpsUpgrade, rangeUpgrade, costUpgrade],
   ultimate: {
     kind: AbilityKind.ionStorm,
     label: 'Ion Storm',

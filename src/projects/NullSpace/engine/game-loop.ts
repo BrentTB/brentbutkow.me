@@ -107,6 +107,7 @@ import { buildNebulaField, enemyVisibleToPlayerSide } from './calamities/nebula-
 import { inZone } from './math/zone'
 import { advanceBossSelection, createBossSelection } from './bosses/boss-selection'
 import { updateBossAI } from './bosses/boss-ai'
+import { detonateExpiredEnemies } from './systems/enemy-lifetime'
 import { loadHighScore, saveHighScore } from './world/persistence'
 import { reseedForNewSession, rng } from './math/random'
 import { toroidalDelta, wrapPosition } from './math/toroid'
@@ -172,6 +173,7 @@ export function createInitialState(): GameState {
     portalPos: { x: WORLD_SIZE.x / 2, y: WORLD_SIZE.y },
     warpTimer: 0,
     warpFlashTimer: 0,
+    warpDelay: 0,
     calamityTimer: CALAMITY.shockwaveIntervalMin,
     hazards: [],
     asteroids: [],
@@ -239,6 +241,7 @@ export function startGame(state: GameState, shipKind: ShipKind): GameState {
     portalPos: { x: WORLD_SIZE.x / 2, y: WORLD_SIZE.y },
     warpTimer: 0,
     warpFlashTimer: 0,
+    warpDelay: 0,
     calamityTimer: CALAMITY.shockwaveIntervalMin,
     hazards: [],
     asteroids: [],
@@ -301,6 +304,9 @@ export function resetForSector(state: GameState): GameState {
     warpFlashTimer: 0,
     hazards: seedField ? generateHazardField(worldSize, center) : [],
     asteroids: seedAsteroids ? seedAsteroidField(worldSize, center) : [],
+    // The previous sector's nebulas / ability pools rode the warp in as UI; clear
+    // them now that the fresh field is laid out.
+    activeEffects: [],
     ship: {
       ...state.ship,
       pos: { ...center },
@@ -503,16 +509,24 @@ export function beginWarp(state: GameState): GameState {
     else if (c.kind === CollectibleKind.singularityShard) singularityShard += c.value
     else power = Math.min(state.maxPower, power + c.value)
   }
-  // Portal spawns ahead of the ship (offscreen), wrapped into the torus.
+  // Portal spawns far ahead along the ship's current heading (its travel direction),
+  // so the fly-in continues straight instead of snapping the ship around. Falls back
+  // to its last heading when it's essentially still — never the fixed "up" axis.
+  const speed = Math.hypot(state.ship.vel.x, state.ship.vel.y)
+  const heading =
+    speed > 1
+      ? { x: state.ship.vel.x / speed, y: state.ship.vel.y / speed }
+      : state.ship.lastHeading
   const portalPos = wrapPosition({
-    x: state.ship.pos.x + state.forwardDir.x * WARP.spawnAhead,
-    y: state.ship.pos.y + state.forwardDir.y * WARP.spawnAhead,
+    x: state.ship.pos.x + heading.x * WARP.spawnAhead,
+    y: state.ship.pos.y + heading.y * WARP.spawnAhead,
   })
   return {
     ...state,
     phase: GamePhase.warping,
     warpTimer: WARP.maxDuration,
     warpFlashTimer: 0,
+    warpDelay: 0,
     portalPos,
     power,
     spaceMetal,
@@ -522,27 +536,42 @@ export function beginWarp(state: GameState): GameState {
     // each sector starts with no allies, so a fresh squad can't be banked.
     allies: [],
     projectiles: [],
-    activeEffects: [],
     collectibles: [],
     particles: [],
-    hazards: [],
-    asteroids: [],
+    // The leftover field — calamities (mines, asteroids, nebulas/shockwaves) and any
+    // lingering ability effects — rides along as pure UI through the cutscene instead
+    // of popping the instant the sector clears. The sim is frozen so nothing applies,
+    // and resetForSector lays out a fresh field on arrival.
     // Cancel any residual fling / escape so the cutscene flight is clean.
     ship: { ...state.ship, flingVel: { x: 0, y: 0 }, escapeMode: null },
   }
 }
 
-// Ends the warp in the next sector, then opens the shop. The
-// wave itself isn't spawned until the player leaves the shop (finishUpgradeScreen).
-export function completeWarp(state: GameState): GameState {
+// Advances into the upcoming wave and opens the shop — WITHOUT spawning it (that
+// waits for finishUpgradeScreen). advanceWave only re-lays the field on a level
+// change, so the pre-boss shop (same sector as its boss) keeps the squad and arena
+// intact, while a cross-sector warp landing here gets the fresh sector it built.
+function openUpgradeScreen(state: GameState): GameState {
   const advanced = advanceWave(state)
   return {
     ...advanced,
     phase: GamePhase.upgradeScreen,
     levelUpWeaponOffers: rollLevelUpWeaponOffers(advanced.abilities, getAbilityCap()),
+    // Keep the heading the ship carried in: resetForSector snaps it to FORWARD_DIR, so
+    // a warp-parked ship would face upright instead of the way it was travelling.
+    ship: { ...advanced.ship, lastHeading: { ...state.ship.lastHeading } },
+    // No wave is live in the shop — zero the spawn counters so the sector bar reads the
+    // start of the new sector, not a stale "first wave cleared" from the wave just won.
+    spawn: emptySpawnState(),
     // Fresh shop → the one salvage re-roll is available again.
     salvageOfferUsed: false,
   }
+}
+
+// Ends the warp in the next sector, then opens the shop. The wave itself isn't
+// spawned until the player leaves the shop (finishUpgradeScreen).
+export function completeWarp(state: GameState): GameState {
+  return openUpgradeScreen(state)
 }
 
 // Drives the warp cutscene each frame (no player control). The sim is suspended
@@ -921,6 +950,13 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     nebulaField,
     decoys
   )
+  // Timed-out enemies (Phase Shifter swarm rings) pop and despawn, so they can't pile
+  // up; the blast hurts the ship + allies caught on the dispersing ring.
+  const expiry = detonateExpiredEnemies(enemies, ship, allies, dt)
+  enemies = expiry.enemies
+  ship = expiry.ship
+  allies = expiry.allies
+  particles = [...particles, ...expiry.particles]
   // Repulse fields ride the ship: re-centre them on its final position this frame
   // so the knockback below (and the render) don't trail a frame behind its movement.
   activeEffects = recentreRepulseFields(activeEffects, ship.pos)
@@ -946,8 +982,14 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   allies = allyResult.allies
   projectiles = allyResult.projectiles
 
+  // Boss-fired projectiles (e.g. the Dreadnought's charged laser) join the pool just
+  // before collision resolution, like enemy fire.
+  if (bossResult.newProjectiles.length > 0) {
+    projectiles = [...projectiles, ...bossResult.newProjectiles]
+  }
+
   // --- Projectile movement ---
-  projectiles = updateProjectiles(projectiles, enemies, dt)
+  projectiles = updateProjectiles(projectiles, enemies, dt, ship.pos, ship.vel)
 
   // --- Hold abilities (Telekinesis, Solar Flare, etc.) ---
   // Each hold ability registers an `onFrame` and/or `onTick` callback in its
@@ -1461,9 +1503,21 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       calamityTimer,
       escapeTrailAccumulator,
     }
-    // Sector cleared (every 3rd wave) → warp first; the shop opens once the warp
-    // lands the next sector. Mid-sector waves just wait for the Next Wave button.
-    return isUpgradeWave(state.wave) ? beginWarp(cleared) : cleared
+    // A boss waits on the very next wave → open the shop now, with NO warp: the boss
+    // is this sector's finale, so the squad and field have to ride into it (a warp
+    // would wipe both). A fully cleared sector warps to the next one, then shops.
+    // Other mid-sector waves just wait for the Next Wave button.
+    if (isBossWave(state.wave + 1)) return openUpgradeScreen(cleared)
+    // Sector cleared → don't yank control: keep flying under control for a beat
+    // (WARP.preDelay), then warp. beginWarp places the portal along the ship's
+    // heading, so the fly-in needs no turn. Mid-sector waves wait for Next Wave.
+    if (isUpgradeWave(state.wave)) {
+      const warpDelay = state.warpDelay > 0 ? state.warpDelay - dt : WARP.preDelay
+      return warpDelay <= 0
+        ? beginWarp(cleared)
+        : { ...cleared, phase: GamePhase.playing, warpDelay }
+    }
+    return cleared
   }
 
   return {

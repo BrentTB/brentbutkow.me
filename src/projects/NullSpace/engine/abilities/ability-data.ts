@@ -223,7 +223,7 @@ export const RADIATION = {
   radius: 120,
   duration: 6,
   maxStacks: 8,
-  stackInterval: 0.4,
+  stackInterval: 0.8,
   decayInterval: 1.5,
 } as const
 

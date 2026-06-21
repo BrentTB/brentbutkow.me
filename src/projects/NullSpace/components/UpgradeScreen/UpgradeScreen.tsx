@@ -57,7 +57,15 @@ export function UpgradeScreen({
 
   return (
     <div className={styles.upgradeLayout}>
-      <h2 className={sharedStyles.title}>Sector {uiState.level} Complete</h2>
+      {uiState.bossWarning ? (
+        <div className={styles.bossWarning} role="alert">
+          <span className={styles.bossWarningLabel}>⚠ Anomaly Detected</span>
+          <p className={styles.bossWarningText}>{uiState.bossWarning}</p>
+          <span className={styles.bossWarningPrompt}>Last stop to gear up before contact.</span>
+        </div>
+      ) : (
+        <h2 className={sharedStyles.title}>Sector {uiState.level} Complete</h2>
+      )}
       <p className={styles.currencyDisplay}>
         {CURRENCY_NAME}: <span className={styles.stardustValue}>✦ {uiState.currency}</span>
         {' · '}
@@ -118,7 +126,7 @@ export function UpgradeScreen({
       </div>
 
       <button className={sharedStyles.primaryBtn} onClick={onContinue}>
-        Continue
+        {uiState.bossWarning ? 'Brace for contact' : 'Continue'}
       </button>
     </div>
   )

@@ -42,10 +42,11 @@ import { isUpgradeWave } from './upgrades'
 import { BOSS_KINDS } from './bosses'
 import { createNebula } from './calamities/nebula'
 import { createWormhole } from './calamities/wormhole'
-import { isBossWave } from './world/waves'
+import { isBossWave, sectorProgress } from './world/waves'
 import { toroidalDistance } from './math/toroid'
 import {
   ANIMATION,
+  BOSS_LEVEL_INTERVAL,
   ENEMY_STATS,
   HAZARD,
   NEBULA,
@@ -361,7 +362,7 @@ describe('updateGameState', () => {
     expect(tied.isNewHighScore).toBe(false)
   })
 
-  it('warps then shows the upgrade screen after completing the 3rd wave', () => {
+  it('coasts under control, then warps, then shows the upgrade screen on sector clear', () => {
     let state = startGame(createInitialState(), ShipKind.fighter)
     state = { ...state, wave: WAVES_PER_LEVEL, phase: GamePhase.playing }
     state = {
@@ -369,9 +370,37 @@ describe('updateGameState', () => {
       enemies: [],
       spawn: { ...state.spawn, queue: [], total: 1, spawned: 1, waveTimer: 0 },
     }
+    // The frame the last enemy dies: still flying under control, not yet warping.
     state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
-    expect(state.phase).toBe(GamePhase.warping) // warp first
+    expect(state.phase).toBe(GamePhase.playing)
+    expect(state.warpDelay).toBeGreaterThan(0)
+    // Fly out the brief pre-warp coast → the warp begins.
+    for (let i = 0; i < 200 && state.phase === GamePhase.playing; i++) {
+      state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
+    }
+    expect(state.phase).toBe(GamePhase.warping) // warp after the coast
     expect(completeWarp(state).phase).toBe(GamePhase.upgradeScreen) // then the shop
+  })
+
+  it('opens the shop with no warp on the wave before a boss, squad intact', () => {
+    let state = startGame(createInitialState(), ShipKind.fighter)
+    // The wave right before the first boss wave (boss every WAVES_PER_LEVEL × interval).
+    const preBossWave = WAVES_PER_LEVEL * BOSS_LEVEL_INTERVAL - 1
+    state = {
+      ...state,
+      wave: preBossWave,
+      phase: GamePhase.playing,
+      enemies: [],
+      allies: [createAlly({ x: 0, y: 0 })],
+      spawn: { ...state.spawn, queue: [], total: 1, spawned: 1, waveTimer: 0 },
+    }
+    state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
+    // Straight to the shop — no warp cutscene — with the boss wave now queued up.
+    expect(state.phase).toBe(GamePhase.upgradeScreen)
+    expect(isBossWave(state.wave)).toBe(true)
+    // The boss is this sector's finale, so the squad rides into the fight (a warp
+    // would have wiped it).
+    expect(state.allies).toHaveLength(1)
   })
 
   it('shows correct phase after wave completion', () => {
@@ -432,10 +461,11 @@ describe('beginWarp', () => {
     // Residual fling / escape cleared so the cutscene flight is clean.
     expect(warped.ship.flingVel).toEqual({ x: 0, y: 0 })
     expect(warped.ship.escapeMode).toBeNull()
-    // Field wiped and the dropped metal banked into the currency.
+    // Enemies + dropped loot clear (the metal banked into currency), but the calamity
+    // field rides the cutscene as UI instead of popping the instant the sector clears.
     expect(warped.enemies).toEqual([])
     expect(warped.collectibles).toEqual([])
-    expect(warped.hazards).toEqual([])
+    expect(warped.hazards).toBe(state.hazards) // preserved, not wiped
     expect(warped.spaceMetal).toBe(2 + 3)
   })
 
@@ -1935,7 +1965,11 @@ describe('updateGameState — sector progression', () => {
         },
       ],
     }
-    const next = updateGameState(state, 0.016, noInput)
+    // Coast through the brief pre-warp beat, then the warp banks the drops.
+    let next = updateGameState(state, 0.016, noInput)
+    for (let i = 0; i < 200 && next.phase === GamePhase.playing; i++) {
+      next = updateGameState(next, 0.016, noInput)
+    }
     expect(next.phase).toBe(GamePhase.warping)
     expect(next.spaceMetal).toBe(2) // banked, not lost to the warp
     expect(next.singularityShard).toBe(1)
@@ -1951,8 +1985,12 @@ describe('updateGameState — sector progression', () => {
       enemies: [],
       spawn: { ...state.spawn, queue: [], total: 1, spawned: 1, waveTimer: 0 },
     }
+    // Coast under control first, then the warp begins.
     state = updateGameState(state, 0.016, noInput)
-    expect(state.phase).toBe(GamePhase.warping) // warp comes first
+    for (let i = 0; i < 200 && state.phase === GamePhase.playing; i++) {
+      state = updateGameState(state, 0.016, noInput)
+    }
+    expect(state.phase).toBe(GamePhase.warping) // warp after the coast
     expect(state.warpTimer).toBeGreaterThan(0)
 
     // Warp lands in the next sector and opens the shop — wave not spawned yet.
@@ -1969,6 +2007,33 @@ describe('updateGameState — sector progression', () => {
     expect(live.phase).toBe(GamePhase.playing)
     expect(live.wave).toBe(WAVES_PER_LEVEL + 1) // not advanced again
     expect(live.spawn.queue.length).toBeGreaterThan(0)
+  })
+
+  it('parks the ship facing its heading and resets the sector bar in the post-warp shop', () => {
+    let state = startGame(createInitialState(), ShipKind.fighter)
+    const heading = { x: -1, y: 0 } // travelling left as it entered the warp
+    state = {
+      ...state,
+      wave: WAVES_PER_LEVEL,
+      phase: GamePhase.warping,
+      ship: { ...state.ship, lastHeading: { ...heading } },
+      // Stale counters from the wave just cleared — these used to leak into the bar.
+      spawn: { ...state.spawn, total: 8, spawned: 8 },
+    }
+    const shop = completeWarp(state)
+    expect(shop.phase).toBe(GamePhase.upgradeScreen)
+    // Faces the way it was going, not snapped to the upright forward axis.
+    expect(shop.ship.lastHeading).toEqual(heading)
+    // The bar reads the start of the new sector — stale counters would have shown a
+    // whole wave already cleared.
+    expect(
+      sectorProgress({
+        wave: shop.wave,
+        spawnedInWave: shop.spawn.spawned,
+        enemiesAlive: shop.enemies.length,
+        totalWaveEnemies: shop.spawn.total,
+      })
+    ).toBe(0)
   })
 
   it('makes the same forward progress at 2x sub-steps as one full step', () => {

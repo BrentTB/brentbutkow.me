@@ -370,26 +370,28 @@ export const SHIELD_GENERATOR_SPRITE: SpriteData = [
   [_, _, _, t, T, T, T, T, t, _, _, _],
 ]
 
-// Void Worm head (20×20) — serpent skull, nose up so velocity rotation points
-// it along its path. Magenta crest tip, purple hide, glowing red eyes, dark
-// open maw with white fangs, tapering into the neck the body chain follows.
+// Void Worm head (20×20) — armoured serpent skull, nose up so velocity rotation
+// points it along its path. A bony magenta crest runs the snout, a heavy brow
+// throws the glowing red eyes into an angled glare, and a gaping maw of
+// interlocking white fangs opens over a dark throat. Tapers into the neck the
+// body chain follows.
 export const VOID_WORM_BOSS_SPRITE: SpriteData = [
   [_, _, _, _, _, _, _, _, _, M, M, _, _, _, _, _, _, _, _, _],
   [_, _, _, _, _, _, _, _, m, M, M, m, _, _, _, _, _, _, _, _],
-  [_, _, _, _, _, _, _, m, P, P, P, P, m, _, _, _, _, _, _, _],
+  [_, _, _, _, _, _, _, m, P, M, M, P, m, _, _, _, _, _, _, _],
+  [_, _, _, _, _, _, m, P, P, M, M, P, P, m, _, _, _, _, _, _],
+  [_, _, _, _, _, m, P, P, P, M, M, P, P, P, m, _, _, _, _, _],
+  [_, _, _, _, m, p, p, P, P, M, M, P, P, p, p, m, _, _, _, _],
+  [_, _, _, _, m, p, R, r, P, P, P, P, r, R, p, m, _, _, _, _],
+  [_, _, _, m, P, P, r, R, P, P, P, P, R, r, P, P, m, _, _, _],
+  [_, _, _, m, P, P, P, p, P, P, P, P, p, P, P, P, m, _, _, _],
+  [_, _, _, m, P, p, W, B, W, B, B, W, B, W, p, P, m, _, _, _],
+  [_, _, _, _, m, p, B, B, B, B, B, B, B, B, p, m, _, _, _, _],
+  [_, _, _, _, m, p, B, B, r, B, B, r, B, B, p, m, _, _, _, _],
+  [_, _, _, _, _, m, B, W, B, W, W, B, W, B, m, _, _, _, _, _],
+  [_, _, _, _, _, m, p, P, B, B, B, B, P, p, m, _, _, _, _, _],
+  [_, _, _, _, _, _, m, P, P, p, p, P, P, m, _, _, _, _, _, _],
   [_, _, _, _, _, _, m, P, P, P, P, P, P, m, _, _, _, _, _, _],
-  [_, _, _, _, _, m, P, P, P, P, P, P, P, P, m, _, _, _, _, _],
-  [_, _, _, _, m, P, P, R, R, P, P, R, R, P, P, m, _, _, _, _],
-  [_, _, _, _, m, P, P, R, W, P, P, W, R, P, P, m, _, _, _, _],
-  [_, _, _, m, P, P, P, P, P, P, P, P, P, P, P, P, m, _, _, _],
-  [_, _, _, m, P, p, P, P, P, P, P, P, P, P, p, P, m, _, _, _],
-  [_, _, _, m, P, p, p, P, P, P, P, P, P, p, p, P, m, _, _, _],
-  [_, _, _, _, m, P, P, B, B, B, B, B, B, P, P, m, _, _, _, _],
-  [_, _, _, _, m, P, B, W, B, B, B, B, W, B, P, m, _, _, _, _],
-  [_, _, _, _, _, m, P, B, B, B, B, B, B, P, m, _, _, _, _, _],
-  [_, _, _, _, _, m, P, P, B, B, B, B, P, P, m, _, _, _, _, _],
-  [_, _, _, _, _, _, m, P, P, P, P, P, P, m, _, _, _, _, _, _],
-  [_, _, _, _, _, _, m, P, p, P, P, p, P, m, _, _, _, _, _, _],
   [_, _, _, _, _, _, _, m, P, p, p, P, m, _, _, _, _, _, _, _],
   [_, _, _, _, _, _, _, m, p, P, P, p, m, _, _, _, _, _, _, _],
   [_, _, _, _, _, _, _, _, m, p, p, m, _, _, _, _, _, _, _, _],

@@ -306,14 +306,18 @@ export const WAVE_COMP = {
 } as const
 
 // Dasher charge cycle. Approaches within triggerRange, stalls for windupDuration
-// (the dodge tell), then lunges along a locked heading at chargeSpeed for
-// chargeDuration, then recovers (slow, vulnerable). chargeSpeed sits above ship
-// patrol speed but below a slingshot fling (600) — a dodge check, not a wall.
+// (the dodge tell), then lunges at chargeSpeed for chargeDuration while curving to
+// track the target (chargeTurnRate), then recovers (slow, vulnerable). chargeSpeed
+// sits above ship patrol speed but below a slingshot fling (600), and the tracking
+// means a flat sidestep won't shake it — a real juke or a slingshot will.
 export const DASHER = {
   triggerRange: 240,
-  windupDuration: 0.7,
+  windupDuration: 0.6,
   chargeSpeed: 420,
-  chargeDuration: 0.55,
+  chargeDuration: 0.7,
+  // Radians/sec the lunge curves toward the target. Enough to beat a lazy sidestep,
+  // capped so it stays dodgeable with a committed juke or slingshot.
+  chargeTurnRate: 2.4,
   recoverDuration: 2,
   recoverSpeed: 50,
 } as const
@@ -324,7 +328,7 @@ export const DASHER = {
 // watching enemies trail the ship gets steadily worse. The cap keeps even escalated
 // enemies under a slingshot fling (600), so the player can always break away.
 export const WAVE_ESCALATION = {
-  gracePeriod: 20,
+  gracePeriod: 30,
   // Boss waves are meant to be long fights, so they get a much longer grace
   // before enemies start speeding up.
   bossGracePeriod: 75,
@@ -395,6 +399,9 @@ export const SECTOR = {
 // reaches within `arriveRadius`. `maxDuration` is a safety cap if it never lands.
 export const WARP = {
   spawnAhead: 1100,
+  // Beat of free flight (player still in control) after a sector clears, before the
+  // warp cutscene begins — softens the hand-off so control isn't snatched instantly.
+  preDelay: 1,
   // Slow, cinematic fly-in (~2.5× longer than a quick zoom) so the jump reads.
   flySpeed: 480,
   arriveRadius: 70,
@@ -568,6 +575,55 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.13.0',
+    date: '2026-06-21',
+    changes: {
+      features: [
+        'The Dreadnought now charges and fires a heavy laser whenever its shield is down — telegraphed by a brightening beam line, and the bolt gently homes, so you have to slingshot clear instead of just drifting aside. Phase 2 fires it on a tighter cooldown.',
+      ],
+      balance: [
+        'The Void Worm and Dasher now curve to track you mid-charge instead of lunging in a straight line. A flat sidestep no longer shakes them; you have to juke hard or slingshot clear. Their wind-up is a touch shorter too.',
+        'Phase Shifter swarm rings now burn out the moment it teleports again, popping for a little splash damage if you are sitting on them — so they can no longer pile up faster than you clear them.',
+      ],
+      fixes: [
+        "The Void Worm's head no longer feels invincible: it takes reduced damage while the body still shields it (so your hits land and chip it) and full damage once every segment is destroyed.",
+      ],
+    },
+  },
+  {
+    version: '1.12.0',
+    date: '2026-06-21',
+    changes: {
+      features: [
+        'Every ability now has an Efficiency upgrade that trims its power cost — the ones that were missing it (Sun, Black Hole, Chain Lightning, Radiation, Gravity Lure, Overdrive) have one now, and their ultimates inherit it.',
+        'The run now autosaves after every wave, not just every sector — Continue picks up from the wave you were on.',
+      ],
+      ui: [
+        'When the speed-up countdown runs out, a brief "Enemies sped up!" sign now flashes instead of the timer simply vanishing — so the lurch reads as a confirmed event.',
+        'Clearing a sector no longer snatches control the instant the last enemy dies: you keep flying for a beat, and the warp portal now opens along your heading so the fly-in never jerks the ship around.',
+      ],
+      fixes: [
+        'After a warp the ship keeps the heading it travelled in, instead of snapping to face straight up in the new sector.',
+        'Calamities (mines, asteroids, nebula clouds) no longer blink out the instant a sector is cleared — they linger as harmless scenery through the warp rather than popping.',
+        'The sector progress bar no longer briefly shows the first wave of the next sector as already cleared while you sit in the shop.',
+      ],
+      balance: ['Increase the wave escalation gracePeriod from 20s to 30s'],
+    },
+  },
+  {
+    version: '1.11.0',
+    date: '2026-06-21',
+    changes: {
+      features: [
+        'A shop now opens right before every boss — your last chance to spend the Stardust you earned fighting toward it, instead of walking into the fight with a full wallet and nowhere to spend it. It comes with a cryptic anomaly warning: enough for a veteran to know what is coming, enough for a newcomer to know to gear up.',
+      ],
+      ui: [
+        'Redrew the Void Worm boss head — an angled, heavy-browed glare over a gaping fanged maw, in place of the old round-eyed face.',
+      ],
+      balance: ["Increase the Radiation ability's stackInterval from 0.4s to 0.8s"],
+    },
+  },
   {
     version: '1.10.1',
     date: '2026-06-21',

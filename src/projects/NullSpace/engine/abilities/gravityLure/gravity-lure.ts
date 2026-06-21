@@ -6,7 +6,12 @@ import { AbilityKind, EffectKind } from '../../types'
 import type { GravityLureEffect, Vec2 } from '../../types'
 import type { Camera } from '../../../renderer/camera'
 import { worldToScreen } from '../../../renderer/camera'
-import { makeAbilityUpgrade, applyTierSum, type AbilityDefinition } from '../ability-definition'
+import {
+  makeAbilityUpgrade,
+  applyTierSum,
+  applyCostReduction,
+  type AbilityDefinition,
+} from '../ability-definition'
 import type {
   EffectDefinition,
   EffectTickContext,
@@ -19,6 +24,7 @@ export const GRAVITY_LURE_UPGRADE_IDS = {
   unlockGravityLure: 'unlockGravityLure',
   gravityLurePull: 'gravityLurePull',
   gravityLureHealth: 'gravityLureHealth',
+  gravityLureCostReduction: 'gravityLureCostReduction',
 } as const
 
 const upgrade = makeAbilityUpgrade(AbilityKind.gravityLure)
@@ -47,6 +53,16 @@ const healthUpgrade = upgrade({
   tiers: [
     { cost: 25, value: 60 },
     { cost: 90, value: 120 },
+  ],
+})
+
+const costUpgrade = upgrade({
+  id: GRAVITY_LURE_UPGRADE_IDS.gravityLureCostReduction,
+  label: 'Efficiency',
+  description: 'Reduce gravity lure power cost',
+  tiers: [
+    { cost: 14, value: 4 },
+    { cost: 55, value: 5 },
   ],
 })
 
@@ -184,9 +200,10 @@ export const gravityLure: AbilityDefinition = {
     unlocked: upgrades[GRAVITY_LURE_UPGRADE_IDS.unlockGravityLure].currentTier > 0,
     aoeRadius: applyTierSum(GRAVITY_LURE.lureRadius, upgrades, pullUpgrade),
     maxHp: applyTierSum(GRAVITY_LURE.hp, upgrades, healthUpgrade),
+    powerCost: applyCostReduction(GRAVITY_LURE.powerCost, upgrades, costUpgrade),
   }),
   unlockUpgrade,
-  modifierUpgrades: [pullUpgrade, healthUpgrade],
+  modifierUpgrades: [pullUpgrade, healthUpgrade, costUpgrade],
   ultimate: {
     kind: AbilityKind.collapsar,
     label: 'Collapsar',

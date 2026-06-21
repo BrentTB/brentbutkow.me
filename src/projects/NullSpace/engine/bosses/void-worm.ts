@@ -3,6 +3,7 @@ import type { Enemy, Vec2 } from '../types'
 import { ENEMY_STATS } from '../../data'
 import { wrapPosition } from '../math/toroid'
 import { homeTowardTarget } from '../math/homing'
+import { steerToward } from '../math/steering'
 import { unitToward } from '../math/vec'
 import { getBossRuntime, hasAliveLinked } from './boss-definition'
 import type {
@@ -35,10 +36,17 @@ export const VOID_WORM = {
   cruiseSpeed: 80,
   cruiseDuration: 3.5,
   // The stall before a lunge — the player's dodge window.
-  windupDuration: 0.8,
+  windupDuration: 0.6,
   // Faster than any ship patrol speed (max 180); a slingshot fling (600) escapes.
   chargeSpeed: 380,
   chargeDuration: 1.1,
+  // Radians/sec the lunge curves to track the ship — a flat sidestep no longer shakes
+  // it; you must juke hard or slingshot. Capped so it stays dodgeable.
+  chargeTurnRate: 1.8,
+  // Damage the head takes while any segment still shields it — reduced, not zero, so
+  // hits register and chip it, but clearing the body is far faster (and stops it
+  // hurting you). Full damage once every segment is dead.
+  shieldedDamageMult: 0.3,
 } as const
 
 // Each alive segment sits segmentSpacing behind the piece ahead of it, in
@@ -63,6 +71,8 @@ function positionChain(boss: Enemy, linked: Enemy[]): Map<string, { pos: Vec2; v
 export const VOID_WORM_BOSS: BossDefinition = {
   kind: EnemyKind.voidWorm,
   hpBarLabel: 'VOID WORM',
+  warning:
+    'Something is moving through the asteroids ahead: slow, and winding, and we still have not found the end of it.',
   // The attack cycle owns position and velocity; the movement system leaves
   // the head untouched.
   movement: MovementBehavior.none,
@@ -89,16 +99,18 @@ export const VOID_WORM_BOSS: BossDefinition = {
     return specs
   },
 
-  // The body shields the head — destroy every segment to expose it.
-  canTakeDamage: (boss, enemies) => !hasAliveLinked(boss, enemies),
-  // The trailing body already says "kill that first" — no bubble needed.
-  hideShieldBubble: () => true,
+  // The body shields the head: while any segment lives the head takes reduced damage
+  // (stamped per-frame in onUpdate as shieldDamageMult), full damage once it's exposed.
+  // No invincibility gate or bubble — hits land and chip it; the body just makes
+  // clearing it the far faster path.
 
   positionLinked: positionChain,
 
   onUpdate: (boss, dt, ctx): BossUpdateResult => {
     // boss-ai only invokes onUpdate on this boss's own enemies.
     const worm = getBossRuntime(boss, EnemyKind.voidWorm)!
+    // Body still up ⇒ the head only takes reduced damage; exposed ⇒ full.
+    const shieldDamageMult = hasAliveLinked(boss, ctx.enemies) ? VOID_WORM.shieldedDamageMult : 1
     const stageTimer = worm.stageTimer - dt
 
     let next: WormCycle
@@ -125,25 +137,24 @@ export const VOID_WORM_BOSS: BossDefinition = {
           ? { stage: WormStage.charge, stageTimer: VOID_WORM.chargeDuration, heading }
           : { ...worm, stageTimer, heading }
     } else {
-      // Lunge along the locked heading — the ship has to dodge, not outrun.
+      // Lunge while curving to track the ship (capped) — a flat sidestep can't shake
+      // it; the ship has to juke hard or slingshot clear, not just step aside.
+      const heading = steerToward(boss.pos, worm.heading, ctx.shipPos, VOID_WORM.chargeTurnRate, dt)
       const pos = wrapPosition({
-        x: boss.pos.x + worm.heading.x * VOID_WORM.chargeSpeed * dt,
-        y: boss.pos.y + worm.heading.y * VOID_WORM.chargeSpeed * dt,
+        x: boss.pos.x + heading.x * VOID_WORM.chargeSpeed * dt,
+        y: boss.pos.y + heading.y * VOID_WORM.chargeSpeed * dt,
       })
       self = {
         pos,
-        vel: {
-          x: worm.heading.x * VOID_WORM.chargeSpeed,
-          y: worm.heading.y * VOID_WORM.chargeSpeed,
-        },
+        vel: { x: heading.x * VOID_WORM.chargeSpeed, y: heading.y * VOID_WORM.chargeSpeed },
       }
       next =
         stageTimer <= 0
-          ? { stage: WormStage.cruise, stageTimer: VOID_WORM.cruiseDuration, heading: worm.heading }
-          : { ...worm, stageTimer }
+          ? { stage: WormStage.cruise, stageTimer: VOID_WORM.cruiseDuration, heading }
+          : { ...worm, stageTimer, heading }
     }
     // Phase is not set here since the worm doesn't change behavior or spawn patterns on phase shifts
-    return { updatedRuntime: { ...worm, ...next }, spawns: [], self }
+    return { updatedRuntime: { ...worm, ...next }, spawns: [], self: { ...self, shieldDamageMult } }
   },
 
   // Combined head + body HP so the bar moves while the head is damage-gated.

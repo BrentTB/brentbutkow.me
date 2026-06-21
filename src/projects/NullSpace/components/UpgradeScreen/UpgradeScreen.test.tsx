@@ -1,20 +1,20 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
-import { TopBar } from './TopBar'
+import { UpgradeScreen } from './UpgradeScreen'
 import { AbilityKind, EnemyKind, GamePhase, ShipKind, HelperWeaponKind } from '../../engine/types'
 import type { PlayerUpgrades } from '../../engine/types'
 import type { GameUIState } from '../../useNullSpace'
 
 function makeUiState(over: Partial<GameUIState> = {}): GameUIState {
   return {
-    phase: GamePhase.playing,
+    phase: GamePhase.upgradeScreen,
     shipKind: ShipKind.fighter,
     score: 0,
     highScore: 0,
     isNewHighScore: false,
     kills: 0,
-    wave: 0,
-    level: 0,
+    wave: 9,
+    level: 3,
     shipHp: 100,
     shipMaxHp: 100,
     shipShield: 50,
@@ -53,36 +53,35 @@ function makeUiState(over: Partial<GameUIState> = {}): GameUIState {
 
 const noop = () => {}
 
-function renderTopBar(over: Partial<GameUIState> = {}) {
-  return render(
-    <TopBar
+function renderShop(over: Partial<GameUIState> = {}) {
+  render(
+    <UpgradeScreen
       uiState={makeUiState(over)}
-      isFullscreen={false}
-      gameSpeed={1}
-      onPause={noop}
-      onToggleFullscreen={noop}
+      onPurchase={noop}
+      onPurchaseUltimate={noop}
+      onSalvageAbility={noop}
+      onContinue={noop}
     />
   )
 }
 
 afterEach(cleanup)
 
-describe('TopBar heat bar', () => {
-  it('renders the heat bar width from slingHeat', () => {
-    renderTopBar({ slingHeat: 0.8 })
-    expect(screen.getByTestId('heatBar').style.width).toBe('80%')
+describe('UpgradeScreen pre-boss warning', () => {
+  it('shows the cryptic warning and a brace button when a boss is next', () => {
+    renderShop({ bossWarning: 'Something bored clean through the asteroids.' })
+    expect(screen.getByRole('alert').textContent).toContain(
+      'Something bored clean through the asteroids.'
+    )
+    expect(screen.getByText('Brace for contact')).toBeTruthy()
+    // The warning replaces the "Sector Complete" header.
+    expect(screen.queryByText(/Sector \d+ Complete/)).toBeNull()
   })
 
-  // Regression: heat updates every frame, so the shared CSS width transition
-  // perpetually re-targets and lags on mobile (bar stuck empty until pause).
-  // The heat bar must track live (transition: none); other bars keep the smooth one.
-  it('updates the heat bar live with no width transition', () => {
-    renderTopBar({ slingHeat: 0.5 })
-    expect(screen.getByTestId('heatBar').style.transition).toBe('none')
-  })
-
-  it('leaves the HP bar transition to CSS (not overridden)', () => {
-    renderTopBar()
-    expect(screen.getByTestId('hpBar').style.transition).toBe('')
+  it('shows the normal sector-complete header when no boss is next', () => {
+    renderShop({ bossWarning: null, level: 2 })
+    expect(screen.getByText('Sector 2 Complete')).toBeTruthy()
+    expect(screen.getByText('Continue')).toBeTruthy()
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 })

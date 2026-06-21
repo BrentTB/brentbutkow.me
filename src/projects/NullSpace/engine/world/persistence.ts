@@ -205,12 +205,13 @@ export function loadGame(): SavedGame | null {
     // run doesn't start from `undefined` (which would become NaN once summed).
     const savedState = parsed.state as Omit<
       GameState,
-      'kills' | 'salvageOfferUsed' | 'spawn' | 'calamityTimer' | 'asteroids'
+      'kills' | 'salvageOfferUsed' | 'spawn' | 'calamityTimer' | 'asteroids' | 'warpDelay'
     > & {
       kills?: number
       salvageOfferUsed?: boolean
       calamityTimer?: number
       asteroids?: GameState['asteroids']
+      warpDelay?: number
       spawn?: GameState['spawn']
       // Legacy flat spawn fields (pre-grouping saves) — migrated into `spawn`.
       waveTimer?: number
@@ -236,6 +237,7 @@ export function loadGame(): SavedGame | null {
         salvageOfferUsed: savedState.salvageOfferUsed ?? false,
         calamityTimer: savedState.calamityTimer ?? CALAMITY.shockwaveIntervalMin,
         asteroids: savedState.asteroids ?? [],
+        warpDelay: savedState.warpDelay ?? 0,
         spawn,
       },
     }

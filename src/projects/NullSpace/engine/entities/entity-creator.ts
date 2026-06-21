@@ -134,7 +134,7 @@ export function createProjectile(
   targetPos: Vec2,
   owner: Projectile['owner'],
   damage: number,
-  opts?: { speed?: number; beam?: boolean }
+  opts?: { speed?: number; beam?: boolean; homingTurnRate?: number; lifetime?: number }
 ): Projectile {
   // Aim along the shortest (wrapped) path to the target.
   const { x: dx, y: dy } = toroidalDelta(pos, targetPos)
@@ -153,8 +153,9 @@ export function createProjectile(
     maxHp: 1,
     owner,
     damage,
-    lifetime: PROJECTILE_LIFETIME,
+    lifetime: opts?.lifetime ?? PROJECTILE_LIFETIME,
     ...(opts?.beam ? { beam: true } : {}),
+    ...(opts?.homingTurnRate !== undefined ? { homingTurnRate: opts.homingTurnRate } : {}),
   }
 }
 

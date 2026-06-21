@@ -4,7 +4,12 @@ import { AbilityKind, EffectKind } from '../../types'
 import type { RadiationFieldEffect, Vec2 } from '../../types'
 import type { Camera } from '../../../renderer/camera'
 import { worldToScreen } from '../../../renderer/camera'
-import { makeAbilityUpgrade, applyTierSum, type AbilityDefinition } from '../ability-definition'
+import {
+  makeAbilityUpgrade,
+  applyTierSum,
+  applyCostReduction,
+  type AbilityDefinition,
+} from '../ability-definition'
 import type {
   EffectDefinition,
   EffectTickContext,
@@ -18,6 +23,7 @@ export const RADIATION_UPGRADE_IDS = {
   radiationDamage: 'radiationDamage',
   radiationDuration: 'radiationDuration',
   radiationRadius: 'radiationRadius',
+  radiationCostReduction: 'radiationCostReduction',
 } as const
 
 const upgrade = makeAbilityUpgrade(AbilityKind.radiation)
@@ -60,6 +66,16 @@ const radiusUpgrade = upgrade({
     { cost: 15, value: 25 },
     { cost: 60, value: 40 },
     { cost: 200, value: 60 },
+  ],
+})
+
+const costUpgrade = upgrade({
+  id: RADIATION_UPGRADE_IDS.radiationCostReduction,
+  label: 'Efficiency',
+  description: 'Reduce radiation power cost',
+  tiers: [
+    { cost: 16, value: 6 },
+    { cost: 64, value: 6 },
   ],
 })
 
@@ -160,13 +176,14 @@ export const radiation: AbilityDefinition = {
     damage: applyTierSum(RADIATION.dpsPerStack, upgrades, damageUpgrade),
     duration: applyTierSum(RADIATION.duration, upgrades, durationUpgrade),
     aoeRadius: applyTierSum(RADIATION.radius, upgrades, radiusUpgrade),
+    powerCost: applyCostReduction(RADIATION.powerCost, upgrades, costUpgrade),
   }),
   unlockUpgrade,
-  modifierUpgrades: [damageUpgrade, durationUpgrade, radiusUpgrade],
+  modifierUpgrades: [damageUpgrade, durationUpgrade, radiusUpgrade, costUpgrade],
   ultimate: {
     kind: AbilityKind.meltdown,
     label: 'Meltdown',
-    description: 'Let it reach critical — and the glow spreads on its own.',
+    description: 'Let it reach critical and the glow spreads on its own.',
     cost: { stardust: 420, spaceMetal: 16 },
   },
 }

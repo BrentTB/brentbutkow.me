@@ -267,4 +267,14 @@ describe('saveGame / loadGame / clearSave', () => {
     expect(loaded?.state.salvageOfferUsed).toBe(true)
     expect(loaded?.state.calamityTimer).toBe(4.2)
   })
+
+  // Guards the post-clear warp coast surviving a save: warpDelay is a plain state
+  // field, so a stale `...state` spread in save/load would silently drop it.
+  it('round-trips warpDelay', () => {
+    const state = createInitialState()
+    state.warpDelay = 0.5
+    saveGame(state, 1)
+
+    expect(loadGame()?.state.warpDelay).toBe(0.5)
+  })
 })

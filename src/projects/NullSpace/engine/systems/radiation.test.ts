@@ -3,6 +3,7 @@ import { updateRadiatedEnemies, type RadiationZone } from './radiation'
 import { createEnemy } from '../entities/entity-creator'
 import { EnemyKind } from '../types'
 import type { Enemy } from '../types'
+import { RADIATION } from '../abilities/ability-data'
 
 const POS = { x: 1000, y: 1000 }
 
@@ -28,8 +29,8 @@ function radiate(enemies: Enemy[], zones: RadiationZone[], dt: number, steps = 1
 describe('updateRadiatedEnemies', () => {
   it('seeds a stack on entering a pool and gains another after stackInterval', () => {
     const enemy = createEnemy(EnemyKind.drone, POS)
-    // One 0.4s frame in a pool: starts at 1 stack, gains a second.
-    const result = updateRadiatedEnemies([enemy], [zone()], 0.4)
+    // One stack interval in a pool: starts at 1 stack, gains a second.
+    const result = updateRadiatedEnemies([enemy], [zone()], RADIATION.stackInterval)
     expect(result.enemies[0].radiation?.stacks).toBe(2)
   })
 

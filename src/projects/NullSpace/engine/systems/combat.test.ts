@@ -436,6 +436,20 @@ describe('updateProjectiles — missile homing', () => {
     // Y component should dominate by now since the enemy is straight up.
     expect(advanced.vel.y).toBeGreaterThan(advanced.vel.x)
   })
+
+  it('an enemy homing bolt leads a drifting ship, bending toward where it is heading', () => {
+    // Bolt closing from the left (heading +x) at a ship drifting +y: leading should
+    // bend it toward +y (the intercept), not keep it aimed at the ship's current spot.
+    const bolt = createProjectile({ x: -300, y: 0 }, { x: 0, y: 0 }, ProjectileOwner.enemy, 10, {
+      speed: 900,
+      homingTurnRate: 2,
+    })
+    const [moved] = updateProjectiles([bolt], [], 0.1, { x: 0, y: 0 }, { x: 0, y: 200 })
+    expect(moved.vel.y).toBeGreaterThan(0)
+    // A stationary ship has no lead, so the same bolt stays aimed dead-on (+x only).
+    const [straight] = updateProjectiles([bolt], [], 0.1, { x: 0, y: 0 }, { x: 0, y: 0 })
+    expect(straight.vel.y).toBeCloseTo(0)
+  })
 })
 
 // A bomber's death blast hits allies in range, not just the ship. The shield
