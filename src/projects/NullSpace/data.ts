@@ -324,7 +324,7 @@ export const DASHER = {
 // watching enemies trail the ship gets steadily worse. The cap keeps even escalated
 // enemies under a slingshot fling (600), so the player can always break away.
 export const WAVE_ESCALATION = {
-  gracePeriod: 20,
+  gracePeriod: 30,
   // Boss waves are meant to be long fights, so they get a much longer grace
   // before enemies start speeding up.
   bossGracePeriod: 75,
@@ -582,6 +582,12 @@ export const CHANGELOG: ChangelogEntry[] = [
         'When the speed-up countdown runs out, a brief "Enemies sped up!" sign now flashes instead of the timer simply vanishing — so the lurch reads as a confirmed event.',
         'Clearing a sector no longer snatches control the instant the last enemy dies: you keep flying for a beat, and the warp portal now opens along your heading so the fly-in never jerks the ship around.',
       ],
+      fixes: [
+        'After a warp the ship keeps the heading it travelled in, instead of snapping to face straight up in the new sector.',
+        'Calamities (mines, asteroids, nebula clouds) no longer blink out the instant a sector is cleared — they linger as harmless scenery through the warp rather than popping.',
+        'The sector progress bar no longer briefly shows the first wave of the next sector as already cleared while you sit in the shop.',
+      ],
+      balance: ['Increase the wave escalation gracePeriod from '],
     },
   },
   {

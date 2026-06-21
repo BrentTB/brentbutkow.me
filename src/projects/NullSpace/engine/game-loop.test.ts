@@ -42,7 +42,7 @@ import { isUpgradeWave } from './upgrades'
 import { BOSS_KINDS } from './bosses'
 import { createNebula } from './calamities/nebula'
 import { createWormhole } from './calamities/wormhole'
-import { isBossWave } from './world/waves'
+import { isBossWave, sectorProgress } from './world/waves'
 import { toroidalDistance } from './math/toroid'
 import {
   ANIMATION,
@@ -461,10 +461,11 @@ describe('beginWarp', () => {
     // Residual fling / escape cleared so the cutscene flight is clean.
     expect(warped.ship.flingVel).toEqual({ x: 0, y: 0 })
     expect(warped.ship.escapeMode).toBeNull()
-    // Field wiped and the dropped metal banked into the currency.
+    // Enemies + dropped loot clear (the metal banked into currency), but the calamity
+    // field rides the cutscene as UI instead of popping the instant the sector clears.
     expect(warped.enemies).toEqual([])
     expect(warped.collectibles).toEqual([])
-    expect(warped.hazards).toEqual([])
+    expect(warped.hazards).toBe(state.hazards) // preserved, not wiped
     expect(warped.spaceMetal).toBe(2 + 3)
   })
 
@@ -2006,6 +2007,33 @@ describe('updateGameState — sector progression', () => {
     expect(live.phase).toBe(GamePhase.playing)
     expect(live.wave).toBe(WAVES_PER_LEVEL + 1) // not advanced again
     expect(live.spawn.queue.length).toBeGreaterThan(0)
+  })
+
+  it('parks the ship facing its heading and resets the sector bar in the post-warp shop', () => {
+    let state = startGame(createInitialState(), ShipKind.fighter)
+    const heading = { x: -1, y: 0 } // travelling left as it entered the warp
+    state = {
+      ...state,
+      wave: WAVES_PER_LEVEL,
+      phase: GamePhase.warping,
+      ship: { ...state.ship, lastHeading: { ...heading } },
+      // Stale counters from the wave just cleared — these used to leak into the bar.
+      spawn: { ...state.spawn, total: 8, spawned: 8 },
+    }
+    const shop = completeWarp(state)
+    expect(shop.phase).toBe(GamePhase.upgradeScreen)
+    // Faces the way it was going, not snapped to the upright forward axis.
+    expect(shop.ship.lastHeading).toEqual(heading)
+    // The bar reads the start of the new sector — stale counters would have shown a
+    // whole wave already cleared.
+    expect(
+      sectorProgress({
+        wave: shop.wave,
+        spawnedInWave: shop.spawn.spawned,
+        enemiesAlive: shop.enemies.length,
+        totalWaveEnemies: shop.spawn.total,
+      })
+    ).toBe(0)
   })
 
   it('makes the same forward progress at 2x sub-steps as one full step', () => {

@@ -303,6 +303,9 @@ export function resetForSector(state: GameState): GameState {
     warpFlashTimer: 0,
     hazards: seedField ? generateHazardField(worldSize, center) : [],
     asteroids: seedAsteroids ? seedAsteroidField(worldSize, center) : [],
+    // The previous sector's nebulas / ability pools rode the warp in as UI; clear
+    // them now that the fresh field is laid out.
+    activeEffects: [],
     ship: {
       ...state.ship,
       pos: { ...center },
@@ -532,11 +535,12 @@ export function beginWarp(state: GameState): GameState {
     // each sector starts with no allies, so a fresh squad can't be banked.
     allies: [],
     projectiles: [],
-    activeEffects: [],
     collectibles: [],
     particles: [],
-    hazards: [],
-    asteroids: [],
+    // The leftover field — calamities (mines, asteroids, nebulas/shockwaves) and any
+    // lingering ability effects — rides along as pure UI through the cutscene instead
+    // of popping the instant the sector clears. The sim is frozen so nothing applies,
+    // and resetForSector lays out a fresh field on arrival.
     // Cancel any residual fling / escape so the cutscene flight is clean.
     ship: { ...state.ship, flingVel: { x: 0, y: 0 }, escapeMode: null },
   }
@@ -552,6 +556,12 @@ function openUpgradeScreen(state: GameState): GameState {
     ...advanced,
     phase: GamePhase.upgradeScreen,
     levelUpWeaponOffers: rollLevelUpWeaponOffers(advanced.abilities, getAbilityCap()),
+    // Keep the heading the ship carried in: resetForSector snaps it to FORWARD_DIR, so
+    // a warp-parked ship would face upright instead of the way it was travelling.
+    ship: { ...advanced.ship, lastHeading: { ...state.ship.lastHeading } },
+    // No wave is live in the shop — zero the spawn counters so the sector bar reads the
+    // start of the new sector, not a stale "first wave cleared" from the wave just won.
+    spawn: emptySpawnState(),
     // Fresh shop → the one salvage re-roll is available again.
     salvageOfferUsed: false,
   }
