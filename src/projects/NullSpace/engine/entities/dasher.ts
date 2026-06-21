@@ -1,5 +1,6 @@
 import { DASHER } from '../../data'
 import { toroidalDelta } from '../math/toroid'
+import { steerToward } from '../math/steering'
 import { DashStage } from '../types'
 import type { DasherState, Enemy, Ship, Vec2 } from '../types'
 
@@ -47,22 +48,23 @@ export function tickDasher(enemy: Enemy, ship: Ship, dt: number): Enemy {
   }
 
   if (state.stage === DashStage.charge) {
-    // Lunge along the locked heading — dodge it, don't try to outrun it. chargeSpeed
-    // is a fixed constant, exempt from wave-speed escalation (which scales only
-    // enemy.speed), so the lunge always stays under the slingshot fling cap. Position
-    // wraps in the global per-frame pass, like every other MoveFn.
+    // Lunge while curving to track the target (capped) — a flat sidestep can't shake
+    // it; you have to juke hard or slingshot clear. chargeSpeed is a fixed constant,
+    // exempt from wave-speed escalation, so the lunge always stays under the slingshot
+    // fling cap. Position wraps in the global per-frame pass, like every other MoveFn.
+    const heading = steerToward(enemy.pos, state.heading, ship.pos, DASHER.chargeTurnRate, dt)
     const pos = {
-      x: enemy.pos.x + state.heading.x * DASHER.chargeSpeed * dt,
-      y: enemy.pos.y + state.heading.y * DASHER.chargeSpeed * dt,
+      x: enemy.pos.x + heading.x * DASHER.chargeSpeed * dt,
+      y: enemy.pos.y + heading.y * DASHER.chargeSpeed * dt,
     }
     const vel = {
-      x: state.heading.x * DASHER.chargeSpeed,
-      y: state.heading.y * DASHER.chargeSpeed,
+      x: heading.x * DASHER.chargeSpeed,
+      y: heading.y * DASHER.chargeSpeed,
     }
     const dasher: DasherState =
       stageTimer <= 0
-        ? { stage: DashStage.recover, stageTimer: DASHER.recoverDuration, heading: state.heading }
-        : { ...state, stageTimer }
+        ? { stage: DashStage.recover, stageTimer: DASHER.recoverDuration, heading }
+        : { stage: DashStage.charge, stageTimer, heading }
     return { ...enemy, pos, vel, dasher }
   }
 

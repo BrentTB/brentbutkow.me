@@ -35,7 +35,7 @@ describe('tickDasher', () => {
     expect(near.dasher?.stage).toBe(DashStage.windup)
   })
 
-  it('locks a heading and charges fast once the windup elapses', () => {
+  it('enters the charge after windup and lunges at full speed', () => {
     const target = targetAt({ x: 1000, y: 1000 })
 
     const e = dasherAt({ x: 900, y: 1000 }, { stage: DashStage.windup, stageTimer: 0.05 })
@@ -67,6 +67,20 @@ describe('tickDasher', () => {
       }
     )
     expect(tickDasher(recoverEnd, target, 0.1).dasher?.stage).toBe(DashStage.approach)
+  })
+
+  it('curves its charge toward a target off the heading, capped (no straight-line dodge)', () => {
+    // Heading due +x, but the target sits straight up: the lunge bends toward it
+    // instead of flying past, so a flat sidestep no longer shakes it.
+    const target = targetAt({ x: 1000, y: 1400 })
+    const charging = dasherAt(
+      { x: 1000, y: 1000 },
+      { stage: DashStage.charge, stageTimer: 0.3, heading: { x: 1, y: 0 } }
+    )
+    const h = tickDasher(charging, target, 0.1).dasher!.heading
+    expect(h.y).toBeGreaterThan(0) // bent toward the target
+    expect(h.x).toBeGreaterThan(h.y) // but capped — it didn't snap onto it
+    expect(Math.hypot(h.x, h.y)).toBeCloseTo(1)
   })
 
   it('charges slower than a slingshot fling — a dodge check, not a wall', () => {

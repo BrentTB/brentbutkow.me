@@ -207,6 +207,10 @@ export type Enemy = Entity & {
   damageTakenMult?: number
   speedMult?: number
   damageDealtMult?: number
+  // Boss body-shield reduction (absent ⇒ 1×): a boss whose body shields it takes
+  // reduced — not zero — damage while shielded (the Void Worm head) instead of being
+  // fully invincible. Stamped each frame by the boss tick.
+  shieldDamageMult?: number
   // Late-game modifier (absent on plain enemies). Set at spawn.
   modifier?: EnemyModifier
   // Present only on shield-modifier enemies — a player-style absorb-first pool

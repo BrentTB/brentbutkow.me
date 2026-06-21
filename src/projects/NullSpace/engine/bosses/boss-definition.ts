@@ -48,7 +48,7 @@ export type BossUpdateResult = {
   // replaces `linkedIds`, re-arming the shield (used at the phase-2 transition).
   linkedSpawns?: SpawnSpec[]
   // Patch applied to the boss entity itself — movement bursts, teleports.
-  self?: Partial<Pick<Enemy, 'pos' | 'vel' | 'speed'>>
+  self?: Partial<Pick<Enemy, 'pos' | 'vel' | 'speed' | 'shieldDamageMult'>>
 }
 
 export type BossDefinition = {

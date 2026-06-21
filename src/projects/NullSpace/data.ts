@@ -306,14 +306,18 @@ export const WAVE_COMP = {
 } as const
 
 // Dasher charge cycle. Approaches within triggerRange, stalls for windupDuration
-// (the dodge tell), then lunges along a locked heading at chargeSpeed for
-// chargeDuration, then recovers (slow, vulnerable). chargeSpeed sits above ship
-// patrol speed but below a slingshot fling (600) — a dodge check, not a wall.
+// (the dodge tell), then lunges at chargeSpeed for chargeDuration while curving to
+// track the target (chargeTurnRate), then recovers (slow, vulnerable). chargeSpeed
+// sits above ship patrol speed but below a slingshot fling (600), and the tracking
+// means a flat sidestep won't shake it — a real juke or a slingshot will.
 export const DASHER = {
   triggerRange: 240,
-  windupDuration: 0.7,
+  windupDuration: 0.6,
   chargeSpeed: 420,
-  chargeDuration: 0.55,
+  chargeDuration: 0.7,
+  // Radians/sec the lunge curves toward the target. Enough to beat a lazy sidestep,
+  // capped so it stays dodgeable with a committed juke or slingshot.
+  chargeTurnRate: 2.4,
   recoverDuration: 2,
   recoverSpeed: 50,
 } as const
@@ -571,6 +575,18 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.13.0',
+    date: '2026-06-21',
+    changes: {
+      balance: [
+        'The Void Worm and Dasher now curve to track you mid-charge instead of lunging in a straight line. A flat sidestep no longer shakes them; you have to juke hard or slingshot clear. Their wind-up is a touch shorter too.',
+      ],
+      fixes: [
+        "The Void Worm's head no longer feels invincible: it takes reduced damage while the body still shields it (so your hits land and chip it) and full damage once every segment is destroyed.",
+      ],
+    },
+  },
   {
     version: '1.12.0',
     date: '2026-06-21',

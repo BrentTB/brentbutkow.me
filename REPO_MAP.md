@@ -323,7 +323,7 @@ src/projects/NullSpace/engine/math/
   collision.ts                               checkCollision, distance, segmentIntersectsCircle
   homing.ts                                  homeTowardTarget
   random.ts                                  rng, setSessionSeed, reseedForNewSession
-  steering.ts                                driftWithWeave
+  steering.ts                                steerToward, driftWithWeave
   toroid.ts                                  wrapPosition, toroidalDelta, toroidalDistance, nearestImage
   utils.ts                                   clamp
   vec.ts                                     ringPositions, unitToward
