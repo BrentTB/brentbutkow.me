@@ -569,6 +569,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.10.1',
+    date: '2026-06-21',
+    changes: {
+      fixes: [
+        'The slingshot aim arrow no longer disappears when your ship wraps across a world edge: it now tracks the ship across the seam instead of being drawn a full world off-screen.',
+      ],
+    },
+  },
+  {
     version: '1.10.0',
     date: '2026-06-20',
     changes: {

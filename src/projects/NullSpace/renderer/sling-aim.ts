@@ -1,12 +1,12 @@
 import type { Camera } from './camera'
+import { worldToScreen } from './camera'
 import type { Ship, Vec2 } from '../engine/types'
 
-// Slingshot aim arrow, drawn in CSS-pixel space. It sets its OWN DPR-baseline
-// transform rather than trusting whatever the world frame left behind — otherwise a
-// world-layer renderer that leaks a transform (a boss/effect that only appears
-// sometimes) would push the arrow off-screen: the flick still fires, but the arrow
-// vanishes. Points from the ship toward the live drag; length, width, and colour
-// read the charge, and it greys out while recharging or overheated — no fire yet.
+// Slingshot aim arrow, drawn in CSS-pixel space. The ship's origin comes from
+// worldToScreen so the arrow tracks it across a world seam — raw (pos − camera.x)
+// ignores the torus and flings the arrow a full world off-screen when the ship wraps
+// over the border. Points from the ship toward the live drag; length, width, and
+// colour read the charge, greying out while recharging or overheated (no fire yet).
 export function drawSlingAim(
   ctx: CanvasRenderingContext2D,
   ship: Ship,
@@ -20,8 +20,9 @@ export function drawSlingAim(
   const len = Math.hypot(dx, dy)
   if (len < 1) return
 
-  const sx = (ship.pos.x - camera.x) * camera.zoom
-  const sy = (ship.pos.y - camera.y) * camera.zoom
+  const rs = worldToScreen(ship.pos, camera)
+  const sx = rs.x * camera.zoom
+  const sy = rs.y * camera.zoom
   const charge = Math.min(1, len / maxDragPx)
   const ux = dx / len
   const uy = dy / len

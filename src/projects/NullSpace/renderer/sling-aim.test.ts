@@ -8,18 +8,22 @@ import { WORLD_SIZE } from '../data'
 const camera: Camera = { x: 0, y: 0, width: 800, height: 600, zoom: 1, dpr: 2 }
 
 function mockCtx() {
+  // Capture moveTo coords — the first is the arrow's origin (the ship), which a
+  // test asserts stays on-screen across a world seam.
+  const moves: Array<{ x: number; y: number }> = []
   return {
     save: vi.fn(),
     restore: vi.fn(),
     setTransform: vi.fn(),
     beginPath: vi.fn(),
-    moveTo: vi.fn(),
+    moveTo: vi.fn((x: number, y: number) => moves.push({ x, y })),
     lineTo: vi.fn(),
     stroke: vi.fn(),
     globalAlpha: 1,
     strokeStyle: '',
     lineWidth: 0,
     lineCap: '',
+    moves,
   }
 }
 
@@ -53,5 +57,29 @@ describe('drawSlingAim', () => {
       100
     )
     expect(ctx.stroke).not.toHaveBeenCalled()
+  })
+
+  // Regression: the arrow origin must follow the ship across a world seam. The ship
+  // sits just over the left border while the camera trails near the right border, so
+  // raw (pos − camera.x) maths lands a full world off-screen; worldToScreen keeps it
+  // on the ship's nearest image, on-screen.
+  it('keeps the arrow on-screen when the ship is across the world seam', () => {
+    const ctx = mockCtx()
+    const ship = { ...createShip(ShipKind.fighter, WORLD_SIZE), pos: { x: 10, y: 300 } }
+    const seamCamera: Camera = { ...camera, x: WORLD_SIZE.x - 200, y: 0 }
+    drawSlingAim(
+      ctx as unknown as CanvasRenderingContext2D,
+      ship,
+      seamCamera,
+      { x: 100, y: 100 },
+      { x: 200, y: 150 },
+      100
+    )
+    expect(ctx.stroke).toHaveBeenCalled()
+    const origin = ctx.moves[0]
+    expect(origin.x).toBeGreaterThanOrEqual(0)
+    expect(origin.x).toBeLessThanOrEqual(seamCamera.width)
+    expect(origin.y).toBeGreaterThanOrEqual(0)
+    expect(origin.y).toBeLessThanOrEqual(seamCamera.height)
   })
 })
