@@ -1,0 +1,58 @@
+// Sticky left rail (desktop). Sits below the sticky site navbar (~68px) + a little breathing room.
+.rail {
+  position: sticky;
+  top: 96px;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.link {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: var(--muted);
+  text-decoration: none;
+  padding: 6px 10px;
+  border-left: 2px solid transparent;
+  border-radius: 0 4px 4px 0;
+  transition:
+    color 0.12s ease,
+    border-color 0.12s ease;
+}
+
+.link:hover {
+  color: var(--text-secondary);
+}
+
+.on {
+  color: var(--accent);
+  border-left-color: var(--accent);
+  background: var(--surface);
+}
+
+// Narrow screens: the rail becomes a horizontal strip above the content instead of a side column.
+@media (max-width: 860px) {
+  .rail {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 4px 6px;
+    padding-bottom: 10px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .link {
+    border-left: none;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    padding: 5px 8px;
+  }
+
+  .on {
+    border-left: none;
+    border-bottom-color: var(--accent);
+    background: none;
+  }
+}

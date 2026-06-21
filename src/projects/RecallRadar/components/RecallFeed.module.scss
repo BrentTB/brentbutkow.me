@@ -244,6 +244,20 @@
   color: var(--accent);
 }
 
+.detailPageLink {
+  margin: 10px 0 0;
+  font-size: 0.82rem;
+}
+
+.detailPageLink a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.detailPageLink a:hover {
+  text-decoration: underline;
+}
+
 .empty {
   color: var(--muted);
   font-size: 0.9rem;

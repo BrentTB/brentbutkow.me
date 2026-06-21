@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   categoryLabels,
   entityTypeLabels,
@@ -7,6 +8,7 @@ import {
   sourceLabels,
 } from '../data'
 import { formatDate } from '../chart-format'
+import { recallDetailRoute } from '../api'
 import { SafeLink } from '../../../components/utils/SafeLink'
 import { getLinkArrow } from '../../../components/utils/link-arrow'
 import { RelatedRecalls } from './RelatedRecalls'
@@ -159,6 +161,11 @@ export function RecallFeed({
                   </div>
                 ))}
               </dl>
+              <p className={styles.detailPageLink}>
+                <Link to={recallDetailRoute(recall.source, recall.recallNumber)}>
+                  Open recall page →
+                </Link>
+              </p>
               {recall.sourceUrl && (
                 <p className={styles.sourceLink}>
                   <SafeLink href={recall.sourceUrl}>

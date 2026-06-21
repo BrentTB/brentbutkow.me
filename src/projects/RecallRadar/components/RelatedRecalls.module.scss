@@ -41,9 +41,16 @@
 }
 
 .product {
+  display: block;
   margin: 0;
   font-size: 0.85rem;
   color: var(--text);
+  text-decoration: none;
+}
+
+a.product:hover {
+  color: var(--accent);
+  text-decoration: underline;
 }
 
 // Compact identifying line — mirrors the feed row's meta vocabulary (recall number · severity ·

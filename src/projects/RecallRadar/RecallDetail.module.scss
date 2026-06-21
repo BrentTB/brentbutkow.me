@@ -1,0 +1,143 @@
+.status {
+  margin: 32px 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.detail {
+  margin: 8px 0 40px;
+  padding: 24px 26px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.metaRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.badge {
+  padding: 2px 9px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  color: var(--text-secondary);
+}
+
+.severity {
+  font-weight: 600;
+}
+
+.product {
+  margin: 14px 0 0;
+  font-size: 1.5rem;
+  line-height: 1.25;
+  color: var(--text);
+}
+
+.company {
+  margin: 6px 0 0;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.reason {
+  margin: 14px 0 0;
+  max-width: 72ch;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.entities {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.entityChip {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 3px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  color: var(--text-secondary);
+}
+
+// The theme / outbreak this recall belongs to — each links back to the dashboard with that filter.
+.partOf {
+  margin: 16px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.partOfLabel {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.linkChip {
+  font-size: 0.78rem;
+  padding: 4px 11px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition:
+    border-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.linkChip:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.outbreakChip {
+  color: var(--accent);
+  border-color: rgba(233, 184, 114, 0.5);
+}
+
+.facts {
+  margin: 22px 0 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px 24px;
+}
+
+.fact {
+  margin: 0;
+}
+
+.factTerm {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.factValue {
+  margin: 3px 0 0;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.sourceLink {
+  margin: 20px 0 0;
+  font-size: 0.85rem;
+}

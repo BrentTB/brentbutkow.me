@@ -37,6 +37,11 @@ const RecallRadar = lazy(() =>
     default: module.RecallRadar,
   }))
 )
+const RecallDetail = lazy(() =>
+  import('../projects/RecallRadar/RecallDetail').then((module) => ({
+    default: module.RecallDetail,
+  }))
+)
 
 export const routePaths = {
   home: '/',
@@ -118,6 +123,13 @@ export const routes: AppRoute[] = [
     element: <RecallRadar />,
     dontShowInNavbar: true,
     title: 'Recall Radar — Brent Butkow',
+  },
+  {
+    // Dedicated page for a single recall, reached by clicking a recall in the feed or a related one.
+    path: `${routePaths.recallRadar}/:source/:recallNumber`,
+    element: <RecallDetail />,
+    dontShowInNavbar: true,
+    title: 'Recall — Recall Radar',
   },
   {
     path: routePaths.funStuff,

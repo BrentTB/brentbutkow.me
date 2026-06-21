@@ -178,10 +178,10 @@ describe('RecallRadar page', () => {
     expect(screen.getByText('Outlook')).toBeTruthy()
     expect(screen.getByText(/Projected/i)).toBeTruthy()
     // themes section + the per-card theme chip both render the topic label
-    expect(screen.getByText('Themes')).toBeTruthy()
+    expect(screen.getAllByText('Themes').length).toBeGreaterThan(0) // nav rail + section heading
     expect(screen.getAllByText('listeria · deli · meat').length).toBeGreaterThan(0)
     // outbreaks section renders its card, and the recall in that cluster gets an outbreak badge
-    expect(screen.getByText('Outbreaks')).toBeTruthy()
+    expect(screen.getAllByText('Outbreaks').length).toBeGreaterThan(0) // nav rail + section heading
     expect(screen.getByText('5 recalls')).toBeTruthy() // the outbreak card
     expect(screen.getByText('⚠ Outbreak')).toBeTruthy() // the per-recall badge
     // similar recalls are lazy — nothing is fetched until a row is expanded

@@ -272,7 +272,7 @@ const isForecastPoint = (value: unknown): value is ForecastPoint =>
   typeof value.lower === 'number' &&
   typeof value.upper === 'number'
 
-const isRecall = (value: unknown): value is Recall =>
+export const isRecall = (value: unknown): value is Recall =>
   isRecord(value) &&
   typeof value.recallNumber === 'string' &&
   typeof value.source === 'string' &&

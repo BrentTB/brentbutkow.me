@@ -70,3 +70,28 @@ export function buildSimilarPath(source: RecallSource, recallNumber: string, lim
   const recall = `${encodeURIComponent(source)}/${encodeURIComponent(recallNumber)}`
   return `${apiRoutes.recalls.list}/${recall}/similar?limit=${limit}`
 }
+
+// A single recall's API path (the detail page). Encoded like buildSimilarPath.
+export function buildRecallDetailPath(source: RecallSource, recallNumber: string): string {
+  return `${apiRoutes.recalls.list}/${encodeURIComponent(source)}/${encodeURIComponent(recallNumber)}`
+}
+
+// In-app route to a recall's detail page. The base mirrors routePaths.recallRadar — kept local so
+// this path module doesn't pull the route table (and every eager page import) into RecallRadar's
+// lazy chunk.
+const RECALL_RADAR_ROUTE = '/recall-radar'
+export function recallDetailRoute(source: RecallSource, recallNumber: string): string {
+  return `${RECALL_RADAR_ROUTE}/${encodeURIComponent(source)}/${encodeURIComponent(recallNumber)}`
+}
+
+// In-app route to the dashboard with a single filter preset — the detail page's theme/outbreak
+// chips link here. Includes the country, since themes and events are per-country and the slug only
+// resolves under the right one.
+export function recallRadarFilterRoute(
+  country: RecallCountry,
+  param: 'topic' | 'event',
+  slug: string
+): string {
+  const query = new URLSearchParams({ location: country, [param]: slug })
+  return `${RECALL_RADAR_ROUTE}?${query.toString()}`
+}

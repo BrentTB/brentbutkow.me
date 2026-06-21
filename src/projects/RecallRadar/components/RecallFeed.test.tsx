@@ -1,7 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render as rtlRender, screen, waitFor } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
+import type { ReactElement } from 'react'
 import { RecallFeed } from './RecallFeed'
 import type { Recall } from '../recall.types'
+
+// RecallFeed renders <Link>s (the per-row "Open recall page" + related recalls), so each render
+// needs a Router context. Wrap testing-library's render once rather than at every call site.
+const render = (ui: ReactElement) => rtlRender(<MemoryRouter>{ui}</MemoryRouter>)
 
 const mockRes = (body: unknown) => ({ ok: true, status: 200, json: async () => body }) as Response
 

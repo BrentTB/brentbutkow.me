@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render as rtlRender, screen, waitFor } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
+import type { ReactElement } from 'react'
 import { RelatedRecalls } from './RelatedRecalls'
 import { RecallSource, type Recall } from '../recall.types'
+
+// Each related recall is now a <Link> to its detail page, so renders need a Router context.
+const render = (ui: ReactElement) => rtlRender(<MemoryRouter>{ui}</MemoryRouter>)
 
 const neighbour: Recall = {
   country: 'us',
@@ -60,6 +65,10 @@ describe('RelatedRecalls', () => {
     expect(screen.getByText('Severe')).toBeTruthy() // severityLabel 'severe' → label
     expect(screen.getByText('Class I')).toBeTruthy()
     expect(screen.getByText(/Jun 10, 2026/)).toBeTruthy()
+    // The product links to the neighbour's own detail page — the recursive-exploration entry point.
+    expect(screen.getByText('Sliced deli turkey').closest('a')?.getAttribute('href')).toBe(
+      '/recall-radar/fda/F-42'
+    )
   })
 
   it('shows an empty state when there are no neighbours', async () => {

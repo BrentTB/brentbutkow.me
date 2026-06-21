@@ -1,8 +1,8 @@
+import { Link } from 'react-router-dom'
 import { formatDate } from '../chart-format'
+import { recallDetailRoute } from '../api'
 import { severityColors, severityLabels, sourceLabels } from '../data'
 import { useSimilar } from '../useSimilar'
-import { SafeLink } from '../../../components/utils/SafeLink'
-import { getLinkArrow } from '../../../components/utils/link-arrow'
 import type { RecallSource } from '../recall.types'
 import styles from './RelatedRecalls.module.scss'
 
@@ -11,10 +11,10 @@ type RelatedRecallsProps = {
   recallNumber: string
 }
 
-// Rendered only while a feed row is open (see RecallFeed), so it fetches a recall's nearest
-// neighbours on demand. The /similar payload already carries each neighbour's full record, so we
-// surface its identifying fields (recall number, company, date, severity) inline — there's no way
-// to open a neighbour on its own yet, so this is where its details are read.
+// A recall's nearest neighbours by reason/product text, fetched on demand. Each neighbour shows its
+// identifying fields (recall number, company, date, severity) and links to its own detail page —
+// where the original notice lives. We deliberately don't repeat the "view notice" link per row here;
+// it clutters the list, and the detail page is one click away.
 export function RelatedRecalls({ source, recallNumber }: RelatedRecallsProps) {
   const { data, loading, error } = useSimilar(source, recallNumber)
 
@@ -34,7 +34,12 @@ export function RelatedRecalls({ source, recallNumber }: RelatedRecallsProps) {
               {Math.round(similarity * 100)}%
             </span>
             <div className={styles.body}>
-              <p className={styles.product}>{recall.productDescription}</p>
+              <Link
+                className={styles.product}
+                to={recallDetailRoute(recall.source, recall.recallNumber)}
+              >
+                {recall.productDescription}
+              </Link>
               <div className={styles.meta}>
                 <span className={styles.recallNumber}>{recall.recallNumber}</span>
                 <span
@@ -50,9 +55,6 @@ export function RelatedRecalls({ source, recallNumber }: RelatedRecallsProps) {
               </div>
               {recall.companyName && <p className={styles.company}>{recall.companyName}</p>}
               <p className={styles.reason}>{recall.reasonText}</p>
-              {recall.sourceUrl && (
-                <SafeLink href={recall.sourceUrl}>View notice {getLinkArrow(false)}</SafeLink>
-              )}
             </div>
           </li>
         ))}

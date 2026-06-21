@@ -58,9 +58,34 @@
 
 .section {
   margin-top: 40px;
-  // The navbar is sticky (~68px), so a plain scrollIntoView would tuck a section heading under it.
-  // Leave room for the bar plus a little breathing space when the pager scrolls here.
+  // The navbar is sticky (~68px), so a plain scrollIntoView / anchor jump would tuck a section
+  // heading under it. Leave room for the bar plus a little breathing space.
   scroll-margin-top: 90px;
+}
+
+// Two-column shell: sticky jump-nav rail + the content column. minmax(0,1fr) lets wide children
+// (charts, tables) shrink instead of blowing the grid out.
+.layout {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+
+.content {
+  min-width: 0;
+}
+
+// The rail aligns to the top of the content, so the first section shouldn't add its usual gap.
+.content > section:first-of-type {
+  margin-top: 0;
+}
+
+@media (max-width: 860px) {
+  .layout {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
 }
 
 .sectionTitle {

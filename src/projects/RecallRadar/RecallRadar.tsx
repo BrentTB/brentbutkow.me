@@ -14,6 +14,7 @@ import { RecallFilters } from './components/RecallFilters'
 import { RecallMap } from './components/RecallMap'
 import { RecallTrendsChart } from './components/RecallTrendsChart'
 import { SeverityBar } from './components/SeverityBar'
+import { SectionNav, type NavSection } from './components/SectionNav'
 import { StatCard } from './components/StatCard'
 import { TrendCallouts } from './components/TrendCallouts'
 import { HelpHint } from './components/HelpHint'
@@ -220,6 +221,21 @@ export function RecallRadar() {
       ]
     : []
 
+  // Side-nav jump targets — only the sections that actually render for this country/data, in the
+  // order they appear in the content column.
+  const navSections: NavSection[] = [
+    { id: 'overview', label: 'Overview' },
+    { id: 'trends', label: 'Trends' },
+    ...(stats.data && country === RecallCountry.us ? [{ id: 'map', label: 'Map' }] : []),
+    ...(events.data?.some((event) => event.isOutbreak)
+      ? [{ id: 'outbreaks', label: 'Outbreaks' }]
+      : []),
+    ...(stats.data ? [{ id: 'breakdowns', label: 'Breakdowns' }] : []),
+    ...(topics.data && topics.data.length > 0 ? [{ id: 'themes', label: 'Themes' }] : []),
+    { id: 'recalls', label: 'Recalls' },
+    { id: 'about', label: 'About' },
+  ]
+
   return (
     <PageLayout>
       <PageHeader title={recallRadarCopy.title} showBackButton />
@@ -235,44 +251,11 @@ export function RecallRadar() {
         <button
           type="button"
           className={styles.techStackLink}
-          onClick={() =>
-            document.getElementById('tech-stack')?.scrollIntoView({ behavior: 'smooth' })
-          }
+          onClick={() => document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' })}
         >
           {recallRadarCopy.techStackPrompt}
         </button>
       </div>
-
-      {stats.data && (
-        <>
-          <div className={styles.stats}>
-            <StatCard label="Recalls tracked" value={formatNumber(stats.data.total)} />
-            {topCategory && (
-              <StatCard
-                label="Most common cause"
-                value={categoryLabels[topCategory.category]}
-                hint={`${formatNumber(topCategory.count)} recalls`}
-              />
-            )}
-            {topState && (
-              <StatCard
-                label="Top state"
-                value={topState.label}
-                hint={`${formatNumber(topState.count)} recalls`}
-              />
-            )}
-            <StatCard
-              label="Last updated"
-              value={
-                stats.data.lastIngestAt ? formatDate(stats.data.lastIngestAt.slice(0, 10)) : '—'
-              }
-            />
-          </div>
-          <SeverityBar data={stats.data.bySeverity} />
-        </>
-      )}
-
-      <TrendCallouts callouts={callouts} />
 
       <RecallFilters
         filters={filters}
@@ -283,143 +266,185 @@ export function RecallRadar() {
         onChange={patch}
         onClear={clearFilters}
       />
-      <p className={styles.hint}>Filters apply to the chart and the recall list below.</p>
+      <p className={styles.hint}>Filters apply to every section below.</p>
 
-      <section className={styles.section}>
-        <div className={styles.sectionHead}>
-          <h2 className={styles.sectionTitle}>Recalls per month</h2>
-          <div className={styles.controls}>
-            <Select
-              ariaLabel="Group by"
-              value={group}
-              options={groupOptions}
-              onChange={(value) =>
-                patchParams({ group: isTrendGroup(value) ? value : TrendGroup.total })
-              }
-            />
-            {years.length > 0 && (
-              <Select
-                ariaLabel="Year"
-                value={String(selectedYear)}
-                options={years.map((value) => ({ value: String(value), label: String(value) }))}
-                // Year's real default is the dynamic fallback (latest year), not '', so clear the
-                // param when it's reselected — keeps the default view's URL clean like every other.
-                onChange={(value) =>
-                  patchParams({ year: Number(value) === fallbackYear ? '' : value })
-                }
+      <div className={styles.layout}>
+        <SectionNav sections={navSections} />
+        <div className={styles.content}>
+          <section id="overview" className={styles.section}>
+            {stats.data && (
+              <>
+                <div className={styles.stats}>
+                  <StatCard label="Recalls tracked" value={formatNumber(stats.data.total)} />
+                  {topCategory && (
+                    <StatCard
+                      label="Most common cause"
+                      value={categoryLabels[topCategory.category]}
+                      hint={`${formatNumber(topCategory.count)} recalls`}
+                    />
+                  )}
+                  {topState && (
+                    <StatCard
+                      label="Top state"
+                      value={topState.label}
+                      hint={`${formatNumber(topState.count)} recalls`}
+                    />
+                  )}
+                  <StatCard
+                    label="Last updated"
+                    value={
+                      stats.data.lastIngestAt
+                        ? formatDate(stats.data.lastIngestAt.slice(0, 10))
+                        : '—'
+                    }
+                  />
+                </div>
+                <SeverityBar data={stats.data.bySeverity} />
+              </>
+            )}
+            <TrendCallouts callouts={callouts} />
+          </section>
+
+          <section id="trends" className={styles.section}>
+            <div className={styles.sectionHead}>
+              <h2 className={styles.sectionTitle}>Recalls per month</h2>
+              <div className={styles.controls}>
+                <Select
+                  ariaLabel="Group by"
+                  value={group}
+                  options={groupOptions}
+                  onChange={(value) =>
+                    patchParams({ group: isTrendGroup(value) ? value : TrendGroup.total })
+                  }
+                />
+                {years.length > 0 && (
+                  <Select
+                    ariaLabel="Year"
+                    value={String(selectedYear)}
+                    options={years.map((value) => ({ value: String(value), label: String(value) }))}
+                    // Year's real default is the dynamic fallback (latest year), not '', so clear the
+                    // param when it's reselected — keeps the default view's URL clean like every other.
+                    onChange={(value) =>
+                      patchParams({ year: Number(value) === fallbackYear ? '' : value })
+                    }
+                  />
+                )}
+              </div>
+            </div>
+            {trend.loading && <p className={styles.status}>Loading trend…</p>}
+            {trend.error && <p className={styles.status}>Couldn’t load trend data.</p>}
+            {trend.data && (
+              <RecallTrendsChart
+                data={chart.months}
+                year={selectedYear}
+                legend={chart.legend}
+                forecast={trendFiltered ? undefined : stats.data?.forecast}
               />
             )}
-          </div>
+          </section>
+
+          {stats.data && country === RecallCountry.us && (
+            <section id="map" className={styles.section}>
+              <h2 className={styles.sectionTitle}>{recallRadarCopy.stateMapTitle}</h2>
+              <p className={styles.hint}>Click a state to filter the recalls below.</p>
+              <RecallMap
+                byState={stats.data.byState}
+                activeState={filters.state}
+                onSelect={(state) => patch({ state })}
+              />
+            </section>
+          )}
+
+          {events.data?.some((event) => event.isOutbreak) && (
+            <section id="outbreaks" className={styles.section}>
+              <h2 className={styles.sectionTitle}>Outbreaks</h2>
+              <p className={styles.hint}>
+                Clusters of related recalls — a shared pathogen across products, retailers, or
+                companies. Click one to narrow the recalls below to that incident.
+              </p>
+              <Outbreaks
+                events={events.data}
+                activeEvent={filters.event}
+                onSelect={(slug) => patch({ event: slug })}
+              />
+            </section>
+          )}
+
+          {stats.data && (
+            <section id="breakdowns" className={styles.section}>
+              <h2 className={styles.sectionTitle}>Breakdowns</h2>
+              <p className={styles.hint}>Click any row to filter the recalls below.</p>
+              <Breakdowns stats={stats.data} filters={filters} onSelect={patch} />
+            </section>
+          )}
+
+          {topics.data && topics.data.length > 0 && (
+            <section id="themes" className={styles.section}>
+              <h2 className={styles.sectionTitle}>
+                Themes{' '}
+                <HelpHint label="What is a theme?">
+                  A theme is a group of recalls that describe their problem in similar words, found
+                  automatically, not from a preset list. Its label is the words that set it apart
+                  (e.g. “listeria · deli · meat”), and a recall joins it only if its text uses them.
+                </HelpHint>
+              </h2>
+              <p className={styles.hint}>
+                Auto-discovered topics across recall text. Click one to filter the recalls below.
+              </p>
+              <Themes
+                topics={topics.data}
+                activeTopic={filters.topic}
+                onSelect={(slug) => patch({ topic: slug })}
+              />
+            </section>
+          )}
+
+          <section id="recalls" className={styles.section} ref={recallsRef}>
+            <div className={styles.sectionHead}>
+              <h2 className={styles.sectionTitle}>
+                Recalls{recalls.data ? ` (${formatNumber(recalls.data.total)})` : ''}
+              </h2>
+              <div className={styles.controls}>
+                <Select
+                  ariaLabel="Sort recalls"
+                  value={sort}
+                  options={sortOptions}
+                  onChange={(value) =>
+                    patchParams({
+                      sort: isRecallSort(value) ? value : RecallSort.recency,
+                      page: '',
+                    })
+                  }
+                />
+              </div>
+            </div>
+            {recalls.loading && <p className={styles.status}>Loading recalls…</p>}
+            {recalls.error && <p className={styles.status}>Couldn’t reach the recall service.</p>}
+            {recalls.data && (
+              <RecallFeed
+                recalls={recalls.data.items}
+                topicsById={topicsById}
+                onTopicSelect={(slug) => patch({ topic: slug })}
+                activeTopic={filters.topic}
+                eventsById={eventsById}
+                onEventSelect={(slug) => patch({ event: slug })}
+                activeEvent={filters.event}
+              />
+            )}
+            {recalls.data && (
+              <Pagination
+                page={page}
+                pageSize={PAGE_SIZE}
+                total={recalls.data.total}
+                onChange={goToPage}
+              />
+            )}
+          </section>
+
+          <section id="about" className={styles.section}>
+            <ProjectOverview />
+          </section>
         </div>
-        {trend.loading && <p className={styles.status}>Loading trend…</p>}
-        {trend.error && <p className={styles.status}>Couldn’t load trend data.</p>}
-        {trend.data && (
-          <RecallTrendsChart
-            data={chart.months}
-            year={selectedYear}
-            legend={chart.legend}
-            forecast={trendFiltered ? undefined : stats.data?.forecast}
-          />
-        )}
-      </section>
-
-      {stats.data && country === RecallCountry.us && (
-        <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>{recallRadarCopy.stateMapTitle}</h2>
-          <p className={styles.hint}>Click a state to filter the recalls below.</p>
-          <RecallMap
-            byState={stats.data.byState}
-            activeState={filters.state}
-            onSelect={(state) => patch({ state })}
-          />
-        </section>
-      )}
-
-      {events.data?.some((event) => event.isOutbreak) && (
-        <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Outbreaks</h2>
-          <p className={styles.hint}>
-            Clusters of related recalls — a shared pathogen across products, retailers, or
-            companies. Click one to narrow the recalls below to that incident.
-          </p>
-          <Outbreaks
-            events={events.data}
-            activeEvent={filters.event}
-            onSelect={(slug) => patch({ event: slug })}
-          />
-        </section>
-      )}
-
-      {stats.data && (
-        <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Breakdowns</h2>
-          <p className={styles.hint}>Click any row to filter the recalls below.</p>
-          <Breakdowns stats={stats.data} filters={filters} onSelect={patch} />
-        </section>
-      )}
-
-      {topics.data && topics.data.length > 0 && (
-        <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>
-            Themes{' '}
-            <HelpHint label="What is a theme?">
-              A theme is a group of recalls that describe their problem in similar words, found
-              automatically, not from a preset list. Its label is the words that set it apart (e.g.
-              “listeria · deli · meat”), and a recall joins it only if its text uses them.
-            </HelpHint>
-          </h2>
-          <p className={styles.hint}>
-            Auto-discovered topics across recall text. Click one to filter the recalls below.
-          </p>
-          <Themes
-            topics={topics.data}
-            activeTopic={filters.topic}
-            onSelect={(slug) => patch({ topic: slug })}
-          />
-        </section>
-      )}
-
-      <section className={styles.section} ref={recallsRef}>
-        <div className={styles.sectionHead}>
-          <h2 className={styles.sectionTitle}>
-            Recalls{recalls.data ? ` (${formatNumber(recalls.data.total)})` : ''}
-          </h2>
-          <div className={styles.controls}>
-            <Select
-              ariaLabel="Sort recalls"
-              value={sort}
-              options={sortOptions}
-              onChange={(value) =>
-                patchParams({ sort: isRecallSort(value) ? value : RecallSort.recency, page: '' })
-              }
-            />
-          </div>
-        </div>
-        {recalls.loading && <p className={styles.status}>Loading recalls…</p>}
-        {recalls.error && <p className={styles.status}>Couldn’t reach the recall service.</p>}
-        {recalls.data && (
-          <RecallFeed
-            recalls={recalls.data.items}
-            topicsById={topicsById}
-            onTopicSelect={(slug) => patch({ topic: slug })}
-            activeTopic={filters.topic}
-            eventsById={eventsById}
-            onEventSelect={(slug) => patch({ event: slug })}
-            activeEvent={filters.event}
-          />
-        )}
-        {recalls.data && (
-          <Pagination
-            page={page}
-            pageSize={PAGE_SIZE}
-            total={recalls.data.total}
-            onChange={goToPage}
-          />
-        )}
-      </section>
-
-      <div id="tech-stack">
-        <ProjectOverview />
       </div>
 
       <footer className={styles.footer}>
