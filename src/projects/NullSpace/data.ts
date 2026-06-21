@@ -575,6 +575,9 @@ export const CHANGELOG: ChangelogEntry[] = [
       features: [
         'Overdrive: drop a field that turns the ground against your enemies — everything inside takes more damage (so your meteors, radiation, and bolts all hit harder there), moves slower, and deals less, while your own cooldowns race as long as you stand in it. A force multiplier, not a weapon: set it down, then pour everything into it. Its Overload Core ultimate is bigger, amplifies harder, and slows enemies to a crawl.',
       ],
+      balance: [
+        'Increase chain lightning jumps from 3->4, and increase Ion storm max jumps from 6->12',
+      ],
     },
   },
   {

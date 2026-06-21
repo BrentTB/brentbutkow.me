@@ -239,31 +239,33 @@ export const MELTDOWN = {
   spreadRange: 60,
 } as const
 
-// Chain Lightning. A click bolt that strikes the nearest enemy, then leaps to the
-// nearest unhit enemy within `jumpRange`, up to `maxJumps` hits, damage scaled by
-// `falloff` each jump. `forks` is branches-per-hit (1 = a single chain). The arc
-// lingers `arcDuration` seconds purely to render. Weak vs a lone boss by design.
+// Chain Lightning. A click bolt: `forks` parallel chains, each seeded on a distinct
+// nearest enemy and hopping `depth` times to its own nearest-unhit within `jumpRange`,
+// damage scaled by `falloff` per hop. Base is a single chain (forks 1). The arc
+// lingers `arcDuration` seconds purely to render. Weak vs a lone target by design.
 export const CHAIN_LIGHTNING = {
   cooldown: 3,
   powerCost: 25,
   damage: 30,
   jumpRange: 140,
-  maxJumps: 3,
+  depth: 3,
   falloff: 0.78,
   forks: 1,
-  arcDuration: 0.22,
+  arcDuration: 0.5,
 } as const
 
-// Ion Storm (Chain Lightning ultimate). The bolt forks to the two nearest enemies
-// per hit (a branching tree, damage scaled by `falloff` per generation) and reaches
-// further across more jumps.
+// Ion Storm (Chain Lightning ultimate). Fires `forks` parallel chains seeded on
+// distinct enemies; on a cluster they overlap and pile multiple zaps onto each enemy
+// (up to forks × (depth + 1) hits), while a lone target only feeds one chain — so it
+// stays a swarm-clearer, not a single-target nuke. Overload adds forks.
 export const ION_STORM = {
   costMultiplier: 3,
+  damage: 50,
   jumpRange: 170,
-  maxJumps: 6,
+  depth: 3,
   forks: 2,
-  falloff: 0.82,
-  arcDuration: 0.28,
+  falloff: 0.78,
+  arcDuration: 0.7,
 } as const
 
 // Gravity Lure. Drops a beacon; non-boss enemies within `lureRadius` chase it
@@ -311,7 +313,7 @@ export const OVERDRIVE = {
 // Overload Core (Overdrive ultimate). Bigger, higher amp, a much harder slow, and a
 // stronger self-haste. Resonance pushes the damage amp further.
 export const OVERLOAD_CORE = {
-  costMultiplier: 3,
+  costMultiplier: 2,
   radiusScale: 1.4,
   ampMult: 1.8,
   slowMult: 0.45,

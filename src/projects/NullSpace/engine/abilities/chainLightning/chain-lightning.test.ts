@@ -33,23 +33,27 @@ function arc(overrides: Partial<ChainArcEffect> = {}): ChainArcEffect {
 }
 
 describe('resolveChain', () => {
-  it('chains from the nearest enemy through successive jumps', () => {
+  it('a single fork chains from the nearest enemy through successive hops', () => {
     const enemies = lineOfDrones(3)
-    const { hits, segments } = resolveChain(ORIGIN, enemies, arc())
+    const { hits, segments } = resolveChain(ORIGIN, enemies, arc({ forks: 1, depth: 5 }))
     expect(hits.map((h) => h.id)).toEqual(enemies.map((e) => e.id))
     expect(segments).toHaveLength(3)
   })
 
-  it('falls off damage each generation', () => {
-    const { hits } = resolveChain(ORIGIN, lineOfDrones(3), arc({ damage: 100, falloff: 0.5 }))
+  it('falls off damage each hop', () => {
+    const { hits } = resolveChain(
+      ORIGIN,
+      lineOfDrones(3),
+      arc({ damage: 100, falloff: 0.5, forks: 1, depth: 5 })
+    )
     expect(hits[0].damage).toBe(100)
     expect(hits[1].damage).toBe(50)
     expect(hits[2].damage).toBe(25)
   })
 
-  it('stops at maxJumps', () => {
-    const { hits } = resolveChain(ORIGIN, lineOfDrones(5), arc({ maxJumps: 2 }))
-    expect(hits).toHaveLength(2)
+  it('a fork stops after `depth` hops (seed + depth enemies)', () => {
+    const { hits } = resolveChain(ORIGIN, lineOfDrones(6), arc({ forks: 1, depth: 2 }))
+    expect(hits).toHaveLength(3)
   })
 
   it('will not jump across a gap wider than jumpRange', () => {
@@ -57,13 +61,13 @@ describe('resolveChain', () => {
       createEnemy(EnemyKind.drone, ORIGIN),
       createEnemy(EnemyKind.drone, { x: ORIGIN.x + 300, y: ORIGIN.y }),
     ]
-    const { hits } = resolveChain(ORIGIN, enemies, arc({ jumpRange: 140 }))
+    const { hits } = resolveChain(ORIGIN, enemies, arc({ forks: 1, jumpRange: 140 }))
     expect(hits).toHaveLength(1)
     expect(hits[0].id).toBe(enemies[0].id)
   })
 
-  // Regression: the first target must respect jumpRange too — a tap with no enemy
-  // close enough fizzles instead of snapping to a far-away one.
+  // Regression: the seeds must respect jumpRange too — a tap with no enemy close
+  // enough fizzles instead of snapping to a far-away one.
   it('strikes nothing when the nearest enemy is beyond jumpRange of the tap', () => {
     const far = [createEnemy(EnemyKind.drone, { x: ORIGIN.x + 300, y: ORIGIN.y })]
     const { hits, segments } = resolveChain(ORIGIN, far, arc({ jumpRange: 140 }))
@@ -71,12 +75,38 @@ describe('resolveChain', () => {
     expect(segments).toHaveLength(0)
   })
 
-  it('forks to multiple targets per hit (Ion Storm)', () => {
-    const hub = createEnemy(EnemyKind.drone, ORIGIN)
-    const left = createEnemy(EnemyKind.drone, { x: ORIGIN.x - 60, y: ORIGIN.y })
-    const right = createEnemy(EnemyKind.drone, { x: ORIGIN.x + 60, y: ORIGIN.y })
-    const { hits } = resolveChain(ORIGIN, [hub, left, right], arc({ forks: 2, maxJumps: 3 }))
-    expect(hits).toHaveLength(3)
+  it('forks seed distinct enemies and overlap on a cluster (3 forks × 3 enemies = 9 hits)', () => {
+    const cluster = [
+      createEnemy(EnemyKind.drone, ORIGIN),
+      createEnemy(EnemyKind.drone, { x: ORIGIN.x + 40, y: ORIGIN.y }),
+      createEnemy(EnemyKind.drone, { x: ORIGIN.x, y: ORIGIN.y + 40 }),
+    ]
+    const { hits } = resolveChain(ORIGIN, cluster, arc({ forks: 3, depth: 2, jumpRange: 140 }))
+    expect(hits).toHaveLength(9)
+    // each enemy struck exactly three times — once per fork
+    for (const e of cluster) {
+      expect(hits.filter((h) => h.id === e.id)).toHaveLength(3)
+    }
+  })
+
+  it('a lone target feeds only one fork, so it stays a single hit', () => {
+    const lone = [createEnemy(EnemyKind.drone, ORIGIN)]
+    const { hits } = resolveChain(ORIGIN, lone, arc({ forks: 3, depth: 2 }))
+    expect(hits).toHaveLength(1)
+  })
+
+  it('tendrils cover every enemy before doubling up (no one left untouched)', () => {
+    // A tight 5-cluster, all within jumpRange of each other. Without the coverage
+    // preference two forks would re-bounce the same few; here they fan out to all 5.
+    const cluster = [
+      createEnemy(EnemyKind.drone, ORIGIN),
+      createEnemy(EnemyKind.drone, { x: ORIGIN.x + 35, y: ORIGIN.y }),
+      createEnemy(EnemyKind.drone, { x: ORIGIN.x, y: ORIGIN.y + 35 }),
+      createEnemy(EnemyKind.drone, { x: ORIGIN.x + 35, y: ORIGIN.y + 35 }),
+      createEnemy(EnemyKind.drone, { x: ORIGIN.x + 18, y: ORIGIN.y + 18 }),
+    ]
+    const { hits } = resolveChain(ORIGIN, cluster, arc({ forks: 2, depth: 2, jumpRange: 140 }))
+    expect(new Set(hits.map((h) => h.id)).size).toBe(5)
   })
 })
 
@@ -122,5 +152,20 @@ describe('chainArcEffect.tick', () => {
     expect((result.effect as ChainArcEffect).segments).toHaveLength(0)
     // Still crackles at the tapped spot so the player sees the ability fired.
     expect(result.particles.length).toBeGreaterThan(0)
+  })
+
+  it('stacks overlapping fork hits into combined damage on a clustered enemy', () => {
+    const cluster = [
+      createEnemy(EnemyKind.tank, ORIGIN),
+      createEnemy(EnemyKind.tank, { x: ORIGIN.x + 40, y: ORIGIN.y }),
+      createEnemy(EnemyKind.tank, { x: ORIGIN.x, y: ORIGIN.y + 40 }),
+    ]
+    // 3 forks, depth 2, no falloff → each tank is struck 3× for 10 = 30 total.
+    const result = chainArcEffect.tick(
+      arc({ forks: 3, depth: 2, damage: 10, falloff: 1, jumpRange: 140 }),
+      ctx(cluster)
+    )
+    const struck = result.enemies.find((e) => e.id === cluster[0].id)!
+    expect(cluster[0].hp - struck.hp).toBe(30)
   })
 })

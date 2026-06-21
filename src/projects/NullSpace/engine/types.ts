@@ -319,6 +319,9 @@ export type Ability = {
   // Multi-projectile abilities (Comet Shower): how many strikes a single
   // activation spawns. Upgradable. Absent for single-strike abilities.
   count?: number
+  // Chain Lightning / Ion Storm: number of parallel chains ("forks"), each seeded on
+  // a distinct enemy. Upgradable (Ion Storm's Overload). Absent for other abilities.
+  forks?: number
   // Comet Shower: seconds between successive comets landing. Upgradable
   // (smaller = faster volley). Absent for abilities without a staggered volley.
   staggerStep?: number
@@ -571,15 +574,16 @@ export type RadiationFieldEffect = EffectBase & {
   spreadRange: number
 }
 
-// Chain Lightning arc. Resolves its whole bolt on the first tick (jumps between
-// nearest enemies, damage falling by `falloff` per generation, `forks` branches
-// per hit for Ion Storm), then lingers `duration` purely to render the fading
-// segments. `resolved` gates the one-time damage; `segments` are the drawn bolts.
+// Chain Lightning arc. Resolves its whole bolt on the first tick: `forks` parallel
+// chains, each seeded on a distinct nearest enemy, then hopping `depth` times (damage
+// falling by `falloff` per hop). Hops prefer enemies no fork has hit yet — so tendrils
+// cover a group before doubling up on a small cluster. Lingers `duration` to render;
+// `resolved` gates the one-time damage; `segments` are the drawn bolts.
 export type ChainArcEffect = EffectBase & {
   kind: typeof EffectKind.chainArc
   damage: number
   jumpRange: number
-  maxJumps: number
+  depth: number
   forks: number
   falloff: number
   resolved: boolean

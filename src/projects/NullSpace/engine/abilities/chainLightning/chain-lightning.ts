@@ -68,12 +68,17 @@ const rangeUpgrade = upgrade({
 // Cyan spark on each struck enemy + the bolt's bright core.
 const ARC_SPARK = '#8be9ff'
 
-// Nearest damageable enemy to `from` not already struck, within `range`.
-function nearestUnhit(from: Vec2, enemies: Enemy[], hit: Set<string>, range: number): Enemy | null {
+// Nearest enemy to `from` within `range` satisfying `ok`, or null.
+function nearestWhere(
+  from: Vec2,
+  enemies: Enemy[],
+  range: number,
+  ok: (e: Enemy) => boolean
+): Enemy | null {
   let best: Enemy | null = null
   let bestDist = range
   for (const e of enemies) {
-    if (hit.has(e.id)) continue
+    if (!ok(e)) continue
     const d = toroidalDistance(from, e.pos)
     if (d <= bestDist) {
       bestDist = d
@@ -83,49 +88,68 @@ function nearestUnhit(from: Vec2, enemies: Enemy[], hit: Set<string>, range: num
   return best
 }
 
+// The next enemy a tendril jumps to: prefer the nearest enemy NO fork has struck yet
+// (so tendrils spread to cover everyone first), and only when none are in range fall
+// back to the nearest this fork hasn't hit — re-hitting others' targets rather than
+// stopping. `struck` = hit by any fork; `forkHit` = hit by this one.
+function nextTarget(
+  from: Vec2,
+  enemies: Enemy[],
+  struck: Set<string>,
+  forkHit: Set<string>,
+  range: number
+): Enemy | null {
+  return (
+    nearestWhere(from, enemies, range, (e) => !struck.has(e.id) && !forkHit.has(e.id)) ??
+    nearestWhere(from, enemies, range, (e) => !forkHit.has(e.id))
+  )
+}
+
+// The `n` nearest distinct enemies to `from` within `range`, closest first — one
+// seed per fork. Fewer enemies than forks ⇒ fewer seeds (extra forks stay idle), so
+// a lone target only ever feeds a single chain.
+function nearestSeeds(from: Vec2, enemies: Enemy[], n: number, range: number): Enemy[] {
+  return enemies
+    .map((e) => ({ e, d: toroidalDistance(from, e.pos) }))
+    .filter((x) => x.d <= range)
+    .sort((a, b) => a.d - b.d)
+    .slice(0, n)
+    .map((x) => x.e)
+}
+
 type ChainHit = { id: string; damage: number }
 
-// Resolves the whole bolt from the origin: nearest enemy within `jumpRange` of
-// the tap first (a tap with nothing close enough fizzles — it never reaches out to
-// a far-away enemy), then up to `forks` nearest unhit enemies within `jumpRange`
-// per hit, branching generation by generation until `maxJumps` enemies are struck
-// or no target remains. Damage falls by `falloff` each generation. Pure — returns
-// the hit list + the drawn segments.
+// Resolves the whole bolt. Each fork is a chain seeded on a distinct nearest enemy
+// (within `jumpRange` of the tap, so a tap with nothing close fizzles), then hopping
+// `depth` times, damage falling by `falloff` per hop. Every hop prefers an enemy no
+// fork has hit yet (tendrils spread to cover the whole group first) and only re-hits
+// once nothing fresh is in range — so a big spread fans out, a small cluster doubles
+// up into a storm, and a lone target (one seed) stays a single hit. Pure.
 export function resolveChain(
   origin: Vec2,
   enemies: Enemy[],
-  arc: Pick<ChainArcEffect, 'damage' | 'jumpRange' | 'maxJumps' | 'forks' | 'falloff'>
+  arc: Pick<ChainArcEffect, 'damage' | 'jumpRange' | 'depth' | 'forks' | 'falloff'>
 ): { hits: ChainHit[]; segments: { from: Vec2; to: Vec2 }[] } {
   const damageable = enemies.filter((e) => canEnemyTakeDamage(e, enemies))
-  const hit = new Set<string>()
   const hits: ChainHit[] = []
   const segments: { from: Vec2; to: Vec2 }[] = []
+  const struck = new Set<string>() // hit by ANY fork — drives the coverage preference
 
-  const first = nearestUnhit(origin, damageable, hit, arc.jumpRange)
-  if (!first) return { hits, segments }
-  hit.add(first.id)
-  hits.push({ id: first.id, damage: arc.damage })
-  segments.push({ from: origin, to: first.pos })
-
-  let frontier: Enemy[] = [first]
-  let generation = 1
-  while (hits.length < arc.maxJumps && frontier.length > 0) {
-    const next: Enemy[] = []
-    const genDamage = arc.damage * Math.pow(arc.falloff, generation)
-    for (const src of frontier) {
-      for (let f = 0; f < arc.forks; f++) {
-        if (hits.length >= arc.maxJumps) break
-        const tgt = nearestUnhit(src.pos, damageable, hit, arc.jumpRange)
-        if (!tgt) continue
-        hit.add(tgt.id)
-        hits.push({ id: tgt.id, damage: genDamage })
-        segments.push({ from: src.pos, to: tgt.pos })
-        next.push(tgt)
-      }
+  for (const seed of nearestSeeds(origin, damageable, arc.forks, arc.jumpRange)) {
+    const forkHit = new Set<string>([seed.id])
+    struck.add(seed.id)
+    hits.push({ id: seed.id, damage: arc.damage })
+    segments.push({ from: origin, to: seed.pos })
+    let current = seed
+    for (let hop = 1; hop <= arc.depth; hop++) {
+      const tgt = nextTarget(current.pos, damageable, struck, forkHit, arc.jumpRange)
+      if (!tgt) break
+      forkHit.add(tgt.id)
+      struck.add(tgt.id)
+      hits.push({ id: tgt.id, damage: arc.damage * Math.pow(arc.falloff, hop) })
+      segments.push({ from: current.pos, to: tgt.pos })
+      current = tgt
     }
-    if (next.length === 0) break
-    frontier = next
-    generation++
   }
   return { hits, segments }
 }
@@ -134,7 +158,7 @@ export function createChainArcEffect(
   pos: Vec2,
   damage: number,
   jumpRange: number,
-  maxJumps: number,
+  depth: number,
   forks: number,
   falloff: number,
   duration: number
@@ -147,7 +171,7 @@ export function createChainArcEffect(
     duration,
     damage,
     jumpRange,
-    maxJumps,
+    depth,
     forks,
     falloff,
     resolved: false,
@@ -163,7 +187,10 @@ function tickChainArc(arc: ChainArcEffect, ctx: EffectTickContext): EffectTickRe
   }
 
   const { hits, segments } = resolveChain(arc.pos, ctx.enemies, arc)
-  const damageById = new Map(hits.map((h) => [h.id, h.damage]))
+  // Forks can land several zaps on one enemy — sum them so it takes the combined
+  // damage and is still counted once for kills/score.
+  const damageById = new Map<string, number>()
+  for (const h of hits) damageById.set(h.id, (damageById.get(h.id) ?? 0) + h.damage)
 
   const survivors: Enemy[] = []
   const killedEnemies: Enemy[] = []
@@ -198,7 +225,10 @@ function tickChainArc(arc: ChainArcEffect, ctx: EffectTickContext): EffectTickRe
 }
 
 function renderChainArc(ctx: CanvasRenderingContext2D, arc: ChainArcEffect, camera: Camera): void {
-  const fade = Math.max(0, 1 - arc.elapsed / arc.duration)
+  // Hold full brightness for the first 40% of its life, then fade — so the bolt's
+  // path lingers long enough to read where it bounced before it disappears.
+  const t = arc.duration > 0 ? arc.elapsed / arc.duration : 1
+  const fade = t < 0.4 ? 1 : Math.max(0, 1 - (t - 0.4) / 0.6)
   if (fade <= 0 || arc.segments.length === 0) return
   ctx.save()
   ctx.globalAlpha = fade
@@ -239,15 +269,16 @@ export const chainLightning: AbilityDefinition = {
     powerCost: CHAIN_LIGHTNING.powerCost,
     damage: CHAIN_LIGHTNING.damage,
     aoeRadius: CHAIN_LIGHTNING.jumpRange,
-    count: CHAIN_LIGHTNING.maxJumps,
+    count: CHAIN_LIGHTNING.depth,
+    forks: CHAIN_LIGHTNING.forks,
   }),
   effectFactory: (ability, pos) => [
     createChainArcEffect(
       pos,
       ability.damage,
       ability.aoeRadius,
-      ability.count ?? CHAIN_LIGHTNING.maxJumps,
-      CHAIN_LIGHTNING.forks,
+      ability.count ?? CHAIN_LIGHTNING.depth,
+      ability.forks ?? CHAIN_LIGHTNING.forks,
       CHAIN_LIGHTNING.falloff,
       CHAIN_LIGHTNING.arcDuration
     ),
@@ -256,7 +287,7 @@ export const chainLightning: AbilityDefinition = {
     unlocked: upgrades[CHAIN_LIGHTNING_UPGRADE_IDS.unlockChainLightning].currentTier > 0,
     damage: applyTierSum(CHAIN_LIGHTNING.damage, upgrades, damageUpgrade),
     aoeRadius: applyTierSum(CHAIN_LIGHTNING.jumpRange, upgrades, rangeUpgrade),
-    count: applyTierSum(CHAIN_LIGHTNING.maxJumps, upgrades, jumpsUpgrade),
+    count: applyTierSum(CHAIN_LIGHTNING.depth, upgrades, jumpsUpgrade),
   }),
   unlockUpgrade,
   modifierUpgrades: [damageUpgrade, jumpsUpgrade, rangeUpgrade],
