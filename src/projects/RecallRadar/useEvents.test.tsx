@@ -1,33 +1,38 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
-import { useTopics } from './useTopics'
+import { useEvents } from './useEvents'
 import { RecallCountry } from './recall.types'
 
 const mockRes = (body: unknown, status = 200) =>
   ({ ok: status < 400, status, json: async () => body }) as Response
 
-describe('useTopics', () => {
+const event = {
+  id: 0,
+  slug: 'listeria-2026-03',
+  label: 'Listeria · 7 recalls',
+  isOutbreak: true,
+  dominantEntity: 'Listeria',
+  recallCount: 7,
+  companyCount: 3,
+  stateCount: 4,
+  firstDate: '2026-03-01',
+  lastDate: '2026-03-18',
+  severityMax: 92,
+}
+
+describe('useEvents', () => {
   afterEach(() => vi.unstubAllGlobals())
 
-  it('loads themes from /recalls/topics', async () => {
-    const topics = [
-      {
-        id: 0,
-        slug: 'listeria-deli-meat',
-        label: 'listeria · deli · meat',
-        topTerms: ['listeria', 'deli', 'meat'],
-        size: 9,
-      },
-    ]
-    const fetchMock = vi.fn(async () => mockRes(topics))
+  it('loads clusters from /recalls/events', async () => {
+    const fetchMock = vi.fn(async () => mockRes([event]))
     vi.stubGlobal('fetch', fetchMock)
 
-    const { result } = renderHook(() => useTopics('us'))
+    const { result } = renderHook(() => useEvents('us'))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
-    expect(result.current.data).toEqual(topics)
+    expect(result.current.data).toEqual([event])
     expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining('/recalls/topics?country=us'),
+      expect.stringContaining('/recalls/events?country=us'),
       expect.anything()
     )
   })
@@ -37,17 +42,17 @@ describe('useTopics', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     const initialProps: { country: RecallCountry } = { country: RecallCountry.us }
-    const { result, rerender } = renderHook(({ country }) => useTopics(country), { initialProps })
+    const { result, rerender } = renderHook(({ country }) => useEvents(country), { initialProps })
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(fetchMock).toHaveBeenLastCalledWith(
-      expect.stringContaining('/recalls/topics?country=us'),
+      expect.stringContaining('/recalls/events?country=us'),
       expect.anything()
     )
 
     rerender({ country: RecallCountry.uk })
     await waitFor(() =>
       expect(fetchMock).toHaveBeenLastCalledWith(
-        expect.stringContaining('/recalls/topics?country=uk'),
+        expect.stringContaining('/recalls/events?country=uk'),
         expect.anything()
       )
     )
@@ -58,7 +63,7 @@ describe('useTopics', () => {
       'fetch',
       vi.fn(async () => mockRes([{ id: 'nope' }]))
     )
-    const { result } = renderHook(() => useTopics('us'))
+    const { result } = renderHook(() => useEvents('us'))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     expect(result.current.data).toBeNull()

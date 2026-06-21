@@ -17,6 +17,7 @@ import { SeverityBar } from './components/SeverityBar'
 import { StatCard } from './components/StatCard'
 import { TrendCallouts } from './components/TrendCallouts'
 import { Themes } from './components/Themes'
+import { Outbreaks } from './components/Outbreaks'
 import { Select } from '../../components/inputs/Select'
 import type { SelectOption } from '../../components/inputs/option.types'
 import {
@@ -42,12 +43,15 @@ import {
   isTrendGroup,
   isIsoDate,
   type RecallFilterValues,
+  type TopicOut,
+  type EventOut,
 } from './recall.types'
 import { useQueryParamsState } from '../../routes/useQueryParamsState'
 import { useRecalls } from './useRecalls'
 import { useRecallStats } from './useRecallStats'
 import { useRecallTrend } from './useRecallTrend'
 import { useTopics } from './useTopics'
+import { useEvents } from './useEvents'
 import styles from './RecallRadar.module.scss'
 
 const EMPTY_FILTERS: RecallFilterValues = {
@@ -55,6 +59,7 @@ const EMPTY_FILTERS: RecallFilterValues = {
   classification: '',
   severity: '',
   topic: '',
+  event: '',
   state: '',
   company: '',
   source: '',
@@ -91,8 +96,11 @@ export function RecallRadar() {
     category: isRecallCategory(values.category) ? values.category : '',
     classification: isRecallClass(values.classification) ? values.classification : '',
     severity: isSeverityLabel(values.severity) ? values.severity : '',
-    // Topic is a numeric id in the URL; guard junk so a bad ?topic= can't reach the API.
-    topic: /^\d+$/.test(values.topic) ? values.topic : '',
+    // Topic is a slug in the URL (lowercase, digits, hyphens); guard junk so a bad ?topic= can't
+    // reach the API.
+    topic: /^[a-z0-9-]+$/.test(values.topic) ? values.topic : '',
+    // Event is a slug too (same guard) — set via the Outbreaks cards / per-card badge.
+    event: /^[a-z0-9-]+$/.test(values.event) ? values.event : '',
     state: values.state,
     company: values.company,
     source: isRecallSource(values.source) ? values.source : '',
@@ -120,6 +128,7 @@ export function RecallRadar() {
     classification: filters.classification || undefined,
     severity: filters.severity || undefined,
     topic: filters.topic || undefined,
+    event: filters.event || undefined,
     state: filters.state || undefined,
     company: filters.company || undefined,
     source: filters.source || undefined,
@@ -136,14 +145,26 @@ export function RecallRadar() {
     offset: (page - 1) * PAGE_SIZE,
     sort: sort === RecallSort.recency ? undefined : sort,
   })
-  // Themes are per-country; refetches on country change. The id→label map labels the per-card theme
-  // chip and the active-topic filter chip (topic is a raw id in the URL).
+  // Themes are per-country; refetches on country change. The id→topic map lets the per-card chip
+  // show a recall's theme and filter by its slug; the active-topic chip resolves the slug → label.
   const topics = useTopics(country)
-  const topicLabels = useMemo(
-    () => new Map(topics.data?.map((topic): [number, string] => [topic.id, topic.label]) ?? []),
+  const topicsById = useMemo(
+    () => new Map(topics.data?.map((topic): [number, TopicOut] => [topic.id, topic]) ?? []),
     [topics.data]
   )
-  const activeTopicLabel = filters.topic ? topicLabels.get(Number(filters.topic)) : undefined
+  const activeTopicLabel = filters.topic
+    ? topics.data?.find((topic) => topic.slug === filters.topic)?.label
+    : undefined
+  // Event/outbreak clusters, per country (refetch on country change). The id→event map drives the
+  // per-recall outbreak badge; the active-event chip resolves the slug → label.
+  const events = useEvents(country)
+  const eventsById = useMemo(
+    () => new Map(events.data?.map((event): [number, EventOut] => [event.id, event]) ?? []),
+    [events.data]
+  )
+  const activeEventLabel = filters.event
+    ? events.data?.find((event) => event.slug === filters.event)?.label
+    : undefined
 
   // Year options follow the data, then narrow to whatever the date filter admits (2021–2025 for a
   // 2021-01-05 → 2025-02-03 range), so the chart can't offer a year the filters exclude.
@@ -156,8 +177,13 @@ export function RecallRadar() {
   const fallbackYear = years[0] ?? new Date().getFullYear()
   const selectedYear = year !== null && years.includes(year) ? year : fallbackYear
   const chart = trend.data ? toChartMonths(trend.data, selectedYear) : { months: [], legend: [] }
-  // Source grouping is intentionally omitted for now — only Total + By cause are offered.
-  const groupOptions: SelectOption[] = [TrendGroup.total, TrendGroup.category].map((value) => ({
+  // Source grouping stays omitted; offer total, cause, severity, and classification.
+  const groupOptions: SelectOption[] = [
+    TrendGroup.total,
+    TrendGroup.category,
+    TrendGroup.severity,
+    TrendGroup.classification,
+  ].map((value) => ({
     value,
     label: trendGroupLabels[value],
   }))
@@ -234,6 +260,7 @@ export function RecallRadar() {
         country={country}
         stateOptions={stateOptions}
         topicLabel={activeTopicLabel}
+        eventLabel={activeEventLabel}
         onChange={patch}
         onClear={clearFilters}
       />
@@ -284,6 +311,21 @@ export function RecallRadar() {
         </section>
       )}
 
+      {events.data?.some((event) => event.isOutbreak) && (
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>Outbreaks</h2>
+          <p className={styles.hint}>
+            Clusters of related recalls — a shared pathogen across products, retailers, or
+            companies. Click one to narrow the recalls below to that incident.
+          </p>
+          <Outbreaks
+            events={events.data}
+            activeEvent={filters.event}
+            onSelect={(slug) => patch({ event: slug })}
+          />
+        </section>
+      )}
+
       {stats.data && (
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Breakdowns</h2>
@@ -301,7 +343,7 @@ export function RecallRadar() {
           <Themes
             topics={topics.data}
             activeTopic={filters.topic}
-            onSelect={(id) => patch({ topic: id })}
+            onSelect={(slug) => patch({ topic: slug })}
           />
         </section>
       )}
@@ -327,8 +369,12 @@ export function RecallRadar() {
         {recalls.data && (
           <RecallFeed
             recalls={recalls.data.items}
-            topicLabels={topicLabels}
-            onTopicSelect={(id) => patch({ topic: String(id) })}
+            topicsById={topicsById}
+            onTopicSelect={(slug) => patch({ topic: slug })}
+            activeTopic={filters.topic}
+            eventsById={eventsById}
+            onEventSelect={(slug) => patch({ event: slug })}
+            activeEvent={filters.event}
           />
         )}
         {recalls.data && (

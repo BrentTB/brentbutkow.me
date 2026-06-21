@@ -85,6 +85,28 @@
   outline-offset: 2px;
 }
 
+.outbreakChip {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--danger);
+  background: transparent;
+  color: var(--danger);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.outbreakChip:hover {
+  background: rgba(var(--danger-rgb), 0.1);
+}
+
+.outbreakChip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .confidence {
   font-family: var(--font-mono);
   font-size: 0.72rem;
