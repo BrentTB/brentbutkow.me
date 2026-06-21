@@ -152,6 +152,10 @@ export type Anomaly = {
   series: MonthCount[] // monthly counts over the displayed window, for the chart
 }
 
+// A projected month of overall recall volume with a ~1σ band. A projection, not a record — the
+// counterpart to an anomaly (which only ever describes the past).
+export type ForecastPoint = { month: string; predicted: number; lower: number; upper: number }
+
 export type RecallStats = {
   total: number
   byCategory: CategoryCount[]
@@ -163,6 +167,8 @@ export type RecallStats = {
   bySource: LabelCount[]
   byEntity: EntityCount[]
   anomalies: Anomaly[]
+  // Short-horizon projection of overall volume; empty when history is too short to forecast.
+  forecast: ForecastPoint[]
   lastIngestAt: string | null
 }
 
@@ -259,6 +265,13 @@ const isAnomaly = (value: unknown): value is Anomaly =>
   Array.isArray(value.series) &&
   value.series.every(isMonthCount)
 
+const isForecastPoint = (value: unknown): value is ForecastPoint =>
+  isRecord(value) &&
+  typeof value.month === 'string' &&
+  typeof value.predicted === 'number' &&
+  typeof value.lower === 'number' &&
+  typeof value.upper === 'number'
+
 const isRecall = (value: unknown): value is Recall =>
   isRecord(value) &&
   typeof value.recallNumber === 'string' &&
@@ -352,4 +365,6 @@ export const isRecallStats = (value: unknown): value is RecallStats =>
   value.byEntity.every(isEntityCount) &&
   Array.isArray(value.anomalies) &&
   value.anomalies.every(isAnomaly) &&
+  Array.isArray(value.forecast) &&
+  value.forecast.every(isForecastPoint) &&
   isStringOrNull(value.lastIngestAt)

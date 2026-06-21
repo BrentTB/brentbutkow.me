@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { anomalyCallouts, deriveCallouts } from './trend-callouts'
-import type { Anomaly, RecallStats } from './recall.types'
+import { anomalyCallouts, deriveCallouts, forecastCallout } from './trend-callouts'
+import type { Anomaly, ForecastPoint, RecallStats } from './recall.types'
 
 const baseStats: RecallStats = {
   total: 100,
@@ -28,6 +28,7 @@ const baseStats: RecallStats = {
   bySource: [],
   byEntity: [],
   anomalies: [],
+  forecast: [],
   lastIngestAt: null,
 }
 
@@ -153,5 +154,35 @@ describe('anomalyCallouts', () => {
 
   it('returns nothing for no anomalies', () => {
     expect(anomalyCallouts([])).toEqual([])
+  })
+})
+
+describe('forecastCallout', () => {
+  // baseStats recent complete months (drop in-progress 2026-06) average ~16.7/mo.
+  const upForecast: ForecastPoint[] = [
+    { month: '2026-06', predicted: 24, lower: 18, upper: 30 },
+    { month: '2026-07', predicted: 26, lower: 20, upper: 32 },
+    { month: '2026-08', predicted: 25, lower: 19, upper: 31 },
+  ]
+
+  it('headlines the projected monthly average with a ±band', () => {
+    const callout = forecastCallout(upForecast, baseStats.byMonth)
+    expect(callout?.eyebrow).toBe('Outlook')
+    expect(callout?.value).toBe('~25/mo') // mean of 24, 26, 25
+    expect(callout?.caption).toContain('next 3 months')
+    expect(callout?.caption).toContain('±6') // mean half-width of the bands
+  })
+
+  it('reads direction from the projection vs recent complete months', () => {
+    // Recent complete months (Mar–May) average 20; a ~25 projection is up.
+    expect(forecastCallout(upForecast, baseStats.byMonth)?.direction).toBe('up')
+    const downForecast: ForecastPoint[] = upForecast.map((p) => ({ ...p, predicted: 8 }))
+    const down = forecastCallout(downForecast, baseStats.byMonth)
+    expect(down?.direction).toBe('down')
+    expect(down?.caption).toContain('trending down')
+  })
+
+  it('returns null when there is no forecast', () => {
+    expect(forecastCallout([], baseStats.byMonth)).toBeNull()
   })
 })

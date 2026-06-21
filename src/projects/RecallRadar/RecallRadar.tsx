@@ -28,7 +28,7 @@ import {
   trendGroupLabels,
 } from './data'
 import { deriveYears, formatDate, formatNumber, ingestFreshness } from './chart-format'
-import { anomalyCallouts, deriveCallouts } from './trend-callouts'
+import { anomalyCallouts, deriveCallouts, forecastCallout } from './trend-callouts'
 import { toChartMonths } from './trend-chart'
 import {
   RecallCountry,
@@ -177,6 +177,11 @@ export function RecallRadar() {
   const fallbackYear = years[0] ?? new Date().getFullYear()
   const selectedYear = year !== null && years.includes(year) ? year : fallbackYear
   const chart = trend.data ? toChartMonths(trend.data, selectedYear) : { months: [], legend: [] }
+  // The forecast is overall (unfiltered) volume, so only overlay it when no filter narrows the
+  // chart — grouping is fine, the stack still sums to the same total. Any active filter ⇒ no overlay.
+  const trendFiltered = Object.entries(queryFilters).some(
+    ([key, value]) => key !== 'country' && value !== undefined
+  )
   // Source grouping stays omitted; offer total, cause, severity, and classification.
   const groupOptions: SelectOption[] = [
     TrendGroup.total,
@@ -196,9 +201,15 @@ export function RecallRadar() {
   const topCategory = stats.data?.byCategory.slice().sort((a, b) => b.count - a.count)[0]
   const topState = stats.data?.byState[0]
   const stateOptions = stats.data?.byState.map((entry) => entry.label) ?? []
-  // Backend-detected anomalies lead (they're the ML headline), then the descriptive summaries.
+  // Backend-detected anomalies lead (the ML headline), then the forward-looking outlook, then the
+  // descriptive summaries. The outlook is null when history is too short to forecast.
+  const outlook = stats.data ? forecastCallout(stats.data.forecast, stats.data.byMonth) : null
   const callouts = stats.data
-    ? [...anomalyCallouts(stats.data.anomalies), ...deriveCallouts(stats.data)]
+    ? [
+        ...anomalyCallouts(stats.data.anomalies),
+        ...(outlook ? [outlook] : []),
+        ...deriveCallouts(stats.data),
+      ]
     : []
 
   return (
@@ -295,7 +306,12 @@ export function RecallRadar() {
         {trend.loading && <p className={styles.status}>Loading trend…</p>}
         {trend.error && <p className={styles.status}>Couldn’t load trend data.</p>}
         {trend.data && (
-          <RecallTrendsChart data={chart.months} year={selectedYear} legend={chart.legend} />
+          <RecallTrendsChart
+            data={chart.months}
+            year={selectedYear}
+            legend={chart.legend}
+            forecast={trendFiltered ? undefined : stats.data?.forecast}
+          />
         )}
       </section>
 

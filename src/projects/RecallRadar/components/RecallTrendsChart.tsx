@@ -1,4 +1,5 @@
 import { formatMonthLabel, formatNumber, seriesMax } from '../chart-format'
+import type { ForecastPoint } from '../recall.types'
 import type { ChartMonth, ChartSegment } from '../trend-chart'
 import { ChartTooltip } from './ChartTooltip'
 import { useChartTooltip } from './useChartTooltip'
@@ -8,13 +9,17 @@ type RecallTrendsChartProps = {
   data: ChartMonth[]
   year: number
   legend: ChartSegment[]
+  // Overall-volume projection for the upcoming months; only the points landing in `year` after the
+  // latest actual month are drawn (a ghost bar + band). Pass only on the unfiltered chart, where the
+  // stacked totals represent the same overall series the forecast was fit on.
+  forecast?: ForecastPoint[]
 }
 
 const WIDTH = 720
 const HEIGHT = 240
 const PADDING = { top: 16, right: 12, bottom: 36, left: 44 }
 
-export function RecallTrendsChart({ data, year, legend }: RecallTrendsChartProps) {
+export function RecallTrendsChart({ data, year, legend, forecast }: RecallTrendsChartProps) {
   const { figureRef, tip, showTip, hideTip } = useChartTooltip()
 
   const months = data.slice(-12)
@@ -23,12 +28,28 @@ export function RecallTrendsChart({ data, year, legend }: RecallTrendsChartProps
   }
 
   const totals = months.map((month) => month.segments.reduce((sum, seg) => sum + seg.count, 0))
-  const maxCount = seriesMax(totals)
+  // The last month that actually has recalls — projected bars only appear *after* it, so the
+  // in-progress month keeps its (partial) real bar and the future shows as a ghost.
+  const latestActual = months.reduce(
+    (latest, month, index) => (totals[index] > 0 ? month.month : latest),
+    ''
+  )
+  const forecastByMonth = new Map(
+    (forecast ?? [])
+      .filter((point) => point.month.startsWith(`${year}-`) && point.month > latestActual)
+      .map((point) => [point.month, point])
+  )
+  // Scale over the actual stacks *and* the projection's upper band so neither bars nor whiskers clip.
+  const maxCount = seriesMax([
+    ...totals,
+    ...[...forecastByMonth.values()].map((point) => point.upper),
+  ])
   const plotW = WIDTH - PADDING.left - PADDING.right
   const plotH = HEIGHT - PADDING.top - PADDING.bottom
   const slot = plotW / months.length
   const barW = Math.min(slot * 0.6, 48)
   const stacked = legend.length > 1
+  const y = (count: number) => PADDING.top + plotH - (count / maxCount) * plotH
 
   return (
     <figure className={styles.figure} ref={figureRef}>
@@ -38,6 +59,18 @@ export function RecallTrendsChart({ data, year, legend }: RecallTrendsChartProps
         role="img"
         aria-label={`Monthly food recall counts for ${year}`}
       >
+        <defs>
+          <pattern
+            id="forecastHatch"
+            patternUnits="userSpaceOnUse"
+            width="6"
+            height="6"
+            patternTransform="rotate(45)"
+          >
+            <rect width="6" height="6" className={styles.hatchBg} />
+            <line x1="0" y1="0" x2="0" y2="6" className={styles.hatchLine} />
+          </pattern>
+        </defs>
         <line
           x1={PADDING.left}
           y1={PADDING.top}
@@ -106,6 +139,55 @@ export function RecallTrendsChart({ data, year, legend }: RecallTrendsChartProps
             </g>
           )
         })}
+
+        {months.map((month, index) => {
+          const point = forecastByMonth.get(month.month)
+          if (!point) return null
+          const x = PADDING.left + index * slot + (slot - barW) / 2
+          const cx = x + barW / 2
+          const predicted = Math.round(point.predicted)
+          const text =
+            `${formatMonthLabel(month.month)} · projected ${formatNumber(predicted)} ` +
+            `(range ${formatNumber(Math.round(point.lower))}–${formatNumber(Math.round(point.upper))})`
+          return (
+            <g key={`forecast-${month.month}`}>
+              <rect
+                x={x}
+                y={y(point.predicted)}
+                width={barW}
+                height={Math.max(0, PADDING.top + plotH - y(point.predicted))}
+                rx={3}
+                fill="url(#forecastHatch)"
+                className={styles.forecastBar}
+                aria-label={text}
+                onMouseEnter={showTip(text)}
+                onMouseMove={showTip(text)}
+                onMouseLeave={hideTip}
+              />
+              <line
+                x1={cx}
+                y1={y(point.lower)}
+                x2={cx}
+                y2={y(point.upper)}
+                className={styles.whisker}
+              />
+              <line
+                x1={cx - 5}
+                y1={y(point.upper)}
+                x2={cx + 5}
+                y2={y(point.upper)}
+                className={styles.whisker}
+              />
+              <line
+                x1={cx - 5}
+                y1={y(point.lower)}
+                x2={cx + 5}
+                y2={y(point.lower)}
+                className={styles.whisker}
+              />
+            </g>
+          )
+        })}
       </svg>
 
       {stacked && (
@@ -121,6 +203,13 @@ export function RecallTrendsChart({ data, year, legend }: RecallTrendsChartProps
             </li>
           ))}
         </ul>
+      )}
+
+      {forecastByMonth.size > 0 && (
+        <p className={styles.forecastNote}>
+          <span className={styles.forecastSwatch} aria-hidden="true" />
+          Projected — upcoming months with a typical-error band
+        </p>
       )}
 
       <ChartTooltip tip={tip} />
