@@ -63,6 +63,8 @@ function positionChain(boss: Enemy, linked: Enemy[]): Map<string, { pos: Vec2; v
 export const VOID_WORM_BOSS: BossDefinition = {
   kind: EnemyKind.voidWorm,
   hpBarLabel: 'VOID WORM',
+  warning:
+    'Something is moving through the asteroids ahead: slow, and winding, and we still have not found the end of it.',
   // The attack cycle owns position and velocity; the movement system leaves
   // the head untouched.
   movement: MovementBehavior.none,

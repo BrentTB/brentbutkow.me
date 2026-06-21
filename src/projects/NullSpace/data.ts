@@ -569,6 +569,18 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.11.0',
+    date: '2026-06-21',
+    changes: {
+      features: [
+        'A shop now opens right before every boss — your last chance to spend the Stardust you earned fighting toward it, instead of walking into the fight with a full wallet and nowhere to spend it. It comes with a cryptic anomaly warning: enough for a veteran to know what is coming, enough for a newcomer to know to gear up.',
+      ],
+      ui: [
+        'Redrew the Void Worm boss head — an angled, heavy-browed glare over a gaping fanged maw, in place of the old round-eyed face.',
+      ],
+    },
+  },
+  {
     version: '1.10.1',
     date: '2026-06-21',
     changes: {

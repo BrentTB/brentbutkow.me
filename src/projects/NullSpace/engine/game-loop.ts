@@ -532,9 +532,11 @@ export function beginWarp(state: GameState): GameState {
   }
 }
 
-// Ends the warp in the next sector, then opens the shop. The
-// wave itself isn't spawned until the player leaves the shop (finishUpgradeScreen).
-export function completeWarp(state: GameState): GameState {
+// Advances into the upcoming wave and opens the shop — WITHOUT spawning it (that
+// waits for finishUpgradeScreen). advanceWave only re-lays the field on a level
+// change, so the pre-boss shop (same sector as its boss) keeps the squad and arena
+// intact, while a cross-sector warp landing here gets the fresh sector it built.
+function openUpgradeScreen(state: GameState): GameState {
   const advanced = advanceWave(state)
   return {
     ...advanced,
@@ -543,6 +545,12 @@ export function completeWarp(state: GameState): GameState {
     // Fresh shop → the one salvage re-roll is available again.
     salvageOfferUsed: false,
   }
+}
+
+// Ends the warp in the next sector, then opens the shop. The wave itself isn't
+// spawned until the player leaves the shop (finishUpgradeScreen).
+export function completeWarp(state: GameState): GameState {
+  return openUpgradeScreen(state)
 }
 
 // Drives the warp cutscene each frame (no player control). The sim is suspended
@@ -1461,8 +1469,11 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
       calamityTimer,
       escapeTrailAccumulator,
     }
-    // Sector cleared (every 3rd wave) → warp first; the shop opens once the warp
-    // lands the next sector. Mid-sector waves just wait for the Next Wave button.
+    // A boss waits on the very next wave → open the shop now, with NO warp: the boss
+    // is this sector's finale, so the squad and field have to ride into it (a warp
+    // would wipe both). A fully cleared sector warps to the next one, then shops.
+    // Other mid-sector waves just wait for the Next Wave button.
+    if (isBossWave(state.wave + 1)) return openUpgradeScreen(cleared)
     return isUpgradeWave(state.wave) ? beginWarp(cleared) : cleared
   }
 

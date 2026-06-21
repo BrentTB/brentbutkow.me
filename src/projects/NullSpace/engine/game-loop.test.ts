@@ -46,6 +46,7 @@ import { isBossWave } from './world/waves'
 import { toroidalDistance } from './math/toroid'
 import {
   ANIMATION,
+  BOSS_LEVEL_INTERVAL,
   ENEMY_STATS,
   HAZARD,
   NEBULA,
@@ -372,6 +373,27 @@ describe('updateGameState', () => {
     state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
     expect(state.phase).toBe(GamePhase.warping) // warp first
     expect(completeWarp(state).phase).toBe(GamePhase.upgradeScreen) // then the shop
+  })
+
+  it('opens the shop with no warp on the wave before a boss, squad intact', () => {
+    let state = startGame(createInitialState(), ShipKind.fighter)
+    // The wave right before the first boss wave (boss every WAVES_PER_LEVEL × interval).
+    const preBossWave = WAVES_PER_LEVEL * BOSS_LEVEL_INTERVAL - 1
+    state = {
+      ...state,
+      wave: preBossWave,
+      phase: GamePhase.playing,
+      enemies: [],
+      allies: [createAlly({ x: 0, y: 0 })],
+      spawn: { ...state.spawn, queue: [], total: 1, spawned: 1, waveTimer: 0 },
+    }
+    state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
+    // Straight to the shop — no warp cutscene — with the boss wave now queued up.
+    expect(state.phase).toBe(GamePhase.upgradeScreen)
+    expect(isBossWave(state.wave)).toBe(true)
+    // The boss is this sector's finale, so the squad rides into the fight (a warp
+    // would have wiped it).
+    expect(state.allies).toHaveLength(1)
   })
 
   it('shows correct phase after wave completion', () => {

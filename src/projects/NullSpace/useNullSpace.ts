@@ -153,6 +153,8 @@ export type GameUIState = {
   slingOverheated: boolean
   boss: { hp: number; maxHp: number; label: string } | null
   nextBoss: EnemyKind
+  // Cryptic boss warning shown in the pre-boss shop; null in every other shop.
+  bossWarning: string | null
   // Tutorial overlay state (the demo-wave onboarding). Inactive → tutorialActive false.
   tutorialActive: boolean
   tutorialCopy: string
@@ -249,6 +251,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     slingOverheated: false,
     boss: null,
     nextBoss: gameStateRef.current.bossSelection.nextBoss,
+    bossWarning: null,
     tutorialActive: false,
     tutorialCopy: '',
     tutorialAwaitingAck: false,
@@ -359,6 +362,11 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
         return { ...value, label: def?.hpBarLabel ?? 'BOSS' }
       })(),
       nextBoss: state.bossSelection.nextBoss,
+      // The pre-boss shop (boss queued on the next wave) shows a cryptic heads-up.
+      bossWarning:
+        state.phase === GamePhase.upgradeScreen && isBossWave(state.wave)
+          ? (getBossDefinition(state.bossSelection.nextBoss)?.warning ?? null)
+          : null,
       tutorialActive,
       tutorialCopy: tutorialViewRef.current?.copy ?? '',
       tutorialAwaitingAck: tutorialViewRef.current?.awaitingAck ?? false,

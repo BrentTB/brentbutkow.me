@@ -101,6 +101,8 @@ function renderTelegraph(ctx: CanvasRenderingContext2D, boss: Enemy, camera: Cam
 export const PHASE_SHIFTER_BOSS: BossDefinition = {
   kind: EnemyKind.phaseShifter,
   hpBarLabel: 'PHASE SHIFTER',
+  warning:
+    'The contact keeps slipping off the scope between sweeps: there, then gone, then nearer than before. We have stopped calling it a fault.',
   // Parked between teleports; the teleport cycle moves it.
   movement: MovementBehavior.stationary,
 

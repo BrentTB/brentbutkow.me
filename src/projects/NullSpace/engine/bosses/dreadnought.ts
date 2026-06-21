@@ -79,6 +79,8 @@ function positionGeneratorRing(boss: Enemy, gens: Enemy[]): Map<string, { pos: V
 export const DREADNOUGHT_BOSS: BossDefinition = {
   kind: EnemyKind.dreadnought,
   hpBarLabel: 'DREADNOUGHT',
+  warning:
+    'One contact on the long-range scope, and it has not stopped growing. It has held the same heading since we first saw it: straight for us, and not slowing.',
   // Pursues the ship, then holds at attackRange and lets the generators fight.
   movement: MovementBehavior.approach,
 

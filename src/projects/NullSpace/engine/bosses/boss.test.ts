@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { createEnemy, createProjectile, createShip } from '../entities/entity-creator'
 import { updateEnemyMovement } from '../entities/enemy'
 import { updateBossAI } from './boss-ai'
-import { getBossDefinition } from './index'
+import { BOSS_KINDS, getBossDefinition } from './index'
 import { DREADNOUGHT_BOSS } from './dreadnought'
 import { resolveProjectileEnemyCollisions, updateProjectiles } from '../systems/combat'
 import { damageEnemiesInRadiusFlat } from '../math/aoe'
@@ -322,5 +322,20 @@ describe('invincibility is respected by targeting + AoE', () => {
     const bossAfter = result.enemies.find((e) => e.kind === EnemyKind.dreadnought)!
     expect(bossAfter.hp).toBe(boss.hp) // boss unharmed behind its shield
     expect(result.killedEnemies.some((e) => e.id === gen.id)).toBe(true) // generator destroyed
+  })
+})
+
+describe('boss warnings', () => {
+  it('gives every boss a non-empty pre-boss warning that never names it', () => {
+    for (const kind of BOSS_KINDS) {
+      const def = getBossDefinition(kind)
+      const warning = def?.warning ?? ''
+      expect(warning.length).toBeGreaterThan(0)
+      // Mysterious by design: the clue must not spell out the boss's own name, so a
+      // newcomer still has to go and see what's coming.
+      for (const word of (def?.hpBarLabel ?? '').toUpperCase().split(' ')) {
+        expect(warning.toUpperCase()).not.toContain(word)
+      }
+    }
   })
 })

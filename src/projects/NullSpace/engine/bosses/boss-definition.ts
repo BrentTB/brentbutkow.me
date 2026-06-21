@@ -54,6 +54,9 @@ export type BossUpdateResult = {
 export type BossDefinition = {
   kind: EnemyKind
   hpBarLabel: string
+  // Cryptic, in-fiction heads-up shown in the pre-boss shop. Names no boss — a
+  // veteran reads the clue and knows what's coming; a newcomer just knows to gear up.
+  warning: string
   // How the movement system steers this boss (entity-creator reads it at
   // spawn, so boss movement isn't hard-coded in a central table).
   movement: MovementBehavior
