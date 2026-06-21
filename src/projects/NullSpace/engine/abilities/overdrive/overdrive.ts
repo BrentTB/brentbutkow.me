@@ -4,7 +4,12 @@ import { AbilityKind, EffectKind } from '../../types'
 import type { OverdriveFieldEffect, Vec2 } from '../../types'
 import type { Camera } from '../../../renderer/camera'
 import { worldToScreen } from '../../../renderer/camera'
-import { makeAbilityUpgrade, applyTierSum, type AbilityDefinition } from '../ability-definition'
+import {
+  makeAbilityUpgrade,
+  applyTierSum,
+  applyCostReduction,
+  type AbilityDefinition,
+} from '../ability-definition'
 import type {
   EffectDefinition,
   EffectTickContext,
@@ -18,6 +23,7 @@ export const OVERDRIVE_UPGRADE_IDS = {
   overdriveAmp: 'overdriveAmp',
   overdriveDuration: 'overdriveDuration',
   overdriveRadius: 'overdriveRadius',
+  overdriveCostReduction: 'overdriveCostReduction',
 } as const
 
 const upgrade = makeAbilityUpgrade(AbilityKind.overdrive)
@@ -59,6 +65,16 @@ const radiusUpgrade = upgrade({
   tiers: [
     { cost: 20, value: 30 },
     { cost: 80, value: 50 },
+  ],
+})
+
+const costUpgrade = upgrade({
+  id: OVERDRIVE_UPGRADE_IDS.overdriveCostReduction,
+  label: 'Efficiency',
+  description: 'Reduce overdrive power cost',
+  tiers: [
+    { cost: 24, value: 11 },
+    { cost: 90, value: 12 },
   ],
 })
 
@@ -170,9 +186,10 @@ export const overdrive: AbilityDefinition = {
     damage: applyTierSum(OVERDRIVE.ampMult, upgrades, ampUpgrade),
     duration: applyTierSum(OVERDRIVE.duration, upgrades, durationUpgrade),
     aoeRadius: applyTierSum(OVERDRIVE.radius, upgrades, radiusUpgrade),
+    powerCost: applyCostReduction(OVERDRIVE.powerCost, upgrades, costUpgrade),
   }),
   unlockUpgrade,
-  modifierUpgrades: [ampUpgrade, durationUpgrade, radiusUpgrade],
+  modifierUpgrades: [ampUpgrade, durationUpgrade, radiusUpgrade, costUpgrade],
   ultimate: {
     kind: AbilityKind.overloadCore,
     label: 'Overload Core',

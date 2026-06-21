@@ -5,7 +5,12 @@ import { AbilityKind, EffectKind } from '../../types'
 import type { BlackHoleEffect, Vec2 } from '../../types'
 import type { Camera } from '../../../renderer/camera'
 import { worldToScreen } from '../../../renderer/camera'
-import { makeAbilityUpgrade, applyTierSum, type AbilityDefinition } from '../ability-definition'
+import {
+  makeAbilityUpgrade,
+  applyTierSum,
+  applyCostReduction,
+  type AbilityDefinition,
+} from '../ability-definition'
 import type {
   EffectDefinition,
   EffectTickContext,
@@ -19,6 +24,7 @@ export const BLACK_HOLE_UPGRADE_IDS = {
   blackHoleDamage: 'blackHoleDamage',
   blackHoleDuration: 'blackHoleDuration',
   blackHoleRadius: 'blackHoleRadius',
+  blackHoleCostReduction: 'blackHoleCostReduction',
 } as const
 
 const upgrade = makeAbilityUpgrade(AbilityKind.blackHole)
@@ -62,6 +68,16 @@ const radiusUpgrade = upgrade({
     { cost: 12, value: 25 },
     { cost: 48, value: 40 },
     { cost: 192, value: 70 },
+  ],
+})
+
+const costUpgrade = upgrade({
+  id: BLACK_HOLE_UPGRADE_IDS.blackHoleCostReduction,
+  label: 'Efficiency',
+  description: 'Reduce black hole power cost',
+  tiers: [
+    { cost: 12, value: 4 },
+    { cost: 48, value: 5 },
   ],
 })
 
@@ -207,9 +223,10 @@ export const blackHole: AbilityDefinition = {
     damage: applyTierSum(BLACK_HOLE.damage, upgrades, damageUpgrade),
     duration: applyTierSum(BLACK_HOLE.duration, upgrades, durationUpgrade),
     aoeRadius: applyTierSum(BLACK_HOLE.radius, upgrades, radiusUpgrade),
+    powerCost: applyCostReduction(BLACK_HOLE.powerCost, upgrades, costUpgrade),
   }),
   unlockUpgrade,
-  modifierUpgrades: [damageUpgrade, durationUpgrade, radiusUpgrade],
+  modifierUpgrades: [damageUpgrade, durationUpgrade, radiusUpgrade, costUpgrade],
   ultimate: {
     kind: AbilityKind.eventHorizon,
     label: 'Event Horizon',

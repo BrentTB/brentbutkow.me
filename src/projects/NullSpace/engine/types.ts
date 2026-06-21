@@ -898,6 +898,9 @@ export type GameState = {
   // Seconds left in the warp screen flash. 0 during the fly-into-portal flight;
   // set once the ship reaches the portal, then the jump completes when it hits 0.
   warpFlashTimer: number
+  // Seconds the ship keeps flying under player control after a sector clears, before
+  // the warp begins — so control isn't yanked mid-drift. 0 outside that brief beat.
+  warpDelay: number
   // Seconds until the next ambient calamity (a Shockwave) erupts. Counts down
   // only on non-boss waves; rerolled after each eruption.
   calamityTimer: number

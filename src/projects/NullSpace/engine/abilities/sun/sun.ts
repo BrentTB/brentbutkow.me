@@ -5,7 +5,12 @@ import { AbilityKind, EffectKind } from '../../types'
 import type { SunEffect, Vec2 } from '../../types'
 import type { Camera } from '../../../renderer/camera'
 import { worldToScreen } from '../../../renderer/camera'
-import { makeAbilityUpgrade, applyTierSum, type AbilityDefinition } from '../ability-definition'
+import {
+  makeAbilityUpgrade,
+  applyTierSum,
+  applyCostReduction,
+  type AbilityDefinition,
+} from '../ability-definition'
 import type {
   EffectDefinition,
   EffectTickContext,
@@ -19,6 +24,7 @@ export const SUN_UPGRADE_IDS = {
   sunDamage: 'sunDamage',
   sunDuration: 'sunDuration',
   sunRadius: 'sunRadius',
+  sunCostReduction: 'sunCostReduction',
 } as const
 
 const upgrade = makeAbilityUpgrade(AbilityKind.sun)
@@ -61,6 +67,16 @@ const radiusUpgrade = upgrade({
     { cost: 15, value: 30 },
     { cost: 60, value: 50 },
     { cost: 200, value: 80 },
+  ],
+})
+
+const costUpgrade = upgrade({
+  id: SUN_UPGRADE_IDS.sunCostReduction,
+  label: 'Efficiency',
+  description: 'Reduce sun power cost',
+  tiers: [
+    { cost: 24, value: 12 },
+    { cost: 90, value: 13 },
   ],
 })
 
@@ -170,9 +186,10 @@ export const sun: AbilityDefinition = {
     damage: applyTierSum(SUN.damagePerSec, upgrades, damageUpgrade),
     duration: applyTierSum(SUN.duration, upgrades, durationUpgrade),
     aoeRadius: applyTierSum(SUN.radius, upgrades, radiusUpgrade),
+    powerCost: applyCostReduction(SUN.powerCost, upgrades, costUpgrade),
   }),
   unlockUpgrade,
-  modifierUpgrades: [damageUpgrade, durationUpgrade, radiusUpgrade],
+  modifierUpgrades: [damageUpgrade, durationUpgrade, radiusUpgrade, costUpgrade],
   ultimate: {
     kind: AbilityKind.supernova,
     label: 'Supernova',

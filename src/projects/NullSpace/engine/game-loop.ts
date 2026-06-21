@@ -172,6 +172,7 @@ export function createInitialState(): GameState {
     portalPos: { x: WORLD_SIZE.x / 2, y: WORLD_SIZE.y },
     warpTimer: 0,
     warpFlashTimer: 0,
+    warpDelay: 0,
     calamityTimer: CALAMITY.shockwaveIntervalMin,
     hazards: [],
     asteroids: [],
@@ -239,6 +240,7 @@ export function startGame(state: GameState, shipKind: ShipKind): GameState {
     portalPos: { x: WORLD_SIZE.x / 2, y: WORLD_SIZE.y },
     warpTimer: 0,
     warpFlashTimer: 0,
+    warpDelay: 0,
     calamityTimer: CALAMITY.shockwaveIntervalMin,
     hazards: [],
     asteroids: [],
@@ -503,16 +505,24 @@ export function beginWarp(state: GameState): GameState {
     else if (c.kind === CollectibleKind.singularityShard) singularityShard += c.value
     else power = Math.min(state.maxPower, power + c.value)
   }
-  // Portal spawns ahead of the ship (offscreen), wrapped into the torus.
+  // Portal spawns far ahead along the ship's current heading (its travel direction),
+  // so the fly-in continues straight instead of snapping the ship around. Falls back
+  // to its last heading when it's essentially still — never the fixed "up" axis.
+  const speed = Math.hypot(state.ship.vel.x, state.ship.vel.y)
+  const heading =
+    speed > 1
+      ? { x: state.ship.vel.x / speed, y: state.ship.vel.y / speed }
+      : state.ship.lastHeading
   const portalPos = wrapPosition({
-    x: state.ship.pos.x + state.forwardDir.x * WARP.spawnAhead,
-    y: state.ship.pos.y + state.forwardDir.y * WARP.spawnAhead,
+    x: state.ship.pos.x + heading.x * WARP.spawnAhead,
+    y: state.ship.pos.y + heading.y * WARP.spawnAhead,
   })
   return {
     ...state,
     phase: GamePhase.warping,
     warpTimer: WARP.maxDuration,
     warpFlashTimer: 0,
+    warpDelay: 0,
     portalPos,
     power,
     spaceMetal,
@@ -1474,7 +1484,16 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     // would wipe both). A fully cleared sector warps to the next one, then shops.
     // Other mid-sector waves just wait for the Next Wave button.
     if (isBossWave(state.wave + 1)) return openUpgradeScreen(cleared)
-    return isUpgradeWave(state.wave) ? beginWarp(cleared) : cleared
+    // Sector cleared → don't yank control: keep flying under control for a beat
+    // (WARP.preDelay), then warp. beginWarp places the portal along the ship's
+    // heading, so the fly-in needs no turn. Mid-sector waves wait for Next Wave.
+    if (isUpgradeWave(state.wave)) {
+      const warpDelay = state.warpDelay > 0 ? state.warpDelay - dt : WARP.preDelay
+      return warpDelay <= 0
+        ? beginWarp(cleared)
+        : { ...cleared, phase: GamePhase.playing, warpDelay }
+    }
+    return cleared
   }
 
   return {

@@ -362,7 +362,7 @@ describe('updateGameState', () => {
     expect(tied.isNewHighScore).toBe(false)
   })
 
-  it('warps then shows the upgrade screen after completing the 3rd wave', () => {
+  it('coasts under control, then warps, then shows the upgrade screen on sector clear', () => {
     let state = startGame(createInitialState(), ShipKind.fighter)
     state = { ...state, wave: WAVES_PER_LEVEL, phase: GamePhase.playing }
     state = {
@@ -370,8 +370,15 @@ describe('updateGameState', () => {
       enemies: [],
       spawn: { ...state.spawn, queue: [], total: 1, spawned: 1, waveTimer: 0 },
     }
+    // The frame the last enemy dies: still flying under control, not yet warping.
     state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
-    expect(state.phase).toBe(GamePhase.warping) // warp first
+    expect(state.phase).toBe(GamePhase.playing)
+    expect(state.warpDelay).toBeGreaterThan(0)
+    // Fly out the brief pre-warp coast → the warp begins.
+    for (let i = 0; i < 200 && state.phase === GamePhase.playing; i++) {
+      state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
+    }
+    expect(state.phase).toBe(GamePhase.warping) // warp after the coast
     expect(completeWarp(state).phase).toBe(GamePhase.upgradeScreen) // then the shop
   })
 
@@ -1957,7 +1964,11 @@ describe('updateGameState — sector progression', () => {
         },
       ],
     }
-    const next = updateGameState(state, 0.016, noInput)
+    // Coast through the brief pre-warp beat, then the warp banks the drops.
+    let next = updateGameState(state, 0.016, noInput)
+    for (let i = 0; i < 200 && next.phase === GamePhase.playing; i++) {
+      next = updateGameState(next, 0.016, noInput)
+    }
     expect(next.phase).toBe(GamePhase.warping)
     expect(next.spaceMetal).toBe(2) // banked, not lost to the warp
     expect(next.singularityShard).toBe(1)
@@ -1973,8 +1984,12 @@ describe('updateGameState — sector progression', () => {
       enemies: [],
       spawn: { ...state.spawn, queue: [], total: 1, spawned: 1, waveTimer: 0 },
     }
+    // Coast under control first, then the warp begins.
     state = updateGameState(state, 0.016, noInput)
-    expect(state.phase).toBe(GamePhase.warping) // warp comes first
+    for (let i = 0; i < 200 && state.phase === GamePhase.playing; i++) {
+      state = updateGameState(state, 0.016, noInput)
+    }
+    expect(state.phase).toBe(GamePhase.warping) // warp after the coast
     expect(state.warpTimer).toBeGreaterThan(0)
 
     // Warp lands in the next sector and opens the shop — wave not spawned yet.

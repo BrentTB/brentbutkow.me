@@ -395,6 +395,9 @@ export const SECTOR = {
 // reaches within `arriveRadius`. `maxDuration` is a safety cap if it never lands.
 export const WARP = {
   spawnAhead: 1100,
+  // Beat of free flight (player still in control) after a sector clears, before the
+  // warp cutscene begins — softens the hand-off so control isn't snatched instantly.
+  preDelay: 1,
   // Slow, cinematic fly-in (~2.5× longer than a quick zoom) so the jump reads.
   flySpeed: 480,
   arriveRadius: 70,
@@ -568,6 +571,19 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.12.0',
+    date: '2026-06-21',
+    changes: {
+      features: [
+        'Every ability now has an Efficiency upgrade that trims its power cost — the ones that were missing it (Sun, Black Hole, Chain Lightning, Radiation, Gravity Lure, Overdrive) have one now, and their ultimates inherit it.',
+      ],
+      ui: [
+        'When the speed-up countdown runs out, a brief "Enemies sped up!" sign now flashes instead of the timer simply vanishing — so the lurch reads as a confirmed event.',
+        'Clearing a sector no longer snatches control the instant the last enemy dies: you keep flying for a beat, and the warp portal now opens along your heading so the fly-in never jerks the ship around.',
+      ],
+    },
+  },
   {
     version: '1.11.0',
     date: '2026-06-21',
