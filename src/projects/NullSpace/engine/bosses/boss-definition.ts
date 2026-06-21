@@ -88,9 +88,8 @@ export type BossDefinition = {
   // Gates projectile damage. Return false to absorb the hit without dealing damage.
   canTakeDamage?: (boss: Enemy, enemies: Enemy[]) => boolean
   // Suppresses the cyan damage-gate bubble the renderer draws while
-  // canTakeDamage is false. The worm always hides it (its body IS the shield);
-  // the Phase Shifter hides it mid-shift (the ghost sprite carries
-  // "untouchable" there).
+  // canTakeDamage is false. The Phase Shifter hides it mid-shift — the ghost
+  // sprite already carries "untouchable" there.
   hideShieldBubble?: (boss: Enemy) => boolean
   // Alpha the boss sprite is drawn with — e.g. the Phase Shifter's 0.35 ghost
   // mid-shift. Absent → fully opaque.
@@ -107,12 +106,13 @@ export type BossDefinition = {
   // Called when the boss dies. Returns loot drop specs (positions + velocities).
   onDeath?: (boss: Enemy) => DropSpec[]
   // Aggregate HP for the HUD bar. Default: boss.hp / boss.maxHp. The worm sums
-  // head + alive segments so the bar moves while the head is still damage-gated.
+  // head + alive segments so the bar moves while the body still shields the head.
   hpBarValue?: (boss: Enemy, enemies: Enemy[]) => { hp: number; maxHp: number }
 }
 
-// True while any of the boss's linked entities is still alive. Dreadnought and
-// worm invert this for canTakeDamage.
+// True while any of the boss's linked entities is still alive. The Dreadnought
+// inverts this for canTakeDamage; the worm uses it to reduce head damage while
+// its body segments still shield it.
 export function hasAliveLinked(boss: Enemy, enemies: Enemy[]): boolean {
   if (!boss.boss) return false
   return boss.boss.linkedIds.some((id) => enemies.some((e) => e.id === id && e.hp > 0))

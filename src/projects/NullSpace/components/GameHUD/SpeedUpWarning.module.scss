@@ -87,8 +87,11 @@
   }
 }
 
-// Reduced motion: keep the fade, drop the scale pop.
+// Reduced motion: stop the countdown pulse, swap the sped-up pop for a plain fade.
 @media (prefers-reduced-motion: reduce) {
+  .warning {
+    animation: none;
+  }
   .spedUp {
     animation: spedUpFade 2.5s ease-out forwards;
   }
