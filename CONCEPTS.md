@@ -1,6 +1,6 @@
 # CONCEPTS
 
-Hand-curated cross-reference: idea → entry-point files. Pairs with auto-generated [REPO_MAP.md](REPO_MAP.md) (file → exports) and [CLAUDE.md](CLAUDE.md) (rules). Use this to find _where_ a concept lives before opening source.
+Hand-curated cross-reference: idea → entry-point files. Pairs with [CLAUDE.md](CLAUDE.md) (rules). Use this to find _where_ a concept lives before opening source.
 
 ## Dual personality (Professional ↔ Fun)
 
@@ -62,7 +62,7 @@ Full HTML5 game with engine, systems, abilities, semver changelog. Lives at [src
 
 ## Test gates (cannot bypass)
 
-[.husky/pre-commit](.husky/pre-commit) runs: `typecheck:fast` → eslint staged → vitest related → prettier → REPO_MAP refresh. Every hook ships with a colocated test; every bug fix ships with a regression test.
+[.husky/pre-commit](.husky/pre-commit) runs: `typecheck:fast` → eslint staged → vitest related → prettier. Every hook ships with a colocated test; every bug fix ships with a regression test.
 
 ## External entry points
 

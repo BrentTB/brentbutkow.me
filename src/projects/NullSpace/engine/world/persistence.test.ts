@@ -268,6 +268,23 @@ describe('saveGame / loadGame / clearSave', () => {
     expect(loaded?.state.calamityTimer).toBe(4.2)
   })
 
+  // Guards the loadGame ship backfill: a save written before wormContactCooldown
+  // existed must load with it defaulted to 0, not undefined — the loop subtracts dt
+  // from it each frame, so undefined would go NaN and permanently disable the Void
+  // Worm contact i-frame (the gate `cooldown <= 0` is false for NaN forever).
+  it('backfills ship.wormContactCooldown on a save written before it existed', () => {
+    saveGame(createInitialState(), 1)
+    const raw = JSON.parse(localStorage.getItem('null-space-save')!) as {
+      version: number
+      rngState: number
+      state: { ship: Record<string, unknown> } & Record<string, unknown>
+    }
+    delete raw.state.ship.wormContactCooldown
+    localStorage.setItem('null-space-save', JSON.stringify(raw))
+
+    expect(loadGame()?.state.ship.wormContactCooldown).toBe(0)
+  })
+
   // Guards the post-clear warp coast surviving a save: warpDelay is a plain state
   // field, so a stale `...state` spread in save/load would silently drop it.
   it('round-trips warpDelay', () => {

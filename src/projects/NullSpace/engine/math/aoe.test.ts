@@ -68,3 +68,42 @@ describe('damageEnemiesInRadiusFlat', () => {
     expect(result.enemies[0]?.hp).toBe(enemy.hp)
   })
 })
+
+describe('Void Worm segment falloff (burst AoE)', () => {
+  const center = { x: 100, y: 100 }
+  // Damage taken by an enemy id, given its starting hp.
+  const dmg = (result: { enemies: { id: string; hp: number }[] }, id: string, base: number) =>
+    base - (result.enemies.find((e) => e.id === id)?.hp ?? 0)
+
+  it('deals diminishing damage to each further segment in one burst', () => {
+    const near = createEnemy(EnemyKind.wormSegment, { x: 105, y: 100 })
+    const mid = createEnemy(EnemyKind.wormSegment, { x: 120, y: 100 })
+    const far = createEnemy(EnemyKind.wormSegment, { x: 140, y: 100 })
+    // Fed out of distance order — falloff ranks by distance, not array order.
+    const result = damageEnemiesInRadiusFlat([far, near, mid], center, 60, 50)
+    const dNear = dmg(result, near.id, near.hp)
+    const dMid = dmg(result, mid.id, mid.hp)
+    const dFar = dmg(result, far.id, far.hp)
+    expect(dNear).toBeCloseTo(50, 5) // nearest takes the full hit
+    expect(dNear).toBeGreaterThan(dMid)
+    expect(dMid).toBeGreaterThan(dFar)
+  })
+
+  it('leaves non-segment clusters at full damage', () => {
+    const a = createEnemy(EnemyKind.tank, { x: 105, y: 100 })
+    const b = createEnemy(EnemyKind.tank, { x: 140, y: 100 })
+    const result = damageEnemiesInRadiusFlat([a, b], center, 60, 20)
+    expect(dmg(result, a.id, a.hp)).toBe(20)
+    expect(dmg(result, b.id, b.hp)).toBe(20)
+  })
+
+  it('does not apply falloff on the DOT path (every segment takes full)', () => {
+    const near = createEnemy(EnemyKind.wormSegment, { x: 105, y: 100 })
+    const far = createEnemy(EnemyKind.wormSegment, { x: 140, y: 100 })
+    const result = damageEnemiesInRadius([near, far], center, 60, 100, 0.1)
+    const dNear = dmg(result, near.id, near.hp)
+    const dFar = dmg(result, far.id, far.hp)
+    expect(dNear).toBeGreaterThan(0)
+    expect(dNear).toBeCloseTo(dFar, 5)
+  })
+})

@@ -68,6 +68,7 @@ const ENEMY_SPRITE: Record<EnemyKind, SpriteKey> = {
   [EnemyKind.shieldGenerator]: SpriteKey.shieldGenerator,
   [EnemyKind.voidWorm]: SpriteKey.voidWormBoss,
   [EnemyKind.wormSegment]: SpriteKey.wormSegment,
+  [EnemyKind.miniVoidWorm]: SpriteKey.miniVoidWorm,
   [EnemyKind.phaseShifter]: SpriteKey.phaseShifterBoss,
 }
 

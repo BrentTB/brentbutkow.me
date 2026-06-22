@@ -9,6 +9,12 @@ describe('waveStatScale', () => {
     expect(waveStatScale(1)).toEqual({ hp: 1, damage: 1 })
   })
 
+  // Guards the `Math.max(0, wave - 1)` floor: wave 0 (dev/test spawns) must stay at
+  // ×1.0, never dipping below 1 into a shrink multiplier.
+  it('floors at ×1.0 for wave 0', () => {
+    expect(waveStatScale(0)).toEqual({ hp: 1, damage: 1 })
+  })
+
   it('scales HP much harder than damage', () => {
     const steps = 19 // wave 20
     const s = waveStatScale(20)
@@ -49,8 +55,16 @@ describe('scaleEnemy', () => {
     expect(scaled.hp).toBeCloseTo(scaled.maxHp)
   })
 
-  it('leaves bosses untouched', () => {
+  it('scales bosses on the same curve and stamps their spawn wave', () => {
     const boss = createEnemy(EnemyKind.dreadnought, { x: 0, y: 0 })
-    expect(scaleEnemy(boss, 30)).toEqual(boss)
+    const scaled = scaleEnemy(boss, 30)
+    const mult = waveStatScale(30)
+    expect(scaled.hp).toBeCloseTo(boss.hp * mult.hp)
+    expect(scaled.maxHp).toBeCloseTo(boss.maxHp * mult.hp)
+    expect(scaled.damage).toBeCloseTo(boss.damage * mult.damage)
+    // bossTier reads spawnWave to grow the boss's signature mechanic.
+    expect(scaled.boss?.spawnWave).toBe(30)
+    // The source runtime isn't mutated.
+    expect(boss.boss?.spawnWave).toBe(0)
   })
 })

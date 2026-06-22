@@ -6,9 +6,8 @@ playful.
 
 ## Codebase navigation
 
-Before grepping or spawning Explore for "where is X" — check these two first:
+Before grepping or spawning Explore for "where is X" — check this first:
 
-- [REPO_MAP.md](REPO_MAP.md) — auto-generated file → exports index (kept fresh by Husky pre-commit). Locate any symbol or file here.
 - [CONCEPTS.md](CONCEPTS.md) — hand-curated concept → entry-point map (Fun toggle, routing, editorial layout, Null Space, etc.).
 
 Scoped instructions live in nested `CLAUDE.md` files — load on demand when you touch those areas:

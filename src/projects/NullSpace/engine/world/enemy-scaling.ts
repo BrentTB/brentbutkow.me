@@ -13,15 +13,18 @@ export function waveStatScale(wave: number): { hp: number; damage: number } {
 }
 
 // Scales a freshly-created enemy's HP and contact damage for the wave it spawns
-// in. Bosses are scripted encounters tuned by hand, so they pass through
-// untouched. Applied at spawn, before any modifier roll.
+// in. Bosses scale on the same curve so a late-game boss (and the body parts
+// boss-ai spawns for it) endures and bites harder; the boss also gets its spawn
+// wave stamped onto its runtime, which bossTier reads to grow its signature
+// mechanic. Applied at spawn, before any modifier roll.
 export function scaleEnemy(enemy: Enemy, wave: number): Enemy {
-  if (enemy.boss) return enemy
   const mult = waveStatScale(wave)
-  return {
+  const scaled: Enemy = {
     ...enemy,
     hp: enemy.hp * mult.hp,
     maxHp: enemy.maxHp * mult.hp,
     damage: enemy.damage * mult.damage,
   }
+  if (enemy.boss) scaled.boss = { ...enemy.boss, spawnWave: wave }
+  return scaled
 }

@@ -213,6 +213,16 @@ export function selectionAfterSalvage(
   return getUnlockedAbilitiesInOrder(abilities, ultimatesOwned)[0]?.kind ?? AbilityKind.meteorite
 }
 
+// Whether to republish the HUD this frame. Always during the actively-animating
+// phases — playing, and the warp cutscene where loot still flies in and the
+// currency counters change — plus on any phase change or click. Static screens
+// (shop, game over, menu) don't churn React state every frame.
+export function shouldSyncUI(phase: GamePhase, prevPhase: GamePhase, hasClicks: boolean): boolean {
+  return (
+    phase !== prevPhase || hasClicks || phase === GamePhase.playing || phase === GamePhase.warping
+  )
+}
+
 export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null>) {
   const gameStateRef = useRef<GameState>(createInitialState())
 
@@ -975,11 +985,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       }
 
       const state = gameStateRef.current
-      if (
-        state.phase !== prevPhase ||
-        input.clicks.length > 0 ||
-        state.phase === GamePhase.playing
-      ) {
+      if (shouldSyncUI(state.phase, prevPhase, input.clicks.length > 0)) {
         syncUI(state)
       }
 

@@ -123,6 +123,32 @@ describe('Phase Shifter — teleport cycle', () => {
   })
 })
 
+describe('Phase Shifter — depth scaling', () => {
+  // The swarm ring spawned by a shifter that arrived on the given wave.
+  function ringAtWave(spawnWave: number): Enemy[] {
+    const boss = shifterWith(ShifterStage.telegraph, 0.001)
+    const deep = { ...boss, boss: { ...shifterState(boss), spawnWave } }
+    return tick([deep]).spawned
+  }
+
+  it('drops a bigger ring and mixes in drones the later it appears', () => {
+    const shallow = ringAtWave(0) // tier 1
+    const deep = ringAtWave(27) // tier 3
+    expect(deep.length).toBeGreaterThan(shallow.length)
+    expect(shallow.every((e) => e.kind === EnemyKind.swarm)).toBe(true)
+    expect(deep.some((e) => e.kind === EnemyKind.drone)).toBe(true)
+  })
+
+  it('only ever spawns fast units (a slow kind would pop unfairly on teleport)', () => {
+    const fast = new Set<EnemyKind>([EnemyKind.swarm, EnemyKind.drone])
+    expect(ringAtWave(45).every((e) => fast.has(e.kind))).toBe(true)
+  })
+
+  it('caps the ring size', () => {
+    expect(ringAtWave(99999).length).toBeLessThanOrEqual(PHASE_SHIFTER.maxRingCountP1)
+  })
+})
+
 describe('PHASE_SHIFTER_BOSS onDeath', () => {
   it('drops 1–4 space metal collectibles', () => {
     const boss = createEnemy(EnemyKind.phaseShifter, CENTER)

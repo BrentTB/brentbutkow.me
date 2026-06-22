@@ -16,8 +16,7 @@
     "test:watch": "vitest",
     "prepare": "husky",
     "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "repo-map": "node scripts/generate-repo-map.mjs"
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@vercel/analytics": "^1.6.1",
