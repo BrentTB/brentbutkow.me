@@ -1,7 +1,9 @@
-// Sticky left rail (desktop). Sits below the sticky site navbar (~68px) + a little breathing room.
+// Sticky left rail (desktop). Sits below Recall Radar's sticky control bar — whose height is
+// published as --rr-bar-height (it grows with the chips row / expanded filters) — plus a little
+// breathing room. Falls back to a sensible default before the bar is measured.
 .rail {
   position: sticky;
-  top: 96px;
+  top: calc(var(--rr-bar-height, 110px) + 14px);
   align-self: start;
   display: flex;
   flex-direction: column;

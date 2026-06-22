@@ -1,10 +1,11 @@
-import { Link, NavLink } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import { routePaths, routes } from '../../routes/routes.config'
 import styles from './Navbar.module.scss'
 import { ModeToggle } from '../ModeToggle'
 import { useFunMode } from '../../contexts/useFunMode'
-import { useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { useFocusTrap } from './useFocusTrap'
+import { useStickyHeader } from './useStickyHeader'
 
 export function Navbar() {
   const { isFunMode, setIsFunMode } = useFunMode()
@@ -12,6 +13,29 @@ export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const navbarRef = useRef<HTMLElement>(null)
   const toggleRef = useRef<HTMLButtonElement>(null)
+  const { navHidden } = useStickyHeader()
+  const { pathname } = useLocation()
+
+  // Auto-hide is scoped to Recall Radar: that page has its own minimal sticky bar that takes over as
+  // you scroll into the data, so the site navbar steps out of the way (and slides back on scroll-up).
+  // Every other page keeps the navbar permanently in view. Never retract while the mobile menu is
+  // open — it's full-height, and yanking it shut mid-interaction would be hostile.
+  const autoHides = pathname.startsWith(routePaths.recallRadar)
+  const retracted = autoHides && navHidden && !isMobileMenuOpen
+
+  // Publish the bar's height so Recall Radar's sticky bar can sit exactly beneath it — and slide up
+  // to fill the gap when it retracts. Measured after layout, re-measured on resize (the bar's height
+  // shifts across breakpoints). offsetHeight is 0 without layout (jsdom), so the guard keeps the CSS
+  // fallback in tests.
+  useLayoutEffect(() => {
+    const publish = () => {
+      const height = navbarRef.current?.offsetHeight
+      if (height) document.documentElement.style.setProperty('--site-nav-height', `${height}px`)
+    }
+    publish()
+    window.addEventListener('resize', publish)
+    return () => window.removeEventListener('resize', publish)
+  }, [])
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false)
 
@@ -26,7 +50,10 @@ export function Navbar() {
 
   return (
     <>
-      <header ref={navbarRef} className={`${styles.navbar} ${openStyle}`}>
+      <header
+        ref={navbarRef}
+        className={`${styles.navbar} ${openStyle} ${retracted ? styles.retracted : ''}`}
+      >
         <Link to={routePaths.home} className={styles.brand} onClick={closeMobileMenu}>
           <span className={styles.prompt} aria-hidden="true">
             &gt;

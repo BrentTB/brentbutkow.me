@@ -151,7 +151,7 @@ describe('RecallRadar page', () => {
     // tech-stack overview + methodology render immediately (not data-gated)
     expect(screen.getByText('FastAPI')).toBeTruthy()
     expect(screen.getByText('How it works')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'United Kingdom' })).toBeTruthy() // country selector
+    expect(screen.getByRole('button', { name: 'United Kingdom' })).toBeTruthy() // location tabs (expanded)
 
     // data-driven sections after the fetch resolves
     await waitFor(() => expect(screen.getByText('Test cookies')).toBeTruthy())

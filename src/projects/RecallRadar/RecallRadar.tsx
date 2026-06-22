@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { useLayoutEffect, useMemo, useRef } from 'react'
 import { PageLayout } from '../../components/PageFormatting/PageLayout'
 import { PageHeader } from '../../components/PageFormatting/PageHeader'
 import { SafeLink } from '../../components/utils/SafeLink'
@@ -6,7 +6,7 @@ import { getLinkArrow } from '../../components/utils/link-arrow'
 import { useFunMode } from '../../contexts/useFunMode'
 import { useDebouncedValue } from '../../api/useDebouncedValue'
 import { Breakdowns } from './components/Breakdowns'
-import { CountrySelector } from './components/CountrySelector'
+import { LocationSelector } from './components/LocationSelector'
 import { Pagination } from './components/Pagination'
 import { ProjectOverview } from './components/ProjectOverview'
 import { RecallFeed } from './components/RecallFeed'
@@ -15,7 +15,7 @@ import { RecallMap } from './components/RecallMap'
 import { RecallTrendsChart } from './components/RecallTrendsChart'
 import { SeverityBar } from './components/SeverityBar'
 import { SectionNav, type NavSection } from './components/SectionNav'
-import { StatCard } from './components/StatCard'
+import { StatusStrip } from './components/StatusStrip'
 import { TrendCallouts } from './components/TrendCallouts'
 import { HelpHint } from './components/HelpHint'
 import { Themes } from './components/Themes'
@@ -29,7 +29,7 @@ import {
   sortLabels,
   trendGroupLabels,
 } from './data'
-import { deriveYears, formatDate, formatNumber, ingestFreshness } from './chart-format'
+import { deriveYears, formatNumber, ingestFreshness } from './chart-format'
 import { anomalyCallouts, deriveCallouts, forecastCallout } from './trend-callouts'
 import { toChartMonths } from './trend-chart'
 import {
@@ -54,6 +54,7 @@ import { useRecallStats } from './useRecallStats'
 import { useRecallTrend } from './useRecallTrend'
 import { useTopics } from './useTopics'
 import { useEvents } from './useEvents'
+import { useStickyHeader } from '../../components/navbar/useStickyHeader'
 import styles from './RecallRadar.module.scss'
 
 const EMPTY_FILTERS: RecallFilterValues = {
@@ -88,6 +89,27 @@ const PAGE_SIZE = 20
 export function RecallRadar() {
   const { isFunMode } = useFunMode()
   const { values, patch: patchParams } = useQueryParamsState(DEFAULT_PARAMS)
+  // Drives the sticky bar: `collapsed` swaps the location tabs for a dropdown once scrolled;
+  // `navHidden` (shared with the site navbar's auto-hide) decides whether the bar sits below the
+  // retracting navbar or slides up to the top to fill the gap.
+  const { collapsed, navHidden } = useStickyHeader()
+
+  // The sticky bar's height changes with the chips row and the More-filters panel, so publish it and
+  // let the section rail + anchor offsets clear it dynamically — a fixed guess overflows the moment a
+  // chip wraps or the panel expands.
+  const barRef = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    const el = barRef.current
+    if (!el) return
+    const publish = () => {
+      document.documentElement.style.setProperty('--rr-bar-height', `${el.offsetHeight}px`)
+    }
+    publish()
+    if (typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(publish)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
   // URL strings → typed UI state, validated rather than cast (query params are untrusted input).
   const country = isRecallCountry(values.location) ? values.location : RecallCountry.us
@@ -241,32 +263,37 @@ export function RecallRadar() {
       <PageHeader title={recallRadarCopy.title} showBackButton />
       <p className={styles.intro}>{isFunMode ? recallRadarCopy.introFun : recallRadarCopy.intro}</p>
 
-      <div className={styles.topBar}>
-        <CountrySelector value={country} onChange={changeCountry} />
-        {freshness && (
-          <span className={`${styles.freshness} ${freshness.stale ? styles.stale : ''}`}>
-            {freshness.label}
-          </span>
-        )}
-        <button
-          type="button"
-          className={styles.techStackLink}
-          onClick={() => document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' })}
-        >
-          {recallRadarCopy.techStackPrompt}
-        </button>
+      {/* Sticky control bar: a minimal heading + location scope on top, the filters beneath. Sits
+          just under the site navbar, and slides up to the top when that navbar retracts on
+          scroll-down (the `top` follows the shared navHidden signal). */}
+      <div
+        ref={barRef}
+        className={styles.stickyBar}
+        style={{ top: navHidden ? 0 : 'var(--site-nav-height, 68px)' }}
+      >
+        <div className={styles.barHead}>
+          {/* The minimal title appears only once scrolled — at the top, the PageHeader already
+              names the page, so showing it here too would just be noise. */}
+          {collapsed && (
+            <span className={styles.barTitle}>
+              <span className={styles.barBlip} aria-hidden="true" />
+              Recall Radar
+            </span>
+          )}
+          <div className={styles.barLocation}>
+            <LocationSelector value={country} collapsed={collapsed} onChange={changeCountry} />
+          </div>
+        </div>
+        <RecallFilters
+          filters={filters}
+          country={country}
+          stateOptions={stateOptions}
+          topicLabel={activeTopicLabel}
+          eventLabel={activeEventLabel}
+          onChange={patch}
+          onClear={clearFilters}
+        />
       </div>
-
-      <RecallFilters
-        filters={filters}
-        country={country}
-        stateOptions={stateOptions}
-        topicLabel={activeTopicLabel}
-        eventLabel={activeEventLabel}
-        onChange={patch}
-        onClear={clearFilters}
-      />
-      <p className={styles.hint}>Filters apply to every section below.</p>
 
       <div className={styles.layout}>
         <SectionNav sections={navSections} />
@@ -274,31 +301,17 @@ export function RecallRadar() {
           <section id="overview" className={styles.section}>
             {stats.data && (
               <>
-                <div className={styles.stats}>
-                  <StatCard label="Recalls tracked" value={formatNumber(stats.data.total)} />
-                  {topCategory && (
-                    <StatCard
-                      label="Most common cause"
-                      value={categoryLabels[topCategory.category]}
-                      hint={`${formatNumber(topCategory.count)} recalls`}
-                    />
-                  )}
-                  {topState && (
-                    <StatCard
-                      label="Top state"
-                      value={topState.label}
-                      hint={`${formatNumber(topState.count)} recalls`}
-                    />
-                  )}
-                  <StatCard
-                    label="Last updated"
-                    value={
-                      stats.data.lastIngestAt
-                        ? formatDate(stats.data.lastIngestAt.slice(0, 10))
-                        : '—'
-                    }
-                  />
-                </div>
+                <StatusStrip
+                  total={stats.data.total}
+                  topCategoryLabel={topCategory ? categoryLabels[topCategory.category] : undefined}
+                  topCategoryPct={
+                    topCategory && stats.data.total > 0
+                      ? Math.round((topCategory.count / stats.data.total) * 100)
+                      : undefined
+                  }
+                  topState={topState?.label}
+                  freshness={freshness}
+                />
                 <SeverityBar data={stats.data.bySeverity} />
               </>
             )}

@@ -54,6 +54,7 @@ src/components/inputs/
 src/components/navbar/
   Navbar.tsx                                 Navbar
   useFocusTrap.ts                            useFocusTrap
+  useStickyHeader.ts                         StickyHeaderState, useStickyHeader
 
 src/components/utils/
   SafeLink.tsx                               SafeLink
@@ -427,8 +428,8 @@ src/projects/RecallRadar/components/
   Breakdowns.tsx                             BreakdownList, Breakdowns
   ChartTooltip.tsx                           TooltipState, ChartTooltip
   CompanyFilter.tsx                          CompanyFilter
-  CountrySelector.tsx                        CountrySelector
   HelpHint.tsx                               HelpHint
+  LocationSelector.tsx                       LocationSelector
   Outbreaks.tsx                              Outbreaks
   Pagination.tsx                             Pagination
   ProjectOverview.tsx                        ProjectOverview
@@ -439,14 +440,14 @@ src/projects/RecallRadar/components/
   RelatedRecalls.tsx                         RelatedRecalls
   SectionNav.tsx                             NavSection, SectionNav
   SeverityBar.tsx                            SeverityBar
-  StatCard.tsx                               StatCard
+  StatusStrip.tsx                            StatusStrip
   Themes.tsx                                 Themes
   TrendCallouts.tsx                          TrendCallouts
   page-window.ts                             PageSlot, pageWindow
   useChartTooltip.ts                         useChartTooltip
 
 src/projects/RecallRadar/
-  data.ts                                    recallRadarCopy, techStack, methodologyPoints, methodologySimple, categoryLabels, sourceLabels, countryLabels, entityTypeLabels, trendGroupLabels, severityLabels, severityOrder, severityColors, sortLabels, trendColor, classesByCountry, sourcesByCountry, recallRadarLinks
+  data.ts                                    recallRadarCopy, techStack, methodologyPoints, methodologySimple, categoryLabels, sourceLabels, countryLabels, countryFlags, entityTypeLabels, trendGroupLabels, severityLabels, severityOrder, severityColors, sortLabels, trendColor, classesByCountry, sourcesByCountry, recallRadarLinks
   recall.types.ts                            RecallCategory, RecallClass, RecallSource, RecallCountry, EntityType, AnomalyScope, TrendGroup, SeverityLabel, RecallSort, RecallFilterValues, Recall, RecallEntity, RecallListResult, TopicOut, SimilarRecall, EventOut, CategoryCount, MonthCount, LabelCount, EntityCount, AnomalyMonth, Anomaly, ForecastPoint, RecallStats, TrendBucket, TrendResult, isRecallCategory, isRecallClass, isRecallSource, isRecallCountry, isEntityType, isTrendGroup, isSeverityLabel, isRecallSort, isIsoDate, isTrendResult, isRecall, isRecallListResult, isTopicOut, isTopicOutArray, isEventOut, isEventOutArray, isSimilarRecallArray, isRecallStats
   trend-callouts.ts                          TrendDirection, TrendCallout, deriveCallouts, forecastCallout, anomalyCallouts
   trend-chart.ts                             ChartSegment, ChartMonth, toChartMonths
