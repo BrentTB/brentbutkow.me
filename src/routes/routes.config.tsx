@@ -63,24 +63,32 @@ export const funStuffRoutes: AppRoute[] = [
     element: <GamesPage />,
     dontShowInNavbar: true,
     title: 'Games — Brent Butkow',
+    description:
+      'Browser games and interactive experiments by Brent Butkow, playable right in your browser.',
   },
   {
     path: `${gamesPath}${gamesSubRoutes.nullSpace}`,
     element: <NullSpace />,
     dontShowInNavbar: true,
     title: 'Null Space — Brent Butkow',
+    description:
+      'Null Space — a browser space-defense game where you bend space itself: launch meteors, open black holes, and warp reality to protect your ship.',
   },
   {
     path: `${routePaths.funStuff}${funStuffSubRoutes.gulagSort}`,
     element: <GulagSort />,
     dontShowInNavbar: true,
     title: 'Gulag Sort — Brent Butkow',
+    description:
+      'Gulag Sort — a self-developed sorting algorithm by Brent Butkow, riffing on the joke Stalin sort.',
   },
   {
     path: `${routePaths.funStuff}${funStuffSubRoutes.courseProjects}`,
     element: <CourseProjects />,
     dontShowInNavbar: true,
     title: 'Course Projects — Brent Butkow',
+    description:
+      'A collection of software projects Brent Butkow built during school and university.',
   },
 ]
 
@@ -92,30 +100,40 @@ export const routes: AppRoute[] = [
     dontShowInNavbar: true,
     label: 'Home',
     title: 'Brent Butkow — Full-stack engineer',
+    description:
+      'Full-stack engineer at Foodcomply. Building cloud infrastructure and web apps, with a side of wacky projects and dad jokes.',
   },
   {
     path: routePaths.experience,
     element: <ExperiencePage />,
     label: 'Experience',
     title: 'Experience — Brent Butkow',
+    description:
+      'The professional experience of Brent Butkow — full-stack and cloud engineering roles, the stacks used, and what was shipped.',
   },
   {
     path: routePaths.education,
     element: <EducationPage />,
     label: 'Education',
     title: 'Education — Brent Butkow',
+    description:
+      'The education and academic background of Brent Butkow in software and engineering.',
   },
   {
     path: routePaths.achievements,
     element: <AchievementsPage />,
     label: 'Achievements',
     title: 'Achievements — Brent Butkow',
+    description:
+      'Awards, recognition, and standout achievements from the studies and career of Brent Butkow.',
   },
   {
     path: routePaths.projects,
     element: <ProjectsPage />,
     label: 'Projects',
     title: 'Projects — Brent Butkow',
+    description:
+      'Software projects built by Brent Butkow, including Recall Radar — a live US, UK, and SA food-recall dashboard.',
   },
   {
     // Reached via the Projects page, not a top-level nav tab.
@@ -123,6 +141,8 @@ export const routes: AppRoute[] = [
     element: <RecallRadar />,
     dontShowInNavbar: true,
     title: 'Recall Radar — Brent Butkow',
+    description:
+      'Recall Radar — a live US, UK, and SA food-recall dashboard. A FastAPI and ML pipeline ingests FDA, USDA FSIS, and UK FSA data daily.',
   },
   {
     // Dedicated page for a single recall, reached by clicking a recall in the feed or a related one.
@@ -130,23 +150,29 @@ export const routes: AppRoute[] = [
     element: <RecallDetail />,
     dontShowInNavbar: true,
     title: 'Recall — Recall Radar',
+    description:
+      'A single food-recall record on Recall Radar — full details, ML classification, and related recalls.',
   },
   {
     path: routePaths.funStuff,
     element: <FunStuffPage />,
     label: 'Fun Stuff',
     title: 'Fun Stuff — Brent Butkow',
+    description:
+      'Side projects, experiments, and playful builds by Brent Butkow — browser games, a joke sorting algorithm, and more.',
   },
   {
     path: routePaths.contact,
     element: <ContactMePage />,
     label: 'Contact Me',
     title: 'Contact — Brent Butkow',
+    description: 'Get in touch with Brent Butkow — email, GitHub, LinkedIn, and more.',
   },
   {
     path: routePaths.notFound,
     element: <NotFoundPage />,
     dontShowInNavbar: true,
     title: 'Page not found — Brent Butkow',
+    description: 'The page you are looking for does not exist.',
   },
 ]

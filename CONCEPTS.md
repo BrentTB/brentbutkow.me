@@ -19,7 +19,7 @@ Add a page = edit one config file. Nav, router, doc-title, 404 all derive.
 
 - Config: [src/routes/routes.config.tsx](src/routes/routes.config.tsx) — exports `routePaths`, `routes`
 - Renderer: [src/routes/Router.tsx](src/routes/Router.tsx)
-- Doc-title sync: [src/routes/useDocumentTitle.ts](src/routes/useDocumentTitle.ts)
+- Head/SEO sync (title, description, canonical, OG): [src/routes/useRouteMeta.ts](src/routes/useRouteMeta.ts)
 - Nav reuses config: [src/components/navbar/Navbar.tsx](src/components/navbar/Navbar.tsx) (filters `dontShowInNavbar`)
 
 ## Content/JSX separation

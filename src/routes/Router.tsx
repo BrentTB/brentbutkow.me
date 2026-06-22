@@ -1,10 +1,10 @@
 import { Route, Routes } from 'react-router-dom'
 import { Suspense } from 'react'
 import { routes } from './routes.config'
-import { useDocumentTitle } from './useDocumentTitle'
+import { useRouteMeta } from './useRouteMeta'
 
 export function Router() {
-  useDocumentTitle()
+  useRouteMeta()
 
   return (
     <Suspense fallback={null}>

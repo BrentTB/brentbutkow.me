@@ -13,6 +13,12 @@ describe('routes config', () => {
     }
   })
 
+  it('gives every route a meta description', () => {
+    for (const route of routes) {
+      expect(route.description, `route ${route.path} is missing a description`).toBeTruthy()
+    }
+  })
+
   it('labels every route shown in the navbar', () => {
     const navRoutes = routes.filter((route) => !route.dontShowInNavbar)
     expect(navRoutes.length).toBeGreaterThan(0)
