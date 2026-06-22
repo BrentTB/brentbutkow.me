@@ -23,7 +23,7 @@ function keysFor(group: TrendGroup): string[] {
   if (group === TrendGroup.category) return Object.values(RecallCategory)
   if (group === TrendGroup.source) return Object.values(RecallSource)
   if (group === TrendGroup.severity) return Object.values(SeverityLabel)
-  // Both countries' classes (filtered to present), plus the coalesced-null segment.
+  // Every country's classes (filtered to present), plus the coalesced-null segment.
   if (group === TrendGroup.classification) return [...Object.values(RecallClass), UNCLASSIFIED]
   return ['total']
 }

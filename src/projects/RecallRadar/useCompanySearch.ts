@@ -1,26 +1,29 @@
-import { apiRoutes } from '../../api/api'
 import { useApiResource } from '../../api/useApiResource'
 import { useDebouncedValue } from '../../api/useDebouncedValue'
-import type { RecallCountry } from './recall.types'
+import { buildCompaniesPath, type TrendFilters } from './api'
+import { isLabelCountArray } from './recall.types'
 
-const isStringArray = (value: unknown): value is string[] =>
-  Array.isArray(value) && value.every((entry) => typeof entry === 'string')
+export type CompanyOption = { name: string; count: number }
 
 export type CompanySearch = {
-  companies: string[]
+  companies: CompanyOption[]
   loading: boolean
   error: string | null
 }
 
-// Debounced company-name suggestions for the country + query, from the backend search endpoint.
-// An empty query returns the busiest companies, so the dropdown has sensible defaults before typing.
-// Surfaces loading/error so the dropdown distinguishes "fetching" and "failed" from "no matches".
-export function useCompanySearch(country: RecallCountry, query: string): CompanySearch {
+// Debounced company-name suggestions for the query, each with its recall count under the other
+// active filters (company is a facet too). An empty query returns the busiest matching firms, so the
+// dropdown has sensible defaults before typing. Surfaces loading/error so the dropdown can tell
+// "fetching" and "failed" apart from "no matches".
+export function useCompanySearch(filters: TrendFilters, query: string): CompanySearch {
   const debounced = useDebouncedValue(query.trim(), 250)
-  const params = new URLSearchParams({ country, q: debounced })
-  const { data, loading, error } = useApiResource<string[]>(
-    `${apiRoutes.recalls.companies}?${params.toString()}`,
-    isStringArray
+  const { data, loading, error } = useApiResource(
+    buildCompaniesPath(filters, debounced),
+    isLabelCountArray
   )
-  return { companies: data ?? [], loading, error }
+  return {
+    companies: (data ?? []).map((entry) => ({ name: entry.label, count: entry.count })),
+    loading,
+    error,
+  }
 }

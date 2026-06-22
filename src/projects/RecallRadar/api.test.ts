@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { buildRecallsPath, buildSimilarPath, buildTrendPath } from './api'
+import {
+  buildCompaniesPath,
+  buildFacetsPath,
+  buildRecallsPath,
+  buildSimilarPath,
+  buildTrendPath,
+} from './api'
 import {
   RecallCategory,
   RecallClass,
@@ -69,6 +75,34 @@ describe('buildTrendPath', () => {
     const path = buildTrendPath({ search: 'listeria' }, TrendGroup.total)
     expect(path).not.toContain('limit')
     expect(path).not.toContain('offset')
+  })
+})
+
+describe('buildFacetsPath', () => {
+  it('sets the shared filters and never paginates', () => {
+    const path = buildFacetsPath({ category: RecallCategory.pathogen, state: 'CA' })
+    expect(path).toContain('/recalls/facets')
+    expect(path).toContain('category=pathogen')
+    expect(path).toContain('state=CA')
+    expect(path).not.toContain('limit')
+    expect(path).not.toContain('offset')
+  })
+})
+
+describe('buildCompaniesPath', () => {
+  it('drops the company facet (its own dimension) and url-encodes the query', () => {
+    const path = buildCompaniesPath(
+      { company: 'Acme', category: RecallCategory.allergen },
+      'b & b foods'
+    )
+    expect(path).toContain('/recalls/companies')
+    expect(path).not.toContain('company=') // company is the facet's own dimension → dropped
+    expect(path).toContain('category=allergen')
+    expect(path).toContain('q=b+%26+b+foods')
+  })
+
+  it('omits q for an empty query', () => {
+    expect(buildCompaniesPath({ country: 'us' }, '')).not.toContain('q=')
   })
 })
 

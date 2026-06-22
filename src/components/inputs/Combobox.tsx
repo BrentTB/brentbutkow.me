@@ -72,7 +72,29 @@ export function Combobox({
     if (open) optionRefs.current[activeIndex]?.scrollIntoView?.({ block: 'nearest' })
   }, [open, activeIndex])
 
+  // After the list changes (typing refilters it, async options arrive), keep the active row on a
+  // selectable option — a reset to index 0 could land on a disabled (zero-result) one, leaving
+  // aria-activedescendant pointing at it. Seek the first enabled option when that happens.
+  useEffect(() => {
+    if (!open) return
+    setActiveIndex((index) => {
+      if (filtered[index] && !filtered[index].disabled) return index
+      const firstEnabled = filtered.findIndex((option) => !option.disabled)
+      return firstEnabled === -1 ? 0 : firstEnabled
+    })
+  }, [open, filtered])
+
+  // Nearest selectable row from `start` (step `dir`); null if none, so the keyboard skips disabled
+  // (zero-result) options rather than landing on them.
+  const seekEnabled = (start: number, dir: number): number | null => {
+    for (let i = start; i >= 0 && i < filtered.length; i += dir) {
+      if (!filtered[i]?.disabled) return i
+    }
+    return null
+  }
+
   const choose = (option: SelectOption) => {
+    if (option.disabled) return
     onChange(option.value)
     setOpen(false)
   }
@@ -94,10 +116,10 @@ export function Combobox({
     } else if (open && event.key === 'ArrowDown') {
       event.preventDefault()
       if (filtered.length === 0) return
-      setActiveIndex((index) => Math.min(filtered.length - 1, index + 1))
+      setActiveIndex((index) => seekEnabled(index + 1, 1) ?? index)
     } else if (open && event.key === 'ArrowUp') {
       event.preventDefault()
-      setActiveIndex((index) => Math.max(0, index - 1))
+      setActiveIndex((index) => seekEnabled(index - 1, -1) ?? index)
     } else if (open && event.key === 'Enter') {
       event.preventDefault()
       if (filtered[activeIndex]) choose(filtered[activeIndex])
@@ -155,20 +177,25 @@ export function Combobox({
                 }}
                 role="option"
                 aria-selected={option.value === value}
+                aria-disabled={option.disabled || undefined}
                 className={[
                   styles.option,
                   index === activeIndex && styles.active,
                   option.value === value && styles.selected,
+                  option.disabled && styles.disabled,
                 ]
                   .filter(Boolean)
                   .join(' ')}
-                onMouseEnter={() => setActiveIndex(index)}
+                onMouseEnter={() => !option.disabled && setActiveIndex(index)}
                 onMouseDown={(event) => {
                   event.preventDefault()
                   choose(option)
                 }}
               >
-                {option.label}
+                <span className={styles.optionLabel}>{option.label}</span>
+                {option.count !== undefined && (
+                  <span className={styles.count}>{option.count.toLocaleString()}</span>
+                )}
               </li>
             ))
           )}

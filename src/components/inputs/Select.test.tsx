@@ -45,4 +45,27 @@ describe('Select', () => {
     fireEvent.keyDown(trigger, { key: 'Escape' })
     expect(screen.queryByRole('listbox')).toBeNull()
   })
+
+  it('shows counts and skips disabled (zero-result) options in keyboard nav + clicks', () => {
+    const onChange = vi.fn()
+    const faceted = [
+      { value: '', label: 'All' },
+      { value: 'fda', label: 'FDA', count: 30 },
+      { value: 'usda', label: 'USDA FSIS', count: 0, disabled: true },
+    ]
+    render(<Select value="" options={faceted} onChange={onChange} ariaLabel="Source" />)
+    const trigger = screen.getByLabelText('Source')
+    fireEvent.click(trigger)
+    expect(screen.getByText('30')).toBeTruthy() // faceted count rendered
+
+    // ArrowDown lands on FDA, then can't advance onto the disabled USDA option.
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' })
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' })
+    const activeId = trigger.getAttribute('aria-activedescendant')
+    expect(document.getElementById(activeId!)?.textContent).toContain('FDA')
+
+    // Clicking the disabled option is a no-op.
+    fireEvent.click(screen.getByText('USDA FSIS'))
+    expect(onChange).not.toHaveBeenCalled()
+  })
 })

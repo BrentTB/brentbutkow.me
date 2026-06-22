@@ -142,7 +142,7 @@ export const routes: AppRoute[] = [
     dontShowInNavbar: true,
     title: 'Recall Radar — Brent Butkow',
     description:
-      'Recall Radar — a live US, UK, and SA food-recall dashboard. A FastAPI and ML pipeline ingests FDA, USDA FSIS, and UK FSA data daily.',
+      'Recall Radar — a live US, UK, and SA food-recall dashboard. A FastAPI and ML pipeline ingests FDA, USDA FSIS, SA NCC, and UK FSA data daily.',
   },
   {
     // Dedicated page for a single recall, reached by clicking a recall in the feed or a related one.
