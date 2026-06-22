@@ -47,7 +47,7 @@ export const techStack: { area: string; items: string[] }[] = [
 ]
 
 export const methodologyPoints: string[] = [
-  'Data comes from the US (FDA openFDA + USDA FSIS), the UK (Food Standards Agency), and South Africa (National Consumer Commission recall notices), re-ingested daily via a GitHub Actions cron.',
+  'Data comes from the US (FDA openFDA + USDA FSIS), the UK (Food Standards Agency), and South Africa (National Consumer Commission, plus a few curated Woolworths/Shoprite/NRCS recalls the NCC feed misses), re-ingested daily via a GitHub Actions cron.',
   "Each recall's cause is predicted by a TF-IDF + logistic-regression classifier trained on its reason text; the % shown is the model's confidence.",
   'The model is weakly supervised by a keyword baseline (no human-labelled gold set), so it generalises that taxonomy rather than beating an independent ground truth.',
   'Allergens, pathogens, and physical hazards are pulled from each reason with a curated gazetteer (the FDA/UK regulated allergen lists and named pathogens) — deterministic and fully explainable.',
@@ -80,6 +80,9 @@ export const sourceLabels: Record<RecallSource, string> = {
   [RecallSource.usda]: 'USDA FSIS',
   [RecallSource.uk]: 'UK FSA',
   [RecallSource.ncc]: 'NCC',
+  [RecallSource.woolworths]: 'Woolworths',
+  [RecallSource.shoprite]: 'Shoprite/Checkers',
+  [RecallSource.nrcs]: 'NRCS',
 }
 
 export const countryLabels: Record<RecallCountry, string> = {
@@ -154,6 +157,9 @@ const SOURCE_COLORS: Record<RecallSource, string> = {
   [RecallSource.usda]: '#8fb0c9',
   [RecallSource.uk]: '#9fbf9f',
   [RecallSource.ncc]: '#c2a0b8',
+  [RecallSource.woolworths]: '#d98c6a',
+  [RecallSource.shoprite]: '#6aa888',
+  [RecallSource.nrcs]: '#b08fc7',
 }
 
 export function trendColor(group: TrendGroup, key: string): string {
@@ -189,7 +195,12 @@ export const classesByCountry: Record<RecallCountry, RecallClass[]> = {
 export const sourcesByCountry: Record<RecallCountry, RecallSource[]> = {
   [RecallCountry.us]: [RecallSource.fda, RecallSource.usda],
   [RecallCountry.uk]: [RecallSource.uk],
-  [RecallCountry.za]: [RecallSource.ncc],
+  [RecallCountry.za]: [
+    RecallSource.ncc,
+    RecallSource.woolworths,
+    RecallSource.shoprite,
+    RecallSource.nrcs,
+  ],
 }
 
 export const recallRadarLinks = [

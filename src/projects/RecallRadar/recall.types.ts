@@ -25,6 +25,9 @@ export const RecallSource = {
   usda: 'usda',
   uk: 'uk',
   ncc: 'ncc',
+  woolworths: 'woolworths',
+  shoprite: 'shoprite',
+  nrcs: 'nrcs',
 } as const
 export type RecallSource = (typeof RecallSource)[keyof typeof RecallSource]
 
