@@ -159,15 +159,18 @@ export function RecallFilters({
           />
         </div>
 
-        <div className={styles.field}>
-          <span className={styles.label}>Class</span>
-          <Select
-            ariaLabel="Class"
-            value={filters.classification}
-            options={classificationOptions}
-            onChange={(value) => onChange({ classification: isRecallClass(value) ? value : '' })}
-          />
-        </div>
+        {/* No classifications for a country (South Africa) → hide the control entirely. */}
+        {classOptions.length > 0 && (
+          <div className={styles.field}>
+            <span className={styles.label}>Class</span>
+            <Select
+              ariaLabel="Class"
+              value={filters.classification}
+              options={classificationOptions}
+              onChange={(value) => onChange({ classification: isRecallClass(value) ? value : '' })}
+            />
+          </div>
+        )}
 
         <div className={styles.field}>
           <span className={styles.label}>Severity</span>

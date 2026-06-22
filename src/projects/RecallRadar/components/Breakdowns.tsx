@@ -87,16 +87,19 @@ export function Breakdowns({ stats, filters, onSelect }: BreakdownsProps) {
           count: c.count,
         }))}
       />
-      <BreakdownList
-        title="By classification"
-        activeValue={filters.classification}
-        onSelect={(value) => onSelect({ classification: isRecallClass(value) ? value : '' })}
-        rows={stats.byClassification.map((c) => ({
-          label: c.label,
-          value: c.label,
-          count: c.count,
-        }))}
-      />
+      {/* No classifications (South Africa) → hide rather than show an empty card. */}
+      {stats.byClassification.length > 0 && (
+        <BreakdownList
+          title="By classification"
+          activeValue={filters.classification}
+          onSelect={(value) => onSelect({ classification: isRecallClass(value) ? value : '' })}
+          rows={stats.byClassification.map((c) => ({
+            label: c.label,
+            value: c.label,
+            count: c.count,
+          }))}
+        />
+      )}
       {/* byState carries every state for the map; the leaderboard shows the top rows. UK has no
           states, so it's hidden there. */}
       {stats.byState.length > 0 && (

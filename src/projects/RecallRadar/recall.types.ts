@@ -24,12 +24,14 @@ export const RecallSource = {
   fda: 'fda',
   usda: 'usda',
   uk: 'uk',
+  ncc: 'ncc',
 } as const
 export type RecallSource = (typeof RecallSource)[keyof typeof RecallSource]
 
 export const RecallCountry = {
   us: 'us',
   uk: 'uk',
+  za: 'za',
 } as const
 export type RecallCountry = (typeof RecallCountry)[keyof typeof RecallCountry]
 
