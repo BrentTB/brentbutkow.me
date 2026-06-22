@@ -68,7 +68,7 @@ export function LocationSelector({ value, collapsed, onChange }: LocationSelecto
       <button
         type="button"
         className={styles.trigger}
-        aria-haspopup="listbox"
+        aria-haspopup="true"
         aria-expanded={open}
         aria-label={`Location: ${countryLabels[value]}`}
         onClick={() => setOpen((prev) => !prev)}
@@ -82,13 +82,12 @@ export function LocationSelector({ value, collapsed, onChange }: LocationSelecto
         </span>
       </button>
       {open && (
-        <div className={styles.menu} role="listbox" aria-label="Location">
+        <div className={styles.menu} role="group" aria-label="Location">
           {LOCATIONS.map((country) => (
             <button
               key={country}
               type="button"
-              role="option"
-              aria-selected={country === value}
+              aria-current={country === value ? 'true' : undefined}
               className={`${styles.item} ${country === value ? styles.itemActive : ''}`}
               onClick={() => {
                 onChange(country)

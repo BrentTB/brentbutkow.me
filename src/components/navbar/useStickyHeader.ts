@@ -9,7 +9,7 @@ export type StickyHeaderState = {
 }
 
 // Scrolling past this many pixels collapses the location control and retracts the navbar. Small, so
-// the navbar steps aside as soon as you leave the very top, but with enough tolerance not to flicker.
+// the navbar steps aside as soon as you leave the very top.
 const THRESHOLD = 72
 
 let state: StickyHeaderState = { collapsed: false, navHidden: false }

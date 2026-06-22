@@ -17,7 +17,7 @@ export function Navbar() {
   const { pathname } = useLocation()
 
   // Auto-hide is scoped to Recall Radar: that page has its own minimal sticky bar that takes over as
-  // you scroll into the data, so the site navbar steps out of the way (and slides back on scroll-up).
+  // you scroll into the data, so the site navbar steps out of the way (and slides back at the top).
   // Every other page keeps the navbar permanently in view. Never retract while the mobile menu is
   // open — it's full-height, and yanking it shut mid-interaction would be hostile.
   const autoHides = pathname.startsWith(routePaths.recallRadar)

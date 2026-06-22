@@ -27,19 +27,19 @@ describe('LocationSelector', () => {
   describe('collapsed (dropdown)', () => {
     it('shows the active location as a trigger and opens the list on click', () => {
       render(<LocationSelector value="us" collapsed onChange={() => {}} />)
-      // The menu is closed until the trigger is pressed.
-      expect(screen.queryByRole('listbox')).toBeNull()
+      // The menu is closed until the trigger is pressed — its options aren't in the DOM yet.
+      expect(screen.queryByRole('button', { name: 'United Kingdom' })).toBeNull()
       fireEvent.click(screen.getByRole('button', { name: 'Location: United States' }))
-      expect(screen.getByRole('listbox')).toBeTruthy()
+      expect(screen.getByRole('button', { name: 'United Kingdom' })).toBeTruthy()
     })
 
     it('reports the chosen location and closes the menu', () => {
       const onChange = vi.fn()
       render(<LocationSelector value="us" collapsed onChange={onChange} />)
       fireEvent.click(screen.getByRole('button', { name: 'Location: United States' }))
-      fireEvent.click(screen.getByRole('option', { name: 'United Kingdom' }))
+      fireEvent.click(screen.getByRole('button', { name: 'United Kingdom' }))
       expect(onChange).toHaveBeenCalledWith('uk')
-      expect(screen.queryByRole('listbox')).toBeNull()
+      expect(screen.queryByRole('button', { name: 'United Kingdom' })).toBeNull()
     })
   })
 })

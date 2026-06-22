@@ -244,19 +244,23 @@ export function RecallRadar() {
     : []
 
   // Side-nav jump targets — only the sections that actually render for this country/data, in the
-  // order they appear in the content column.
-  const navSections: NavSection[] = [
-    { id: 'overview', label: 'Overview' },
-    { id: 'trends', label: 'Trends' },
-    ...(stats.data && country === RecallCountry.us ? [{ id: 'map', label: 'Map' }] : []),
-    ...(events.data?.some((event) => event.isOutbreak)
-      ? [{ id: 'outbreaks', label: 'Outbreaks' }]
-      : []),
-    ...(stats.data ? [{ id: 'breakdowns', label: 'Breakdowns' }] : []),
-    ...(topics.data && topics.data.length > 0 ? [{ id: 'themes', label: 'Themes' }] : []),
-    { id: 'recalls', label: 'Recalls' },
-    { id: 'about', label: 'About' },
-  ]
+  // order they appear in the content column. Memoized so SectionNav's observer keys off a stable
+  // array and doesn't tear down and rebuild on every render.
+  const navSections: NavSection[] = useMemo(
+    () => [
+      { id: 'overview', label: 'Overview' },
+      { id: 'trends', label: 'Trends' },
+      ...(stats.data && country === RecallCountry.us ? [{ id: 'map', label: 'Map' }] : []),
+      ...(events.data?.some((event) => event.isOutbreak)
+        ? [{ id: 'outbreaks', label: 'Outbreaks' }]
+        : []),
+      ...(stats.data ? [{ id: 'breakdowns', label: 'Breakdowns' }] : []),
+      ...(topics.data && topics.data.length > 0 ? [{ id: 'themes', label: 'Themes' }] : []),
+      { id: 'recalls', label: 'Recalls' },
+      { id: 'about', label: 'About' },
+    ],
+    [stats.data, country, events.data, topics.data]
+  )
 
   return (
     <PageLayout>

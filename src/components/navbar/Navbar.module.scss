@@ -12,8 +12,8 @@
   margin-bottom: clamp(44px, 6vw, 80px);
   transition: transform 0.24s ease;
 
-  // Recall Radar retracts the bar on scroll-down (its minimal sticky bar takes over); scroll-up
-  // brings it back. translateY keeps it in flow, so the page below never shifts.
+  // Recall Radar retracts the bar once scrolled (its minimal sticky bar takes over); returning to
+  // the top brings it back. translateY keeps it in flow, so the page below never shifts.
   &.retracted {
     transform: translateY(-100%);
   }
