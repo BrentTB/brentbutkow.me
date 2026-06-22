@@ -4,8 +4,7 @@ import { routes } from './routes.config'
 
 const SITE_URL = 'https://brentbutkow.me'
 const DEFAULT_TITLE = 'Brent Butkow'
-const DEFAULT_DESCRIPTION =
-  'Full-stack engineer at Foodcomply. Building cloud infrastructure and web apps, with a side of wacky projects and dad jokes.'
+const DEFAULT_DESCRIPTION = 'The personal site and portfolio of Brent Butkow, full-stack engineer.'
 
 /** Upserts a head tag identified by `keyAttr=keyValue`, setting `valueAttr` to `value`. */
 function upsertHeadTag(
@@ -27,10 +26,11 @@ function upsertHeadTag(
 /**
  * Syncs the document head (title, description, canonical, Open Graph, Twitter)
  * to the current route, driven by the `title`/`description` fields in
- * routes.config. The canonical and og:url are self-referencing per path so each
- * page is indexed on its own URL instead of being folded into the home page.
- * Dynamic routes are matched by pattern; unmatched paths fall back to the
- * catch-all (404) route.
+ * routes.config. The canonical and og:url are self-referencing per matched path
+ * so each page is indexed on its own URL instead of being folded into the home
+ * page. Dynamic routes are matched by pattern; unmatched paths fall back to the
+ * catch-all (404) route and canonicalize to home rather than declaring a
+ * soft-404 URL indexable.
  */
 export function useRouteMeta() {
   const { pathname } = useLocation()
@@ -42,7 +42,7 @@ export function useRouteMeta() {
 
     const title = meta?.title ?? DEFAULT_TITLE
     const description = meta?.description ?? DEFAULT_DESCRIPTION
-    const canonical = `${SITE_URL}${pathname}`
+    const canonical = match ? `${SITE_URL}${pathname}` : `${SITE_URL}/`
 
     document.title = title
     upsertHeadTag('meta', 'name', 'description', 'content', description)

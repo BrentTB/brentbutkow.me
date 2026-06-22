@@ -72,7 +72,7 @@ export const funStuffRoutes: AppRoute[] = [
     dontShowInNavbar: true,
     title: 'Null Space — Brent Butkow',
     description:
-      'Null Space — a browser space-defense game where you bend the fabric of space itself: launch meteors, open black holes, and warp reality to protect your ship.',
+      'Null Space — a browser space-defense game where you bend space itself: launch meteors, open black holes, and warp reality to protect your ship.',
   },
   {
     path: `${routePaths.funStuff}${funStuffSubRoutes.gulagSort}`,
@@ -142,7 +142,7 @@ export const routes: AppRoute[] = [
     dontShowInNavbar: true,
     title: 'Recall Radar — Brent Butkow',
     description:
-      'Recall Radar — a live US, UK, and SA food-recall dashboard. A FastAPI and ML pipeline ingests FDA, USDA FSIS, and UK FSA data daily, served on a React and TypeScript frontend.',
+      'Recall Radar — a live US, UK, and SA food-recall dashboard. A FastAPI and ML pipeline ingests FDA, USDA FSIS, and UK FSA data daily.',
   },
   {
     // Dedicated page for a single recall, reached by clicking a recall in the feed or a related one.

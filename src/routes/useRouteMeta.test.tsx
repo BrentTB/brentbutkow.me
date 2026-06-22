@@ -40,8 +40,10 @@ describe('useRouteMeta', () => {
     )
   })
 
-  it('falls back to the 404 title for an unknown path', () => {
+  it('falls back to the 404 title and canonicalizes an unknown path to home', () => {
     renderHook(() => useRouteMeta(), { wrapper: wrapperFor('/no-such-page') })
     expect(document.title).toBe('Page not found — Brent Butkow')
+    expect(headContent('link[rel="canonical"]', 'href')).toBe('https://brentbutkow.me/')
+    expect(headContent('meta[property="og:url"]', 'content')).toBe('https://brentbutkow.me/')
   })
 })
