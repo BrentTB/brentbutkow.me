@@ -152,7 +152,7 @@ export function RecallFilters({
         <div className={styles.field}>
           <span className={styles.label}>Cause</span>
           <Select
-            ariaLabel="Category"
+            ariaLabel="Cause"
             value={filters.category}
             options={categoryOptions}
             onChange={(value) => onChange({ category: isRecallCategory(value) ? value : '' })}
@@ -162,7 +162,7 @@ export function RecallFilters({
         <div className={styles.field}>
           <span className={styles.label}>Class</span>
           <Select
-            ariaLabel="Classification"
+            ariaLabel="Class"
             value={filters.classification}
             options={classificationOptions}
             onChange={(value) => onChange({ classification: isRecallClass(value) ? value : '' })}

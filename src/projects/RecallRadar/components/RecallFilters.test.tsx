@@ -83,7 +83,7 @@ describe('RecallFilters', () => {
   it('shows UK classifications and hides the source filter for the UK', () => {
     renderFilters({ country: 'uk' })
     expect(screen.queryByLabelText('Source')).toBeNull() // single UK source → no source filter
-    fireEvent.click(screen.getByLabelText('Classification'))
+    fireEvent.click(screen.getByLabelText('Class'))
     expect(screen.getByText('Allergy Alert')).toBeTruthy() // a UK option
     expect(screen.queryByText('Class I')).toBeNull() // US classes don't bleed in
   })

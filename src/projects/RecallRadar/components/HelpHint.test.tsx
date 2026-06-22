@@ -21,4 +21,22 @@ describe('HelpHint', () => {
     fireEvent.click(button)
     expect(button.getAttribute('aria-expanded')).toBe('false')
   })
+
+  it('links the button to the hint via aria-controls and aria-describedby', () => {
+    render(<HelpHint label="Help">Body</HelpHint>)
+    const button = screen.getByRole('button', { name: 'Help' })
+    const note = screen.getByRole('note')
+    expect(note.id).toBeTruthy()
+    expect(button.getAttribute('aria-controls')).toBe(note.id)
+    expect(button.getAttribute('aria-describedby')).toBe(note.id)
+  })
+
+  it('closes on Escape once toggled open', () => {
+    render(<HelpHint label="Help">Body</HelpHint>)
+    const button = screen.getByRole('button', { name: 'Help' })
+    fireEvent.click(button)
+    expect(button.getAttribute('aria-expanded')).toBe('true')
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(button.getAttribute('aria-expanded')).toBe('false')
+  })
 })

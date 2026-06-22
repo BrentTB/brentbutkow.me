@@ -22,7 +22,6 @@ export const recallRadarCopy = {
     'Sources: US openFDA + USDA FSIS, and UK Food Standards Agency alerts. Categories are assigned by a TF-IDF + logistic-regression classifier trained on the recall text; the % on each recall is the model confidence.',
   about:
     'A full-stack side project. A Python/FastAPI service ingests food-recall data from the US (FDA openFDA, USDA FSIS) and the UK (Food Standards Agency) every day, classifies each recall by likely cause, and stores it in Postgres. This React + TypeScript dashboard reads a documented JSON API to explore it. It is built to production standards: typed end to end, tested, migrated with Alembic, rate-limited, and deployed behind a daily ingest job.',
-  techStackPrompt: 'Interested in the tech stack? ↓',
   stateMapTitle: 'US recalls by state',
 }
 
