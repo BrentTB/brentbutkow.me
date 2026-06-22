@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   categoryLabels,
   entityTypeLabels,
@@ -56,6 +56,7 @@ export function RecallFeed({
 }: RecallFeedProps) {
   // Track which rows are open so the Related-recalls child mounts (and fetches) only on expand.
   const [openRows, setOpenRows] = useState<Set<string>>(new Set())
+  const navigate = useNavigate()
 
   if (recalls.length === 0) {
     return <p className={styles.empty}>No recalls match these filters.</p>
@@ -67,6 +68,7 @@ export function RecallFeed({
         const theme = recall.topicId != null ? topicsById?.get(recall.topicId) : undefined
         const cluster =
           recall.eventClusterId != null ? eventsById?.get(recall.eventClusterId) : undefined
+        const detailPath = recallDetailRoute(recall.source, recall.recallNumber)
         return (
           <li key={recall.recallNumber} className={styles.row}>
             <details
@@ -135,7 +137,19 @@ export function RecallFeed({
                     ›
                   </span>
                 </div>
-                <p className={styles.product}>{recall.productDescription}</p>
+                <Link
+                  to={detailPath}
+                  className={styles.product}
+                  // Inside <summary>: keep a real href (right-click / open-in-new-tab) but stop the
+                  // click from toggling the row open — and from kicking off a throwaway similar
+                  // recalls fetch right before we navigate away — by driving the nav ourselves.
+                  onClick={(event) => {
+                    event.preventDefault()
+                    navigate(detailPath)
+                  }}
+                >
+                  {recall.productDescription}
+                </Link>
                 {recall.companyName && <p className={styles.company}>{recall.companyName}</p>}
                 <p className={styles.reason}>{recall.reasonText}</p>
                 {recall.entities.length > 0 && (
@@ -162,9 +176,7 @@ export function RecallFeed({
                 ))}
               </dl>
               <p className={styles.detailPageLink}>
-                <Link to={recallDetailRoute(recall.source, recall.recallNumber)}>
-                  Open recall page →
-                </Link>
+                <Link to={detailPath}>Open recall page →</Link>
               </p>
               {recall.sourceUrl && (
                 <p className={styles.sourceLink}>

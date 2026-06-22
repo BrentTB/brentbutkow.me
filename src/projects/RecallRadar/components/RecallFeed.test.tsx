@@ -60,6 +60,14 @@ describe('RecallFeed', () => {
     expect(details?.open).toBe(true)
   })
 
+  it('links the product title to the recall page without expanding the row', () => {
+    const { container } = render(<RecallFeed recalls={[recall]} />)
+    const title = screen.getByRole('link', { name: 'Test cookies' })
+    expect(title.getAttribute('href')).toContain('/recall-radar/usda/F-1234')
+    fireEvent.click(title)
+    expect(container.querySelector('details')?.open).toBe(false) // navigates, doesn't toggle
+  })
+
   it('mounts related recalls on open and unmounts them on close across a rapid toggle', async () => {
     // Exercises the onToggle add/remove path the rapid-toggle fix lives in: opening adds the row to
     // openRows (mounting RelatedRecalls), closing removes it (unmounting). The crash the fix guards
