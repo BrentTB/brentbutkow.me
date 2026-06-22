@@ -62,12 +62,30 @@
 }
 
 .option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   padding: 8px 10px;
   border-radius: 6px;
   font-size: 0.9rem;
   color: var(--text-secondary);
   cursor: pointer;
   white-space: nowrap;
+}
+
+.optionLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// Faceted match count, right-aligned and muted so the label stays the focus.
+.count {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .active {
@@ -77,4 +95,12 @@
 
 .selected {
   color: var(--accent);
+}
+
+// Zero-result option under the current filters: visible (so you can see it exists) but greyed and
+// unselectable.
+.disabled {
+  color: var(--muted);
+  opacity: 0.5;
+  cursor: not-allowed;
 }

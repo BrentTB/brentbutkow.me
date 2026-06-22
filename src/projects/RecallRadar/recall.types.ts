@@ -177,6 +177,40 @@ export type RecallStats = {
   lastIngestAt: string | null
 }
 
+// Per-facet option counts under the current filters (each ignores its own facet's selection). Drives
+// the live counts + greyed-out dead ends in the filter dropdowns. Company isn't here — it's a
+// type-ahead, fetched with counts from /recalls/companies.
+export type RecallFacets = {
+  category: LabelCount[]
+  classification: LabelCount[]
+  severity: LabelCount[]
+  source: LabelCount[]
+  state: LabelCount[]
+  // Also drives the breakdown cards + state map: top firms (capped) and the entity leaderboards.
+  company: LabelCount[]
+  entity: EntityCount[]
+  // Recalls per theme / per outbreak cluster (keyed by surrogate id), so the Themes + Outbreaks
+  // lists can drop the ones with no match under the current filters.
+  topicCounts: Record<string, number>
+  eventCounts: Record<string, number>
+}
+
+// Adapt the global stats payload into the faceted shape, so the breakdowns + map can fall back to
+// the unfiltered global counts when the live facets aren't loaded yet (or the endpoint is absent).
+export const facetsFromStats = (stats: RecallStats): RecallFacets => ({
+  category: stats.byCategory.map((entry) => ({ label: entry.category, count: entry.count })),
+  classification: stats.byClassification,
+  severity: stats.bySeverity,
+  source: stats.bySource,
+  state: stats.byState,
+  company: stats.byCompany,
+  entity: stats.byEntity,
+  // The global stats carry no per-theme/outbreak counts; left empty since the Themes + Outbreaks
+  // lists read these only from the live facets (and fall back to showing everything without them).
+  topicCounts: {},
+  eventCounts: {},
+})
+
 // Long-format monthly counts for the groupable trend chart. group is a category/source value,
 // or 'total' when ungrouped.
 export type TrendBucket = { month: string; group: string; count: number }
@@ -373,3 +407,28 @@ export const isRecallStats = (value: unknown): value is RecallStats =>
   Array.isArray(value.forecast) &&
   value.forecast.every(isForecastPoint) &&
   isStringOrNull(value.lastIngestAt)
+
+export const isLabelCountArray = (value: unknown): value is LabelCount[] =>
+  Array.isArray(value) && value.every(isLabelCount)
+
+const isNumberRecord = (value: unknown): value is Record<string, number> =>
+  isRecord(value) && Object.values(value).every((entry) => typeof entry === 'number')
+
+export const isRecallFacets = (value: unknown): value is RecallFacets =>
+  isRecord(value) &&
+  Array.isArray(value.category) &&
+  value.category.every(isLabelCount) &&
+  Array.isArray(value.classification) &&
+  value.classification.every(isLabelCount) &&
+  Array.isArray(value.severity) &&
+  value.severity.every(isLabelCount) &&
+  Array.isArray(value.source) &&
+  value.source.every(isLabelCount) &&
+  Array.isArray(value.state) &&
+  value.state.every(isLabelCount) &&
+  Array.isArray(value.company) &&
+  value.company.every(isLabelCount) &&
+  Array.isArray(value.entity) &&
+  value.entity.every(isEntityCount) &&
+  isNumberRecord(value.topicCounts) &&
+  isNumberRecord(value.eventCounts)

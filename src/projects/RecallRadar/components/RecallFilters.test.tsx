@@ -29,6 +29,7 @@ const renderFilters = (props: Partial<Parameters<typeof RecallFilters>[0]> = {})
       filters={empty}
       country="us"
       stateOptions={[]}
+      activeFilters={{ country: 'us' }}
       onChange={noop}
       onClear={noop}
       {...props}
@@ -61,6 +62,35 @@ describe('RecallFilters', () => {
     expect(screen.queryByLabelText('Source')).toBeNull() // hidden until expanded
     fireEvent.click(screen.getByRole('button', { name: /More filters/i }))
     expect(screen.getByLabelText('Source')).toBeTruthy()
+  })
+
+  it('annotates options with facet counts and sorts zero-result ones last, disabled', () => {
+    renderFilters({
+      facets: {
+        category: [
+          { label: 'allergen', count: 30 },
+          { label: 'pathogen', count: 0 },
+        ],
+        classification: [],
+        severity: [],
+        source: [],
+        state: [],
+        company: [],
+        entity: [],
+        topicCounts: {},
+        eventCounts: {},
+      },
+    })
+    fireEvent.click(screen.getByLabelText('Cause')) // the cause/category control
+    const options = screen.getAllByRole('option')
+    expect(options[0].textContent).toContain('All') // All always leads, uncounted
+
+    const allergen = screen.getByRole('option', { name: /allergen/i })
+    expect(allergen.textContent).toContain('30') // live count shown
+    const pathogen = screen.getByRole('option', { name: /pathogen/i })
+    expect(pathogen.getAttribute('aria-disabled')).toBe('true') // zero results → disabled
+    // available options sort ahead of the dead ends
+    expect(options.indexOf(allergen)).toBeLessThan(options.indexOf(pathogen))
   })
 
   it('reports a chosen source through the Select', () => {

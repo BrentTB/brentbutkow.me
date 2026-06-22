@@ -44,6 +44,7 @@ import {
   isSeverityLabel,
   isTrendGroup,
   isIsoDate,
+  facetsFromStats,
   type RecallFilterValues,
   type TopicOut,
   type EventOut,
@@ -54,6 +55,7 @@ import { useRecallStats } from './useRecallStats'
 import { useRecallTrend } from './useRecallTrend'
 import { useTopics } from './useTopics'
 import { useEvents } from './useEvents'
+import { useFacets } from './useFacets'
 import { useStickyHeader } from '../../components/navbar/useStickyHeader'
 import styles from './RecallRadar.module.scss'
 
@@ -170,6 +172,9 @@ export function RecallRadar() {
   }
   const stats = useRecallStats(country)
   const trend = useRecallTrend(queryFilters, group)
+  // Live option counts for the filter dropdowns, scoped to the current filter set (same query the
+  // list + trend use, so the counts always describe the recalls on screen).
+  const facets = useFacets(queryFilters)
   const recalls = useRecalls({
     ...queryFilters,
     limit: PAGE_SIZE,
@@ -232,6 +237,9 @@ export function RecallRadar() {
   const topCategory = stats.data?.byCategory.slice().sort((a, b) => b.count - a.count)[0]
   const topState = stats.data?.byState[0]
   const stateOptions = stats.data?.byState.map((entry) => entry.label) ?? []
+  // The breakdown cards + state map read these counts; prefer the live (filter-scoped) facets, and
+  // fall back to the global stats so they still render if the facets endpoint is unavailable.
+  const breakdownFacets = facets.data ?? (stats.data ? facetsFromStats(stats.data) : null)
   // Backend-detected anomalies lead (the ML headline), then the forward-looking outlook, then the
   // descriptive summaries. The outlook is null when history is too short to forecast.
   const outlook = stats.data ? forecastCallout(stats.data.forecast, stats.data.byMonth) : null
@@ -243,6 +251,19 @@ export function RecallRadar() {
       ]
     : []
 
+  // Themes + outbreaks respect the active filters when the facets are loaded: keep only those with a
+  // recall in the filtered set (counts keyed by surrogate id). Without facets, show them all.
+  const topicCounts = facets.data?.topicCounts
+  const eventCounts = facets.data?.eventCounts
+  const visibleTopics = (topics.data ?? []).filter(
+    (topic) => !topicCounts || (topicCounts[String(topic.id)] ?? 0) > 0
+  )
+  const visibleOutbreaks = (events.data ?? []).filter(
+    (event) => event.isOutbreak && (!eventCounts || (eventCounts[String(event.id)] ?? 0) > 0)
+  )
+  const hasThemes = visibleTopics.length > 0
+  const hasOutbreaks = visibleOutbreaks.length > 0
+
   // Side-nav jump targets — only the sections that actually render for this country/data, in the
   // order they appear in the content column. Memoized so SectionNav's observer keys off a stable
   // array and doesn't tear down and rebuild on every render.
@@ -251,15 +272,13 @@ export function RecallRadar() {
       { id: 'overview', label: 'Overview' },
       { id: 'trends', label: 'Trends' },
       ...(stats.data && country === RecallCountry.us ? [{ id: 'map', label: 'Map' }] : []),
-      ...(events.data?.some((event) => event.isOutbreak)
-        ? [{ id: 'outbreaks', label: 'Outbreaks' }]
-        : []),
+      ...(hasOutbreaks ? [{ id: 'outbreaks', label: 'Outbreaks' }] : []),
       ...(stats.data ? [{ id: 'breakdowns', label: 'Breakdowns' }] : []),
-      ...(topics.data && topics.data.length > 0 ? [{ id: 'themes', label: 'Themes' }] : []),
+      ...(hasThemes ? [{ id: 'themes', label: 'Themes' }] : []),
       { id: 'recalls', label: 'Recalls' },
       { id: 'about', label: 'About' },
     ],
-    [stats.data, country, events.data, topics.data]
+    [stats.data, country, hasOutbreaks, hasThemes]
   )
 
   return (
@@ -292,6 +311,8 @@ export function RecallRadar() {
           filters={filters}
           country={country}
           stateOptions={stateOptions}
+          facets={facets.data ?? undefined}
+          activeFilters={queryFilters}
           topicLabel={activeTopicLabel}
           eventLabel={activeEventLabel}
           onChange={patch}
@@ -360,19 +381,19 @@ export function RecallRadar() {
             )}
           </section>
 
-          {stats.data && country === RecallCountry.us && (
+          {breakdownFacets && country === RecallCountry.us && (
             <section id="map" className={styles.section}>
               <h2 className={styles.sectionTitle}>{recallRadarCopy.stateMapTitle}</h2>
               <p className={styles.hint}>Click a state to filter the recalls below.</p>
               <RecallMap
-                byState={stats.data.byState}
+                byState={breakdownFacets.state}
                 activeState={filters.state}
                 onSelect={(state) => patch({ state })}
               />
             </section>
           )}
 
-          {events.data?.some((event) => event.isOutbreak) && (
+          {hasOutbreaks && (
             <section id="outbreaks" className={styles.section}>
               <h2 className={styles.sectionTitle}>Outbreaks</h2>
               <p className={styles.hint}>
@@ -380,22 +401,22 @@ export function RecallRadar() {
                 companies. Click one to narrow the recalls below to that incident.
               </p>
               <Outbreaks
-                events={events.data}
+                events={visibleOutbreaks}
                 activeEvent={filters.event}
                 onSelect={(slug) => patch({ event: slug })}
               />
             </section>
           )}
 
-          {stats.data && (
+          {breakdownFacets && (
             <section id="breakdowns" className={styles.section}>
               <h2 className={styles.sectionTitle}>Breakdowns</h2>
               <p className={styles.hint}>Click any row to filter the recalls below.</p>
-              <Breakdowns stats={stats.data} filters={filters} onSelect={patch} />
+              <Breakdowns facets={breakdownFacets} filters={filters} onSelect={patch} />
             </section>
           )}
 
-          {topics.data && topics.data.length > 0 && (
+          {hasThemes && (
             <section id="themes" className={styles.section}>
               <h2 className={styles.sectionTitle}>
                 Themes{' '}
@@ -409,9 +430,10 @@ export function RecallRadar() {
                 Auto-discovered topics across recall text. Click one to filter the recalls below.
               </p>
               <Themes
-                topics={topics.data}
+                topics={visibleTopics}
                 activeTopic={filters.topic}
                 onSelect={(slug) => patch({ topic: slug })}
+                counts={topicCounts}
               />
             </section>
           )}

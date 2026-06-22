@@ -65,6 +65,24 @@ export function buildTrendPath(filters: TrendFilters, group: TrendGroup): string
   return `${apiRoutes.recalls.trend}?${params.toString()}`
 }
 
+// Facet option counts under the current filters (same filter set as the list/trend, no paging/sort).
+export function buildFacetsPath(filters: TrendFilters): string {
+  const params = new URLSearchParams()
+  appendRecallFilters(params, filters)
+  return `${apiRoutes.recalls.facets}?${params.toString()}`
+}
+
+// Company type-ahead with counts under the other filters. Company is the facet's own dimension, so
+// the current selection is dropped — its counts don't (and shouldn't) depend on it, and omitting it
+// keeps the suggestion list from refetching when only the selection changes.
+export function buildCompaniesPath(filters: TrendFilters, q: string): string {
+  const params = new URLSearchParams()
+  appendRecallFilters(params, { ...filters, company: undefined })
+  const term = q.trim()
+  if (term) params.set('q', term)
+  return `${apiRoutes.recalls.companies}?${params.toString()}`
+}
+
 // A recall's nearest-neighbour path. Segments are encoded — FDA recall numbers can carry slashes.
 export function buildSimilarPath(source: RecallSource, recallNumber: string, limit = 6): string {
   const recall = `${encodeURIComponent(source)}/${encodeURIComponent(recallNumber)}`
