@@ -1,4 +1,4 @@
-import type { GameState } from '../types'
+import type { GameState, Ship } from '../types'
 import { CALAMITY } from '../../data'
 import type { ChangelogEntry } from '../../data'
 
@@ -205,7 +205,7 @@ export function loadGame(): SavedGame | null {
     // run doesn't start from `undefined` (which would become NaN once summed).
     const savedState = parsed.state as Omit<
       GameState,
-      'kills' | 'salvageOfferUsed' | 'spawn' | 'calamityTimer' | 'asteroids' | 'warpDelay'
+      'kills' | 'salvageOfferUsed' | 'spawn' | 'calamityTimer' | 'asteroids' | 'warpDelay' | 'ship'
     > & {
       kills?: number
       salvageOfferUsed?: boolean
@@ -213,6 +213,9 @@ export function loadGame(): SavedGame | null {
       asteroids?: GameState['asteroids']
       warpDelay?: number
       spawn?: GameState['spawn']
+      // Ship sub-fields added after a save was written are optional here too —
+      // `wormContactCooldown` is summed each frame, so undefined would go NaN.
+      ship: Omit<Ship, 'wormContactCooldown'> & { wormContactCooldown?: number }
       // Legacy flat spawn fields (pre-grouping saves) — migrated into `spawn`.
       waveTimer?: number
       spawnQueue?: GameState['spawn']['queue']
@@ -238,6 +241,7 @@ export function loadGame(): SavedGame | null {
         calamityTimer: savedState.calamityTimer ?? CALAMITY.shockwaveIntervalMin,
         asteroids: savedState.asteroids ?? [],
         warpDelay: savedState.warpDelay ?? 0,
+        ship: { ...savedState.ship, wormContactCooldown: savedState.ship.wormContactCooldown ?? 0 },
         spawn,
       },
     }

@@ -4,6 +4,7 @@ import {
   abilityKindForHotkey,
   getUnlockedAbilitiesInOrder,
   selectionAfterUltimatePurchase,
+  shouldSyncUI,
   useNullSpace,
 } from './useNullSpace'
 import { createRef } from 'react'
@@ -174,6 +175,28 @@ describe('useNullSpace — handleSubmitScore', () => {
     expect(ok).toBe(true)
     expect(submitScore).toHaveBeenCalledTimes(2)
     expect(savePlayerName).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('shouldSyncUI', () => {
+  // Regression: loot now flies to the ship during the warp, so the HUD counters
+  // must refresh every frame while warping — not just once at the shop.
+  it('republishes the HUD every frame during the warp cutscene', () => {
+    expect(shouldSyncUI(GamePhase.warping, GamePhase.warping, false)).toBe(true)
+  })
+
+  it('republishes every frame while playing', () => {
+    expect(shouldSyncUI(GamePhase.playing, GamePhase.playing, false)).toBe(true)
+  })
+
+  it('republishes on a phase change or a click, even on static screens', () => {
+    expect(shouldSyncUI(GamePhase.upgradeScreen, GamePhase.warping, false)).toBe(true) // phase change
+    expect(shouldSyncUI(GamePhase.upgradeScreen, GamePhase.upgradeScreen, true)).toBe(true) // click
+  })
+
+  it('skips redundant publishes on a quiet static screen', () => {
+    expect(shouldSyncUI(GamePhase.upgradeScreen, GamePhase.upgradeScreen, false)).toBe(false)
+    expect(shouldSyncUI(GamePhase.gameOver, GamePhase.gameOver, false)).toBe(false)
   })
 })
 

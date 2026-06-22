@@ -90,6 +90,10 @@ export type Ship = Entity & {
   // Gates how often hitFlash re-triggers, so continuous damage (a wandering black
   // hole core) pulses white now and then instead of staying pinned solid white.
   hitFlashCooldown: number
+  // Contact i-frame against the Void Worm (head + body). A lunge that sweeps the
+  // ship through the head and several segments lands one hit, not one per part.
+  // Counts down each tick; worm contact deals damage only at 0, then re-arms it.
+  wormContactCooldown: number
 }
 
 export const EnemyKind = {
@@ -103,6 +107,8 @@ export const EnemyKind = {
   shieldGenerator: 'shieldGenerator',
   voidWorm: 'voidWorm',
   wormSegment: 'wormSegment',
+  // A weak, lunging fragment a Void Worm body segment erupts into on death.
+  miniVoidWorm: 'miniVoidWorm',
   phaseShifter: 'phaseShifter',
 } as const
 export type EnemyKind = (typeof EnemyKind)[keyof typeof EnemyKind]

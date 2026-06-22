@@ -185,6 +185,14 @@ describe('updateCollectibles', () => {
     expect(after!.pos.x).toBeLessThan(before)
   })
 
+  it('a stronger magnet pulls homing loot in faster (warp vacuum)', () => {
+    const far = () => makeMetal({ pos: { x: ship.pos.x + 800, y: ship.pos.y }, homing: true })
+    const slow = updateCollectibles([far()], ship, 0.05, 100)
+    const fast = updateCollectibles([far()], ship, 0.05, 1000)
+    // Both move toward the ship (−x); the stronger magnet covers more ground.
+    expect(fast.collectibles[0]!.pos.x).toBeLessThan(slow.collectibles[0]!.pos.x)
+  })
+
   it('homing space metal credits the counter when it reaches the ship', () => {
     const metal = makeMetal({
       pos: { x: ship.pos.x + 1, y: ship.pos.y },

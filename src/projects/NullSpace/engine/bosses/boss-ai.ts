@@ -1,4 +1,5 @@
 import { createEnemy, createProjectile } from '../entities/entity-creator'
+import { scaleEnemy } from '../world/enemy-scaling'
 import { getBossDefinition } from './index'
 import type { BossTickContext } from './boss-definition'
 import { ProjectileOwner } from '../types'
@@ -51,9 +52,12 @@ export function updateBossAI(
 
     let updated = enemy
 
-    // First tick after creation: fire onSpawn, populate linkedIds.
+    // First tick after creation: fire onSpawn, populate linkedIds. Body parts
+    // scale on the boss's spawn wave, like the boss itself.
     if (def.onSpawn && !enemy.boss.hasSpawned) {
-      const spawned = def.onSpawn(enemy).map((s) => createEnemy(s.kind, s.pos))
+      const spawned = def
+        .onSpawn(enemy)
+        .map((s) => scaleEnemy(createEnemy(s.kind, s.pos), enemy.boss!.spawnWave))
       newEnemies = [...newEnemies, ...spawned]
       updated = {
         ...updated,
@@ -69,7 +73,7 @@ export function updateBossAI(
         enemies,
       })
       const drones = result.spawns.map((s) => {
-        const e = createEnemy(s.kind, s.pos)
+        const e = scaleEnemy(createEnemy(s.kind, s.pos), enemy.boss!.spawnWave)
         return s.expiresIn === undefined
           ? e
           : { ...e, expiresIn: s.expiresIn, expireBlast: s.expireBlast }
@@ -78,7 +82,9 @@ export function updateBossAI(
       let runtime = result.updatedRuntime
       // Regenerated shield ring: create the new generators and re-point linkedIds.
       if (result.linkedSpawns && result.linkedSpawns.length > 0) {
-        const regenerated = result.linkedSpawns.map((s) => createEnemy(s.kind, s.pos))
+        const regenerated = result.linkedSpawns.map((s) =>
+          scaleEnemy(createEnemy(s.kind, s.pos), enemy.boss!.spawnWave)
+        )
         newEnemies = [...newEnemies, ...regenerated]
         runtime = { ...runtime, linkedIds: regenerated.map((e) => e.id) }
       }

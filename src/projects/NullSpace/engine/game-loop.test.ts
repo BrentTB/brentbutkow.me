@@ -40,6 +40,9 @@ import {
 import { UpgradeId } from './upgrade-ids'
 import { isUpgradeWave } from './upgrades'
 import { BOSS_KINDS } from './bosses'
+import { updateBossAI } from './bosses/boss-ai'
+import { getBossRuntime } from './bosses/boss-definition'
+import { WormStage } from './bosses/void-worm'
 import { createNebula } from './calamities/nebula'
 import { createWormhole } from './calamities/wormhole'
 import { isBossWave, sectorProgress } from './world/waves'
@@ -419,9 +422,9 @@ describe('updateGameState', () => {
 
 // The progression fix lives here: on sector clear the portal spawns just ahead
 // of the ship (not at a fixed far point), residual fling/escape is cancelled so
-// the cutscene flight is clean, and dropped loot is banked first. A regression
-// that mis-places the portal or skips the cleanup passes every advanceWarp test,
-// so beginWarp needs its own guard.
+// the cutscene flight is clean, and dropped loot is set homing for the fly-in
+// vacuum. A regression that mis-places the portal or skips the cleanup passes
+// every advanceWarp test, so beginWarp needs its own guard.
 describe('beginWarp', () => {
   it('spawns the portal ahead of the ship and primes the cutscene', () => {
     let state = startGame(createInitialState(), ShipKind.fighter)
@@ -461,12 +464,14 @@ describe('beginWarp', () => {
     // Residual fling / escape cleared so the cutscene flight is clean.
     expect(warped.ship.flingVel).toEqual({ x: 0, y: 0 })
     expect(warped.ship.escapeMode).toBeNull()
-    // Enemies + dropped loot clear (the metal banked into currency), but the calamity
-    // field rides the cutscene as UI instead of popping the instant the sector clears.
+    // Enemies clear, but dropped loot rides the cutscene — now homing — to be
+    // vacuumed to the ship during the fly-in rather than auto-banked. The calamity
+    // field also rides along as UI instead of popping the instant the sector clears.
     expect(warped.enemies).toEqual([])
-    expect(warped.collectibles).toEqual([])
+    expect(warped.collectibles).toHaveLength(1)
+    expect(warped.collectibles[0].homing).toBe(true)
     expect(warped.hazards).toBe(state.hazards) // preserved, not wiped
-    expect(warped.spaceMetal).toBe(2 + 3)
+    expect(warped.spaceMetal).toBe(2) // not banked yet — it flies in during the warp
   })
 
   // Regression: helpers + the helper factory used to ride the warp into the next
@@ -548,6 +553,43 @@ describe('advanceWarp', () => {
     const { state, landed } = advanceWarp(s, 0.05)
     expect(landed).toBe(true)
     expect(state.phase).toBe(GamePhase.upgradeScreen)
+  })
+
+  it('vacuums dropped loot to the ship and banks it during the fly-in', () => {
+    const base = warpingState(WARP.maxDuration)
+    // A homing metal sitting on the ship → collected on the first vacuum tick.
+    const metal = {
+      id: 'm',
+      kind: CollectibleKind.spaceMetal,
+      pos: { ...base.ship.pos },
+      vel: { x: 0, y: 0 },
+      value: 3,
+      elapsed: 0,
+      lifetime: 12,
+      homing: true,
+    }
+    const { state } = advanceWarp({ ...base, collectibles: [metal], spaceMetal: 0 }, 0.1)
+    expect(state.spaceMetal).toBe(3)
+    expect(state.collectibles).toHaveLength(0)
+  })
+
+  it('banks any loot still in flight when the warp completes (no loss)', () => {
+    const base = { ...warpingState(WARP.maxDuration), warpFlashTimer: 0.01 }
+    // Far enough that the vacuum can't reach it before the flash ends.
+    const metal = {
+      id: 'm',
+      kind: CollectibleKind.spaceMetal,
+      pos: { x: base.ship.pos.x + 5000, y: base.ship.pos.y },
+      vel: { x: 0, y: 0 },
+      value: 4,
+      elapsed: 0,
+      lifetime: 999,
+      homing: true,
+    }
+    const { state, landed } = advanceWarp({ ...base, collectibles: [metal], spaceMetal: 0 }, 0.05)
+    expect(landed).toBe(true)
+    expect(state.spaceMetal).toBe(4) // safety sweep banked it
+    expect(state.collectibles).toHaveLength(0)
   })
 })
 
@@ -1050,6 +1092,96 @@ describe('updateGameState — state field round-trip persistence', () => {
 
     expect(state.phase).toBe(GamePhase.waveComplete)
     expect(state.spawn.elapsed).toBeCloseTo(5 + dt)
+  })
+
+  // wormContactCooldown is a ship sub-field ticked toward 0 each frame (game-loop
+  // subtracts dt). Guards that it survives the tick (a stale `...state`/`...ship` spread
+  // would drop it) and decays while staying finite — a value resumed as undefined from
+  // an old save would surface here as NaN, silently disabling the worm contact i-frame.
+  it('ship.wormContactCooldown decays by dt and stays finite across a tick', () => {
+    let state = startGame(createInitialState(), ShipKind.fighter)
+    state = startNextWave(state)
+    state = { ...state, ship: { ...state.ship, wormContactCooldown: 0.5 } }
+
+    const dt = 1 / 60
+    state = updateGameState(state, dt, { clicks: [], selectedAbility: null })
+
+    expect(state.ship.wormContactCooldown).toBeCloseTo(0.5 - dt)
+    expect(Number.isFinite(state.ship.wormContactCooldown)).toBe(true)
+  })
+
+  // Spawn a Void Worm head + its linked segment chain far from the ship, pinned in
+  // windup (the head stalls in place) so positionChain holds the body steady across a
+  // meteorite strike window. Returns the head and segments ready to inject into state.
+  function frozenWorm(shipPos: { x: number; y: number }) {
+    const ctx = { shipPos, worldSize: WORLD_SIZE }
+    const spawned = updateBossAI(
+      [createEnemy(EnemyKind.voidWorm, { x: shipPos.x + 600, y: shipPos.y })],
+      0.016,
+      ctx
+    )
+    const headBase = spawned.enemies.find((e) => e.kind === EnemyKind.voidWorm)!
+    const runtime = getBossRuntime(headBase, EnemyKind.voidWorm)!
+    const head = { ...headBase, boss: { ...runtime, stage: WormStage.windup, stageTimer: 99 } }
+    return { head, segments: spawned.newEnemies }
+  }
+
+  // Wiring of miniWormsFromSegmentDeaths into updateGameState: a body segment killed in
+  // combat this frame erupts into a mini worm appended to state.enemies.
+  it('a combat-killed Void Worm segment erupts into a mini worm in the returned state', () => {
+    let state = startGame(createInitialState(), ShipKind.fighter)
+    state = startNextWave(state)
+
+    const { head, segments } = frozenWorm(state.ship.pos)
+    // Target the chain's tail so the blast can't also clip the head; only it has lethal
+    // HP, neighbours over-tanked so the same strike leaves them alive.
+    const targetIndex = segments.length - 1
+    const segs = segments.map((s, i) => ({ ...s, hp: i === targetIndex ? 1 : 1000 }))
+    state = { ...state, enemies: [head, ...segs] }
+
+    // Settle one frame (head frozen → positions stable), then strike the tail segment
+    // and tick past the meteorite's impact delay.
+    state = updateGameState(state, 1 / 60, { clicks: [], selectedAbility: null })
+    const target = state.enemies.find((e) => e.id === segs[targetIndex].id)!
+    state = updateGameState(state, 0.05, {
+      clicks: [{ ...target.pos }],
+      selectedAbility: AbilityKind.meteorite,
+    })
+    for (let i = 0; i < 12; i++) {
+      state = updateGameState(state, 0.05, { clicks: [], selectedAbility: null })
+    }
+
+    expect(state.enemies.some((e) => e.id === segs[targetIndex].id)).toBe(false)
+    expect(state.enemies.some((e) => e.kind === EnemyKind.miniVoidWorm)).toBe(true)
+  })
+
+  // Wiring of orphanedSegmentIds into updateGameState: killing the head culls its
+  // remaining segments with it — and, unlike a segment combat-kill, erupts no mini worms.
+  it('killing the Void Worm head culls its segments and spawns no mini worms', () => {
+    let state = startGame(createInitialState(), ShipKind.fighter)
+    state = startNextWave(state)
+
+    const { head, segments } = frozenWorm(state.ship.pos)
+    // Head at 1 HP dies even through the body's damage shield (0.3 × strike damage);
+    // segments over-tanked so the blast can't kill them — only the head-death cull can.
+    state = {
+      ...state,
+      enemies: [{ ...head, hp: 1 }, ...segments.map((s) => ({ ...s, hp: 1000 }))],
+    }
+
+    state = updateGameState(state, 1 / 60, { clicks: [], selectedAbility: null })
+    const liveHead = state.enemies.find((e) => e.kind === EnemyKind.voidWorm)!
+    state = updateGameState(state, 0.05, {
+      clicks: [{ ...liveHead.pos }],
+      selectedAbility: AbilityKind.meteorite,
+    })
+    for (let i = 0; i < 12; i++) {
+      state = updateGameState(state, 0.05, { clicks: [], selectedAbility: null })
+    }
+
+    expect(state.enemies.some((e) => e.kind === EnemyKind.voidWorm)).toBe(false)
+    expect(state.enemies.some((e) => e.kind === EnemyKind.wormSegment)).toBe(false)
+    expect(state.enemies.some((e) => e.kind === EnemyKind.miniVoidWorm)).toBe(false)
   })
 })
 
@@ -1933,7 +2065,7 @@ describe('updateGameState — sector progression', () => {
     expect(state.ship.pos.y).toBeLessThan(startPos.y) // moved up toward the enemy
   })
 
-  it('auto-collects dropped collectibles when warping after a sector clear', () => {
+  it('banks dropped loot through the warp (flies in, none lost) after a sector clear', () => {
     let state = playing()
     state = {
       ...state,
@@ -1965,13 +2097,25 @@ describe('updateGameState — sector progression', () => {
         },
       ],
     }
-    // Coast through the brief pre-warp beat, then the warp banks the drops.
+    // Coast through the brief pre-warp beat into the warp cutscene.
     let next = updateGameState(state, 0.016, noInput)
     for (let i = 0; i < 200 && next.phase === GamePhase.playing; i++) {
       next = updateGameState(next, 0.016, noInput)
     }
     expect(next.phase).toBe(GamePhase.warping)
-    expect(next.spaceMetal).toBe(2) // banked, not lost to the warp
+    // Loot rides in homing — not banked yet; it flies to the ship during the fly-in.
+    expect(next.spaceMetal).toBe(0)
+    expect(next.collectibles.every((c) => c.homing)).toBe(true)
+    // Drive the cutscene to completion: the loot is vacuumed in (safety-swept if any
+    // straggler remains), so nothing is lost to the warp.
+    let landed = false
+    for (let i = 0; i < 500 && !landed; i++) {
+      const result = advanceWarp(next, 0.05)
+      next = result.state
+      landed = result.landed
+    }
+    expect(landed).toBe(true)
+    expect(next.spaceMetal).toBe(2)
     expect(next.singularityShard).toBe(1)
     expect(next.collectibles).toEqual([])
   })

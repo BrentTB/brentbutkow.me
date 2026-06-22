@@ -5,7 +5,7 @@ import { wrapPosition } from '../math/toroid'
 import { ringPositions } from '../math/vec'
 import type { Camera } from '../../renderer/camera'
 import { isWithinView, worldToScreen } from '../../renderer/camera'
-import { bossPhase, getBossRuntime } from './boss-definition'
+import { bossPhase, bossTier, getBossRuntime, growByTier } from './boss-definition'
 import type {
   BossDefinition,
   BossRuntimeBase,
@@ -40,6 +40,16 @@ export const PHASE_SHIFTER = {
   arrivalMax: 120,
   ringCountP1: 8,
   ringCountP2: 12,
+  // Deeper runs drop bigger rings: +ringCountPerTier per boss tier past the first,
+  // capped per phase.
+  ringCountPerTier: 2,
+  maxRingCountP1: 16,
+  maxRingCountP2: 20,
+  // Deeper runs also harden the ring: a tier-growing fraction of slots spawn drones
+  // (tougher, still fast) instead of swarm, capped. Only fast kinds ever spawn —
+  // ring units explode on the next teleport, so a slow unit would be unfair.
+  droneFractionPerTier: 0.15,
+  maxDroneFraction: 0.5,
   ringRadius: 80,
   // Swarm rings self-destruct exactly as the next ring spawns (their lifetime is the
   // full teleport cycle), so they can't pile up; the pop's small blast punishes
@@ -57,12 +67,32 @@ function rollTeleportTarget(shipPos: Vec2): Vec2 {
   })
 }
 
-// Evenly-spaced swarm ring around the arrival point.
-// Evenly-spaced swarm ring around the arrival point. `lifetime` is the full teleport
-// cycle (this idle + the telegraph), so the ring pops the instant the next one spawns.
-function ringSpecs(center: Vec2, count: number, lifetime: number): SpawnSpec[] {
-  return ringPositions(center, PHASE_SHIFTER.ringRadius, count).map((pos) => ({
-    kind: EnemyKind.swarm,
+// Ring size for the boss's phase, grown by depth and capped.
+function ringCount(tier: number, phase: number): number {
+  const base = phase === 2 ? PHASE_SHIFTER.ringCountP2 : PHASE_SHIFTER.ringCountP1
+  const max = phase === 2 ? PHASE_SHIFTER.maxRingCountP2 : PHASE_SHIFTER.maxRingCountP1
+  return growByTier(base, PHASE_SHIFTER.ringCountPerTier, tier, max)
+}
+
+// Evenly-spaced ring around the arrival point. `lifetime` is the full teleport
+// cycle (this idle + the telegraph), so the ring pops the instant the next one
+// spawns. Deeper tiers replace an evenly-spread fraction of slots with drones —
+// tougher than swarm but, like swarm, fast enough that the pop stays fair.
+function ringSpecs(center: Vec2, count: number, lifetime: number, tier: number): SpawnSpec[] {
+  const fraction = growByTier(
+    0,
+    PHASE_SHIFTER.droneFractionPerTier,
+    tier,
+    PHASE_SHIFTER.maxDroneFraction
+  )
+  const drones = Math.floor(count * fraction)
+  return ringPositions(center, PHASE_SHIFTER.ringRadius, count).map((pos, i) => ({
+    // Spread the drone quota evenly: a slot is a drone when the running quota ticks
+    // over at it (Math.floor(i*drones/count) increments).
+    kind:
+      Math.floor((i * drones) / count) !== Math.floor(((i + 1) * drones) / count)
+        ? EnemyKind.drone
+        : EnemyKind.swarm,
     pos,
     expiresIn: lifetime,
     expireBlast: { radius: PHASE_SHIFTER.swarmBlastRadius, damage: PHASE_SHIFTER.swarmBlastDamage },
@@ -125,6 +155,7 @@ export const PHASE_SHIFTER_BOSS: BossDefinition = {
     phase: 1,
     linkedIds: [],
     hasSpawned: false,
+    spawnWave: 0,
     stage: ShifterStage.idle,
     stageTimer: PHASE_SHIFTER.idleDurationP1,
     targetPos: null,
@@ -158,11 +189,8 @@ export const PHASE_SHIFTER_BOSS: BossDefinition = {
       // Lifetime = this idle + the telegraph that follows, so the ring burns out the
       // instant the next teleport lands its replacement.
       const lifetime = idleDuration + PHASE_SHIFTER.telegraphDuration
-      spawns = ringSpecs(
-        target,
-        phase === 2 ? PHASE_SHIFTER.ringCountP2 : PHASE_SHIFTER.ringCountP1,
-        lifetime
-      )
+      const tier = bossTier(shifter.spawnWave)
+      spawns = ringSpecs(target, ringCount(tier, phase), lifetime, tier)
       next = { stage: ShifterStage.idle, stageTimer: idleDuration, targetPos: null }
     }
 

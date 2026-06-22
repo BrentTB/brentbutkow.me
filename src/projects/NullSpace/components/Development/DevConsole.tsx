@@ -47,7 +47,7 @@ export function DevConsole({
     <aside className={styles.console}>
       <h3 className={styles.title}>Dev Console</h3>
 
-      <Section label="Ship Type">
+      <Section label="Ship Type" defaultOpen={false}>
         <div className={styles.shipGrid}>
           {SHIP_ORDER.map((kind) => (
             <button
@@ -143,7 +143,7 @@ export function DevConsole({
         </div>
       </Section>
 
-      <Section label="Spawn Calamity">
+      <Section label="Spawn Calamity" defaultOpen={false}>
         <div className={styles.shipGrid}>
           {CALAMITY_BUTTONS.map(({ kind, label }) => (
             <button
@@ -284,11 +284,28 @@ export function DevConsole({
   )
 }
 
-function Section({ label, children }: { label: string; children: React.ReactNode }) {
+function Section({
+  label,
+  children,
+  defaultOpen = true,
+}: {
+  label: string
+  children: React.ReactNode
+  defaultOpen?: boolean
+}) {
+  const [open, setOpen] = useState(defaultOpen)
   return (
     <div className={styles.section}>
-      <div className={styles.sectionLabel}>{label}</div>
-      <div className={styles.sectionBody}>{children}</div>
+      <button
+        type="button"
+        className={styles.sectionLabel}
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className={styles.sectionCaret}>{open ? '▾' : '▸'}</span>
+        {label}
+      </button>
+      {open && <div className={styles.sectionBody}>{children}</div>}
     </div>
   )
 }

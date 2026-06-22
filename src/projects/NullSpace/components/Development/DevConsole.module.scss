@@ -34,13 +34,32 @@
 }
 
 .sectionLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  margin: 0;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  padding: 0 0 4px;
+  font: inherit;
   font-size: 0.6rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+  text-align: left;
   color: var(--muted);
-  padding-bottom: 4px;
-  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--text);
+  }
+}
+
+.sectionCaret {
+  font-size: 0.7rem;
+  line-height: 1;
 }
 
 .sectionBody {
