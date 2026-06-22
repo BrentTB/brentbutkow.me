@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { MemoryRouter } from 'react-router-dom'
 import { FunModeProvider } from '../../contexts/FunModeProvider'
 import { RecallRadar } from './RecallRadar'
+import { emptyFacets } from './test-fixtures'
 
 const stats = {
   total: 42,
@@ -121,6 +122,7 @@ const events = [
 ]
 
 const facets = {
+  ...emptyFacets,
   category: [
     { label: 'allergen', count: 30 },
     { label: 'pathogen', count: 12 },

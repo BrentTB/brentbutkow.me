@@ -211,6 +211,11 @@ export const facetsFromStats = (stats: RecallStats): RecallFacets => ({
   eventCounts: {},
 })
 
+// Read a per-id facet count (a theme or outbreak cluster), coercing the surrogate id to the string
+// key the backend tallies under. Zero when the id has no recalls in the current filter set.
+export const countFor = (counts: Record<string, number>, id: number): number =>
+  counts[String(id)] ?? 0
+
 // Long-format monthly counts for the groupable trend chart. group is a category/source value,
 // or 'total' when ungrouped.
 export type TrendBucket = { month: string; group: string; count: number }

@@ -76,4 +76,31 @@ describe('Combobox', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Clear State' }))
     expect(onChange).toHaveBeenCalledWith('')
   })
+
+  it('shows counts and skips disabled (zero-result) options in keyboard nav + clicks', () => {
+    const onChange = vi.fn()
+    // Lead with a disabled (zero-result) option so opening must seek past it.
+    const faceted = [
+      { value: 'NY', label: 'NY', count: 0, disabled: true },
+      { value: 'CA', label: 'CA', count: 18 },
+      { value: 'TX', label: 'TX', count: 9 },
+    ]
+    render(<Combobox value="" options={faceted} onChange={onChange} ariaLabel="State" />)
+    const input = screen.getByRole('combobox', { name: 'State' })
+    fireEvent.focus(input)
+    expect(screen.getByText('18')).toBeTruthy() // faceted count rendered
+
+    // On open the active descendant is the first enabled option, not the disabled NY.
+    const openId = input.getAttribute('aria-activedescendant')
+    expect(document.getElementById(openId!)?.textContent).toContain('CA')
+
+    // ArrowDown from CA skips back over nothing and lands on TX.
+    fireEvent.keyDown(input, { key: 'ArrowDown' })
+    const activeId = input.getAttribute('aria-activedescendant')
+    expect(document.getElementById(activeId!)?.textContent).toContain('TX')
+
+    // Selecting the disabled option (mousedown) is a no-op.
+    fireEvent.mouseDown(screen.getByRole('option', { name: /NY/ }))
+    expect(onChange).not.toHaveBeenCalled()
+  })
 })

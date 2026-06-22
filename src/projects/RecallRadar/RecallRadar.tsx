@@ -44,6 +44,7 @@ import {
   isSeverityLabel,
   isTrendGroup,
   isIsoDate,
+  countFor,
   facetsFromStats,
   type RecallFilterValues,
   type TopicOut,
@@ -256,10 +257,10 @@ export function RecallRadar() {
   const topicCounts = facets.data?.topicCounts
   const eventCounts = facets.data?.eventCounts
   const visibleTopics = (topics.data ?? []).filter(
-    (topic) => !topicCounts || (topicCounts[String(topic.id)] ?? 0) > 0
+    (topic) => !topicCounts || countFor(topicCounts, topic.id) > 0
   )
   const visibleOutbreaks = (events.data ?? []).filter(
-    (event) => event.isOutbreak && (!eventCounts || (eventCounts[String(event.id)] ?? 0) > 0)
+    (event) => event.isOutbreak && (!eventCounts || countFor(eventCounts, event.id) > 0)
   )
   const hasThemes = visibleTopics.length > 0
   const hasOutbreaks = visibleOutbreaks.length > 0

@@ -1,5 +1,5 @@
 import { BreakdownList } from './Breakdowns'
-import type { TopicOut } from '../recall.types'
+import { countFor, type TopicOut } from '../recall.types'
 
 type ThemesProps = {
   topics: TopicOut[]
@@ -20,7 +20,7 @@ export function Themes({ topics, activeTopic, onSelect, counts }: ThemesProps) {
   const rows = topics.map((topic) => ({
     label: topic.label,
     value: topic.slug,
-    count: counts ? (counts[String(topic.id)] ?? 0) : topic.size,
+    count: counts ? countFor(counts, topic.id) : topic.size,
   }))
   // With live counts, lead with the themes that have the most recalls under the current filters.
   if (counts) rows.sort((a, b) => b.count - a.count)

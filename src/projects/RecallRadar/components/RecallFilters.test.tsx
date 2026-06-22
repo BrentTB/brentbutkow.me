@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { RecallFilters } from './RecallFilters'
 import type { RecallFilterValues } from '../recall.types'
+import { emptyFacets } from '../test-fixtures'
 
 // CompanyFilter fetches company suggestions on mount; stub it so these tests stay offline.
 const mockRes = (body: unknown) => ({ ok: true, status: 200, json: async () => body }) as Response
@@ -67,18 +68,11 @@ describe('RecallFilters', () => {
   it('annotates options with facet counts and sorts zero-result ones last, disabled', () => {
     renderFilters({
       facets: {
+        ...emptyFacets,
         category: [
           { label: 'allergen', count: 30 },
           { label: 'pathogen', count: 0 },
         ],
-        classification: [],
-        severity: [],
-        source: [],
-        state: [],
-        company: [],
-        entity: [],
-        topicCounts: {},
-        eventCounts: {},
       },
     })
     fireEvent.click(screen.getByLabelText('Cause')) // the cause/category control

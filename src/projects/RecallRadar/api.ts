@@ -78,8 +78,7 @@ export function buildFacetsPath(filters: TrendFilters): string {
 export function buildCompaniesPath(filters: TrendFilters, q: string): string {
   const params = new URLSearchParams()
   appendRecallFilters(params, { ...filters, company: undefined })
-  const term = q.trim()
-  if (term) params.set('q', term)
+  if (q) params.set('q', q)
   return `${apiRoutes.recalls.companies}?${params.toString()}`
 }
 
