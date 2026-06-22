@@ -46,7 +46,7 @@ npm test              # vitest run (test:watch to watch)
   (e.g. [jokes.test.ts](src/data/jokes.test.ts), [fun-mode.test.ts](src/modes/fun-mode.test.ts),
   [routes.config.test.ts](src/routes/routes.config.test.ts)). Husky pre-commit runs `npm test` and **fails on any failure**.
 - **Hard rule: every custom hook (`useX`) ships with a colocated unit test, added/updated in the same change.**
-  DOM/context hooks (`useFunMode`, `useDocumentTitle`) use `renderHook` with a provider/router wrapper — see their tests.
+  DOM/context hooks (`useFunMode`, `useRouteMeta`) use `renderHook` with a provider/router wrapper — see their tests.
 - **Hard rule: every bug fix includes a regression test in the same change.** It must fail without the
   fix and pass with it — before committing, revert the fix and re-run `npm test` to confirm it fails.
   Name it so a future reader knows what it guards. See `updateGameState — state field round-trip persistence`

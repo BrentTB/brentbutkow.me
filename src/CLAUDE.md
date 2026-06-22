@@ -13,8 +13,10 @@ BrowserRouter → FunModeProvider → WaterRippleLayer + Navbar + Router   (Foot
 - **Routing is centralized + data-driven.** [routes.config.tsx](routes/routes.config.tsx) exports
   `routePaths`, `routes: AppRoute[]`, and fun-stuff subroutes. [Router.tsx](routes/Router.tsx) maps
   over `routes`; [Navbar.tsx](components/navbar/Navbar.tsx) reuses it (filtering `dontShowInNavbar`).
-  Each route's `title` syncs to `document.title` via [useDocumentTitle.ts](routes/useDocumentTitle.ts)
-  (called in `Router`; unmatched → `*`/404 title). **Add a page by editing the config — never hard-code a path, nav link, or title.**
+  Each route's `title` + `description` sync to the document head (title, meta description,
+  self-referencing canonical, Open Graph, Twitter) via [useRouteMeta.ts](routes/useRouteMeta.ts)
+  (called in `Router`; pattern-matches dynamic paths, unmatched → `*`/404). **Add a page by editing the
+  config — never hard-code a path, nav link, title, or description.**
 - **State is minimal**: Context for the global Fun-mode flag, `useState` for local UI. No Redux/external store.
 - **Content lives in `data.ts`**, not JSX — typed against [data/data.types.ts](data/data.types.ts).
   Components are presentational, fed via props.
@@ -26,7 +28,7 @@ BrowserRouter → FunModeProvider → WaterRippleLayer + Navbar + Router   (Foot
 | Kind                             | Case         | Examples                                                |
 | -------------------------------- | ------------ | ------------------------------------------------------- |
 | `.tsx` component                 | `PascalCase` | `Hero.tsx`, `PageHeader.tsx`                            |
-| Hook (`useX`)                    | `camelCase`  | `useFunMode.ts`, `useDocumentTitle.ts`                  |
+| Hook (`useX`)                    | `camelCase`  | `useFunMode.ts`, `useRouteMeta.ts`                      |
 | Plain `.ts` (utils, data, logic) | `kebab-case` | `fun-mode.ts`, `jokes.ts`, `black-hole.ts`              |
 | Folder mapping 1:1 to a `.tsx`   | `PascalCase` | `NullSpace/`, `GulagSort/`, `FunStuff/`, `Hero/`        |
 | Folder for internal organization | `camelCase`  | `engine/`, `systems/`, `spaceMetalAbilities/`, `utils/` |
