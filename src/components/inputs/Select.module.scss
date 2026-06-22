@@ -53,11 +53,12 @@
   margin: 0;
   padding: 4px;
   list-style: none;
-  background: var(--surface-strong);
+  // Opaque — the menu now floats over real data (charts, rows), so a translucent surface would let
+  // it bleed through and read as unclickable.
+  background: var(--bg-elevated);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(14px);
 }
 
 .option {

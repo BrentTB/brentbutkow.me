@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   categoryLabels,
   classesByCountry,
@@ -45,6 +46,13 @@ export function RecallFilters({
   // Classification + source options are country-specific so the US/UK dropdowns stay separate.
   const classOptions = classesByCountry[country]
   const sourceOptions = sourcesByCountry[country]
+
+  // The bar shows a key few controls inline; the rest live behind "More filters" so the sticky bar
+  // stays one row by default. Expansion is the user's toggle alone — an advanced filter set from
+  // elsewhere (a company/state click on the page, or a shared URL) stays hidden and is surfaced only
+  // by its removable chip below, so selecting one never makes the bar jump open.
+  const [showMore, setShowMore] = useState(false)
+
   // One removable chip per active filter — surfaces what's scoping the chart + list, and lets each
   // be cleared on its own (clicks from the breakdowns/map land here too).
   // `remove` is the screen-reader phrase for the chip's clear button; defaults to the visible label,
@@ -131,22 +139,20 @@ export function RecallFilters({
   ]
   return (
     <div className={styles.root}>
-      <div className={styles.filters}>
-        <label className={`${styles.field} ${styles.searchField}`}>
-          <span className={styles.label}>Search</span>
-          <input
-            type="search"
-            className={styles.search}
-            placeholder="Search product, reason, or company…"
-            value={filters.search}
-            onChange={(event) => onChange({ search: event.target.value })}
-          />
-        </label>
+      <div className={styles.bar}>
+        <input
+          type="search"
+          className={styles.search}
+          aria-label="Search recalls"
+          placeholder="Search product, reason, or company…"
+          value={filters.search}
+          onChange={(event) => onChange({ search: event.target.value })}
+        />
 
         <div className={styles.field}>
-          <span className={styles.label}>Category</span>
+          <span className={styles.label}>Cause</span>
           <Select
-            ariaLabel="Category"
+            ariaLabel="Cause"
             value={filters.category}
             options={categoryOptions}
             onChange={(value) => onChange({ category: isRecallCategory(value) ? value : '' })}
@@ -154,9 +160,9 @@ export function RecallFilters({
         </div>
 
         <div className={styles.field}>
-          <span className={styles.label}>Classification</span>
+          <span className={styles.label}>Class</span>
           <Select
-            ariaLabel="Classification"
+            ariaLabel="Class"
             value={filters.classification}
             options={classificationOptions}
             onChange={(value) => onChange({ classification: isRecallClass(value) ? value : '' })}
@@ -173,64 +179,78 @@ export function RecallFilters({
           />
         </div>
 
-        {sourceOptions.length > 1 && (
-          <div className={styles.field}>
-            <span className={styles.label}>Source</span>
-            <Select
-              ariaLabel="Source"
-              value={filters.source}
-              options={sourceFilterOptions}
-              onChange={(value) => onChange({ source: isRecallSource(value) ? value : '' })}
-            />
-          </div>
-        )}
-
-        {stateOptions.length > 0 && (
-          <div className={styles.field}>
-            <span className={styles.label}>State</span>
-            <Combobox
-              ariaLabel="State"
-              value={filters.state}
-              options={stateOptions.map((code) => ({ value: code, label: code }))}
-              onChange={(value) => onChange({ state: value })}
-              placeholder="Search states…"
-            />
-          </div>
-        )}
-
-        <div className={styles.field}>
-          <span className={styles.label}>Company</span>
-          <CompanyFilter
-            country={country}
-            value={filters.company}
-            onChange={(value) => onChange({ company: value })}
-          />
-        </div>
-
-        <div className={styles.field}>
-          <span className={styles.label}>From</span>
-          <input
-            type="date"
-            aria-label="Recalls reported on or after"
-            className={styles.date}
-            value={filters.since}
-            max={filters.until || undefined}
-            onChange={(event) => onChange({ since: event.target.value })}
-          />
-        </div>
-
-        <div className={styles.field}>
-          <span className={styles.label}>To</span>
-          <input
-            type="date"
-            aria-label="Recalls reported on or before"
-            className={styles.date}
-            value={filters.until}
-            min={filters.since || undefined}
-            onChange={(event) => onChange({ until: event.target.value })}
-          />
-        </div>
+        <button
+          type="button"
+          className={styles.more}
+          aria-expanded={showMore}
+          onClick={() => setShowMore((prev) => !prev)}
+        >
+          {showMore ? '− Fewer filters' : '+ More filters'}
+        </button>
       </div>
+
+      {showMore && (
+        <div className={styles.bar}>
+          {sourceOptions.length > 1 && (
+            <div className={styles.field}>
+              <span className={styles.label}>Source</span>
+              <Select
+                ariaLabel="Source"
+                value={filters.source}
+                options={sourceFilterOptions}
+                onChange={(value) => onChange({ source: isRecallSource(value) ? value : '' })}
+              />
+            </div>
+          )}
+
+          {stateOptions.length > 0 && (
+            <div className={styles.field}>
+              <span className={styles.label}>State</span>
+              <Combobox
+                ariaLabel="State"
+                value={filters.state}
+                options={stateOptions.map((code) => ({ value: code, label: code }))}
+                onChange={(value) => onChange({ state: value })}
+                placeholder="Search states…"
+              />
+            </div>
+          )}
+
+          <div className={styles.field}>
+            <span className={styles.label}>Company</span>
+            <CompanyFilter
+              country={country}
+              value={filters.company}
+              onChange={(value) => onChange({ company: value })}
+            />
+          </div>
+
+          <div className={styles.field}>
+            <span className={styles.label}>From</span>
+            <input
+              type="date"
+              aria-label="Recalls reported on or after"
+              className={styles.date}
+              value={filters.since}
+              max={filters.until || undefined}
+              onChange={(event) => onChange({ since: event.target.value })}
+            />
+          </div>
+
+          <div className={styles.field}>
+            <span className={styles.label}>To</span>
+            <input
+              type="date"
+              aria-label="Recalls reported on or before"
+              className={styles.date}
+              value={filters.until}
+              min={filters.since || undefined}
+              onChange={(event) => onChange({ until: event.target.value })}
+            />
+          </div>
+        </div>
+      )}
+
       {chips.length > 0 && (
         <div className={styles.chips}>
           <span className={styles.chipsLabel}>Filtering</span>

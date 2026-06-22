@@ -1,7 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render as rtlRender, screen, waitFor } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
+import type { ReactElement } from 'react'
 import { RecallFeed } from './RecallFeed'
 import type { Recall } from '../recall.types'
+
+// RecallFeed renders <Link>s (the per-row "Open recall page" + related recalls), so each render
+// needs a Router context. Wrap testing-library's render once rather than at every call site.
+const render = (ui: ReactElement) => rtlRender(<MemoryRouter>{ui}</MemoryRouter>)
 
 const mockRes = (body: unknown) => ({ ok: true, status: 200, json: async () => body }) as Response
 
@@ -52,6 +58,14 @@ describe('RecallFeed', () => {
     expect(details?.open).toBe(false)
     fireEvent.click(summary as Element)
     expect(details?.open).toBe(true)
+  })
+
+  it('links the product title to the recall page without expanding the row', () => {
+    const { container } = render(<RecallFeed recalls={[recall]} />)
+    const title = screen.getByRole('link', { name: 'Test cookies' })
+    expect(title.getAttribute('href')).toContain('/recall-radar/usda/F-1234')
+    fireEvent.click(title)
+    expect(container.querySelector('details')?.open).toBe(false) // navigates, doesn't toggle
   })
 
   it('mounts related recalls on open and unmounts them on close across a rapid toggle', async () => {

@@ -145,11 +145,27 @@
   transform: rotate(90deg);
 }
 
+// The title doubles as a link to the recall's page. Reads as a heading until hovered/focused, then
+// shows it's clickable (accent + underline) — like the related-recalls product links.
 .product {
+  display: block;
   margin: 0;
   font-size: 0.98rem;
   font-weight: 500;
   color: var(--text);
+  text-decoration: none;
+}
+
+.product:hover,
+.product:focus-visible {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.product:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 .company {
@@ -242,6 +258,20 @@
 
 .sourceLink a:hover {
   color: var(--accent);
+}
+
+.detailPageLink {
+  margin: 10px 0 0;
+  font-size: 0.82rem;
+}
+
+.detailPageLink a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.detailPageLink a:hover {
+  text-decoration: underline;
 }
 
 .empty {

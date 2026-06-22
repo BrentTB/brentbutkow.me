@@ -56,9 +56,17 @@ describe('RecallFilters', () => {
     expect(onChange).toHaveBeenCalledWith({ search: 'listeria' })
   })
 
+  it('keeps advanced filters behind a "More filters" disclosure', () => {
+    renderFilters()
+    expect(screen.queryByLabelText('Source')).toBeNull() // hidden until expanded
+    fireEvent.click(screen.getByRole('button', { name: /More filters/i }))
+    expect(screen.getByLabelText('Source')).toBeTruthy()
+  })
+
   it('reports a chosen source through the Select', () => {
     const onChange = vi.fn()
     renderFilters({ onChange })
+    fireEvent.click(screen.getByRole('button', { name: /More filters/i })) // source lives behind More
     fireEvent.click(screen.getByLabelText('Source')) // open the source dropdown
     fireEvent.click(screen.getByText('USDA FSIS'))
     expect(onChange).toHaveBeenCalledWith({ source: 'usda' })
@@ -75,7 +83,7 @@ describe('RecallFilters', () => {
   it('shows UK classifications and hides the source filter for the UK', () => {
     renderFilters({ country: 'uk' })
     expect(screen.queryByLabelText('Source')).toBeNull() // single UK source → no source filter
-    fireEvent.click(screen.getByLabelText('Classification'))
+    fireEvent.click(screen.getByLabelText('Class'))
     expect(screen.getByText('Allergy Alert')).toBeTruthy() // a UK option
     expect(screen.queryByText('Class I')).toBeNull() // US classes don't bleed in
   })
@@ -83,6 +91,7 @@ describe('RecallFilters', () => {
   it('reports a chosen From date through onChange', () => {
     const onChange = vi.fn()
     renderFilters({ onChange })
+    fireEvent.click(screen.getByRole('button', { name: /More filters/i })) // dates live behind More
     fireEvent.change(screen.getByLabelText('Recalls reported on or after'), {
       target: { value: '2025-01-01' },
     })

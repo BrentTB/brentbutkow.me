@@ -22,7 +22,6 @@ export const recallRadarCopy = {
     'Sources: US openFDA + USDA FSIS, and UK Food Standards Agency alerts. Categories are assigned by a TF-IDF + logistic-regression classifier trained on the recall text; the % on each recall is the model confidence.',
   about:
     'A full-stack side project. A Python/FastAPI service ingests food-recall data from the US (FDA openFDA, USDA FSIS) and the UK (Food Standards Agency) every day, classifies each recall by likely cause, and stores it in Postgres. This React + TypeScript dashboard reads a documented JSON API to explore it. It is built to production standards: typed end to end, tested, migrated with Alembic, rate-limited, and deployed behind a daily ingest job.',
-  techStackPrompt: 'Interested in the tech stack? ↓',
   stateMapTitle: 'US recalls by state',
 }
 
@@ -57,6 +56,16 @@ export const methodologyPoints: string[] = [
   'The dashboard flags when the last successful ingest is more than two days old.',
 ]
 
+// Plain-language version of the above — no ML jargon — shown first under "How it works", with the
+// technical points tucked behind a toggle.
+export const methodologySimple: string[] = [
+  'Every day we pull the latest food recalls from the US (FDA, USDA) and the UK (FSA).',
+  'Each recall is sorted automatically by its likely cause: an undeclared allergen, a pathogen, a foreign object, and so on.',
+  'We score how serious each one is, from low to severe, and group recalls that look related or part of the same outbreak.',
+  'We chart the monthly trend, point out unusually busy months, and project the months ahead.',
+  "It's all built from the public recall notices, and the page shows when the data was last refreshed.",
+]
+
 export const categoryLabels: Record<RecallCategory, string> = {
   [RecallCategory.allergen]: 'Undeclared allergen',
   [RecallCategory.pathogen]: 'Pathogen',
@@ -75,6 +84,13 @@ export const sourceLabels: Record<RecallSource, string> = {
 export const countryLabels: Record<RecallCountry, string> = {
   [RecallCountry.us]: 'United States',
   [RecallCountry.uk]: 'United Kingdom',
+}
+
+// Flag emoji per location, shown in the location scope control (tabs + dropdown). Keyed like the
+// labels so adding a country is a two-line change here.
+export const countryFlags: Record<RecallCountry, string> = {
+  [RecallCountry.us]: '🇺🇸',
+  [RecallCountry.uk]: '🇬🇧',
 }
 
 export const entityTypeLabels: Record<EntityType, string> = {

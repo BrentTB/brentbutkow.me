@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render as rtlRender, screen, waitFor } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
+import type { ReactElement } from 'react'
 import { RelatedRecalls } from './RelatedRecalls'
 import { RecallSource, type Recall } from '../recall.types'
+
+// Each related recall is now a <Link> to its detail page, so renders need a Router context.
+const render = (ui: ReactElement) => rtlRender(<MemoryRouter>{ui}</MemoryRouter>)
 
 const neighbour: Recall = {
   country: 'us',
@@ -40,6 +45,30 @@ describe('RelatedRecalls', () => {
     render(<RelatedRecalls source={RecallSource.fda} recallNumber="F-1" />)
     await waitFor(() => expect(screen.getByText('Sliced deli turkey')).toBeTruthy())
     expect(screen.getByText('82%')).toBeTruthy()
+  })
+
+  it('surfaces each neighbour’s identifying fields (recall number, company, severity, date)', async () => {
+    const full: Recall = {
+      ...neighbour,
+      recallNumber: 'F-42',
+      companyName: 'Globex Foods',
+      classification: 'Class I',
+      reportDate: '2026-06-10',
+    }
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => mockRes([{ similarity: 0.7, recall: full }]))
+    )
+    render(<RelatedRecalls source={RecallSource.fda} recallNumber="F-1" />)
+    await waitFor(() => expect(screen.getByText('F-42')).toBeTruthy())
+    expect(screen.getByText('Globex Foods')).toBeTruthy()
+    expect(screen.getByText('Severe')).toBeTruthy() // severityLabel 'severe' → label
+    expect(screen.getByText('Class I')).toBeTruthy()
+    expect(screen.getByText(/Jun 10, 2026/)).toBeTruthy()
+    // The product links to the neighbour's own detail page — the recursive-exploration entry point.
+    expect(screen.getByText('Sliced deli turkey').closest('a')?.getAttribute('href')).toBe(
+      '/recall-radar/fda/F-42'
+    )
   })
 
   it('shows an empty state when there are no neighbours', async () => {

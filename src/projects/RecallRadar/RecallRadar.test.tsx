@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { FunModeProvider } from '../../contexts/FunModeProvider'
 import { RecallRadar } from './RecallRadar'
@@ -123,7 +123,10 @@ const events = [
 const mockRes = (body: unknown) => ({ ok: true, status: 200, json: async () => body }) as Response
 
 describe('RecallRadar page', () => {
-  afterEach(() => vi.unstubAllGlobals())
+  afterEach(() => {
+    cleanup() // two tests now render the page; clear the DOM between them
+    vi.unstubAllGlobals()
+  })
 
   it('renders the overview, breakdowns, and a recall row from the API', async () => {
     const fetchMock = vi.fn(async (url: string | URL) => {
@@ -148,7 +151,7 @@ describe('RecallRadar page', () => {
     // tech-stack overview + methodology render immediately (not data-gated)
     expect(screen.getByText('FastAPI')).toBeTruthy()
     expect(screen.getByText('How it works')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'United Kingdom' })).toBeTruthy() // country selector
+    expect(screen.getByRole('button', { name: 'United Kingdom' })).toBeTruthy() // location tabs (expanded)
 
     // data-driven sections after the fetch resolves
     await waitFor(() => expect(screen.getByText('Test cookies')).toBeTruthy())
@@ -175,10 +178,10 @@ describe('RecallRadar page', () => {
     expect(screen.getByText('Outlook')).toBeTruthy()
     expect(screen.getByText(/Projected/i)).toBeTruthy()
     // themes section + the per-card theme chip both render the topic label
-    expect(screen.getByText('Themes')).toBeTruthy()
+    expect(screen.getAllByText('Themes').length).toBeGreaterThan(0) // nav rail + section heading
     expect(screen.getAllByText('listeria · deli · meat').length).toBeGreaterThan(0)
     // outbreaks section renders its card, and the recall in that cluster gets an outbreak badge
-    expect(screen.getByText('Outbreaks')).toBeTruthy()
+    expect(screen.getAllByText('Outbreaks').length).toBeGreaterThan(0) // nav rail + section heading
     expect(screen.getByText('5 recalls')).toBeTruthy() // the outbreak card
     expect(screen.getByText('⚠ Outbreak')).toBeTruthy() // the per-recall badge
     // similar recalls are lazy — nothing is fetched until a row is expanded
@@ -186,5 +189,35 @@ describe('RecallRadar page', () => {
       expect.stringContaining('/similar'),
       expect.anything()
     )
+  })
+
+  it('scrolls back to the recalls section when paging', async () => {
+    const scrollSpy = vi.fn()
+    // jsdom doesn't implement scrollIntoView; install a spy so the pager's call is observable.
+    Element.prototype.scrollIntoView = scrollSpy
+    const manyRecalls = { items: recalls.items, total: 50 } // > PAGE_SIZE → a pager renders
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string | URL) => {
+        const path = String(url)
+        if (path.includes('/recalls/trend')) return mockRes(trend)
+        if (path.includes('/recalls/stats')) return mockRes(stats)
+        if (path.includes('/recalls/topics')) return mockRes(topics)
+        if (path.includes('/recalls/events')) return mockRes(events)
+        return mockRes(manyRecalls)
+      })
+    )
+
+    render(
+      <MemoryRouter>
+        <FunModeProvider>
+          <RecallRadar />
+        </FunModeProvider>
+      </MemoryRouter>
+    )
+
+    await waitFor(() => expect(screen.getByText('Test cookies')).toBeTruthy())
+    fireEvent.click(screen.getByRole('button', { name: 'Next page' }))
+    expect(scrollSpy).toHaveBeenCalled()
   })
 })

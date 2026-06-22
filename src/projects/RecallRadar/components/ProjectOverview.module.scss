@@ -45,6 +45,28 @@
   color: var(--muted);
 }
 
+.technical {
+  margin-top: 16px;
+}
+
+.technicalToggle {
+  cursor: pointer;
+  width: fit-content;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.technicalToggle:hover {
+  color: var(--text-secondary);
+}
+
+// Space the technical bullets from the toggle when the section is open.
+.technical[open] .points {
+  margin-top: 14px;
+}
+
 .stack {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

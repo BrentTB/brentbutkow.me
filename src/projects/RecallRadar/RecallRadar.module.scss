@@ -5,59 +5,89 @@
   margin: 0 0 8px;
 }
 
-.topBar {
+// Sticky control bar — a minimal heading + location scope on top, the filters beneath. `top` is set
+// inline so it follows the site navbar's retract (navHidden ? 0 : --site-nav-height); a high z-index
+// keeps it above the scrolling content and the section rail.
+.stickyBar {
+  position: sticky;
+  z-index: 9;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 4px 0 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: rgba(16, 18, 24, 0.96);
+  backdrop-filter: blur(8px);
+  transition: top 0.24s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stickyBar {
+    transition: none;
+  }
+}
+
+.barHead {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin: 0 0 24px;
+  gap: 12px;
 }
 
-.freshness {
+.barTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-family: var(--font-mono);
-  font-size: 0.78rem;
-  color: var(--muted);
-  margin: 0;
-}
-
-.stale {
-  color: var(--accent);
-}
-
-.techStackLink {
-  margin-left: auto;
-  background: transparent;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  padding: 8px 16px;
-  font-family: var(--font-mono);
-  font-size: 0.82rem;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition:
-    border-color 0.12s ease,
-    color 0.12s ease;
-}
-
-.techStackLink:hover {
+  font-size: 0.85rem;
+  letter-spacing: 0.01em;
   color: var(--text);
-  border-color: var(--accent);
 }
 
-.techStackLink:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+.barBlip {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
 }
 
-.stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px;
-  margin: 24px 0 8px;
+// Keeps the location control right-aligned whether or not the minimal title is showing.
+.barLocation {
+  margin-left: auto;
 }
 
 .section {
   margin-top: 40px;
+  // The sticky control bar sits at the top when scrolled, so a plain scrollIntoView / anchor jump
+  // would tuck a section heading under it. Clear the bar's measured height (--rr-bar-height, which
+  // grows with chips / expanded filters) plus a little breathing space.
+  scroll-margin-top: calc(var(--rr-bar-height, 110px) + 20px);
+}
+
+// Two-column shell: sticky jump-nav rail + the content column. minmax(0,1fr) lets wide children
+// (charts, tables) shrink instead of blowing the grid out.
+.layout {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+
+.content {
+  min-width: 0;
+}
+
+// The rail aligns to the top of the content, so the first section shouldn't add its usual gap.
+.content > section:first-of-type {
+  margin-top: 0;
+}
+
+@media (max-width: 860px) {
+  .layout {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
 }
 
 .sectionTitle {
