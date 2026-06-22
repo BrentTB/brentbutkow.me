@@ -72,6 +72,11 @@ const ENEMY_SPRITE: Record<EnemyKind, SpriteKey> = {
   [EnemyKind.phaseShifter]: SpriteKey.phaseShifterBoss,
 }
 
+// Charmed allies (Hypnosis) keep their former-enemy sprite under a friendly blue
+// wash + a marker ring, so a mind-controlled enemy reads as fighting for you.
+const CHARM_TINT = 'rgba(120, 170, 255, 0.45)'
+const CHARM_RING = 'rgba(130, 195, 255, 0.7)'
+
 export const SHIP_SPRITE_KEY: Record<ShipKind, SpriteKey> = {
   [ShipKind.fighter]: SpriteKey.ship,
   [ShipKind.interceptor]: SpriteKey.shipInterceptor,
@@ -1012,24 +1017,49 @@ function renderAllies(
   for (const ally of allies) {
     const screen = worldToScreen(ally.pos, camera)
     if (!isWithinView(screen, camera, 20)) continue
-    const size = getSpriteSize(SpriteKey.ally)
-    // The Helper Factory (spawnInterval set) is a bigger build; the larger
-    // sprite alone distinguishes it — no ring, it has no shielding.
-    const scale = ally.spawnInterval !== undefined ? 2 : 1
-    // Rotate so the triangle tip faces the direction of movement (or up if idle)
+    // Rotate so the sprite tip faces the direction of movement (or up if idle).
     const angle =
       ally.vel.x !== 0 || ally.vel.y !== 0 ? Math.atan2(ally.vel.y, ally.vel.x) + Math.PI / 2 : 0
-    ctx.save()
-    ctx.translate(screen.x, screen.y)
-    ctx.rotate(angle)
-    ctx.drawImage(
-      sprites.ally,
-      (-size.w / 2) * scale,
-      (-size.h / 2) * scale,
-      size.w * scale,
-      size.h * scale
-    )
-    ctx.restore()
+
+    // Half-height of whatever sprite we draw, for positioning the HP bar below it.
+    let halfH: number
+    if (ally.charmedFrom !== undefined) {
+      // Charmed: draw the former enemy's sprite with a friendly wash + a marker ring
+      // (outside the rotate so the ring never spins).
+      const key = ENEMY_SPRITE[ally.charmedFrom]
+      const eSize = getSpriteSize(key)
+      halfH = eSize.h / 2
+      ctx.save()
+      ctx.translate(screen.x, screen.y)
+      ctx.rotate(angle)
+      ctx.drawImage(sprites[key], -eSize.w / 2, -eSize.h / 2)
+      drawSpriteTint(ctx, sprites[key], eSize.w, eSize.h, CHARM_TINT)
+      ctx.restore()
+      ctx.save()
+      ctx.strokeStyle = CHARM_RING
+      ctx.lineWidth = 1.5
+      ctx.beginPath()
+      ctx.arc(screen.x, screen.y, Math.max(eSize.w, eSize.h) * 0.6, 0, Math.PI * 2)
+      ctx.stroke()
+      ctx.restore()
+    } else {
+      const size = getSpriteSize(SpriteKey.ally)
+      // The Helper Factory (spawnInterval set) is a bigger build; the larger
+      // sprite alone distinguishes it — no ring, it has no shielding.
+      const scale = ally.spawnInterval !== undefined ? 2 : 1
+      halfH = (size.h / 2) * scale
+      ctx.save()
+      ctx.translate(screen.x, screen.y)
+      ctx.rotate(angle)
+      ctx.drawImage(
+        sprites.ally,
+        (-size.w / 2) * scale,
+        (-size.h / 2) * scale,
+        size.w * scale,
+        size.h * scale
+      )
+      ctx.restore()
+    }
 
     // HP bar — below the sprite, mirrors the ship's bar style but smaller
     const hpPct = Math.max(0, ally.hp / ally.maxHp)
@@ -1037,7 +1067,7 @@ function renderAllies(
       const barWidth = 18
       const barHeight = 3
       const barX = screen.x - barWidth / 2
-      const barY = screen.y + (size.h / 2) * scale + 8
+      const barY = screen.y + halfH + 8
       ctx.fillStyle = 'rgba(0, 0, 0, 0.6)'
       ctx.fillRect(barX, barY, barWidth, barHeight)
       ctx.fillStyle = hpPct > 0.5 ? '#44dd44' : hpPct > 0.25 ? '#dddd44' : '#dd4444'

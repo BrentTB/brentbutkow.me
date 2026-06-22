@@ -205,6 +205,22 @@ const PATHS: Record<IconName, ReactNode> = {
       <circle cx="12" cy="16" r="1.6" fill="currentColor" stroke="none" />
     </>
   ),
+  // Concentric rings spiralling into a focused core — a hypnotic swirl.
+  [IconName.hypnosis]: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="12" cy="12" r="5.5" />
+      <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none" />
+    </>
+  ),
+  // A beamed pair of notes — the piper's tune that turns the crowd.
+  [IconName.piedPiper]: (
+    <>
+      <circle cx="7" cy="17" r="2.4" fill="currentColor" stroke="none" />
+      <circle cx="16" cy="15" r="2.4" fill="currentColor" stroke="none" />
+      <path d="M9.4 17V6l8.6-2.2V15" />
+    </>
+  ),
 }
 
 type IconProps = { name: IconName } & SVGProps<SVGSVGElement>

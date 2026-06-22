@@ -298,6 +298,7 @@ export const AbilityKind = {
   chainLightning: 'chainLightning',
   gravityLure: 'gravityLure',
   overdrive: 'overdrive',
+  hypnosis: 'hypnosis',
   // Ultimates — upgraded variants of a base ability, purchased with the
   // Singularity Shard economy. Each links to its base via `ultimateOf`.
   cometShower: 'cometShower',
@@ -313,6 +314,7 @@ export const AbilityKind = {
   ionStorm: 'ionStorm',
   collapsar: 'collapsar',
   overloadCore: 'overloadCore',
+  piedPiper: 'piedPiper',
 } as const
 export type AbilityKind = (typeof AbilityKind)[keyof typeof AbilityKind]
 
@@ -742,6 +744,15 @@ export type Ally = {
   spawnInterval?: number
   // Factory countdown to the next spawn; reset to `spawnInterval` on each spawn.
   spawnTimer?: number
+  // Charmed (Hypnosis) only: the source enemy's kind. Present → this ally is a
+  // mind-controlled enemy — it keeps that sprite, holds position instead of
+  // orbiting the ship, and runs on `expiresIn` rather than HP decay.
+  charmedFrom?: EnemyKind
+  // Charmed only: seconds of mind-control left. Ticks down; the unit despawns at
+  // 0 (or earlier if killed). Absent on helpers, which bleed HP instead.
+  expiresIn?: number
+  // Charmed only: the spot it was charmed at — it holds station near here.
+  anchor?: Vec2
 }
 
 export type Particle = {

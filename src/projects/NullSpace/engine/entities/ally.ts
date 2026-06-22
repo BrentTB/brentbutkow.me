@@ -1,12 +1,12 @@
 import { distance } from '../math/collision'
-import { toroidalDelta } from '../math/toroid'
-import { createAlly } from './entity-creator'
+import { toroidalDelta, wrapPosition } from '../math/toroid'
+import { createAlly, spawnExplosionParticles } from './entity-creator'
 import { canEnemyTakeDamage } from '../bosses'
 import { rng } from '../math/random'
 import { HELPER_WEAPON_DEFINITIONS } from '../weapons'
 import { HelperWeaponKind } from '../types'
-import type { Ally, Enemy, Projectile, Ship, Vec2 } from '../types'
-import { HELPER } from '../abilities/ability-data'
+import type { Ally, Enemy, Particle, Projectile, Ship, Vec2 } from '../types'
+import { CHARM, HELPER } from '../abilities/ability-data'
 import {
   enemyVisibleToPlayerSide,
   hazeJitterAt,
@@ -60,6 +60,13 @@ function allyOrbitTarget(ally: Ally, ship: Ship): Vec2 {
   }
 }
 
+// A charmed unit holds station: it leans toward the nearest enemy (so it faces and
+// pokes at what it shoots) while its anchor leash stops it chasing across the map.
+// With nothing in sight it eases back toward its anchor.
+function charmSteerTarget(ally: Ally, nearestEnemy: Enemy | null): Vec2 {
+  return nearestEnemy ? nearestEnemy.pos : (ally.anchor ?? ally.pos)
+}
+
 export function updateAllies(
   allies: Ally[],
   enemies: Enemy[],
@@ -68,22 +75,45 @@ export function updateAllies(
   dt: number,
   unlockedWeapons: HelperWeaponKind[],
   field?: NebulaField
-): { allies: Ally[]; projectiles: Projectile[] } {
+): { allies: Ally[]; projectiles: Projectile[]; particles: Particle[] } {
   const surviving: Ally[] = []
   const spawned: Ally[] = []
+  const particles: Particle[] = []
   let newProjectiles = projectiles
 
   for (const ally of allies) {
     const elapsed = ally.elapsed + dt
-    const hp = ally.hp - HELPER.hpDecayPerSec * dt
-    if (hp <= 0) continue
+    const charmed = ally.charmedFrom !== undefined
+
+    // Lifecycle: a charmed unit runs on a fixed timer (no HP decay) and poofs when
+    // its mind-control lapses; a helper bleeds HP over time. Either still dies early
+    // to enemy fire (hp <= 0).
+    let hp = ally.hp
+    let expiresIn = ally.expiresIn
+    if (charmed) {
+      expiresIn = (ally.expiresIn ?? 0) - dt
+    } else {
+      hp = ally.hp - HELPER.hpDecayPerSec * dt
+    }
+    // A charmed unit poofs whenever it leaves the field — timer lapsed or shot down;
+    // a helper just vanishes on HP death (unchanged).
+    if ((charmed && (expiresIn ?? 0) <= 0) || hp <= 0) {
+      if (charmed) {
+        particles.push(...spawnExplosionParticles(ally.pos, CHARM.poofCount, CHARM.poofColor, 0.6))
+      }
+      continue
+    }
 
     let updated = {
       ...ally,
       elapsed,
       hp,
+      ...(charmed ? { expiresIn } : {}),
       fireCooldown: Math.max(0, ally.fireCooldown - dt),
     }
+
+    // Nearest targetable enemy — drives both shooting and a charmed unit's facing.
+    let nearestEnemy: Enemy | null = null
 
     if (ally.spawnInterval !== undefined) {
       // --- Factory: spawns helpers on a timer, never shoots ---
@@ -97,7 +127,6 @@ export function updateAllies(
       }
     } else {
       // --- Targeting / shooting ---
-      let nearestEnemy: Enemy | null = null
       let nearestDist = Infinity
       for (const enemy of enemies) {
         // Skip invincible enemies (shielded boss) — don't waste shots on them.
@@ -126,8 +155,11 @@ export function updateAllies(
       }
     }
 
-    // --- Steering: orbit a per-ally point near the ship, weak avoid + noise ---
-    const target = allyOrbitTarget(updated, ship)
+    // --- Steering: helpers orbit the ship; charmed units hold station (lean toward
+    // the nearest enemy, but leashed to their anchor). Weak avoid + noise on both. ---
+    const target = charmed
+      ? charmSteerTarget(updated, nearestEnemy)
+      : allyOrbitTarget(updated, ship)
     const toTarget = toroidalDelta(ally.pos, target)
     let steerX = toTarget.x
     let steerY = toTarget.y
@@ -162,14 +194,23 @@ export function updateAllies(
     const alpha = 1 - Math.exp(-turnRate * dt)
     const vx = ally.vel.x + (targetVx - ally.vel.x) * alpha
     const vy = ally.vel.y + (targetVy - ally.vel.y) * alpha
-    updated = {
-      ...updated,
-      pos: { x: ally.pos.x + vx * dt, y: ally.pos.y + vy * dt },
-      vel: { x: vx, y: vy },
+    let pos = { x: ally.pos.x + vx * dt, y: ally.pos.y + vy * dt }
+    // Hold-position leash: a charmed unit can't drift past CHARM.leash from its
+    // anchor, so it fights where it was planted instead of chasing across the map.
+    if (charmed && ally.anchor) {
+      const off = toroidalDelta(ally.anchor, pos)
+      const d = Math.hypot(off.x, off.y)
+      if (d > CHARM.leash) {
+        pos = wrapPosition({
+          x: ally.anchor.x + (off.x / d) * CHARM.leash,
+          y: ally.anchor.y + (off.y / d) * CHARM.leash,
+        })
+      }
     }
+    updated = { ...updated, pos, vel: { x: vx, y: vy } }
 
     surviving.push(updated)
   }
 
-  return { allies: [...surviving, ...spawned], projectiles: newProjectiles }
+  return { allies: [...surviving, ...spawned], projectiles: newProjectiles, particles }
 }

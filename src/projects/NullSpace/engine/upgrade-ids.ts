@@ -24,6 +24,8 @@ import { GRAVITY_LURE_UPGRADE_IDS } from './abilities/gravityLure/gravity-lure'
 import { COLLAPSAR_UPGRADE_IDS } from './abilities/gravityLure/collapsar'
 import { OVERDRIVE_UPGRADE_IDS } from './abilities/overdrive/overdrive'
 import { OVERLOAD_CORE_UPGRADE_IDS } from './abilities/overdrive/overload-core'
+import { HYPNOSIS_UPGRADE_IDS } from './abilities/hypnosis/hypnosis'
+import { PIED_PIPER_UPGRADE_IDS } from './abilities/hypnosis/pied-piper'
 import { LASER_UPGRADE_IDS } from './weapons/laser'
 import { MISSILE_UPGRADE_IDS } from './weapons/missile'
 import { RICOCHET_UPGRADE_IDS } from './weapons/ricochet'
@@ -62,6 +64,8 @@ export const UpgradeId = {
   ...COLLAPSAR_UPGRADE_IDS,
   ...OVERDRIVE_UPGRADE_IDS,
   ...OVERLOAD_CORE_UPGRADE_IDS,
+  ...HYPNOSIS_UPGRADE_IDS,
+  ...PIED_PIPER_UPGRADE_IDS,
   ...LASER_UPGRADE_IDS,
   ...MISSILE_UPGRADE_IDS,
   ...RICOCHET_UPGRADE_IDS,

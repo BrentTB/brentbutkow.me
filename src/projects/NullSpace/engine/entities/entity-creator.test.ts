@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   createShip,
   createEnemy,
+  createCharmedAlly,
   createDeathAnim,
   createProjectile,
   createParticle,
@@ -11,6 +12,7 @@ import {
 import { createAbilities } from '../abilities'
 import { AbilityKind, DeathBehavior, EnemyKind, MovementBehavior, ShipKind } from '../types'
 import { ANIMATION, WEAPON_ORDER, WORLD_SIZE } from '../../data'
+import { CHARM } from '../abilities/ability-data'
 import { rng } from '../math/random'
 
 describe('createShip', () => {
@@ -110,6 +112,29 @@ describe('createProjectile', () => {
     expect(Math.abs(proj.vel.y)).toBeLessThan(0.01)
     expect(proj.damage).toBe(10)
     expect(proj.owner).toBe('ship')
+  })
+})
+
+describe('createCharmedAlly', () => {
+  it('inherits the enemy faithfully and marks it charmed', () => {
+    const enemy = createEnemy(EnemyKind.tank, { x: 40, y: 60 })
+    const ally = createCharmedAlly(enemy, 7)
+    expect(ally.charmedFrom).toBe(EnemyKind.tank)
+    expect(ally.hp).toBe(enemy.hp)
+    expect(ally.maxHp).toBe(enemy.maxHp)
+    expect(ally.damage).toBe(enemy.damage)
+    expect(ally.pos).toEqual({ x: 40, y: 60 })
+    expect(ally.anchor).toEqual({ x: 40, y: 60 })
+    expect(ally.expiresIn).toBe(7)
+  })
+
+  it('floors fireRate / attackRange so a melee enemy still fights as a basic shooter', () => {
+    const drone = createEnemy(EnemyKind.drone, { x: 0, y: 0 })
+    const ally = createCharmedAlly(drone, 5)
+    expect(ally.fireRate).toBeGreaterThanOrEqual(CHARM.minFireRate)
+    expect(ally.attackRange).toBeGreaterThanOrEqual(CHARM.minAttackRange)
+    // ...but its damage stays faithful to the enemy it was.
+    expect(ally.damage).toBe(drone.damage)
   })
 })
 

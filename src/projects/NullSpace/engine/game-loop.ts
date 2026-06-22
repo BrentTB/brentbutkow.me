@@ -841,15 +841,22 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   )
   abilities = abilityResult.abilities
   activeEffects = [...activeEffects, ...abilityResult.newEffects]
-  // Each freshly-summoned ally rolls a weapon from the player's unlocked pool.
+  // Each freshly-summoned helper rolls a weapon from the player's unlocked pool;
+  // charmed enemies keep their faithful shot (a bullet at the enemy's own damage).
   allies = [
     ...allies,
-    ...abilityResult.newAllies.map((a) => ({
-      ...a,
-      weapon: rollAllyWeapon(state.unlockedWeapons),
-    })),
+    ...abilityResult.newAllies.map((a) =>
+      a.charmedFrom !== undefined ? a : { ...a, weapon: rollAllyWeapon(state.unlockedWeapons) }
+    ),
   ]
   power -= abilityResult.powerSpent
+
+  // Charmed enemies switch sides this frame — drop them from the enemy list before
+  // any enemy system runs. Silent (no score/drops): a charm isn't a kill.
+  if (abilityResult.consumedEnemyIds.length > 0) {
+    const consumed = new Set(abilityResult.consumedEnemyIds)
+    enemies = enemies.filter((e) => !consumed.has(e.id))
+  }
 
   // Overdrive fields: stamp each enemy's per-frame debuffs now — before the first
   // damage of the frame lands (the active-effects pass below) — and keep the zones
@@ -1004,6 +1011,8 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   )
   allies = allyResult.allies
   projectiles = allyResult.projectiles
+  // Charmed allies puff out a small poof when their mind-control lapses.
+  particles = [...particles, ...allyResult.particles]
 
   // Boss-fired projectiles (e.g. the Dreadnought's charged laser) join the pool just
   // before collision resolution, like enemy fire.
