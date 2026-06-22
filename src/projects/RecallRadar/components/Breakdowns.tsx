@@ -1,7 +1,7 @@
 import { categoryLabels, sourceLabels } from '../data'
 import { formatNumber, seriesMax } from '../chart-format'
 import { EntityType, isRecallCategory, isRecallClass, isRecallSource } from '../recall.types'
-import type { RecallFilterValues, RecallStats } from '../recall.types'
+import type { RecallFacets, RecallFilterValues } from '../recall.types'
 import styles from './Breakdowns.module.scss'
 
 type Row = { label: string; value: string; count: number }
@@ -62,14 +62,16 @@ export function BreakdownList({
 }
 
 type BreakdownsProps = {
-  stats: RecallStats
+  // Per-dimension counts under the current filters (each excludes its own dimension, so a selected
+  // value never hides its siblings). Falls back to the global stats when facets aren't loaded.
+  facets: RecallFacets
   filters: RecallFilterValues
   onSelect: (patch: Partial<RecallFilterValues>) => void
 }
 
-export function Breakdowns({ stats, filters, onSelect }: BreakdownsProps) {
+export function Breakdowns({ facets, filters, onSelect }: BreakdownsProps) {
   const entityRows = (type: EntityType): Row[] =>
-    stats.byEntity
+    facets.entity
       .filter((entry) => entry.type === type)
       .map((entry) => ({ label: entry.label, value: entry.label, count: entry.count }))
   const allergenRows = entityRows(EntityType.allergen)
@@ -81,40 +83,40 @@ export function Breakdowns({ stats, filters, onSelect }: BreakdownsProps) {
         title="By cause"
         activeValue={filters.category}
         onSelect={(value) => onSelect({ category: isRecallCategory(value) ? value : '' })}
-        rows={stats.byCategory.map((c) => ({
-          label: categoryLabels[c.category],
-          value: c.category,
+        rows={facets.category.map((c) => ({
+          label: isRecallCategory(c.label) ? categoryLabels[c.label] : c.label,
+          value: c.label,
           count: c.count,
         }))}
       />
       {/* No classifications (South Africa) → hide rather than show an empty card. */}
-      {stats.byClassification.length > 0 && (
+      {facets.classification.length > 0 && (
         <BreakdownList
           title="By classification"
           activeValue={filters.classification}
           onSelect={(value) => onSelect({ classification: isRecallClass(value) ? value : '' })}
-          rows={stats.byClassification.map((c) => ({
+          rows={facets.classification.map((c) => ({
             label: c.label,
             value: c.label,
             count: c.count,
           }))}
         />
       )}
-      {/* byState carries every state for the map; the leaderboard shows the top rows. UK has no
+      {/* state carries every state for the map; the leaderboard shows the top rows. UK has no
           states, so it's hidden there. */}
-      {stats.byState.length > 0 && (
+      {facets.state.length > 0 && (
         <BreakdownList
           title="Top states"
           activeValue={filters.state}
           onSelect={(value) => onSelect({ state: value })}
-          rows={stats.byState.map((c) => ({ label: c.label, value: c.label, count: c.count }))}
+          rows={facets.state.map((c) => ({ label: c.label, value: c.label, count: c.count }))}
         />
       )}
       <BreakdownList
         title="Top companies"
         activeValue={filters.company}
         onSelect={(value) => onSelect({ company: value })}
-        rows={stats.byCompany.map((c) => ({ label: c.label, value: c.label, count: c.count }))}
+        rows={facets.company.map((c) => ({ label: c.label, value: c.label, count: c.count }))}
       />
       {/* Entities extracted from the recall reason — click to filter. Hidden when none found. */}
       {allergenRows.length > 0 && (
@@ -134,12 +136,12 @@ export function Breakdowns({ stats, filters, onSelect }: BreakdownsProps) {
         />
       )}
       {/* One source (UK) → nothing to break down; hidden there. */}
-      {stats.bySource.length > 1 && (
+      {facets.source.length > 1 && (
         <BreakdownList
           title="By source"
           activeValue={filters.source}
           onSelect={(value) => onSelect({ source: isRecallSource(value) ? value : '' })}
-          rows={stats.bySource.map((c) => ({
+          rows={facets.source.map((c) => ({
             label: isRecallSource(c.label) ? sourceLabels[c.label] : c.label,
             value: c.label,
             count: c.count,
