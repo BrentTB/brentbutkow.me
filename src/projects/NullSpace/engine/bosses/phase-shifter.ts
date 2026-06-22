@@ -5,7 +5,7 @@ import { wrapPosition } from '../math/toroid'
 import { ringPositions } from '../math/vec'
 import type { Camera } from '../../renderer/camera'
 import { isWithinView, worldToScreen } from '../../renderer/camera'
-import { bossPhase, bossTier, getBossRuntime } from './boss-definition'
+import { bossPhase, bossTier, getBossRuntime, growByTier } from './boss-definition'
 import type {
   BossDefinition,
   BossRuntimeBase,
@@ -71,7 +71,7 @@ function rollTeleportTarget(shipPos: Vec2): Vec2 {
 function ringCount(tier: number, phase: number): number {
   const base = phase === 2 ? PHASE_SHIFTER.ringCountP2 : PHASE_SHIFTER.ringCountP1
   const max = phase === 2 ? PHASE_SHIFTER.maxRingCountP2 : PHASE_SHIFTER.maxRingCountP1
-  return Math.min(max, base + (tier - 1) * PHASE_SHIFTER.ringCountPerTier)
+  return growByTier(base, PHASE_SHIFTER.ringCountPerTier, tier, max)
 }
 
 // Evenly-spaced ring around the arrival point. `lifetime` is the full teleport
@@ -79,9 +79,11 @@ function ringCount(tier: number, phase: number): number {
 // spawns. Deeper tiers replace an evenly-spread fraction of slots with drones —
 // tougher than swarm but, like swarm, fast enough that the pop stays fair.
 function ringSpecs(center: Vec2, count: number, lifetime: number, tier: number): SpawnSpec[] {
-  const fraction = Math.min(
-    PHASE_SHIFTER.maxDroneFraction,
-    (tier - 1) * PHASE_SHIFTER.droneFractionPerTier
+  const fraction = growByTier(
+    0,
+    PHASE_SHIFTER.droneFractionPerTier,
+    tier,
+    PHASE_SHIFTER.maxDroneFraction
   )
   const drones = Math.floor(count * fraction)
   return ringPositions(center, PHASE_SHIFTER.ringRadius, count).map((pos, i) => ({

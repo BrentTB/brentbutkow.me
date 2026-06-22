@@ -418,7 +418,7 @@ export const WORM_SEGMENT_SPRITE: SpriteData = [
   [_, _, _, m, m, m, m, _, _, _],
 ]
 
-// Mini Void Worm (9×19) — a baby of the boss erupted from a dying body segment.
+// Mini Void Worm (9×26) — a baby of the boss erupted from a dying body segment.
 // Same magenta-and-purple palette and toothy maw, on a long segmented body that
 // tapers to a thin trailing tail (so it reads as a worm, not a tadpole); one
 // entity, drawn nose-up and rotated to its lunge direction.

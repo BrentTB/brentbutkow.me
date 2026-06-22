@@ -5,7 +5,7 @@ import { worldToScreen } from '../../renderer/camera'
 import { rng } from '../math/random'
 import { ringPositions, unitToward } from '../math/vec'
 import { toroidalDelta } from '../math/toroid'
-import { bossPhase, bossTier, getBossRuntime, hasAliveLinked } from './boss-definition'
+import { bossPhase, bossTier, getBossRuntime, growByTier, hasAliveLinked } from './boss-definition'
 import type {
   BossDefinition,
   BossProjectileSpec,
@@ -44,10 +44,10 @@ const MAX_GENERATORS_P1 = 6
 const MAX_GENERATORS_P2 = 8
 
 function p1Generators(tier: number): number {
-  return Math.min(MAX_GENERATORS_P1, PHASE1_GENERATORS + (tier - 1) * GEN_PER_TIER)
+  return growByTier(PHASE1_GENERATORS, GEN_PER_TIER, tier, MAX_GENERATORS_P1)
 }
 function p2Generators(tier: number): number {
-  return Math.min(MAX_GENERATORS_P2, PHASE2_GENERATORS + (tier - 1) * GEN_PER_TIER)
+  return growByTier(PHASE2_GENERATORS, GEN_PER_TIER, tier, MAX_GENERATORS_P2)
 }
 // Sibling generators within this range push each other apart; GEN_REPEL_PUSH is
 // the max tangential nudge (px) before re-projection onto the ring. Together

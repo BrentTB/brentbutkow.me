@@ -94,6 +94,9 @@ function wormSegmentFalloff(enemies: Enemy[], center: Vec2, radiusSq: number): M
   const hits: { id: string; d2: number }[] = []
   for (const e of enemies) {
     if (e.kind !== EnemyKind.wormSegment) continue
+    // A segment that absorbs the hit takes no damage, so it mustn't occupy a falloff
+    // slot and push the segments behind it to a deeper (weaker) index.
+    if (!canEnemyTakeDamage(e, enemies)) continue
     const { x: dx, y: dy } = toroidalDelta(center, e.pos)
     const d2 = dx * dx + dy * dy
     if (d2 <= radiusSq) hits.push({ id: e.id, d2 })

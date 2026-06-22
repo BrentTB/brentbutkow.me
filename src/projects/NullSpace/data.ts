@@ -606,7 +606,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         'Destroying a Void Worm body segment now erupts it into small, fast mini worms that lunge at you — and once you have torn through half the body, every segment bursts into two. The worm is no longer a single attack you can simply out-fly.',
       ],
       balance: [
-        'A single rocket no longer near-deletes the Void Worm. A burst now loses bite as it tears down the chain — each further body segment it catches takes less — so flattening the whole worm takes more than a couple of well-placed blasts.',
+        'A single blast no longer near-deletes the Void Worm. Any burst — a rocket, a singularity collapse — now loses bite as it tears down the chain, each further body segment it catches taking less, so flattening the whole worm takes more than a couple of well-placed hits.',
         'The Void Worm body now bites. Brushing the head or a segment hurts, but a brief contact i-frame means a lunge that sweeps you through several parts lands a single hit, not one per segment — so a longer worm is a bigger hazard to weave through, not just more health.',
       ],
       fixes: [
@@ -614,6 +614,9 @@ export const CHANGELOG: ChangelogEntry[] = [
       ],
       ui: [
         'End-of-sector loot now flies to your ship during the warp instead of being silently auto-collected, so you can actually see it get picked up.',
+      ],
+      architecture: [
+        "Unified every boss's depth-scaling count math (worm segments, Dreadnought generators, Phase Shifter rings) behind one shared helper.",
       ],
     },
   },

@@ -5,7 +5,7 @@ import { wrapPosition } from '../math/toroid'
 import { homeTowardTarget } from '../math/homing'
 import { steerToward } from '../math/steering'
 import { unitToward } from '../math/vec'
-import { bossTier, getBossRuntime, hasAliveLinked } from './boss-definition'
+import { bossTier, getBossRuntime, growByTier, hasAliveLinked } from './boss-definition'
 import type {
   BossDefinition,
   BossRuntimeBase,
@@ -57,15 +57,15 @@ export const VOID_WORM = {
   // rocket from deleting the whole body. Applied to burst AoE only (not DOT).
   aoeFalloff: 0.88,
   aoeFalloffFloor: 0.4,
+  // Lateral gap between a pair of mini worms erupting from one segment death, so
+  // they don't stack on a single pixel — split half to each side of the segment.
+  miniSpawnSpread: 10,
 } as const
 
 // How many body segments this worm spawns with — base length plus segmentsPerTier
 // for each boss tier past the first, capped at maxSegments.
 function segmentCount(tier: number): number {
-  return Math.min(
-    VOID_WORM.maxSegments,
-    VOID_WORM.segmentCount + (tier - 1) * VOID_WORM.segmentsPerTier
-  )
+  return growByTier(VOID_WORM.segmentCount, VOID_WORM.segmentsPerTier, tier, VOID_WORM.maxSegments)
 }
 
 // Each alive segment sits segmentSpacing behind the piece ahead of it, in
@@ -230,8 +230,9 @@ export function miniWormsFromSegmentDeaths(
       const count = deathIndex > total / 2 ? 2 : 1
       for (let i = 0; i < count; i++) {
         // Fixed per-spawn offset so a pair doesn't stack on a single pixel.
+        const spread = VOID_WORM.miniSpawnSpread
         spawns.push({
-          pos: { x: seg.pos.x + (i * 10 - (count - 1) * 5), y: seg.pos.y },
+          pos: { x: seg.pos.x + (i * spread - ((count - 1) * spread) / 2), y: seg.pos.y },
           spawnWave: head.boss.spawnWave,
         })
       }

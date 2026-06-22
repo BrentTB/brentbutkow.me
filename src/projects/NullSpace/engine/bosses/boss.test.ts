@@ -330,6 +330,13 @@ describe('bossTier', () => {
     expect(bossTier(0)).toBe(1)
     expect(bossTier(1)).toBe(1)
   })
+
+  // Floors, not rounds: a wave between boss intervals stays at the lower tier rather
+  // than rounding up to a tier the encounter hasn't reached.
+  it('floors a between-intervals wave to the lower tier', () => {
+    expect(bossTier(14)).toBe(1)
+    expect(bossTier(26)).toBe(2)
+  })
 })
 
 describe('DREADNOUGHT_BOSS onDeath', () => {

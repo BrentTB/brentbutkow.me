@@ -9,6 +9,12 @@ describe('waveStatScale', () => {
     expect(waveStatScale(1)).toEqual({ hp: 1, damage: 1 })
   })
 
+  // Guards the `Math.max(0, wave - 1)` floor: wave 0 (dev/test spawns) must stay at
+  // ×1.0, never dipping below 1 into a shrink multiplier.
+  it('floors at ×1.0 for wave 0', () => {
+    expect(waveStatScale(0)).toEqual({ hp: 1, damage: 1 })
+  })
+
   it('scales HP much harder than damage', () => {
     const steps = 19 // wave 20
     const s = waveStatScale(20)

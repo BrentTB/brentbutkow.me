@@ -132,5 +132,12 @@ export function bossPhase(boss: Enemy): number {
 // appear every WAVES_PER_LEVEL × BOSS_LEVEL_INTERVAL waves. tier - 1 is how many
 // steps of signature-mechanic escalation a boss has earned by its spawn depth.
 export function bossTier(spawnWave: number): number {
-  return Math.max(1, Math.round(spawnWave / (WAVES_PER_LEVEL * BOSS_LEVEL_INTERVAL)))
+  return Math.max(1, Math.floor(spawnWave / (WAVES_PER_LEVEL * BOSS_LEVEL_INTERVAL)))
+}
+
+// Grows a boss's signature-mechanic count with depth: `base` plus `perTier` for
+// each boss tier past the first, capped at `max`. Shared by every boss's count
+// scaling (worm segments, Dreadnought generators, Phase Shifter ring + drone mix).
+export function growByTier(base: number, perTier: number, tier: number, max: number): number {
+  return Math.min(max, base + (tier - 1) * perTier)
 }
