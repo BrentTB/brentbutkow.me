@@ -620,6 +620,11 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     gameStateRef.current = {
       ...gameStateRef.current,
       phase: GamePhase.paused,
+      runDurationMs: bankPlaySegment(
+        gameStateRef.current.runDurationMs,
+        runStartRef.current,
+        Date.now()
+      ),
     }
     gameTimeRef.current = pauseGameTime(gameTimeRef.current)
     syncUI(gameStateRef.current)
@@ -628,6 +633,8 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
   const handleResume = useCallback(() => {
     if (gameStateRef.current.phase !== GamePhase.paused) return
     gameStateRef.current = { ...gameStateRef.current, phase: GamePhase.playing }
+    // Start a fresh play segment so only post-resume time is measured from here.
+    runStartRef.current = Date.now()
     gameTimeRef.current = resumeGameTime(gameTimeRef.current, performance.now())
     syncUI(gameStateRef.current)
   }, [syncUI])
