@@ -29,6 +29,18 @@
   font-size: 0.88rem;
 }
 
+// Round the terminal rows to match the container (inset by the 1px border), so a tinted/hovered
+// first or last row fills into the rounded corners instead of leaving them un-highlighted.
+.cell:first-child .row {
+  border-top-left-radius: calc(var(--radius) - 1px);
+  border-top-right-radius: calc(var(--radius) - 1px);
+}
+
+.cell:last-child .row {
+  border-bottom-left-radius: calc(var(--radius) - 1px);
+  border-bottom-right-radius: calc(var(--radius) - 1px);
+}
+
 // Anomaly rows: a quiet warm tint + accent eyebrow, clickable to expand the chart.
 .anomaly {
   background: rgba(var(--accent-rgb), 0.05);
