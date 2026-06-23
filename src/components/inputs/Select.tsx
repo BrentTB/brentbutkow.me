@@ -85,7 +85,7 @@ export function Select({ value, options, onChange, ariaLabel, triggerClassName }
     <div className={styles.root} ref={rootRef}>
       <button
         type="button"
-        className={`${styles.trigger} ${triggerClassName ?? ''}`}
+        className={[styles.trigger, triggerClassName].filter(Boolean).join(' ')}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={open ? listboxId : undefined}

@@ -53,8 +53,9 @@
   margin: 0;
   padding: 4px;
   list-style: none;
-  // Opaque — the menu now floats over real data (charts, rows), so a translucent surface would let
-  // it bleed through and read as unclickable.
+  // Opaque in professional mode — the menu floats over real data (charts, rows), so a plain
+  // translucent surface would bleed through and read as unclickable. Fun mode below adds blur to
+  // stay legible over the glass.
   background: var(--bg-elevated);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { Outbreaks } from './Outbreaks'
+import { EventSort } from '../recall.types'
 import type { EventOut } from '../recall.types'
 
 const event = (over: Partial<EventOut>): EventOut => ({
@@ -31,7 +32,7 @@ describe('Outbreaks', () => {
         ]}
         activeEvent=""
         onSelect={onSelect}
-        sort="recent"
+        sort={EventSort.recent}
         onSortChange={vi.fn()}
       />
     )
@@ -49,7 +50,7 @@ describe('Outbreaks', () => {
         events={[event({ slug: 'listeria-2026-03' })]}
         activeEvent="listeria-2026-03"
         onSelect={onSelect}
-        sort="recent"
+        sort={EventSort.recent}
         onSortChange={vi.fn()}
       />
     )
@@ -63,7 +64,7 @@ describe('Outbreaks', () => {
         events={[event({ isOutbreak: false })]}
         activeEvent=""
         onSelect={vi.fn()}
-        sort="recent"
+        sort={EventSort.recent}
         onSortChange={vi.fn()}
       />
     )
@@ -91,7 +92,7 @@ describe('Outbreaks', () => {
         events={[biggest, recent]}
         activeEvent=""
         onSelect={vi.fn()}
-        sort="recent"
+        sort={EventSort.recent}
         onSortChange={onSortChange}
       />
     )
@@ -101,7 +102,7 @@ describe('Outbreaks', () => {
 
     // The page owns the order as a URL param, so toggling just reports the change (no internal re-sort).
     fireEvent.click(screen.getByRole('button', { name: 'Biggest' }))
-    expect(onSortChange).toHaveBeenCalledWith('biggest')
+    expect(onSortChange).toHaveBeenCalledWith(EventSort.biggest)
 
     // sort='biggest' → the 9-recall Salmonella cluster leads.
     rerender(
@@ -109,7 +110,7 @@ describe('Outbreaks', () => {
         events={[biggest, recent]}
         activeEvent=""
         onSelect={vi.fn()}
-        sort="biggest"
+        sort={EventSort.biggest}
         onSortChange={onSortChange}
       />
     )

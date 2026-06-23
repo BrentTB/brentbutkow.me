@@ -14,7 +14,7 @@ type LocationSelectorProps = {
 const LOCATIONS = Object.values(RecallCountry)
 
 // Location is the view's scope (US vs UK are separate datasets), not a filter — so it reads as a
-// first-class choice. Expanded, it's a row of flagged tabs; collapsed, a top-right dropdown. Both
+// first-class choice. Expanded, it's a row of tabs; collapsed, a top-right dropdown. Both
 // forms iterate the same list, so adding a place is a data-only change.
 export function LocationSelector({ value, collapsed, onChange }: LocationSelectorProps) {
   const [open, setOpen] = useState(false)

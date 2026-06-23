@@ -113,10 +113,17 @@ export function RecallRadar() {
       document.documentElement.style.setProperty('--rr-bar-height', `${el.offsetHeight}px`)
     }
     publish()
-    if (typeof ResizeObserver === 'undefined') return
+    if (typeof ResizeObserver === 'undefined') {
+      return () => {
+        document.documentElement.style.removeProperty('--rr-bar-height')
+      }
+    }
     const observer = new ResizeObserver(publish)
     observer.observe(el)
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+      document.documentElement.style.removeProperty('--rr-bar-height')
+    }
   }, [])
 
   // The mobile section rail docks to the bar's bottom edge. The bar's own sticky top shifts with the
@@ -127,6 +134,9 @@ export function RecallRadar() {
       '--rr-nav-offset',
       navHidden ? '0px' : 'var(--site-nav-height, 68px)'
     )
+    return () => {
+      document.documentElement.style.removeProperty('--rr-nav-offset')
+    }
   }, [navHidden])
 
   // URL strings → typed UI state, validated rather than cast (query params are untrusted input).
