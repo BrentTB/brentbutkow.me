@@ -293,11 +293,12 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
   const rafRef = useRef<number>(0)
   const gameTimeRef = useRef<GameTime>(createGameTime())
   // Run timing + one-shot submit guard for the leaderboard. runStart marks the
-  // start of the live play segment (reset on game start, resume, and each
-  // autosave, which banks the elapsed segment into state.runDurationMs). runEnd
-  // is stamped at death so the submitted duration excludes game-over-screen
-  // reading time. The guard stops a successful score POSTing twice if the
-  // game-over submit button is tapped again.
+  // start of the live play segment, reset whenever a fresh segment begins (game
+  // start, Continue, unpause) and on each autosave; the segment it ends is banked
+  // into state.runDurationMs. Pause banks too, so paused time — like away time —
+  // never counts toward the duration. runEnd is stamped at death so the submitted
+  // duration excludes game-over-screen reading time. The guard stops a successful
+  // score POSTing twice if the game-over submit button is tapped again.
   const runStartRef = useRef(0)
   const runEndRef = useRef(0)
   const scoreSubmittedRef = useRef(false)
@@ -614,7 +615,12 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
 
   const handlePause = useCallback(() => {
     if (gameStateRef.current.phase !== GamePhase.playing) return
-    gameStateRef.current = { ...gameStateRef.current, phase: GamePhase.paused }
+    // Bank the live segment before pausing so the time spent paused — like away
+    // time between a Save & Exit and a Continue — never counts toward the run.
+    gameStateRef.current = {
+      ...gameStateRef.current,
+      phase: GamePhase.paused,
+    }
     gameTimeRef.current = pauseGameTime(gameTimeRef.current)
     syncUI(gameStateRef.current)
   }, [syncUI])

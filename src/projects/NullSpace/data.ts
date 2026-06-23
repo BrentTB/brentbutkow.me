@@ -598,6 +598,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.14.2',
+    date: '2026-06-23',
+    changes: {
+      fixes: [
+        'Time spent paused no longer counts toward your run duration on the leaderboard — only actual play-time is recorded.',
+      ],
+    },
+  },
+  {
     version: '1.14.1',
     date: '2026-06-23',
     changes: {
