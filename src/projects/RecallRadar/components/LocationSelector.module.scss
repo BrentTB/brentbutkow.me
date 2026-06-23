@@ -40,14 +40,24 @@
   outline-offset: 2px;
 }
 
-.flag {
-  font-size: 1rem;
-  line-height: 1;
-}
-
-// Collapsed: compact dropdown (flag + name + caret), docked at the right of the sticky bar.
+// Collapsed: compact dropdown (name + caret), docked at the right of the sticky bar.
 .dropdown {
   position: relative;
+  // The collapsed form mounts only on scroll, so fade it in rather than the tabs popping into it.
+  animation: locationCollapseIn 0.5s ease-out;
+}
+
+@keyframes locationCollapseIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.96);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dropdown {
+    animation: none;
+  }
 }
 
 .trigger {
@@ -96,6 +106,13 @@
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+// Fun mode: float the menu on the translucent navy glass (+ blur) so it tints with the water rather
+// than reading as an opaque dark slab over it.
+:global(html.fun-mode) .menu {
+  background: var(--fun-surface);
+  backdrop-filter: blur(12px);
 }
 
 .item {

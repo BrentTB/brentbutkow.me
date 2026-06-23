@@ -14,20 +14,12 @@ type TrendCalloutsProps = {
   callouts: TrendCallout[]
 }
 
-function CardBody({ callout, open }: { callout: TrendCallout; open?: boolean }) {
+// One dense line: eyebrow · value (+ direction arrow) · subject · context — and a chevron on the
+// anomaly rows that expand a chart.
+function RowBody({ callout, open }: { callout: TrendCallout; open?: boolean }) {
   return (
     <>
-      <span className={styles.eyebrow}>
-        {callout.eyebrow}
-        {callout.chart && (
-          <span
-            aria-hidden="true"
-            className={`${styles.chevron} ${open ? styles.chevronOpen : ''}`}
-          >
-            ▾
-          </span>
-        )}
-      </span>
+      <span className={styles.eyebrow}>{callout.eyebrow}</span>
       <span className={`${styles.value} ${callout.direction ? styles[callout.direction] : ''}`}>
         {callout.direction && (
           <span aria-hidden="true" className={styles.arrow}>
@@ -38,6 +30,11 @@ function CardBody({ callout, open }: { callout: TrendCallout; open?: boolean }) 
       </span>
       {callout.title && <span className={styles.title}>{callout.title}</span>}
       <span className={styles.caption}>{callout.caption}</span>
+      {callout.chart && (
+        <span aria-hidden="true" className={`${styles.chevron} ${open ? styles.chevronOpen : ''}`}>
+          ▾
+        </span>
+      )}
     </>
   )
 }
@@ -52,7 +49,7 @@ export function TrendCallouts({ callouts }: TrendCalloutsProps) {
 
   return (
     <>
-      <ul className={styles.strip} aria-label="Trend highlights">
+      <ul className={styles.rows} aria-label="Trend highlights">
         {callouts.map((callout) => {
           const isOpen = callout.id === openId
           return (
@@ -60,20 +57,20 @@ export function TrendCallouts({ callouts }: TrendCalloutsProps) {
               {callout.chart ? (
                 <button
                   type="button"
-                  className={`${styles.card} ${styles.anomaly} ${styles.clickable} ${
+                  className={`${styles.row} ${styles.anomaly} ${styles.clickable} ${
                     isOpen ? styles.active : ''
                   }`}
                   aria-expanded={isOpen}
-                  // Only the open card references the single panel — avoids a dangling idref while
-                  // closed and many cards all claiming to control one panel.
+                  // Only the open row references the single panel — avoids a dangling idref while
+                  // closed and many rows all claiming to control one panel.
                   aria-controls={isOpen ? 'anomaly-chart' : undefined}
                   onClick={() => setOpenId(isOpen ? null : callout.id)}
                 >
-                  <CardBody callout={callout} open={isOpen} />
+                  <RowBody callout={callout} open={isOpen} />
                 </button>
               ) : (
-                <div className={styles.card}>
-                  <CardBody callout={callout} />
+                <div className={styles.row}>
+                  <RowBody callout={callout} />
                 </div>
               )}
             </li>

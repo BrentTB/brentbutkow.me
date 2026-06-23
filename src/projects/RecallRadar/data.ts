@@ -51,6 +51,7 @@ export const methodologyPoints: string[] = [
   "Each recall's cause is predicted by a TF-IDF + logistic-regression classifier trained on its reason text; the % shown is the model's confidence.",
   'The model is weakly supervised by a keyword baseline (no human-labelled gold set), so it generalises that taxonomy rather than beating an independent ground truth.',
   'Allergens, pathogens, and physical hazards are pulled from each reason with a curated gazetteer (the FDA/UK regulated allergen lists and named pathogens) — deterministic and fully explainable.',
+  'Severity is a transparent 0–100 composite (no model): the regulator\'s classification anchors it, lifted with diminishing returns by the named hazard (a lethal pathogen, a high-risk allergen), whether the notice reports harm actually occurred, and how widely the product was distributed. It rates the assessed hazard, not the realised outcome — recall notices carry no reliable death or illness counts — so "highest severity" ranks by danger, not by body count, and breaks ties toward larger outbreaks.',
   'Trend callouts come from a robust z-score (median + MAD) over the monthly counts — a flag means a month is unusual versus its own recent history, never a forecast. We surface the most significant from the last ~2 years, newest first. A statsmodels STL decomposition validates the detector offline against seasonality.',
   'The Outlook looks the other way: a short-horizon projection of overall monthly volume from a self-built multiplicative seasonal model (a 12-month seasonal index plus a linear trend, fit in log space so a seasonal swing scales with the level; pure numpy computed on read) with a ±band from recent forecast error — shown as the dashed bars on the chart. A statsmodels Holt-Winters backtest validates it offline. It is a projection, not a promise, and a short or sparse history shows no forecast at all.',
   'The dashboard flags when the last successful ingest is more than two days old.',
@@ -61,7 +62,7 @@ export const methodologyPoints: string[] = [
 export const methodologySimple: string[] = [
   'Every day we pull the latest food recalls from the US (FDA, USDA), the UK (FSA), and South Africa (NCC).',
   'Each recall is sorted automatically by its likely cause: an undeclared allergen, a pathogen, a foreign object, and so on.',
-  'We score how serious each one is, from low to severe, and group recalls that look related or part of the same outbreak.',
+  "We rate how serious each one looks — from low to severe, based on its regulatory class, the hazard named, whether harm was reported, and how far it spread. That's an estimate of risk, not a count of who was harmed. We also group recalls that look related or part of the same outbreak.",
   'We chart the monthly trend, point out unusually busy months, and project the months ahead.',
   "It's all built from the public recall notices, and the page shows when the data was last refreshed.",
 ]
@@ -91,14 +92,6 @@ export const countryLabels: Record<RecallCountry, string> = {
   [RecallCountry.za]: 'South Africa',
 }
 
-// Flag emoji per location, shown in the location scope control (tabs + dropdown). Keyed like the
-// labels so adding a country is a two-line change here.
-export const countryFlags: Record<RecallCountry, string> = {
-  [RecallCountry.us]: '🇺🇸',
-  [RecallCountry.uk]: '🇬🇧',
-  [RecallCountry.za]: '🇿🇦',
-}
-
 export const entityTypeLabels: Record<EntityType, string> = {
   [EntityType.allergen]: 'Allergen',
   [EntityType.pathogen]: 'Pathogen',
@@ -115,6 +108,7 @@ export const trendGroupLabels: Record<TrendGroup, string> = {
 }
 
 export const severityLabels: Record<SeverityLabel, string> = {
+  [SeverityLabel.critical]: 'Critical',
   [SeverityLabel.severe]: 'Severe',
   [SeverityLabel.high]: 'High',
   [SeverityLabel.moderate]: 'Moderate',
@@ -123,14 +117,16 @@ export const severityLabels: Record<SeverityLabel, string> = {
 
 // Worst → least: the order the distribution bar stacks and the legend reads.
 export const severityOrder: SeverityLabel[] = [
+  SeverityLabel.critical,
   SeverityLabel.severe,
   SeverityLabel.high,
   SeverityLabel.moderate,
   SeverityLabel.low,
 ]
 
-// Red → amber → muted gold → grey: hotter means more severe, harmonised with the dark/amber theme.
+// Deep red → coral → amber → muted gold → grey: hotter means more severe, harmonised with the theme.
 export const severityColors: Record<SeverityLabel, string> = {
+  [SeverityLabel.critical]: '#cf3a2c',
   [SeverityLabel.severe]: '#e0675c',
   [SeverityLabel.high]: '#e0954a',
   [SeverityLabel.moderate]: '#d8c074',
@@ -139,7 +135,7 @@ export const severityColors: Record<SeverityLabel, string> = {
 
 export const sortLabels: Record<RecallSort, string> = {
   [RecallSort.recency]: 'Newest first',
-  [RecallSort.severity]: 'Most severe',
+  [RecallSort.severity]: 'Highest severity',
 }
 
 // Muted, warm-leaning palette for stacked trend segments — harmonises with the amber/dark theme.

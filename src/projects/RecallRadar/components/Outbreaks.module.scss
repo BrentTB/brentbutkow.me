@@ -9,10 +9,12 @@
   justify-content: flex-end;
 }
 
+// Compact cards — denser than a full card grid, with a red left-rail + faint warm tint + ⚠ so
+// outbreaks read as the alert area, but as their own visual block (not another row).
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -21,20 +23,23 @@
 .card {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   width: 100%;
   text-align: left;
-  padding: 12px 14px;
+  padding: 11px 13px;
   border: 1px solid var(--border);
-  border-left: 3px solid var(--danger);
+  border-left: 3px solid rgba(var(--danger-rgb), 0.55);
   border-radius: var(--radius);
-  background: var(--surface);
+  background: rgba(var(--danger-rgb), 0.05);
   color: var(--text);
   cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
 }
 
 .card:hover {
-  border-color: var(--accent);
+  border-color: var(--border-strong);
 }
 
 .card:focus-visible {
@@ -42,9 +47,11 @@
   outline-offset: 2px;
 }
 
+// Selected = amber (the app's active-filter colour), but keep the red left-rail as the outbreak mark.
 .active {
   border-color: var(--accent);
-  background: rgba(var(--accent-rgb), 0.08);
+  border-left-color: var(--danger);
+  background: rgba(var(--accent-rgb), 0.1);
 }
 
 .head {
@@ -54,11 +61,27 @@
   gap: 8px;
 }
 
+.title {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.warn {
+  flex: 0 0 auto;
+  color: var(--danger);
+}
+
 .entity {
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .count {
+  flex: 0 0 auto;
   font-family: var(--font-mono);
   font-size: 0.72rem;
   color: var(--danger);
@@ -66,12 +89,12 @@
 }
 
 .meta {
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   color: var(--text-secondary);
 }
 
 .span {
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   color: var(--muted);
 }

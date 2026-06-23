@@ -67,6 +67,7 @@ export const SeverityLabel = {
   moderate: 'moderate',
   high: 'high',
   severe: 'severe',
+  critical: 'critical',
 } as const
 export type SeverityLabel = (typeof SeverityLabel)[keyof typeof SeverityLabel]
 
@@ -75,6 +76,13 @@ export const RecallSort = {
   severity: 'severity',
 } as const
 export type RecallSort = (typeof RecallSort)[keyof typeof RecallSort]
+
+// How the Outbreaks section orders its cards — a URL param like every other view config.
+export const EventSort = {
+  recent: 'recent',
+  biggest: 'biggest',
+} as const
+export type EventSort = (typeof EventSort)[keyof typeof EventSort]
 
 // UI filter state — '' means "no filter".
 export type RecallFilterValues = {
@@ -274,6 +282,7 @@ export const isEntityType = oneOf(EntityType)
 export const isTrendGroup = oneOf(TrendGroup)
 export const isSeverityLabel = oneOf(SeverityLabel)
 export const isRecallSort = oneOf(RecallSort)
+export const isEventSort = oneOf(EventSort)
 const isAnomalyScope = oneOf(AnomalyScope)
 
 // A 'YYYY-MM-DD' calendar date — the shape the date filters and the backend expect. Guards the

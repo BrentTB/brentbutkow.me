@@ -15,6 +15,8 @@ import { RecallMap } from './components/RecallMap'
 import { RecallTrendsChart } from './components/RecallTrendsChart'
 import { SeverityBar } from './components/SeverityBar'
 import { SectionNav, type NavSection } from './components/SectionNav'
+import { SegmentedToggle } from './components/SegmentedToggle'
+import { YearStepper } from './components/YearStepper'
 import { StatusStrip } from './components/StatusStrip'
 import { TrendCallouts } from './components/TrendCallouts'
 import { HelpHint } from './components/HelpHint'
@@ -35,11 +37,13 @@ import { toChartMonths } from './trend-chart'
 import {
   RecallCountry,
   RecallSort,
+  EventSort,
   TrendGroup,
   isRecallCategory,
   isRecallClass,
   isRecallCountry,
   isRecallSort,
+  isEventSort,
   isRecallSource,
   isSeverityLabel,
   isTrendGroup,
@@ -82,6 +86,7 @@ const DEFAULT_PARAMS = {
   location: RecallCountry.us,
   group: TrendGroup.category,
   sort: RecallSort.recency,
+  eventSort: EventSort.recent,
   year: '',
   page: '',
 }
@@ -108,16 +113,37 @@ export function RecallRadar() {
       document.documentElement.style.setProperty('--rr-bar-height', `${el.offsetHeight}px`)
     }
     publish()
-    if (typeof ResizeObserver === 'undefined') return
+    if (typeof ResizeObserver === 'undefined') {
+      return () => {
+        document.documentElement.style.removeProperty('--rr-bar-height')
+      }
+    }
     const observer = new ResizeObserver(publish)
     observer.observe(el)
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+      document.documentElement.style.removeProperty('--rr-bar-height')
+    }
   }, [])
+
+  // The mobile section rail docks to the bar's bottom edge. The bar's own sticky top shifts with the
+  // navbar retract (0 ↔ --site-nav-height), so publish that offset for the rail to add onto
+  // --rr-bar-height — without it the two drift apart and page content shows through the seam.
+  useLayoutEffect(() => {
+    document.documentElement.style.setProperty(
+      '--rr-nav-offset',
+      navHidden ? '0px' : 'var(--site-nav-height, 68px)'
+    )
+    return () => {
+      document.documentElement.style.removeProperty('--rr-nav-offset')
+    }
+  }, [navHidden])
 
   // URL strings → typed UI state, validated rather than cast (query params are untrusted input).
   const country = isRecallCountry(values.location) ? values.location : RecallCountry.us
   const group = isTrendGroup(values.group) ? values.group : TrendGroup.category
   const sort = isRecallSort(values.sort) ? values.sort : RecallSort.recency
+  const eventSort = isEventSort(values.eventSort) ? values.eventSort : EventSort.recent
   const year = values.year ? Number(values.year) : null
   const filters: RecallFilterValues = {
     category: isRecallCategory(values.category) ? values.category : '',
@@ -214,6 +240,17 @@ export function RecallRadar() {
   const fallbackYear = years[0] ?? new Date().getFullYear()
   const selectedYear = year !== null && years.includes(year) ? year : fallbackYear
   const chart = trend.data ? toChartMonths(trend.data, selectedYear) : { months: [], legend: [] }
+  // Per-year recall totals under the current filters — summed across groups from the (filter-scoped,
+  // all-months) trend buckets. Feeds the year stepper's dropdown so empty years grey out + show 0,
+  // while the arrows still walk every year linearly (no surprise skips).
+  const yearCounts = useMemo(() => {
+    const totals: Record<number, number> = {}
+    for (const bucket of trend.data?.buckets ?? []) {
+      const bucketYear = Number(bucket.month.slice(0, 4))
+      totals[bucketYear] = (totals[bucketYear] ?? 0) + bucket.count
+    }
+    return totals
+  }, [trend.data])
   // The forecast is overall (unfiltered) volume, so only overlay it when no filter narrows the
   // chart — grouping is fine, the stack still sums to the same total. Any active filter ⇒ no overlay.
   const trendFiltered = Object.entries(queryFilters).some(
@@ -229,7 +266,10 @@ export function RecallRadar() {
     value,
     label: trendGroupLabels[value],
   }))
-  const sortOptions: SelectOption[] = [RecallSort.recency, RecallSort.severity].map((value) => ({
+  const sortOptions: { value: RecallSort; label: string }[] = [
+    RecallSort.recency,
+    RecallSort.severity,
+  ].map((value) => ({
     value,
     label: sortLabels[value],
   }))
@@ -271,9 +311,9 @@ export function RecallRadar() {
   const navSections: NavSection[] = useMemo(
     () => [
       { id: 'overview', label: 'Overview' },
+      ...(hasOutbreaks ? [{ id: 'outbreaks', label: 'Outbreaks' }] : []),
       { id: 'trends', label: 'Trends' },
       ...(stats.data && country === RecallCountry.us ? [{ id: 'map', label: 'Map' }] : []),
-      ...(hasOutbreaks ? [{ id: 'outbreaks', label: 'Outbreaks' }] : []),
       ...(stats.data ? [{ id: 'breakdowns', label: 'Breakdowns' }] : []),
       ...(hasThemes ? [{ id: 'themes', label: 'Themes' }] : []),
       { id: 'recalls', label: 'Recalls' },
@@ -344,6 +384,23 @@ export function RecallRadar() {
             <TrendCallouts callouts={callouts} />
           </section>
 
+          {hasOutbreaks && (
+            <section id="outbreaks" className={styles.section}>
+              <h2 className={styles.sectionTitle}>Outbreaks</h2>
+              <p className={styles.hint}>
+                Clusters of related recalls, such as a shared pathogen across products, retailers,
+                or companies. Click one to narrow the recalls below to that incident.
+              </p>
+              <Outbreaks
+                events={visibleOutbreaks}
+                activeEvent={filters.event}
+                onSelect={(slug) => patch({ event: slug })}
+                sort={eventSort}
+                onSortChange={(value) => patchParams({ eventSort: value })}
+              />
+            </section>
+          )}
+
           <section id="trends" className={styles.section}>
             <div className={styles.sectionHead}>
               <h2 className={styles.sectionTitle}>Recalls per month</h2>
@@ -357,14 +414,14 @@ export function RecallRadar() {
                   }
                 />
                 {years.length > 0 && (
-                  <Select
-                    ariaLabel="Year"
-                    value={String(selectedYear)}
-                    options={years.map((value) => ({ value: String(value), label: String(value) }))}
-                    // Year's real default is the dynamic fallback (latest year), not '', so clear the
-                    // param when it's reselected — keeps the default view's URL clean like every other.
+                  <YearStepper
+                    year={selectedYear}
+                    years={years}
+                    counts={yearCounts}
+                    // The latest year is the implicit default, so clear the param when stepping back
+                    // to it — keeps the default view's URL clean, like every other filter.
                     onChange={(value) =>
-                      patchParams({ year: Number(value) === fallbackYear ? '' : value })
+                      patchParams({ year: value === fallbackYear ? '' : String(value) })
                     }
                   />
                 )}
@@ -390,21 +447,6 @@ export function RecallRadar() {
                 byState={breakdownFacets.state}
                 activeState={filters.state}
                 onSelect={(state) => patch({ state })}
-              />
-            </section>
-          )}
-
-          {hasOutbreaks && (
-            <section id="outbreaks" className={styles.section}>
-              <h2 className={styles.sectionTitle}>Outbreaks</h2>
-              <p className={styles.hint}>
-                Clusters of related recalls — a shared pathogen across products, retailers, or
-                companies. Click one to narrow the recalls below to that incident.
-              </p>
-              <Outbreaks
-                events={visibleOutbreaks}
-                activeEvent={filters.event}
-                onSelect={(slug) => patch({ event: slug })}
               />
             </section>
           )}
@@ -445,16 +487,11 @@ export function RecallRadar() {
                 Recalls{recalls.data ? ` (${formatNumber(recalls.data.total)})` : ''}
               </h2>
               <div className={styles.controls}>
-                <Select
+                <SegmentedToggle
                   ariaLabel="Sort recalls"
                   value={sort}
                   options={sortOptions}
-                  onChange={(value) =>
-                    patchParams({
-                      sort: isRecallSort(value) ? value : RecallSort.recency,
-                      page: '',
-                    })
-                  }
+                  onChange={(value) => patchParams({ sort: value, page: '' })}
                 />
               </div>
             </div>

@@ -2,7 +2,6 @@ import { formatMonthLabel, formatNumber } from './chart-format'
 import { categoryLabels } from './data'
 import { AnomalyScope, isRecallCategory } from './recall.types'
 import type { Anomaly, AnomalyMonth, ForecastPoint, MonthCount, RecallStats } from './recall.types'
-import { stateGrid } from './us-state-grid'
 
 // Direction of a trend — values double as the CSS-module class names.
 export const TrendDirection = { up: 'up', down: 'down', flat: 'flat' } as const
@@ -22,13 +21,8 @@ export type TrendCallout = {
   chart?: { series: MonthCount[]; months: AnomalyMonth[] }
 }
 
-const stateNames = new Map(stateGrid.map((tile) => [tile.code, tile.name]))
-
-function share(part: number, whole: number): number {
-  return whole > 0 ? Math.round((part / whole) * 100) : 0
-}
-
-// Headline insights derived from the aggregate stats — no per-recall data needed.
+// The volume-trend highlight derived from the monthly series. The leading-cause + top-state figures
+// the old cards showed now live in the status strip, so they're not repeated here.
 export function deriveCallouts(stats: RecallStats): TrendCallout[] {
   const callouts: TrendCallout[] = []
 
@@ -53,30 +47,6 @@ export function deriveCallouts(stats: RecallStats): TrendCallout[] {
           change > 0 ? TrendDirection.up : change < 0 ? TrendDirection.down : TrendDirection.flat,
       })
     }
-  }
-
-  // Leading cause as a share of all recalls.
-  const topCause = stats.byCategory.slice().sort((a, b) => b.count - a.count)[0]
-  if (topCause && stats.total > 0) {
-    callouts.push({
-      id: 'cause',
-      eyebrow: 'Leading cause',
-      value: `${share(topCause.count, stats.total)}%`,
-      title: categoryLabels[topCause.category],
-      caption: 'of all recalls',
-    })
-  }
-
-  // Geographic concentration — byState is already sorted by count.
-  const topState = stats.byState[0]
-  if (topState && stats.total > 0) {
-    callouts.push({
-      id: 'state',
-      eyebrow: 'Top state',
-      value: `${share(topState.count, stats.total)}%`,
-      title: stateNames.get(topState.label) ?? topState.label,
-      caption: 'of US recalls',
-    })
   }
 
   return callouts

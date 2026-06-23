@@ -173,8 +173,8 @@ const SAVE_KEY = 'null-space-save'
 // v2: world became a torus (corridor/world dims + positions changed).
 // v3: "You Are the Weapon" rework — ship guns removed, Carrier gone, plus a new
 // waveElapsed field; old runs would be inconsistent, so they're discarded.
-// Later additions (kills, salvageOfferUsed, calamityTimer, asteroids, the grouped
-// `spawn` object) stay on v3 — loadGame backfills them, so they don't break old saves.
+// Later additions (kills, salvageOfferUsed, calamityTimer, asteroids, runDurationMs,
+// the grouped `spawn` object) stay on v3 — loadGame backfills them, so they don't break old saves.
 const SAVE_VERSION = 3
 
 export type SavedGame = {
@@ -205,13 +205,21 @@ export function loadGame(): SavedGame | null {
     // run doesn't start from `undefined` (which would become NaN once summed).
     const savedState = parsed.state as Omit<
       GameState,
-      'kills' | 'salvageOfferUsed' | 'spawn' | 'calamityTimer' | 'asteroids' | 'warpDelay' | 'ship'
+      | 'kills'
+      | 'salvageOfferUsed'
+      | 'spawn'
+      | 'calamityTimer'
+      | 'asteroids'
+      | 'warpDelay'
+      | 'ship'
+      | 'runDurationMs'
     > & {
       kills?: number
       salvageOfferUsed?: boolean
       calamityTimer?: number
       asteroids?: GameState['asteroids']
       warpDelay?: number
+      runDurationMs?: number
       spawn?: GameState['spawn']
       // Ship sub-fields added after a save was written are optional here too —
       // `wormContactCooldown` is summed each frame, so undefined would go NaN.
@@ -241,6 +249,7 @@ export function loadGame(): SavedGame | null {
         calamityTimer: savedState.calamityTimer ?? CALAMITY.shockwaveIntervalMin,
         asteroids: savedState.asteroids ?? [],
         warpDelay: savedState.warpDelay ?? 0,
+        runDurationMs: savedState.runDurationMs ?? 0,
         ship: { ...savedState.ship, wormContactCooldown: savedState.ship.wormContactCooldown ?? 0 },
         spawn,
       },

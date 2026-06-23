@@ -150,6 +150,10 @@ export function RecallFilters({
       patch: { until: '' },
     })
 
+  // On a phone the active-filter chips are hidden while the bar is collapsed (they're tall); a count
+  // badge on the toggle signals how many are applied. Search is excluded — its box stays visible.
+  const activeCount = chips.filter((chip) => chip.key !== 'search').length
+
   // Faceted option lists: each control's known options annotated with live counts, zero-result ones
   // greyed + sorted last. "All" leads and is never counted/disabled (it clears the facet).
   const baseCategory = Object.values(RecallCategory).map((value) => ({
@@ -187,7 +191,7 @@ export function RecallFilters({
     filters.state
   )
   return (
-    <div className={styles.root}>
+    <div className={styles.root} data-expanded={showMore ? 'true' : 'false'}>
       <div className={styles.bar}>
         <input
           type="search"
@@ -198,37 +202,44 @@ export function RecallFilters({
           onChange={(event) => onChange({ search: event.target.value })}
         />
 
-        <div className={styles.field}>
-          <span className={styles.label}>Cause</span>
-          <Select
-            ariaLabel="Cause"
-            value={filters.category}
-            options={categoryOptions}
-            onChange={(value) => onChange({ category: isRecallCategory(value) ? value : '' })}
-          />
-        </div>
-
-        {/* No classifications for a country (South Africa) → hide the control entirely. */}
-        {classOptions.length > 0 && (
+        {/* Cause / Class / Severity flow inline in the bar on desktop; on phones they collapse
+            behind "More filters" too, so the resting bar is just search + toggle — active picks
+            still surface as removable chips below. */}
+        <div className={styles.primaryFields} data-open={showMore ? 'true' : 'false'}>
           <div className={styles.field}>
-            <span className={styles.label}>Class</span>
+            <span className={styles.label}>Cause</span>
             <Select
-              ariaLabel="Class"
-              value={filters.classification}
-              options={classificationOptions}
-              onChange={(value) => onChange({ classification: isRecallClass(value) ? value : '' })}
+              ariaLabel="Cause"
+              value={filters.category}
+              options={categoryOptions}
+              onChange={(value) => onChange({ category: isRecallCategory(value) ? value : '' })}
             />
           </div>
-        )}
 
-        <div className={styles.field}>
-          <span className={styles.label}>Severity</span>
-          <Select
-            ariaLabel="Severity"
-            value={filters.severity}
-            options={severityOptions}
-            onChange={(value) => onChange({ severity: isSeverityLabel(value) ? value : '' })}
-          />
+          {/* No classifications for a country (South Africa) → hide the control entirely. */}
+          {classOptions.length > 0 && (
+            <div className={styles.field}>
+              <span className={styles.label}>Class</span>
+              <Select
+                ariaLabel="Class"
+                value={filters.classification}
+                options={classificationOptions}
+                onChange={(value) =>
+                  onChange({ classification: isRecallClass(value) ? value : '' })
+                }
+              />
+            </div>
+          )}
+
+          <div className={styles.field}>
+            <span className={styles.label}>Severity</span>
+            <Select
+              ariaLabel="Severity"
+              value={filters.severity}
+              options={severityOptions}
+              onChange={(value) => onChange({ severity: isSeverityLabel(value) ? value : '' })}
+            />
+          </div>
         </div>
 
         <button
@@ -238,6 +249,11 @@ export function RecallFilters({
           onClick={() => setShowMore((prev) => !prev)}
         >
           {showMore ? '− Fewer filters' : '+ More filters'}
+          {!showMore && activeCount > 0 && (
+            <span className={styles.moreCount} aria-label={`${activeCount} active`}>
+              {activeCount}
+            </span>
+          )}
         </button>
       </div>
 

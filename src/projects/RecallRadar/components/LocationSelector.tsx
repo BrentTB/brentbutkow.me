@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { countryFlags, countryLabels } from '../data'
+import { countryLabels } from '../data'
 import { RecallCountry } from '../recall.types'
 import styles from './LocationSelector.module.scss'
 
@@ -14,7 +14,7 @@ type LocationSelectorProps = {
 const LOCATIONS = Object.values(RecallCountry)
 
 // Location is the view's scope (US vs UK are separate datasets), not a filter — so it reads as a
-// first-class choice. Expanded, it's a row of flagged tabs; collapsed, a top-right dropdown. Both
+// first-class choice. Expanded, it's a row of tabs; collapsed, a top-right dropdown. Both
 // forms iterate the same list, so adding a place is a data-only change.
 export function LocationSelector({ value, collapsed, onChange }: LocationSelectorProps) {
   const [open, setOpen] = useState(false)
@@ -44,7 +44,9 @@ export function LocationSelector({ value, collapsed, onChange }: LocationSelecto
 
   if (!collapsed) {
     return (
-      <div className={styles.tabs} role="group" aria-label="Location">
+      // Distinct keys on the two forms so collapsing remounts (rather than reusing) the element —
+      // that guarantees the fade-in animation fires on the swap, not just a silent class change.
+      <div key="tabs" className={styles.tabs} role="group" aria-label="Location">
         {LOCATIONS.map((country) => (
           <button
             key={country}
@@ -53,9 +55,6 @@ export function LocationSelector({ value, collapsed, onChange }: LocationSelecto
             onClick={() => onChange(country)}
             aria-pressed={country === value}
           >
-            <span className={styles.flag} aria-hidden="true">
-              {countryFlags[country]}
-            </span>
             {countryLabels[country]}
           </button>
         ))}
@@ -64,7 +63,7 @@ export function LocationSelector({ value, collapsed, onChange }: LocationSelecto
   }
 
   return (
-    <div className={styles.dropdown} ref={ref}>
+    <div key="dropdown" className={styles.dropdown} ref={ref}>
       <button
         type="button"
         className={styles.trigger}
@@ -73,9 +72,6 @@ export function LocationSelector({ value, collapsed, onChange }: LocationSelecto
         aria-label={`Location: ${countryLabels[value]}`}
         onClick={() => setOpen((prev) => !prev)}
       >
-        <span className={styles.flag} aria-hidden="true">
-          {countryFlags[value]}
-        </span>
         <span className={styles.triggerLabel}>{countryLabels[value]}</span>
         <span className={styles.caret} aria-hidden="true">
           ▾
@@ -94,9 +90,6 @@ export function LocationSelector({ value, collapsed, onChange }: LocationSelecto
                 setOpen(false)
               }}
             >
-              <span className={styles.flag} aria-hidden="true">
-                {countryFlags[country]}
-              </span>
               {countryLabels[country]}
             </button>
           ))}

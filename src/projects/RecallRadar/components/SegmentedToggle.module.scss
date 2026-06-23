@@ -1,0 +1,40 @@
+// Both choices visible, one tap to switch — the country-tabs idiom (active = solid accent).
+.tabs {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.tab {
+  border: none;
+  background: transparent;
+  border-radius: calc(var(--radius) - 4px);
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
+}
+
+.tab:hover {
+  color: var(--text);
+}
+
+.on {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.on:hover {
+  color: var(--on-accent);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}

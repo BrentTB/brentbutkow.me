@@ -1,22 +1,23 @@
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: 16px;
+  // Narrower min column + a wider column gap than row gap: more leaderboards fit per row, and the
+  // borderless lists get horizontal breathing room to separate without card outlines.
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 20px 28px;
 }
 
-// Each leaderboard is a contained card so the breakdowns read as one tidy set, not loose lists.
+// Each leaderboard is a borderless group — a hairline-ruled title over its rows — so the whole set
+// reads as one clean column of lists rather than a wall of boxes.
 .card {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 14px 16px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
+  gap: 5px;
 }
 
 .title {
-  margin: 0 0 2px;
+  margin: 0;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--border);
   font-family: var(--font-mono);
   font-size: 0.64rem;
   text-transform: uppercase;
@@ -39,10 +40,10 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 5px 9px;
+  padding: 3px 8px;
   background: transparent;
   border: none;
-  border-radius: 5px;
+  border-radius: 4px;
   cursor: pointer;
   text-align: left;
   color: var(--text-secondary);
@@ -59,12 +60,13 @@
   outline-offset: 1px;
 }
 
+// A faint magnitude fill behind each row — light enough to read as a backdrop ranking, not a block.
 .barTrack {
   position: absolute;
   left: 0;
   top: 0;
   bottom: 0;
-  background: rgba(var(--accent-rgb), 0.14);
+  background: rgba(var(--accent-rgb), 0.1);
   z-index: 0;
 }
 
@@ -73,7 +75,7 @@
 }
 
 .active .barTrack {
-  background: rgba(var(--accent-rgb), 0.3);
+  background: rgba(var(--accent-rgb), 0.26);
 }
 
 .rowLabel {
@@ -83,18 +85,18 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
 }
 
 .rowCount {
   position: relative;
   z-index: 1;
   font-family: var(--font-mono);
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   color: var(--muted);
 }
 
 .empty {
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
 }

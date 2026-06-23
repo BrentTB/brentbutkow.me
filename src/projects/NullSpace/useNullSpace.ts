@@ -87,6 +87,7 @@ import {
   savePlayerName,
 } from './engine/world/persistence'
 import { buildScoreSubmission, submitScore } from './leaderboard/score-submission'
+import { bankPlaySegment } from './leaderboard/run-duration'
 import {
   advanceTutorial,
   createTutorialState,
@@ -291,9 +292,13 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
   const starsRef = useRef<Star[]>([])
   const rafRef = useRef<number>(0)
   const gameTimeRef = useRef<GameTime>(createGameTime())
-  // Run timing + one-shot submit guard for the leaderboard. runStart/runEnd
-  // bracket one run (wall-clock); the guard stops a successful score POSTing
-  // twice if the game-over submit button is tapped again.
+  // Run timing + one-shot submit guard for the leaderboard. runStart marks the
+  // start of the live play segment, reset whenever a fresh segment begins (game
+  // start, Continue, unpause) and on each autosave; the segment it ends is banked
+  // into state.runDurationMs. Pause banks too, so paused time — like away time —
+  // never counts toward the duration. runEnd is stamped at death so the submitted
+  // duration excludes game-over-screen reading time. The guard stops a successful
+  // score POSTing twice if the game-over submit button is tapped again.
   const runStartRef = useRef(0)
   const runEndRef = useRef(0)
   const scoreSubmittedRef = useRef(false)
@@ -391,6 +396,19 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
   // alike, independent of the rAF loop's timing.
   useEffect(() => {
     if (uiState.phase === GamePhase.waveComplete || uiState.phase === GamePhase.upgradeScreen) {
+      // Bank the live segment into the run duration before persisting, then
+      // restart it — so a resumed run keeps the time played before exiting
+      // instead of submitting only the post-resume stretch.
+      const now = Date.now()
+      gameStateRef.current = {
+        ...gameStateRef.current,
+        runDurationMs: bankPlaySegment(
+          gameStateRef.current.runDurationMs,
+          runStartRef.current,
+          now
+        ),
+      }
+      runStartRef.current = now
       saveGame(gameStateRef.current, rng.getState())
       setHasSave(true)
     } else if (uiState.phase === GamePhase.gameOver) {
@@ -449,7 +467,13 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
   // stops a successful score being posted twice.
   const handleSubmitScore = useCallback(async (name: string): Promise<boolean> => {
     if (scoreSubmittedRef.current) return true
-    const durationMs = Math.max(0, runEndRef.current - runStartRef.current)
+    // Banked segments (state.runDurationMs) plus the final live one, ending at
+    // the stamped death time — the full run, spanning any Save & Exit → Continue.
+    const durationMs = bankPlaySegment(
+      gameStateRef.current.runDurationMs,
+      runStartRef.current,
+      runEndRef.current
+    )
     const submission = buildScoreSubmission(gameStateRef.current, name, durationMs)
     try {
       await submitScore(submission)
@@ -591,7 +615,17 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
 
   const handlePause = useCallback(() => {
     if (gameStateRef.current.phase !== GamePhase.playing) return
-    gameStateRef.current = { ...gameStateRef.current, phase: GamePhase.paused }
+    // Bank the live segment before pausing so the time spent paused — like away
+    // time between a Save & Exit and a Continue — never counts toward the run.
+    gameStateRef.current = {
+      ...gameStateRef.current,
+      phase: GamePhase.paused,
+      runDurationMs: bankPlaySegment(
+        gameStateRef.current.runDurationMs,
+        runStartRef.current,
+        Date.now()
+      ),
+    }
     gameTimeRef.current = pauseGameTime(gameTimeRef.current)
     syncUI(gameStateRef.current)
   }, [syncUI])
@@ -599,6 +633,8 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
   const handleResume = useCallback(() => {
     if (gameStateRef.current.phase !== GamePhase.paused) return
     gameStateRef.current = { ...gameStateRef.current, phase: GamePhase.playing }
+    // Start a fresh play segment so only post-resume time is measured from here.
+    runStartRef.current = Date.now()
     gameTimeRef.current = resumeGameTime(gameTimeRef.current, performance.now())
     syncUI(gameStateRef.current)
   }, [syncUI])
