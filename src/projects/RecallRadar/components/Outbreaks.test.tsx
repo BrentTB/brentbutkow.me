@@ -79,9 +79,8 @@ describe('Outbreaks', () => {
     const byRecent = screen.getAllByRole('button', { name: /Filter to the/i })
     expect(byRecent[0].textContent).toContain('Listeria')
 
-    // Toggle the sort control to Biggest → the 9-recall Salmonella cluster leads.
-    fireEvent.click(screen.getByRole('button', { name: 'Sort outbreaks' }))
-    fireEvent.click(screen.getByText('Biggest'))
+    // Toggle the sort to Biggest → the 9-recall Salmonella cluster leads.
+    fireEvent.click(screen.getByRole('button', { name: 'Biggest' }))
     const byBiggest = screen.getAllByRole('button', { name: /Filter to the/i })
     expect(byBiggest[0].textContent).toContain('Salmonella')
   })

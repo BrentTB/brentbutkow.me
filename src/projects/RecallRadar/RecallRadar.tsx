@@ -15,6 +15,8 @@ import { RecallMap } from './components/RecallMap'
 import { RecallTrendsChart } from './components/RecallTrendsChart'
 import { SeverityBar } from './components/SeverityBar'
 import { SectionNav, type NavSection } from './components/SectionNav'
+import { SegmentedToggle } from './components/SegmentedToggle'
+import { YearStepper } from './components/YearStepper'
 import { StatusStrip } from './components/StatusStrip'
 import { TrendCallouts } from './components/TrendCallouts'
 import { HelpHint } from './components/HelpHint'
@@ -224,6 +226,17 @@ export function RecallRadar() {
   const fallbackYear = years[0] ?? new Date().getFullYear()
   const selectedYear = year !== null && years.includes(year) ? year : fallbackYear
   const chart = trend.data ? toChartMonths(trend.data, selectedYear) : { months: [], legend: [] }
+  // Per-year recall totals under the current filters — summed across groups from the (filter-scoped,
+  // all-months) trend buckets. Feeds the year stepper's dropdown so empty years grey out + show 0,
+  // while the arrows still walk every year linearly (no surprise skips).
+  const yearCounts = useMemo(() => {
+    const totals: Record<number, number> = {}
+    for (const bucket of trend.data?.buckets ?? []) {
+      const bucketYear = Number(bucket.month.slice(0, 4))
+      totals[bucketYear] = (totals[bucketYear] ?? 0) + bucket.count
+    }
+    return totals
+  }, [trend.data])
   // The forecast is overall (unfiltered) volume, so only overlay it when no filter narrows the
   // chart — grouping is fine, the stack still sums to the same total. Any active filter ⇒ no overlay.
   const trendFiltered = Object.entries(queryFilters).some(
@@ -239,7 +252,10 @@ export function RecallRadar() {
     value,
     label: trendGroupLabels[value],
   }))
-  const sortOptions: SelectOption[] = [RecallSort.recency, RecallSort.severity].map((value) => ({
+  const sortOptions: { value: RecallSort; label: string }[] = [
+    RecallSort.recency,
+    RecallSort.severity,
+  ].map((value) => ({
     value,
     label: sortLabels[value],
   }))
@@ -382,14 +398,14 @@ export function RecallRadar() {
                   }
                 />
                 {years.length > 0 && (
-                  <Select
-                    ariaLabel="Year"
-                    value={String(selectedYear)}
-                    options={years.map((value) => ({ value: String(value), label: String(value) }))}
-                    // Year's real default is the dynamic fallback (latest year), not '', so clear the
-                    // param when it's reselected — keeps the default view's URL clean like every other.
+                  <YearStepper
+                    year={selectedYear}
+                    years={years}
+                    counts={yearCounts}
+                    // The latest year is the implicit default, so clear the param when stepping back
+                    // to it — keeps the default view's URL clean, like every other filter.
                     onChange={(value) =>
-                      patchParams({ year: Number(value) === fallbackYear ? '' : value })
+                      patchParams({ year: value === fallbackYear ? '' : String(value) })
                     }
                   />
                 )}
@@ -455,16 +471,11 @@ export function RecallRadar() {
                 Recalls{recalls.data ? ` (${formatNumber(recalls.data.total)})` : ''}
               </h2>
               <div className={styles.controls}>
-                <Select
+                <SegmentedToggle
                   ariaLabel="Sort recalls"
                   value={sort}
                   options={sortOptions}
-                  onChange={(value) =>
-                    patchParams({
-                      sort: isRecallSort(value) ? value : RecallSort.recency,
-                      page: '',
-                    })
-                  }
+                  onChange={(value) => patchParams({ sort: value, page: '' })}
                 />
               </div>
             </div>

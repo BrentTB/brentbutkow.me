@@ -1,8 +1,7 @@
 import { useState } from 'react'
-import { Select } from '../../../components/inputs/Select'
-import type { SelectOption } from '../../../components/inputs/option.types'
 import type { EventOut } from '../recall.types'
 import { formatDate } from '../chart-format'
+import { SegmentedToggle } from './SegmentedToggle'
 import styles from './Outbreaks.module.scss'
 
 type OutbreaksProps = {
@@ -17,7 +16,7 @@ const MAX_OUTBREAKS = 8
 // Recent matters more day-to-day, so it's the default; Biggest surfaces the all-time largest.
 const SortMode = { recent: 'recent', biggest: 'biggest' } as const
 type SortMode = (typeof SortMode)[keyof typeof SortMode]
-const SORT_OPTIONS: SelectOption[] = [
+const SORT_OPTIONS: { value: SortMode; label: string }[] = [
   { value: SortMode.recent, label: 'Most recent' },
   { value: SortMode.biggest, label: 'Biggest' },
 ]
@@ -39,13 +38,11 @@ export function Outbreaks({ events, activeEvent, onSelect }: OutbreaksProps) {
   return (
     <div className={styles.root}>
       <div className={styles.controls}>
-        <Select
+        <SegmentedToggle
           ariaLabel="Sort outbreaks"
-          value={mode}
           options={SORT_OPTIONS}
-          onChange={(value) =>
-            setMode(value === SortMode.biggest ? SortMode.biggest : SortMode.recent)
-          }
+          value={mode}
+          onChange={setMode}
         />
       </div>
       <ul className={styles.grid}>
