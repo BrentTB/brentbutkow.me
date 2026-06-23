@@ -105,6 +105,22 @@ export function RecallTrendsChart({ data, year, legend, forecast }: RecallTrends
           let top = PADDING.top + plotH // stack upward from the axis
           return (
             <g key={month.month}>
+              {/* Full-column hit area behind the bars: hovering the empty space above (or beside) a
+                  stack reports the month's total, since the segment rects on top only cover the bar
+                  itself. Skipped on forecast months, where the ghost bar carries its own tooltip. */}
+              {!forecastByMonth.has(month.month) && (
+                <rect
+                  x={PADDING.left + index * slot}
+                  y={PADDING.top}
+                  width={slot}
+                  height={plotH}
+                  className={styles.hit}
+                  aria-hidden="true"
+                  onMouseEnter={showTip(`${fullLabel} · ${formatNumber(totals[index])} recalls`)}
+                  onMouseMove={showTip(`${fullLabel} · ${formatNumber(totals[index])} recalls`)}
+                  onMouseLeave={hideTip}
+                />
+              )}
               {month.segments.map((seg) => {
                 if (seg.count === 0) return null
                 const barH = (seg.count / maxCount) * plotH

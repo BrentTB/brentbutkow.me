@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import type { EventOut } from '../recall.types'
+import { EventSort, type EventOut } from '../recall.types'
 import { formatDate } from '../chart-format'
 import { SegmentedToggle } from './SegmentedToggle'
 import styles from './Outbreaks.module.scss'
@@ -8,29 +7,29 @@ type OutbreaksProps = {
   events: EventOut[]
   activeEvent: string
   onSelect: (slug: string) => void
+  // The card ordering is owned by the page as a URL param, so it persists + shares like every other
+  // view config (recent matters most day-to-day; biggest surfaces the all-time largest).
+  sort: EventSort
+  onSortChange: (value: EventSort) => void
 }
 
 // Show at most this many outbreak cards — the headline incidents, not an exhaustive list.
 const MAX_OUTBREAKS = 8
 
-// Recent matters more day-to-day, so it's the default; Biggest surfaces the all-time largest.
-const SortMode = { recent: 'recent', biggest: 'biggest' } as const
-type SortMode = (typeof SortMode)[keyof typeof SortMode]
-const SORT_OPTIONS: { value: SortMode; label: string }[] = [
-  { value: SortMode.recent, label: 'Most recent' },
-  { value: SortMode.biggest, label: 'Biggest' },
+const SORT_OPTIONS: { value: EventSort; label: string }[] = [
+  { value: EventSort.recent, label: 'Most recent' },
+  { value: EventSort.biggest, label: 'Biggest' },
 ]
 
 // The high-signal clusters (pathogen-driven, multi-recall) as clickable cards. Clicking one filters
 // the recall list + trend to that incident's recalls (its stable slug rides the URL).
-export function Outbreaks({ events, activeEvent, onSelect }: OutbreaksProps) {
-  const [mode, setMode] = useState<SortMode>(SortMode.recent)
+export function Outbreaks({ events, activeEvent, onSelect, sort, onSortChange }: OutbreaksProps) {
   const outbreaks = events.filter((event) => event.isOutbreak)
   if (outbreaks.length === 0) return null
   // Recent = latest member report date first; Biggest = most recalls first (ISO dates sort lexically).
   const shown = [...outbreaks]
     .sort((a, b) =>
-      mode === SortMode.recent
+      sort === EventSort.recent
         ? (b.lastDate ?? '').localeCompare(a.lastDate ?? '')
         : b.recallCount - a.recallCount
     )
@@ -41,8 +40,8 @@ export function Outbreaks({ events, activeEvent, onSelect }: OutbreaksProps) {
         <SegmentedToggle
           ariaLabel="Sort outbreaks"
           options={SORT_OPTIONS}
-          value={mode}
-          onChange={setMode}
+          value={sort}
+          onChange={onSortChange}
         />
       </div>
       <ul className={styles.grid}>

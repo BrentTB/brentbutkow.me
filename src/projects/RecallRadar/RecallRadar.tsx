@@ -37,11 +37,13 @@ import { toChartMonths } from './trend-chart'
 import {
   RecallCountry,
   RecallSort,
+  EventSort,
   TrendGroup,
   isRecallCategory,
   isRecallClass,
   isRecallCountry,
   isRecallSort,
+  isEventSort,
   isRecallSource,
   isSeverityLabel,
   isTrendGroup,
@@ -84,6 +86,7 @@ const DEFAULT_PARAMS = {
   location: RecallCountry.us,
   group: TrendGroup.category,
   sort: RecallSort.recency,
+  eventSort: EventSort.recent,
   year: '',
   page: '',
 }
@@ -130,6 +133,7 @@ export function RecallRadar() {
   const country = isRecallCountry(values.location) ? values.location : RecallCountry.us
   const group = isTrendGroup(values.group) ? values.group : TrendGroup.category
   const sort = isRecallSort(values.sort) ? values.sort : RecallSort.recency
+  const eventSort = isEventSort(values.eventSort) ? values.eventSort : EventSort.recent
   const year = values.year ? Number(values.year) : null
   const filters: RecallFilterValues = {
     category: isRecallCategory(values.category) ? values.category : '',
@@ -381,6 +385,8 @@ export function RecallRadar() {
                 events={visibleOutbreaks}
                 activeEvent={filters.event}
                 onSelect={(slug) => patch({ event: slug })}
+                sort={eventSort}
+                onSortChange={(value) => patchParams({ eventSort: value })}
               />
             </section>
           )}

@@ -31,6 +31,8 @@ describe('Outbreaks', () => {
         ]}
         activeEvent=""
         onSelect={onSelect}
+        sort="recent"
+        onSortChange={vi.fn()}
       />
     )
     expect(screen.getByText('Listeria')).toBeTruthy()
@@ -47,6 +49,8 @@ describe('Outbreaks', () => {
         events={[event({ slug: 'listeria-2026-03' })]}
         activeEvent="listeria-2026-03"
         onSelect={onSelect}
+        sort="recent"
+        onSortChange={vi.fn()}
       />
     )
     fireEvent.click(screen.getByRole('button', { name: 'Filter to the Listeria outbreak' }))
@@ -55,12 +59,18 @@ describe('Outbreaks', () => {
 
   it('renders nothing when there are no outbreaks', () => {
     const { container } = render(
-      <Outbreaks events={[event({ isOutbreak: false })]} activeEvent="" onSelect={vi.fn()} />
+      <Outbreaks
+        events={[event({ isOutbreak: false })]}
+        activeEvent=""
+        onSelect={vi.fn()}
+        sort="recent"
+        onSortChange={vi.fn()}
+      />
     )
     expect(container.firstChild).toBeNull()
   })
 
-  it('defaults to most-recent order and re-sorts to biggest when toggled', () => {
+  it('orders by the sort prop and reports a sort change on toggle', () => {
     const recent = event({
       slug: 'a',
       dominantEntity: 'Listeria',
@@ -73,15 +83,38 @@ describe('Outbreaks', () => {
       recallCount: 9,
       lastDate: '2026-01-01',
     })
-    render(<Outbreaks events={[biggest, recent]} activeEvent="" onSelect={vi.fn()} />)
+    const onSortChange = vi.fn()
 
-    // Default = most recent → Listeria (June) leads despite Salmonella having more recalls.
-    const byRecent = screen.getAllByRole('button', { name: /Filter to the/i })
-    expect(byRecent[0].textContent).toContain('Listeria')
+    // sort='recent' → Listeria (June) leads despite Salmonella having more recalls.
+    const { rerender } = render(
+      <Outbreaks
+        events={[biggest, recent]}
+        activeEvent=""
+        onSelect={vi.fn()}
+        sort="recent"
+        onSortChange={onSortChange}
+      />
+    )
+    expect(screen.getAllByRole('button', { name: /Filter to the/i })[0].textContent).toContain(
+      'Listeria'
+    )
 
-    // Toggle the sort to Biggest → the 9-recall Salmonella cluster leads.
+    // The page owns the order as a URL param, so toggling just reports the change (no internal re-sort).
     fireEvent.click(screen.getByRole('button', { name: 'Biggest' }))
-    const byBiggest = screen.getAllByRole('button', { name: /Filter to the/i })
-    expect(byBiggest[0].textContent).toContain('Salmonella')
+    expect(onSortChange).toHaveBeenCalledWith('biggest')
+
+    // sort='biggest' → the 9-recall Salmonella cluster leads.
+    rerender(
+      <Outbreaks
+        events={[biggest, recent]}
+        activeEvent=""
+        onSelect={vi.fn()}
+        sort="biggest"
+        onSortChange={onSortChange}
+      />
+    )
+    expect(screen.getAllByRole('button', { name: /Filter to the/i })[0].textContent).toContain(
+      'Salmonella'
+    )
   })
 })
