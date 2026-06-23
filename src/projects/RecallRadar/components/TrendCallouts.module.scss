@@ -172,3 +172,34 @@
 .close:hover {
   color: var(--text);
 }
+
+// On narrow screens a row can't fit on one line, so the caption was getting truncated. Let the row
+// wrap and drop the caption to its own full-width line (it reads in full) instead of an ellipsis.
+@media (max-width: 600px) {
+  .row {
+    flex-wrap: wrap;
+  }
+
+  .caption {
+    order: 1;
+    flex-basis: 100%;
+    white-space: normal;
+    overflow: visible;
+  }
+
+  // The caption drops to its own line here, so push the expand chevron to the row's right edge (a
+  // proper disclosure caret) instead of leaving it stranded against the title like a stray mark.
+  .chevron {
+    margin-left: auto;
+  }
+
+  // Drop the desktop alignment widths so the eyebrow + value shrink to their content, leaving room
+  // for the subject to sit beside them on line 1 instead of wrapping to its own (3rd) line.
+  .eyebrow {
+    width: auto;
+  }
+
+  .value {
+    min-width: 0;
+  }
+}
