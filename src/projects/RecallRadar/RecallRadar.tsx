@@ -378,8 +378,8 @@ export function RecallRadar() {
             <section id="outbreaks" className={styles.section}>
               <h2 className={styles.sectionTitle}>Outbreaks</h2>
               <p className={styles.hint}>
-                Clusters of related recalls — a shared pathogen across products, retailers, or
-                companies. Click one to narrow the recalls below to that incident.
+                Clusters of related recalls, such as a shared pathogen across products, retailers,
+                or companies. Click one to narrow the recalls below to that incident.
               </p>
               <Outbreaks
                 events={visibleOutbreaks}

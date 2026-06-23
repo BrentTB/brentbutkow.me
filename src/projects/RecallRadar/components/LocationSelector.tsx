@@ -44,7 +44,9 @@ export function LocationSelector({ value, collapsed, onChange }: LocationSelecto
 
   if (!collapsed) {
     return (
-      <div className={styles.tabs} role="group" aria-label="Location">
+      // Distinct keys on the two forms so collapsing remounts (rather than reusing) the element —
+      // that guarantees the fade-in animation fires on the swap, not just a silent class change.
+      <div key="tabs" className={styles.tabs} role="group" aria-label="Location">
         {LOCATIONS.map((country) => (
           <button
             key={country}
@@ -61,7 +63,7 @@ export function LocationSelector({ value, collapsed, onChange }: LocationSelecto
   }
 
   return (
-    <div className={styles.dropdown} ref={ref}>
+    <div key="dropdown" className={styles.dropdown} ref={ref}>
       <button
         type="button"
         className={styles.trigger}
