@@ -95,6 +95,58 @@
     grid-template-columns: 1fr;
     gap: 0;
   }
+
+  // The jump-nav becomes a sticky strip under the control bar here, so anchored sections must clear
+  // the bar (--rr-bar-height) AND that strip.
+  .section {
+    scroll-margin-top: calc(var(--rr-bar-height, 110px) + 56px);
+  }
+
+  // The rail repositions instantly when the navbar retract flips the bar's top (a CSS-var change,
+  // which can't animate). Drop the bar's own top transition here so the two move in lockstep —
+  // otherwise the bar slides over 0.24s while the rail jumps, opening a seam that shows content.
+  .stickyBar {
+    transition: none;
+  }
+}
+
+// Phones: when the filters are expanded the bar can grow taller than the viewport, so its head
+// would scroll off the top — leaving the user with no idea what country they're scoped to. Cap
+// the bar at the dynamic viewport (dvh excludes the iOS URL bar so the cap is honest), let its
+// contents scroll internally, and pin the head to the bar's visible top edge so it stays put.
+@media (max-width: 600px) {
+  .stickyBar {
+    max-height: calc(100dvh - 16px);
+    overflow-y: auto;
+    // Square + flush to the section strip below, so the two read as one connected panel on mobile.
+    border-radius: 0;
+    margin-bottom: 0;
+  }
+
+  // PageLayout stacks its children with a 48px flex gap, which sits between the bar and the section
+  // strip (in .layout) and shows as a seam at the top of the page (in scroll, sticky hides it).
+  // Cancel just that one gap so the strip docks directly onto the bar — the other page gaps stand.
+  .layout {
+    margin-top: -48px;
+  }
+
+  .barHead {
+    position: sticky;
+    // Pull the head's sticky boundary up by the bar's padding-top so it locks to the bar's visible
+    // top edge, not 10px below it.
+    top: -10px;
+    z-index: 2;
+    // Extend the head's background through the bar's padding so the sticky panel reads as one
+    // chrome block, with no padding gap showing the scrolled content peeking up around it.
+    margin: -10px -14px 0;
+    padding: 10px 14px;
+    background: rgba(16, 18, 24, 0.96);
+    backdrop-filter: blur(8px);
+  }
+
+  :global(html.fun-mode) .barHead {
+    background: var(--fun-surface);
+  }
 }
 
 .sectionTitle {

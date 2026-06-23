@@ -114,6 +114,16 @@ export function RecallRadar() {
     return () => observer.disconnect()
   }, [])
 
+  // The mobile section rail docks to the bar's bottom edge. The bar's own sticky top shifts with the
+  // navbar retract (0 ↔ --site-nav-height), so publish that offset for the rail to add onto
+  // --rr-bar-height — without it the two drift apart and page content shows through the seam.
+  useLayoutEffect(() => {
+    document.documentElement.style.setProperty(
+      '--rr-nav-offset',
+      navHidden ? '0px' : 'var(--site-nav-height, 68px)'
+    )
+  }, [navHidden])
+
   // URL strings → typed UI state, validated rather than cast (query params are untrusted input).
   const country = isRecallCountry(values.location) ? values.location : RecallCountry.us
   const group = isTrendGroup(values.group) ? values.group : TrendGroup.category

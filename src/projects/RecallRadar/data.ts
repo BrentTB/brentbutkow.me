@@ -91,14 +91,6 @@ export const countryLabels: Record<RecallCountry, string> = {
   [RecallCountry.za]: 'South Africa',
 }
 
-// Flag emoji per location, shown in the location scope control (tabs + dropdown). Keyed like the
-// labels so adding a country is a two-line change here.
-export const countryFlags: Record<RecallCountry, string> = {
-  [RecallCountry.us]: '🇺🇸',
-  [RecallCountry.uk]: '🇬🇧',
-  [RecallCountry.za]: '🇿🇦',
-}
-
 export const entityTypeLabels: Record<EntityType, string> = {
   [EntityType.allergen]: 'Allergen',
   [EntityType.pathogen]: 'Pathogen',

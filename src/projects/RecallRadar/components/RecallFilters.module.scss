@@ -18,6 +18,12 @@
   gap: 7px;
 }
 
+// Cause / Class / Severity wrapper: transparent to layout on desktop (its selects flow as direct
+// children of the bar), but a single hideable unit on phones — see the media query at the foot.
+.primaryFields {
+  display: contents;
+}
+
 .label {
   font-family: var(--font-mono);
   font-size: 0.62rem;
@@ -48,6 +54,9 @@
 }
 
 .more {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   background: transparent;
   border: 1px dashed var(--border-strong);
   border-radius: var(--radius);
@@ -69,6 +78,23 @@
 .more:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+// Active-filter count badge on the toggle. Hidden by default (chips carry this on desktop); shown
+// only on a collapsed phone bar, where the chips themselves are hidden — see the media query.
+.moreCount {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #101218;
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1;
 }
 
 .date {
@@ -155,4 +181,54 @@
 .clearAll:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+// Phones: collapse the primary selects behind "More filters" (alongside the advanced filters), so
+// the resting bar is just the search box + the toggle sharing one row. Active picks still surface as
+// removable chips below, so hiding the controls loses nothing.
+@media (max-width: 600px) {
+  .primaryFields {
+    display: none;
+  }
+
+  .primaryFields[data-open='true'] {
+    display: contents;
+  }
+
+  .search {
+    flex: 1 1 0;
+    min-width: 120px;
+  }
+
+  // "More / Fewer filters" sits right after the search bar on a phone — the toggle that controls
+  // them belongs next to the input, not buried below Cause/Class/Severity (where it lives on desktop
+  // because the inline labels carry the relationship visually). Achieved by bumping the primary
+  // fields one order class back, so flex layout places them after the toggle.
+  .primaryFields .field {
+    order: 1;
+  }
+
+  // Each field claims the bar's full width on mobile so its inner control shrinks to fit. Without
+  // this, the company type-ahead (sized in ch units for desktop alignment, ~36ch wide) bled off
+  // the side of the screen.
+  .field {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .field > * {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  // Collapsed: the (tall) chips are hidden; the toggle's count badge signals active filters instead.
+  // Expanded (data-expanded='true') restores them.
+  .root[data-expanded='false'] .chips {
+    display: none;
+  }
+
+  .root[data-expanded='false'] .moreCount {
+    display: inline-flex;
+  }
 }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { countryFlags, countryLabels } from '../data'
+import { countryLabels } from '../data'
 import { RecallCountry } from '../recall.types'
 import styles from './LocationSelector.module.scss'
 
@@ -53,9 +53,6 @@ export function LocationSelector({ value, collapsed, onChange }: LocationSelecto
             onClick={() => onChange(country)}
             aria-pressed={country === value}
           >
-            <span className={styles.flag} aria-hidden="true">
-              {countryFlags[country]}
-            </span>
             {countryLabels[country]}
           </button>
         ))}
@@ -73,9 +70,6 @@ export function LocationSelector({ value, collapsed, onChange }: LocationSelecto
         aria-label={`Location: ${countryLabels[value]}`}
         onClick={() => setOpen((prev) => !prev)}
       >
-        <span className={styles.flag} aria-hidden="true">
-          {countryFlags[value]}
-        </span>
         <span className={styles.triggerLabel}>{countryLabels[value]}</span>
         <span className={styles.caret} aria-hidden="true">
           ▾
@@ -94,9 +88,6 @@ export function LocationSelector({ value, collapsed, onChange }: LocationSelecto
                 setOpen(false)
               }}
             >
-              <span className={styles.flag} aria-hidden="true">
-                {countryFlags[country]}
-              </span>
               {countryLabels[country]}
             </button>
           ))}
