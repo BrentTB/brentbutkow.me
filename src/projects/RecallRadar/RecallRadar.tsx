@@ -271,9 +271,9 @@ export function RecallRadar() {
   const navSections: NavSection[] = useMemo(
     () => [
       { id: 'overview', label: 'Overview' },
+      ...(hasOutbreaks ? [{ id: 'outbreaks', label: 'Outbreaks' }] : []),
       { id: 'trends', label: 'Trends' },
       ...(stats.data && country === RecallCountry.us ? [{ id: 'map', label: 'Map' }] : []),
-      ...(hasOutbreaks ? [{ id: 'outbreaks', label: 'Outbreaks' }] : []),
       ...(stats.data ? [{ id: 'breakdowns', label: 'Breakdowns' }] : []),
       ...(hasThemes ? [{ id: 'themes', label: 'Themes' }] : []),
       { id: 'recalls', label: 'Recalls' },
@@ -344,6 +344,21 @@ export function RecallRadar() {
             <TrendCallouts callouts={callouts} />
           </section>
 
+          {hasOutbreaks && (
+            <section id="outbreaks" className={styles.section}>
+              <h2 className={styles.sectionTitle}>Outbreaks</h2>
+              <p className={styles.hint}>
+                Clusters of related recalls — a shared pathogen across products, retailers, or
+                companies. Click one to narrow the recalls below to that incident.
+              </p>
+              <Outbreaks
+                events={visibleOutbreaks}
+                activeEvent={filters.event}
+                onSelect={(slug) => patch({ event: slug })}
+              />
+            </section>
+          )}
+
           <section id="trends" className={styles.section}>
             <div className={styles.sectionHead}>
               <h2 className={styles.sectionTitle}>Recalls per month</h2>
@@ -390,21 +405,6 @@ export function RecallRadar() {
                 byState={breakdownFacets.state}
                 activeState={filters.state}
                 onSelect={(state) => patch({ state })}
-              />
-            </section>
-          )}
-
-          {hasOutbreaks && (
-            <section id="outbreaks" className={styles.section}>
-              <h2 className={styles.sectionTitle}>Outbreaks</h2>
-              <p className={styles.hint}>
-                Clusters of related recalls — a shared pathogen across products, retailers, or
-                companies. Click one to narrow the recalls below to that incident.
-              </p>
-              <Outbreaks
-                events={visibleOutbreaks}
-                activeEvent={filters.event}
-                onSelect={(slug) => patch({ event: slug })}
               />
             </section>
           )}
