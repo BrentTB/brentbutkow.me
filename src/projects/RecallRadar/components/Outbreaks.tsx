@@ -48,7 +48,7 @@ export function Outbreaks({ events, activeEvent, onSelect }: OutbreaksProps) {
           }
         />
       </div>
-      <ul className={styles.grid}>
+      <ul className={styles.rows}>
         {shown.map((event) => {
           const active = event.slug === activeEvent
           const span =
@@ -56,25 +56,26 @@ export function Outbreaks({ events, activeEvent, onSelect }: OutbreaksProps) {
               ? `${formatDate(event.firstDate)} – ${formatDate(event.lastDate)}`
               : null
           const companies = `${event.companyCount} ${event.companyCount === 1 ? 'company' : 'companies'}`
+          // entity · count headline up front; companies/states/dates as a muted meta line.
+          const meta = [companies, event.stateCount > 0 ? `${event.stateCount} states` : null, span]
+            .filter(Boolean)
+            .join(' · ')
           return (
-            <li key={event.slug}>
+            <li key={event.slug} className={styles.cell}>
               <button
                 type="button"
-                className={`${styles.card} ${active ? styles.active : ''}`}
+                className={`${styles.row} ${active ? styles.active : ''}`}
                 aria-pressed={active}
                 aria-label={`Filter to the ${event.dominantEntity ?? 'outbreak'} outbreak`}
                 title="Filter to this outbreak"
                 onClick={() => onSelect(active ? '' : event.slug)}
               >
-                <span className={styles.head}>
-                  <span className={styles.entity}>{event.dominantEntity ?? 'Outbreak'}</span>
-                  <span className={styles.count}>{event.recallCount} recalls</span>
+                <span className={styles.warn} aria-hidden="true">
+                  ⚠
                 </span>
-                <span className={styles.meta}>
-                  {companies}
-                  {event.stateCount > 0 ? ` · ${event.stateCount} states` : ''}
-                </span>
-                {span && <span className={styles.span}>{span}</span>}
+                <span className={styles.entity}>{event.dominantEntity ?? 'Outbreak'}</span>
+                <span className={styles.count}>{event.recallCount} recalls</span>
+                <span className={styles.meta}>{meta}</span>
               </button>
             </li>
           )

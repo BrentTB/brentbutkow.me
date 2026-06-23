@@ -33,7 +33,7 @@ const baseStats: RecallStats = {
 }
 
 describe('deriveCallouts', () => {
-  it('computes a 3-month volume trend, leading cause, and top-state share', () => {
+  it('computes the 3-month volume trend (cause + top-state now live in the status strip)', () => {
     const callouts = deriveCallouts(baseStats)
 
     const volume = callouts.find((c) => c.id === 'volume')
@@ -41,13 +41,9 @@ describe('deriveCallouts', () => {
     expect(volume?.direction).toBe('up')
     expect(volume?.caption).toBe('over the last 3 months vs the prior 3 months')
 
-    const cause = callouts.find((c) => c.id === 'cause')
-    expect(cause?.value).toBe('60%')
-    expect(cause?.title).toBe('Undeclared allergen')
-
-    const state = callouts.find((c) => c.id === 'state')
-    expect(state?.value).toBe('25%')
-    expect(state?.title).toBe('California') // mapped from the CA code
+    // Leading cause + top state repeat the status strip, so they're no longer callouts.
+    expect(callouts.find((c) => c.id === 'cause')).toBeUndefined()
+    expect(callouts.find((c) => c.id === 'state')).toBeUndefined()
   })
 
   it('marks a falling volume trend as down', () => {

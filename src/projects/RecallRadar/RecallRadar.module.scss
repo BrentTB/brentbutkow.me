@@ -23,6 +23,13 @@
   transition: top 0.24s ease;
 }
 
+// Fun mode: the background becomes the water ripple, so swap the bar's opaque ink surface for the
+// translucent navy glass (like the site navbar) — with its existing blur it tints with the water
+// instead of floating as a dark slab.
+:global(html.fun-mode) .stickyBar {
+  background: var(--fun-surface);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .stickyBar {
     transition: none;
