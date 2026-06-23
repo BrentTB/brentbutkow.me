@@ -598,6 +598,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.14.1',
+    date: '2026-06-23',
+    changes: {
+      fixes: [
+        'Leaving a run and pressing Continue no longer wipes its clock — the leaderboard now records the whole run, not just the time played since you resumed.',
+      ],
+    },
+  },
+  {
     version: '1.14.0',
     date: '2026-06-21',
     changes: {

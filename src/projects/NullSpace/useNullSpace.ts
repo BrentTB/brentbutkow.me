@@ -87,6 +87,7 @@ import {
   savePlayerName,
 } from './engine/world/persistence'
 import { buildScoreSubmission, submitScore } from './leaderboard/score-submission'
+import { bankPlaySegment } from './leaderboard/run-duration'
 import {
   advanceTutorial,
   createTutorialState,
@@ -291,9 +292,12 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
   const starsRef = useRef<Star[]>([])
   const rafRef = useRef<number>(0)
   const gameTimeRef = useRef<GameTime>(createGameTime())
-  // Run timing + one-shot submit guard for the leaderboard. runStart/runEnd
-  // bracket one run (wall-clock); the guard stops a successful score POSTing
-  // twice if the game-over submit button is tapped again.
+  // Run timing + one-shot submit guard for the leaderboard. runStart marks the
+  // start of the live play segment (reset on game start, resume, and each
+  // autosave, which banks the elapsed segment into state.runDurationMs). runEnd
+  // is stamped at death so the submitted duration excludes game-over-screen
+  // reading time. The guard stops a successful score POSTing twice if the
+  // game-over submit button is tapped again.
   const runStartRef = useRef(0)
   const runEndRef = useRef(0)
   const scoreSubmittedRef = useRef(false)
@@ -391,6 +395,19 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
   // alike, independent of the rAF loop's timing.
   useEffect(() => {
     if (uiState.phase === GamePhase.waveComplete || uiState.phase === GamePhase.upgradeScreen) {
+      // Bank the live segment into the run duration before persisting, then
+      // restart it — so a resumed run keeps the time played before exiting
+      // instead of submitting only the post-resume stretch.
+      const now = Date.now()
+      gameStateRef.current = {
+        ...gameStateRef.current,
+        runDurationMs: bankPlaySegment(
+          gameStateRef.current.runDurationMs,
+          runStartRef.current,
+          now
+        ),
+      }
+      runStartRef.current = now
       saveGame(gameStateRef.current, rng.getState())
       setHasSave(true)
     } else if (uiState.phase === GamePhase.gameOver) {
@@ -449,7 +466,13 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
   // stops a successful score being posted twice.
   const handleSubmitScore = useCallback(async (name: string): Promise<boolean> => {
     if (scoreSubmittedRef.current) return true
-    const durationMs = Math.max(0, runEndRef.current - runStartRef.current)
+    // Banked segments (state.runDurationMs) plus the final live one, ending at
+    // the stamped death time — the full run, spanning any Save & Exit → Continue.
+    const durationMs = bankPlaySegment(
+      gameStateRef.current.runDurationMs,
+      runStartRef.current,
+      runEndRef.current
+    )
     const submission = buildScoreSubmission(gameStateRef.current, name, durationMs)
     try {
       await submitScore(submission)

@@ -154,6 +154,33 @@ describe('useNullSpace — handleSubmitScore', () => {
     expect(submitScore).toHaveBeenCalledTimes(1)
   })
 
+  it('submits the full run duration after a resume, not just the post-resume segment', async () => {
+    // Regression: continuing a saved run reset the run clock, so the duration
+    // sent to the leaderboard was only the time played since pressing Continue.
+    // The 60s banked into the save before exiting must survive the resume.
+    vi.mocked(submitScore).mockResolvedValue(undefined)
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(600_000)
+    clearSave()
+    const saved = {
+      ...createInitialState(),
+      phase: GamePhase.upgradeScreen,
+      runDurationMs: 60_000,
+    }
+    saveGame(saved, 12345)
+
+    const canvasRef = createRef<HTMLCanvasElement>()
+    const { result } = renderHook(() => useNullSpace(canvasRef))
+    // Resume long after exiting — the away time is excluded; only banked play counts.
+    act(() => result.current.handleContinue())
+    await act(async () => {
+      await result.current.handleSubmitScore('Ace')
+    })
+
+    expect(vi.mocked(submitScore).mock.calls[0][0].durationMs).toBe(60_000)
+    nowSpy.mockRestore()
+    clearSave()
+  })
+
   it('on failure returns false, leaves the guard unset, and allows a retry', async () => {
     vi.mocked(submitScore)
       .mockRejectedValueOnce(new Error('network'))
