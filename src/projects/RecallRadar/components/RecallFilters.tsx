@@ -13,9 +13,12 @@ import {
   isRecallClass,
   isRecallSource,
   isSeverityLabel,
+  type LabelCount,
   type RecallCountry,
+  type RecallFacets,
   type RecallFilterValues,
 } from '../recall.types'
+import type { TrendFilters } from '../api'
 import { Combobox } from '../../../components/inputs/Combobox'
 import { Select } from '../../../components/inputs/Select'
 import type { SelectOption } from '../../../components/inputs/option.types'
@@ -26,6 +29,11 @@ type RecallFiltersProps = {
   filters: RecallFilterValues
   country: RecallCountry
   stateOptions: string[]
+  // Live per-facet counts under the current filters; undefined while loading or on error (the
+  // controls then render without counts).
+  facets?: RecallFacets
+  // The active filter set, forwarded to the company type-ahead so its counts reflect the rest.
+  activeFilters: TrendFilters
   topicLabel?: string
   eventLabel?: string
   onChange: (patch: Partial<RecallFilterValues>) => void
@@ -34,10 +42,31 @@ type RecallFiltersProps = {
 
 const ALL: SelectOption = { value: '', label: 'All' }
 
+const countsOf = (list: LabelCount[]): Map<string, number> =>
+  new Map(list.map((entry) => [entry.label, entry.count]))
+
+// Merge facet counts onto a known option list: annotate each with its count, disable the zero-result
+// ones (but never the current selection, so it stays clearable), and order the available options
+// first with the dead ends after. Returns the list unchanged when counts aren't loaded yet.
+function faceted(
+  base: SelectOption[],
+  counts: Map<string, number> | null,
+  selected: string
+): SelectOption[] {
+  if (!counts) return base
+  const annotated = base.map((option) => {
+    const count = counts.get(option.value) ?? 0
+    return { ...option, count, disabled: count === 0 && option.value !== selected }
+  })
+  return [...annotated.filter((option) => !option.disabled), ...annotated.filter((o) => o.disabled)]
+}
+
 export function RecallFilters({
   filters,
   country,
   stateOptions,
+  facets,
+  activeFilters,
   topicLabel,
   eventLabel,
   onChange,
@@ -121,24 +150,48 @@ export function RecallFilters({
       patch: { until: '' },
     })
 
+  // On a phone the active-filter chips are hidden while the bar is collapsed (they're tall); a count
+  // badge on the toggle signals how many are applied. Search is excluded — its box stays visible.
+  const activeCount = chips.filter((chip) => chip.key !== 'search').length
+
+  // Faceted option lists: each control's known options annotated with live counts, zero-result ones
+  // greyed + sorted last. "All" leads and is never counted/disabled (it clears the facet).
+  const baseCategory = Object.values(RecallCategory).map((value) => ({
+    value,
+    label: categoryLabels[value],
+  }))
+  const baseClassification = classOptions.map((value) => ({ value, label: value }))
+  const baseSeverity = severityOrder.map((value) => ({ value, label: severityLabels[value] }))
+  const baseSource = sourceOptions.map((value) => ({ value, label: sourceLabels[value] }))
+  const baseState = stateOptions.map((code) => ({ value: code, label: code }))
+
   const categoryOptions: SelectOption[] = [
     ALL,
-    ...Object.values(RecallCategory).map((value) => ({ value, label: categoryLabels[value] })),
+    ...faceted(baseCategory, facets ? countsOf(facets.category) : null, filters.category),
   ]
   const classificationOptions: SelectOption[] = [
     ALL,
-    ...classOptions.map((value) => ({ value, label: value })),
+    ...faceted(
+      baseClassification,
+      facets ? countsOf(facets.classification) : null,
+      filters.classification
+    ),
   ]
   const severityOptions: SelectOption[] = [
     ALL,
-    ...severityOrder.map((value) => ({ value, label: severityLabels[value] })),
+    ...faceted(baseSeverity, facets ? countsOf(facets.severity) : null, filters.severity),
   ]
   const sourceFilterOptions: SelectOption[] = [
     ALL,
-    ...sourceOptions.map((value) => ({ value, label: sourceLabels[value] })),
+    ...faceted(baseSource, facets ? countsOf(facets.source) : null, filters.source),
   ]
+  const stateFilterOptions = faceted(
+    baseState,
+    facets ? countsOf(facets.state) : null,
+    filters.state
+  )
   return (
-    <div className={styles.root}>
+    <div className={styles.root} data-expanded={showMore ? 'true' : 'false'}>
       <div className={styles.bar}>
         <input
           type="search"
@@ -149,34 +202,44 @@ export function RecallFilters({
           onChange={(event) => onChange({ search: event.target.value })}
         />
 
-        <div className={styles.field}>
-          <span className={styles.label}>Cause</span>
-          <Select
-            ariaLabel="Cause"
-            value={filters.category}
-            options={categoryOptions}
-            onChange={(value) => onChange({ category: isRecallCategory(value) ? value : '' })}
-          />
-        </div>
+        {/* Cause / Class / Severity flow inline in the bar on desktop; on phones they collapse
+            behind "More filters" too, so the resting bar is just search + toggle — active picks
+            still surface as removable chips below. */}
+        <div className={styles.primaryFields} data-open={showMore ? 'true' : 'false'}>
+          <div className={styles.field}>
+            <span className={styles.label}>Cause</span>
+            <Select
+              ariaLabel="Cause"
+              value={filters.category}
+              options={categoryOptions}
+              onChange={(value) => onChange({ category: isRecallCategory(value) ? value : '' })}
+            />
+          </div>
 
-        <div className={styles.field}>
-          <span className={styles.label}>Class</span>
-          <Select
-            ariaLabel="Class"
-            value={filters.classification}
-            options={classificationOptions}
-            onChange={(value) => onChange({ classification: isRecallClass(value) ? value : '' })}
-          />
-        </div>
+          {/* No classifications for a country (South Africa) → hide the control entirely. */}
+          {classOptions.length > 0 && (
+            <div className={styles.field}>
+              <span className={styles.label}>Class</span>
+              <Select
+                ariaLabel="Class"
+                value={filters.classification}
+                options={classificationOptions}
+                onChange={(value) =>
+                  onChange({ classification: isRecallClass(value) ? value : '' })
+                }
+              />
+            </div>
+          )}
 
-        <div className={styles.field}>
-          <span className={styles.label}>Severity</span>
-          <Select
-            ariaLabel="Severity"
-            value={filters.severity}
-            options={severityOptions}
-            onChange={(value) => onChange({ severity: isSeverityLabel(value) ? value : '' })}
-          />
+          <div className={styles.field}>
+            <span className={styles.label}>Severity</span>
+            <Select
+              ariaLabel="Severity"
+              value={filters.severity}
+              options={severityOptions}
+              onChange={(value) => onChange({ severity: isSeverityLabel(value) ? value : '' })}
+            />
+          </div>
         </div>
 
         <button
@@ -186,6 +249,11 @@ export function RecallFilters({
           onClick={() => setShowMore((prev) => !prev)}
         >
           {showMore ? '− Fewer filters' : '+ More filters'}
+          {!showMore && activeCount > 0 && (
+            <span className={styles.moreCount} aria-label={`${activeCount} active`}>
+              {activeCount}
+            </span>
+          )}
         </button>
       </div>
 
@@ -209,7 +277,7 @@ export function RecallFilters({
               <Combobox
                 ariaLabel="State"
                 value={filters.state}
-                options={stateOptions.map((code) => ({ value: code, label: code }))}
+                options={stateFilterOptions}
                 onChange={(value) => onChange({ state: value })}
                 placeholder="Search states…"
               />
@@ -219,7 +287,7 @@ export function RecallFilters({
           <div className={styles.field}>
             <span className={styles.label}>Company</span>
             <CompanyFilter
-              country={country}
+              filters={activeFilters}
               value={filters.company}
               onChange={(value) => onChange({ company: value })}
             />

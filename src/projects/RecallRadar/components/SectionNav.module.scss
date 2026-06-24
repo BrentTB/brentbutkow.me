@@ -33,28 +33,65 @@
   background: var(--surface);
 }
 
-// Narrow screens: the rail becomes a horizontal strip above the content instead of a side column.
+// Narrow screens: the rail becomes a single-row horizontal strip that sticks just under the control
+// bar (--rr-bar-height) instead of a side column — so the jump-nav stays reachable while scrolling
+// rather than wrapping to two rows and scrolling away with the page.
 @media (max-width: 860px) {
   .rail {
-    position: static;
+    position: sticky;
+    // Dock to the control bar's bottom edge: its height plus its own sticky offset (which shifts with
+    // the navbar retract). The -2px tucks the strip a hair under the bar so no sub-pixel seam shows.
+    top: calc(var(--rr-nav-offset, 0px) + var(--rr-bar-height, 110px) - 2px);
+    z-index: 8;
     flex-direction: row;
-    flex-wrap: wrap;
-    gap: 4px 6px;
-    padding-bottom: 10px;
-    margin-bottom: 8px;
-    border-bottom: 1px solid var(--border);
+    flex-wrap: nowrap;
+    gap: 2px;
+    // Sit slightly under the filter card with matching rounded corners + border, so the two cards
+    // read as a single chrome region instead of a rounded card abutting a square strip (which
+    // produced an awkward gap at each bottom-corner of the filter).
+    margin: 8px 0 16px;
+    padding: 6px 8px;
+    overflow-x: auto;
+    // It's a swipeable strip, not a scroll region to look at.
+    scrollbar-width: none;
+    background: rgba(16, 18, 24, 0.96);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  .rail::-webkit-scrollbar {
+    display: none;
+  }
+
+  // Fun mode swaps the opaque ink surface for the translucent navy glass, like the control bar.
+  :global(html.fun-mode) .rail {
+    background: var(--fun-surface);
   }
 
   .link {
+    flex: 0 0 auto;
+    white-space: nowrap;
     border-left: none;
     border-bottom: 2px solid transparent;
     border-radius: 0;
-    padding: 5px 8px;
+    padding: 6px 10px;
   }
 
   .on {
     border-left: none;
     border-bottom-color: var(--accent);
     background: none;
+  }
+}
+
+// Phones: the strip docks flush beneath the (now square-cornered) filter card — square top, rounded
+// bottom, no top border — so the two read as one continuous panel rather than a card meeting a
+// separate strip. Must follow the ≤860 block to win the cascade at ≤600.
+@media (max-width: 600px) {
+  .rail {
+    margin-top: 0;
+    border-top: none;
+    border-radius: 0 0 var(--radius) var(--radius);
   }
 }

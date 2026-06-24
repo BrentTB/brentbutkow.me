@@ -7,11 +7,15 @@ type SelectProps = {
   options: SelectOption[]
   onChange: (value: string) => void
   ariaLabel: string
+  // Optional extra class on the trigger button, to restyle it for a host control (e.g. blended into
+  // the year stepper's pill). The dropdown menu itself is unaffected.
+  triggerClassName?: string
 }
 
 // Custom dropdown — native <select> popups render OS-default (white) and can't be themed on macOS.
-// Button trigger + listbox, themed to the dark site; keyboard + click-outside supported.
-export function Select({ value, options, onChange, ariaLabel }: SelectProps) {
+// Button trigger + listbox, themed to the dark site; keyboard + click-outside supported. Options may
+// carry a faceted `count` (shown muted) and a `disabled` flag (greyed, skipped by keyboard + clicks).
+export function Select({ value, options, onChange, ariaLabel, triggerClassName }: SelectProps) {
   const [open, setOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
   const rootRef = useRef<HTMLDivElement>(null)
@@ -21,6 +25,15 @@ export function Select({ value, options, onChange, ariaLabel }: SelectProps) {
   const optionId = (index: number) => `${baseId}-option-${index}`
 
   const selected = options.find((option) => option.value === value) ?? options[0]
+
+  // The nearest selectable option from `start`, stepping by `dir` (+1/-1); null if none that way, so
+  // the keyboard never lands on a disabled (zero-result) option.
+  const seekEnabled = (start: number, dir: number): number | null => {
+    for (let i = start; i >= 0 && i < options.length; i += dir) {
+      if (!options[i]?.disabled) return i
+    }
+    return null
+  }
 
   useEffect(() => {
     if (!open) return
@@ -37,17 +50,16 @@ export function Select({ value, options, onChange, ariaLabel }: SelectProps) {
   }, [open, activeIndex])
 
   const openMenu = () => {
-    setActiveIndex(
-      Math.max(
-        0,
-        options.findIndex((option) => option.value === value)
-      )
-    )
+    const current = options.findIndex((option) => option.value === value)
+    // Land on the selected option, or the first selectable one if it's missing/disabled.
+    setActiveIndex(current >= 0 && !options[current]?.disabled ? current : (seekEnabled(0, 1) ?? 0))
     setOpen(true)
   }
 
   const choose = (index: number) => {
-    onChange(options[index].value)
+    const option = options[index]
+    if (!option || option.disabled) return
+    onChange(option.value)
     setOpen(false)
   }
 
@@ -59,10 +71,10 @@ export function Select({ value, options, onChange, ariaLabel }: SelectProps) {
       openMenu()
     } else if (open && event.key === 'ArrowDown') {
       event.preventDefault()
-      setActiveIndex((index) => Math.min(options.length - 1, index + 1))
+      setActiveIndex((index) => seekEnabled(index + 1, 1) ?? index)
     } else if (open && event.key === 'ArrowUp') {
       event.preventDefault()
-      setActiveIndex((index) => Math.max(0, index - 1))
+      setActiveIndex((index) => seekEnabled(index - 1, -1) ?? index)
     } else if (open && (event.key === 'Enter' || event.key === ' ')) {
       event.preventDefault()
       choose(activeIndex)
@@ -73,7 +85,7 @@ export function Select({ value, options, onChange, ariaLabel }: SelectProps) {
     <div className={styles.root} ref={rootRef}>
       <button
         type="button"
-        className={styles.trigger}
+        className={[styles.trigger, triggerClassName].filter(Boolean).join(' ')}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={open ? listboxId : undefined}
@@ -98,17 +110,22 @@ export function Select({ value, options, onChange, ariaLabel }: SelectProps) {
               }}
               role="option"
               aria-selected={option.value === value}
+              aria-disabled={option.disabled || undefined}
               className={[
                 styles.option,
                 index === activeIndex && styles.active,
                 option.value === value && styles.selected,
+                option.disabled && styles.disabled,
               ]
                 .filter(Boolean)
                 .join(' ')}
-              onMouseEnter={() => setActiveIndex(index)}
+              onMouseEnter={() => !option.disabled && setActiveIndex(index)}
               onClick={() => choose(index)}
             >
-              {option.label}
+              <span className={styles.optionLabel}>{option.label}</span>
+              {option.count !== undefined && (
+                <span className={styles.count}>{option.count.toLocaleString()}</span>
+              )}
             </li>
           ))}
         </ul>

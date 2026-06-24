@@ -884,6 +884,10 @@ export type GameState = {
   // Seconds left in the player-death explosion (GamePhase.dying). 0 elsewhere;
   // counts down, then the phase flips to gameOver.
   deathTimer: number
+  // Total play-time banked from completed segments, in ms. The live segment
+  // (since the last start/resume) is added on top at submit; banking here is
+  // what lets the leaderboard duration survive a Save & Exit → Continue.
+  runDurationMs: number
 
   // --- Economy ---
   currency: number

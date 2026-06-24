@@ -9,6 +9,7 @@ export type NavSection = { id: string; label: string }
 export function SectionNav({ sections }: { sections: NavSection[] }) {
   const [active, setActive] = useState('')
   const didInitialScroll = useRef(false)
+  const railRef = useRef<HTMLElement>(null)
 
   // Scroll-spy. Guarded for environments without IntersectionObserver (jsdom) — the rail still works
   // there, it just doesn't highlight.
@@ -48,12 +49,27 @@ export function SectionNav({ sections }: { sections: NavSection[] }) {
     }
   }, [sections])
 
+  // On mobile the rail is a horizontal strip; keep the active chip centred in view as the scroll-spy
+  // moves through sections. A no-op on desktop, where the rail is a vertical column with no
+  // horizontal overflow (scrollWidth === clientWidth), so we bail before touching scroll position.
+  useEffect(() => {
+    const rail = railRef.current
+    if (!rail || !active || rail.scrollWidth <= rail.clientWidth) return
+    const link = rail.querySelector<HTMLElement>(`[data-section="${active}"]`)
+    if (!link) return
+    rail.scrollTo({
+      left: link.offsetLeft - (rail.clientWidth - link.clientWidth) / 2,
+      behavior: 'smooth',
+    })
+  }, [active])
+
   return (
-    <nav className={styles.rail} aria-label="Page sections">
+    <nav ref={railRef} className={styles.rail} aria-label="Page sections">
       {sections.map((s) => (
         <a
           key={s.id}
           href={`#${s.id}`}
+          data-section={s.id}
           className={`${styles.link} ${active === s.id ? styles.on : ''}`}
           aria-current={active === s.id ? 'true' : undefined}
           onClick={() => setActive(s.id)}

@@ -1,20 +1,27 @@
 import { useState } from 'react'
 import { Combobox } from '../../../components/inputs/Combobox'
 import { useCompanySearch } from '../useCompanySearch'
-import type { RecallCountry } from '../recall.types'
+import type { TrendFilters } from '../api'
 
 type CompanyFilterProps = {
-  country: RecallCountry
+  // The active filter set — the company facet's counts re-tally under these (its own selection is
+  // dropped before the request).
+  filters: TrendFilters
   value: string
   onChange: (value: string) => void
 }
 
-// Company has thousands of values, so it's a server-backed type-ahead rather than a fixed list:
-// an empty query yields the busiest firms; typing searches all of them.
-export function CompanyFilter({ country, value, onChange }: CompanyFilterProps) {
+// Company has thousands of values, so it's a server-backed type-ahead rather than a fixed list: an
+// empty query yields the busiest firms, typing searches all of them, and each suggestion shows its
+// recall count under the other active filters.
+export function CompanyFilter({ filters, value, onChange }: CompanyFilterProps) {
   const [query, setQuery] = useState('')
-  const { companies, loading, error } = useCompanySearch(country, query)
-  const options = companies.map((name) => ({ value: name, label: name }))
+  const { companies, loading, error } = useCompanySearch(filters, query)
+  const options = companies.map((company) => ({
+    value: company.name,
+    label: company.name,
+    count: company.count,
+  }))
   return (
     <Combobox
       value={value}

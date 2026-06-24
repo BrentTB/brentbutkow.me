@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { MemoryRouter } from 'react-router-dom'
 import { FunModeProvider } from '../../contexts/FunModeProvider'
 import { RecallRadar } from './RecallRadar'
+import { emptyFacets } from './test-fixtures'
 
 const stats = {
   total: 42,
@@ -120,6 +121,37 @@ const events = [
   },
 ]
 
+const facets = {
+  ...emptyFacets,
+  category: [
+    { label: 'allergen', count: 30 },
+    { label: 'pathogen', count: 12 },
+  ],
+  classification: [
+    { label: 'Class I', count: 25 },
+    { label: 'Class II', count: 17 },
+  ],
+  severity: [
+    { label: 'severe', count: 25 },
+    { label: 'high', count: 12 },
+  ],
+  source: [
+    { label: 'fda', count: 30 },
+    { label: 'usda', count: 12 },
+  ],
+  state: [
+    { label: 'CA', count: 18 },
+    { label: 'TX', count: 9 },
+  ],
+  company: [{ label: 'Globex Foods', count: 14 }],
+  entity: [
+    { type: 'allergen', label: 'peanuts', count: 20 },
+    { type: 'pathogen', label: 'Listeria', count: 8 },
+  ],
+  topicCounts: { '0': 9 }, // theme id 0 (the topics fixture) has matches → it stays visible
+  eventCounts: { '0': 5 }, // outbreak id 0 (the events fixture) has matches → it stays visible
+}
+
 const mockRes = (body: unknown) => ({ ok: true, status: 200, json: async () => body }) as Response
 
 describe('RecallRadar page', () => {
@@ -135,6 +167,7 @@ describe('RecallRadar page', () => {
       if (path.includes('/recalls/stats')) return mockRes(stats)
       if (path.includes('/recalls/topics')) return mockRes(topics)
       if (path.includes('/recalls/events')) return mockRes(events)
+      if (path.includes('/recalls/facets')) return mockRes(facets)
       return mockRes(recalls)
     })
     vi.stubGlobal('fetch', fetchMock)
@@ -158,8 +191,7 @@ describe('RecallRadar page', () => {
     expect(screen.getByText('Acme Foods')).toBeTruthy()
     expect(screen.getByText('US recalls by state')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'California: 18 recalls' })).toBeTruthy()
-    // trend callouts + per-recall drill-down detail
-    expect(screen.getByText('Leading cause')).toBeTruthy()
+    // per-recall drill-down detail (the "Leading cause" callout now lives in the status strip)
     expect(screen.getByText('Nationwide')).toBeTruthy()
     expect(screen.getByText('100%')).toBeTruthy() // per-recall classifier confidence
     expect(screen.getByText('Top states')).toBeTruthy()
@@ -204,6 +236,7 @@ describe('RecallRadar page', () => {
         if (path.includes('/recalls/stats')) return mockRes(stats)
         if (path.includes('/recalls/topics')) return mockRes(topics)
         if (path.includes('/recalls/events')) return mockRes(events)
+        if (path.includes('/recalls/facets')) return mockRes(facets)
         return mockRes(manyRecalls)
       })
     )

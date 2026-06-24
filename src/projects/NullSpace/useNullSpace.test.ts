@@ -154,6 +154,60 @@ describe('useNullSpace — handleSubmitScore', () => {
     expect(submitScore).toHaveBeenCalledTimes(1)
   })
 
+  it('submits the full run duration after a resume, not just the post-resume segment', async () => {
+    // Regression: continuing a saved run reset the run clock, so the duration
+    // sent to the leaderboard was only the time played since pressing Continue.
+    // The 60s banked into the save before exiting must survive the resume.
+    vi.mocked(submitScore).mockResolvedValue(undefined)
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(600_000)
+    clearSave()
+    const saved = {
+      ...createInitialState(),
+      phase: GamePhase.upgradeScreen,
+      runDurationMs: 60_000,
+    }
+    saveGame(saved, 12345)
+
+    const canvasRef = createRef<HTMLCanvasElement>()
+    const { result } = renderHook(() => useNullSpace(canvasRef))
+    // Resume long after exiting — the away time is excluded; only banked play counts.
+    act(() => result.current.handleContinue())
+    await act(async () => {
+      await result.current.handleSubmitScore('Ace')
+    })
+
+    expect(vi.mocked(submitScore).mock.calls[0][0].durationMs).toBe(60_000)
+    nowSpy.mockRestore()
+    clearSave()
+  })
+
+  it('excludes paused time from the submitted run duration', async () => {
+    // Regression: pausing left the wall-clock segment running, so time spent on
+    // the pause screen counted as play-time. Pause must bank the live segment and
+    // resume must start a fresh one, so only real play reaches the leaderboard.
+    vi.mocked(submitScore).mockResolvedValue(undefined)
+    let now = 0
+    const nowSpy = vi.spyOn(Date, 'now').mockImplementation(() => now)
+
+    const canvasRef = createRef<HTMLCanvasElement>()
+    const { result } = renderHook(() => useNullSpace(canvasRef))
+    act(() => result.current.handleStart())
+    act(() => result.current.handleSelectShip(ShipKind.fighter)) // segment starts at 0
+    now = 10_000
+    act(() => result.current.handlePause()) // banks the 10s played
+    now = 70_000 // 60s spent paused
+    act(() => result.current.handleResume()) // fresh segment from 70s
+    now = 90_000
+    act(() => result.current.handlePause()) // banks the next 20s played
+    await act(async () => {
+      await result.current.handleSubmitScore('Ace')
+    })
+
+    // 10s + 20s of play; the 60s pause is excluded (not the 90s of wall-clock).
+    expect(vi.mocked(submitScore).mock.calls[0][0].durationMs).toBe(30_000)
+    nowSpy.mockRestore()
+  })
+
   it('on failure returns false, leaves the guard unset, and allows a retry', async () => {
     vi.mocked(submitScore)
       .mockRejectedValueOnce(new Error('network'))

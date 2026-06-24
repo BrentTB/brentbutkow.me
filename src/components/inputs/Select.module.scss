@@ -53,21 +53,47 @@
   margin: 0;
   padding: 4px;
   list-style: none;
-  // Opaque — the menu now floats over real data (charts, rows), so a translucent surface would let
-  // it bleed through and read as unclickable.
+  // Opaque in professional mode — the menu floats over real data (charts, rows), so a plain
+  // translucent surface would bleed through and read as unclickable. Fun mode below adds blur to
+  // stay legible over the glass.
   background: var(--bg-elevated);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
 }
 
+// Fun mode: float the menu on the translucent navy glass (+ blur) so it tints with the water rather
+// than reading as an opaque dark slab over it.
+:global(html.fun-mode) .menu {
+  background: var(--fun-surface);
+  backdrop-filter: blur(12px);
+}
+
 .option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   padding: 8px 10px;
   border-radius: 6px;
   font-size: 0.9rem;
   color: var(--text-secondary);
   cursor: pointer;
   white-space: nowrap;
+}
+
+.optionLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// Faceted match count, right-aligned and muted so the label stays the focus.
+.count {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .active {
@@ -77,4 +103,12 @@
 
 .selected {
   color: var(--accent);
+}
+
+// Zero-result option under the current filters: visible (so you can see it exists) but greyed and
+// unselectable.
+.disabled {
+  color: var(--muted);
+  opacity: 0.5;
+  cursor: not-allowed;
 }

@@ -1,0 +1,71 @@
+// A segmented pill — ‹ | year ▾ | › — matching the Select control beside it (same surface / border /
+// radius). No overflow:hidden on the pill (it would clip the year dropdown's menu); instead the end
+// arrows round their own outer corners to sit inside the border cleanly.
+.stepper {
+  display: inline-flex;
+  align-items: stretch;
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
+}
+
+.arrow:first-child {
+  border-radius: calc(var(--radius) - 1px) 0 0 calc(var(--radius) - 1px);
+}
+
+.arrow:last-child {
+  border-radius: 0 calc(var(--radius) - 1px) calc(var(--radius) - 1px) 0;
+}
+
+.arrow:hover:not(:disabled) {
+  background: rgba(var(--accent-rgb), 0.12);
+}
+
+.arrow:disabled {
+  color: var(--muted);
+  opacity: 0.4;
+  cursor: default;
+}
+
+.arrow:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+// Blend the Select's trigger into the pill as the middle segment: strip its own border/background/
+// radius (the pill provides those) and add side dividers. Scoped under .stepper so it beats the
+// component's own .trigger rule regardless of stylesheet order.
+.stepper .yearTrigger {
+  min-width: 0;
+  height: 100%;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border: none;
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+}
+
+.stepper .yearTrigger:hover {
+  background: rgba(var(--accent-rgb), 0.12);
+}

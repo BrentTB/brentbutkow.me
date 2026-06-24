@@ -18,6 +18,12 @@
   opacity: 0.82;
 }
 
+// Invisible per-column hover target behind the bars — a transparent fill still captures pointer
+// events, so the space above/beside a stack can report the month total.
+.hit {
+  fill: transparent;
+}
+
 .legend {
   list-style: none;
   margin: 12px 0 0;

@@ -1,37 +1,35 @@
-import { useState } from 'react'
-import { Select } from '../../../components/inputs/Select'
-import type { SelectOption } from '../../../components/inputs/option.types'
-import type { EventOut } from '../recall.types'
+import { EventSort, type EventOut } from '../recall.types'
 import { formatDate } from '../chart-format'
+import { SegmentedToggle } from './SegmentedToggle'
 import styles from './Outbreaks.module.scss'
 
 type OutbreaksProps = {
   events: EventOut[]
   activeEvent: string
   onSelect: (slug: string) => void
+  // The card ordering is owned by the page as a URL param, so it persists + shares like every other
+  // view config (recent matters most day-to-day; biggest surfaces the all-time largest).
+  sort: EventSort
+  onSortChange: (value: EventSort) => void
 }
 
 // Show at most this many outbreak cards — the headline incidents, not an exhaustive list.
 const MAX_OUTBREAKS = 8
 
-// Recent matters more day-to-day, so it's the default; Biggest surfaces the all-time largest.
-const SortMode = { recent: 'recent', biggest: 'biggest' } as const
-type SortMode = (typeof SortMode)[keyof typeof SortMode]
-const SORT_OPTIONS: SelectOption[] = [
-  { value: SortMode.recent, label: 'Most recent' },
-  { value: SortMode.biggest, label: 'Biggest' },
+const SORT_OPTIONS: { value: EventSort; label: string }[] = [
+  { value: EventSort.recent, label: 'Most recent' },
+  { value: EventSort.biggest, label: 'Biggest' },
 ]
 
 // The high-signal clusters (pathogen-driven, multi-recall) as clickable cards. Clicking one filters
 // the recall list + trend to that incident's recalls (its stable slug rides the URL).
-export function Outbreaks({ events, activeEvent, onSelect }: OutbreaksProps) {
-  const [mode, setMode] = useState<SortMode>(SortMode.recent)
+export function Outbreaks({ events, activeEvent, onSelect, sort, onSortChange }: OutbreaksProps) {
   const outbreaks = events.filter((event) => event.isOutbreak)
   if (outbreaks.length === 0) return null
   // Recent = latest member report date first; Biggest = most recalls first (ISO dates sort lexically).
   const shown = [...outbreaks]
     .sort((a, b) =>
-      mode === SortMode.recent
+      sort === EventSort.recent
         ? (b.lastDate ?? '').localeCompare(a.lastDate ?? '')
         : b.recallCount - a.recallCount
     )
@@ -39,13 +37,11 @@ export function Outbreaks({ events, activeEvent, onSelect }: OutbreaksProps) {
   return (
     <div className={styles.root}>
       <div className={styles.controls}>
-        <Select
+        <SegmentedToggle
           ariaLabel="Sort outbreaks"
-          value={mode}
           options={SORT_OPTIONS}
-          onChange={(value) =>
-            setMode(value === SortMode.biggest ? SortMode.biggest : SortMode.recent)
-          }
+          value={sort}
+          onChange={onSortChange}
         />
       </div>
       <ul className={styles.grid}>
@@ -67,7 +63,12 @@ export function Outbreaks({ events, activeEvent, onSelect }: OutbreaksProps) {
                 onClick={() => onSelect(active ? '' : event.slug)}
               >
                 <span className={styles.head}>
-                  <span className={styles.entity}>{event.dominantEntity ?? 'Outbreak'}</span>
+                  <span className={styles.title}>
+                    <span className={styles.warn} aria-hidden="true">
+                      ⚠
+                    </span>
+                    <span className={styles.entity}>{event.dominantEntity ?? 'Outbreak'}</span>
+                  </span>
                   <span className={styles.count}>{event.recallCount} recalls</span>
                 </span>
                 <span className={styles.meta}>
