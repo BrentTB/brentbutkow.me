@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   createShip,
   createEnemy,
+  createCharmedAlly,
   createDeathAnim,
   createProjectile,
   createParticle,
@@ -9,7 +10,15 @@ import {
   updateDeathAnims,
 } from './entity-creator'
 import { createAbilities } from '../abilities'
-import { AbilityKind, DeathBehavior, EnemyKind, MovementBehavior, ShipKind } from '../types'
+import {
+  AbilityKind,
+  DeathBehavior,
+  EnemyKind,
+  EnemyModifier,
+  MovementBehavior,
+  ShipKind,
+} from '../types'
+import { applyModifier } from '../world/enemy-modifiers'
 import { ANIMATION, WEAPON_ORDER, WORLD_SIZE } from '../../data'
 import { rng } from '../math/random'
 
@@ -110,6 +119,52 @@ describe('createProjectile', () => {
     expect(Math.abs(proj.vel.y)).toBeLessThan(0.01)
     expect(proj.damage).toBe(10)
     expect(proj.owner).toBe('ship')
+  })
+})
+
+describe('createCharmedAlly', () => {
+  it('inherits the enemy faithfully and marks it charmed', () => {
+    const enemy = createEnemy(EnemyKind.tank, { x: 40, y: 60 })
+    const ally = createCharmedAlly(enemy)
+    expect(ally.charmedFrom).toBe(EnemyKind.tank)
+    expect(ally.hp).toBe(enemy.hp)
+    expect(ally.maxHp).toBe(enemy.maxHp)
+    expect(ally.damage).toBe(enemy.damage)
+    expect(ally.pos).toEqual({ x: 40, y: 60 })
+    expect(ally.anchor).toEqual({ x: 40, y: 60 })
+  })
+
+  it('grants bonus survival HP (the Duration upgrade) on top of the enemy HP', () => {
+    const enemy = createEnemy(EnemyKind.tank, { x: 0, y: 0 })
+    const ally = createCharmedAlly(enemy, 30)
+    expect(ally.hp).toBe(enemy.hp + 30)
+    expect(ally.maxHp).toBe(enemy.maxHp + 30)
+  })
+
+  it('keeps the enemy modifier — a giant charm stays giant (big HP + hitbox)', () => {
+    const base = createEnemy(EnemyKind.tank, { x: 0, y: 0 })
+    const giant = applyModifier(base, EnemyModifier.giant)
+    const ally = createCharmedAlly(giant)
+    expect(ally.modifier).toBe(EnemyModifier.giant)
+    expect(ally.hp).toBe(giant.hp) // giant HP carried over
+    expect(ally.radius).toBe(giant.radius) // giant hitbox carried over
+    expect(ally.radius).toBeGreaterThan(base.radius)
+  })
+
+  it('keeps a melee enemy melee — faithful 0 reach, so it rams instead of shooting', () => {
+    const drone = createEnemy(EnemyKind.drone, { x: 0, y: 0 })
+    const ally = createCharmedAlly(drone)
+    expect(ally.attackRange).toBe(drone.attackRange) // 0 → handled by the ram pass
+    expect(ally.fireRate).toBe(drone.fireRate)
+    expect(ally.damage).toBe(drone.damage)
+    expect(ally.speed).toBe(drone.speed)
+  })
+
+  it('keeps a ranged enemy ranged — the shooter retains its reach + fire rate', () => {
+    const shooter = createEnemy(EnemyKind.shooter, { x: 0, y: 0 })
+    const ally = createCharmedAlly(shooter)
+    expect(ally.attackRange).toBeGreaterThan(0)
+    expect(ally.fireRate).toBeGreaterThan(0)
   })
 })
 

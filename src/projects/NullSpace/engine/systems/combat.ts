@@ -7,6 +7,7 @@ import { spawnExplosionParticles } from '../entities/entity-creator'
 import { applyDamageToAlly } from '../entities/ally'
 import { applyDamageToEnemy } from '../entities/enemy-damage'
 import { applyDamageToShip } from '../entities/ship'
+import { CHARM } from '../abilities/ability-data'
 import { createNuclearWasteEffect } from '../weapons/nuke'
 import { canEnemyTakeDamage } from '../bosses'
 import { DeathBehavior, EffectKind, EnemyKind, ProjectileOwner } from '../types'
@@ -489,6 +490,100 @@ export function resolveEnemyAllyMeleeCollisions(
     allies: updatedAllies.filter((a) => a.hp > 0),
     particles: allParticles,
     killedEnemies,
+  }
+}
+
+// Friendly-blue blast for a charmed unit's ram/detonation — reads as player-side.
+const CHARMED_BLAST_COLOR = '#88c0ff'
+
+// The mirror of resolveEnemyAllyMeleeCollisions for charmed units (Hypnosis): a melee
+// charmed ally (attackRange 0 — drone/tank/swarm/dasher) rams the enemy it touches for
+// contact damage on a cadence, and a charmed bomber detonates on contact for an AoE
+// blast then is consumed. The shooter charm (attackRange > 0) keeps to its gun and is
+// skipped here. Invulnerable enemies (shielded boss parts) are immune. Kills reward the
+// player like any ally kill, so killed enemies + score flow back to the loop.
+export function resolveCharmedAllyEnemyCollisions(
+  allies: Ally[],
+  enemies: Enemy[]
+): {
+  allies: Ally[]
+  enemies: Enemy[]
+  killedEnemies: Enemy[]
+  particles: Particle[]
+  scoreGained: number
+} {
+  const hasMelee = allies.some((a) => a.charmedFrom !== undefined && a.attackRange <= 0)
+  if (!hasMelee) {
+    return { allies, enemies, killedEnemies: [], particles: [], scoreGained: 0 }
+  }
+
+  let workingEnemies = enemies
+  const updatedAllies: Ally[] = []
+  const killedIds = new Set<string>()
+  const killedEnemies: Enemy[] = []
+  const particles: Particle[] = []
+  let scoreGained = 0
+
+  const markKilled = (e: Enemy): void => {
+    if (killedIds.has(e.id)) return
+    killedIds.add(e.id)
+    killedEnemies.push(e)
+    scoreGained += e.scoreValue
+  }
+  const hittable = (e: Enemy, ally: Ally): boolean =>
+    !killedIds.has(e.id) && canEnemyTakeDamage(e, workingEnemies) && checkCollision(e, ally)
+
+  for (const ally of allies) {
+    if (ally.charmedFrom === undefined || ally.attackRange > 0) {
+      updatedAllies.push(ally)
+      continue
+    }
+
+    // Bomber: the instant it touches an enemy it detonates — AoE to everything in the
+    // blast — and is consumed (one big hit, no chip cadence).
+    if (ally.charmedFrom === EnemyKind.bomber) {
+      if (!workingEnemies.some((e) => hittable(e, ally))) {
+        updatedAllies.push(ally)
+        continue
+      }
+      const { explosionDamage, explosionRadius } = ENEMY_STATS.bomber
+      particles.push(...spawnExplosionParticles(ally.pos, 14, CHARMED_BLAST_COLOR, 1.4))
+      workingEnemies = workingEnemies.map((e) => {
+        if (killedIds.has(e.id) || !canEnemyTakeDamage(e, workingEnemies)) return e
+        if (distance(ally.pos, e.pos) > explosionRadius) return e
+        const dmg = applyDamageToEnemy(e, explosionDamage)
+        if (dmg.hp <= 0) markKilled(e)
+        return dmg
+      })
+      continue // consumed — not pushed back
+    }
+
+    // Chip rammer: on its contact cadence, hit the enemy it's touching.
+    if (ally.fireCooldown > 0) {
+      updatedAllies.push(ally)
+      continue
+    }
+    const target = workingEnemies.find((e) => hittable(e, ally))
+    if (!target) {
+      updatedAllies.push(ally)
+      continue
+    }
+    workingEnemies = workingEnemies.map((e) => {
+      if (e.id !== target.id) return e
+      const dmg = applyDamageToEnemy(e, ally.damage)
+      if (dmg.hp <= 0) markKilled(e)
+      return dmg
+    })
+    particles.push(...spawnExplosionParticles(ally.pos, 4, CHARMED_BLAST_COLOR))
+    updatedAllies.push({ ...ally, fireCooldown: CHARM.meleeContactInterval })
+  }
+
+  return {
+    allies: updatedAllies,
+    enemies: workingEnemies.filter((e) => !killedIds.has(e.id)),
+    killedEnemies,
+    particles,
+    scoreGained,
   }
 }
 

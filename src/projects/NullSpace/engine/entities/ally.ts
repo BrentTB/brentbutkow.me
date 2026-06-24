@@ -1,12 +1,11 @@
-import { distance } from '../math/collision'
-import { toroidalDelta } from '../math/toroid'
+import { toroidalDelta, toroidalDistance } from '../math/toroid'
 import { createAlly } from './entity-creator'
 import { canEnemyTakeDamage } from '../bosses'
 import { rng } from '../math/random'
 import { HELPER_WEAPON_DEFINITIONS } from '../weapons'
 import { HelperWeaponKind } from '../types'
 import type { Ally, Enemy, Projectile, Ship, Vec2 } from '../types'
-import { HELPER } from '../abilities/ability-data'
+import { CHARM, HELPER } from '../abilities/ability-data'
 import {
   enemyVisibleToPlayerSide,
   hazeJitterAt,
@@ -60,6 +59,13 @@ function allyOrbitTarget(ally: Ally, ship: Ship): Vec2 {
   }
 }
 
+// A charmed unit chases the nearest enemy to engage it (mirroring how the enemy
+// chased the ship — melee kinds close in to ram, the shooter to get in range). With
+// nothing in sight it eases back toward its anchor instead of drifting off.
+function charmSteerTarget(ally: Ally, nearestEnemy: Enemy | null): Vec2 {
+  return nearestEnemy ? nearestEnemy.pos : (ally.anchor ?? ally.pos)
+}
+
 export function updateAllies(
   allies: Ally[],
   enemies: Enemy[],
@@ -75,7 +81,12 @@ export function updateAllies(
 
   for (const ally of allies) {
     const elapsed = ally.elapsed + dt
-    const hp = ally.hp - HELPER.hpDecayPerSec * dt
+    const charmed = ally.charmedFrom !== undefined
+
+    // Lifecycle: every ally bleeds a constant DPS and dies when its HP runs out — a
+    // charmed unit at its own (faster) rate, a helper at the helper rate. Enemy fire
+    // just brings that end sooner; nothing vanishes on a hidden timer.
+    const hp = ally.hp - (charmed ? CHARM.decayPerSec : HELPER.hpDecayPerSec) * dt
     if (hp <= 0) continue
 
     let updated = {
@@ -84,6 +95,9 @@ export function updateAllies(
       hp,
       fireCooldown: Math.max(0, ally.fireCooldown - dt),
     }
+
+    // Nearest targetable enemy — drives both shooting and a charmed unit's facing.
+    let nearestEnemy: Enemy | null = null
 
     if (ally.spawnInterval !== undefined) {
       // --- Factory: spawns helpers on a timer, never shoots ---
@@ -97,7 +111,6 @@ export function updateAllies(
       }
     } else {
       // --- Targeting / shooting ---
-      let nearestEnemy: Enemy | null = null
       let nearestDist = Infinity
       for (const enemy of enemies) {
         // Skip invincible enemies (shielded boss) — don't waste shots on them.
@@ -105,7 +118,7 @@ export function updateAllies(
         // Fog: skip enemies the player's side can't see (concealed in the murk).
         // Bosses ignore fog — always visible + targetable, like the renderer/enemy AI.
         if (field && !enemy.boss && !enemyVisibleToPlayerSide(enemy.pos, field)) continue
-        const d = distance(ally.pos, enemy.pos)
+        const d = toroidalDistance(ally.pos, enemy.pos)
         if (d < nearestDist) {
           nearestDist = d
           nearestEnemy = enemy
@@ -126,8 +139,11 @@ export function updateAllies(
       }
     }
 
-    // --- Steering: orbit a per-ally point near the ship, weak avoid + noise ---
-    const target = allyOrbitTarget(updated, ship)
+    // --- Steering: helpers orbit the ship; charmed units chase the nearest enemy.
+    // Weak avoid + noise on both. ---
+    const target = charmed
+      ? charmSteerTarget(updated, nearestEnemy)
+      : allyOrbitTarget(updated, ship)
     const toTarget = toroidalDelta(ally.pos, target)
     let steerX = toTarget.x
     let steerY = toTarget.y
@@ -162,11 +178,8 @@ export function updateAllies(
     const alpha = 1 - Math.exp(-turnRate * dt)
     const vx = ally.vel.x + (targetVx - ally.vel.x) * alpha
     const vy = ally.vel.y + (targetVy - ally.vel.y) * alpha
-    updated = {
-      ...updated,
-      pos: { x: ally.pos.x + vx * dt, y: ally.pos.y + vy * dt },
-      vel: { x: vx, y: vy },
-    }
+    const pos = { x: ally.pos.x + vx * dt, y: ally.pos.y + vy * dt }
+    updated = { ...updated, pos, vel: { x: vx, y: vy } }
 
     surviving.push(updated)
   }

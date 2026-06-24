@@ -28,6 +28,8 @@ export const IconName = {
   chainLightning: 'chainLightning',
   gravityLure: 'gravityLure',
   overdrive: 'overdrive',
+  hypnosis: 'hypnosis',
+  piedPiper: 'piedPiper',
 } as const
 
 export type IconName = (typeof IconName)[keyof typeof IconName]

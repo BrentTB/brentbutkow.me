@@ -3,6 +3,7 @@ import type {
   AbilityKind,
   ActiveEffect,
   Ally,
+  Enemy,
   GameState,
   PlayerUpgrades,
   Ship,
@@ -59,6 +60,17 @@ export type AbilityDefinition = {
   // Click abilities that spawn an ally entity (helper). Receives the upgraded
   // ability so the factory can read fields like damage and maxHp.
   allyFactory?: (pos: Vec2, ability: Ability) => Ally
+  // Click abilities that convert enemies into temporary allies (Hypnosis / Pied
+  // Piper). Reads the live enemy + ally lists (which allyFactory can't) to pick
+  // victims and honour the charm cap; returns the new charmed allies and the enemy
+  // ids to remove. An empty result (no valid target / at cap) is a no-op in
+  // tryUseAbility — no cooldown or power spent.
+  charmFactory?: (
+    targetPos: Vec2,
+    ability: Ability,
+    enemies: Enemy[],
+    allies: Ally[]
+  ) => { allies: Ally[]; consumedEnemyIds: string[] }
   // Computes the live ability values after applying the player's purchased
   // upgrade tiers. Returns a partial that the engine merges over the base.
   applyUpgrades?: (ability: Ability, upgrades: PlayerUpgrades) => Partial<Ability>

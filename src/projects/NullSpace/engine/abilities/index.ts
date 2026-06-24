@@ -28,6 +28,8 @@ import { gravityLure } from './gravityLure/gravity-lure'
 import { collapsar } from './gravityLure/collapsar'
 import { overdrive } from './overdrive/overdrive'
 import { overloadCore } from './overdrive/overload-core'
+import { hypnosis } from './hypnosis/hypnosis'
+import { piedPiper } from './hypnosis/pied-piper'
 import type { UpgradeId } from '../upgrade-ids'
 import type { AbilityDefinition, UltimateDescriptor } from './ability-definition'
 import type { IconName } from '../../icon-names'
@@ -75,6 +77,8 @@ export const ABILITY_DEFINITIONS: Record<AbilityKind, AbilityDefinition> = {
   [AbilityKind.collapsar]: collapsar,
   [AbilityKind.overdrive]: overdrive,
   [AbilityKind.overloadCore]: overloadCore,
+  [AbilityKind.hypnosis]: hypnosis,
+  [AbilityKind.piedPiper]: piedPiper,
 }
 
 export const ABILITY_LIST: AbilityDefinition[] = Object.values(ABILITY_DEFINITIONS)
@@ -100,6 +104,12 @@ export const EFFECT_FACTORY: Partial<Record<AbilityKind, EffectFactory>> = Objec
 
 export const ALLY_FACTORY: Partial<Record<AbilityKind, AllyFactory>> = Object.fromEntries(
   ABILITY_LIST.filter((d) => d.allyFactory).map((d) => [d.kind, d.allyFactory!])
+)
+
+// Charm abilities (Hypnosis / Pied Piper) — convert enemies into temporary allies.
+type CharmFactory = NonNullable<AbilityDefinition['charmFactory']>
+export const CHARM_FACTORY: Partial<Record<AbilityKind, CharmFactory>> = Object.fromEntries(
+  ABILITY_LIST.filter((d) => d.charmFactory).map((d) => [d.kind, d.charmFactory!])
 )
 
 export const WEAPON_UNLOCK_UPGRADE: Partial<Record<AbilityKind, UpgradeId>> = Object.fromEntries(

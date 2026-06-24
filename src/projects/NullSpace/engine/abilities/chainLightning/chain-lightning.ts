@@ -2,6 +2,7 @@ import { CHAIN_LIGHTNING } from '../ability-data'
 import { canEnemyTakeDamage } from '../../bosses'
 import { applyDamageToEnemy } from '../../entities/enemy-damage'
 import { uid, spawnExplosionParticles } from '../../entities/entity-creator'
+import { nearestEnemyWhere } from '../../entities/enemy-query'
 import { toroidalDistance } from '../../math/toroid'
 import { AbilityKind, EffectKind } from '../../types'
 import type { ChainArcEffect, Enemy, Particle, Vec2 } from '../../types'
@@ -84,26 +85,6 @@ const costUpgrade = upgrade({
 // Cyan spark on each struck enemy + the bolt's bright core.
 const ARC_SPARK = '#8be9ff'
 
-// Nearest enemy to `from` within `range` satisfying `ok`, or null.
-function nearestWhere(
-  from: Vec2,
-  enemies: Enemy[],
-  range: number,
-  ok: (e: Enemy) => boolean
-): Enemy | null {
-  let best: Enemy | null = null
-  let bestDist = range
-  for (const e of enemies) {
-    if (!ok(e)) continue
-    const d = toroidalDistance(from, e.pos)
-    if (d <= bestDist) {
-      bestDist = d
-      best = e
-    }
-  }
-  return best
-}
-
 // The next enemy a tendril jumps to: prefer the nearest enemy NO fork has struck yet
 // (so tendrils spread to cover everyone first), and only when none are in range fall
 // back to the nearest this fork hasn't hit — re-hitting others' targets rather than
@@ -116,8 +97,8 @@ function nextTarget(
   range: number
 ): Enemy | null {
   return (
-    nearestWhere(from, enemies, range, (e) => !struck.has(e.id) && !forkHit.has(e.id)) ??
-    nearestWhere(from, enemies, range, (e) => !forkHit.has(e.id))
+    nearestEnemyWhere(from, enemies, range, (e) => !struck.has(e.id) && !forkHit.has(e.id)) ??
+    nearestEnemyWhere(from, enemies, range, (e) => !forkHit.has(e.id))
   )
 }
 

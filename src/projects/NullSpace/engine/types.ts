@@ -298,6 +298,7 @@ export const AbilityKind = {
   chainLightning: 'chainLightning',
   gravityLure: 'gravityLure',
   overdrive: 'overdrive',
+  hypnosis: 'hypnosis',
   // Ultimates — upgraded variants of a base ability, purchased with the
   // Singularity Shard economy. Each links to its base via `ultimateOf`.
   cometShower: 'cometShower',
@@ -313,6 +314,7 @@ export const AbilityKind = {
   ionStorm: 'ionStorm',
   collapsar: 'collapsar',
   overloadCore: 'overloadCore',
+  piedPiper: 'piedPiper',
 } as const
 export type AbilityKind = (typeof AbilityKind)[keyof typeof AbilityKind]
 
@@ -357,6 +359,9 @@ export type Ability = {
   // Singularity-only: flat AoE damage of the burst dealt when the hold is
   // released. Upgradable (Collapse). Absent on abilities without a release burst.
   explosionDamage?: number
+  // Charm abilities (Hypnosis / Pied Piper): max concurrent charmed units.
+  // Upgradable (Pied Piper's Max Charmed). Absent on non-charm abilities.
+  maxCharmed?: number
 }
 
 export const EffectKind = {
@@ -742,6 +747,15 @@ export type Ally = {
   spawnInterval?: number
   // Factory countdown to the next spawn; reset to `spawnInterval` on each spawn.
   spawnTimer?: number
+  // Charmed (Hypnosis) only: the source enemy's kind. Present → this ally is a
+  // mind-controlled enemy — it keeps that sprite, chases enemies, and rams/shoots
+  // with its own attack. It bleeds HP like a helper and dies once worn down.
+  charmedFrom?: EnemyKind
+  // Charmed only: the enemy modifier it carried (giant/speed/shield), kept so a
+  // giant charm still renders oversized to match its inflated hitbox.
+  modifier?: EnemyModifier
+  // Charmed only: the spot it was charmed at — its idle home when no enemy is near.
+  anchor?: Vec2
 }
 
 export type Particle = {

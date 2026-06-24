@@ -184,6 +184,33 @@ export function createAlly(
   }
 }
 
+// A charmed enemy (Hypnosis / Pied Piper) reborn as a temporary ally. Faithful: it
+// keeps the enemy's real HP, damage, speed, attack profile, and modifier — a ranged
+// enemy (attackRange > 0, e.g. shooter) keeps shooting; a melee enemy (attackRange 0)
+// rams for contact damage in resolveCharmedAllyEnemyCollisions. `bonusHp` (the
+// Duration upgrade) extends how long it survives the charm bleed. It chases the
+// nearest enemy; `anchor` is its idle home when nothing's in sight.
+export function createCharmedAlly(enemy: Enemy, bonusHp = 0): Ally {
+  return {
+    id: uid(),
+    pos: { ...enemy.pos },
+    vel: { x: 0, y: 0 },
+    radius: enemy.radius,
+    hp: enemy.hp + bonusHp,
+    maxHp: enemy.maxHp + bonusHp,
+    fireRate: enemy.fireRate,
+    fireCooldown: 0,
+    damage: enemy.damage,
+    weapon: HelperWeaponKind.bullet,
+    speed: enemy.speed,
+    attackRange: enemy.attackRange,
+    elapsed: 0,
+    charmedFrom: enemy.kind,
+    ...(enemy.modifier ? { modifier: enemy.modifier } : {}),
+    anchor: { ...enemy.pos },
+  }
+}
+
 // A Helper Factory ally (Helper ultimate): bigger, tankier, deals no damage —
 // `spawnInterval`/`spawnTimer` mark it as a factory so updateAllies spawns
 // helpers from it on a timer instead of shooting. The first spawn fires after a

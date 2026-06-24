@@ -77,6 +77,7 @@ export const WEAPON_ORDER: readonly AbilityKind[] = [
   AbilityKind.chainLightning,
   AbilityKind.gravityLure,
   AbilityKind.overdrive,
+  AbilityKind.hypnosis,
   // Ultimates sit at the end — their hotbar slot is inherited from the base
   // they replace, so this position only governs row creation, not display.
   AbilityKind.cometShower,
@@ -92,6 +93,7 @@ export const WEAPON_ORDER: readonly AbilityKind[] = [
   AbilityKind.ionStorm,
   AbilityKind.collapsar,
   AbilityKind.overloadCore,
+  AbilityKind.piedPiper,
 ]
 
 export const ENEMY_STATS = {
@@ -597,6 +599,15 @@ export type ChangelogEntry = {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.15.0',
+    date: '2026-06-22',
+    changes: {
+      features: [
+        'New ability — Hypnosis: click near an enemy to seize its mind. It turns and fights for you, keeping its own look, full strength, attack, and even its size/speed modifier — a charmed gunner keeps shooting, while rammers chase down the nearest enemy and a charmed bomber charges in for one last blast. Other enemies round on it; it bleeds down over time (and from their fire) and only goes when it actually dies — no timer, no revert. Bosses are immune. Its ultimate, Pied Piper, flips a whole crowd inside a radius at once.',
+      ],
+    },
+  },
   {
     version: '1.14.2',
     date: '2026-06-23',

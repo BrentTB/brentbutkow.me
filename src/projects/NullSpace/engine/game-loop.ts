@@ -59,6 +59,7 @@ import {
 import { updateEnemyMovement, updateEnemyShooting } from './entities/enemy'
 import { rollAllyWeapon, updateAllies } from './entities/ally'
 import {
+  resolveCharmedAllyEnemyCollisions,
   resolveDeathEffects,
   resolveEnemyAllyMeleeCollisions,
   resolveEnemyProjectileAllyCollisions,
@@ -843,15 +844,22 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   )
   abilities = abilityResult.abilities
   activeEffects = [...activeEffects, ...abilityResult.newEffects]
-  // Each freshly-summoned ally rolls a weapon from the player's unlocked pool.
+  // Each freshly-summoned helper rolls a weapon from the player's unlocked pool;
+  // charmed enemies keep their faithful shot (a bullet at the enemy's own damage).
   allies = [
     ...allies,
-    ...abilityResult.newAllies.map((a) => ({
-      ...a,
-      weapon: rollAllyWeapon(state.unlockedWeapons),
-    })),
+    ...abilityResult.newAllies.map((a) =>
+      a.charmedFrom !== undefined ? a : { ...a, weapon: rollAllyWeapon(state.unlockedWeapons) }
+    ),
   ]
   power -= abilityResult.powerSpent
+
+  // Charmed enemies switch sides this frame — drop them from the enemy list before
+  // any enemy system runs. Silent (no score/drops): a charm isn't a kill.
+  if (abilityResult.consumedEnemyIds.length > 0) {
+    const consumed = new Set(abilityResult.consumedEnemyIds)
+    enemies = enemies.filter((e) => !consumed.has(e.id))
+  }
 
   // Overdrive fields: stamp each enemy's per-frame debuffs now — before the first
   // damage of the frame lands (the active-effects pass below) — and keep the zones
@@ -1310,6 +1318,16 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   projectiles = wormholes.projectiles
   particles = [...particles, ...wormholes.particles]
 
+  // --- Collision: charmed allies ram enemies (melee — the charmed unit deals the
+  // damage; a charmed bomber detonates). Runs first so a bomber detonates before the
+  // enemy side resolves. Kills reward the player like any ally kill. ---
+  const charmedMeleeResult = resolveCharmedAllyEnemyCollisions(allies, enemies)
+  allies = charmedMeleeResult.allies
+  enemies = charmedMeleeResult.enemies
+  particles = [...particles, ...charmedMeleeResult.particles]
+  score += charmedMeleeResult.scoreGained
+  currency += computeCurrencyFromKills(charmedMeleeResult.killedEnemies, stardustMultiplier)
+
   // --- Collision: enemies vs allies (melee — enemy dies, ally takes damage) ---
   const allyMeleeResult = resolveEnemyAllyMeleeCollisions(enemies, allies)
   enemies = allyMeleeResult.enemies
@@ -1324,6 +1342,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     ...projCollision.killedEnemies,
     ...shipCollision.killedEnemies,
     ...allyMeleeResult.killedEnemies,
+    ...charmedMeleeResult.killedEnemies,
     ...holdKilledEnemies,
     ...burnKilledEnemies,
     ...radiationKilledEnemies,
@@ -1378,6 +1397,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   const killedForCollectibles = [
     ...effectResult.killedEnemies,
     ...projCollision.killedEnemies,
+    ...charmedMeleeResult.killedEnemies,
     ...holdKilledEnemies,
     ...burnKilledEnemies,
     ...radiationKilledEnemies,
