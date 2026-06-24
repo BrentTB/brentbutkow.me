@@ -17,7 +17,7 @@ export function nearestEnemyWhere(
   for (const e of enemies) {
     if (!ok(e)) continue
     const d = toroidalDistance(from, e.pos)
-    if (d <= bestDist) {
+    if (d < bestDist) {
       bestDist = d
       best = e
     }

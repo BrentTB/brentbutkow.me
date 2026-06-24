@@ -127,6 +127,8 @@ describe('tryUseAbility — Hypnosis (charm)', () => {
     )
     expect(result.consumedEnemyIds).toHaveLength(0)
     expect(result.powerSpent).toBe(0)
+    const idx = abilities.findIndex((a) => a.kind === AbilityKind.hypnosis)
+    expect(result.abilities[idx].cooldownRemaining).toBe(0)
   })
 
   it('is a no-op once the concurrent-charm cap is reached', () => {

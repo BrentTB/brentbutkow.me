@@ -1,5 +1,4 @@
-import { distance } from '../math/collision'
-import { toroidalDelta } from '../math/toroid'
+import { toroidalDelta, toroidalDistance } from '../math/toroid'
 import { createAlly } from './entity-creator'
 import { canEnemyTakeDamage } from '../bosses'
 import { rng } from '../math/random'
@@ -119,7 +118,7 @@ export function updateAllies(
         // Fog: skip enemies the player's side can't see (concealed in the murk).
         // Bosses ignore fog — always visible + targetable, like the renderer/enemy AI.
         if (field && !enemy.boss && !enemyVisibleToPlayerSide(enemy.pos, field)) continue
-        const d = distance(ally.pos, enemy.pos)
+        const d = toroidalDistance(ally.pos, enemy.pos)
         if (d < nearestDist) {
           nearestDist = d
           nearestEnemy = enemy
