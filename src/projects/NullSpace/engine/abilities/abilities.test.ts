@@ -135,7 +135,6 @@ describe('tryUseAbility — Hypnosis (charm)', () => {
     const atCap = Array.from({ length: HYPNOSIS.maxCharmed }, () => ({
       ...createAlly({ x: 0, y: 0 }),
       charmedFrom: EnemyKind.drone,
-      expiresIn: 5,
     }))
     const result = tryUseAbility(
       abilities,
@@ -168,6 +167,23 @@ describe('tryUseAbility — Pied Piper (AoE charm)', () => {
     )
     expect(result.charmedAllies.length).toBe(enemies.length)
     expect(result.consumedEnemyIds.length).toBe(enemies.length)
+  })
+
+  it('honours the upgraded cap — ability.maxCharmed limits how many flip at once', () => {
+    const abilities = createAbilities().map((a) =>
+      a.kind === AbilityKind.piedPiper ? { ...a, unlocked: true, maxCharmed: 2 } : a
+    )
+    const enemies = [10, 40, 70, 100].map((x) => charmable(EnemyKind.swarm, x, 0))
+    const result = tryUseAbility(
+      abilities,
+      AbilityKind.piedPiper,
+      { x: 0, y: 0 },
+      999,
+      ship,
+      enemies,
+      []
+    )
+    expect(result.charmedAllies.length).toBe(2) // capped, not all four
   })
 })
 

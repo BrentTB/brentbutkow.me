@@ -73,9 +73,8 @@ const ENEMY_SPRITE: Record<EnemyKind, SpriteKey> = {
 }
 
 // Charmed allies (Hypnosis) keep their former-enemy sprite under a friendly blue
-// wash + a marker ring, so a mind-controlled enemy reads as fighting for you.
+// wash, so a mind-controlled enemy reads as fighting for you.
 const CHARM_TINT = 'rgba(120, 170, 255, 0.45)'
-const CHARM_RING = 'rgba(130, 195, 255, 0.7)'
 
 export const SHIP_SPRITE_KEY: Record<ShipKind, SpriteKey> = {
   [ShipKind.fighter]: SpriteKey.ship,
@@ -1024,23 +1023,18 @@ function renderAllies(
     // Half-height of whatever sprite we draw, for positioning the HP bar below it.
     let halfH: number
     if (ally.charmedFrom !== undefined) {
-      // Charmed: draw the former enemy's sprite with a friendly wash + a marker ring
-      // (outside the rotate so the ring never spins).
+      // Charmed: the former enemy's sprite under a friendly wash (no ring — that read
+      // as a shield). A giant charm stays oversized to match its inflated hitbox.
       const key = ENEMY_SPRITE[ally.charmedFrom]
       const eSize = getSpriteSize(key)
-      halfH = eSize.h / 2
+      const mScale = ally.modifier === EnemyModifier.giant ? ENEMY_MODIFIERS.giantRadiusMult : 1
+      halfH = (eSize.h / 2) * mScale
       ctx.save()
       ctx.translate(screen.x, screen.y)
       ctx.rotate(angle)
+      ctx.scale(mScale, mScale)
       ctx.drawImage(sprites[key], -eSize.w / 2, -eSize.h / 2)
       drawSpriteTint(ctx, sprites[key], eSize.w, eSize.h, CHARM_TINT)
-      ctx.restore()
-      ctx.save()
-      ctx.strokeStyle = CHARM_RING
-      ctx.lineWidth = 1.5
-      ctx.beginPath()
-      ctx.arc(screen.x, screen.y, Math.max(eSize.w, eSize.h) * 0.6, 0, Math.PI * 2)
-      ctx.stroke()
       ctx.restore()
     } else {
       const size = getSpriteSize(SpriteKey.ally)

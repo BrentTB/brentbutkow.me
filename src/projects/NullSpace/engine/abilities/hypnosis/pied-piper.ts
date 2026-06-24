@@ -12,18 +12,19 @@ import { hypnosis } from './hypnosis'
 import { charmTargets, countCharmed } from './charm'
 
 export const PIED_PIPER_UPGRADE_IDS = {
-  piedPiperCrowd: 'piedPiperCrowd',
+  piedPiperMaxCharmed: 'piedPiperMaxCharmed',
 } as const
 
 const upgrade = makeAbilityUpgrade(AbilityKind.piedPiper)
 
-const crowdUpgrade = upgrade({
-  id: PIED_PIPER_UPGRADE_IDS.piedPiperCrowd,
-  label: 'Crowd',
-  description: 'Sweep a wider circle into your thrall',
+const maxCharmed = upgrade({
+  id: PIED_PIPER_UPGRADE_IDS.piedPiperMaxCharmed,
+  label: 'Max Charmed',
+  description: 'Increase the maximum number of enemies you can charm',
   tiers: [
-    { cost: 80, value: 50 },
-    { cost: 220, value: 70 },
+    { cost: 80, value: 2 },
+    { cost: 220, value: 2 },
+    { cost: 600, value: 2 },
   ],
 })
 
@@ -38,20 +39,20 @@ export const piedPiper: AbilityDefinition = {
     powerCost: HYPNOSIS.powerCost * PIED_PIPER.costMultiplier,
     damage: 0,
     aoeRadius: PIED_PIPER.radius,
-    duration: PIED_PIPER.duration,
+    maxHp: 0,
+    maxCharmed: PIED_PIPER.maxCharmed,
   }),
   // AoE: flip every charmable enemy in the circle, up to the cap, nearest first.
   charmFactory: (targetPos, ability, enemies, allies) => {
-    const slots = PIED_PIPER.maxCharmed - countCharmed(allies)
+    const slots = (ability.maxCharmed ?? PIED_PIPER.maxCharmed) - countCharmed(allies)
     const targets = enemiesWithinWhere(targetPos, enemies, ability.aoeRadius, isCharmable(enemies))
-    return charmTargets(targets, ability.duration ?? PIED_PIPER.duration, slots)
+    return charmTargets(targets, ability.maxHp ?? 0, slots)
   },
-  // Inherits Hypnosis's Duration/Efficiency tiers; re-baselines to the ultimate's
-  // shorter charm + higher cost, and owns its own Crowd (radius) tier.
+  // Inherits Hypnosis's Duration (survival HP) + Efficiency tiers; re-baselines to the
+  // ultimate's higher cost and owns its own Max Charmed (cap) tier.
   applyUpgrades: composeUltimateUpgrades(hypnosis, (basePatch, upgrades) => ({
     powerCost: (basePatch.powerCost ?? HYPNOSIS.powerCost) * PIED_PIPER.costMultiplier,
-    duration: (basePatch.duration ?? HYPNOSIS.duration) + (PIED_PIPER.duration - HYPNOSIS.duration),
-    aoeRadius: applyTierSum(PIED_PIPER.radius, upgrades, crowdUpgrade),
+    maxCharmed: applyTierSum(PIED_PIPER.maxCharmed, upgrades, maxCharmed),
   })),
-  modifierUpgrades: [crowdUpgrade],
+  modifierUpgrades: [maxCharmed],
 }

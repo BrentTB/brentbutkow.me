@@ -7,7 +7,7 @@ import {
   ENEMY_STATS,
   SLINGSHOT,
 } from '../../data'
-import { CHARM, HELPER, HELPER_FACTORY } from '../abilities/ability-data'
+import { HELPER, HELPER_FACTORY } from '../abilities/ability-data'
 import {
   DeathBehavior,
   EnemyKind,
@@ -185,26 +185,28 @@ export function createAlly(
 }
 
 // A charmed enemy (Hypnosis / Pied Piper) reborn as a temporary ally. Faithful: it
-// keeps the enemy's real HP and damage. Allies can't ram, so a melee / zero-fire
-// enemy is floored to a basic shooter profile (its damage stays faithful). Holds
-// station at its charm spot (`anchor`) and despawns when `expiresIn` reaches 0.
-export function createCharmedAlly(enemy: Enemy, duration: number): Ally {
+// keeps the enemy's real HP, damage, speed, attack profile, and modifier — a ranged
+// enemy (attackRange > 0, e.g. shooter) keeps shooting; a melee enemy (attackRange 0)
+// rams for contact damage in resolveCharmedAllyEnemyCollisions. `bonusHp` (the
+// Duration upgrade) extends how long it survives the charm bleed. It chases the
+// nearest enemy; `anchor` is its idle home when nothing's in sight.
+export function createCharmedAlly(enemy: Enemy, bonusHp = 0): Ally {
   return {
     id: uid(),
     pos: { ...enemy.pos },
     vel: { x: 0, y: 0 },
     radius: enemy.radius,
-    hp: enemy.hp,
-    maxHp: enemy.maxHp,
-    fireRate: Math.max(enemy.fireRate, CHARM.minFireRate),
+    hp: enemy.hp + bonusHp,
+    maxHp: enemy.maxHp + bonusHp,
+    fireRate: enemy.fireRate,
     fireCooldown: 0,
     damage: enemy.damage,
     weapon: HelperWeaponKind.bullet,
     speed: enemy.speed,
-    attackRange: Math.max(enemy.attackRange, CHARM.minAttackRange),
+    attackRange: enemy.attackRange,
     elapsed: 0,
     charmedFrom: enemy.kind,
-    expiresIn: duration,
+    ...(enemy.modifier ? { modifier: enemy.modifier } : {}),
     anchor: { ...enemy.pos },
   }
 }

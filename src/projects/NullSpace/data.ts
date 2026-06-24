@@ -604,7 +604,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-06-22',
     changes: {
       features: [
-        'New ability — Hypnosis: click near an enemy to seize its mind. The nearest one turns and fights for you for a few seconds — keeping its own look and full strength — and other enemies round on it while it holds the spot you charmed it, then the control lapses and it fades. No revert, and bosses are immune. Its ultimate, Pied Piper, flips a whole crowd inside a radius at once for a shorter spell.',
+        'New ability — Hypnosis: click near an enemy to seize its mind. It turns and fights for you, keeping its own look, full strength, attack, and even its size/speed modifier — a charmed gunner keeps shooting, while rammers chase down the nearest enemy and a charmed bomber charges in for one last blast. Other enemies round on it; it bleeds down over time (and from their fire) and only goes when it actually dies — no timer, no revert. Bosses are immune. Its ultimate, Pied Piper, flips a whole crowd inside a radius at once.',
       ],
     },
   },

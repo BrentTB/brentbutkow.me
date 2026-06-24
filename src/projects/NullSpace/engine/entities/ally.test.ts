@@ -120,62 +120,42 @@ describe('applyDamageToAlly', () => {
 
 describe('charmed allies (Hypnosis)', () => {
   const ship = createShip(ShipKind.fighter, WORLD_SIZE)
-  // Charmed far from the ship (which sits at world center) so "holds station" is
+  // Anchored far from the ship (which sits at world center) so "chases the enemy" is
   // distinguishable from a helper flying back to orbit.
   const charmed = (overrides: Partial<ReturnType<typeof createCharmedAlly>> = {}) => ({
-    ...createCharmedAlly(createEnemy(EnemyKind.tank, { x: 100, y: 100 }), 5),
+    ...createCharmedAlly(createEnemy(EnemyKind.tank, { x: 100, y: 100 })),
     ...overrides,
   })
 
-  it('holds station near its anchor instead of flying to the ship', () => {
-    // Long timer so this isolates steering from expiry.
-    let allies = [charmed({ expiresIn: 100 })]
-    const anchor = allies[0].anchor!
-    for (let i = 0; i < 40; i++) {
-      allies = updateAllies(allies, [], ship, [], 0.1, []).allies // no enemies
+  it('chases the nearest enemy rather than orbiting the ship', () => {
+    const enemy = { ...createEnemy(EnemyKind.drone, { x: 500, y: 100 }), spawnIn: 0 }
+    let allies = [charmed()] // anchored at { x: 100, y: 100 }
+    const start = Math.hypot(enemy.pos.x - allies[0].pos.x, enemy.pos.y - allies[0].pos.y)
+    for (let i = 0; i < 20; i++) {
+      allies = updateAllies(allies, [enemy], ship, [], 0.1, []).allies
     }
-    const drift = Math.hypot(allies[0].pos.x - anchor.x, allies[0].pos.y - anchor.y)
-    expect(drift).toBeLessThanOrEqual(CHARM.leash + 1)
-    // ...and nowhere near the ship at world center.
-    expect(Math.hypot(allies[0].pos.x - ship.pos.x, allies[0].pos.y - ship.pos.y)).toBeGreaterThan(
-      100
-    )
+    const end = Math.hypot(enemy.pos.x - allies[0].pos.x, enemy.pos.y - allies[0].pos.y)
+    expect(end).toBeLessThan(start) // moved toward the enemy, not back to the ship
   })
 
-  it('does not bleed HP — it runs on its expiry timer', () => {
-    const { allies } = updateAllies(
-      [charmed({ hp: 80, maxHp: 80, expiresIn: 5 })],
-      [],
-      ship,
-      [],
-      1,
-      []
-    )
-    expect(allies[0].hp).toBe(80)
-    expect(allies[0].expiresIn).toBeCloseTo(4)
+  it('bleeds a constant DPS (the charm rate) instead of vanishing on a timer', () => {
+    const { allies } = updateAllies([charmed({ hp: 80, maxHp: 80 })], [], ship, [], 1, [])
+    expect(allies[0].hp).toBeCloseTo(80 - CHARM.decayPerSec)
   })
 
-  it('despawns with a poof when its timer runs out', () => {
-    const { allies, particles } = updateAllies(
-      [charmed({ expiresIn: 0.05 })],
-      [],
-      ship,
-      [],
-      0.1,
-      []
-    )
-    expect(allies).toHaveLength(0)
-    expect(particles.length).toBeGreaterThan(0)
-  })
-
-  it('still dies if shot down before its timer ends', () => {
-    // hp already driven to 0 by enemy fire this frame.
-    const { allies } = updateAllies([charmed({ hp: 0, expiresIn: 5 })], [], ship, [], 0.1, [])
+  it('disappears only once worn down to zero HP', () => {
+    // Less HP than one second of bleed — gone after the tick.
+    const { allies } = updateAllies([charmed({ hp: CHARM.decayPerSec - 1 })], [], ship, [], 1, [])
     expect(allies).toHaveLength(0)
   })
 
-  // Regression: the no-HP-decay branch is charmed-only — a normal helper must still bleed.
-  it('a normal helper still bleeds HP over time', () => {
+  it('also dies when shot down by enemy fire', () => {
+    const { allies } = updateAllies([charmed({ hp: 0 })], [], ship, [], 0.1, [])
+    expect(allies).toHaveLength(0)
+  })
+
+  // Regression: helpers keep their own (slower) bleed rate, not the charm rate.
+  it('a normal helper still bleeds at the helper rate', () => {
     const { allies } = updateAllies([createAlly({ x: 0, y: 0 })], [], ship, [], 1, [])
     expect(allies[0].hp).toBeCloseTo(HELPER.hp - HELPER.hpDecayPerSec * 1)
   })

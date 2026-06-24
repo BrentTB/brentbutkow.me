@@ -13,7 +13,6 @@ import { charmTargets, countCharmed } from './charm'
 export const HYPNOSIS_UPGRADE_IDS = {
   unlockHypnosis: 'unlockHypnosis',
   hypnosisDuration: 'hypnosisDuration',
-  hypnosisReach: 'hypnosisReach',
   hypnosisCostReduction: 'hypnosisCostReduction',
 } as const
 
@@ -29,20 +28,11 @@ const unlockUpgrade = upgrade({
 const durationUpgrade = upgrade({
   id: HYPNOSIS_UPGRADE_IDS.hypnosisDuration,
   label: 'Duration',
-  description: 'Charmed enemies fight for you longer',
+  description: 'Charmed enemies are heartier, so they fight for you longer before fading',
   tiers: [
-    { cost: 25, value: 2 },
-    { cost: 90, value: 3 },
-  ],
-})
-
-const reachUpgrade = upgrade({
-  id: HYPNOSIS_UPGRADE_IDS.hypnosisReach,
-  label: 'Reach',
-  description: 'Snap to enemies further from the cursor',
-  tiers: [
-    { cost: 18, value: 40 },
-    { cost: 70, value: 60 },
+    { cost: 25, value: 20 },
+    { cost: 90, value: 35 },
+    { cost: 300, value: 45 },
   ],
 })
 
@@ -66,22 +56,22 @@ export const hypnosis: AbilityDefinition = {
     powerCost: HYPNOSIS.powerCost,
     damage: 0,
     aoeRadius: HYPNOSIS.selectRange,
-    duration: HYPNOSIS.duration,
+    maxHp: 0,
+    maxCharmed: HYPNOSIS.maxCharmed,
   }),
   // Snap to the nearest charmable enemy within reach of the cursor and flip it.
   charmFactory: (targetPos, ability, enemies, allies) => {
-    const slots = HYPNOSIS.maxCharmed - countCharmed(allies)
+    const slots = (ability.maxCharmed ?? HYPNOSIS.maxCharmed) - countCharmed(allies)
     const target = nearestEnemyWhere(targetPos, enemies, ability.aoeRadius, isCharmable(enemies))
-    return charmTargets(target ? [target] : [], ability.duration ?? HYPNOSIS.duration, slots)
+    return charmTargets(target ? [target] : [], ability.maxHp ?? 0, slots)
   },
   applyUpgrades: (_ability, upgrades) => ({
     unlocked: upgrades[HYPNOSIS_UPGRADE_IDS.unlockHypnosis].currentTier > 0,
-    duration: applyTierSum(HYPNOSIS.duration, upgrades, durationUpgrade),
-    aoeRadius: applyTierSum(HYPNOSIS.selectRange, upgrades, reachUpgrade),
+    maxHp: applyTierSum(0, upgrades, durationUpgrade),
     powerCost: applyCostReduction(HYPNOSIS.powerCost, upgrades, costUpgrade),
   }),
   unlockUpgrade,
-  modifierUpgrades: [durationUpgrade, reachUpgrade, costUpgrade],
+  modifierUpgrades: [durationUpgrade, costUpgrade],
   ultimate: {
     kind: AbilityKind.piedPiper,
     label: 'Pied Piper',

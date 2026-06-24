@@ -59,6 +59,7 @@ import {
 import { updateEnemyMovement, updateEnemyShooting } from './entities/enemy'
 import { rollAllyWeapon, updateAllies } from './entities/ally'
 import {
+  resolveCharmedAllyEnemyCollisions,
   resolveDeathEffects,
   resolveEnemyAllyMeleeCollisions,
   resolveEnemyProjectileAllyCollisions,
@@ -1011,8 +1012,6 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   )
   allies = allyResult.allies
   projectiles = allyResult.projectiles
-  // Charmed allies puff out a small poof when their mind-control lapses.
-  particles = [...particles, ...allyResult.particles]
 
   // Boss-fired projectiles (e.g. the Dreadnought's charged laser) join the pool just
   // before collision resolution, like enemy fire.
@@ -1317,6 +1316,16 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   projectiles = wormholes.projectiles
   particles = [...particles, ...wormholes.particles]
 
+  // --- Collision: charmed allies ram enemies (melee — the charmed unit deals the
+  // damage; a charmed bomber detonates). Runs first so a bomber detonates before the
+  // enemy side resolves. Kills reward the player like any ally kill. ---
+  const charmedMeleeResult = resolveCharmedAllyEnemyCollisions(allies, enemies)
+  allies = charmedMeleeResult.allies
+  enemies = charmedMeleeResult.enemies
+  particles = [...particles, ...charmedMeleeResult.particles]
+  score += charmedMeleeResult.scoreGained
+  currency += computeCurrencyFromKills(charmedMeleeResult.killedEnemies, stardustMultiplier)
+
   // --- Collision: enemies vs allies (melee — enemy dies, ally takes damage) ---
   const allyMeleeResult = resolveEnemyAllyMeleeCollisions(enemies, allies)
   enemies = allyMeleeResult.enemies
@@ -1331,6 +1340,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     ...projCollision.killedEnemies,
     ...shipCollision.killedEnemies,
     ...allyMeleeResult.killedEnemies,
+    ...charmedMeleeResult.killedEnemies,
     ...holdKilledEnemies,
     ...burnKilledEnemies,
     ...radiationKilledEnemies,
@@ -1385,6 +1395,7 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   const killedForCollectibles = [
     ...effectResult.killedEnemies,
     ...projCollision.killedEnemies,
+    ...charmedMeleeResult.killedEnemies,
     ...holdKilledEnemies,
     ...burnKilledEnemies,
     ...radiationKilledEnemies,

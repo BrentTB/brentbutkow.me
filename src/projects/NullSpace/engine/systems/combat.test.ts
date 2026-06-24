@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
+  resolveCharmedAllyEnemyCollisions,
   resolveDeathEffects,
   resolveEnemyAllyMeleeCollisions,
   resolveEnemyProjectileAllyCollisions,
@@ -8,12 +9,54 @@ import {
   resolveProjectileEnemyCollisions,
   updateProjectiles,
 } from './combat'
-import { createAlly, createEnemy, createProjectile, createShip } from '../entities/entity-creator'
+import {
+  createAlly,
+  createCharmedAlly,
+  createEnemy,
+  createProjectile,
+  createShip,
+} from '../entities/entity-creator'
 import { buildHelperProjectile } from '../weapons'
 import { distance } from '../math/collision'
 import { EffectKind, EnemyKind, ProjectileOwner, ShipKind } from '../types'
 import type { ShieldEffect } from '../types'
 import { ENEMY_STATS, WORLD_SIZE } from '../../data'
+
+describe('resolveCharmedAllyEnemyCollisions (charmed melee ram)', () => {
+  // A charmed melee unit (attackRange 0) created on top of a victim enemy.
+  const charmedFrom = (kind: EnemyKind) => createCharmedAlly(createEnemy(kind, { x: 0, y: 0 }), 5)
+
+  it('a melee charmed unit chips the enemy it is touching and goes on cadence', () => {
+    const victim = createEnemy(EnemyKind.shooter, { x: 0, y: 0 })
+    const res = resolveCharmedAllyEnemyCollisions([charmedFrom(EnemyKind.tank)], [victim])
+    expect(res.enemies[0].hp).toBeLessThan(victim.hp) // tank's contact damage landed
+    expect(res.allies[0].fireCooldown).toBeGreaterThan(0) // re-hit gated by the cadence
+  })
+
+  it('does not hit again while its contact cadence is cooling down', () => {
+    const victim = createEnemy(EnemyKind.shooter, { x: 0, y: 0 })
+    const cooling = { ...charmedFrom(EnemyKind.tank), fireCooldown: 0.3 }
+    const res = resolveCharmedAllyEnemyCollisions([cooling], [victim])
+    expect(res.enemies[0].hp).toBe(victim.hp)
+  })
+
+  it('a charmed bomber detonates on contact, killing nearby enemies, and is consumed', () => {
+    const a = createEnemy(EnemyKind.swarm, { x: 0, y: 0 })
+    const b = createEnemy(EnemyKind.swarm, { x: 20, y: 0 }) // inside the blast radius
+    const res = resolveCharmedAllyEnemyCollisions([charmedFrom(EnemyKind.bomber)], [a, b])
+    expect(res.killedEnemies.length).toBe(2) // explosionDamage ≫ swarm hp
+    expect(res.enemies.length).toBe(0)
+    expect(res.allies.length).toBe(0) // bomber spent itself
+    expect(res.scoreGained).toBeGreaterThan(0)
+  })
+
+  it('skips the ranged charm — a shooter keeps to its gun, no contact damage', () => {
+    const victim = createEnemy(EnemyKind.tank, { x: 0, y: 0 })
+    const res = resolveCharmedAllyEnemyCollisions([charmedFrom(EnemyKind.shooter)], [victim])
+    expect(res.enemies[0].hp).toBe(victim.hp)
+    expect(res.allies.length).toBe(1) // not consumed
+  })
+})
 
 describe('resolveEnemyProjectileShipCollisions — swept regression', () => {
   // A fast enemy bullet can step clean over the ship in one frame: its final

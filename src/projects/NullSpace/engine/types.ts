@@ -359,6 +359,9 @@ export type Ability = {
   // Singularity-only: flat AoE damage of the burst dealt when the hold is
   // released. Upgradable (Collapse). Absent on abilities without a release burst.
   explosionDamage?: number
+  // Charm abilities (Hypnosis / Pied Piper): max concurrent charmed units.
+  // Upgradable (Pied Piper's Max Charmed). Absent on non-charm abilities.
+  maxCharmed?: number
 }
 
 export const EffectKind = {
@@ -745,13 +748,13 @@ export type Ally = {
   // Factory countdown to the next spawn; reset to `spawnInterval` on each spawn.
   spawnTimer?: number
   // Charmed (Hypnosis) only: the source enemy's kind. Present → this ally is a
-  // mind-controlled enemy — it keeps that sprite, holds position instead of
-  // orbiting the ship, and runs on `expiresIn` rather than HP decay.
+  // mind-controlled enemy — it keeps that sprite, chases enemies, and rams/shoots
+  // with its own attack. It bleeds HP like a helper and dies once worn down.
   charmedFrom?: EnemyKind
-  // Charmed only: seconds of mind-control left. Ticks down; the unit despawns at
-  // 0 (or earlier if killed). Absent on helpers, which bleed HP instead.
-  expiresIn?: number
-  // Charmed only: the spot it was charmed at — it holds station near here.
+  // Charmed only: the enemy modifier it carried (giant/speed/shield), kept so a
+  // giant charm still renders oversized to match its inflated hitbox.
+  modifier?: EnemyModifier
+  // Charmed only: the spot it was charmed at — its idle home when no enemy is near.
   anchor?: Vec2
 }
 

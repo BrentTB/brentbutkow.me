@@ -321,34 +321,30 @@ export const OVERLOAD_CORE = {
   selfHaste: 1.6,
 } as const
 
-// Charm conversion shared by Hypnosis + Pied Piper. A charmed unit is faithful —
-// it keeps the enemy's real HP and damage — but allies can't ram, so melee/zero-fire
-// enemies (drone, tank) are floored to a basic shooter profile (damage stays
-// faithful). It holds station within `leash` of where it was charmed.
+// Charm conversion shared by Hypnosis + Pied Piper. A charmed unit is faithful: it
+// keeps the enemy's real HP, damage, speed, and attack — a ranged enemy (shooter)
+// keeps shooting, a melee enemy rams enemies for contact damage, a bomber detonates.
+// It chases the nearest enemy to engage, like the enemy chased the ship.
 export const CHARM = {
-  minFireRate: 1,
-  minAttackRange: 160,
-  leash: 90,
-  poofColor: '#78aaff',
-  poofCount: 6,
+  decayPerSec: 6,
+  // Chip rammers re-hit on this cadence so a clinging melee unit doesn't nuke per-frame.
+  meleeContactInterval: 0.4,
 } as const
 
 // Hypnosis. Click → the nearest non-boss enemy within `selectRange` of the cursor
-// flips to your side for `duration`s, then expires (no revert). Capped at
-// `maxCharmed` concurrent charmed units so it can't snowball.
+// flips to your side until it's worn down (no revert). Capped at `maxCharmed`
+// concurrent charmed units so it can't snowball.
 export const HYPNOSIS = {
   cooldown: 11,
   powerCost: 50,
-  selectRange: 170,
-  duration: 7,
+  selectRange: 150,
   maxCharmed: 3,
 } as const
 
-// Pied Piper (Hypnosis ultimate). AoE-charms every charmable enemy within `radius`
-// (up to the cap) for a shorter `duration` — a brief uprising, not a standing army.
+// Pied Piper (Hypnosis ultimate). AoE-charms every charmable enemy within `radius`,
+// up to a higher `maxCharmed` cap — a whole uprising at once.
 export const PIED_PIPER = {
   costMultiplier: 3,
   radius: 230,
-  duration: 4,
   maxCharmed: 6,
 } as const

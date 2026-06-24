@@ -12,14 +12,15 @@ export function countCharmed(allies: Ally[]): number {
   return allies.filter((a) => a.charmedFrom !== undefined).length
 }
 
-// Convert up to `slots` of `targets` into charmed allies for `duration`s. Shared by
-// Hypnosis (one target) and Pied Piper (a radius of them). Empty when out of slots
-// or targets — the caller treats that as a no-op (no cooldown/power spent).
-export function charmTargets(targets: Enemy[], duration: number, slots: number): CharmResult {
+// Convert up to `slots` of `targets` into charmed allies, each granted `bonusHp` of
+// extra survival (the Duration upgrade). Shared by Hypnosis (one target) and Pied
+// Piper (a radius of them). Empty when out of slots or targets — the caller treats
+// that as a no-op (no cooldown/power spent).
+export function charmTargets(targets: Enemy[], bonusHp: number, slots: number): CharmResult {
   if (slots <= 0 || targets.length === 0) return EMPTY_CHARM
   const chosen = targets.slice(0, slots)
   return {
-    allies: chosen.map((e) => createCharmedAlly(e, duration)),
+    allies: chosen.map((e) => createCharmedAlly(e, bonusHp)),
     consumedEnemyIds: chosen.map((e) => e.id),
   }
 }
