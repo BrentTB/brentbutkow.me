@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { renderHook, act, cleanup } from '@testing-library/react'
 import { useAsciiArt } from './useAsciiArt'
 import { BackgroundMode, ColorMode } from './ascii-art.types'
-import { Charset, DEFAULT_ROWS } from './data'
+import { DEFAULT_CHARSET, DEFAULT_ROWS } from './data'
 
 const canvasRef = { current: document.createElement('canvas') }
 
@@ -31,7 +31,7 @@ describe('useAsciiArt', () => {
     const { result } = renderHook(() => useAsciiArt(canvasRef))
     expect(result.current.sourceKind).toBe('none')
     expect(result.current.options.rows).toBe(DEFAULT_ROWS)
-    expect(result.current.options.ramp).toBe(Charset.classic)
+    expect(result.current.options.charset).toBe(DEFAULT_CHARSET)
   })
 
   it('honors the initial color mode', () => {
@@ -45,16 +45,27 @@ describe('useAsciiArt', () => {
     act(() => result.current.setBackground(BackgroundMode.light))
     act(() => result.current.setRows(90))
     act(() => result.current.setInvert(true))
-    act(() => result.current.setRamp(Charset.blocks))
+    act(() => result.current.setCharset('blocks'))
     act(() => result.current.setMirror(false))
     expect(result.current.options).toMatchObject({
       colorMode: ColorMode.grayscale,
       background: BackgroundMode.light,
       rows: 90,
       invert: true,
-      ramp: Charset.blocks,
+      charset: 'blocks',
       mirror: false,
     })
+  })
+
+  it('surfaces an error when the video fails to play', async () => {
+    HTMLMediaElement.prototype.play = vi.fn(() => Promise.reject(new Error('decode')))
+    const { result } = renderHook(() => useAsciiArt(canvasRef))
+    await act(async () => {
+      result.current.loadVideo(new File(['x'], 'clip.webm', { type: 'video/webm' }))
+      await new Promise((resolve) => setTimeout(resolve))
+    })
+    expect(result.current.error).toBe('Could not play that video.')
+    expect(result.current.sourceKind).toBe('none')
   })
 
   it('stops the camera tracks on unmount', async () => {

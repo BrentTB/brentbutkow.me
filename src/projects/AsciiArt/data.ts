@@ -9,6 +9,7 @@ export const Charset = {
 } as const
 export type Charset = (typeof Charset)[keyof typeof Charset]
 export type CharsetName = keyof typeof Charset
+export const DEFAULT_CHARSET: CharsetName = 'classic'
 
 // Output detail as character ROWS (height). Cols are derived from the source
 // aspect so vertical media stays viewable, and glyphs scale to the fixed canvas
@@ -41,7 +42,7 @@ export const ASCII_FONT = "'IBM Plex Mono', ui-monospace, 'SF Mono', monospace"
 export type AsciiOptions = {
   colorMode: ColorMode
   background: BackgroundMode
-  ramp: Charset
+  charset: CharsetName
   rows: number
   invert: boolean
   // Mirror the webcam left-to-right (selfie view); ignored for other sources.
@@ -51,7 +52,7 @@ export type AsciiOptions = {
 export const defaultOptions = (colorMode: ColorMode): AsciiOptions => ({
   colorMode,
   background: BackgroundMode.dark,
-  ramp: Charset.classic,
+  charset: DEFAULT_CHARSET,
   rows: DEFAULT_ROWS,
   invert: false,
   mirror: true,

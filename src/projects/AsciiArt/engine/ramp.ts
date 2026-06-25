@@ -3,6 +3,7 @@
 // indexed from the start of the ramp. `invert` flips dark<->light without
 // reversing the ramp string.
 export function brightnessToChar(brightness: number, ramp: string, invert = false): string {
+  if (ramp.length === 0) return ' ' // no glyphs to map to
   const value = invert ? 255 - brightness : brightness
   const step = Math.ceil(256 / ramp.length)
   for (let i = 0; i < ramp.length; i++) {

@@ -23,4 +23,24 @@ describe('brightnessToChar', () => {
     expect(brightnessToChar(0, classic, true)).toBe(brightnessToChar(255, classic))
     expect(brightnessToChar(255, classic, true)).toBe(brightnessToChar(0, classic))
   })
+
+  it('maps the endpoints for every ramp length', () => {
+    for (const ramp of Object.values(Charset)) {
+      expect(brightnessToChar(0, ramp)).toBe(ramp[0])
+      expect(brightnessToChar(255, ramp)).toBe(ramp[ramp.length - 1])
+    }
+  })
+
+  it('buckets at each ramp length-specific threshold', () => {
+    // blocks: 5 chars -> ceil(256/5) = 52 levels per char
+    expect(brightnessToChar(51, Charset.blocks)).toBe(Charset.blocks[0])
+    expect(brightnessToChar(52, Charset.blocks)).toBe(Charset.blocks[1])
+    // simple: 10 chars -> ceil(256/10) = 26 levels per char
+    expect(brightnessToChar(25, Charset.simple)).toBe(Charset.simple[0])
+    expect(brightnessToChar(26, Charset.simple)).toBe(Charset.simple[1])
+  })
+
+  it('returns a blank for an empty ramp instead of undefined', () => {
+    expect(brightnessToChar(128, '')).toBe(' ')
+  })
 })

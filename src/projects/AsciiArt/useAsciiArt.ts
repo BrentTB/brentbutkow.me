@@ -4,6 +4,7 @@ import {
   AsciiOptions,
   CANVAS_PAD,
   Charset,
+  CharsetName,
   MAX_COLS,
   MAX_ROWS,
   MIN_COLS,
@@ -171,7 +172,8 @@ export function useAsciiArt(
     const dctx = display.getContext('2d')
     if (!sctx || !dctx) return
 
-    const { ramp, invert, colorMode, background, mirror, rows: rawRows } = optionsRef.current
+    const { charset, invert, colorMode, background, mirror, rows: rawRows } = optionsRef.current
+    const ramp = Charset[charset]
     const rows = clamp(Math.round(rawRows), MIN_ROWS, MAX_ROWS)
     const cols = clamp(gridCols(rows, w, h), MIN_COLS, MAX_COLS)
     if (cols < 1 || rows < 1) return
@@ -439,7 +441,10 @@ export function useAsciiArt(
     (background: BackgroundMode) => setOptions((o) => ({ ...o, background })),
     []
   )
-  const setRamp = useCallback((ramp: Charset) => setOptions((o) => ({ ...o, ramp })), [])
+  const setCharset = useCallback(
+    (charset: CharsetName) => setOptions((o) => ({ ...o, charset })),
+    []
+  )
   const setRows = useCallback((rows: number) => setOptions((o) => ({ ...o, rows })), [])
   const setInvert = useCallback((invert: boolean) => setOptions((o) => ({ ...o, invert })), [])
   const setMirror = useCallback((mirror: boolean) => setOptions((o) => ({ ...o, mirror })), [])
@@ -541,7 +546,7 @@ export function useAsciiArt(
     toggleRecording,
     setColorMode,
     setBackground,
-    setRamp,
+    setCharset,
     setRows,
     setInvert,
     setMirror,

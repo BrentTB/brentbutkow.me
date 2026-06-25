@@ -8,7 +8,7 @@ type ControlsProps = {
   sourceKind: SourceKind
   onColorMode: (mode: ColorMode) => void
   onBackground: (background: BackgroundMode) => void
-  onRamp: (ramp: Charset) => void
+  onCharset: (charset: CharsetName) => void
   onRows: (rows: number) => void
   onInvert: (invert: boolean) => void
   onMirror: (mirror: boolean) => void
@@ -21,14 +21,14 @@ export function Controls({
   sourceKind,
   onColorMode,
   onBackground,
-  onRamp,
+  onCharset,
   onRows,
   onInvert,
   onMirror,
 }: ControlsProps) {
   const handleRows = (e: ChangeEvent<HTMLInputElement>) => onRows(Number(e.target.value))
-  const handleRamp = (e: ChangeEvent<HTMLSelectElement>) =>
-    onRamp(Charset[e.target.value as CharsetName])
+  const handleCharset = (e: ChangeEvent<HTMLSelectElement>) =>
+    onCharset(e.target.value as CharsetName)
 
   return (
     <div className={styles.controls}>
@@ -85,11 +85,7 @@ export function Controls({
 
       <label className={styles.group}>
         <span className={styles.label}>Charset</span>
-        <select
-          className={styles.select}
-          value={charsetNames.find((name) => Charset[name] === options.ramp) ?? 'classic'}
-          onChange={handleRamp}
-        >
+        <select className={styles.select} value={options.charset} onChange={handleCharset}>
           {charsetNames.map((name) => (
             <option key={name} value={name}>
               {name}

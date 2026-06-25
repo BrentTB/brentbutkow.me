@@ -29,14 +29,17 @@ export function AsciiArt() {
     toggleRecording,
     setColorMode,
     setBackground,
-    setRamp,
+    setCharset,
     setRows,
     setInvert,
     setMirror,
   } = useAsciiArt(canvasRef, isFunMode ? ColorMode.color : ColorMode.grayscale)
 
   const hasSource = sourceKind !== SourceKind.none
-  const canRecord = sourceKind === SourceKind.video && typeof MediaRecorder !== 'undefined'
+  const canRecord =
+    sourceKind === SourceKind.video &&
+    typeof MediaRecorder !== 'undefined' &&
+    typeof HTMLCanvasElement.prototype.captureStream === 'function'
 
   return (
     <div className={styles.wrapper}>
@@ -81,11 +84,12 @@ export function AsciiArt() {
 
       {hasSource && (
         <div className={styles.actions}>
-          <button className={styles.actionButton} onClick={saveImage}>
+          <button type="button" className={styles.actionButton} onClick={saveImage}>
             Save image
           </button>
           {canRecord && (
             <button
+              type="button"
               className={`${styles.actionButton} ${isRecording ? styles.recording : ''}`}
               onClick={toggleRecording}
             >
@@ -101,7 +105,7 @@ export function AsciiArt() {
           sourceKind={sourceKind}
           onColorMode={setColorMode}
           onBackground={setBackground}
-          onRamp={setRamp}
+          onCharset={setCharset}
           onRows={setRows}
           onInvert={setInvert}
           onMirror={setMirror}
