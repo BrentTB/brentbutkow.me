@@ -22,6 +22,9 @@ export const CELL_ASPECT = 0.5
 // Pixels per character column on the display canvas; rows render at 2x this.
 export const BASE_CELL = 8
 
+// Playback speeds offered for video sources.
+export const PLAYBACK_SPEEDS = [0.5, 1, 1.5, 2] as const
+
 // Display canvas colors. Background matches --bg; ink matches --text.
 export const ASCII_BACKGROUND = '#0b0c0f'
 export const ASCII_INK = '#f3efe7'

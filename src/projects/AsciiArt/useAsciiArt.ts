@@ -49,8 +49,11 @@ export function useAsciiArt(
   const objectUrlRef = useRef<string | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const wasPlayingRef = useRef(false)
-  // Lets imperative video listeners (e.g. 'seeked') redraw without re-binding.
+  const recoverAttemptsRef = useRef(0)
+  // Let imperative video listeners reach the latest loop/draw without re-binding.
   const renderFrameRef = useRef<() => void>(() => {})
+  const stopLoopRef = useRef<() => void>(() => {})
+  const startLoopRef = useRef<() => void>(() => {})
 
   // Single reused <video> for both file and webcam sources; created on first use
   // with its transport listeners. Listeners are removed on unmount.
@@ -67,13 +70,50 @@ export function useAsciiArt(
         }))
       const onPlay = () => setPlayback((p) => ({ ...p, isPlaying: true }))
       const onPause = () => setPlayback((p) => ({ ...p, isPlaying: false }))
-      const onSeeked = () => renderFrameRef.current()
+      const onSeeked = () => {
+        recoverAttemptsRef.current = 0 // a clean seek clears the failure streak
+        renderFrameRef.current()
+      }
+      // Some browsers (notably Firefox's GMP decoder) throw a fatal decode error
+      // when a seek lands on a frame they can't re-init. Reload the blob and
+      // restore the position so a transient fault doesn't kill playback.
+      const onError = () => {
+        if (sourceKindRef.current !== SourceKind.video || !objectUrlRef.current) return
+        if (recoverAttemptsRef.current >= 3) {
+          stopLoopRef.current()
+          setError("This video couldn't be decoded. Try another file or browser.")
+          return
+        }
+        recoverAttemptsRef.current += 1
+        const resumeAt = video.currentTime || 0
+        const wasPlaying = !video.paused
+        const onReady = () => {
+          video.removeEventListener('loadeddata', onReady)
+          try {
+            video.currentTime = resumeAt
+          } catch {
+            // position may not be seekable yet on a fresh load; ignore
+          }
+          if (wasPlaying) {
+            video
+              .play()
+              .then(() => startLoopRef.current())
+              .catch(() => {})
+          } else {
+            renderFrameRef.current()
+          }
+        }
+        video.addEventListener('loadeddata', onReady)
+        video.src = objectUrlRef.current
+        video.load()
+      }
       video.addEventListener('timeupdate', onTime)
       video.addEventListener('loadedmetadata', onMeta)
       video.addEventListener('durationchange', onMeta)
       video.addEventListener('play', onPlay)
       video.addEventListener('pause', onPause)
       video.addEventListener('seeked', onSeeked)
+      video.addEventListener('error', onError)
       videoCleanupRef.current = () => {
         video.removeEventListener('timeupdate', onTime)
         video.removeEventListener('loadedmetadata', onMeta)
@@ -81,6 +121,7 @@ export function useAsciiArt(
         video.removeEventListener('play', onPlay)
         video.removeEventListener('pause', onPause)
         video.removeEventListener('seeked', onSeeked)
+        video.removeEventListener('error', onError)
       }
       videoRef.current = video
     }
@@ -108,15 +149,18 @@ export function useAsciiArt(
 
     sample.width = cols
     sample.height = rows
-    sctx.drawImage(src, 0, 0, cols, rows)
-    const grid = buildAsciiGrid(sctx.getImageData(0, 0, cols, rows).data, cols, rows, {
-      ramp,
-      invert,
-    })
-
-    display.width = cols * BASE_CELL
-    display.height = rows * BASE_CELL * 2
-    renderGrid(dctx, grid, colorMode)
+    try {
+      sctx.drawImage(src, 0, 0, cols, rows)
+      const grid = buildAsciiGrid(sctx.getImageData(0, 0, cols, rows).data, cols, rows, {
+        ramp,
+        invert,
+      })
+      display.width = cols * BASE_CELL
+      display.height = rows * BASE_CELL * 2
+      renderGrid(dctx, grid, colorMode)
+    } catch {
+      // Source isn't drawable this frame (mid-seek or reloading); skip it.
+    }
   }, [canvasRef])
   renderFrameRef.current = renderFrame
 
@@ -135,6 +179,8 @@ export function useAsciiArt(
     }
     rafRef.current = requestAnimationFrame(tick)
   }, [renderFrame])
+  stopLoopRef.current = stopLoop
+  startLoopRef.current = startLoop
 
   const teardownSource = useCallback(() => {
     stopLoop()
@@ -179,6 +225,7 @@ export function useAsciiArt(
       teardownSource()
       setError(null)
       setPlayback(PLAYBACK_DEFAULT)
+      recoverAttemptsRef.current = 0
       const url = URL.createObjectURL(file)
       objectUrlRef.current = url
       const video = ensureVideo()

@@ -83,4 +83,33 @@ describe('useAsciiArt', () => {
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock')
     expect(result.current.sourceKind).toBe('none')
   })
+
+  it('starts with default playback and updates the rate', () => {
+    const { result } = renderHook(() => useAsciiArt(canvasRef))
+    expect(result.current.playback).toMatchObject({ isPlaying: false, rate: 1 })
+    act(() => result.current.setRate(1.5))
+    expect(result.current.playback.rate).toBe(1.5)
+  })
+
+  // Guards the fatal decode error (e.g. Firefox GMP failing on a seek) that used
+  // to silently kill playback: a video 'error' must reload the blob to recover.
+  it('reloads the video to recover from a decode error', async () => {
+    let video: HTMLVideoElement | undefined
+    const realCreate = document.createElement.bind(document)
+    vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+      const el = realCreate(tag)
+      if (tag === 'video') video = el as HTMLVideoElement
+      return el
+    })
+
+    const { result } = renderHook(() => useAsciiArt(canvasRef))
+    act(() => result.current.loadVideo(new File(['x'], 'clip.mp4', { type: 'video/mp4' })))
+    await act(async () => {}) // sourceKind -> video
+    expect(result.current.sourceKind).toBe('video')
+
+    const loadMock = HTMLMediaElement.prototype.load as ReturnType<typeof vi.fn>
+    const before = loadMock.mock.calls.length
+    act(() => video?.dispatchEvent(new Event('error')))
+    expect(loadMock.mock.calls.length).toBeGreaterThan(before)
+  })
 })

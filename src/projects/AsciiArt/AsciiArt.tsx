@@ -6,6 +6,7 @@ import { ColorMode, SourceKind } from './ascii-art.types'
 import { useAsciiArt } from './useAsciiArt'
 import { SourcePicker } from './components/SourcePicker/SourcePicker'
 import { Controls } from './components/Controls/Controls'
+import { VideoControls } from './components/VideoControls/VideoControls'
 import styles from './AsciiArt.module.scss'
 
 export function AsciiArt() {
@@ -14,11 +15,15 @@ export function AsciiArt() {
   const {
     sourceKind,
     options,
+    playback,
     error,
     loadImage,
     loadVideo,
     startWebcam,
     reset,
+    togglePlay,
+    seek,
+    setRate,
     setColorMode,
     setRamp,
     setCols,
@@ -43,7 +48,7 @@ export function AsciiArt() {
       </header>
 
       <SourcePicker
-        hasSource={hasSource}
+        sourceKind={sourceKind}
         error={error}
         onImage={loadImage}
         onVideo={loadVideo}
@@ -58,6 +63,15 @@ export function AsciiArt() {
           <p className={styles.empty}>Pick an image, a video, or your webcam to begin.</p>
         )}
       </div>
+
+      {sourceKind === SourceKind.video && (
+        <VideoControls
+          playback={playback}
+          onTogglePlay={togglePlay}
+          onSeek={seek}
+          onRate={setRate}
+        />
+      )}
 
       {hasSource && (
         <Controls

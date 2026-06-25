@@ -23,7 +23,11 @@ export function VideoControls({ playback, onTogglePlay, onSeek, onRate }: VideoC
 
   return (
     <div className={styles.bar}>
-      <button className={styles.play} onClick={onTogglePlay} aria-label={isPlaying ? 'Pause' : 'Play'}>
+      <button
+        className={styles.play}
+        onClick={onTogglePlay}
+        aria-label={isPlaying ? 'Pause' : 'Play'}
+      >
         {isPlaying ? '⏸' : '▶'}
       </button>
 
