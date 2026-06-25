@@ -35,17 +35,17 @@ export function SourcePicker({
   return (
     <div className={styles.picker}>
       <div className={styles.buttons}>
-        <button className={styles.button} onClick={() => imageInput.current?.click()}>
+        <button type="button" className={styles.button} onClick={() => imageInput.current?.click()}>
           Upload image
         </button>
-        <button className={styles.button} onClick={() => videoInput.current?.click()}>
+        <button type="button" className={styles.button} onClick={() => videoInput.current?.click()}>
           Upload video
         </button>
-        <button className={styles.button} onClick={onWebcam}>
+        <button type="button" className={styles.button} onClick={onWebcam}>
           Use webcam
         </button>
         {hasSource && (
-          <button className={`${styles.button} ${styles.reset}`} onClick={onReset}>
+          <button type="button" className={`${styles.button} ${styles.reset}`} onClick={onReset}>
             {resetLabel}
           </button>
         )}

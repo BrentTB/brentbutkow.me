@@ -41,7 +41,7 @@ export const ASCII_FONT = "'IBM Plex Mono', ui-monospace, 'SF Mono', monospace"
 export type AsciiOptions = {
   colorMode: ColorMode
   background: BackgroundMode
-  ramp: string
+  ramp: Charset
   rows: number
   invert: boolean
   // Mirror the webcam left-to-right (selfie view); ignored for other sources.

@@ -8,7 +8,7 @@ type ControlsProps = {
   sourceKind: SourceKind
   onColorMode: (mode: ColorMode) => void
   onBackground: (background: BackgroundMode) => void
-  onRamp: (ramp: string) => void
+  onRamp: (ramp: Charset) => void
   onRows: (rows: number) => void
   onInvert: (invert: boolean) => void
   onMirror: (mirror: boolean) => void
@@ -36,12 +36,14 @@ export function Controls({
         <span className={styles.label}>Color</span>
         <div className={styles.segmented}>
           <button
+            type="button"
             className={options.colorMode === ColorMode.grayscale ? styles.active : ''}
             onClick={() => onColorMode(ColorMode.grayscale)}
           >
             Grayscale
           </button>
           <button
+            type="button"
             className={options.colorMode === ColorMode.color ? styles.active : ''}
             onClick={() => onColorMode(ColorMode.color)}
           >
@@ -54,12 +56,14 @@ export function Controls({
         <span className={styles.label}>Background</span>
         <div className={styles.segmented}>
           <button
+            type="button"
             className={options.background === BackgroundMode.dark ? styles.active : ''}
             onClick={() => onBackground(BackgroundMode.dark)}
           >
             Dark
           </button>
           <button
+            type="button"
             className={options.background === BackgroundMode.light ? styles.active : ''}
             onClick={() => onBackground(BackgroundMode.light)}
           >

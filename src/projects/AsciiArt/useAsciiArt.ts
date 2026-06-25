@@ -3,6 +3,7 @@ import { BackgroundMode, ColorMode, SourceKind } from './ascii-art.types'
 import {
   AsciiOptions,
   CANVAS_PAD,
+  Charset,
   MAX_COLS,
   MAX_ROWS,
   MIN_COLS,
@@ -438,7 +439,7 @@ export function useAsciiArt(
     (background: BackgroundMode) => setOptions((o) => ({ ...o, background })),
     []
   )
-  const setRamp = useCallback((ramp: string) => setOptions((o) => ({ ...o, ramp })), [])
+  const setRamp = useCallback((ramp: Charset) => setOptions((o) => ({ ...o, ramp })), [])
   const setRows = useCallback((rows: number) => setOptions((o) => ({ ...o, rows })), [])
   const setInvert = useCallback((invert: boolean) => setOptions((o) => ({ ...o, invert })), [])
   const setMirror = useCallback((mirror: boolean) => setOptions((o) => ({ ...o, mirror })), [])
@@ -464,21 +465,27 @@ export function useAsciiArt(
     if (sourceKind !== SourceKind.none && !playback.isPlaying) renderFrame()
   }, [options, sourceKind, playback.isPlaying, renderFrame])
 
-  // Pause the loop (and audio) while the tab is hidden; resume only what was
-  // playing, so a user-paused video stays paused on return.
+  // Pause the loop, audio, and any recording while the tab is hidden; resume only
+  // what was playing, so a user-paused video stays paused on return. Pausing the
+  // recorder keeps the frozen-canvas span out of the saved clip.
   useEffect(() => {
     const onVisibility = () => {
       const moving =
         sourceKindRef.current === SourceKind.video || sourceKindRef.current === SourceKind.webcam
       if (!moving) return
       const video = videoRef.current
+      const recorder = recorderRef.current
       if (document.hidden) {
         wasPlayingRef.current = !!video && !video.paused
+        if (recorder?.state === 'recording') recorder.pause()
         stopLoop()
         video?.pause()
-      } else if (wasPlayingRef.current) {
-        video?.play().catch(() => {})
-        startLoop()
+      } else {
+        if (recorder?.state === 'paused') recorder.resume()
+        if (wasPlayingRef.current) {
+          video?.play().catch(() => {})
+          startLoop()
+        }
       }
     }
     document.addEventListener('visibilitychange', onVisibility)

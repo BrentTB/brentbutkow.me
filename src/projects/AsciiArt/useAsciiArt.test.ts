@@ -95,8 +95,8 @@ describe('useAsciiArt', () => {
     expect(result.current.playback.rate).toBe(1.5)
   })
 
-  // Guards the fatal decode error (e.g. Firefox GMP failing on a seek) that used
-  // to silently kill playback: a video 'error' must reload the blob to recover.
+  // Guards recovery from a fatal decode error (e.g. Firefox GMP failing on a seek):
+  // a video 'error' must reload the blob rather than silently kill playback.
   it('reloads the video to recover from a decode error', async () => {
     let video: HTMLVideoElement | undefined
     const realCreate = document.createElement.bind(document)

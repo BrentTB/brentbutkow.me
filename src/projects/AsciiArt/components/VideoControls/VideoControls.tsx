@@ -24,6 +24,7 @@ export function VideoControls({ playback, onTogglePlay, onSeek, onRate }: VideoC
   return (
     <div className={styles.bar}>
       <button
+        type="button"
         className={styles.play}
         onClick={onTogglePlay}
         aria-label={isPlaying ? 'Pause' : 'Play'}
@@ -47,6 +48,7 @@ export function VideoControls({ playback, onTogglePlay, onSeek, onRate }: VideoC
       <div className={styles.speeds}>
         {PLAYBACK_SPEEDS.map((speed) => (
           <button
+            type="button"
             key={speed}
             className={speed === rate ? styles.activeSpeed : ''}
             onClick={() => onRate(speed)}
