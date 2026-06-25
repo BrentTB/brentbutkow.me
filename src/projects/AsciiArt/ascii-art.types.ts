@@ -15,6 +15,13 @@ export const ColorMode = {
 } as const
 export type ColorMode = (typeof ColorMode)[keyof typeof ColorMode]
 
+// Canvas background: a dark terminal look or a light "paper" look.
+export const BackgroundMode = {
+  dark: 'dark',
+  light: 'light',
+} as const
+export type BackgroundMode = (typeof BackgroundMode)[keyof typeof BackgroundMode]
+
 // One character cell plus the source color riding along for color rendering.
 export type AsciiCell = {
   char: string

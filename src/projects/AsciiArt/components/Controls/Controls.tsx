@@ -1,11 +1,12 @@
 import { ChangeEvent } from 'react'
-import { ColorMode } from '../../ascii-art.types'
+import { BackgroundMode, ColorMode } from '../../ascii-art.types'
 import { AsciiOptions, Charset, CharsetName, MAX_ROWS, MIN_ROWS } from '../../data'
 import styles from './Controls.module.scss'
 
 type ControlsProps = {
   options: AsciiOptions
   onColorMode: (mode: ColorMode) => void
+  onBackground: (background: BackgroundMode) => void
   onRamp: (ramp: string) => void
   onRows: (rows: number) => void
   onInvert: (invert: boolean) => void
@@ -13,7 +14,14 @@ type ControlsProps = {
 
 const charsetNames = Object.keys(Charset) as CharsetName[]
 
-export function Controls({ options, onColorMode, onRamp, onRows, onInvert }: ControlsProps) {
+export function Controls({
+  options,
+  onColorMode,
+  onBackground,
+  onRamp,
+  onRows,
+  onInvert,
+}: ControlsProps) {
   const handleRows = (e: ChangeEvent<HTMLInputElement>) => onRows(Number(e.target.value))
   const handleRamp = (e: ChangeEvent<HTMLSelectElement>) =>
     onRamp(Charset[e.target.value as CharsetName])
@@ -34,6 +42,24 @@ export function Controls({ options, onColorMode, onRamp, onRows, onInvert }: Con
             onClick={() => onColorMode(ColorMode.color)}
           >
             Color
+          </button>
+        </div>
+      </div>
+
+      <div className={styles.group}>
+        <span className={styles.label}>Background</span>
+        <div className={styles.segmented}>
+          <button
+            className={options.background === BackgroundMode.dark ? styles.active : ''}
+            onClick={() => onBackground(BackgroundMode.dark)}
+          >
+            Dark
+          </button>
+          <button
+            className={options.background === BackgroundMode.light ? styles.active : ''}
+            onClick={() => onBackground(BackgroundMode.light)}
+          >
+            Light
           </button>
         </div>
       </div>

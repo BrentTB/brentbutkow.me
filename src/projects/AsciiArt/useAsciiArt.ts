@@ -1,5 +1,5 @@
 import { RefObject, useCallback, useEffect, useRef, useState } from 'react'
-import { ColorMode, SourceKind } from './ascii-art.types'
+import { BackgroundMode, ColorMode, SourceKind } from './ascii-art.types'
 import {
   AsciiOptions,
   CANVAS_PAD,
@@ -9,7 +9,7 @@ import {
   MIN_ROWS,
   defaultOptions,
 } from './data'
-import { buildAsciiGrid, gridCols } from './engine/ascii-frame'
+import { buildAsciiGrid, gridCols, shouldInvertBrightness } from './engine/ascii-frame'
 import { renderGrid } from './renderer/render-grid'
 
 type SourceElement = HTMLImageElement | HTMLVideoElement
@@ -153,7 +153,7 @@ export function useAsciiArt(
     const dctx = display.getContext('2d')
     if (!sctx || !dctx) return
 
-    const { ramp, invert, colorMode, rows: rawRows } = optionsRef.current
+    const { ramp, invert, colorMode, background, rows: rawRows } = optionsRef.current
     const rows = clamp(Math.round(rawRows), MIN_ROWS, MAX_ROWS)
     const cols = clamp(gridCols(rows, w, h), MIN_COLS, MAX_COLS)
     if (cols < 1 || rows < 1) return
@@ -176,11 +176,11 @@ export function useAsciiArt(
       sctx.drawImage(src, 0, 0, cols, rows)
       const grid = buildAsciiGrid(sctx.getImageData(0, 0, cols, rows).data, cols, rows, {
         ramp,
-        invert,
+        invert: shouldInvertBrightness(background, invert),
       })
       display.width = Math.round(canvasW)
       display.height = Math.round(canvasH)
-      renderGrid(dctx, grid, colorMode)
+      renderGrid(dctx, grid, colorMode, background)
     } catch {
       // Source isn't drawable this frame (mid-seek or reloading); skip it.
     }
@@ -331,6 +331,10 @@ export function useAsciiArt(
     (colorMode: ColorMode) => setOptions((o) => ({ ...o, colorMode })),
     []
   )
+  const setBackground = useCallback(
+    (background: BackgroundMode) => setOptions((o) => ({ ...o, background })),
+    []
+  )
   const setRamp = useCallback((ramp: string) => setOptions((o) => ({ ...o, ramp })), [])
   const setRows = useCallback((rows: number) => setOptions((o) => ({ ...o, rows })), [])
   const setInvert = useCallback((invert: boolean) => setOptions((o) => ({ ...o, invert })), [])
@@ -398,6 +402,7 @@ export function useAsciiArt(
     seek,
     setRate,
     setColorMode,
+    setBackground,
     setRamp,
     setRows,
     setInvert,

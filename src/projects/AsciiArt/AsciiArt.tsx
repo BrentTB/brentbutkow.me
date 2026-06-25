@@ -25,6 +25,7 @@ export function AsciiArt() {
     seek,
     setRate,
     setColorMode,
+    setBackground,
     setRamp,
     setRows,
     setInvert,
@@ -77,6 +78,7 @@ export function AsciiArt() {
         <Controls
           options={options}
           onColorMode={setColorMode}
+          onBackground={setBackground}
           onRamp={setRamp}
           onRows={setRows}
           onInvert={setInvert}

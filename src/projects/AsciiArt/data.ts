@@ -1,4 +1,4 @@
-import { ColorMode } from './ascii-art.types'
+import { BackgroundMode, ColorMode } from './ascii-art.types'
 
 // Brightness ramps, darkest -> lightest. `classic` is the exact ramp from the
 // original vidToAscii Python tool.
@@ -30,13 +30,17 @@ export const CANVAS_PAD = 16
 // Playback speeds offered for video sources.
 export const PLAYBACK_SPEEDS = [0.5, 1, 1.5, 2] as const
 
-// Display canvas colors. Background matches --bg; ink matches --text.
-export const ASCII_BACKGROUND = '#0b0c0f'
-export const ASCII_INK = '#f3efe7'
+// Display canvas palettes per background. Dark matches --bg/--text; light is a
+// warm "paper" with dark ink.
+export const ASCII_PALETTE = {
+  dark: { bg: '#0b0c0f', ink: '#f3efe7' },
+  light: { bg: '#f3efe7', ink: '#0b0c0f' },
+} as const
 export const ASCII_FONT = "'IBM Plex Mono', ui-monospace, 'SF Mono', monospace"
 
 export type AsciiOptions = {
   colorMode: ColorMode
+  background: BackgroundMode
   ramp: string
   rows: number
   invert: boolean
@@ -44,6 +48,7 @@ export type AsciiOptions = {
 
 export const defaultOptions = (colorMode: ColorMode): AsciiOptions => ({
   colorMode,
+  background: BackgroundMode.dark,
   ramp: Charset.classic,
   rows: DEFAULT_ROWS,
   invert: false,
