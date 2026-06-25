@@ -16,7 +16,7 @@ export const funStuff: FunItem[] = [
   {
     title: 'ASCII Art Studio',
     description:
-      'Turn a photo, video, or your webcam into live ASCII art — all in your browser. A TypeScript port of my Python vidToAscii tool',
+      'Turn a photo, video, or your webcam into live ASCII art, right in your browser. A TypeScript port of my Python vidToAscii tool',
     link: funStuffSubRoutes.asciiArt,
   },
   {

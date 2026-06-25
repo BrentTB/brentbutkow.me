@@ -38,7 +38,7 @@ export function AsciiArt() {
           <SafeLink href="https://github.com/BrentTB" className={styles.link}>
             Python vidToAscii
           </SafeLink>{' '}
-          tool — video keeps its sound, since it just plays underneath.
+          tool.
         </p>
       </header>
 
@@ -70,7 +70,7 @@ export function AsciiArt() {
       )}
 
       <p className={styles.privacy}>
-        Everything runs in your browser — your photos, videos, and webcam never leave your device.
+        Everything runs in your browser. Your photos, videos, and webcam never leave your device.
       </p>
     </div>
   )

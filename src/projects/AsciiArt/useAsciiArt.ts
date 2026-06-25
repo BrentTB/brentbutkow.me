@@ -158,7 +158,7 @@ export function useAsciiArt(
     teardownSource()
     setError(null)
     if (!navigator.mediaDevices?.getUserMedia) {
-      setError('This browser has no camera access.')
+      setError("Your browser doesn't support camera access.")
       return
     }
     try {

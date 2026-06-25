@@ -39,7 +39,7 @@ export function Controls({ options, onColorMode, onRamp, onCols, onInvert }: Con
       </div>
 
       <label className={styles.group}>
-        <span className={styles.label}>Resolution — {options.cols}</span>
+        <span className={styles.label}>Resolution: {options.cols}</span>
         <input
           type="range"
           min={MIN_COLS}
