@@ -11,8 +11,23 @@ import {
 } from './data'
 import { buildAsciiGrid, gridCols, shouldInvertBrightness } from './engine/ascii-frame'
 import { renderGrid } from './renderer/render-grid'
+import { downloadBlob } from './download'
 
 type SourceElement = HTMLImageElement | HTMLVideoElement
+
+// captureStream is prefixed in Firefox; type both without leaking `any`.
+type CaptureableVideo = HTMLVideoElement & {
+  captureStream?: () => MediaStream
+  mozCaptureStream?: () => MediaStream
+}
+
+// WebM codec preferences for MediaRecorder, best first.
+const RECORD_MIME_TYPES = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
+
+const pickRecordMimeType = (): string =>
+  typeof MediaRecorder === 'undefined'
+    ? ''
+    : (RECORD_MIME_TYPES.find((type) => MediaRecorder.isTypeSupported(type)) ?? '')
 
 export type Playback = {
   isPlaying: boolean
@@ -41,6 +56,7 @@ export function useAsciiArt(
   const [sourceKind, setSourceKind] = useState<SourceKind>(SourceKind.none)
   const [options, setOptions] = useState<AsciiOptions>(() => defaultOptions(initialColorMode))
   const [playback, setPlayback] = useState<Playback>(PLAYBACK_DEFAULT)
+  const [isRecording, setIsRecording] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   // Loop reads the latest options/source without re-subscribing each change.
@@ -56,6 +72,7 @@ export function useAsciiArt(
   const rafRef = useRef<number | null>(null)
   const objectUrlRef = useRef<string | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
+  const recorderRef = useRef<MediaRecorder | null>(null)
   const wasPlayingRef = useRef(false)
   const recoverAttemptsRef = useRef(0)
   // Fixed stage box size, kept fresh by a ResizeObserver so the loop doesn't
@@ -187,8 +204,12 @@ export function useAsciiArt(
         invert: shouldInvertBrightness(background, invert),
         invertColor: invert,
       })
-      display.width = Math.round(canvasW)
-      display.height = Math.round(canvasH)
+      // Only resize when needed — reassigning width/height clears the canvas and
+      // would disrupt an in-progress recording capture.
+      const nextW = Math.round(canvasW)
+      const nextH = Math.round(canvasH)
+      if (display.width !== nextW) display.width = nextW
+      if (display.height !== nextH) display.height = nextH
       renderGrid(dctx, grid, colorMode, background)
     } catch {
       // Source isn't drawable this frame (mid-seek or reloading); skip it.
@@ -216,6 +237,18 @@ export function useAsciiArt(
 
   const teardownSource = useCallback(() => {
     stopLoop()
+    // Abort any recording without downloading a partial clip.
+    const recorder = recorderRef.current
+    if (recorder && recorder.state !== 'inactive') {
+      recorder.onstop = null
+      try {
+        recorder.stop()
+      } catch {
+        // already stopping; ignore
+      }
+    }
+    recorderRef.current = null
+    setIsRecording(false)
     if (objectUrlRef.current) {
       URL.revokeObjectURL(objectUrlRef.current)
       objectUrlRef.current = null
@@ -336,6 +369,67 @@ export function useAsciiArt(
     setPlayback((p) => ({ ...p, rate }))
   }, [])
 
+  // Saves the current ASCII frame as a PNG — works for any source (a snapshot of
+  // the live video/webcam frame, or the still image).
+  const saveImage = useCallback(() => {
+    const display = canvasRef.current
+    if (!display) return
+    display.toBlob((blob) => {
+      if (blob) downloadBlob(blob, 'ascii-art.png')
+    }, 'image/png')
+  }, [canvasRef])
+
+  // Records the ASCII canvas plus the video's audio to a .webm in real time, via
+  // the built-in MediaRecorder (no dependency).
+  const startRecording = useCallback(() => {
+    const display = canvasRef.current
+    const video = videoRef.current
+    if (!display || !video) return
+    if (typeof MediaRecorder === 'undefined' || typeof display.captureStream !== 'function') {
+      setError("Recording isn't supported in this browser.")
+      return
+    }
+    let recorder: MediaRecorder
+    try {
+      const canvasStream = display.captureStream(30)
+      const tracks: MediaStreamTrack[] = canvasStream.getVideoTracks()
+      const capture =
+        (video as CaptureableVideo).captureStream ?? (video as CaptureableVideo).mozCaptureStream
+      const audioTrack = capture?.call(video).getAudioTracks()[0]
+      if (audioTrack) tracks.push(audioTrack)
+      const mimeType = pickRecordMimeType()
+      recorder = new MediaRecorder(new MediaStream(tracks), mimeType ? { mimeType } : undefined)
+    } catch {
+      setError("Recording isn't supported in this browser.")
+      return
+    }
+    const chunks: Blob[] = []
+    recorder.ondataavailable = (e) => {
+      if (e.data.size) chunks.push(e.data)
+    }
+    recorder.onstop = () => {
+      downloadBlob(
+        new Blob(chunks, { type: recorder.mimeType || 'video/webm' }),
+        'ascii-video.webm'
+      )
+      setIsRecording(false)
+    }
+    recorderRef.current = recorder
+    recorder.start()
+    setIsRecording(true)
+  }, [canvasRef])
+
+  const stopRecording = useCallback(() => {
+    const recorder = recorderRef.current
+    if (recorder && recorder.state !== 'inactive') recorder.stop()
+    recorderRef.current = null
+  }, [])
+
+  const toggleRecording = useCallback(() => {
+    if (recorderRef.current && recorderRef.current.state !== 'inactive') stopRecording()
+    else startRecording()
+  }, [startRecording, stopRecording])
+
   const setColorMode = useCallback(
     (colorMode: ColorMode) => setOptions((o) => ({ ...o, colorMode })),
     []
@@ -427,6 +521,7 @@ export function useAsciiArt(
     sourceKind,
     options,
     playback,
+    isRecording,
     error,
     loadImage,
     loadVideo,
@@ -435,6 +530,8 @@ export function useAsciiArt(
     togglePlay,
     seek,
     setRate,
+    saveImage,
+    toggleRecording,
     setColorMode,
     setBackground,
     setRamp,

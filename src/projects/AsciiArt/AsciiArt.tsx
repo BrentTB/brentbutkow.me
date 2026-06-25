@@ -16,6 +16,7 @@ export function AsciiArt() {
     sourceKind,
     options,
     playback,
+    isRecording,
     error,
     loadImage,
     loadVideo,
@@ -24,6 +25,8 @@ export function AsciiArt() {
     togglePlay,
     seek,
     setRate,
+    saveImage,
+    toggleRecording,
     setColorMode,
     setBackground,
     setRamp,
@@ -33,6 +36,7 @@ export function AsciiArt() {
   } = useAsciiArt(canvasRef, isFunMode ? ColorMode.color : ColorMode.grayscale)
 
   const hasSource = sourceKind !== SourceKind.none
+  const canRecord = sourceKind === SourceKind.video && typeof MediaRecorder !== 'undefined'
 
   return (
     <div className={styles.wrapper}>
@@ -73,6 +77,22 @@ export function AsciiArt() {
           onSeek={seek}
           onRate={setRate}
         />
+      )}
+
+      {hasSource && (
+        <div className={styles.actions}>
+          <button className={styles.actionButton} onClick={saveImage}>
+            Save image
+          </button>
+          {canRecord && (
+            <button
+              className={`${styles.actionButton} ${isRecording ? styles.recording : ''}`}
+              onClick={toggleRecording}
+            >
+              {isRecording ? 'Stop recording' : 'Record video'}
+            </button>
+          )}
+        </div>
       )}
 
       {hasSource && (

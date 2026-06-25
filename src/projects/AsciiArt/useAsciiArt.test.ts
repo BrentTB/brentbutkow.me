@@ -173,4 +173,57 @@ describe('useAsciiArt', () => {
     act(() => window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space' })))
     expect(playMock.mock.calls.length).toBeGreaterThan(before)
   })
+
+  it('saves the current frame as a PNG download', () => {
+    HTMLCanvasElement.prototype.toBlob = vi.fn((cb: BlobCallback) =>
+      cb(new Blob(['x'], { type: 'image/png' }))
+    )
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+
+    const { result } = renderHook(() => useAsciiArt(canvasRef))
+    act(() => result.current.saveImage())
+    expect(clickSpy).toHaveBeenCalled()
+  })
+
+  it('records to a webm download and toggles the recording flag', async () => {
+    class FakeRecorder {
+      state = 'inactive'
+      mimeType = 'video/webm'
+      ondataavailable: ((e: { data: Blob }) => void) | null = null
+      onstop: (() => void) | null = null
+      start() {
+        this.state = 'recording'
+      }
+      stop() {
+        this.state = 'inactive'
+        this.onstop?.()
+      }
+      static isTypeSupported() {
+        return true
+      }
+    }
+    vi.stubGlobal('MediaRecorder', FakeRecorder)
+    vi.stubGlobal(
+      'MediaStream',
+      class {
+        constructor(public tracks: unknown[] = []) {}
+      }
+    )
+    ;(
+      HTMLCanvasElement.prototype as unknown as { captureStream: () => MediaStream }
+    ).captureStream = vi.fn(() => ({ getVideoTracks: () => [{}] }) as unknown as MediaStream)
+    ;(HTMLMediaElement.prototype as unknown as { captureStream: () => MediaStream }).captureStream =
+      vi.fn(() => ({ getAudioTracks: () => [{}] }) as unknown as MediaStream)
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+
+    const { result } = renderHook(() => useAsciiArt(canvasRef))
+    act(() => result.current.loadVideo(new File(['x'], 'clip.mp4', { type: 'video/mp4' })))
+    await act(async () => {})
+
+    act(() => result.current.toggleRecording())
+    expect(result.current.isRecording).toBe(true)
+    act(() => result.current.toggleRecording())
+    expect(result.current.isRecording).toBe(false)
+    expect(clickSpy).toHaveBeenCalled() // downloaded on stop
+  })
 })
