@@ -1,7 +1,15 @@
 import { RefObject, useCallback, useEffect, useRef, useState } from 'react'
 import { ColorMode, SourceKind } from './ascii-art.types'
-import { AsciiOptions, BASE_CELL, MAX_COLS, MIN_COLS, defaultOptions } from './data'
-import { buildAsciiGrid, gridRows } from './engine/ascii-frame'
+import {
+  AsciiOptions,
+  CANVAS_PAD,
+  MAX_COLS,
+  MAX_ROWS,
+  MIN_COLS,
+  MIN_ROWS,
+  defaultOptions,
+} from './data'
+import { buildAsciiGrid, gridCols } from './engine/ascii-frame'
 import { renderGrid } from './renderer/render-grid'
 
 type SourceElement = HTMLImageElement | HTMLVideoElement
@@ -50,6 +58,9 @@ export function useAsciiArt(
   const streamRef = useRef<MediaStream | null>(null)
   const wasPlayingRef = useRef(false)
   const recoverAttemptsRef = useRef(0)
+  // Fixed stage box size, kept fresh by a ResizeObserver so the loop doesn't
+  // force a layout reflow reading clientWidth every frame.
+  const boxSizeRef = useRef({ w: 640, h: 480 })
   // Let imperative video listeners reach the latest loop/draw without re-binding.
   const renderFrameRef = useRef<() => void>(() => {})
   const stopLoopRef = useRef<() => void>(() => {})
@@ -142,10 +153,22 @@ export function useAsciiArt(
     const dctx = display.getContext('2d')
     if (!sctx || !dctx) return
 
-    const { ramp, invert, colorMode, cols: rawCols } = optionsRef.current
-    const cols = clamp(Math.round(rawCols), MIN_COLS, MAX_COLS)
-    const rows = gridRows(cols, w, h)
-    if (rows < 1) return
+    const { ramp, invert, colorMode, rows: rawRows } = optionsRef.current
+    const rows = clamp(Math.round(rawRows), MIN_ROWS, MAX_ROWS)
+    const cols = clamp(gridCols(rows, w, h), MIN_COLS, MAX_COLS)
+    if (cols < 1 || rows < 1) return
+
+    // Fit the canvas inside its fixed stage box, preserving the source aspect, so
+    // the on-screen size stays constant and glyphs scale with the row count.
+    const availW = Math.max(1, boxSizeRef.current.w - CANVAS_PAD * 2)
+    const availH = Math.max(1, boxSizeRef.current.h - CANVAS_PAD * 2)
+    const srcAspect = w / h
+    let canvasW = availW
+    let canvasH = availW / srcAspect
+    if (canvasH > availH) {
+      canvasH = availH
+      canvasW = availH * srcAspect
+    }
 
     sample.width = cols
     sample.height = rows
@@ -155,8 +178,8 @@ export function useAsciiArt(
         ramp,
         invert,
       })
-      display.width = cols * BASE_CELL
-      display.height = rows * BASE_CELL * 2
+      display.width = Math.round(canvasW)
+      display.height = Math.round(canvasH)
       renderGrid(dctx, grid, colorMode)
     } catch {
       // Source isn't drawable this frame (mid-seek or reloading); skip it.
@@ -309,8 +332,23 @@ export function useAsciiArt(
     []
   )
   const setRamp = useCallback((ramp: string) => setOptions((o) => ({ ...o, ramp })), [])
-  const setCols = useCallback((cols: number) => setOptions((o) => ({ ...o, cols })), [])
+  const setRows = useCallback((rows: number) => setOptions((o) => ({ ...o, rows })), [])
   const setInvert = useCallback((invert: boolean) => setOptions((o) => ({ ...o, invert })), [])
+
+  // Track the stage box so the canvas keeps a constant on-screen size; redraw on
+  // resize (covers still images and paused video — the loop handles live frames).
+  useEffect(() => {
+    const box = canvasRef.current?.parentElement
+    if (!box) return
+    const measure = () => {
+      boxSizeRef.current = { w: box.clientWidth, h: box.clientHeight }
+      renderFrameRef.current()
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(box)
+    return () => observer.disconnect()
+  }, [canvasRef, sourceKind])
 
   // A still image doesn't loop, so re-render it when an option changes.
   useEffect(() => {
@@ -360,7 +398,7 @@ export function useAsciiArt(
     setRate,
     setColorMode,
     setRamp,
-    setCols,
+    setRows,
     setInvert,
   }
 }

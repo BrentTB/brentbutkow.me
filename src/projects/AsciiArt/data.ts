@@ -10,17 +10,22 @@ export const Charset = {
 export type Charset = (typeof Charset)[keyof typeof Charset]
 export type CharsetName = keyof typeof Charset
 
-// Output width in characters; cost scales with cols * rows, so the slider caps it.
-export const DEFAULT_COLS = 110
-export const MIN_COLS = 40
-export const MAX_COLS = 220
+// Output detail as character ROWS (height). Cols are derived from the source
+// aspect so vertical media stays viewable, and glyphs scale to the fixed canvas
+// (fewer rows = larger characters).
+export const DEFAULT_ROWS = 64
+export const MIN_ROWS = 24
+export const MAX_ROWS = 120
 
-// Monospace glyphs are ~2x taller than wide; halve the vertical sample count so
-// the ASCII output keeps the source's proportions (the Python tool's 2x trick).
+// Hard cap on derived columns — a perf guard for very wide sources at high rows.
+export const MAX_COLS = 400
+export const MIN_COLS = 8
+
+// Monospace glyphs are ~2x taller than wide; the derived col/row ratio uses this.
 export const CELL_ASPECT = 0.5
 
-// Pixels per character column on the display canvas; rows render at 2x this.
-export const BASE_CELL = 8
+// Inset (px) between the canvas and its fixed-size stage box.
+export const CANVAS_PAD = 16
 
 // Playback speeds offered for video sources.
 export const PLAYBACK_SPEEDS = [0.5, 1, 1.5, 2] as const
@@ -33,13 +38,13 @@ export const ASCII_FONT = "'IBM Plex Mono', ui-monospace, 'SF Mono', monospace"
 export type AsciiOptions = {
   colorMode: ColorMode
   ramp: string
-  cols: number
+  rows: number
   invert: boolean
 }
 
 export const defaultOptions = (colorMode: ColorMode): AsciiOptions => ({
   colorMode,
   ramp: Charset.classic,
-  cols: DEFAULT_COLS,
+  rows: DEFAULT_ROWS,
   invert: false,
 })

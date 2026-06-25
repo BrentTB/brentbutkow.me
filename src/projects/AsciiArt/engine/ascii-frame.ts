@@ -8,16 +8,17 @@ type FrameOptions = {
   invert: boolean
 }
 
-// Rows that keep the ASCII output proportional to the source, accounting for the
-// tall monospace cell (each row renders at 2x a column's width).
-export function gridRows(
-  cols: number,
+// Columns that keep the ASCII output proportional for a target row count,
+// accounting for the tall monospace cell (each row renders at 2x a column's
+// width). Driving by rows keeps vertical media from overflowing the canvas.
+export function gridCols(
+  rows: number,
   srcWidth: number,
   srcHeight: number,
   cellAspect = CELL_ASPECT
 ): number {
   if (srcWidth <= 0 || srcHeight <= 0) return 0
-  return Math.max(1, Math.round(cols * (srcHeight / srcWidth) * cellAspect))
+  return Math.max(1, Math.round((rows * (srcWidth / srcHeight)) / cellAspect))
 }
 
 // Converts downsampled RGBA pixels (cols x rows, from canvas getImageData) into

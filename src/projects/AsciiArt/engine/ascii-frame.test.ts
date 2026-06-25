@@ -1,17 +1,17 @@
 import { describe, it, expect } from 'vitest'
-import { buildAsciiGrid, gridRows } from './ascii-frame'
+import { buildAsciiGrid, gridCols } from './ascii-frame'
 import { Charset } from '../data'
 
-describe('gridRows', () => {
-  it('keeps proportions while halving for the tall monospace cell', () => {
-    // 100 cols, square source -> 100 * 1 * 0.5 = 50 rows.
-    expect(gridRows(100, 200, 200)).toBe(50)
-    // Wider-than-tall source -> fewer rows.
-    expect(gridRows(100, 400, 100)).toBe(13)
+describe('gridCols', () => {
+  it('doubles for the tall monospace cell, scaled by aspect', () => {
+    // 50 rows, square source -> 50 / 0.5 = 100 cols.
+    expect(gridCols(50, 200, 200)).toBe(100)
+    // Portrait source -> fewer cols than rows.
+    expect(gridCols(50, 100, 400)).toBe(25)
   })
 
   it('returns 0 for a source with no dimensions', () => {
-    expect(gridRows(100, 0, 0)).toBe(0)
+    expect(gridCols(50, 0, 0)).toBe(0)
   })
 })
 

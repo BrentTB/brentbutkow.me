@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { renderHook, act, cleanup } from '@testing-library/react'
 import { useAsciiArt } from './useAsciiArt'
 import { ColorMode } from './ascii-art.types'
-import { Charset, DEFAULT_COLS } from './data'
+import { Charset, DEFAULT_ROWS } from './data'
 
 const canvasRef = { current: document.createElement('canvas') }
 
@@ -30,7 +30,7 @@ describe('useAsciiArt', () => {
   it('starts with no source and the default options', () => {
     const { result } = renderHook(() => useAsciiArt(canvasRef))
     expect(result.current.sourceKind).toBe('none')
-    expect(result.current.options.cols).toBe(DEFAULT_COLS)
+    expect(result.current.options.rows).toBe(DEFAULT_ROWS)
     expect(result.current.options.ramp).toBe(Charset.classic)
   })
 
@@ -42,12 +42,12 @@ describe('useAsciiArt', () => {
   it('updates options through the setters', () => {
     const { result } = renderHook(() => useAsciiArt(canvasRef))
     act(() => result.current.setColorMode(ColorMode.grayscale))
-    act(() => result.current.setCols(150))
+    act(() => result.current.setRows(90))
     act(() => result.current.setInvert(true))
     act(() => result.current.setRamp(Charset.blocks))
     expect(result.current.options).toMatchObject({
       colorMode: ColorMode.grayscale,
-      cols: 150,
+      rows: 90,
       invert: true,
       ramp: Charset.blocks,
     })

@@ -26,7 +26,7 @@ export function AsciiArt() {
     setRate,
     setColorMode,
     setRamp,
-    setCols,
+    setRows,
     setInvert,
   } = useAsciiArt(canvasRef, isFunMode ? ColorMode.color : ColorMode.grayscale)
 
@@ -78,7 +78,7 @@ export function AsciiArt() {
           options={options}
           onColorMode={setColorMode}
           onRamp={setRamp}
-          onCols={setCols}
+          onRows={setRows}
           onInvert={setInvert}
         />
       )}

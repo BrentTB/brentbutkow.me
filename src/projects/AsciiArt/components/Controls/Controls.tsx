@@ -1,20 +1,20 @@
 import { ChangeEvent } from 'react'
 import { ColorMode } from '../../ascii-art.types'
-import { AsciiOptions, Charset, CharsetName, MAX_COLS, MIN_COLS } from '../../data'
+import { AsciiOptions, Charset, CharsetName, MAX_ROWS, MIN_ROWS } from '../../data'
 import styles from './Controls.module.scss'
 
 type ControlsProps = {
   options: AsciiOptions
   onColorMode: (mode: ColorMode) => void
   onRamp: (ramp: string) => void
-  onCols: (cols: number) => void
+  onRows: (rows: number) => void
   onInvert: (invert: boolean) => void
 }
 
 const charsetNames = Object.keys(Charset) as CharsetName[]
 
-export function Controls({ options, onColorMode, onRamp, onCols, onInvert }: ControlsProps) {
-  const handleCols = (e: ChangeEvent<HTMLInputElement>) => onCols(Number(e.target.value))
+export function Controls({ options, onColorMode, onRamp, onRows, onInvert }: ControlsProps) {
+  const handleRows = (e: ChangeEvent<HTMLInputElement>) => onRows(Number(e.target.value))
   const handleRamp = (e: ChangeEvent<HTMLSelectElement>) =>
     onRamp(Charset[e.target.value as CharsetName])
 
@@ -39,13 +39,13 @@ export function Controls({ options, onColorMode, onRamp, onCols, onInvert }: Con
       </div>
 
       <label className={styles.group}>
-        <span className={styles.label}>Resolution: {options.cols}</span>
+        <span className={styles.label}>Resolution: {options.rows}</span>
         <input
           type="range"
-          min={MIN_COLS}
-          max={MAX_COLS}
-          value={options.cols}
-          onChange={handleCols}
+          min={MIN_ROWS}
+          max={MAX_ROWS}
+          value={options.rows}
+          onChange={handleRows}
         />
       </label>
 

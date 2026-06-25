@@ -37,7 +37,9 @@
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 240px;
+  // Constant stage box; the canvas is sized in JS to fit inside it, preserving
+  // the source aspect, so the on-screen size stays put as resolution changes.
+  height: clamp(320px, 58vh, 600px);
   padding: 16px;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -47,9 +49,6 @@
 .canvas {
   display: block;
   max-width: 100%;
-  height: auto;
-  // Crisp character edges instead of bilinear smear when the canvas is scaled.
-  image-rendering: pixelated;
   border-radius: var(--radius);
 
   // Fun mode gives the output a warm glow; Professional mode stays clean.
