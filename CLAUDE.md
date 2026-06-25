@@ -23,6 +23,16 @@ ALWAYS invoke the Caveman + Token Reducer skills as the **very first action** on
 before reading files, thinking, planning, or implementing, not just before replying. They are the
 first tool calls of your first turn. Stop only if told to.
 
+### User-visible changes — design & copy
+
+- **Before** writing or changing UI a user can see (markup/styles: `.tsx`/`.jsx`/`.scss`/`.css`/`.html`),
+  invoke the **frontend-design** skill and apply its principles. A PreToolUse hook reminds you on UI-file edits.
+- **After** all edits in a turn that add or change **user-facing copy** (rendered strings, content,
+  `data.ts` copy), invoke the **humanizer** skill on that copy to strip AI-writing tells — skip comments,
+  code, and identifiers. A Stop hook reminds you at end of turn. If no human-facing text changed, skip it.
+
+Both hooks live in [.claude/hooks/](.claude/hooks/), wired in [.claude/settings.json](.claude/settings.json).
+
 ## Stack
 
 - **React 18.3** + **TypeScript 5.5** (strict), **Vite 7**
