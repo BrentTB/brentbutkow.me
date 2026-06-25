@@ -31,12 +31,16 @@ export function buildAsciiGrid(
 ): AsciiGrid {
   const count = cols * rows
   const cells: AsciiGrid['cells'] = new Array(count)
+  // The ramp is paper-ordered (dense glyph = dark pixel). We draw light glyphs on
+  // a dark canvas, where a dense cluster reads as bright — the inverse of paper.
+  // So invert brightness by default to keep tone true; the `invert` option flips
+  // back to the negative look.
   for (let i = 0; i < count; i++) {
     const p = i * 4
     const r = pixels[p]
     const g = pixels[p + 1]
     const b = pixels[p + 2]
-    cells[i] = { char: brightnessToChar(luminance(r, g, b), ramp, invert), r, g, b }
+    cells[i] = { char: brightnessToChar(luminance(r, g, b), ramp, !invert), r, g, b }
   }
   return { cols, rows, cells }
 }

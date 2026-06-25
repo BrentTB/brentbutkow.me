@@ -1,8 +1,9 @@
 import { ChangeEvent, useRef } from 'react'
+import { SourceKind } from '../../ascii-art.types'
 import styles from './SourcePicker.module.scss'
 
 type SourcePickerProps = {
-  hasSource: boolean
+  sourceKind: SourceKind
   error: string | null
   onImage: (file: File) => void
   onVideo: (file: File) => void
@@ -11,7 +12,7 @@ type SourcePickerProps = {
 }
 
 export function SourcePicker({
-  hasSource,
+  sourceKind,
   error,
   onImage,
   onVideo,
@@ -20,6 +21,10 @@ export function SourcePicker({
 }: SourcePickerProps) {
   const imageInput = useRef<HTMLInputElement>(null)
   const videoInput = useRef<HTMLInputElement>(null)
+
+  const hasSource = sourceKind !== SourceKind.none
+  // The webcam is a live feed you stop; a file is a source you clear.
+  const resetLabel = sourceKind === SourceKind.webcam ? 'Stop' : 'Clear'
 
   const pick = (handler: (file: File) => void) => (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -41,7 +46,7 @@ export function SourcePicker({
         </button>
         {hasSource && (
           <button className={`${styles.button} ${styles.reset}`} onClick={onReset}>
-            Clear
+            {resetLabel}
           </button>
         )}
       </div>

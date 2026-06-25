@@ -16,7 +16,7 @@ describe('gridRows', () => {
 })
 
 describe('buildAsciiGrid', () => {
-  it('maps a black and a white pixel to the ramp ends, carrying RGB', () => {
+  it('maps a dark pixel to blank and a bright pixel to a dense glyph (light-on-dark)', () => {
     // Two pixels (RGBA): black then white.
     const pixels = new Uint8ClampedArray([0, 0, 0, 255, 255, 255, 255, 255])
     const grid = buildAsciiGrid(pixels, 2, 1, { ramp: Charset.classic, invert: false })
@@ -24,8 +24,17 @@ describe('buildAsciiGrid', () => {
     expect(grid.cols).toBe(2)
     expect(grid.rows).toBe(1)
     expect(grid.cells).toHaveLength(2)
+    // Dark pixel -> blank cell (last ramp char); bright pixel -> dense glyph (first).
+    expect(grid.cells[0].char).toBe(Charset.classic[Charset.classic.length - 1])
+    expect(grid.cells[1].char).toBe(Charset.classic[0])
+    expect(grid.cells[1]).toMatchObject({ r: 255, g: 255, b: 255 })
+  })
+
+  it('flips tone back to the paper/negative look when inverted', () => {
+    const pixels = new Uint8ClampedArray([0, 0, 0, 255, 255, 255, 255, 255])
+    const grid = buildAsciiGrid(pixels, 2, 1, { ramp: Charset.classic, invert: true })
+    // Dark pixel -> dense glyph; bright pixel -> blank.
     expect(grid.cells[0].char).toBe(Charset.classic[0])
     expect(grid.cells[1].char).toBe(Charset.classic[Charset.classic.length - 1])
-    expect(grid.cells[1]).toMatchObject({ r: 255, g: 255, b: 255 })
   })
 })
