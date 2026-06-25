@@ -20,8 +20,13 @@ export function renderGrid(
   ctx.fillStyle = bg
   ctx.fillRect(0, 0, width, height)
 
-  // Size the glyph so a monospace advance (~0.6em) fills one column.
-  ctx.font = `${cellW * 1.6}px ${ASCII_FONT}`
+  // Tone on a light canvas comes only from how much of each cell the glyph fills,
+  // so dark glyphs on white never read truly dark. Bolder, slightly larger glyphs
+  // add coverage and rescue the contrast. The dark canvas keeps its lean look.
+  const isLight = background === BackgroundMode.light
+  const weight = isLight ? 'bold ' : ''
+  const fontScale = isLight ? 1.75 : 1.6
+  ctx.font = `${weight}${cellW * fontScale}px ${ASCII_FONT}`
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
 
