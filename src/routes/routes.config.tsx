@@ -32,6 +32,11 @@ const NullSpace = lazy(() =>
     default: module.NullSpace,
   }))
 )
+const AsciiArt = lazy(() =>
+  import('../projects/AsciiArt/AsciiArt').then((module) => ({
+    default: module.AsciiArt,
+  }))
+)
 const RecallRadar = lazy(() =>
   import('../projects/RecallRadar/RecallRadar').then((module) => ({
     default: module.RecallRadar,
@@ -73,6 +78,14 @@ export const funStuffRoutes: AppRoute[] = [
     title: 'Null Space — Brent Butkow',
     description:
       'Null Space — a browser space-defense game where you bend space itself: launch meteors, open black holes, and warp reality to protect your ship.',
+  },
+  {
+    path: `${routePaths.funStuff}${funStuffSubRoutes.asciiArt}`,
+    element: <AsciiArt />,
+    dontShowInNavbar: true,
+    title: 'ASCII Art Studio — Brent Butkow',
+    description:
+      'ASCII Art Studio — turn a photo, video, or your webcam into live ASCII art entirely in your browser. A TypeScript port of Brent Butkow’s Python vidToAscii tool.',
   },
   {
     path: `${routePaths.funStuff}${funStuffSubRoutes.gulagSort}`,

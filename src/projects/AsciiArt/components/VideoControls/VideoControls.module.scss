@@ -1,0 +1,120 @@
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 760px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.play {
+  flex-shrink: 0;
+  width: 38px;
+  height: 34px;
+  font-size: 0.8rem;
+  color: var(--text);
+  background: var(--surface-strong);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease;
+
+  &:hover {
+    border-color: var(--accent);
+    background: rgba(var(--accent-rgb), 0.12);
+  }
+}
+
+.time {
+  flex-shrink: 0;
+  min-width: 38px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+// Thin progress line with a small accent thumb, in place of the chunky default.
+.scrubber {
+  flex: 1;
+  min-width: 90px;
+  height: 16px;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+
+  &::-webkit-slider-runnable-track {
+    height: 3px;
+    border-radius: 2px;
+    background: var(--border-strong);
+  }
+  &::-moz-range-track {
+    height: 3px;
+    border-radius: 2px;
+    background: var(--border-strong);
+  }
+
+  &::-webkit-slider-thumb {
+    appearance: none;
+    margin-top: -4.5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.18);
+  }
+  &::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border: none;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+}
+
+.speeds {
+  display: inline-flex;
+  flex-shrink: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  overflow: hidden;
+
+  button {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    background: transparent;
+    border: none;
+    padding: 6px 9px;
+    cursor: pointer;
+    transition:
+      background 0.18s ease,
+      color 0.18s ease;
+
+    &:hover {
+      color: var(--text);
+    }
+  }
+
+  .activeSpeed {
+    color: var(--on-accent);
+    background: var(--accent);
+  }
+}
+
+@media (max-width: 600px) {
+  .bar {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .scrubber {
+    order: 5;
+    flex-basis: 100%;
+  }
+}
