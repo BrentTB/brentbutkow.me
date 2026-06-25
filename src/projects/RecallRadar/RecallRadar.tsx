@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { PageLayout } from '../../components/PageFormatting/PageLayout'
 import { PageHeader } from '../../components/PageFormatting/PageHeader'
 import { SafeLink } from '../../components/utils/SafeLink'
@@ -97,6 +97,12 @@ const PAGE_SIZE = 20
 export function RecallRadar() {
   const { isFunMode } = useFunMode()
   const { values, patch: patchParams } = useQueryParamsState(DEFAULT_PARAMS)
+
+  // Warm the lazy RecallDetail chunk — the feed→detail click is reachable only from here, so its
+  // chunk is already fetched by the time it's clicked, while staying out of the initial bundle.
+  useEffect(() => {
+    void import('./RecallDetail')
+  }, [])
   // Drives the sticky bar: `collapsed` swaps the location tabs for a dropdown once scrolled;
   // `navHidden` (shared with the site navbar's auto-hide) decides whether the bar sits below the
   // retracting navbar or slides up to the top to fill the gap.
