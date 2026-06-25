@@ -46,12 +46,14 @@ describe('useAsciiArt', () => {
     act(() => result.current.setRows(90))
     act(() => result.current.setInvert(true))
     act(() => result.current.setRamp(Charset.blocks))
+    act(() => result.current.setMirror(false))
     expect(result.current.options).toMatchObject({
       colorMode: ColorMode.grayscale,
       background: BackgroundMode.light,
       rows: 90,
       invert: true,
       ramp: Charset.blocks,
+      mirror: false,
     })
   })
 
@@ -158,5 +160,17 @@ describe('useAsciiArt', () => {
     // runs once per render). Without the fix, no render happens until resume.
     act(() => result.current.setRows(90))
     expect(ctxByCanvas.get(canvasRef.current)?.fillRect).toHaveBeenCalled()
+  })
+
+  it('toggles video playback on spacebar', async () => {
+    const { result } = renderHook(() => useAsciiArt(canvasRef))
+    act(() => result.current.loadVideo(new File(['x'], 'clip.mp4', { type: 'video/mp4' })))
+    await act(async () => {}) // sourceKind -> video, paused in jsdom
+    expect(result.current.sourceKind).toBe('video')
+
+    const playMock = HTMLMediaElement.prototype.play as ReturnType<typeof vi.fn>
+    const before = playMock.mock.calls.length
+    act(() => window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space' })))
+    expect(playMock.mock.calls.length).toBeGreaterThan(before)
   })
 })

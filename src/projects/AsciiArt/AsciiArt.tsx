@@ -29,6 +29,7 @@ export function AsciiArt() {
     setRamp,
     setRows,
     setInvert,
+    setMirror,
   } = useAsciiArt(canvasRef, isFunMode ? ColorMode.color : ColorMode.grayscale)
 
   const hasSource = sourceKind !== SourceKind.none
@@ -77,11 +78,13 @@ export function AsciiArt() {
       {hasSource && (
         <Controls
           options={options}
+          sourceKind={sourceKind}
           onColorMode={setColorMode}
           onBackground={setBackground}
           onRamp={setRamp}
           onRows={setRows}
           onInvert={setInvert}
+          onMirror={setMirror}
         />
       )}
 

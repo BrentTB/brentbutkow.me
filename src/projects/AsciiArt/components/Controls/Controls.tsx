@@ -1,26 +1,30 @@
 import { ChangeEvent } from 'react'
-import { BackgroundMode, ColorMode } from '../../ascii-art.types'
+import { BackgroundMode, ColorMode, SourceKind } from '../../ascii-art.types'
 import { AsciiOptions, Charset, CharsetName, MAX_ROWS, MIN_ROWS } from '../../data'
 import styles from './Controls.module.scss'
 
 type ControlsProps = {
   options: AsciiOptions
+  sourceKind: SourceKind
   onColorMode: (mode: ColorMode) => void
   onBackground: (background: BackgroundMode) => void
   onRamp: (ramp: string) => void
   onRows: (rows: number) => void
   onInvert: (invert: boolean) => void
+  onMirror: (mirror: boolean) => void
 }
 
 const charsetNames = Object.keys(Charset) as CharsetName[]
 
 export function Controls({
   options,
+  sourceKind,
   onColorMode,
   onBackground,
   onRamp,
   onRows,
   onInvert,
+  onMirror,
 }: ControlsProps) {
   const handleRows = (e: ChangeEvent<HTMLInputElement>) => onRows(Number(e.target.value))
   const handleRamp = (e: ChangeEvent<HTMLSelectElement>) =>
@@ -98,6 +102,17 @@ export function Controls({
         />
         <span className={styles.label}>Invert</span>
       </label>
+
+      {sourceKind === SourceKind.webcam && (
+        <label className={`${styles.group} ${styles.checkbox}`}>
+          <input
+            type="checkbox"
+            checked={options.mirror}
+            onChange={(e) => onMirror(e.target.checked)}
+          />
+          <span className={styles.label}>Mirror</span>
+        </label>
+      )}
     </div>
   )
 }

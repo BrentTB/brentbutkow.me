@@ -6,6 +6,9 @@ import { luminance } from './luminance'
 type FrameOptions = {
   ramp: string
   invert: boolean
+  // Negate the carried RGB so color mode reads as a true photo negative. Keyed
+  // off the user's invert, separate from the background-resolved `invert` above.
+  invertColor?: boolean
 }
 
 // The ramp is paper-ordered (dense glyph = dark). On a dark canvas, light glyphs
@@ -36,18 +39,20 @@ export function buildAsciiGrid(
   pixels: Uint8ClampedArray,
   cols: number,
   rows: number,
-  { ramp, invert }: FrameOptions
+  { ramp, invert, invertColor = false }: FrameOptions
 ): AsciiGrid {
   const count = cols * rows
   const cells: AsciiGrid['cells'] = new Array(count)
   // `invert` here is the already-resolved brightness polarity (see
-  // shouldInvertBrightness) — apply it straight through.
+  // shouldInvertBrightness). The glyph reads original brightness; color may be
+  // negated independently for the photo-negative look.
   for (let i = 0; i < count; i++) {
     const p = i * 4
     const r = pixels[p]
     const g = pixels[p + 1]
     const b = pixels[p + 2]
-    cells[i] = { char: brightnessToChar(luminance(r, g, b), ramp, invert), r, g, b }
+    const char = brightnessToChar(luminance(r, g, b), ramp, invert)
+    cells[i] = invertColor ? { char, r: 255 - r, g: 255 - g, b: 255 - b } : { char, r, g, b }
   }
   return { cols, rows, cells }
 }

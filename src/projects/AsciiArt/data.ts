@@ -44,6 +44,8 @@ export type AsciiOptions = {
   ramp: string
   rows: number
   invert: boolean
+  // Mirror the webcam left-to-right (selfie view); ignored for other sources.
+  mirror: boolean
 }
 
 export const defaultOptions = (colorMode: ColorMode): AsciiOptions => ({
@@ -52,4 +54,5 @@ export const defaultOptions = (colorMode: ColorMode): AsciiOptions => ({
   ramp: Charset.classic,
   rows: DEFAULT_ROWS,
   invert: false,
+  mirror: true,
 })

@@ -153,7 +153,7 @@ export function useAsciiArt(
     const dctx = display.getContext('2d')
     if (!sctx || !dctx) return
 
-    const { ramp, invert, colorMode, background, rows: rawRows } = optionsRef.current
+    const { ramp, invert, colorMode, background, mirror, rows: rawRows } = optionsRef.current
     const rows = clamp(Math.round(rawRows), MIN_ROWS, MAX_ROWS)
     const cols = clamp(gridCols(rows, w, h), MIN_COLS, MAX_COLS)
     if (cols < 1 || rows < 1) return
@@ -173,10 +173,19 @@ export function useAsciiArt(
     sample.width = cols
     sample.height = rows
     try {
+      // Mirror the webcam (selfie view) by flipping the sample horizontally.
+      const flip = mirror && sourceKindRef.current === SourceKind.webcam
+      if (flip) {
+        sctx.save()
+        sctx.translate(cols, 0)
+        sctx.scale(-1, 1)
+      }
       sctx.drawImage(src, 0, 0, cols, rows)
+      if (flip) sctx.restore()
       const grid = buildAsciiGrid(sctx.getImageData(0, 0, cols, rows).data, cols, rows, {
         ramp,
         invert: shouldInvertBrightness(background, invert),
+        invertColor: invert,
       })
       display.width = Math.round(canvasW)
       display.height = Math.round(canvasH)
@@ -338,6 +347,7 @@ export function useAsciiArt(
   const setRamp = useCallback((ramp: string) => setOptions((o) => ({ ...o, ramp })), [])
   const setRows = useCallback((rows: number) => setOptions((o) => ({ ...o, rows })), [])
   const setInvert = useCallback((invert: boolean) => setOptions((o) => ({ ...o, invert })), [])
+  const setMirror = useCallback((mirror: boolean) => setOptions((o) => ({ ...o, mirror })), [])
 
   // Track the stage box so the canvas keeps a constant on-screen size; redraw on
   // resize (covers still images and paused video — the loop handles live frames).
@@ -381,6 +391,30 @@ export function useAsciiArt(
     return () => document.removeEventListener('visibilitychange', onVisibility)
   }, [startLoop, stopLoop])
 
+  // Spacebar toggles video playback, unless focus is on a control (so it doesn't
+  // hijack buttons, sliders, or text fields).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code !== 'Space' && e.key !== ' ') return
+      if (sourceKindRef.current !== SourceKind.video) return
+      const el = document.activeElement as HTMLElement | null
+      const tag = el?.tagName
+      if (
+        tag === 'INPUT' ||
+        tag === 'TEXTAREA' ||
+        tag === 'SELECT' ||
+        tag === 'BUTTON' ||
+        el?.isContentEditable
+      ) {
+        return
+      }
+      e.preventDefault()
+      togglePlay()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [togglePlay])
+
   useEffect(
     () => () => {
       teardownSource()
@@ -406,5 +440,6 @@ export function useAsciiArt(
     setRamp,
     setRows,
     setInvert,
+    setMirror,
   }
 }

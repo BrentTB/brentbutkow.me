@@ -37,6 +37,16 @@ describe('buildAsciiGrid', () => {
     expect(grid.cells[0].char).toBe(Charset.classic[Charset.classic.length - 1])
     expect(grid.cells[1].char).toBe(Charset.classic[0])
   })
+
+  it('negates the carried RGB when invertColor is set', () => {
+    const pixels = new Uint8ClampedArray([10, 20, 30, 255])
+    const grid = buildAsciiGrid(pixels, 1, 1, {
+      ramp: Charset.classic,
+      invert: false,
+      invertColor: true,
+    })
+    expect(grid.cells[0]).toMatchObject({ r: 245, g: 235, b: 225 })
+  })
 })
 
 describe('shouldInvertBrightness', () => {
