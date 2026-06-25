@@ -1,0 +1,74 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 24px 0 48px;
+}
+
+.intro {
+  text-align: center;
+  max-width: 640px;
+}
+
+.title {
+  margin: 0 0 8px;
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+}
+
+.tagline {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.link {
+  color: var(--accent);
+
+  &:hover {
+    color: var(--accent-strong);
+  }
+}
+
+.stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 240px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elevated);
+}
+
+.canvas {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  // Crisp character edges instead of bilinear smear when the canvas is scaled.
+  image-rendering: pixelated;
+  border-radius: var(--radius);
+
+  // Fun mode gives the output a warm glow; Professional mode stays clean.
+  :global(html.fun-mode) & {
+    box-shadow: 0 0 28px -4px rgba(var(--accent-rgb), 0.45);
+  }
+}
+
+.empty {
+  margin: 0;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+}
+
+.privacy {
+  margin: 0;
+  max-width: 560px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.85rem;
+}

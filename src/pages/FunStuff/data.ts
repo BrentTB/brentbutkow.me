@@ -4,6 +4,7 @@ export const funStuffSubRoutes = {
   gulagSort: '/gulag-sort',
   courseProjects: '/course-projects',
   games: '/games',
+  asciiArt: '/ascii-art',
 }
 
 export const funStuff: FunItem[] = [
@@ -11,6 +12,12 @@ export const funStuff: FunItem[] = [
     title: 'Games',
     description: 'Space games and other interactive experiments (playable right in your browser)',
     link: funStuffSubRoutes.games,
+  },
+  {
+    title: 'ASCII Art Studio',
+    description:
+      'Turn a photo, video, or your webcam into live ASCII art — all in your browser. A TypeScript port of my Python vidToAscii tool',
+    link: funStuffSubRoutes.asciiArt,
   },
   {
     title: 'Gulag Sort',
