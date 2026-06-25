@@ -350,10 +350,11 @@ export function useAsciiArt(
     return () => observer.disconnect()
   }, [canvasRef, sourceKind])
 
-  // A still image doesn't loop, so re-render it when an option changes.
+  // When the loop isn't driving frames (a still image, or paused video/webcam),
+  // re-render on option changes so resolution etc. update live — not just on resume.
   useEffect(() => {
-    if (sourceKind === SourceKind.image) renderFrame()
-  }, [options, sourceKind, renderFrame])
+    if (sourceKind !== SourceKind.none && !playback.isPlaying) renderFrame()
+  }, [options, sourceKind, playback.isPlaying, renderFrame])
 
   // Pause the loop (and audio) while the tab is hidden; resume only what was
   // playing, so a user-paused video stays paused on return.

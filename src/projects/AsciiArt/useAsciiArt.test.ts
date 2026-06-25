@@ -112,4 +112,49 @@ describe('useAsciiArt', () => {
     act(() => video?.dispatchEvent(new Event('error')))
     expect(loadMock.mock.calls.length).toBeGreaterThan(before)
   })
+
+  // Guards the paused-video redraw: changing resolution while paused must repaint
+  // the canvas, not wait for the user to press play.
+  it('re-renders a paused video when an option changes', async () => {
+    let video: HTMLVideoElement | undefined
+    const realCreate = document.createElement.bind(document)
+    vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+      const el = realCreate(tag)
+      if (tag === 'video') video = el as HTMLVideoElement
+      return el
+    })
+    // Fake 2D contexts so renderFrame's draw calls are observable in jsdom.
+    const ctxByCanvas = new WeakMap<HTMLCanvasElement, Record<string, ReturnType<typeof vi.fn>>>()
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(function (
+      this: HTMLCanvasElement
+    ) {
+      let ctx = ctxByCanvas.get(this)
+      if (!ctx) {
+        ctx = {
+          canvas: this as unknown as ReturnType<typeof vi.fn>,
+          drawImage: vi.fn(),
+          fillRect: vi.fn(),
+          fillText: vi.fn(),
+          clearRect: vi.fn(),
+          getImageData: vi.fn((_x: number, _y: number, w: number, h: number) => ({
+            data: new Uint8ClampedArray(Math.max(0, w * h * 4)),
+          })),
+        }
+        ctxByCanvas.set(this, ctx)
+      }
+      return ctx as unknown as CanvasRenderingContext2D
+    })
+
+    const { result } = renderHook(() => useAsciiArt(canvasRef))
+    act(() => result.current.loadVideo(new File(['x'], 'clip.mp4', { type: 'video/mp4' })))
+    await act(async () => {}) // sourceKind -> video, paused (no 'play' event in jsdom)
+    // jsdom videos report 0x0; give it real dimensions so renderFrame proceeds.
+    Object.defineProperty(video, 'videoWidth', { value: 320, configurable: true })
+    Object.defineProperty(video, 'videoHeight', { value: 240, configurable: true })
+
+    // Changing resolution on the paused video must repaint the canvas (fillRect
+    // runs once per render). Without the fix, no render happens until resume.
+    act(() => result.current.setRows(90))
+    expect(ctxByCanvas.get(canvasRef.current)?.fillRect).toHaveBeenCalled()
+  })
 })
