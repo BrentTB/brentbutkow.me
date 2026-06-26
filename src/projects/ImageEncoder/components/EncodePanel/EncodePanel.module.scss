@@ -89,6 +89,34 @@
   font-size: 0.9rem;
 }
 
+// Offered when the message overflows the current base but a higher one fits.
+.swap {
+  align-self: flex-start;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.1);
+  border: 1px solid rgba(var(--accent-rgb), 0.4);
+  border-radius: var(--radius);
+  padding: 9px 16px;
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease;
+
+  &:hover {
+    background: rgba(var(--accent-rgb), 0.18);
+    border-color: var(--accent);
+  }
+}
+
+.tooBig {
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
 .result {
   @include card-base;
   gap: 16px;

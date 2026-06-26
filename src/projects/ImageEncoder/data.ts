@@ -42,5 +42,5 @@ export const copy = {
     'Hide a secret message inside an image by nudging its colors. Drop in a photo, type your text, and download a picture that looks the same but carries your words. Everything stays in your browser.',
   taglineFun:
     "Smuggle secrets inside a picture! Tweak the colors a hair, hide your words in the pixels, and nobody's the wiser. All of it runs right here in your browser.",
-  privacy: 'Your images and messages never leave your device. There is no server.',
+  privacy: 'Your images and messages never leave your device.',
 }

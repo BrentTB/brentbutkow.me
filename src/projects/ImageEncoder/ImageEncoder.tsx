@@ -1,7 +1,7 @@
+import { useState } from 'react'
 import { BackButton } from '../../components/PageFormatting/BackButton'
 import { useFunMode } from '../../contexts/useFunMode'
 import { Mode } from './image-encoder.types'
-import { useImageEncoder } from './useImageEncoder'
 import { copy } from './data'
 import { Segmented } from './components/Segmented/Segmented'
 import { EncodePanel } from './components/EncodePanel/EncodePanel'
@@ -16,7 +16,9 @@ const modeSegments = [
 
 export function ImageEncoder() {
   const { isFunMode } = useFunMode()
-  const encoder = useImageEncoder()
+  // Both panels stay mounted; switching tabs only changes which one is shown, so
+  // each keeps its own image, message, and result.
+  const [mode, setMode] = useState<Mode>(Mode.encode)
 
   return (
     <div className={styles.wrapper}>
@@ -30,44 +32,16 @@ export function ImageEncoder() {
       <Segmented
         ariaLabel="Hide or reveal a message"
         options={modeSegments}
-        value={encoder.mode}
-        onChange={encoder.setMode}
+        value={mode}
+        onChange={setMode}
       />
 
-      {encoder.mode === Mode.encode ? (
-        <EncodePanel
-          source={encoder.source}
-          message={encoder.message}
-          base={encoder.base}
-          useKey={encoder.useKey}
-          passphrase={encoder.passphrase}
-          capacity={encoder.capacity}
-          encoded={encoder.encoded}
-          diffUrl={encoder.diffUrl}
-          showDiff={encoder.showDiff}
-          busy={encoder.busy}
-          error={encoder.error}
-          onFile={encoder.loadImage}
-          onMessage={encoder.setMessage}
-          onBase={encoder.setBase}
-          onToggleKey={encoder.setUseKey}
-          onPassphrase={encoder.setPassphrase}
-          onEncode={encoder.runEncode}
-          onDownload={encoder.downloadEncoded}
-          onShowDiff={encoder.setShowDiff}
-        />
-      ) : (
-        <DecodePanel
-          source={encoder.source}
-          decoded={encoder.decoded}
-          passphrase={encoder.passphrase}
-          busy={encoder.busy}
-          error={encoder.error}
-          onFile={encoder.loadImage}
-          onPassphrase={encoder.setPassphrase}
-          onSubmitKey={encoder.submitKey}
-        />
-      )}
+      <div className={styles.panelHost} hidden={mode !== Mode.encode}>
+        <EncodePanel />
+      </div>
+      <div className={styles.panelHost} hidden={mode !== Mode.decode}>
+        <DecodePanel />
+      </div>
 
       <HowItWorks />
 

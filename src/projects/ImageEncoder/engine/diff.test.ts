@@ -14,18 +14,19 @@ function solid(width: number, height: number, value: number): RasterImage {
 }
 
 describe('buildDiff', () => {
-  it('reports no change and a flat backdrop for identical images', () => {
-    const image = solid(4, 4, 200)
-    const { raster, stats } = buildDiff(image, solid(4, 4, 200))
+  it('reports no change and leaves untouched pixels exactly as they were', () => {
+    const image = solid(4, 4, 120)
+    const { raster, stats } = buildDiff(image, solid(4, 4, 120))
     expect(stats.changedChannels).toBe(0)
     expect(stats.changedPixels).toBe(0)
     expect(stats.totalChannels).toBe(4 * 4 * 3)
-    // Unchanged pixels render as neutral grey (r === g === b).
-    expect(raster.data[0]).toBe(raster.data[1])
-    expect(raster.data[1]).toBe(raster.data[2])
+    // Unchanged pixels keep their original color, so the photo stays recognizable.
+    expect(raster.data[0]).toBe(120)
+    expect(raster.data[1]).toBe(120)
+    expect(raster.data[2]).toBe(120)
   })
 
-  it('glows on the channels that moved', () => {
+  it('tints touched pixels toward the accent while leaving the rest intact', () => {
     const before = solid(2, 1, 100)
     const after = solid(2, 1, 100)
     after.data[0] = 101 // nudge the first pixel's red channel only
@@ -33,9 +34,12 @@ describe('buildDiff', () => {
     const { raster, stats } = buildDiff(before, after)
     expect(stats.changedChannels).toBe(1)
     expect(stats.changedPixels).toBe(1)
-    // The touched pixel takes on the accent tint, so it is no longer neutral grey.
-    expect(raster.data[0]).not.toBe(raster.data[1])
-    // The untouched pixel stays neutral.
-    expect(raster.data[4]).toBe(raster.data[5])
+    // The touched pixel shifts off its original value and leans warm (gold).
+    expect(raster.data[0]).not.toBe(100)
+    expect(raster.data[0]).toBeGreaterThan(raster.data[2])
+    // The untouched pixel is preserved exactly.
+    expect(raster.data[4]).toBe(100)
+    expect(raster.data[5]).toBe(100)
+    expect(raster.data[6]).toBe(100)
   })
 })

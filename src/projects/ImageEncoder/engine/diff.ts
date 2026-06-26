@@ -1,12 +1,17 @@
-// Builds a heatmap of what the encoder touched: the original is dimmed to a near
-// charcoal backdrop, and any pixel whose channels moved glows in the accent gold,
-// brighter the more it shifted. This is the "look how little changed" reveal.
+// Builds a "what changed" view of the encode. The original image shows through
+// at full color so it stays recognizable; any pixel the encoder touched is
+// tinted toward the accent gold, stronger the more its channels moved. Untouched
+// pixels are left exactly as they were, so the carrier region reads as a gold
+// wash over the real picture rather than a solid block.
 
 import { RasterImage } from '../image-encoder.types'
 
-// Mirrors --accent so the heatmap reads as part of the site's palette.
+// Mirrors --accent so the tint reads as part of the site's palette.
 const ACCENT: readonly [number, number, number] = [233, 184, 114]
-const BACKDROP_DIM = 0.22
+// A touched pixel keeps at least this much of itself, so the photo stays visible.
+const MIN_TINT = 0.2
+const MAX_TINT = 0.5
+const TINT_PER_STEP = 0.12
 
 export interface DiffStats {
   changedPixels: number
@@ -31,18 +36,16 @@ export function buildDiff(
     const delta = dr + dg + db
     changedChannels += (dr > 0 ? 1 : 0) + (dg > 0 ? 1 : 0) + (db > 0 ? 1 : 0)
 
-    const backdrop =
-      (0.299 * before[i] + 0.587 * before[i + 1] + 0.114 * before[i + 2]) * BACKDROP_DIM
     if (delta > 0) {
       changedPixels++
-      const glow = Math.min(1, 0.45 + delta * 0.14)
-      out[i] = backdrop * (1 - glow) + ACCENT[0] * glow
-      out[i + 1] = backdrop * (1 - glow) + ACCENT[1] * glow
-      out[i + 2] = backdrop * (1 - glow) + ACCENT[2] * glow
+      const tint = Math.min(MAX_TINT, MIN_TINT + delta * TINT_PER_STEP)
+      out[i] = before[i] * (1 - tint) + ACCENT[0] * tint
+      out[i + 1] = before[i + 1] * (1 - tint) + ACCENT[1] * tint
+      out[i + 2] = before[i + 2] * (1 - tint) + ACCENT[2] * tint
     } else {
-      out[i] = backdrop
-      out[i + 1] = backdrop
-      out[i + 2] = backdrop
+      out[i] = before[i]
+      out[i + 1] = before[i + 1]
+      out[i + 2] = before[i + 2]
     }
     out[i + 3] = 255
   }

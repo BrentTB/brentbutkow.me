@@ -1,45 +1,46 @@
-import { DecodedInfo, SourceInfo } from '../../useImageEncoder'
+import { useEffect, useRef, useState } from 'react'
 import { baseOptions } from '../../data'
+import { useDecoder } from '../../useDecoder'
 import { ImageDropper } from '../ImageDropper/ImageDropper'
 import { PasswordInput } from '../PasswordInput/PasswordInput'
 import styles from './DecodePanel.module.scss'
 
-interface DecodePanelProps {
-  source: SourceInfo | null
-  decoded: DecodedInfo | null
-  passphrase: string
-  busy: boolean
-  error: string | null
-  onFile: (file: File) => void
-  onPassphrase: (value: string) => void
-  onSubmitKey: () => void
-}
+export function DecodePanel() {
+  const dec = useDecoder()
+  const decoded = dec.decoded
+  const [copied, setCopied] = useState(false)
+  const copyTimer = useRef<number | null>(null)
 
-export function DecodePanel({
-  source,
-  decoded,
-  passphrase,
-  busy,
-  error,
-  onFile,
-  onPassphrase,
-  onSubmitKey,
-}: DecodePanelProps) {
+  useEffect(() => () => window.clearTimeout(copyTimer.current ?? undefined), [])
+
   const baseLabel = decoded
     ? baseOptions.find((option) => option.value === decoded.base)?.label
     : null
+
+  const copyMessage = () => {
+    const text = decoded?.text
+    if (!text) return
+    navigator.clipboard
+      ?.writeText(text)
+      .then(() => {
+        setCopied(true)
+        window.clearTimeout(copyTimer.current ?? undefined)
+        copyTimer.current = window.setTimeout(() => setCopied(false), 1500)
+      })
+      .catch(() => {})
+  }
 
   return (
     <div className={styles.panel}>
       <ImageDropper
         label="Add an image to read"
         hint="Drag in a PNG made here, or click to choose"
-        previewUrl={source?.previewUrl ?? null}
-        busy={busy}
-        onFile={onFile}
+        previewUrl={dec.source?.previewUrl ?? null}
+        busy={dec.busy}
+        onFile={dec.loadImage}
       />
 
-      {error && <p className={styles.error}>{error}</p>}
+      {dec.error && <p className={styles.error}>{dec.error}</p>}
 
       {decoded?.needsKey && (
         <div className={styles.locked}>
@@ -50,19 +51,19 @@ export function DecodePanel({
           <div className={styles.keyRow}>
             <div className={styles.keyInputWrap}>
               <PasswordInput
-                value={passphrase}
+                value={dec.passphrase}
                 placeholder="Secret key"
-                onChange={onPassphrase}
-                onEnter={onSubmitKey}
+                onChange={dec.setPassphrase}
+                onEnter={dec.submitKey}
               />
             </div>
             <button
               type="button"
               className={styles.primary}
-              onClick={onSubmitKey}
-              disabled={busy || passphrase.length === 0}
+              onClick={dec.submitKey}
+              disabled={dec.busy || dec.passphrase.length === 0}
             >
-              {busy ? 'Unlocking…' : 'Unlock'}
+              {dec.busy ? 'Unlocking…' : 'Unlock'}
             </button>
           </div>
         </div>
@@ -74,9 +75,12 @@ export function DecodePanel({
             <span className={styles.revealTitle}>
               <span aria-hidden="true">🔓</span> Hidden message
             </span>
-            <span className={styles.badges}>
+            <span className={styles.revealMeta}>
               {decoded.encrypted && <span className={styles.badge}>encrypted</span>}
               {baseLabel && <span className={styles.badge}>{baseLabel.toLowerCase()}</span>}
+              <button type="button" className={styles.copyBtn} onClick={copyMessage}>
+                {copied ? 'Copied' : 'Copy'}
+              </button>
             </span>
           </div>
           <p className={styles.message}>{decoded.text}</p>
