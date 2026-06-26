@@ -10,6 +10,7 @@ import { encodeInWorker } from './codec-worker-client'
 import { downloadBlob } from '../../components/utils/download'
 import { AES_GCM_TAG_BYTES, DEFAULT_BASE, ENCODED_FILENAME } from './data'
 import { useObjectUrls } from './useObjectUrls'
+import { useLatestRequest } from './useLatestRequest'
 
 const encoder = new TextEncoder()
 
@@ -65,6 +66,10 @@ export function useEncoder() {
   // loading a new cover doesn't revoke the chosen file's preview (and vice versa).
   const { track, revokeAll } = useObjectUrls()
   const secretUrls = useObjectUrls()
+  // Separate trackers: the cover load and the encode share a pipeline (a new
+  // cover supersedes a running encode), but a secret-file read is independent.
+  const beginCoverRequest = useLatestRequest()
+  const beginSecretRequest = useLatestRequest()
   const sourceRasterRef = useRef<RasterImage | null>(null)
   const secretBytesRef = useRef<Uint8Array | null>(null)
   const encodedBlobRef = useRef<Blob | null>(null)
@@ -78,10 +83,12 @@ export function useEncoder() {
 
   const loadImage = useCallback(
     async (file: File) => {
+      const isStale = beginCoverRequest()
       setBusy(true)
       setError(null)
       try {
         const { raster, previewBlob } = await fileToImage(file)
+        if (isStale()) return
         revokeAll()
         clearResult()
         sourceRasterRef.current = raster
@@ -91,19 +98,21 @@ export function useEncoder() {
           height: raster.height,
         })
       } catch {
-        setError('Could not read that image. Try a PNG or JPEG.')
+        if (!isStale()) setError('Could not read that image. Try a PNG or JPEG.')
       } finally {
-        setBusy(false)
+        if (!isStale()) setBusy(false)
       }
     },
-    [revokeAll, clearResult, track]
+    [revokeAll, clearResult, track, beginCoverRequest]
   )
 
   const loadSecretFile = useCallback(
     async (file: File) => {
+      const isStale = beginSecretRequest()
       setError(null)
       try {
         const buffer = await file.arrayBuffer()
+        if (isStale()) return
         secretBytesRef.current = new Uint8Array(buffer)
         secretUrls.revokeAll()
         const previewUrl = file.type.startsWith('image/')
@@ -112,10 +121,10 @@ export function useEncoder() {
         setSecretFile({ name: file.name, size: file.size, previewUrl })
         clearResult()
       } catch {
-        setError('Could not read that file.')
+        if (!isStale()) setError('Could not read that file.')
       }
     },
-    [secretUrls, clearResult]
+    [secretUrls, clearResult, beginSecretRequest]
   )
 
   const runEncode = useCallback(async () => {
@@ -146,6 +155,7 @@ export function useEncoder() {
       return
     }
 
+    const isStale = beginCoverRequest()
     setBusy(true)
     setError(null)
     clearResult()
@@ -172,21 +182,33 @@ export function useEncoder() {
       })
 
       const blob = await rasterToPngBlob(stego)
-      encodedBlobRef.current = blob
       const diffBlob = await rasterToPngBlob(diff)
-
+      if (isStale()) return
+      encodedBlobRef.current = blob
       setEncoded({ url: track(URL.createObjectURL(blob)), stats })
       setDiffUrl(track(URL.createObjectURL(diffBlob)))
     } catch (cause) {
+      if (isStale()) return
       setError(
         cause instanceof CapacityExceededError
           ? 'This is too big for that image. Try a larger image, a higher density, or a smaller payload.'
           : 'Something went wrong while encoding.'
       )
     } finally {
-      setBusy(false)
+      if (!isStale()) setBusy(false)
     }
-  }, [payloadMode, message, secretFile, base, spread, useKey, passphrase, clearResult, track])
+  }, [
+    payloadMode,
+    message,
+    secretFile,
+    base,
+    spread,
+    useKey,
+    passphrase,
+    clearResult,
+    track,
+    beginCoverRequest,
+  ])
 
   const downloadEncoded = useCallback(() => {
     if (encodedBlobRef.current) downloadBlob(encodedBlobRef.current, ENCODED_FILENAME)

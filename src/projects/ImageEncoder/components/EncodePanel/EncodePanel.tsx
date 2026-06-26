@@ -40,6 +40,9 @@ export function EncodePanel() {
       ? (enc.encoded.stats.changedChannels / enc.encoded.stats.totalChannels) * 100
       : 0
 
+  // The "Changes" view needs a diff image; without one, fall back to the result.
+  const showingDiff = enc.showDiff && enc.diffUrl !== null
+
   return (
     <div className={styles.panel}>
       <ImageDropper
@@ -157,19 +160,21 @@ export function EncodePanel() {
         <div className={styles.result}>
           <div className={styles.resultHead}>
             <h2 className={styles.resultTitle}>Your encoded image</h2>
-            <Segmented
-              ariaLabel="Preview mode"
-              options={viewSegments}
-              value={enc.showDiff ? 'changes' : 'result'}
-              onChange={(value) => enc.setShowDiff(value === 'changes')}
-            />
+            {enc.diffUrl && (
+              <Segmented
+                ariaLabel="Preview mode"
+                options={viewSegments}
+                value={showingDiff ? 'changes' : 'result'}
+                onChange={(value) => enc.setShowDiff(value === 'changes')}
+              />
+            )}
           </div>
 
           <div className={styles.stage}>
             <img
-              src={(enc.showDiff ? enc.diffUrl : enc.encoded.url) ?? enc.encoded.url}
+              src={enc.showDiff && enc.diffUrl ? enc.diffUrl : enc.encoded.url}
               alt={
-                enc.showDiff
+                showingDiff
                   ? 'The original image with changed pixels tinted gold'
                   : 'The encoded image'
               }

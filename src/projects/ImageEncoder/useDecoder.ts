@@ -6,6 +6,7 @@ import { fileToImage } from './canvas-image'
 import { decodeInWorker } from './codec-worker-client'
 import { downloadBlob } from '../../components/utils/download'
 import { useObjectUrls } from './useObjectUrls'
+import { useLatestRequest } from './useLatestRequest'
 
 const decoder = new TextDecoder()
 
@@ -37,6 +38,7 @@ export function useDecoder() {
   const [error, setError] = useState<string | null>(null)
 
   const { track, revokeAll } = useObjectUrls()
+  const beginRequest = useLatestRequest()
   const fileBlobRef = useRef<Blob | null>(null)
   const pendingRef = useRef<{
     payload: Uint8Array
@@ -85,8 +87,9 @@ export function useDecoder() {
   )
 
   const decodeRaster = useCallback(
-    async (raster: RasterImage) => {
+    async (raster: RasterImage, isStale: () => boolean) => {
       const found = await decodeInWorker(raster)
+      if (isStale()) return
       if (!found) {
         setDecoded(null)
         setError('No hidden message found in this image.')
@@ -122,10 +125,12 @@ export function useDecoder() {
 
   const loadImage = useCallback(
     async (file: File) => {
+      const isStale = beginRequest()
       setBusy(true)
       setError(null)
       try {
         const { raster, previewBlob } = await fileToImage(file)
+        if (isStale()) return
         revokeAll()
         fileBlobRef.current = null
         pendingRef.current = null
@@ -135,14 +140,14 @@ export function useDecoder() {
           width: raster.width,
           height: raster.height,
         })
-        await decodeRaster(raster)
+        await decodeRaster(raster, isStale)
       } catch {
-        setError('Could not read that image. Try a PNG or JPEG.')
+        if (!isStale()) setError('Could not read that image. Try a PNG or JPEG.')
       } finally {
-        setBusy(false)
+        if (!isStale()) setBusy(false)
       }
     },
-    [revokeAll, track, decodeRaster]
+    [revokeAll, track, decodeRaster, beginRequest]
   )
 
   const submitKey = useCallback(async () => {
@@ -152,21 +157,24 @@ export function useDecoder() {
       setError('Enter the key for this image.')
       return
     }
+    const isStale = beginRequest()
     setBusy(true)
     setError(null)
     try {
       const plain = await decryptMessage(pending.payload, passphrase, pending.salt, pending.iv)
+      if (isStale()) return
       presentEnvelope(pending.base, true, plain)
     } catch (cause) {
+      if (isStale()) return
       setError(
         cause instanceof WrongKeyError
           ? 'That key did not work. Check it and try again.'
           : 'Could not unlock this message.'
       )
     } finally {
-      setBusy(false)
+      if (!isStale()) setBusy(false)
     }
-  }, [passphrase, presentEnvelope])
+  }, [passphrase, presentEnvelope, beginRequest])
 
   const downloadFile = useCallback(() => {
     if (fileBlobRef.current && decoded?.fileName) {

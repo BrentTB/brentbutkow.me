@@ -107,6 +107,55 @@ describe('useDecoder', () => {
     expect(result.current.error).toMatch(/no hidden message/i)
   })
 
+  it('keeps the newest decode when an older request resolves last', async () => {
+    // Both decodes are held in flight, then resolved out of order (older one
+    // last). Without latest-request guarding, the stale older result would
+    // clobber the newer one. fileToImage is deferred too, so the older request
+    // reaches its decode before the newer request begins.
+    const fileResolvers: Array<() => void> = []
+    fileToImageMock.mockImplementation(
+      () =>
+        new Promise((resolve) =>
+          fileResolvers.push(() => resolve(loaded(makeCover(64, 64), 64, 64)))
+        )
+    )
+    const decodeResolvers: Array<(found: ReturnType<typeof extractPayload>) => void> = []
+    decodeInWorkerMock.mockImplementation(
+      () => new Promise((resolve) => decodeResolvers.push(resolve))
+    )
+
+    const envelope = (text: string) =>
+      packPayload({ kind: PayloadKind.text, name: '', bytes: new TextEncoder().encode(text) })
+    const found = (text: string) => ({
+      base: Base.binary,
+      encrypted: false,
+      payload: envelope(text),
+      salt: null,
+      iv: null,
+    })
+
+    const { result } = renderHook(() => useDecoder())
+    const older = new File(['a'], 'older.png', { type: 'image/png' })
+    const newer = new File(['b'], 'newer.png', { type: 'image/png' })
+
+    await act(async () => {
+      result.current.loadImage(older)
+      fileResolvers[0]()
+    })
+    expect(decodeResolvers).toHaveLength(1) // older's decode is in flight
+
+    await act(async () => {
+      result.current.loadImage(newer)
+      fileResolvers[1]()
+    })
+    expect(decodeResolvers).toHaveLength(2) // newer's decode joins it
+
+    await act(async () => decodeResolvers[1](found('newer')))
+    await act(async () => decodeResolvers[0](found('older')))
+
+    expect(result.current.decoded?.text).toBe('newer')
+  })
+
   it('flags an encrypted message as needing a key', async () => {
     const stego = embedPayload(makeCover(64, 64), 64, 64, new Uint8Array([1, 2, 3, 4, 5]), {
       base: Base.binary,
