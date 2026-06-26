@@ -17,3 +17,10 @@ export type Mode = (typeof Mode)[keyof typeof Mode]
 export function isBase(value: number): value is Base {
   return value === Base.binary || value === Base.ternary || value === Base.quaternary
 }
+
+// Decoded RGBA pixels (interleaved, alpha included) plus their dimensions.
+export interface RasterImage {
+  data: Uint8ClampedArray
+  width: number
+  height: number
+}

@@ -13,7 +13,7 @@ import {
 } from './data'
 import { buildAsciiGrid, gridCols, shouldInvertBrightness } from './engine/ascii-frame'
 import { renderGrid } from './renderer/render-grid'
-import { downloadBlob } from './download'
+import { downloadBlob } from '../../components/utils/download'
 
 type SourceElement = HTMLImageElement | HTMLVideoElement
 
