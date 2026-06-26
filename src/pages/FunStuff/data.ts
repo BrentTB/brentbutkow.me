@@ -23,7 +23,7 @@ export const funStuff: FunItem[] = [
   {
     title: 'Image Encoder',
     description:
-      'Hide a secret message inside a picture by nudging its pixel colors, lock it with a key, and reveal it again — all in your browser',
+      'Hide a secret message inside a picture by nudging its pixel colors, lock it with a key, and reveal it again. It all runs in your browser',
     link: funStuffSubRoutes.imageEncoder,
   },
   {

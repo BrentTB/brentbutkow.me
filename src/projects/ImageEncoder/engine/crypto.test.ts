@@ -25,7 +25,9 @@ describe('encryptMessage / decryptMessage', () => {
 
   it('throws WrongKeyError on a bad key', async () => {
     const { ciphertext, salt, iv } = await encryptMessage(plaintext, 'correct')
-    await expect(decryptMessage(ciphertext, 'wrong', salt, iv)).rejects.toBeInstanceOf(WrongKeyError)
+    await expect(decryptMessage(ciphertext, 'wrong', salt, iv)).rejects.toBeInstanceOf(
+      WrongKeyError
+    )
   })
 })
 

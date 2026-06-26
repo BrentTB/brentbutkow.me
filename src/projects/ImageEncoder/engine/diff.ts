@@ -31,7 +31,8 @@ export function buildDiff(
     const delta = dr + dg + db
     changedChannels += (dr > 0 ? 1 : 0) + (dg > 0 ? 1 : 0) + (db > 0 ? 1 : 0)
 
-    const backdrop = (0.299 * before[i] + 0.587 * before[i + 1] + 0.114 * before[i + 2]) * BACKDROP_DIM
+    const backdrop =
+      (0.299 * before[i] + 0.587 * before[i + 1] + 0.114 * before[i + 2]) * BACKDROP_DIM
     if (delta > 0) {
       changedPixels++
       const glow = Math.min(1, 0.45 + delta * 0.14)

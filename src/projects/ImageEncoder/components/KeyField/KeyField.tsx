@@ -32,7 +32,7 @@ export function KeyField({ enabled, value, onToggle, onChange }: KeyFieldProps) 
 
       <p className={styles.note}>
         {enabled
-          ? 'The message is encrypted — only someone with this key can read it.'
+          ? 'The message is encrypted, so only someone with this key can read it.'
           : 'Off: the message is hidden but not encrypted, so anyone with this tool can read it.'}
       </p>
     </div>

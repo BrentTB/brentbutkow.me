@@ -15,9 +15,21 @@ export interface BaseOption {
 
 // Higher base = more room per channel, but bigger nudges to each pixel.
 export const baseOptions: BaseOption[] = [
-  { value: Base.binary, label: 'Binary', blurb: '1 bit a channel — the gentlest, near impossible to spot' },
-  { value: Base.ternary, label: 'Ternary', blurb: '~1.5 bits a channel — more room, a touch more change' },
-  { value: Base.quaternary, label: 'Quaternary', blurb: '2 bits a channel — the most room, the most change' },
+  {
+    value: Base.binary,
+    label: 'Binary',
+    blurb: '1 bit per channel. The gentlest nudge, near impossible to spot.',
+  },
+  {
+    value: Base.ternary,
+    label: 'Ternary',
+    blurb: 'About 1.5 bits per channel. More room, a little more change.',
+  },
+  {
+    value: Base.quaternary,
+    label: 'Quaternary',
+    blurb: '2 bits per channel. The most room, and the most visible change.',
+  },
 ]
 
 export function formatBytes(bytes: number): string {
@@ -30,5 +42,5 @@ export const copy = {
     'Hide a secret message inside an image by nudging its colors. Drop in a photo, type your text, and download a picture that looks the same but carries your words. Everything stays in your browser.',
   taglineFun:
     "Smuggle secrets inside a picture! Tweak the colors a hair, hide your words in the pixels, and nobody's the wiser. All of it runs right here in your browser.",
-  privacy: 'Your images and messages never leave your device — there is no server.',
+  privacy: 'Your images and messages never leave your device. There is no server.',
 }

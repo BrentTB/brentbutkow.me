@@ -74,7 +74,7 @@ export function EncodePanel({
     <div className={styles.panel}>
       <ImageDropper
         label="Add a cover image"
-        hint="Drag a photo here, or click to choose — PNG or JPEG"
+        hint="Drag a photo here, or click to choose (PNG or JPEG)"
         previewUrl={source?.previewUrl ?? null}
         busy={busy}
         onFile={onFile}
@@ -148,8 +148,8 @@ export function EncodePanel({
           </div>
 
           <p className={styles.stats}>
-            {encoded.stats.changedPixels.toLocaleString()} pixels carry your message —{' '}
-            {changedPct.toFixed(2)}% of the image moved.
+            {encoded.stats.changedPixels.toLocaleString()} pixels carry your message (
+            {changedPct.toFixed(2)}% of the image).
           </p>
 
           <button type="button" className={styles.primary} onClick={onDownload}>
