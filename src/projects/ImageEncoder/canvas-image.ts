@@ -36,8 +36,13 @@ export function rasterToPngBlob(raster: RasterImage): Promise<Blob> {
   canvas.height = raster.height
   const ctx = canvas.getContext('2d')
   if (!ctx) return Promise.reject(new Error('Canvas 2D context unavailable'))
-  ctx.putImageData(new ImageData(raster.data, raster.width, raster.height), 0, 0)
+  // Copy into a fresh ArrayBuffer-backed view to satisfy ImageData's typing.
+  const pixels = new Uint8ClampedArray(raster.data)
+  ctx.putImageData(new ImageData(pixels, raster.width, raster.height), 0, 0)
   return new Promise((resolve, reject) => {
-    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('PNG export failed'))), 'image/png')
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error('PNG export failed'))),
+      'image/png'
+    )
   })
 }

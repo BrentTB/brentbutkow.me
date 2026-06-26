@@ -5,6 +5,7 @@ export const funStuffSubRoutes = {
   courseProjects: '/course-projects',
   games: '/games',
   asciiArt: '/ascii-art',
+  imageEncoder: '/image-encoder',
 }
 
 export const funStuff: FunItem[] = [
@@ -18,6 +19,12 @@ export const funStuff: FunItem[] = [
     description:
       'Turn a photo, video, or your webcam into live ASCII art, right in your browser. A TypeScript port of my Python vidToAscii tool',
     link: funStuffSubRoutes.asciiArt,
+  },
+  {
+    title: 'Image Encoder',
+    description:
+      'Hide a secret message inside a picture by nudging its pixel colors, lock it with a key, and reveal it again — all in your browser',
+    link: funStuffSubRoutes.imageEncoder,
   },
   {
     title: 'Gulag Sort',
