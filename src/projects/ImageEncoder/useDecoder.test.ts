@@ -62,6 +62,8 @@ describe('useDecoder', () => {
     const stego = embedPayload(makeCover(64, 64), 64, 64, envelope, {
       base: Base.ternary,
       encrypted: false,
+      spread: true,
+      seed: 555,
       salt: null,
       iv: null,
     })
@@ -81,6 +83,8 @@ describe('useDecoder', () => {
     const stego = embedPayload(makeCover(64, 64), 64, 64, envelope, {
       base: Base.binary,
       encrypted: false,
+      spread: false,
+      seed: 555,
       salt: null,
       iv: null,
     })
@@ -107,6 +111,8 @@ describe('useDecoder', () => {
     const stego = embedPayload(makeCover(64, 64), 64, 64, new Uint8Array([1, 2, 3, 4, 5]), {
       base: Base.binary,
       encrypted: true,
+      spread: false,
+      seed: 555,
       salt: new Uint8Array(16).fill(7),
       iv: new Uint8Array(12).fill(9),
     })

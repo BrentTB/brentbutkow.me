@@ -1,10 +1,12 @@
 // Embeds and extracts a payload in an image's RGB channels. Alpha is left
-// untouched. The header rides in base-2 LSBs; the payload body uses the chosen
-// base. Each written channel moves to the nearest value with the right
+// untouched. The header rides in base-2 LSBs at the start; the payload body uses
+// the chosen base and is scattered across the rest of the image by a seeded
+// permutation. Each written channel moves to the nearest value with the right
 // remainder, so the picture shifts as little as possible.
 
 import { Base } from '../image-encoder.types'
 import { bytesToDigits, byteCountToDigits, digitsToBytes } from './bit-stream'
+import { makePermutation } from './permute'
 import {
   CORE_HEADER_BYTES,
   CRYPTO_PARAM_BYTES,
@@ -17,6 +19,9 @@ import {
 export interface EmbedOptions {
   base: Base
   encrypted: boolean
+  // Scatter the body across the whole image (true) or fill sequentially (false).
+  spread: boolean
+  seed: number
   salt: Uint8Array | null
   iv: Uint8Array | null
 }
@@ -55,19 +60,35 @@ export function embedPayload(
   const header: ImageHeader = {
     base: options.base,
     encrypted: options.encrypted,
+    spread: options.spread,
     payloadByteLength: payload.length,
+    seed: options.seed,
     salt: options.salt,
     iv: options.iv,
   }
   const headerDigits = bytesToDigits(packHeader(header), Base.binary)
   const bodyDigits = bytesToDigits(payload, options.base)
-  const needed = headerDigits.length + bodyDigits.length
-  const available = channelSlots(width, height)
-  if (needed > available) throw new CapacityExceededError(needed, available)
+  const headerSlots = headerDigits.length
+  const bodySlots = channelSlots(width, height) - headerSlots
+  if (bodyDigits.length > bodySlots) {
+    throw new CapacityExceededError(headerSlots + bodyDigits.length, channelSlots(width, height))
+  }
 
   const out = new Uint8ClampedArray(data)
+  // Header stays sequential so a decoder can read it before learning the seed.
   writeDigits(out, 0, headerDigits, Base.binary)
-  writeDigits(out, headerDigits.length, bodyDigits, options.base)
+  if (options.spread) {
+    // Scatter the body across the remaining channels in the seeded order.
+    const order = makePermutation(bodySlots, options.seed)
+    for (let i = 0; i < bodyDigits.length; i++) {
+      const index = dataIndexForSlot(headerSlots + order.at(i))
+      out[index] = nearestWithRemainder(out[index], options.base, bodyDigits[i])
+    }
+  } else {
+    // Fill channels sequentially; leaves the rest of the image pristine, which
+    // keeps the PNG far smaller.
+    writeDigits(out, headerSlots, bodyDigits, options.base)
+  }
   return out
 }
 
@@ -86,28 +107,37 @@ export function extractPayload(
   )
   if (!core) return null
 
-  let slot = coreSlots
+  let headerSlots = coreSlots
   let salt: Uint8Array | null = null
   let iv: Uint8Array | null = null
   if (core.encrypted) {
     const cryptoSlots = CRYPTO_PARAM_BYTES * 8
-    if (slot + cryptoSlots > total) return null
+    if (coreSlots + cryptoSlots > total) return null
     const cryptoBytes = digitsToBytes(
-      readDigits(data, slot, cryptoSlots, Base.binary),
+      readDigits(data, coreSlots, cryptoSlots, Base.binary),
       Base.binary,
       CRYPTO_PARAM_BYTES
     )
     ;({ salt, iv } = parseCryptoParams(cryptoBytes))
-    slot += cryptoSlots
+    headerSlots = coreSlots + cryptoSlots
   }
 
+  const bodySlots = total - headerSlots
   const bodyDigitCount = byteCountToDigits(core.payloadByteLength, core.base)
-  if (slot + bodyDigitCount > total) return null
-  const payload = digitsToBytes(
-    readDigits(data, slot, bodyDigitCount, core.base),
-    core.base,
-    core.payloadByteLength
-  )
+  if (bodyDigitCount > bodySlots) return null
+
+  let digits: number[]
+  if (core.spread) {
+    // Re-create the same scatter order from the seed and read the body back.
+    const order = makePermutation(bodySlots, core.seed)
+    digits = new Array<number>(bodyDigitCount)
+    for (let i = 0; i < bodyDigitCount; i++) {
+      digits[i] = data[dataIndexForSlot(headerSlots + order.at(i))] % core.base
+    }
+  } else {
+    digits = readDigits(data, headerSlots, bodyDigitCount, core.base)
+  }
+  const payload = digitsToBytes(digits, core.base, core.payloadByteLength)
   return { base: core.base, encrypted: core.encrypted, payload, salt, iv }
 }
 

@@ -56,6 +56,8 @@ function request<T>(message: Record<string, unknown>, transfer: Transferable[]):
 export interface EncodeOptions {
   base: Base
   encrypted: boolean
+  spread: boolean
+  seed: number
   salt: Uint8Array | null
   iv: Uint8Array | null
 }
@@ -88,6 +90,8 @@ export async function encodeInWorker(
       payloadBytes,
       base: options.base,
       encrypted: options.encrypted,
+      spread: options.spread,
+      seed: options.seed,
       salt: options.salt,
       iv: options.iv,
     },

@@ -51,6 +51,7 @@ export function useEncoder() {
   const [message, setMessage] = useState('')
   const [secretFile, setSecretFile] = useState<SecretFileInfo | null>(null)
   const [base, setBase] = useState<Base>(DEFAULT_BASE)
+  const [spread, setSpread] = useState(false)
   const [useKey, setUseKey] = useState(false)
   const [passphrase, setPassphrase] = useState('')
   const [source, setSource] = useState<SourceInfo | null>(null)
@@ -159,9 +160,13 @@ export function useEncoder() {
         iv = sealed.iv
       }
 
+      // Fresh seed each encode, so the same image + payload still scatters differently.
+      const seed = crypto.getRandomValues(new Uint32Array(1))[0]
       const { stego, diff, stats } = await encodeInWorker(raster, payload, {
         base,
         encrypted: useKey,
+        spread,
+        seed,
         salt,
         iv,
       })
@@ -181,7 +186,7 @@ export function useEncoder() {
     } finally {
       setBusy(false)
     }
-  }, [payloadMode, message, secretFile, base, useKey, passphrase, clearResult, track])
+  }, [payloadMode, message, secretFile, base, spread, useKey, passphrase, clearResult, track])
 
   const downloadEncoded = useCallback(() => {
     if (encodedBlobRef.current) downloadBlob(encodedBlobRef.current, ENCODED_FILENAME)
@@ -211,6 +216,7 @@ export function useEncoder() {
     message,
     secretFile,
     base,
+    spread,
     useKey,
     passphrase,
     source,
@@ -224,6 +230,7 @@ export function useEncoder() {
     setPayloadMode,
     setMessage,
     setBase,
+    setSpread,
     setUseKey,
     setPassphrase,
     setShowDiff,

@@ -1,6 +1,7 @@
 import { PayloadMode } from '../../image-encoder.types'
 import { baseOptions } from '../../data'
 import { useEncoder } from '../../useEncoder'
+import { ToggleableSection } from '../../../../components/ToggleableSection/ToggleableSection'
 import { ImageDropper } from '../ImageDropper/ImageDropper'
 import { FilePicker } from '../FilePicker/FilePicker'
 import { CapacityMeter } from '../CapacityMeter/CapacityMeter'
@@ -79,23 +80,40 @@ export function EncodePanel() {
             </div>
           )}
 
-          <div className={styles.field}>
-            <span className={styles.fieldLabel}>Density</span>
-            <Segmented
-              ariaLabel="Encoding density"
-              options={baseSegments}
-              value={enc.base}
-              onChange={enc.setBase}
-            />
-            {activeBlurb && <p className={styles.blurb}>{activeBlurb}</p>}
-          </div>
-
           <KeyField
             enabled={enc.useKey}
             value={enc.passphrase}
             onToggle={enc.setUseKey}
             onChange={enc.setPassphrase}
           />
+
+          <ToggleableSection title="Settings">
+            <div className={styles.settings}>
+              <div className={styles.field}>
+                <span className={styles.fieldLabel}>Density</span>
+                <Segmented
+                  ariaLabel="Encoding density"
+                  options={baseSegments}
+                  value={enc.base}
+                  onChange={enc.setBase}
+                />
+                {activeBlurb && <p className={styles.blurb}>{activeBlurb}</p>}
+              </div>
+
+              <label className={styles.switchRow}>
+                <input
+                  type="checkbox"
+                  checked={enc.spread}
+                  onChange={(event) => enc.setSpread(event.target.checked)}
+                />
+                <span className={styles.switchLabel}>Spread the data across the whole image</span>
+              </label>
+              <p className={styles.blurb}>
+                Scatters the change over the whole picture instead of one block. It looks better
+                under "Changes", but makes the saved file a good deal bigger.
+              </p>
+            </div>
+          </ToggleableSection>
 
           {enc.capacity && (
             <CapacityMeter

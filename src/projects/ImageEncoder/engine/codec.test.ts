@@ -21,20 +21,24 @@ const BASES = [Base.binary, Base.ternary, Base.quaternary]
 
 describe('embedPayload / extractPayload', () => {
   for (const base of BASES) {
-    it(`round-trips a payload through base ${base}`, () => {
-      const original = makeImage(64, 64)
-      const stego = embedPayload(original, 64, 64, message, {
-        base,
-        encrypted: false,
-        salt: null,
-        iv: null,
+    for (const spread of [false, true]) {
+      it(`round-trips a payload through base ${base} (spread=${spread})`, () => {
+        const original = makeImage(64, 64)
+        const stego = embedPayload(original, 64, 64, message, {
+          base,
+          encrypted: false,
+          spread,
+          seed: 1234,
+          salt: null,
+          iv: null,
+        })
+        const decoded = extractPayload(stego, 64, 64)
+        expect(decoded?.base).toBe(base)
+        expect(decoded?.encrypted).toBe(false)
+        expect(decoded?.payload).toEqual(message)
+        expect(decoded?.salt).toBeNull()
       })
-      const decoded = extractPayload(stego, 64, 64)
-      expect(decoded?.base).toBe(base)
-      expect(decoded?.encrypted).toBe(false)
-      expect(decoded?.payload).toEqual(message)
-      expect(decoded?.salt).toBeNull()
-    })
+    }
   }
 
   it('carries crypto params for an encrypted payload', () => {
@@ -44,6 +48,8 @@ describe('embedPayload / extractPayload', () => {
     const stego = embedPayload(makeImage(48, 48), 48, 48, cipher, {
       base: Base.ternary,
       encrypted: true,
+      spread: true,
+      seed: 777,
       salt,
       iv,
     })
@@ -60,6 +66,8 @@ describe('embedPayload / extractPayload', () => {
     const stego = embedPayload(original, 32, 32, message, {
       base: Base.quaternary,
       encrypted: false,
+      spread: false,
+      seed: 1234,
       salt: null,
       iv: null,
     })
@@ -72,6 +80,8 @@ describe('embedPayload / extractPayload', () => {
     const stego = embedPayload(original, 40, 40, message, {
       base: Base.quaternary,
       encrypted: false,
+      spread: false,
+      seed: 1234,
       salt: null,
       iv: null,
     })
@@ -86,6 +96,8 @@ describe('embedPayload / extractPayload', () => {
       embedPayload(makeImage(2, 2), 2, 2, message, {
         base: Base.binary,
         encrypted: false,
+        spread: false,
+        seed: 1234,
         salt: null,
         iv: null,
       })

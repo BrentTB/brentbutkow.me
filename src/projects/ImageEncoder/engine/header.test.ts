@@ -16,7 +16,9 @@ import {
 const plain = {
   base: Base.quaternary,
   encrypted: false,
+  spread: false,
   payloadByteLength: 1234,
+  seed: 0x01020304,
   salt: null,
   iv: null,
 }
@@ -32,7 +34,17 @@ describe('totalHeaderBytes', () => {
 describe('packHeader / parseCoreHeader', () => {
   it('round-trips a plain header', () => {
     const parsed = parseCoreHeader(packHeader(plain))
-    expect(parsed).toEqual({ base: Base.quaternary, encrypted: false, payloadByteLength: 1234 })
+    expect(parsed).toEqual({
+      base: Base.quaternary,
+      encrypted: false,
+      spread: false,
+      payloadByteLength: 1234,
+      seed: 0x01020304,
+    })
+  })
+
+  it('round-trips the spread flag', () => {
+    expect(parseCoreHeader(packHeader({ ...plain, spread: true }))?.spread).toBe(true)
   })
 
   it('round-trips an encrypted header with crypto params', () => {
@@ -42,7 +54,13 @@ describe('packHeader / parseCoreHeader', () => {
     expect(bytes.length).toBe(totalHeaderBytes(true))
 
     const core = parseCoreHeader(bytes)
-    expect(core).toEqual({ base: Base.quaternary, encrypted: true, payloadByteLength: 1234 })
+    expect(core).toEqual({
+      base: Base.quaternary,
+      encrypted: true,
+      spread: false,
+      payloadByteLength: 1234,
+      seed: 0x01020304,
+    })
     expect(parseCryptoParams(bytes.slice(CORE_HEADER_BYTES))).toEqual({ salt, iv })
   })
 

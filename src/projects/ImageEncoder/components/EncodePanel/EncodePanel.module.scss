@@ -53,6 +53,32 @@
   color: var(--text-secondary);
 }
 
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.switchRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+
+  input {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+}
+
+.switchLabel {
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
 .primary {
   align-self: flex-start;
   font-family: var(--font-body);

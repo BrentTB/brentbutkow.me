@@ -15,6 +15,8 @@ interface EncodeRequest {
   payloadBytes: Uint8Array
   base: Base
   encrypted: boolean
+  spread: boolean
+  seed: number
   salt: Uint8Array | null
   iv: Uint8Array | null
 }
@@ -37,6 +39,8 @@ ctx.onmessage = (event: MessageEvent) => {
       const stego = embedPayload(rasterData, width, height, request.payloadBytes, {
         base: request.base,
         encrypted: request.encrypted,
+        spread: request.spread,
+        seed: request.seed,
         salt: request.salt,
         iv: request.iv,
       })

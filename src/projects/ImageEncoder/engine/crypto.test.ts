@@ -40,6 +40,8 @@ describe('encrypted round-trip through the image', () => {
     const stego = embedPayload(cover, 96, 96, ciphertext, {
       base: Base.ternary,
       encrypted: true,
+      spread: true,
+      seed: 4242,
       salt,
       iv,
     })

@@ -34,7 +34,9 @@ export function HowItWorks() {
             The first pixels hold a small header: a marker that says a message is present, which
             base was used, whether it is encrypted, and how long the message runs. That is why
             reading any image just works. With no marker, the reader knows nothing is hidden and
-            tells you, rather than spitting out noise.
+            tells you, rather than spitting out noise. The header also carries a small seed that
+            shuffles where the rest of the bytes go, so the changes scatter across the whole picture
+            instead of piling up in one corner.
           </p>
 
           <h4>The key</h4>
