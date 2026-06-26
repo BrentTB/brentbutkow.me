@@ -1,3 +1,4 @@
+import { PasswordInput } from '../PasswordInput/PasswordInput'
 import styles from './KeyField.module.scss'
 
 interface KeyFieldProps {
@@ -19,16 +20,7 @@ export function KeyField({ enabled, value, onToggle, onChange }: KeyFieldProps) 
         <span className={styles.toggleLabel}>Lock with a key</span>
       </label>
 
-      {enabled && (
-        <input
-          type="password"
-          className={styles.input}
-          value={value}
-          placeholder="Secret key"
-          autoComplete="off"
-          onChange={(event) => onChange(event.target.value)}
-        />
-      )}
+      {enabled && <PasswordInput value={value} placeholder="Secret key" onChange={onChange} />}
 
       <p className={styles.note}>
         {enabled

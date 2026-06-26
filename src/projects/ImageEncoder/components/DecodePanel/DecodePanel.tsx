@@ -1,6 +1,7 @@
 import { DecodedInfo, SourceInfo } from '../../useImageEncoder'
 import { baseOptions } from '../../data'
 import { ImageDropper } from '../ImageDropper/ImageDropper'
+import { PasswordInput } from '../PasswordInput/PasswordInput'
 import styles from './DecodePanel.module.scss'
 
 interface DecodePanelProps {
@@ -47,15 +48,14 @@ export function DecodePanel({
           </p>
           <p className={styles.lockedNote}>Enter the key it was sealed with to read the message.</p>
           <div className={styles.keyRow}>
-            <input
-              type="password"
-              className={styles.keyInput}
-              value={passphrase}
-              placeholder="Secret key"
-              autoComplete="off"
-              onChange={(event) => onPassphrase(event.target.value)}
-              onKeyDown={(event) => event.key === 'Enter' && onSubmitKey()}
-            />
+            <div className={styles.keyInputWrap}>
+              <PasswordInput
+                value={passphrase}
+                placeholder="Secret key"
+                onChange={onPassphrase}
+                onEnter={onSubmitKey}
+              />
+            </div>
             <button
               type="button"
               className={styles.primary}

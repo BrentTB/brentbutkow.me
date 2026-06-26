@@ -37,21 +37,8 @@
   gap: 10px;
 }
 
-.keyInput {
-  flex: 1 1 200px;
-  font-family: var(--font-mono);
-  font-size: 0.95rem;
-  color: var(--text);
-  background: var(--surface);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  padding: 11px 14px;
-  transition: border-color 0.18s ease;
-
-  &:focus {
-    outline: none;
-    border-color: var(--accent);
-  }
+.keyInputWrap {
+  flex: 1 1 220px;
 }
 
 .primary {

@@ -6,6 +6,7 @@ import { copy } from './data'
 import { Segmented } from './components/Segmented/Segmented'
 import { EncodePanel } from './components/EncodePanel/EncodePanel'
 import { DecodePanel } from './components/DecodePanel/DecodePanel'
+import { HowItWorks } from './components/HowItWorks/HowItWorks'
 import styles from './ImageEncoder.module.scss'
 
 const modeSegments = [
@@ -67,6 +68,8 @@ export function ImageEncoder() {
           onSubmitKey={encoder.submitKey}
         />
       )}
+
+      <HowItWorks />
 
       <p className={styles.privacy}>{copy.privacy}</p>
     </div>

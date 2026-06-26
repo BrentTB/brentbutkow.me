@@ -1,4 +1,5 @@
 import { formatBytes } from '../../data'
+import { largestBandWithin } from '../../engine/capacity-bands'
 import styles from './CapacityMeter.module.scss'
 
 interface CapacityMeterProps {
@@ -9,6 +10,7 @@ interface CapacityMeterProps {
 
 export function CapacityMeter({ usedBytes, maxBytes, fits }: CapacityMeterProps) {
   const pct = maxBytes > 0 ? Math.min(100, (usedBytes / maxBytes) * 100) : 100
+  const band = largestBandWithin(maxBytes)
 
   return (
     <div className={styles.meter}>
@@ -27,6 +29,7 @@ export function CapacityMeter({ usedBytes, maxBytes, fits }: CapacityMeterProps)
       >
         <div className={`${styles.fill} ${fits ? '' : styles.over}`} style={{ width: `${pct}%` }} />
       </div>
+      {band && <p className={styles.note}>Enough room for {band.label}.</p>}
     </div>
   )
 }
