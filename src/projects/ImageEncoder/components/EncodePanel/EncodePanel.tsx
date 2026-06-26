@@ -1,12 +1,18 @@
+import { PayloadMode } from '../../image-encoder.types'
 import { baseOptions } from '../../data'
 import { useEncoder } from '../../useEncoder'
 import { ImageDropper } from '../ImageDropper/ImageDropper'
+import { FilePicker } from '../FilePicker/FilePicker'
 import { CapacityMeter } from '../CapacityMeter/CapacityMeter'
 import { KeyField } from '../KeyField/KeyField'
 import { Segmented } from '../Segmented/Segmented'
 import styles from './EncodePanel.module.scss'
 
 const baseSegments = baseOptions.map((option) => ({ value: option.value, label: option.label }))
+const payloadSegments = [
+  { value: PayloadMode.text, label: 'Message' },
+  { value: PayloadMode.file, label: 'File' },
+]
 const viewSegments = [
   { value: 'result', label: 'Result' },
   { value: 'changes', label: 'Changes' },
@@ -19,10 +25,12 @@ export function EncodePanel() {
   const activeBlurb = baseOptions.find((option) => option.value === enc.base)?.blurb
   const suggestedLabel = baseOptions.find((option) => option.value === suggestedBase)?.label
   const overCapacity = enc.capacity ? !enc.capacity.fits : false
+  const hasPayload =
+    enc.payloadMode === PayloadMode.file ? enc.secretFile !== null : enc.message.length > 0
   const canEncode =
     !enc.busy &&
     enc.source !== null &&
-    enc.message.length > 0 &&
+    hasPayload &&
     !overCapacity &&
     (!enc.useKey || enc.passphrase.length > 0)
 
@@ -43,16 +51,33 @@ export function EncodePanel() {
 
       {enc.source && (
         <div className={styles.controls}>
-          <label className={styles.field}>
-            <span className={styles.fieldLabel}>Message</span>
-            <textarea
-              className={styles.textarea}
-              value={enc.message}
-              placeholder="Type the words you want to hide…"
-              rows={3}
-              onChange={(event) => enc.setMessage(event.target.value)}
+          <div className={styles.field}>
+            <span className={styles.fieldLabel}>Hide</span>
+            <Segmented
+              ariaLabel="Hide a message or a file"
+              options={payloadSegments}
+              value={enc.payloadMode}
+              onChange={enc.setPayloadMode}
             />
-          </label>
+          </div>
+
+          {enc.payloadMode === PayloadMode.text ? (
+            <label className={styles.field}>
+              <span className={styles.fieldLabel}>Message</span>
+              <textarea
+                className={styles.textarea}
+                value={enc.message}
+                placeholder="Type the words you want to hide…"
+                rows={3}
+                onChange={(event) => enc.setMessage(event.target.value)}
+              />
+            </label>
+          ) : (
+            <div className={styles.field}>
+              <span className={styles.fieldLabel}>File</span>
+              <FilePicker file={enc.secretFile} onFile={enc.loadSecretFile} />
+            </div>
+          )}
 
           <div className={styles.field}>
             <span className={styles.fieldLabel}>Density</span>
@@ -135,7 +160,7 @@ export function EncodePanel() {
           </div>
 
           <p className={styles.stats}>
-            {enc.encoded.stats.changedPixels.toLocaleString()} pixels carry your message (
+            {enc.encoded.stats.changedPixels.toLocaleString()} pixels carry your data (
             {changedPct.toFixed(2)}% of the image).
           </p>
 

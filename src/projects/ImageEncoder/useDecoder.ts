@@ -1,8 +1,10 @@
 import { useCallback, useRef, useState } from 'react'
 import { Base, RasterImage } from './image-encoder.types'
 import { WrongKeyError, decryptMessage } from './engine/crypto'
+import { PayloadKind, unpackPayload } from './engine/payload'
 import { fileToImage } from './canvas-image'
 import { decodeInWorker } from './codec-worker-client'
+import { downloadBlob } from '../../components/utils/download'
 import { useObjectUrls } from './useObjectUrls'
 
 const decoder = new TextDecoder()
@@ -17,10 +19,14 @@ export interface DecodedInfo {
   base: Base
   encrypted: boolean
   needsKey: boolean
+  kind: PayloadKind | null // null while still waiting for a key
   text: string | null
+  fileName: string | null
+  fileSize: number | null
+  fileUrl: string | null // object URL for a hidden file (download + image preview)
 }
 
-// Decode side of the page: reads an uploaded image and, when the message is
+// Decode side of the page: reads an uploaded image and, when the payload is
 // locked, holds the ciphertext until the user supplies a key. Independent of the
 // encode hook so the Reveal tab keeps its state across tab switches.
 export function useDecoder() {
@@ -31,6 +37,7 @@ export function useDecoder() {
   const [error, setError] = useState<string | null>(null)
 
   const { track, revokeAll } = useObjectUrls()
+  const fileBlobRef = useRef<Blob | null>(null)
   const pendingRef = useRef<{
     payload: Uint8Array
     salt: Uint8Array
@@ -38,34 +45,80 @@ export function useDecoder() {
     base: Base
   } | null>(null)
 
-  const decodeRaster = useCallback(async (raster: RasterImage) => {
-    const found = await decodeInWorker(raster)
-    if (!found) {
-      setDecoded(null)
-      setError('No hidden message found in this image.')
-      return
-    }
-    if (found.encrypted) {
-      if (!found.salt || !found.iv) {
-        setError('This message is encrypted but its key data is damaged.')
+  // Turns decoded (and decrypted) envelope bytes into a shown message or file.
+  const presentEnvelope = useCallback(
+    (base: Base, encrypted: boolean, envelope: Uint8Array) => {
+      const payload = unpackPayload(envelope)
+      if (!payload) {
+        setError("This image's hidden data looks damaged.")
         return
       }
-      pendingRef.current = {
-        payload: found.payload,
-        salt: found.salt,
-        iv: found.iv,
-        base: found.base,
+      if (payload.kind === PayloadKind.file) {
+        // Fresh ArrayBuffer-backed copy so the Blob part typing is satisfied.
+        const blob = new Blob([new Uint8Array(payload.bytes)])
+        fileBlobRef.current = blob
+        setDecoded({
+          base,
+          encrypted,
+          needsKey: false,
+          kind: PayloadKind.file,
+          text: null,
+          fileName: payload.name,
+          fileSize: payload.bytes.length,
+          fileUrl: track(URL.createObjectURL(blob)),
+        })
+      } else {
+        fileBlobRef.current = null
+        setDecoded({
+          base,
+          encrypted,
+          needsKey: false,
+          kind: PayloadKind.text,
+          text: decoder.decode(payload.bytes),
+          fileName: null,
+          fileSize: null,
+          fileUrl: null,
+        })
       }
-      setDecoded({ base: found.base, encrypted: true, needsKey: true, text: null })
-      return
-    }
-    setDecoded({
-      base: found.base,
-      encrypted: false,
-      needsKey: false,
-      text: decoder.decode(found.payload),
-    })
-  }, [])
+    },
+    [track]
+  )
+
+  const decodeRaster = useCallback(
+    async (raster: RasterImage) => {
+      const found = await decodeInWorker(raster)
+      if (!found) {
+        setDecoded(null)
+        setError('No hidden message found in this image.')
+        return
+      }
+      if (found.encrypted) {
+        if (!found.salt || !found.iv) {
+          setError('This message is encrypted but its key data is damaged.')
+          return
+        }
+        pendingRef.current = {
+          payload: found.payload,
+          salt: found.salt,
+          iv: found.iv,
+          base: found.base,
+        }
+        setDecoded({
+          base: found.base,
+          encrypted: true,
+          needsKey: true,
+          kind: null,
+          text: null,
+          fileName: null,
+          fileSize: null,
+          fileUrl: null,
+        })
+        return
+      }
+      presentEnvelope(found.base, false, found.payload)
+    },
+    [presentEnvelope]
+  )
 
   const loadImage = useCallback(
     async (file: File) => {
@@ -74,6 +127,7 @@ export function useDecoder() {
       try {
         const { raster, previewBlob } = await fileToImage(file)
         revokeAll()
+        fileBlobRef.current = null
         pendingRef.current = null
         setDecoded(null)
         setSource({
@@ -102,12 +156,7 @@ export function useDecoder() {
     setError(null)
     try {
       const plain = await decryptMessage(pending.payload, passphrase, pending.salt, pending.iv)
-      setDecoded({
-        base: pending.base,
-        encrypted: true,
-        needsKey: false,
-        text: decoder.decode(plain),
-      })
+      presentEnvelope(pending.base, true, plain)
     } catch (cause) {
       setError(
         cause instanceof WrongKeyError
@@ -117,7 +166,13 @@ export function useDecoder() {
     } finally {
       setBusy(false)
     }
-  }, [passphrase])
+  }, [passphrase, presentEnvelope])
+
+  const downloadFile = useCallback(() => {
+    if (fileBlobRef.current && decoded?.fileName) {
+      downloadBlob(fileBlobRef.current, decoded.fileName)
+    }
+  }, [decoded])
 
   return {
     source,
@@ -128,5 +183,6 @@ export function useDecoder() {
     setPassphrase,
     loadImage,
     submitKey,
+    downloadFile,
   }
 }

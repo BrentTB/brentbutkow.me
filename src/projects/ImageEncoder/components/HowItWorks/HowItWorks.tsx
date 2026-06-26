@@ -9,7 +9,8 @@ export function HowItWorks() {
           <p>
             Every pixel is three numbers: how much red, green, and blue it holds, each from 0 to
             255. Shift one of those numbers by a step or two and the color barely changes, far too
-            little for your eye to notice. The whole trick is hiding a message in those tiny shifts.
+            little for your eye to notice. The whole trick is hiding a message, or a whole file, in
+            those tiny shifts.
           </p>
 
           <h4>Rounding to hide bits</h4>

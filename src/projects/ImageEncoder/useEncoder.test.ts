@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { useEncoder } from './useEncoder'
-import { Base, RasterImage } from './image-encoder.types'
+import { Base, PayloadMode, RasterImage } from './image-encoder.types'
 import { embedPayload, extractPayload } from './engine/codec'
+import { PayloadKind, unpackPayload } from './engine/payload'
 import { buildDiff } from './engine/diff'
 import { maxPayloadBytes } from './engine/capacity'
 
@@ -85,7 +86,33 @@ describe('useEncoder', () => {
     expect(result.current.encoded).not.toBeNull()
     const stego = captured[0]
     const decoded = extractPayload(stego.data, stego.width, stego.height)
-    expect(decoder.decode(decoded?.payload)).toBe('meet at noon')
+    const payload = unpackPayload(decoded?.payload ?? new Uint8Array())
+    expect(payload?.kind).toBe(PayloadKind.text)
+    expect(decoder.decode(payload?.bytes)).toBe('meet at noon')
+  })
+
+  it('hides an uploaded file with its name', async () => {
+    const captured: RasterImage[] = []
+    rasterToPngBlobMock.mockImplementation((raster) => {
+      captured.push(raster)
+      return Promise.resolve(new Blob(['png']))
+    })
+    const fileBytes = Uint8Array.from([5, 6, 7, 8, 9])
+    const secret = new File([fileBytes], 'notes.bin', { type: 'application/octet-stream' })
+
+    const { result } = renderHook(() => useEncoder())
+    await act(async () => result.current.loadImage(file))
+    act(() => result.current.setPayloadMode(PayloadMode.file))
+    await act(async () => result.current.loadSecretFile(secret))
+    await act(async () => result.current.runEncode())
+
+    expect(result.current.error).toBeNull()
+    const stego = captured[0]
+    const decoded = extractPayload(stego.data, stego.width, stego.height)
+    const payload = unpackPayload(decoded?.payload ?? new Uint8Array())
+    expect(payload?.kind).toBe(PayloadKind.file)
+    expect(payload?.name).toBe('notes.bin')
+    expect(payload?.bytes).toEqual(fileBytes)
   })
 
   it('tracks capacity for the typed message', async () => {
@@ -93,7 +120,8 @@ describe('useEncoder', () => {
     await act(async () => result.current.loadImage(file))
     act(() => result.current.setMessage('hi'))
     expect(result.current.capacity?.fits).toBe(true)
-    expect(result.current.capacity?.usedBytes).toBe(2)
+    // 2 message bytes + the 3-byte envelope header (kind + name length).
+    expect(result.current.capacity?.usedBytes).toBe(5)
   })
 
   it('suggests the gentlest base that fits when the message overflows', async () => {

@@ -1,8 +1,9 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
-import { Base, RasterImage } from './image-encoder.types'
+import { Base, PayloadMode, RasterImage } from './image-encoder.types'
 import { CapacityExceededError } from './engine/codec'
 import { maxPayloadBytes, smallestBaseThatFits } from './engine/capacity'
 import { DiffStats } from './engine/diff'
+import { ENVELOPE_HEADER_BYTES, PayloadKind, packPayload } from './engine/payload'
 import { encryptMessage } from './engine/crypto'
 import { fileToImage, rasterToPngBlob } from './canvas-image'
 import { encodeInWorker } from './codec-worker-client'
@@ -18,6 +19,12 @@ export interface SourceInfo {
   height: number
 }
 
+export interface SecretFileInfo {
+  name: string
+  size: number
+  previewUrl: string | null // set only for image files
+}
+
 export interface CapacityInfo {
   usedBytes: number
   maxBytes: number
@@ -29,18 +36,20 @@ export interface EncodedInfo {
   stats: DiffStats
 }
 
-// When the message overflows the current base: which base to offer as a swap,
+// When the payload overflows the current base: which base to offer as a swap,
 // or whether even the largest base cannot hold it.
 export interface FitHint {
   suggestedBase: Base | null
   tooBig: boolean
 }
 
-// Encode side of the page: owns the cover pixels and runs the embed (encrypting
-// first when a key is set). State lives here so the Hide tab keeps its work even
-// while the Reveal tab is showing.
+// Encode side of the page: owns the cover pixels and the payload (a typed message
+// or an uploaded file), and runs the embed (encrypting first when a key is set).
+// State lives here so the Hide tab keeps its work while the Reveal tab is shown.
 export function useEncoder() {
+  const [payloadMode, setPayloadMode] = useState<PayloadMode>(PayloadMode.text)
   const [message, setMessage] = useState('')
+  const [secretFile, setSecretFile] = useState<SecretFileInfo | null>(null)
   const [base, setBase] = useState<Base>(DEFAULT_BASE)
   const [useKey, setUseKey] = useState(false)
   const [passphrase, setPassphrase] = useState('')
@@ -51,8 +60,12 @@ export function useEncoder() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Cover + result URLs in one scope; the secret-file preview in its own, so
+  // loading a new cover doesn't revoke the chosen file's preview (and vice versa).
   const { track, revokeAll } = useObjectUrls()
+  const secretUrls = useObjectUrls()
   const sourceRasterRef = useRef<RasterImage | null>(null)
+  const secretBytesRef = useRef<Uint8Array | null>(null)
   const encodedBlobRef = useRef<Blob | null>(null)
 
   const clearResult = useCallback(() => {
@@ -85,16 +98,48 @@ export function useEncoder() {
     [revokeAll, clearResult, track]
   )
 
+  const loadSecretFile = useCallback(
+    async (file: File) => {
+      setError(null)
+      try {
+        const buffer = await file.arrayBuffer()
+        secretBytesRef.current = new Uint8Array(buffer)
+        secretUrls.revokeAll()
+        const previewUrl = file.type.startsWith('image/')
+          ? secretUrls.track(URL.createObjectURL(file))
+          : null
+        setSecretFile({ name: file.name, size: file.size, previewUrl })
+        clearResult()
+      } catch {
+        setError('Could not read that file.')
+      }
+    },
+    [secretUrls, clearResult]
+  )
+
   const runEncode = useCallback(async () => {
     const raster = sourceRasterRef.current
     if (!raster) {
       setError('Add a cover image first.')
       return
     }
-    if (!message) {
-      setError('Type a message to hide.')
-      return
+
+    let envelope: Uint8Array
+    if (payloadMode === PayloadMode.file) {
+      const fileBytes = secretBytesRef.current
+      if (!fileBytes || !secretFile) {
+        setError('Add a file to hide.')
+        return
+      }
+      envelope = packPayload({ kind: PayloadKind.file, name: secretFile.name, bytes: fileBytes })
+    } else {
+      if (!message) {
+        setError('Type a message to hide.')
+        return
+      }
+      envelope = packPayload({ kind: PayloadKind.text, name: '', bytes: encoder.encode(message) })
     }
+
     if (useKey && !passphrase) {
       setError('Enter a key, or switch the lock off.')
       return
@@ -104,7 +149,7 @@ export function useEncoder() {
     setError(null)
     clearResult()
     try {
-      let payload: Uint8Array = encoder.encode(message)
+      let payload = envelope
       let salt: Uint8Array | null = null
       let iv: Uint8Array | null = null
       if (useKey) {
@@ -130,13 +175,13 @@ export function useEncoder() {
     } catch (cause) {
       setError(
         cause instanceof CapacityExceededError
-          ? 'This message is too big for that image. Try a larger image, a higher density, or fewer words.'
+          ? 'This is too big for that image. Try a larger image, a higher density, or a smaller payload.'
           : 'Something went wrong while encoding.'
       )
     } finally {
       setBusy(false)
     }
-  }, [message, base, useKey, passphrase, clearResult, track])
+  }, [payloadMode, message, secretFile, base, useKey, passphrase, clearResult, track])
 
   const downloadEncoded = useCallback(() => {
     if (encodedBlobRef.current) downloadBlob(encodedBlobRef.current, ENCODED_FILENAME)
@@ -145,9 +190,14 @@ export function useEncoder() {
   const capacity = useMemo<CapacityInfo | null>(() => {
     if (!source) return null
     const maxBytes = maxPayloadBytes(source.width, source.height, base, useKey)
-    const usedBytes = encoder.encode(message).length + (useKey ? AES_GCM_TAG_BYTES : 0)
+    const contentBytes =
+      payloadMode === PayloadMode.file ? (secretFile?.size ?? 0) : encoder.encode(message).length
+    const nameBytes =
+      payloadMode === PayloadMode.file ? encoder.encode(secretFile?.name ?? '').length : 0
+    const usedBytes =
+      ENVELOPE_HEADER_BYTES + nameBytes + contentBytes + (useKey ? AES_GCM_TAG_BYTES : 0)
     return { usedBytes, maxBytes, fits: usedBytes <= maxBytes }
-  }, [source, message, base, useKey])
+  }, [source, payloadMode, message, secretFile, base, useKey])
 
   const fitHint = useMemo<FitHint>(() => {
     if (!source || !capacity || capacity.fits) return { suggestedBase: null, tooBig: false }
@@ -157,7 +207,9 @@ export function useEncoder() {
   }, [source, capacity, useKey, base])
 
   return {
+    payloadMode,
     message,
+    secretFile,
     base,
     useKey,
     passphrase,
@@ -169,12 +221,14 @@ export function useEncoder() {
     busy,
     error,
     fitHint,
+    setPayloadMode,
     setMessage,
     setBase,
     setUseKey,
     setPassphrase,
     setShowDiff,
     loadImage,
+    loadSecretFile,
     runEncode,
     downloadEncoded,
   }

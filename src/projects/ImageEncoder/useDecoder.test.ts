@@ -3,6 +3,7 @@ import { act, cleanup, renderHook } from '@testing-library/react'
 import { useDecoder } from './useDecoder'
 import { Base } from './image-encoder.types'
 import { embedPayload, extractPayload } from './engine/codec'
+import { PayloadKind, packPayload } from './engine/payload'
 
 vi.mock('./canvas-image', () => ({
   fileToImage: vi.fn(),
@@ -52,8 +53,13 @@ afterEach(() => {
 })
 
 describe('useDecoder', () => {
-  it('reads a hidden message on upload', async () => {
-    const stego = embedPayload(makeCover(64, 64), 64, 64, new TextEncoder().encode('found me'), {
+  it('reads a hidden text message on upload', async () => {
+    const envelope = packPayload({
+      kind: PayloadKind.text,
+      name: '',
+      bytes: new TextEncoder().encode('found me'),
+    })
+    const stego = embedPayload(makeCover(64, 64), 64, 64, envelope, {
       base: Base.ternary,
       encrypted: false,
       salt: null,
@@ -64,8 +70,29 @@ describe('useDecoder', () => {
     const { result } = renderHook(() => useDecoder())
     await act(async () => result.current.loadImage(file))
 
+    expect(result.current.decoded?.kind).toBe(PayloadKind.text)
     expect(result.current.decoded?.text).toBe('found me')
     expect(result.current.decoded?.encrypted).toBe(false)
+  })
+
+  it('reveals a hidden file with its name', async () => {
+    const fileBytes = Uint8Array.from([42, 7, 0, 255, 13])
+    const envelope = packPayload({ kind: PayloadKind.file, name: 'secret.dat', bytes: fileBytes })
+    const stego = embedPayload(makeCover(64, 64), 64, 64, envelope, {
+      base: Base.binary,
+      encrypted: false,
+      salt: null,
+      iv: null,
+    })
+    fileToImageMock.mockResolvedValue(loaded(stego, 64, 64))
+
+    const { result } = renderHook(() => useDecoder())
+    await act(async () => result.current.loadImage(file))
+
+    expect(result.current.decoded?.kind).toBe(PayloadKind.file)
+    expect(result.current.decoded?.fileName).toBe('secret.dat')
+    expect(result.current.decoded?.fileUrl).not.toBeNull()
+    expect(result.current.decoded?.text).toBeNull()
   })
 
   it('reports an image with no hidden message', async () => {

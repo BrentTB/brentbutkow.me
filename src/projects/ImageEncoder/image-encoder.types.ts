@@ -14,6 +14,13 @@ export const Mode = {
 } as const
 export type Mode = (typeof Mode)[keyof typeof Mode]
 
+// What the user is hiding on the encode side: a typed message or an uploaded file.
+export const PayloadMode = {
+  text: 'text',
+  file: 'file',
+} as const
+export type PayloadMode = (typeof PayloadMode)[keyof typeof PayloadMode]
+
 export function isBase(value: number): value is Base {
   return value === Base.binary || value === Base.ternary || value === Base.quaternary
 }
