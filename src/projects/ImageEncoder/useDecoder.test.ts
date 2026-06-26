@@ -5,7 +5,7 @@ import { Base } from './image-encoder.types'
 import { embedPayload, extractPayload } from './engine/codec'
 
 vi.mock('./canvas-image', () => ({
-  fileToRaster: vi.fn(),
+  fileToImage: vi.fn(),
   rasterToPngBlob: vi.fn(),
 }))
 
@@ -15,10 +15,10 @@ vi.mock('./codec-worker-client', () => ({
   decodeInWorker: vi.fn(),
 }))
 
-import { fileToRaster } from './canvas-image'
+import { fileToImage } from './canvas-image'
 import { decodeInWorker } from './codec-worker-client'
 
-const fileToRasterMock = vi.mocked(fileToRaster)
+const fileToImageMock = vi.mocked(fileToImage)
 const decodeInWorkerMock = vi.mocked(decodeInWorker)
 const file = new File(['x'], 'stego.png', { type: 'image/png' })
 
@@ -32,6 +32,11 @@ function makeCover(width: number, height: number): Uint8ClampedArray {
   }
   return data
 }
+
+const loaded = (data: Uint8ClampedArray, width: number, height: number) => ({
+  raster: { data, width, height },
+  previewBlob: new Blob(['preview']),
+})
 
 beforeEach(() => {
   URL.createObjectURL = vi.fn(() => `blob:${Math.random()}`)
@@ -54,7 +59,7 @@ describe('useDecoder', () => {
       salt: null,
       iv: null,
     })
-    fileToRasterMock.mockResolvedValue({ data: stego, width: 64, height: 64 })
+    fileToImageMock.mockResolvedValue(loaded(stego, 64, 64))
 
     const { result } = renderHook(() => useDecoder())
     await act(async () => result.current.loadImage(file))
@@ -64,11 +69,7 @@ describe('useDecoder', () => {
   })
 
   it('reports an image with no hidden message', async () => {
-    fileToRasterMock.mockResolvedValue({
-      data: new Uint8ClampedArray(64 * 64 * 4),
-      width: 64,
-      height: 64,
-    })
+    fileToImageMock.mockResolvedValue(loaded(new Uint8ClampedArray(64 * 64 * 4), 64, 64))
     const { result } = renderHook(() => useDecoder())
     await act(async () => result.current.loadImage(file))
     expect(result.current.decoded).toBeNull()
@@ -82,7 +83,7 @@ describe('useDecoder', () => {
       salt: new Uint8Array(16).fill(7),
       iv: new Uint8Array(12).fill(9),
     })
-    fileToRasterMock.mockResolvedValue({ data: stego, width: 64, height: 64 })
+    fileToImageMock.mockResolvedValue(loaded(stego, 64, 64))
 
     const { result } = renderHook(() => useDecoder())
     await act(async () => result.current.loadImage(file))

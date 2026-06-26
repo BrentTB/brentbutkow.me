@@ -14,6 +14,18 @@ let worker: Worker | null = null
 let nextId = 1
 const pending = new Map<number, Pending>()
 
+// Reject every in-flight request and drop the worker. Without this a crashed
+// worker would leave promises (and the UI's busy flag) hanging forever, so the
+// page would look frozen. The next call spins up a fresh worker.
+function failAllPending(reason: Error): void {
+  pending.forEach((entry) => entry.reject(reason))
+  pending.clear()
+  if (worker) {
+    worker.terminate()
+    worker = null
+  }
+}
+
 function getWorker(): Worker {
   if (!worker) {
     worker = new Worker(new URL('./codec.worker.ts', import.meta.url), { type: 'module' })
@@ -25,6 +37,9 @@ function getWorker(): Worker {
       if (ok) entry.resolve(rest)
       else entry.reject(capacity ? new CapacityExceededError(0, 0) : new Error('Encoding failed'))
     }
+    worker.onerror = () => failAllPending(new Error('The image worker stopped unexpectedly'))
+    worker.onmessageerror = () =>
+      failAllPending(new Error('The image worker sent an unreadable message'))
   }
   return worker
 }

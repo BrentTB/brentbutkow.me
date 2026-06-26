@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
 import { Base, RasterImage } from './image-encoder.types'
 import { WrongKeyError, decryptMessage } from './engine/crypto'
-import { fileToRaster } from './canvas-image'
+import { fileToImage } from './canvas-image'
 import { decodeInWorker } from './codec-worker-client'
 import { useObjectUrls } from './useObjectUrls'
 
@@ -72,12 +72,12 @@ export function useDecoder() {
       setBusy(true)
       setError(null)
       try {
-        const raster = await fileToRaster(file)
+        const { raster, previewBlob } = await fileToImage(file)
         revokeAll()
         pendingRef.current = null
         setDecoded(null)
         setSource({
-          previewUrl: track(URL.createObjectURL(file)),
+          previewUrl: track(URL.createObjectURL(previewBlob)),
           width: raster.width,
           height: raster.height,
         })

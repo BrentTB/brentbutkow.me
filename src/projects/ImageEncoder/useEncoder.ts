@@ -4,7 +4,7 @@ import { CapacityExceededError } from './engine/codec'
 import { maxPayloadBytes, smallestBaseThatFits } from './engine/capacity'
 import { DiffStats } from './engine/diff'
 import { encryptMessage } from './engine/crypto'
-import { fileToRaster, rasterToPngBlob } from './canvas-image'
+import { fileToImage, rasterToPngBlob } from './canvas-image'
 import { encodeInWorker } from './codec-worker-client'
 import { downloadBlob } from '../../components/utils/download'
 import { AES_GCM_TAG_BYTES, DEFAULT_BASE, ENCODED_FILENAME } from './data'
@@ -67,12 +67,12 @@ export function useEncoder() {
       setBusy(true)
       setError(null)
       try {
-        const raster = await fileToRaster(file)
+        const { raster, previewBlob } = await fileToImage(file)
         revokeAll()
         clearResult()
         sourceRasterRef.current = raster
         setSource({
-          previewUrl: track(URL.createObjectURL(file)),
+          previewUrl: track(URL.createObjectURL(previewBlob)),
           width: raster.width,
           height: raster.height,
         })

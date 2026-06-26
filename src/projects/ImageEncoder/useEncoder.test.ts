@@ -7,7 +7,7 @@ import { buildDiff } from './engine/diff'
 import { maxPayloadBytes } from './engine/capacity'
 
 vi.mock('./canvas-image', () => ({
-  fileToRaster: vi.fn(),
+  fileToImage: vi.fn(),
   rasterToPngBlob: vi.fn(),
 }))
 
@@ -18,10 +18,10 @@ vi.mock('./codec-worker-client', () => ({
   decodeInWorker: vi.fn(),
 }))
 
-import { fileToRaster, rasterToPngBlob } from './canvas-image'
+import { fileToImage, rasterToPngBlob } from './canvas-image'
 import { encodeInWorker } from './codec-worker-client'
 
-const fileToRasterMock = vi.mocked(fileToRaster)
+const fileToImageMock = vi.mocked(fileToImage)
 const rasterToPngBlobMock = vi.mocked(rasterToPngBlob)
 const encodeInWorkerMock = vi.mocked(encodeInWorker)
 const decoder = new TextDecoder()
@@ -38,11 +38,16 @@ function makeRaster(width: number, height: number): RasterImage {
   return { data, width, height }
 }
 
+const loaded = (width: number, height: number) => ({
+  raster: makeRaster(width, height),
+  previewBlob: new Blob(['preview']),
+})
+
 beforeEach(() => {
   URL.createObjectURL = vi.fn(() => `blob:${Math.random()}`)
   URL.revokeObjectURL = vi.fn()
   rasterToPngBlobMock.mockResolvedValue(new Blob(['png'], { type: 'image/png' }))
-  fileToRasterMock.mockResolvedValue(makeRaster(64, 64))
+  fileToImageMock.mockResolvedValue(loaded(64, 64))
   encodeInWorkerMock.mockImplementation(async (raster, payload, options) => {
     const stegoData = embedPayload(raster.data, raster.width, raster.height, payload, options)
     const stego = { data: stegoData, width: raster.width, height: raster.height }
@@ -92,7 +97,7 @@ describe('useEncoder', () => {
   })
 
   it('suggests the gentlest base that fits when the message overflows', async () => {
-    fileToRasterMock.mockResolvedValue(makeRaster(16, 16))
+    fileToImageMock.mockResolvedValue(loaded(16, 16))
     const binaryMax = maxPayloadBytes(16, 16, Base.binary, false)
     const { result } = renderHook(() => useEncoder())
     await act(async () => result.current.loadImage(file))
@@ -104,7 +109,7 @@ describe('useEncoder', () => {
   })
 
   it('flags a message too big for any base', async () => {
-    fileToRasterMock.mockResolvedValue(makeRaster(16, 16))
+    fileToImageMock.mockResolvedValue(loaded(16, 16))
     const quaternaryMax = maxPayloadBytes(16, 16, Base.quaternary, false)
     const { result } = renderHook(() => useEncoder())
     await act(async () => result.current.loadImage(file))
@@ -115,7 +120,7 @@ describe('useEncoder', () => {
   })
 
   it('reports an encode that exceeds capacity', async () => {
-    fileToRasterMock.mockResolvedValue(makeRaster(2, 2))
+    fileToImageMock.mockResolvedValue(loaded(2, 2))
     const { result } = renderHook(() => useEncoder())
     await act(async () => result.current.loadImage(file))
     act(() => result.current.setMessage('way too much for four pixels'))
