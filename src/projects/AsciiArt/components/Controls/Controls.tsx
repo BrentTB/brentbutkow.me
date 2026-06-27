@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { BackgroundMode, ColorMode, RenderMode, SourceKind } from '../../ascii-art.types'
 import {
   AsciiOptions,
@@ -65,12 +65,20 @@ export function Controls({
   onToggleRecording,
 }: ControlsProps) {
   const [copied, setCopied] = useState(false)
+  const copyTimerRef = useRef<number | null>(null)
   const handleCopy = async () => {
     if (await onCopyText()) {
       setCopied(true)
-      window.setTimeout(() => setCopied(false), 1500)
+      if (copyTimerRef.current !== null) window.clearTimeout(copyTimerRef.current)
+      copyTimerRef.current = window.setTimeout(() => setCopied(false), 1500)
     }
   }
+  useEffect(
+    () => () => {
+      if (copyTimerRef.current !== null) window.clearTimeout(copyTimerRef.current)
+    },
+    []
+  )
 
   const isCustomRamp = options.charset === CUSTOM_CHARSET
   // Edges use fixed line glyphs and are magnitude-based, so charset + invert don't apply.

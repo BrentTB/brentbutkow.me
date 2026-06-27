@@ -17,8 +17,9 @@ type FrameOptions = {
   edgeThreshold?: number
 }
 
-// Line glyphs by gradient orientation bin (0, 45, 90, 135 degrees).
-const EDGE_CHARS = ['|', '\\', '-', '/'] as const
+// Edge glyph per gradient-orientation bin (0, 45, 90, 135 degrees). Each glyph
+// runs along the edge — perpendicular to the gradient that bin represents.
+const EDGE_CHARS = ['|', '/', '-', '\\'] as const
 
 // Sobel edge detection over the luminance grid: cells whose gradient magnitude
 // clears the threshold become a directional line glyph; the rest are blank.
@@ -47,7 +48,7 @@ export function sobelEdgeChars(
       const gx = tr + 2 * mr + br - (tl + 2 * ml + bl)
       const gy = bl + 2 * bc + br - (tl + 2 * tc + tr)
       if (Math.hypot(gx, gy) < threshold) continue
-      // Gradient orientation (ignore sign) -> the line char along the edge.
+      // Gradient orientation (ignore sign); EDGE_CHARS maps it to the edge glyph.
       const angle = (Math.atan2(gy, gx) + Math.PI) % Math.PI
       out[y * cols + x] = EDGE_CHARS[Math.round(angle / (Math.PI / 4)) % 4]
     }
@@ -93,6 +94,14 @@ export function gridCols(
   return Math.max(1, Math.round((rows * (srcWidth / srcHeight)) / cellAspect))
 }
 
+// Luminance scratch for edge mode, grown to the largest grid seen and reused so
+// the render loop never allocates it per frame.
+let lumBuffer = new Float32Array(0)
+const lumScratch = (size: number): Float32Array => {
+  if (lumBuffer.length < size) lumBuffer = new Float32Array(size)
+  return lumBuffer
+}
+
 // Converts downsampled RGBA pixels (cols x rows, from canvas getImageData) into
 // an ASCII grid. Brightness picks the glyph; the raw RGB rides along so the
 // renderer can tint in color mode.
@@ -112,12 +121,14 @@ export function buildAsciiGrid(
 ): AsciiGrid {
   const count = cols * rows
   const adjusting = brightness !== 0 || contrast !== 1
+  const edges = renderMode === RenderMode.edges
+  // Edge mode is magnitude-based, so brightness polarity has no meaning there.
+  const negate = invertColor && !edges
+  // Edges need the whole luminance grid before the Sobel pass; reuse a scratch
+  // buffer. Normal mode reads luminance inline, so it allocates nothing extra.
+  const lum = edges ? lumScratch(count) : null
 
-  // First pass: adjusted channels (kept for color) + luminance (drives glyphs).
-  const rr = new Uint8ClampedArray(count)
-  const gg = new Uint8ClampedArray(count)
-  const bb = new Uint8ClampedArray(count)
-  const lum = new Float32Array(count)
+  const cells: AsciiGrid['cells'] = new Array(count)
   for (let i = 0; i < count; i++) {
     const p = i * 4
     let r = pixels[p]
@@ -128,29 +139,17 @@ export function buildAsciiGrid(
       g = adjustChannel(g, brightness, contrast)
       b = adjustChannel(b, brightness, contrast)
     }
-    rr[i] = r
-    gg[i] = g
-    bb[i] = b
-    lum[i] = luminance(r, g, b)
+    const l = luminance(r, g, b)
+    if (lum) lum[i] = l
+    // Edge glyphs come from the Sobel pass below; normal mode resolves now.
+    const char = edges ? ' ' : brightnessToChar(l, ramp, invert)
+    cells[i] = negate ? { char, r: 255 - r, g: 255 - g, b: 255 - b } : { char, r, g, b }
   }
 
-  // Select the glyph per cell by mode. `invert` is the resolved brightness
-  // polarity; edges are magnitude-based so polarity doesn't apply.
-  let chars: string[]
-  if (renderMode === RenderMode.edges) {
-    chars = sobelEdgeChars(lum, cols, rows, edgeThreshold)
-  } else {
-    chars = new Array<string>(count)
-    for (let i = 0; i < count; i++) chars[i] = brightnessToChar(lum[i], ramp, invert)
+  if (lum) {
+    const chars = sobelEdgeChars(lum, cols, rows, edgeThreshold)
+    for (let i = 0; i < count; i++) cells[i].char = chars[i]
   }
 
-  // Edge mode is magnitude-based, so invert has no meaning there — don't negate.
-  const negate = invertColor && renderMode !== RenderMode.edges
-  const cells: AsciiGrid['cells'] = new Array(count)
-  for (let i = 0; i < count; i++) {
-    cells[i] = negate
-      ? { char: chars[i], r: 255 - rr[i], g: 255 - gg[i], b: 255 - bb[i] }
-      : { char: chars[i], r: rr[i], g: gg[i], b: bb[i] }
-  }
   return { cols, rows, cells }
 }
