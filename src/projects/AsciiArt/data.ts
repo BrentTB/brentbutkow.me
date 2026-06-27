@@ -3,7 +3,7 @@ import { BackgroundMode, ColorMode } from './ascii-art.types'
 // Brightness ramps, darkest -> lightest. `classic` is the exact ramp from the
 // original vidToAscii Python tool.
 export const Charset = {
-  classic: 'NM@B8&X§$#%ZI±+^,.- ',
+  classic: '$NM@B8&#%§ZXI±+^,-. ',
   blocks: '█▓▒░ ',
   simple: '@%#*+=-:. ',
 } as const

@@ -491,7 +491,15 @@ export function useAsciiArt(
     []
   )
   const setCharset = useCallback(
-    (charset: CharsetSelection) => setOptions((o) => ({ ...o, charset })),
+    (charset: CharsetSelection) =>
+      setOptions((o) => {
+        // Entering custom from a preset: seed the ramp with that preset so the
+        // output doesn't change and the user can see/edit what they were using.
+        if (charset === CUSTOM_CHARSET && o.charset !== CUSTOM_CHARSET) {
+          return { ...o, charset, customRamp: Charset[o.charset] }
+        }
+        return { ...o, charset }
+      }),
     []
   )
   const setCustomRamp = useCallback(

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { renderHook, act, cleanup } from '@testing-library/react'
 import { useAsciiArt } from './useAsciiArt'
 import { BackgroundMode, ColorMode } from './ascii-art.types'
-import { DEFAULT_CHARSET, DEFAULT_ROWS } from './data'
+import { Charset, DEFAULT_CHARSET, DEFAULT_ROWS } from './data'
 
 const canvasRef = { current: document.createElement('canvas') }
 
@@ -61,6 +61,14 @@ describe('useAsciiArt', () => {
       contrast: 1.5,
       mirror: false,
     })
+  })
+
+  it('seeds the custom ramp from the active preset when switching to custom', () => {
+    const { result } = renderHook(() => useAsciiArt(canvasRef))
+    act(() => result.current.setCharset('blocks'))
+    act(() => result.current.setCharset('custom'))
+    expect(result.current.options.charset).toBe('custom')
+    expect(result.current.options.customRamp).toBe(Charset.blocks)
   })
 
   it('surfaces an error when the video fails to play', async () => {
