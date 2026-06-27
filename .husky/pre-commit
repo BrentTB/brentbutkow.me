@@ -1,17 +1,25 @@
 #!/usr/bin/env sh
 set -e
 
-# Incremental type-check — only re-checks what changed (full tsc + eslint run in CI on PRs)
-npm run typecheck:fast
-
-# Lint + test only staged TS files (full eslint/test suite runs in CI on PRs)
-STAGED_TS=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(ts|tsx)$' || true)
-if [ -n "$STAGED_TS" ]; then
-  echo "$STAGED_TS" | xargs npx eslint
-  echo "$STAGED_TS" | xargs npx vitest related --run
-fi
-
-# Re-stage only the files that were already staged, so prettier fixes get committed
+BIN=./node_modules/.bin
 STAGED=$(git diff --cached --name-only --diff-filter=ACMR)
-npm run format
-echo "$STAGED" | xargs -r git add
+STAGED_TS=$(echo "$STAGED" | grep -E '\.(ts|tsx)$' || true)
+
+# Independent checks run in parallel; fail the commit if any fails.
+# (full tsc + eslint + test suite still run in CI on PRs)
+pids=""
+$BIN/tsc -p tsconfig.app.json --noEmit --incremental \
+  --tsBuildInfoFile node_modules/.cache/typecheck.tsbuildinfo & pids="$pids $!"
+if [ -n "$STAGED_TS" ]; then
+  echo "$STAGED_TS" | xargs $BIN/eslint & pids="$pids $!"
+  echo "$STAGED_TS" | xargs $BIN/vitest related --run & pids="$pids $!"
+fi
+fail=0
+for p in $pids; do wait "$p" || fail=1; done
+[ "$fail" -eq 0 ] || exit 1
+
+# Format only staged files, then re-stage so the fixes get committed.
+if [ -n "$STAGED" ]; then
+  echo "$STAGED" | xargs $BIN/prettier --write --ignore-unknown
+  echo "$STAGED" | xargs git add
+fi
