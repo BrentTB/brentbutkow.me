@@ -15,15 +15,7 @@ export type HeroAction = {
   external?: boolean
 }
 
-export type Project = {
-  title: string
-  description: string
-  stack: string[]
-  link?: string
-  status?: string
-}
-
-export type ExperienceProject = {
+type ExperienceProject = {
   company: string
   period: string
   description: string[]
@@ -38,12 +30,6 @@ export type Experience = {
   description?: string[]
   skills?: string[]
   experienceProjects?: ExperienceProject[]
-}
-
-export type ContactInfo = {
-  email: string
-  location: string
-  availability: string
 }
 
 export type ContactPlatform = {

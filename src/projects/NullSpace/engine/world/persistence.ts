@@ -103,7 +103,7 @@ export const CHANGELOG_CATEGORIES: { key: ChangelogCategory; label: string }[] =
   { key: ChangelogCategory.architecture, label: 'Internal Architecture' },
 ]
 
-export type VisibleChangelogGroup = { key: ChangelogCategory; label: string; items: string[] }
+type VisibleChangelogGroup = { key: ChangelogCategory; label: string; items: string[] }
 export type VisibleChangelogEntry = {
   version: string
   date: string

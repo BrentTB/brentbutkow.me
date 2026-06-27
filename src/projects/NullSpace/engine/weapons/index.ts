@@ -8,7 +8,6 @@ import { missile } from './missile'
 import { ricochet } from './ricochet'
 import { nuke } from './nuke'
 import type { HelperWeaponDefinition } from './helper-weapon-definition'
-import type { IconName } from '../../icon-names'
 
 export type { HelperWeaponDefinition } from './helper-weapon-definition'
 export { buildHelperProjectile } from './helper-weapon-definition'
@@ -27,12 +26,6 @@ export const HELPER_WEAPON_DEFINITIONS: Record<HelperWeaponKind, HelperWeaponDef
 export const HELPER_WEAPON_LIST: HelperWeaponDefinition[] = Object.values(HELPER_WEAPON_DEFINITIONS)
 
 // --- Derived lookup tables ---
-
-export const HELPER_WEAPON_META: Record<HelperWeaponKind, { icon: IconName; label: string }> =
-  Object.fromEntries(HELPER_WEAPON_LIST.map((d) => [d.kind, d.meta])) as Record<
-    HelperWeaponKind,
-    { icon: IconName; label: string }
-  >
 
 export const HELPER_WEAPON_UNLOCK_UPGRADE: Partial<Record<HelperWeaponKind, UpgradeId>> =
   Object.fromEntries(

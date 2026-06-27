@@ -6,6 +6,7 @@ import {
   applyTierSum,
   composeUltimateUpgrades,
   type AbilityDefinition,
+  AbilityActivation,
 } from '../ability-definition'
 import { helper } from './helper'
 import { IconName } from '../../../icon-names'
@@ -33,7 +34,7 @@ export const helperFactory: AbilityDefinition = {
   kind: AbilityKind.helperFactory,
   ultimateOf: AbilityKind.helper,
   meta: { icon: IconName.helper, label: 'Helper Factory' },
-  activation: 'click',
+  activation: AbilityActivation.click,
   base: () => ({
     kind: AbilityKind.helperFactory,
     cooldown: HELPER.cooldown,

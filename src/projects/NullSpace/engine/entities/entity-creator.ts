@@ -61,6 +61,7 @@ export function uid(): string {
   const id = crypto.randomUUID?.()
   if (id) return id
   uidFallback += 1
+  // eslint-disable-next-line no-restricted-properties -- entity ids don't feed the deterministic sim
   return `e${uidFallback}-${Math.random().toString(36).slice(5)}`
 }
 

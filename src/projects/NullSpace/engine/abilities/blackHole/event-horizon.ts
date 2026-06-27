@@ -10,6 +10,7 @@ import {
   applyTierSum,
   composeUltimateUpgrades,
   type AbilityDefinition,
+  AbilityActivation,
 } from '../ability-definition'
 import { blackHole } from './black-hole'
 import type {
@@ -150,7 +151,7 @@ export const eventHorizon: AbilityDefinition = {
   kind: AbilityKind.eventHorizon,
   ultimateOf: AbilityKind.blackHole,
   meta: { icon: IconName.blackHole, label: 'Event Horizon' },
-  activation: 'click',
+  activation: AbilityActivation.click,
   base: () => ({
     kind: AbilityKind.eventHorizon,
     cooldown: BLACK_HOLE.cooldown,

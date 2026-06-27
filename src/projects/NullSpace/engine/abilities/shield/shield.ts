@@ -23,6 +23,7 @@ import {
   applyCostReduction,
   applyTierSum,
   type AbilityDefinition,
+  AbilityActivation,
 } from '../ability-definition'
 import type {
   EffectDefinition,
@@ -260,7 +261,7 @@ export const shieldEffect: EffectDefinition = {
 export const shield: AbilityDefinition = {
   kind: AbilityKind.shield,
   meta: { icon: IconName.shield, label: 'Shield' },
-  activation: 'click',
+  activation: AbilityActivation.click,
   base: () => ({
     kind: AbilityKind.shield,
     cooldown: SHIELD.cooldown,

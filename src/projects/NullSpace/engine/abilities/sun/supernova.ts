@@ -10,6 +10,7 @@ import {
   applyTierSum,
   composeUltimateUpgrades,
   type AbilityDefinition,
+  AbilityActivation,
 } from '../ability-definition'
 import { sun } from './sun'
 import type {
@@ -197,7 +198,7 @@ export const supernova: AbilityDefinition = {
   kind: AbilityKind.supernova,
   ultimateOf: AbilityKind.sun,
   meta: { icon: IconName.sun, label: 'Supernova' },
-  activation: 'click',
+  activation: AbilityActivation.click,
   base: () => ({
     kind: AbilityKind.supernova,
     cooldown: SUN.cooldown,

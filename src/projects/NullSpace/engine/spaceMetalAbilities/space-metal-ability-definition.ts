@@ -13,7 +13,7 @@ export type SpaceMetalAbilityKind =
 // The subset of HUD state each ability needs to decide if its button is
 // enabled. Lets the HUD ask `ability.canUse(uiState)` without a per-kind
 // switch, so a new ability stays a pure registry addition.
-export type SpaceMetalAbilityUIState = {
+type SpaceMetalAbilityUIState = {
   spaceMetal: number
   shipShield: number
   shipMaxShield: number

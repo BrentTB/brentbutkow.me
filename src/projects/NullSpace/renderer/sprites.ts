@@ -33,7 +33,7 @@ const a = '#22aa22' // dark green
 
 // Arrowhead fighter — cyan canopy behind the nose, light keel stripe down the
 // spine, delta wings with shaded trailing edges, twin engine nozzles.
-export const SHIP_SPRITE: SpriteData = [
+const SHIP_SPRITE: SpriteData = [
   [_, _, _, _, _, _, _, D, D, _, _, _, _, _, _, _],
   [_, _, _, _, _, _, G, D, D, G, _, _, _, _, _, _],
   [_, _, _, _, _, _, G, C, C, G, _, _, _, _, _, _],
@@ -54,7 +54,7 @@ export const SHIP_SPRITE: SpriteData = [
 
 // Clawed grabber — pincer arms hook in toward the nose, white eye band on a
 // dark carapace, body tapers to a tail so direction reads at a glance.
-export const DRONE_SPRITE: SpriteData = [
+const DRONE_SPRITE: SpriteData = [
   [_, _, _, _, R, R, _, _, _, _, R, R, _, _, _, _],
   [_, _, _, R, r, R, _, _, _, _, R, r, R, _, _, _],
   [_, _, R, r, R, _, _, _, _, _, _, R, r, R, _, _],
@@ -69,6 +69,7 @@ export const DRONE_SPRITE: SpriteData = [
   [_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _],
 ]
 
+// Not used locally, so exported to avoid TS errors
 export const _OLD_DRONE_SPRITE: SpriteData = [
   [_, _, _, _, R, R, _, _, _, _, R, R, _, _, _, _],
   [_, _, _, R, r, R, _, _, _, _, R, r, R, _, _, _],
@@ -84,7 +85,7 @@ export const _OLD_DRONE_SPRITE: SpriteData = [
   [_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _],
 ]
 // Bulky steel diamond — heavy plating with twin red sensor clusters.
-export const TANK_SPRITE: SpriteData = [
+const TANK_SPRITE: SpriteData = [
   [_, _, _, _, _, _, _, t, t, _, _, _, _, _, _, _],
   [_, _, _, _, _, _, t, T, T, t, _, _, _, _, _, _],
   [_, _, _, _, _, t, T, T, T, T, t, _, _, _, _, _],
@@ -104,7 +105,7 @@ export const TANK_SPRITE: SpriteData = [
 ]
 
 // Gold energy bolt — white-hot cross core inside a gold diamond halo.
-export const PROJECTILE_SPRITE: SpriteData = [
+const PROJECTILE_SPRITE: SpriteData = [
   [_, _, G, _, _],
   [_, G, W, G, _],
   [G, W, W, W, G],
@@ -114,7 +115,7 @@ export const PROJECTILE_SPRITE: SpriteData = [
 
 // Irregular molten rock — lumpy silhouette with ember cracks instead of a
 // concentric bullseye.
-export const METEOR_SPRITE: SpriteData = [
+const METEOR_SPRITE: SpriteData = [
   [_, _, F, F, R, _, _, _],
   [_, F, R, r, r, R, _, _],
   [F, R, r, r, F, r, R, _],
@@ -126,7 +127,7 @@ export const METEOR_SPRITE: SpriteData = [
 ]
 
 // Small jagged fragment of the meteor — same molten-rock palette.
-export const METEORITE_SPRITE: SpriteData = [
+const METEORITE_SPRITE: SpriteData = [
   [_, F, R, _, _],
   [F, r, r, R, _],
   [R, r, F, r, F],
@@ -137,7 +138,7 @@ export const METEORITE_SPRITE: SpriteData = [
 // Gun platform — central forward cannon flanked by two side barrels, glowing
 // cyan-cored eye in a diamond body. The barrels make "ranged" readable next
 // to the drone (clawed) and the tank (bulky wedge).
-export const SHOOTER_SPRITE: SpriteData = [
+const SHOOTER_SPRITE: SpriteData = [
   [_, _, _, _, _, _, _, p, p, _, _, _, _, _, _, _],
   [_, _, _, _, _, _, _, P, P, _, _, _, _, _, _, _],
   [_, _, _, _, _, _, p, P, P, p, _, _, _, _, _, _],
@@ -157,7 +158,7 @@ export const SHOOTER_SPRITE: SpriteData = [
 ]
 
 // Red bolt with a white-hot core — sized up so incoming fire tracks easily.
-export const ENEMY_PROJECTILE_SPRITE: SpriteData = [
+const ENEMY_PROJECTILE_SPRITE: SpriteData = [
   [_, _, R, _, _],
   [_, R, F, R, _],
   [R, F, W, F, R],
@@ -166,7 +167,7 @@ export const ENEMY_PROJECTILE_SPRITE: SpriteData = [
 ]
 
 // Tumbling magenta mote with red flecks — chaotic-looking in packs.
-export const SWARM_SPRITE: SpriteData = [
+const SWARM_SPRITE: SpriteData = [
   [_, _, M, M, _, _, _, _],
   [_, M, m, m, M, _, _, _],
   [M, m, R, R, m, M, _, _],
@@ -193,7 +194,7 @@ export const _NEW_SWARM_SPRITE: SpriteData = [
 // Naval contact mine — dark round shell with eight protruding fuse horns
 // (dark base, fire-bright tip) and a red payload window glowing white-hot at
 // the center. The spiky silhouette + lit core say "touch this and it blows".
-export const BOMBER_SPRITE: SpriteData = [
+const BOMBER_SPRITE: SpriteData = [
   [_, _, _, _, _, _, _, F, F, _, _, _, _, _, _, _],
   [_, _, _, _, _, _, _, O, O, _, _, _, _, _, _, _],
   [_, _, F, _, _, _, _, o, o, _, _, _, _, F, _, _],
@@ -214,7 +215,7 @@ export const BOMBER_SPRITE: SpriteData = [
 
 // Small rocket sprite, drawn rotated to its velocity. 5×12 — white nose cap,
 // red warhead band, side-lit body (light on the left), fins, exhaust plume.
-export const ROCKET_SPRITE: SpriteData = [
+const ROCKET_SPRITE: SpriteData = [
   [_, _, W, _, _],
   [_, R, R, R, _],
   [_, D, G, g, _],
@@ -232,7 +233,7 @@ export const ROCKET_SPRITE: SpriteData = [
 // Interceptor: needle dart — long canopy up front, thin fuselage with a light
 // keel stripe, blade wings separated from the body by a notch, and a single
 // flared afterburner. Speed shows in the sweep and the gap, not bulk.
-export const INTERCEPTOR_SPRITE: SpriteData = [
+const INTERCEPTOR_SPRITE: SpriteData = [
   [_, _, _, _, _, _, _, D, D, _, _, _, _, _, _, _],
   [_, _, _, _, _, _, _, G, G, _, _, _, _, _, _, _],
   [_, _, _, _, _, _, G, D, D, G, _, _, _, _, _, _],
@@ -253,7 +254,7 @@ export const INTERCEPTOR_SPRITE: SpriteData = [
 
 // Dreadnought: broad battleship — gold hull carrying heavy steel side pods,
 // a wide cyan bridge canopy at the prow, and a triple-engine stern.
-export const DREADNOUGHT_SPRITE: SpriteData = [
+const DREADNOUGHT_SPRITE: SpriteData = [
   [_, _, _, _, _, _, G, G, G, G, _, _, _, _, _, _],
   [_, _, _, _, G, G, T, T, T, T, G, G, _, _, _, _],
   [_, _, _, G, T, T, t, W, W, t, T, T, G, _, _, _],
@@ -274,7 +275,7 @@ export const DREADNOUGHT_SPRITE: SpriteData = [
 
 // Ally fighter — mini green dart with a white cockpit and engine spark, a
 // clear step up from a bare triangle while staying tiny.
-export const ALLY_SPRITE: SpriteData = [
+const ALLY_SPRITE: SpriteData = [
   [_, _, _, A, _, _, _],
   [_, _, A, W, A, _, _],
   [_, A, a, A, a, A, _],
@@ -285,7 +286,7 @@ export const ALLY_SPRITE: SpriteData = [
 
 // Slim homing missile — drawn rotated to velocity (nose up at rotation 0).
 // White tip, red warhead, steel body darkening toward tail fins, exhaust.
-export const MISSILE_SPRITE: SpriteData = [
+const MISSILE_SPRITE: SpriteData = [
   [_, W, _],
   [_, R, _],
   [_, T, _],
@@ -299,7 +300,7 @@ export const MISSILE_SPRITE: SpriteData = [
 // Fast magenta orb used by the ricochet weapon — visually distinct from the
 // default bullet (gold) and the laser beam.
 
-export const RICOCHET_SPRITE: SpriteData = [
+const RICOCHET_SPRITE: SpriteData = [
   [_, X, X, X, _],
   [X, W, W, x, X],
   [X, W, x, x, X],
@@ -310,7 +311,7 @@ export const RICOCHET_SPRITE: SpriteData = [
 // Big slow shell — white nose cone, radioactive-green body with a red hazard
 // band at its heart, finned tail and exhaust.
 
-export const NUKE_SPRITE: SpriteData = [
+const NUKE_SPRITE: SpriteData = [
   [_, _, W, W, _, _],
   [_, W, W, W, W, _],
   [_, n, N, N, n, _],
@@ -327,7 +328,7 @@ export const NUKE_SPRITE: SpriteData = [
 // rings around a purple reactor housing with a glowing white core, four red
 // armor spikes at the compass points, and a pair of red-tipped laser turrets
 // flanking each spike so its incoming fire reads as sourced, not magic.
-export const DREADNOUGHT_BOSS_SPRITE: SpriteData = [
+const DREADNOUGHT_BOSS_SPRITE: SpriteData = [
   [_, _, _, _, _, _, R, _, _, R, R, _, _, R, _, _, _, _, _, _],
   [_, _, _, _, _, _, T, _, R, R, R, R, _, T, _, _, _, _, _, _],
   [_, _, _, _, _, t, t, t, t, R, R, t, t, t, t, _, _, _, _, _],
@@ -355,7 +356,7 @@ export const DREADNOUGHT_BOSS_SPRITE: SpriteData = [
 // bulging between them. The glowing C mouths on the caps' inner faces mark
 // where the energy emits. Symmetric both ways so its orbit rotation never
 // looks wrong.
-export const SHIELD_GENERATOR_SPRITE: SpriteData = [
+const SHIELD_GENERATOR_SPRITE: SpriteData = [
   [_, _, _, t, T, T, T, T, t, _, _, _],
   [_, t, T, T, T, T, T, T, T, T, t, _],
   [_, _, t, t, C, C, C, C, t, t, _, _],
@@ -375,7 +376,7 @@ export const SHIELD_GENERATOR_SPRITE: SpriteData = [
 // throws the glowing red eyes into an angled glare, and a gaping maw of
 // interlocking white fangs opens over a dark throat. Tapers into the neck the
 // body chain follows.
-export const VOID_WORM_BOSS_SPRITE: SpriteData = [
+const VOID_WORM_BOSS_SPRITE: SpriteData = [
   [_, _, _, _, _, _, _, _, _, M, M, _, _, _, _, _, _, _, _, _],
   [_, _, _, _, _, _, _, _, m, M, M, m, _, _, _, _, _, _, _, _],
   [_, _, _, _, _, _, _, m, P, M, M, P, m, _, _, _, _, _, _, _],
@@ -401,7 +402,7 @@ export const VOID_WORM_BOSS_SPRITE: SpriteData = [
 // Worm body segment (10×14) — capsule with its long axis along the chain
 // (nose-up, rotated to the segment's chain-direction vel). Taller than the
 // 30px segment spacing so neighbours overlap and the body reads as one tube.
-export const WORM_SEGMENT_SPRITE: SpriteData = [
+const WORM_SEGMENT_SPRITE: SpriteData = [
   [_, _, _, m, m, m, m, _, _, _],
   [_, m, m, P, P, P, P, m, m, _],
   [_, m, P, p, p, p, p, P, m, _],
@@ -422,7 +423,7 @@ export const WORM_SEGMENT_SPRITE: SpriteData = [
 // Same magenta-and-purple palette and toothy maw, on a long segmented body that
 // tapers to a thin trailing tail (so it reads as a worm, not a tadpole); one
 // entity, drawn nose-up and rotated to its lunge direction.
-export const MINI_VOID_WORM_SPRITE: SpriteData = [
+const MINI_VOID_WORM_SPRITE: SpriteData = [
   [_, _, _, m, M, m, _, _, _],
   [_, _, m, M, M, M, m, _, _],
   [_, m, P, M, M, M, P, m, _],
@@ -457,7 +458,7 @@ export const MINI_VOID_WORM_SPRITE: SpriteData = [
 // socket, and four magenta brood pods sit in the plating — the same magenta
 // as the swarms it scatters when it blinks onto you. It never moves under
 // its own velocity, so it draws at a fixed rotation.
-export const PHASE_SHIFTER_BOSS_SPRITE: SpriteData = [
+const PHASE_SHIFTER_BOSS_SPRITE: SpriteData = [
   [_, _, _, _, _, _, _, _, _, C, C, _, _, _, _, _, _, _, _, _],
   [_, _, _, _, _, _, _, _, C, W, W, C, _, _, _, _, _, _, _, _],
   [_, _, _, _, _, _, _, C, _, _, _, _, C, _, _, _, _, _, _, _],
@@ -482,7 +483,7 @@ export const PHASE_SHIFTER_BOSS_SPRITE: SpriteData = [
 
 // Dasher — an aggressive orange dart: swept wings, twin exhausts, a red core.
 // The renderer points it along its velocity, so the nose leads the charge.
-export const DASHER_SPRITE: SpriteData = [
+const DASHER_SPRITE: SpriteData = [
   [_, _, _, _, _, F, _, _, _, _, _],
   [_, _, _, _, F, O, F, _, _, _, _],
   [_, _, _, F, O, O, O, F, _, _, _],

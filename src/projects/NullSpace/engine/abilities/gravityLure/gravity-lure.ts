@@ -11,6 +11,7 @@ import {
   applyTierSum,
   applyCostReduction,
   type AbilityDefinition,
+  AbilityActivation,
 } from '../ability-definition'
 import type {
   EffectDefinition,
@@ -184,7 +185,7 @@ export const gravityLureEffect: EffectDefinition = {
 export const gravityLure: AbilityDefinition = {
   kind: AbilityKind.gravityLure,
   meta: { icon: IconName.gravityLure, label: 'Gravity Lure' },
-  activation: 'click',
+  activation: AbilityActivation.click,
   base: () => ({
     kind: AbilityKind.gravityLure,
     cooldown: GRAVITY_LURE.cooldown,

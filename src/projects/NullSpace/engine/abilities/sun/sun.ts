@@ -10,6 +10,7 @@ import {
   applyTierSum,
   applyCostReduction,
   type AbilityDefinition,
+  AbilityActivation,
 } from '../ability-definition'
 import type {
   EffectDefinition,
@@ -169,7 +170,7 @@ export const sunEffect: EffectDefinition = {
 export const sun: AbilityDefinition = {
   kind: AbilityKind.sun,
   meta: { icon: IconName.sun, label: 'Sun' },
-  activation: 'click',
+  activation: AbilityActivation.click,
   base: () => ({
     kind: AbilityKind.sun,
     cooldown: SUN.cooldown,

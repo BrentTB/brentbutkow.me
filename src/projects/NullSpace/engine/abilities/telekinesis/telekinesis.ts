@@ -6,6 +6,7 @@ import {
   applyCostReduction,
   applyTierSum,
   type AbilityDefinition,
+  AbilityActivation,
 } from '../ability-definition'
 import { applyRadialForce, applyRadialForceToAsteroids } from './radial-force'
 import { drawForceField } from '../shield/force-field-render'
@@ -99,7 +100,7 @@ const telekinesisHold: HoldAbilityConfig = {
 export const telekinesis: AbilityDefinition = {
   kind: AbilityKind.telekinesis,
   meta: { icon: IconName.telekinesis, label: 'Telekinesis' },
-  activation: 'hold',
+  activation: AbilityActivation.hold,
   base: () => ({
     kind: AbilityKind.telekinesis,
     cooldown: 0,

@@ -5,6 +5,7 @@ import {
   applyTierSum,
   composeUltimateUpgrades,
   type AbilityDefinition,
+  AbilityActivation,
 } from '../ability-definition'
 import { overdrive, createOverdriveFieldEffect } from './overdrive'
 import { IconName } from '../../../icon-names'
@@ -29,7 +30,7 @@ export const overloadCore: AbilityDefinition = {
   kind: AbilityKind.overloadCore,
   ultimateOf: AbilityKind.overdrive,
   meta: { icon: IconName.overdrive, label: 'Overload Core' },
-  activation: 'click',
+  activation: AbilityActivation.click,
   base: () => ({
     kind: AbilityKind.overloadCore,
     cooldown: OVERDRIVE.cooldown,

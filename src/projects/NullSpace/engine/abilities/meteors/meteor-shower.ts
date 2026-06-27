@@ -7,6 +7,7 @@ import {
   applyTierSum,
   composeUltimateUpgrades,
   type AbilityDefinition,
+  AbilityActivation,
 } from '../ability-definition'
 import { meteor } from './meteor'
 import { IconName } from '../../../icon-names'
@@ -38,7 +39,7 @@ export const meteorShower: AbilityDefinition = {
   kind: AbilityKind.meteorShower,
   ultimateOf: AbilityKind.meteor,
   meta: { icon: IconName.meteor, label: 'Meteor Shower' },
-  activation: 'click',
+  activation: AbilityActivation.click,
   base: () => ({
     kind: AbilityKind.meteorShower,
     cooldown: METEOR_STRIKE.cooldown,

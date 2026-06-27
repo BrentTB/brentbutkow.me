@@ -14,6 +14,8 @@
     "typecheck:fast": "tsc -p tsconfig.app.json --noEmit --incremental --tsBuildInfoFile node_modules/.cache/typecheck.tsbuildinfo",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:hooks": "node --test .claude/hooks/*.test.mjs",
+    "lint:deadcode": "knip",
     "prepare": "husky",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
@@ -37,6 +39,7 @@
     "globals": "^15.9.0",
     "husky": "^9.1.7",
     "jsdom": "^29.1.1",
+    "knip": "^6.21.0",
     "prettier": "^3.8.1",
     "sass": "^1.97.3",
     "typescript": "^5.5.3",

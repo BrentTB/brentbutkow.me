@@ -6,6 +6,7 @@ import {
   applyTierSum,
   composeUltimateUpgrades,
   type AbilityDefinition,
+  AbilityActivation,
 } from '../ability-definition'
 import { IconName } from '../../../icon-names'
 
@@ -33,7 +34,7 @@ export const fireworks: AbilityDefinition = {
   kind: AbilityKind.fireworks,
   ultimateOf: AbilityKind.rocket,
   meta: { icon: IconName.rocket, label: 'Fireworks' },
-  activation: 'click',
+  activation: AbilityActivation.click,
   base: () => ({
     kind: AbilityKind.fireworks,
     cooldown: ROCKET.cooldown,

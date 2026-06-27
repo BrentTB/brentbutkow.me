@@ -1,10 +1,10 @@
 import { HeroAction, HeroContent } from '../../data/data.types'
 
 // Path is relative to /public, so drop the file at: public/brent-butkow-cv.pdf
-export const cvPath = '/brent-butkow-cv.pdf'
+const cvPath = '/brent-butkow-cv.pdf'
 
 // Feature flag — set to `true` once the CV PDF is in place at public/brent-butkow-cv.pdf.
-export const cvDownloadEnabled = false
+const cvDownloadEnabled = false
 
 const cvAction: HeroAction = {
   label: 'Download CV',

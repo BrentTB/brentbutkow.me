@@ -14,6 +14,7 @@ import {
   applyTierSum,
   composeUltimateUpgrades,
   type AbilityDefinition,
+  AbilityActivation,
 } from '../ability-definition'
 import { telekinesis } from './telekinesis'
 import { IconName } from '../../../icon-names'
@@ -151,7 +152,7 @@ export const singularity: AbilityDefinition = {
   kind: AbilityKind.singularity,
   ultimateOf: AbilityKind.telekinesis,
   meta: { icon: IconName.telekinesis, label: 'Singularity' },
-  activation: 'hold',
+  activation: AbilityActivation.hold,
   base: () => ({
     kind: AbilityKind.singularity,
     cooldown: 0,

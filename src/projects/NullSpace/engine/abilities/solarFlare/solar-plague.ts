@@ -9,6 +9,7 @@ import {
   applyTierSum,
   composeUltimateUpgrades,
   type AbilityDefinition,
+  AbilityActivation,
 } from '../ability-definition'
 import { solarFlare } from './solar-flare'
 import { IconName } from '../../../icon-names'
@@ -131,7 +132,7 @@ export const solarPlague: AbilityDefinition = {
   kind: AbilityKind.solarPlague,
   ultimateOf: AbilityKind.solarFlare,
   meta: { icon: IconName.solarFlare, label: 'Solar Plague' },
-  activation: 'hold',
+  activation: AbilityActivation.hold,
   base: () => ({
     kind: AbilityKind.solarPlague,
     cooldown: 0,

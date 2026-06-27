@@ -32,19 +32,15 @@ import { hypnosis } from './hypnosis/hypnosis'
 import { piedPiper } from './hypnosis/pied-piper'
 import type { UpgradeId } from '../upgrade-ids'
 import type { AbilityDefinition, UltimateDescriptor } from './ability-definition'
+import { AbilityActivation } from './ability-definition'
 import type { IconName } from '../../icon-names'
 
 export type { AbilityDefinition, UltimateContext } from './ability-definition'
-export { applyTierSum, applyCostReduction } from './ability-definition'
+export { applyTierSum, AbilityActivation } from './ability-definition'
 
 // Runtime helpers (turning input into state changes). Re-exported so any file
 // that used to import from `./abilities` still works after the move.
-export {
-  tryUseAbility,
-  updateAbilityCooldowns,
-  resolveAbilityInput,
-  type AbilityResult,
-} from './resolution'
+export { tryUseAbility, updateAbilityCooldowns, resolveAbilityInput } from './resolution'
 
 // Single source of truth: every ability registers itself in one file and gets
 // added here. All downstream lookup tables (meta, base, factories, upgrades)
@@ -92,7 +88,7 @@ export const ABILITY_META: Record<AbilityKind, { icon: IconName; label: string }
   >
 
 export const HOLD_ABILITIES: ReadonlySet<AbilityKind> = new Set(
-  ABILITY_LIST.filter((d) => d.activation === 'hold').map((d) => d.kind)
+  ABILITY_LIST.filter((d) => d.activation === AbilityActivation.hold).map((d) => d.kind)
 )
 
 type EffectFactory = (ability: Ability, targetPos: Vec2, ship: Ship) => ActiveEffect[]

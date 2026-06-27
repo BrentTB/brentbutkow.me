@@ -6,6 +6,7 @@ import {
   applyTierSum,
   applyCostReduction,
   type AbilityDefinition,
+  AbilityActivation,
 } from '../ability-definition'
 import { IconName } from '../../../icon-names'
 import { charmTargets, countCharmed } from './charm'
@@ -49,7 +50,7 @@ const costUpgrade = upgrade({
 export const hypnosis: AbilityDefinition = {
   kind: AbilityKind.hypnosis,
   meta: { icon: IconName.hypnosis, label: 'Hypnosis' },
-  activation: 'click',
+  activation: AbilityActivation.click,
   base: () => ({
     kind: AbilityKind.hypnosis,
     cooldown: HYPNOSIS.cooldown,

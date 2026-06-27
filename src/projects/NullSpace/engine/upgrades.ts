@@ -252,7 +252,7 @@ export function getAbilityLineUpgradeIds(kind: AbilityKind): UpgradeId[] {
 }
 
 // Total Stardust sunk into the given upgrades (sum of every purchased tier's cost).
-export function sumStardustSpent(upgrades: PlayerUpgrades, ids: UpgradeId[]): number {
+function sumStardustSpent(upgrades: PlayerUpgrades, ids: UpgradeId[]): number {
   let total = 0
   for (const id of ids) {
     const def = UPGRADE_DEFINITIONS[id]

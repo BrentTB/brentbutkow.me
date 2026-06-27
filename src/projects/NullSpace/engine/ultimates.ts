@@ -4,7 +4,7 @@ import type { AbilityKind, GameState } from './types'
 // While false, owning an ultimate hides its base in the hotbar/shop
 // (replacement). Flip to true to show base + ultimate side by side
 // (coexistence) — no data changes needed, just the view.
-export const COEXIST_ULTIMATES = false
+const COEXIST_ULTIMATES = false
 
 // The Nth ultimate bought this run costs N shards (N = already-owned + 1).
 export function ultimateShardCost(ultimatesOwned: AbilityKind[]): number {

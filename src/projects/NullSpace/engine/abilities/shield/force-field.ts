@@ -10,6 +10,7 @@ import {
   applyTierSum,
   composeUltimateUpgrades,
   type AbilityDefinition,
+  AbilityActivation,
 } from '../ability-definition'
 import { shield } from './shield'
 import { tickDomeAbsorption } from './dome-absorption'
@@ -110,7 +111,7 @@ export const forceField: AbilityDefinition = {
   kind: AbilityKind.forceField,
   ultimateOf: AbilityKind.shield,
   meta: { icon: IconName.shield, label: 'Force Field' },
-  activation: 'click',
+  activation: AbilityActivation.click,
   base: () => ({
     kind: AbilityKind.forceField,
     cooldown: SHIELD.cooldown,

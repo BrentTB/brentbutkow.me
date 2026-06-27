@@ -5,6 +5,7 @@ import {
   applyTierSum,
   composeUltimateUpgrades,
   type AbilityDefinition,
+  AbilityActivation,
 } from '../ability-definition'
 import { chainLightning, createChainArcEffect } from './chain-lightning'
 import { IconName } from '../../../icon-names'
@@ -29,7 +30,7 @@ export const ionStorm: AbilityDefinition = {
   kind: AbilityKind.ionStorm,
   ultimateOf: AbilityKind.chainLightning,
   meta: { icon: IconName.chainLightning, label: 'Ion Storm' },
-  activation: 'click',
+  activation: AbilityActivation.click,
   base: () => ({
     kind: AbilityKind.ionStorm,
     cooldown: CHAIN_LIGHTNING.cooldown,

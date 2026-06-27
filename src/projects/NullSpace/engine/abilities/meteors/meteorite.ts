@@ -6,6 +6,7 @@ import {
   applyCostReduction,
   applyTierSum,
   type AbilityDefinition,
+  AbilityActivation,
 } from '../ability-definition'
 import { IconName } from '../../../icon-names'
 
@@ -43,7 +44,7 @@ const costUpgrade = upgrade({
 export const meteorite: AbilityDefinition = {
   kind: AbilityKind.meteorite,
   meta: { icon: IconName.meteorite, label: 'Meteorite' },
-  activation: 'click',
+  activation: AbilityActivation.click,
   startsUnlocked: true,
   base: () => ({
     kind: AbilityKind.meteorite,

@@ -14,7 +14,7 @@ export type { HoldRuntimeState } from '../types'
 // World-layer drawing while the hold is active (target set). The renderer
 // calls these generically for every hold ability — renderBack draws beneath
 // entities, renderFront on top of them.
-export type HoldRenderFn = (
+type HoldRenderFn = (
   ctx: CanvasRenderingContext2D,
   ability: Ability,
   target: Vec2,

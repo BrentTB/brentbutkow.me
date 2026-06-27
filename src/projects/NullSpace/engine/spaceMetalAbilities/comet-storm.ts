@@ -30,7 +30,7 @@ export const COMET_STORM = {
   maxFallDelay: 0.6,
 } as const
 
-export function createCometStormEffect(pos: Vec2): CometStormEffect {
+function createCometStormEffect(pos: Vec2): CometStormEffect {
   return {
     id: uid(),
     kind: EffectKind.cometStorm,

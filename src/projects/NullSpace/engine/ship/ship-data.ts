@@ -1,6 +1,6 @@
 import { ShipKind } from '../types'
 
-export type ShipVariantStats = {
+type ShipVariantStats = {
   hp: number
   maxHp: number
   maxShield: number

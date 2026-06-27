@@ -37,6 +37,11 @@ const AsciiArt = lazy(() =>
     default: module.AsciiArt,
   }))
 )
+const ImageEncoder = lazy(() =>
+  import('../projects/ImageEncoder/ImageEncoder').then((module) => ({
+    default: module.ImageEncoder,
+  }))
+)
 const RecallRadar = lazy(() =>
   import('../projects/RecallRadar/RecallRadar').then((module) => ({
     default: module.RecallRadar,
@@ -62,7 +67,7 @@ export const routePaths = {
 
 const gamesPath = `${routePaths.funStuff}${funStuffSubRoutes.games}`
 
-export const funStuffRoutes: AppRoute[] = [
+const funStuffRoutes: AppRoute[] = [
   {
     path: gamesPath,
     element: <GamesPage />,
@@ -86,6 +91,14 @@ export const funStuffRoutes: AppRoute[] = [
     title: 'ASCII Art Studio — Brent Butkow',
     description:
       'ASCII Art Studio — turn a photo, video, or your webcam into live ASCII art entirely in your browser. A TypeScript port of Brent Butkow’s Python vidToAscii tool.',
+  },
+  {
+    path: `${routePaths.funStuff}${funStuffSubRoutes.imageEncoder}`,
+    element: <ImageEncoder />,
+    dontShowInNavbar: true,
+    title: 'Image Encoder — Brent Butkow',
+    description:
+      'Image Encoder — hide a secret message inside a picture by nudging its pixel colors, optionally lock it with a key, and reveal it again. Steganography that runs entirely in your browser.',
   },
   {
     path: `${routePaths.funStuff}${funStuffSubRoutes.gulagSort}`,

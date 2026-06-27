@@ -5,6 +5,7 @@ import {
   applyTierSum,
   composeUltimateUpgrades,
   type AbilityDefinition,
+  AbilityActivation,
 } from '../ability-definition'
 import { gravityLure, createGravityLureEffect } from './gravity-lure'
 import { IconName } from '../../../icon-names'
@@ -29,7 +30,7 @@ export const collapsar: AbilityDefinition = {
   kind: AbilityKind.collapsar,
   ultimateOf: AbilityKind.gravityLure,
   meta: { icon: IconName.gravityLure, label: 'Collapsar' },
-  activation: 'click',
+  activation: AbilityActivation.click,
   base: () => ({
     kind: AbilityKind.collapsar,
     cooldown: GRAVITY_LURE.cooldown,

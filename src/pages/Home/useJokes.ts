@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { jokes } from '../../data/jokes'
 import { JokeTypes } from '../../data/jokes.types'
 
-export const ALL_CATEGORY = 'all'
+const ALL_CATEGORY = 'all'
 export type JokeCategory = JokeTypes | typeof ALL_CATEGORY
 
 const jokeCategories = Object.values(JokeTypes)

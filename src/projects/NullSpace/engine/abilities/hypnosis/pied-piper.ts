@@ -6,6 +6,7 @@ import {
   applyTierSum,
   composeUltimateUpgrades,
   type AbilityDefinition,
+  AbilityActivation,
 } from '../ability-definition'
 import { IconName } from '../../../icon-names'
 import { hypnosis } from './hypnosis'
@@ -32,7 +33,7 @@ export const piedPiper: AbilityDefinition = {
   kind: AbilityKind.piedPiper,
   ultimateOf: AbilityKind.hypnosis,
   meta: { icon: IconName.piedPiper, label: 'Pied Piper' },
-  activation: 'click',
+  activation: AbilityActivation.click,
   base: () => ({
     kind: AbilityKind.piedPiper,
     cooldown: HYPNOSIS.cooldown,
