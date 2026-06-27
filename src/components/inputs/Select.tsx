@@ -10,12 +10,21 @@ type SelectProps = {
   // Optional extra class on the trigger button, to restyle it for a host control (e.g. blended into
   // the year stepper's pill). The dropdown menu itself is unaffected.
   triggerClassName?: string
+  // Greys out the trigger and blocks opening (the control has no effect in the current context).
+  disabled?: boolean
 }
 
 // Custom dropdown — native <select> popups render OS-default (white) and can't be themed on macOS.
 // Button trigger + listbox, themed to the dark site; keyboard + click-outside supported. Options may
 // carry a faceted `count` (shown muted) and a `disabled` flag (greyed, skipped by keyboard + clicks).
-export function Select({ value, options, onChange, ariaLabel, triggerClassName }: SelectProps) {
+export function Select({
+  value,
+  options,
+  onChange,
+  ariaLabel,
+  triggerClassName,
+  disabled = false,
+}: SelectProps) {
   const [open, setOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
   const rootRef = useRef<HTMLDivElement>(null)
@@ -86,6 +95,7 @@ export function Select({ value, options, onChange, ariaLabel, triggerClassName }
       <button
         type="button"
         className={[styles.trigger, triggerClassName].filter(Boolean).join(' ')}
+        disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={open ? listboxId : undefined}

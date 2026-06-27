@@ -8,6 +8,7 @@ type SourcePickerProps = {
   onImage: (file: File) => void
   onVideo: (file: File) => void
   onWebcam: () => void
+  onExample: () => void
   onReset: () => void
 }
 
@@ -17,6 +18,7 @@ export function SourcePicker({
   onImage,
   onVideo,
   onWebcam,
+  onExample,
   onReset,
 }: SourcePickerProps) {
   const imageInput = useRef<HTMLInputElement>(null)
@@ -43,6 +45,9 @@ export function SourcePicker({
         </button>
         <button type="button" className={styles.button} onClick={onWebcam}>
           Use webcam
+        </button>
+        <button type="button" className={styles.button} onClick={onExample}>
+          Try an example
         </button>
         {hasSource && (
           <button type="button" className={`${styles.button} ${styles.reset}`} onClick={onReset}>

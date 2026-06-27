@@ -1,18 +1,20 @@
 import { RefObject, useCallback, useEffect, useRef, useState } from 'react'
-import { BackgroundMode, ColorMode, SourceKind } from './ascii-art.types'
+import { AsciiGrid, BackgroundMode, ColorMode, RenderMode, SourceKind } from './ascii-art.types'
 import {
   AsciiOptions,
   CANVAS_PAD,
+  CUSTOM_CHARSET,
   Charset,
-  CharsetName,
+  CharsetSelection,
   MAX_COLS,
   MAX_ROWS,
   MIN_COLS,
   MIN_ROWS,
   defaultOptions,
 } from './data'
-import { buildAsciiGrid, gridCols, shouldInvertBrightness } from './engine/ascii-frame'
+import { buildAsciiGrid, gridCols, gridToText, shouldInvertBrightness } from './engine/ascii-frame'
 import { renderGrid } from './renderer/render-grid'
+import { drawSampleScene } from './sample-image'
 import { downloadBlob } from '../../components/utils/download'
 
 type SourceElement = HTMLImageElement | HTMLVideoElement
@@ -75,6 +77,7 @@ export function useAsciiArt(
   const objectUrlRef = useRef<string | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const recorderRef = useRef<MediaRecorder | null>(null)
+  const lastGridRef = useRef<AsciiGrid | null>(null)
   const wasPlayingRef = useRef(false)
   const recoverAttemptsRef = useRef(0)
   // Fixed stage box size, kept fresh by a ResizeObserver so the loop doesn't
@@ -172,8 +175,19 @@ export function useAsciiArt(
     const dctx = display.getContext('2d')
     if (!sctx || !dctx) return
 
-    const { charset, invert, colorMode, background, mirror, rows: rawRows } = optionsRef.current
-    const ramp = Charset[charset]
+    const {
+      charset,
+      customRamp,
+      invert,
+      colorMode,
+      background,
+      renderMode,
+      mirror,
+      brightness,
+      contrast,
+      rows: rawRows,
+    } = optionsRef.current
+    const ramp = charset === CUSTOM_CHARSET ? customRamp : Charset[charset]
     const rows = clamp(Math.round(rawRows), MIN_ROWS, MAX_ROWS)
     const cols = clamp(gridCols(rows, w, h), MIN_COLS, MAX_COLS)
     if (cols < 1 || rows < 1) return
@@ -206,7 +220,11 @@ export function useAsciiArt(
         ramp,
         invert: shouldInvertBrightness(background, invert),
         invertColor: invert,
+        brightness,
+        contrast,
+        renderMode,
       })
+      lastGridRef.current = grid // kept for text copy/download
       // Only resize when needed — reassigning width/height clears the canvas and
       // would disrupt an in-progress recording capture.
       const nextW = Math.round(canvasW)
@@ -268,12 +286,14 @@ export function useAsciiArt(
       video.load()
     }
     sourceRef.current = null
+    lastGridRef.current = null // drop the cached frame so text export can't emit a stale grid
   }, [stopLoop])
 
   const loadImage = useCallback(
     (file: File) => {
       teardownSource()
       setError(null)
+      setPlayback(PLAYBACK_DEFAULT) // a still has no transport; clears stale isPlaying
       const url = URL.createObjectURL(file)
       objectUrlRef.current = url
       const img = new Image()
@@ -287,6 +307,21 @@ export function useAsciiArt(
     },
     [teardownSource, renderFrame]
   )
+
+  // Loads a built-in demo scene so the page works without an upload.
+  const loadExample = useCallback(() => {
+    teardownSource()
+    setError(null)
+    setPlayback(PLAYBACK_DEFAULT) // a still has no transport; clears stale isPlaying
+    const img = new Image()
+    img.onload = () => {
+      sourceRef.current = img
+      setSourceKind(SourceKind.image)
+      renderFrame()
+    }
+    img.onerror = () => setError('Could not load the example.')
+    img.src = drawSampleScene()
+  }, [teardownSource, renderFrame])
 
   const loadVideo = useCallback(
     (file: File) => {
@@ -382,6 +417,25 @@ export function useAsciiArt(
     }, 'image/png')
   }, [canvasRef])
 
+  // Copies the current ASCII frame as plain text to the clipboard.
+  const copyText = useCallback(async () => {
+    const grid = lastGridRef.current
+    if (!grid || !navigator.clipboard?.writeText) return false
+    try {
+      await navigator.clipboard.writeText(gridToText(grid))
+      return true
+    } catch {
+      return false
+    }
+  }, [])
+
+  // Downloads the current ASCII frame as a .txt file.
+  const downloadText = useCallback(() => {
+    const grid = lastGridRef.current
+    if (!grid) return
+    downloadBlob(new Blob([gridToText(grid)], { type: 'text/plain' }), 'ascii-art.txt')
+  }, [])
+
   // Records the ASCII canvas plus the video's audio to a .webm in real time, via
   // the built-in MediaRecorder (no dependency).
   const startRecording = useCallback(() => {
@@ -441,12 +495,33 @@ export function useAsciiArt(
     (background: BackgroundMode) => setOptions((o) => ({ ...o, background })),
     []
   )
+  const setRenderMode = useCallback(
+    (renderMode: RenderMode) => setOptions((o) => ({ ...o, renderMode })),
+    []
+  )
   const setCharset = useCallback(
-    (charset: CharsetName) => setOptions((o) => ({ ...o, charset })),
+    (charset: CharsetSelection) =>
+      setOptions((o) => {
+        // Entering custom from a preset: seed the ramp with that preset so the
+        // output doesn't change and the user can see/edit what they were using.
+        if (charset === CUSTOM_CHARSET && o.charset !== CUSTOM_CHARSET) {
+          return { ...o, charset, customRamp: Charset[o.charset] }
+        }
+        return { ...o, charset }
+      }),
+    []
+  )
+  const setCustomRamp = useCallback(
+    (customRamp: string) => setOptions((o) => ({ ...o, customRamp })),
     []
   )
   const setRows = useCallback((rows: number) => setOptions((o) => ({ ...o, rows })), [])
   const setInvert = useCallback((invert: boolean) => setOptions((o) => ({ ...o, invert })), [])
+  const setBrightness = useCallback(
+    (brightness: number) => setOptions((o) => ({ ...o, brightness })),
+    []
+  )
+  const setContrast = useCallback((contrast: number) => setOptions((o) => ({ ...o, contrast })), [])
   const setMirror = useCallback((mirror: boolean) => setOptions((o) => ({ ...o, mirror })), [])
 
   // Track the stage box so the canvas keeps a constant on-screen size; redraw on
@@ -543,12 +618,19 @@ export function useAsciiArt(
     seek,
     setRate,
     saveImage,
+    copyText,
+    downloadText,
+    loadExample,
     toggleRecording,
     setColorMode,
     setBackground,
+    setRenderMode,
     setCharset,
+    setCustomRamp,
     setRows,
     setInvert,
+    setBrightness,
+    setContrast,
     setMirror,
   }
 }

@@ -2,9 +2,45 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { renderHook, act, cleanup } from '@testing-library/react'
 import { useAsciiArt } from './useAsciiArt'
 import { BackgroundMode, ColorMode } from './ascii-art.types'
-import { DEFAULT_CHARSET, DEFAULT_ROWS } from './data'
+import { Charset, DEFAULT_CHARSET, DEFAULT_ROWS } from './data'
 
 const canvasRef = { current: document.createElement('canvas') }
+
+// Drives one video frame through fake 2D contexts so lastGridRef holds a grid —
+// the precondition for text copy/download. Returns the rendered hook result.
+async function renderOneVideoFrame() {
+  let video: HTMLVideoElement | undefined
+  const realCreate = document.createElement.bind(document)
+  vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+    const el = realCreate(tag)
+    if (tag === 'video') video = el as HTMLVideoElement
+    return el
+  })
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(
+    () =>
+      ({
+        drawImage: vi.fn(),
+        fillRect: vi.fn(),
+        fillText: vi.fn(),
+        clearRect: vi.fn(),
+        save: vi.fn(),
+        restore: vi.fn(),
+        translate: vi.fn(),
+        scale: vi.fn(),
+        getImageData: (_x: number, _y: number, w: number, h: number) => ({
+          data: new Uint8ClampedArray(Math.max(0, w * h * 4)),
+        }),
+      }) as unknown as CanvasRenderingContext2D
+  )
+
+  const { result } = renderHook(() => useAsciiArt(canvasRef))
+  act(() => result.current.loadVideo(new File(['x'], 'clip.mp4', { type: 'video/mp4' })))
+  await act(async () => {}) // sourceKind -> video, paused in jsdom
+  Object.defineProperty(video, 'videoWidth', { value: 320, configurable: true })
+  Object.defineProperty(video, 'videoHeight', { value: 240, configurable: true })
+  act(() => result.current.setRows(90)) // option change repaints the paused frame
+  return result
+}
 
 beforeEach(() => {
   vi.stubGlobal(
@@ -43,18 +79,34 @@ describe('useAsciiArt', () => {
     const { result } = renderHook(() => useAsciiArt(canvasRef))
     act(() => result.current.setColorMode(ColorMode.grayscale))
     act(() => result.current.setBackground(BackgroundMode.light))
+    act(() => result.current.setRenderMode('edges'))
     act(() => result.current.setRows(90))
     act(() => result.current.setInvert(true))
     act(() => result.current.setCharset('blocks'))
+    act(() => result.current.setCustomRamp('AB '))
+    act(() => result.current.setBrightness(20))
+    act(() => result.current.setContrast(1.5))
     act(() => result.current.setMirror(false))
     expect(result.current.options).toMatchObject({
       colorMode: ColorMode.grayscale,
       background: BackgroundMode.light,
+      renderMode: 'edges',
       rows: 90,
       invert: true,
       charset: 'blocks',
+      customRamp: 'AB ',
+      brightness: 20,
+      contrast: 1.5,
       mirror: false,
     })
+  })
+
+  it('seeds the custom ramp from the active preset when switching to custom', () => {
+    const { result } = renderHook(() => useAsciiArt(canvasRef))
+    act(() => result.current.setCharset('blocks'))
+    act(() => result.current.setCharset('custom'))
+    expect(result.current.options.charset).toBe('custom')
+    expect(result.current.options.customRamp).toBe(Charset.blocks)
   })
 
   it('surfaces an error when the video fails to play', async () => {
@@ -173,6 +225,33 @@ describe('useAsciiArt', () => {
     expect(ctxByCanvas.get(canvasRef.current)?.fillRect).toHaveBeenCalled()
   })
 
+  // Guards the stale-isPlaying bug: switching from a playing source to a still
+  // image must reset playback, or the image stops responding to option changes.
+  it('resets playback when an example loads over a playing source', async () => {
+    let video: HTMLVideoElement | undefined
+    const realCreate = document.createElement.bind(document)
+    vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+      const el = realCreate(tag)
+      if (tag === 'video') video = el as HTMLVideoElement
+      return el
+    })
+    const stream = { getTracks: () => [{ stop: vi.fn() }] } as unknown as MediaStream
+    Object.defineProperty(navigator, 'mediaDevices', {
+      value: { getUserMedia: vi.fn().mockResolvedValue(stream) },
+      configurable: true,
+    })
+
+    const { result } = renderHook(() => useAsciiArt(canvasRef))
+    await act(async () => {
+      await result.current.startWebcam()
+    })
+    act(() => video?.dispatchEvent(new Event('play')))
+    expect(result.current.playback.isPlaying).toBe(true)
+
+    act(() => result.current.loadExample())
+    expect(result.current.playback.isPlaying).toBe(false)
+  })
+
   it('toggles video playback on spacebar', async () => {
     const { result } = renderHook(() => useAsciiArt(canvasRef))
     act(() => result.current.loadVideo(new File(['x'], 'clip.mp4', { type: 'video/mp4' })))
@@ -193,6 +272,44 @@ describe('useAsciiArt', () => {
 
     const { result } = renderHook(() => useAsciiArt(canvasRef))
     act(() => result.current.saveImage())
+    expect(clickSpy).toHaveBeenCalled()
+  })
+
+  it('returns false from copyText when nothing has rendered yet', async () => {
+    const writeText = vi.fn(() => Promise.resolve())
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    const { result } = renderHook(() => useAsciiArt(canvasRef))
+    let ok: boolean | undefined
+    await act(async () => {
+      ok = await result.current.copyText()
+    })
+    expect(ok).toBe(false)
+    expect(writeText).not.toHaveBeenCalled()
+  })
+
+  it('copies the rendered frame as text, reporting clipboard success and failure', async () => {
+    const writeText = vi.fn(() => Promise.resolve())
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    const result = await renderOneVideoFrame()
+
+    let ok: boolean | undefined
+    await act(async () => {
+      ok = await result.current.copyText()
+    })
+    expect(ok).toBe(true)
+    expect(writeText).toHaveBeenCalledWith(expect.any(String))
+
+    writeText.mockImplementation(() => Promise.reject(new Error('denied')))
+    await act(async () => {
+      ok = await result.current.copyText()
+    })
+    expect(ok).toBe(false)
+  })
+
+  it('downloads the rendered frame as a text file', async () => {
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    const result = await renderOneVideoFrame()
+    act(() => result.current.downloadText())
     expect(clickSpy).toHaveBeenCalled()
   })
 

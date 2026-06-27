@@ -26,12 +26,19 @@ export function AsciiArt() {
     seek,
     setRate,
     saveImage,
+    copyText,
+    downloadText,
+    loadExample,
     toggleRecording,
     setColorMode,
     setBackground,
+    setRenderMode,
     setCharset,
+    setCustomRamp,
     setRows,
     setInvert,
+    setBrightness,
+    setContrast,
     setMirror,
   } = useAsciiArt(canvasRef, isFunMode ? ColorMode.color : ColorMode.grayscale)
 
@@ -62,6 +69,7 @@ export function AsciiArt() {
         onImage={loadImage}
         onVideo={loadVideo}
         onWebcam={startWebcam}
+        onExample={loadExample}
         onReset={reset}
       />
 
@@ -83,32 +91,25 @@ export function AsciiArt() {
       )}
 
       {hasSource && (
-        <div className={styles.actions}>
-          <button type="button" className={styles.actionButton} onClick={saveImage}>
-            Save image
-          </button>
-          {canRecord && (
-            <button
-              type="button"
-              className={`${styles.actionButton} ${isRecording ? styles.recording : ''}`}
-              onClick={toggleRecording}
-            >
-              {isRecording ? 'Stop recording' : 'Record video'}
-            </button>
-          )}
-        </div>
-      )}
-
-      {hasSource && (
         <Controls
           options={options}
           sourceKind={sourceKind}
+          isRecording={isRecording}
+          canRecord={canRecord}
           onColorMode={setColorMode}
           onBackground={setBackground}
+          onRenderMode={setRenderMode}
           onCharset={setCharset}
+          onCustomRamp={setCustomRamp}
           onRows={setRows}
           onInvert={setInvert}
+          onBrightness={setBrightness}
+          onContrast={setContrast}
           onMirror={setMirror}
+          onSaveImage={saveImage}
+          onCopyText={copyText}
+          onDownloadText={downloadText}
+          onToggleRecording={toggleRecording}
         />
       )}
 
