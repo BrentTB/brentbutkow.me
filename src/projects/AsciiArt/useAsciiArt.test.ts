@@ -46,6 +46,9 @@ describe('useAsciiArt', () => {
     act(() => result.current.setRows(90))
     act(() => result.current.setInvert(true))
     act(() => result.current.setCharset('blocks'))
+    act(() => result.current.setCustomRamp('AB '))
+    act(() => result.current.setBrightness(20))
+    act(() => result.current.setContrast(1.5))
     act(() => result.current.setMirror(false))
     expect(result.current.options).toMatchObject({
       colorMode: ColorMode.grayscale,
@@ -53,6 +56,9 @@ describe('useAsciiArt', () => {
       rows: 90,
       invert: true,
       charset: 'blocks',
+      customRamp: 'AB ',
+      brightness: 20,
+      contrast: 1.5,
       mirror: false,
     })
   })

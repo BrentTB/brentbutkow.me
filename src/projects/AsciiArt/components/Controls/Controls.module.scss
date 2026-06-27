@@ -60,6 +60,23 @@
   cursor: pointer;
 }
 
+.textInput {
+  margin-top: 6px;
+  width: 160px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text);
+  background: var(--surface-strong);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 7px 10px;
+
+  &:focus-visible {
+    border-color: var(--accent);
+    outline: none;
+  }
+}
+
 input[type='range'] {
   accent-color: var(--accent);
   min-width: 160px;

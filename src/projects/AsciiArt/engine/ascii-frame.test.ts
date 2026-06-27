@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { buildAsciiGrid, gridCols, shouldInvertBrightness } from './ascii-frame'
+import {
+  adjustChannel,
+  buildAsciiGrid,
+  gridCols,
+  gridToText,
+  shouldInvertBrightness,
+} from './ascii-frame'
 import { BackgroundMode } from '../ascii-art.types'
 import { Charset } from '../data'
 
@@ -58,5 +64,39 @@ describe('shouldInvertBrightness', () => {
   it('lets the user invert flip whichever is natural for the background', () => {
     expect(shouldInvertBrightness(BackgroundMode.dark, true)).toBe(false)
     expect(shouldInvertBrightness(BackgroundMode.light, true)).toBe(true)
+  })
+})
+
+describe('adjustChannel', () => {
+  it('is a no-op at brightness 0 / contrast 1', () => {
+    expect(adjustChannel(128, 0, 1)).toBe(128)
+    expect(adjustChannel(40, 0, 1)).toBe(40)
+  })
+
+  it('adds brightness and clamps to a byte', () => {
+    expect(adjustChannel(100, 50, 1)).toBe(150)
+    expect(adjustChannel(250, 50, 1)).toBe(255)
+    expect(adjustChannel(10, -50, 1)).toBe(0)
+  })
+
+  it('scales contrast around mid-gray', () => {
+    expect(adjustChannel(128, 0, 2)).toBe(128) // pivot unchanged
+    expect(adjustChannel(64, 0, 2)).toBe(0)
+    expect(adjustChannel(200, 0, 2)).toBe(255)
+  })
+})
+
+describe('gridToText', () => {
+  it('joins cell chars per row, rows separated by newlines', () => {
+    const pixels = new Uint8ClampedArray([0, 0, 0, 255, 255, 255, 255, 255])
+    const oneRow = buildAsciiGrid(pixels, 2, 1, { ramp: Charset.classic, invert: false })
+    expect(gridToText(oneRow)).toBe(
+      `${Charset.classic[0]}${Charset.classic[Charset.classic.length - 1]}`
+    )
+
+    const twoRows = buildAsciiGrid(pixels, 1, 2, { ramp: Charset.classic, invert: false })
+    expect(gridToText(twoRows)).toBe(
+      `${Charset.classic[0]}\n${Charset.classic[Charset.classic.length - 1]}`
+    )
   })
 })

@@ -1,6 +1,18 @@
 import { ChangeEvent } from 'react'
 import { BackgroundMode, ColorMode, SourceKind } from '../../ascii-art.types'
-import { AsciiOptions, Charset, CharsetName, MAX_ROWS, MIN_ROWS } from '../../data'
+import {
+  AsciiOptions,
+  BRIGHTNESS_MAX,
+  BRIGHTNESS_MIN,
+  CONTRAST_MAX,
+  CONTRAST_MIN,
+  CUSTOM_CHARSET,
+  Charset,
+  CharsetName,
+  CharsetSelection,
+  MAX_ROWS,
+  MIN_ROWS,
+} from '../../data'
 import styles from './Controls.module.scss'
 
 type ControlsProps = {
@@ -8,9 +20,12 @@ type ControlsProps = {
   sourceKind: SourceKind
   onColorMode: (mode: ColorMode) => void
   onBackground: (background: BackgroundMode) => void
-  onCharset: (charset: CharsetName) => void
+  onCharset: (charset: CharsetSelection) => void
+  onCustomRamp: (ramp: string) => void
   onRows: (rows: number) => void
   onInvert: (invert: boolean) => void
+  onBrightness: (brightness: number) => void
+  onContrast: (contrast: number) => void
   onMirror: (mirror: boolean) => void
 }
 
@@ -22,13 +37,17 @@ export function Controls({
   onColorMode,
   onBackground,
   onCharset,
+  onCustomRamp,
   onRows,
   onInvert,
+  onBrightness,
+  onContrast,
   onMirror,
 }: ControlsProps) {
   const handleRows = (e: ChangeEvent<HTMLInputElement>) => onRows(Number(e.target.value))
   const handleCharset = (e: ChangeEvent<HTMLSelectElement>) =>
-    onCharset(e.target.value as CharsetName)
+    onCharset(e.target.value as CharsetSelection)
+  const isCustomRamp = options.charset === CUSTOM_CHARSET
 
   return (
     <div className={styles.controls}>
@@ -84,6 +103,29 @@ export function Controls({
       </label>
 
       <label className={styles.group}>
+        <span className={styles.label}>Brightness: {options.brightness}</span>
+        <input
+          type="range"
+          min={BRIGHTNESS_MIN}
+          max={BRIGHTNESS_MAX}
+          value={options.brightness}
+          onChange={(e) => onBrightness(Number(e.target.value))}
+        />
+      </label>
+
+      <label className={styles.group}>
+        <span className={styles.label}>Contrast: {options.contrast.toFixed(2)}</span>
+        <input
+          type="range"
+          min={CONTRAST_MIN}
+          max={CONTRAST_MAX}
+          step={0.05}
+          value={options.contrast}
+          onChange={(e) => onContrast(Number(e.target.value))}
+        />
+      </label>
+
+      <div className={styles.group}>
         <span className={styles.label}>Charset</span>
         <select className={styles.select} value={options.charset} onChange={handleCharset}>
           {charsetNames.map((name) => (
@@ -91,8 +133,20 @@ export function Controls({
               {name}
             </option>
           ))}
+          <option value={CUSTOM_CHARSET}>custom</option>
         </select>
-      </label>
+        {isCustomRamp && (
+          <input
+            type="text"
+            className={styles.textInput}
+            value={options.customRamp}
+            onChange={(e) => onCustomRamp(e.target.value)}
+            placeholder="dark → light"
+            aria-label="Custom ramp"
+            spellCheck={false}
+          />
+        )}
+      </div>
 
       <label className={`${styles.group} ${styles.checkbox}`}>
         <input

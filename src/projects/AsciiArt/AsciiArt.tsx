@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { BackButton } from '../../components/PageFormatting/BackButton'
 import { SafeLink } from '../../components/utils/SafeLink'
 import { useFunMode } from '../../contexts/useFunMode'
@@ -26,14 +26,28 @@ export function AsciiArt() {
     seek,
     setRate,
     saveImage,
+    copyText,
+    downloadText,
+    loadExample,
     toggleRecording,
     setColorMode,
     setBackground,
     setCharset,
+    setCustomRamp,
     setRows,
     setInvert,
+    setBrightness,
+    setContrast,
     setMirror,
   } = useAsciiArt(canvasRef, isFunMode ? ColorMode.color : ColorMode.grayscale)
+
+  const [copied, setCopied] = useState(false)
+  const handleCopyText = async () => {
+    if (await copyText()) {
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1500)
+    }
+  }
 
   const hasSource = sourceKind !== SourceKind.none
   const canRecord =
@@ -62,6 +76,7 @@ export function AsciiArt() {
         onImage={loadImage}
         onVideo={loadVideo}
         onWebcam={startWebcam}
+        onExample={loadExample}
         onReset={reset}
       />
 
@@ -87,6 +102,12 @@ export function AsciiArt() {
           <button type="button" className={styles.actionButton} onClick={saveImage}>
             Save image
           </button>
+          <button type="button" className={styles.actionButton} onClick={handleCopyText}>
+            {copied ? 'Copied!' : 'Copy text'}
+          </button>
+          <button type="button" className={styles.actionButton} onClick={downloadText}>
+            Download .txt
+          </button>
           {canRecord && (
             <button
               type="button"
@@ -106,8 +127,11 @@ export function AsciiArt() {
           onColorMode={setColorMode}
           onBackground={setBackground}
           onCharset={setCharset}
+          onCustomRamp={setCustomRamp}
           onRows={setRows}
           onInvert={setInvert}
+          onBrightness={setBrightness}
+          onContrast={setContrast}
           onMirror={setMirror}
         />
       )}
