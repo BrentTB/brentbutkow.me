@@ -20,7 +20,7 @@ export type AbilityActivation = (typeof AbilityActivation)[keyof typeof AbilityA
 // Fixed currency cost of an Ultimate purchase. The Singularity Shard portion is
 // dynamic (= ultimatesOwned.length + 1 at purchase time) so it lives in the
 // purchase logic, not here.
-export type UltimateCost = { stardust: number; spaceMetal: number }
+type UltimateCost = { stardust: number; spaceMetal: number }
 
 // Affordability/ownership context — the structural subset of GameState (which
 // GameUIState also satisfies) that the shop and the engine both read, so one
@@ -33,7 +33,7 @@ export type UltimateContext = Pick<
 // Optional gate beyond "base ability unlocked". Absent → the default
 // (base unlocked) applies. Reads the shared context so the buy-button and the
 // purchase logic evaluate the same condition.
-export type UltimatePrerequisite = (ctx: UltimateContext) => boolean
+type UltimatePrerequisite = (ctx: UltimateContext) => boolean
 
 // Describes the Ultimate a base ability offers. Absent → no ultimate (yet).
 export type UltimateDescriptor = {

@@ -23,9 +23,9 @@ export type EffectTickResult = {
   spawnedEffects?: ActiveEffect[]
 }
 
-export type EffectTickFn = (effect: ActiveEffect, ctx: EffectTickContext) => EffectTickResult
+type EffectTickFn = (effect: ActiveEffect, ctx: EffectTickContext) => EffectTickResult
 
-export type EffectRenderFn = (
+type EffectRenderFn = (
   ctx: CanvasRenderingContext2D,
   effect: ActiveEffect,
   camera: Camera,

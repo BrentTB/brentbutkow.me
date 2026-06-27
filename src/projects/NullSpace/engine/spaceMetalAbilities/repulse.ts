@@ -32,7 +32,7 @@ export const REPULSE = {
   color: '#7af0ff',
 } as const
 
-export function createRepulseEffect(pos: Vec2): RepulseFieldEffect {
+function createRepulseEffect(pos: Vec2): RepulseFieldEffect {
   return {
     id: uid(),
     kind: EffectKind.repulseField,

@@ -15,7 +15,7 @@ import { MovementBehavior, ProjectileOwner } from '../types'
 import type { Ally, Enemy, Hazard, Projectile, Ship, Vec2 } from '../types'
 
 // Returns the position of the nearest entity to a given point (ship or any ally).
-export function findNearestTarget(pos: Vec2, ship: Ship, allies: Ally[]): Vec2 {
+function findNearestTarget(pos: Vec2, ship: Ship, allies: Ally[]): Vec2 {
   let nearest = ship.pos
   let nearestDist = distance(pos, ship.pos)
   for (const ally of allies) {

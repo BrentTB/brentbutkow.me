@@ -278,7 +278,7 @@ export const isRecallCategory = oneOf(RecallCategory)
 export const isRecallClass = oneOf(RecallClass)
 export const isRecallSource = oneOf(RecallSource)
 export const isRecallCountry = oneOf(RecallCountry)
-export const isEntityType = oneOf(EntityType)
+const isEntityType = oneOf(EntityType)
 export const isTrendGroup = oneOf(TrendGroup)
 export const isSeverityLabel = oneOf(SeverityLabel)
 export const isRecallSort = oneOf(RecallSort)
@@ -349,7 +349,7 @@ export const isRecallListResult = object<RecallListResult>({
   total: isNumber,
 })
 
-export const isTopicOut = object<TopicOut>({
+const isTopicOut = object<TopicOut>({
   id: isNumber,
   slug: isString,
   label: isString,
@@ -358,7 +358,7 @@ export const isTopicOut = object<TopicOut>({
 })
 export const isTopicOutArray = arrayOf(isTopicOut)
 
-export const isEventOut = object<EventOut>({
+const isEventOut = object<EventOut>({
   id: isNumber,
   slug: isString,
   label: isString,

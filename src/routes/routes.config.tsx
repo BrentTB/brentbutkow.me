@@ -67,7 +67,7 @@ export const routePaths = {
 
 const gamesPath = `${routePaths.funStuff}${funStuffSubRoutes.games}`
 
-export const funStuffRoutes: AppRoute[] = [
+const funStuffRoutes: AppRoute[] = [
   {
     path: gamesPath,
     element: <GamesPage />,

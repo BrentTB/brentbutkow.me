@@ -42,7 +42,7 @@ export const EscapeModePhase = {
 } as const
 export type EscapeModePhase = (typeof EscapeModePhase)[keyof typeof EscapeModePhase]
 
-export type EscapeModeState = {
+type EscapeModeState = {
   phase: EscapeModePhase
   timer: number
   heading: Vec2
@@ -388,7 +388,7 @@ export const EffectKind = {
 } as const
 export type EffectKind = (typeof EffectKind)[keyof typeof EffectKind]
 
-export type EffectBase = {
+type EffectBase = {
   id: string
   kind: EffectKind
   pos: Vec2
@@ -810,7 +810,7 @@ export const UpgradeCategory = {
 } as const
 export type UpgradeCategory = (typeof UpgradeCategory)[keyof typeof UpgradeCategory]
 
-export type UpgradeTier = {
+type UpgradeTier = {
   cost: number
   value: number
 }

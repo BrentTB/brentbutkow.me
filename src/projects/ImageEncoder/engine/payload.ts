@@ -8,7 +8,7 @@ export const PayloadKind = {
 } as const
 export type PayloadKind = (typeof PayloadKind)[keyof typeof PayloadKind]
 
-export function isPayloadKind(value: number): value is PayloadKind {
+function isPayloadKind(value: number): value is PayloadKind {
   return value === PayloadKind.text || value === PayloadKind.file
 }
 

@@ -33,7 +33,7 @@ export function payloadFits(
 
 // Bases ordered by capacity, smallest first. A smaller base also disturbs the
 // image less, so the first one that fits is the gentlest workable choice.
-export const baseOrder: Base[] = [Base.binary, Base.ternary, Base.quaternary]
+const baseOrder: Base[] = [Base.binary, Base.ternary, Base.quaternary]
 
 // Smallest base whose capacity holds the payload, or null if none can.
 export function smallestBaseThatFits(

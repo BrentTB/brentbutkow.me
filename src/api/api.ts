@@ -21,7 +21,7 @@ export const apiRoutes = {
   },
 } as const
 
-export function apiUrl(path: string): string {
+function apiUrl(path: string): string {
   return `${API_BASE_URL}${path}`
 }
 

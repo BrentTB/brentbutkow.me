@@ -23,7 +23,7 @@ export const BackgroundMode = {
 export type BackgroundMode = (typeof BackgroundMode)[keyof typeof BackgroundMode]
 
 // One character cell plus the source color riding along for color rendering.
-export type AsciiCell = {
+type AsciiCell = {
   char: string
   r: number
   g: number

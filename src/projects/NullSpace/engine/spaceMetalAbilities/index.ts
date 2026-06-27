@@ -20,10 +20,6 @@ const BY_KIND: Record<SpaceMetalAbilityKind, SpaceMetalAbility> = Object.fromEnt
   SPACE_METAL_ABILITIES.map((a) => [a.kind, a])
 ) as Record<SpaceMetalAbilityKind, SpaceMetalAbility>
 
-export function getSpaceMetalAbility(kind: SpaceMetalAbilityKind): SpaceMetalAbility {
-  return BY_KIND[kind]
-}
-
 export function findSpaceMetalAbilityByKey(key: string): SpaceMetalAbility | null {
   const upper = key.toUpperCase()
   return SPACE_METAL_ABILITIES.find((a) => a.hotkey === upper) ?? null

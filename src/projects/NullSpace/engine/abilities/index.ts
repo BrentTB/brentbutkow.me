@@ -36,16 +36,11 @@ import { AbilityActivation } from './ability-definition'
 import type { IconName } from '../../icon-names'
 
 export type { AbilityDefinition, UltimateContext } from './ability-definition'
-export { applyTierSum, applyCostReduction, AbilityActivation } from './ability-definition'
+export { applyTierSum, AbilityActivation } from './ability-definition'
 
 // Runtime helpers (turning input into state changes). Re-exported so any file
 // that used to import from `./abilities` still works after the move.
-export {
-  tryUseAbility,
-  updateAbilityCooldowns,
-  resolveAbilityInput,
-  type AbilityResult,
-} from './resolution'
+export { tryUseAbility, updateAbilityCooldowns, resolveAbilityInput } from './resolution'
 
 // Single source of truth: every ability registers itself in one file and gets
 // added here. All downstream lookup tables (meta, base, factories, upgrades)

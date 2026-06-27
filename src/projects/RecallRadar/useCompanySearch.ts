@@ -3,7 +3,7 @@ import { useDebouncedValue } from '../../api/useDebouncedValue'
 import { buildCompaniesPath, type TrendFilters } from './api'
 import { isLabelCountArray } from './recall.types'
 
-export type CompanyOption = { name: string; count: number }
+type CompanyOption = { name: string; count: number }
 
 export type CompanySearch = {
   companies: CompanyOption[]

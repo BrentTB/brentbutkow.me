@@ -11,7 +11,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
 
 // Validate the untrusted backend payload rather than casting (mirrors `isJokeType`).
-export const isLeaderboardEntry = (value: unknown): value is LeaderboardEntry =>
+const isLeaderboardEntry = (value: unknown): value is LeaderboardEntry =>
   isRecord(value) &&
   typeof value.id === 'number' &&
   typeof value.name === 'string' &&
