@@ -94,7 +94,8 @@
 }
 
 .textInput {
-  width: 160px;
+  width: 220px;
+  max-width: 100%;
   font-family: var(--font-mono);
   font-size: 0.85rem;
   color: var(--text);
@@ -106,6 +107,15 @@
   &:focus-visible {
     border-color: var(--accent);
     outline: none;
+  }
+
+  // Disabled = showing a preset's glyphs (or edges); clearly not editable, but the
+  // glyphs stay legible so you can still read what's in use.
+  &:disabled {
+    color: var(--muted);
+    -webkit-text-fill-color: var(--muted);
+    background: var(--surface);
+    border-color: var(--border);
   }
 }
 

@@ -75,6 +75,9 @@ export function Controls({
   const isCustomRamp = options.charset === CUSTOM_CHARSET
   // Edges use fixed line glyphs and are magnitude-based, so charset + invert don't apply.
   const edgesMode = options.renderMode === RenderMode.edges
+  // The ramp always shows so you can see the glyphs in use; editable only for custom.
+  const glyphValue =
+    options.charset === CUSTOM_CHARSET ? options.customRamp : Charset[options.charset]
 
   return (
     <div className={styles.panel}>
@@ -215,18 +218,16 @@ export function Controls({
             ariaLabel="Charset"
             disabled={edgesMode}
           />
-          {isCustomRamp && (
-            <input
-              type="text"
-              className={styles.textInput}
-              value={options.customRamp}
-              onChange={(e) => onCustomRamp(e.target.value)}
-              placeholder="dark → light"
-              aria-label="Custom ramp"
-              spellCheck={false}
-              disabled={edgesMode}
-            />
-          )}
+          <input
+            type="text"
+            className={styles.textInput}
+            value={glyphValue}
+            onChange={(e) => onCustomRamp(e.target.value)}
+            disabled={!isCustomRamp || edgesMode}
+            placeholder="dark → light"
+            aria-label="Glyph ramp"
+            spellCheck={false}
+          />
         </div>
       </section>
 
