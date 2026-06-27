@@ -286,6 +286,7 @@ export function useAsciiArt(
       video.load()
     }
     sourceRef.current = null
+    lastGridRef.current = null // drop the cached frame so text export can't emit a stale grid
   }, [stopLoop])
 
   const loadImage = useCallback(

@@ -6,6 +6,42 @@ import { Charset, DEFAULT_CHARSET, DEFAULT_ROWS } from './data'
 
 const canvasRef = { current: document.createElement('canvas') }
 
+// Drives one video frame through fake 2D contexts so lastGridRef holds a grid —
+// the precondition for text copy/download. Returns the rendered hook result.
+async function renderOneVideoFrame() {
+  let video: HTMLVideoElement | undefined
+  const realCreate = document.createElement.bind(document)
+  vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+    const el = realCreate(tag)
+    if (tag === 'video') video = el as HTMLVideoElement
+    return el
+  })
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(
+    () =>
+      ({
+        drawImage: vi.fn(),
+        fillRect: vi.fn(),
+        fillText: vi.fn(),
+        clearRect: vi.fn(),
+        save: vi.fn(),
+        restore: vi.fn(),
+        translate: vi.fn(),
+        scale: vi.fn(),
+        getImageData: (_x: number, _y: number, w: number, h: number) => ({
+          data: new Uint8ClampedArray(Math.max(0, w * h * 4)),
+        }),
+      }) as unknown as CanvasRenderingContext2D
+  )
+
+  const { result } = renderHook(() => useAsciiArt(canvasRef))
+  act(() => result.current.loadVideo(new File(['x'], 'clip.mp4', { type: 'video/mp4' })))
+  await act(async () => {}) // sourceKind -> video, paused in jsdom
+  Object.defineProperty(video, 'videoWidth', { value: 320, configurable: true })
+  Object.defineProperty(video, 'videoHeight', { value: 240, configurable: true })
+  act(() => result.current.setRows(90)) // option change repaints the paused frame
+  return result
+}
+
 beforeEach(() => {
   vi.stubGlobal(
     'requestAnimationFrame',
@@ -236,6 +272,44 @@ describe('useAsciiArt', () => {
 
     const { result } = renderHook(() => useAsciiArt(canvasRef))
     act(() => result.current.saveImage())
+    expect(clickSpy).toHaveBeenCalled()
+  })
+
+  it('returns false from copyText when nothing has rendered yet', async () => {
+    const writeText = vi.fn(() => Promise.resolve())
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    const { result } = renderHook(() => useAsciiArt(canvasRef))
+    let ok: boolean | undefined
+    await act(async () => {
+      ok = await result.current.copyText()
+    })
+    expect(ok).toBe(false)
+    expect(writeText).not.toHaveBeenCalled()
+  })
+
+  it('copies the rendered frame as text, reporting clipboard success and failure', async () => {
+    const writeText = vi.fn(() => Promise.resolve())
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    const result = await renderOneVideoFrame()
+
+    let ok: boolean | undefined
+    await act(async () => {
+      ok = await result.current.copyText()
+    })
+    expect(ok).toBe(true)
+    expect(writeText).toHaveBeenCalledWith(expect.any(String))
+
+    writeText.mockImplementation(() => Promise.reject(new Error('denied')))
+    await act(async () => {
+      ok = await result.current.copyText()
+    })
+    expect(ok).toBe(false)
+  })
+
+  it('downloads the rendered frame as a text file', async () => {
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    const result = await renderOneVideoFrame()
+    act(() => result.current.downloadText())
     expect(clickSpy).toHaveBeenCalled()
   })
 

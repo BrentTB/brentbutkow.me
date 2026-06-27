@@ -12,9 +12,8 @@ type FrameOptions = {
   // Pre-map tone adjustment. brightness adds, contrast scales around mid-gray.
   brightness?: number
   contrast?: number
-  // Glyph-selection style and the Sobel edge threshold for `edges`.
+  // Glyph-selection style: `normal` ramp mapping vs `edges` Sobel line art.
   renderMode?: RenderMode
-  edgeThreshold?: number
 }
 
 // Edge glyph per gradient-orientation bin (0, 45, 90, 135 degrees). Each glyph
@@ -116,7 +115,6 @@ export function buildAsciiGrid(
     brightness = 0,
     contrast = 1,
     renderMode = RenderMode.normal,
-    edgeThreshold = EDGE_THRESHOLD,
   }: FrameOptions
 ): AsciiGrid {
   const count = cols * rows
@@ -147,7 +145,7 @@ export function buildAsciiGrid(
   }
 
   if (lum) {
-    const chars = sobelEdgeChars(lum, cols, rows, edgeThreshold)
+    const chars = sobelEdgeChars(lum, cols, rows, EDGE_THRESHOLD)
     for (let i = 0; i < count; i++) cells[i].char = chars[i]
   }
 

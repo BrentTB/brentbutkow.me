@@ -46,6 +46,16 @@ describe('Select', () => {
     expect(screen.queryByRole('listbox')).toBeNull()
   })
 
+  it('disables the trigger and stays closed when disabled', () => {
+    const onChange = vi.fn()
+    render(<Select value="" options={options} onChange={onChange} ariaLabel="Source" disabled />)
+    const trigger = screen.getByLabelText('Source') as HTMLButtonElement
+    expect(trigger.disabled).toBe(true)
+    fireEvent.click(trigger)
+    expect(screen.queryByRole('listbox')).toBeNull()
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
   it('shows counts and skips disabled (zero-result) options in keyboard nav + clicks', () => {
     const onChange = vi.fn()
     const faceted = [
