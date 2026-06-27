@@ -21,8 +21,13 @@
   text-align: left;
 }
 
-.trigger:hover {
+.trigger:hover:not(:disabled) {
   border-color: var(--border-strong);
+}
+
+.trigger:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .trigger:focus-visible {

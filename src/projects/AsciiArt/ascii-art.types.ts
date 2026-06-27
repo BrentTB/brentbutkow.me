@@ -22,6 +22,14 @@ export const BackgroundMode = {
 } as const
 export type BackgroundMode = (typeof BackgroundMode)[keyof typeof BackgroundMode]
 
+// How brightness maps to glyphs. `normal` is straight ramp mapping; `edges`
+// draws Sobel outlines as line art.
+export const RenderMode = {
+  normal: 'normal',
+  edges: 'edges',
+} as const
+export type RenderMode = (typeof RenderMode)[keyof typeof RenderMode]
+
 // One character cell plus the source color riding along for color rendering.
 type AsciiCell = {
   char: string

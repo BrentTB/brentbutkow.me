@@ -1,4 +1,4 @@
-import { BackgroundMode, ColorMode } from './ascii-art.types'
+import { BackgroundMode, ColorMode, RenderMode } from './ascii-art.types'
 
 // Brightness ramps, darkest -> lightest. `classic` is the exact ramp from the
 // original vidToAscii Python tool.
@@ -38,6 +38,9 @@ export const BRIGHTNESS_MAX = 100
 export const CONTRAST_MIN = 0.5
 export const CONTRAST_MAX = 2.5
 
+// Sobel gradient magnitude above which a cell is drawn as an edge glyph.
+export const EDGE_THRESHOLD = 48
+
 // Inset (px) between the canvas and its fixed-size stage box.
 export const CANVAS_PAD = 16
 
@@ -55,6 +58,7 @@ export const ASCII_FONT = "'IBM Plex Mono', ui-monospace, 'SF Mono', monospace"
 export type AsciiOptions = {
   colorMode: ColorMode
   background: BackgroundMode
+  renderMode: RenderMode
   charset: CharsetSelection
   // Used when charset is CUSTOM_CHARSET — the user's own ramp, dark -> light.
   customRamp: string
@@ -69,6 +73,7 @@ export type AsciiOptions = {
 export const defaultOptions = (colorMode: ColorMode): AsciiOptions => ({
   colorMode,
   background: BackgroundMode.dark,
+  renderMode: RenderMode.normal,
   charset: DEFAULT_CHARSET,
   customRamp: DEFAULT_CUSTOM_RAMP,
   rows: DEFAULT_ROWS,

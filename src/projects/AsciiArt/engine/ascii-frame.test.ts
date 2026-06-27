@@ -5,8 +5,9 @@ import {
   gridCols,
   gridToText,
   shouldInvertBrightness,
+  sobelEdgeChars,
 } from './ascii-frame'
-import { BackgroundMode } from '../ascii-art.types'
+import { BackgroundMode, RenderMode } from '../ascii-art.types'
 import { Charset } from '../data'
 
 describe('gridCols', () => {
@@ -53,6 +54,17 @@ describe('buildAsciiGrid', () => {
     })
     expect(grid.cells[0]).toMatchObject({ r: 245, g: 235, b: 225 })
   })
+
+  it('leaves colors un-negated in edge mode (invert does not apply)', () => {
+    const pixels = new Uint8ClampedArray([10, 20, 30, 255])
+    const grid = buildAsciiGrid(pixels, 1, 1, {
+      ramp: Charset.classic,
+      invert: false,
+      invertColor: true,
+      renderMode: RenderMode.edges,
+    })
+    expect(grid.cells[0]).toMatchObject({ r: 10, g: 20, b: 30 })
+  })
 })
 
 describe('shouldInvertBrightness', () => {
@@ -83,6 +95,19 @@ describe('adjustChannel', () => {
     expect(adjustChannel(128, 0, 2)).toBe(128) // pivot unchanged
     expect(adjustChannel(64, 0, 2)).toBe(0)
     expect(adjustChannel(200, 0, 2)).toBe(255)
+  })
+})
+
+describe('sobelEdgeChars', () => {
+  it('finds no edges in a flat field', () => {
+    expect(sobelEdgeChars(new Array(9).fill(120), 3, 3, 48).every((c) => c === ' ')).toBe(true)
+  })
+
+  it('marks a vertical boundary with a vertical line glyph', () => {
+    const lum: number[] = []
+    for (let y = 0; y < 3; y++) for (let x = 0; x < 4; x++) lum.push(x < 2 ? 0 : 255)
+    const out = sobelEdgeChars(lum, 4, 3, 48)
+    expect(out).toContain('|')
   })
 })
 

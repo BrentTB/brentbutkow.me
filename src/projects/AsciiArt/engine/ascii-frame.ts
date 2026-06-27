@@ -1,5 +1,5 @@
-import { AsciiGrid, BackgroundMode } from '../ascii-art.types'
-import { CELL_ASPECT } from '../data'
+import { AsciiGrid, BackgroundMode, RenderMode } from '../ascii-art.types'
+import { CELL_ASPECT, EDGE_THRESHOLD } from '../data'
 import { brightnessToChar } from './ramp'
 import { luminance } from './luminance'
 
@@ -12,6 +12,47 @@ type FrameOptions = {
   // Pre-map tone adjustment. brightness adds, contrast scales around mid-gray.
   brightness?: number
   contrast?: number
+  // Glyph-selection style and the Sobel edge threshold for `edges`.
+  renderMode?: RenderMode
+  edgeThreshold?: number
+}
+
+// Line glyphs by gradient orientation bin (0, 45, 90, 135 degrees).
+const EDGE_CHARS = ['|', '\\', '-', '/'] as const
+
+// Sobel edge detection over the luminance grid: cells whose gradient magnitude
+// clears the threshold become a directional line glyph; the rest are blank.
+export function sobelEdgeChars(
+  lum: ArrayLike<number>,
+  cols: number,
+  rows: number,
+  threshold: number
+): string[] {
+  const out = new Array<string>(cols * rows).fill(' ')
+  const at = (x: number, y: number) => {
+    const cx = x < 0 ? 0 : x >= cols ? cols - 1 : x
+    const cy = y < 0 ? 0 : y >= rows ? rows - 1 : y
+    return lum[cy * cols + cx]
+  }
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      const tl = at(x - 1, y - 1)
+      const tc = at(x, y - 1)
+      const tr = at(x + 1, y - 1)
+      const ml = at(x - 1, y)
+      const mr = at(x + 1, y)
+      const bl = at(x - 1, y + 1)
+      const bc = at(x, y + 1)
+      const br = at(x + 1, y + 1)
+      const gx = tr + 2 * mr + br - (tl + 2 * ml + bl)
+      const gy = bl + 2 * bc + br - (tl + 2 * tc + tr)
+      if (Math.hypot(gx, gy) < threshold) continue
+      // Gradient orientation (ignore sign) -> the line char along the edge.
+      const angle = (Math.atan2(gy, gx) + Math.PI) % Math.PI
+      out[y * cols + x] = EDGE_CHARS[Math.round(angle / (Math.PI / 4)) % 4]
+    }
+  }
+  return out
 }
 
 // Applies brightness/contrast to a single 0-255 channel, clamped to a byte.
@@ -59,14 +100,24 @@ export function buildAsciiGrid(
   pixels: Uint8ClampedArray,
   cols: number,
   rows: number,
-  { ramp, invert, invertColor = false, brightness = 0, contrast = 1 }: FrameOptions
+  {
+    ramp,
+    invert,
+    invertColor = false,
+    brightness = 0,
+    contrast = 1,
+    renderMode = RenderMode.normal,
+    edgeThreshold = EDGE_THRESHOLD,
+  }: FrameOptions
 ): AsciiGrid {
   const count = cols * rows
-  const cells: AsciiGrid['cells'] = new Array(count)
   const adjusting = brightness !== 0 || contrast !== 1
-  // `invert` here is the already-resolved brightness polarity (see
-  // shouldInvertBrightness). The glyph reads (adjusted) brightness; color may be
-  // negated independently for the photo-negative look.
+
+  // First pass: adjusted channels (kept for color) + luminance (drives glyphs).
+  const rr = new Uint8ClampedArray(count)
+  const gg = new Uint8ClampedArray(count)
+  const bb = new Uint8ClampedArray(count)
+  const lum = new Float32Array(count)
   for (let i = 0; i < count; i++) {
     const p = i * 4
     let r = pixels[p]
@@ -77,8 +128,29 @@ export function buildAsciiGrid(
       g = adjustChannel(g, brightness, contrast)
       b = adjustChannel(b, brightness, contrast)
     }
-    const char = brightnessToChar(luminance(r, g, b), ramp, invert)
-    cells[i] = invertColor ? { char, r: 255 - r, g: 255 - g, b: 255 - b } : { char, r, g, b }
+    rr[i] = r
+    gg[i] = g
+    bb[i] = b
+    lum[i] = luminance(r, g, b)
+  }
+
+  // Select the glyph per cell by mode. `invert` is the resolved brightness
+  // polarity; edges are magnitude-based so polarity doesn't apply.
+  let chars: string[]
+  if (renderMode === RenderMode.edges) {
+    chars = sobelEdgeChars(lum, cols, rows, edgeThreshold)
+  } else {
+    chars = new Array<string>(count)
+    for (let i = 0; i < count; i++) chars[i] = brightnessToChar(lum[i], ramp, invert)
+  }
+
+  // Edge mode is magnitude-based, so invert has no meaning there — don't negate.
+  const negate = invertColor && renderMode !== RenderMode.edges
+  const cells: AsciiGrid['cells'] = new Array(count)
+  for (let i = 0; i < count; i++) {
+    cells[i] = negate
+      ? { char: chars[i], r: 255 - rr[i], g: 255 - gg[i], b: 255 - bb[i] }
+      : { char: chars[i], r: rr[i], g: gg[i], b: bb[i] }
   }
   return { cols, rows, cells }
 }

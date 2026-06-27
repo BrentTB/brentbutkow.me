@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef } from 'react'
 import { BackButton } from '../../components/PageFormatting/BackButton'
 import { SafeLink } from '../../components/utils/SafeLink'
 import { useFunMode } from '../../contexts/useFunMode'
@@ -32,6 +32,7 @@ export function AsciiArt() {
     toggleRecording,
     setColorMode,
     setBackground,
+    setRenderMode,
     setCharset,
     setCustomRamp,
     setRows,
@@ -40,14 +41,6 @@ export function AsciiArt() {
     setContrast,
     setMirror,
   } = useAsciiArt(canvasRef, isFunMode ? ColorMode.color : ColorMode.grayscale)
-
-  const [copied, setCopied] = useState(false)
-  const handleCopyText = async () => {
-    if (await copyText()) {
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 1500)
-    }
-  }
 
   const hasSource = sourceKind !== SourceKind.none
   const canRecord =
@@ -98,34 +91,14 @@ export function AsciiArt() {
       )}
 
       {hasSource && (
-        <div className={styles.actions}>
-          <button type="button" className={styles.actionButton} onClick={saveImage}>
-            Save image
-          </button>
-          <button type="button" className={styles.actionButton} onClick={handleCopyText}>
-            {copied ? 'Copied!' : 'Copy text'}
-          </button>
-          <button type="button" className={styles.actionButton} onClick={downloadText}>
-            Download .txt
-          </button>
-          {canRecord && (
-            <button
-              type="button"
-              className={`${styles.actionButton} ${isRecording ? styles.recording : ''}`}
-              onClick={toggleRecording}
-            >
-              {isRecording ? 'Stop recording' : 'Record video'}
-            </button>
-          )}
-        </div>
-      )}
-
-      {hasSource && (
         <Controls
           options={options}
           sourceKind={sourceKind}
+          isRecording={isRecording}
+          canRecord={canRecord}
           onColorMode={setColorMode}
           onBackground={setBackground}
+          onRenderMode={setRenderMode}
           onCharset={setCharset}
           onCustomRamp={setCustomRamp}
           onRows={setRows}
@@ -133,6 +106,10 @@ export function AsciiArt() {
           onBrightness={setBrightness}
           onContrast={setContrast}
           onMirror={setMirror}
+          onSaveImage={saveImage}
+          onCopyText={copyText}
+          onDownloadText={downloadText}
+          onToggleRecording={toggleRecording}
         />
       )}
 

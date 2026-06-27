@@ -43,6 +43,7 @@ describe('useAsciiArt', () => {
     const { result } = renderHook(() => useAsciiArt(canvasRef))
     act(() => result.current.setColorMode(ColorMode.grayscale))
     act(() => result.current.setBackground(BackgroundMode.light))
+    act(() => result.current.setRenderMode('edges'))
     act(() => result.current.setRows(90))
     act(() => result.current.setInvert(true))
     act(() => result.current.setCharset('blocks'))
@@ -53,6 +54,7 @@ describe('useAsciiArt', () => {
     expect(result.current.options).toMatchObject({
       colorMode: ColorMode.grayscale,
       background: BackgroundMode.light,
+      renderMode: 'edges',
       rows: 90,
       invert: true,
       charset: 'blocks',

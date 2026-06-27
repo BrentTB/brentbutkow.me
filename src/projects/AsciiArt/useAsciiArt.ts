@@ -1,5 +1,5 @@
 import { RefObject, useCallback, useEffect, useRef, useState } from 'react'
-import { AsciiGrid, BackgroundMode, ColorMode, SourceKind } from './ascii-art.types'
+import { AsciiGrid, BackgroundMode, ColorMode, RenderMode, SourceKind } from './ascii-art.types'
 import {
   AsciiOptions,
   CANVAS_PAD,
@@ -181,6 +181,7 @@ export function useAsciiArt(
       invert,
       colorMode,
       background,
+      renderMode,
       mirror,
       brightness,
       contrast,
@@ -221,6 +222,7 @@ export function useAsciiArt(
         invertColor: invert,
         brightness,
         contrast,
+        renderMode,
       })
       lastGridRef.current = grid // kept for text copy/download
       // Only resize when needed — reassigning width/height clears the canvas and
@@ -490,6 +492,10 @@ export function useAsciiArt(
     (background: BackgroundMode) => setOptions((o) => ({ ...o, background })),
     []
   )
+  const setRenderMode = useCallback(
+    (renderMode: RenderMode) => setOptions((o) => ({ ...o, renderMode })),
+    []
+  )
   const setCharset = useCallback(
     (charset: CharsetSelection) =>
       setOptions((o) => {
@@ -615,6 +621,7 @@ export function useAsciiArt(
     toggleRecording,
     setColorMode,
     setBackground,
+    setRenderMode,
     setCharset,
     setCustomRamp,
     setRows,
