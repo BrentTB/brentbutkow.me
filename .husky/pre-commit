@@ -5,21 +5,27 @@ BIN=./node_modules/.bin
 STAGED=$(git diff --cached --name-only --diff-filter=ACMR)
 STAGED_TS=$(echo "$STAGED" | grep -E '\.(ts|tsx)$' || true)
 
-# Independent checks run in parallel; fail the commit if any fails.
+# Independent checks run in parallel; name each so a failure says which one.
 # (full tsc + eslint + test suite still run in CI on PRs)
-pids=""
-$BIN/tsc -p tsconfig.app.json --noEmit --incremental \
-  --tsBuildInfoFile node_modules/.cache/typecheck.tsbuildinfo & pids="$pids $!"
+jobs=""
+npm run typecheck:fast & jobs="$jobs typecheck:$!"
 if [ -n "$STAGED_TS" ]; then
-  echo "$STAGED_TS" | xargs $BIN/eslint & pids="$pids $!"
-  echo "$STAGED_TS" | xargs $BIN/vitest related --run & pids="$pids $!"
+  echo "$STAGED_TS" | xargs $BIN/eslint & jobs="$jobs eslint:$!"
+  echo "$STAGED_TS" | xargs $BIN/vitest related --run & jobs="$jobs vitest:$!"
 fi
 fail=0
-for p in $pids; do wait "$p" || fail=1; done
+for job in $jobs; do
+  name=${job%%:*}
+  wait "${job#*:}" || { echo "✖ $name failed"; fail=1; }
+done
 [ "$fail" -eq 0 ] || exit 1
 
-# Format only staged files, then re-stage so the fixes get committed.
+# Fail the commit if any staged file isn't prettier-clean — fix it for you,
+# then you stage and commit the formatted result yourself.
 if [ -n "$STAGED" ]; then
-  echo "$STAGED" | xargs $BIN/prettier --write --ignore-unknown
-  echo "$STAGED" | xargs git add
+  if ! echo "$STAGED" | xargs $BIN/prettier --check --ignore-unknown; then
+    echo "$STAGED" | xargs $BIN/prettier --write --ignore-unknown
+    echo "✖ Prettier reformatted files — stage the changes and commit again."
+    exit 1
+  fi
 fi
