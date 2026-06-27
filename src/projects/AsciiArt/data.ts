@@ -6,6 +6,9 @@ export const Charset = {
   classic: '$NM@B8&#%§ZXI±+^,-. ',
   blocks: '█▓▒░ ',
   simple: '@%#*+=-:. ',
+  shades: '@l. ',
+  mono: '@ ',
+  waves: '@. @. @. ',
 } as const
 export type Charset = (typeof Charset)[keyof typeof Charset]
 export type CharsetName = keyof typeof Charset

@@ -189,6 +189,33 @@ describe('useAsciiArt', () => {
     expect(ctxByCanvas.get(canvasRef.current)?.fillRect).toHaveBeenCalled()
   })
 
+  // Guards the stale-isPlaying bug: switching from a playing source to a still
+  // image must reset playback, or the image stops responding to option changes.
+  it('resets playback when an example loads over a playing source', async () => {
+    let video: HTMLVideoElement | undefined
+    const realCreate = document.createElement.bind(document)
+    vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+      const el = realCreate(tag)
+      if (tag === 'video') video = el as HTMLVideoElement
+      return el
+    })
+    const stream = { getTracks: () => [{ stop: vi.fn() }] } as unknown as MediaStream
+    Object.defineProperty(navigator, 'mediaDevices', {
+      value: { getUserMedia: vi.fn().mockResolvedValue(stream) },
+      configurable: true,
+    })
+
+    const { result } = renderHook(() => useAsciiArt(canvasRef))
+    await act(async () => {
+      await result.current.startWebcam()
+    })
+    act(() => video?.dispatchEvent(new Event('play')))
+    expect(result.current.playback.isPlaying).toBe(true)
+
+    act(() => result.current.loadExample())
+    expect(result.current.playback.isPlaying).toBe(false)
+  })
+
   it('toggles video playback on spacebar', async () => {
     const { result } = renderHook(() => useAsciiArt(canvasRef))
     act(() => result.current.loadVideo(new File(['x'], 'clip.mp4', { type: 'video/mp4' })))

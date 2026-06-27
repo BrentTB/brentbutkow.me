@@ -141,6 +141,18 @@ export function Controls({
             </div>
           </div>
 
+          <label
+            className={`${styles.group} ${styles.checkbox} ${edgesMode ? styles.disabledGroup : ''}`}
+          >
+            <input
+              type="checkbox"
+              checked={options.invert}
+              onChange={(e) => onInvert(e.target.checked)}
+              disabled={edgesMode}
+            />
+            <span className={styles.label}>Invert</span>
+          </label>
+
           {sourceKind === SourceKind.webcam && (
             <label className={`${styles.group} ${styles.checkbox}`}>
               <input
@@ -190,48 +202,30 @@ export function Controls({
               onChange={(e) => onContrast(Number(e.target.value))}
             />
           </label>
-
-          <label
-            className={`${styles.group} ${styles.checkbox} ${edgesMode ? styles.disabledGroup : ''}`}
-          >
-            <input
-              type="checkbox"
-              checked={options.invert}
-              onChange={(e) => onInvert(e.target.checked)}
-              disabled={edgesMode}
-            />
-            <span className={styles.label}>Invert</span>
-          </label>
         </div>
       </section>
 
       <section className={styles.section}>
         <span className={styles.sectionLabel}>Glyphs</span>
         <div className={`${styles.sectionBody} ${edgesMode ? styles.disabledGroup : ''}`}>
-          <div className={styles.group}>
-            <span className={styles.label}>Charset</span>
-            <Select
-              value={options.charset}
-              options={charsetOptions}
-              onChange={(value) => onCharset(value as CharsetSelection)}
-              ariaLabel="Charset"
+          <Select
+            value={options.charset}
+            options={charsetOptions}
+            onChange={(value) => onCharset(value as CharsetSelection)}
+            ariaLabel="Charset"
+            disabled={edgesMode}
+          />
+          {isCustomRamp && (
+            <input
+              type="text"
+              className={styles.textInput}
+              value={options.customRamp}
+              onChange={(e) => onCustomRamp(e.target.value)}
+              placeholder="dark → light"
+              aria-label="Custom ramp"
+              spellCheck={false}
               disabled={edgesMode}
             />
-          </div>
-          {isCustomRamp && (
-            <label className={styles.group}>
-              <span className={styles.label}>Custom ramp</span>
-              <input
-                type="text"
-                className={styles.textInput}
-                value={options.customRamp}
-                onChange={(e) => onCustomRamp(e.target.value)}
-                placeholder="dark → light"
-                aria-label="Custom ramp"
-                spellCheck={false}
-                disabled={edgesMode}
-              />
-            </label>
           )}
         </div>
       </section>

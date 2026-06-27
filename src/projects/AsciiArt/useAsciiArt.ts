@@ -292,6 +292,7 @@ export function useAsciiArt(
     (file: File) => {
       teardownSource()
       setError(null)
+      setPlayback(PLAYBACK_DEFAULT) // a still has no transport; clears stale isPlaying
       const url = URL.createObjectURL(file)
       objectUrlRef.current = url
       const img = new Image()
@@ -310,6 +311,7 @@ export function useAsciiArt(
   const loadExample = useCallback(() => {
     teardownSource()
     setError(null)
+    setPlayback(PLAYBACK_DEFAULT) // a still has no transport; clears stale isPlaying
     const img = new Image()
     img.onload = () => {
       sourceRef.current = img
