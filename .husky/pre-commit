@@ -1,17 +1,31 @@
 #!/usr/bin/env sh
 set -e
 
-# Incremental type-check — only re-checks what changed (full tsc + eslint run in CI on PRs)
-npm run typecheck:fast
-
-# Lint + test only staged TS files (full eslint/test suite runs in CI on PRs)
-STAGED_TS=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(ts|tsx)$' || true)
-if [ -n "$STAGED_TS" ]; then
-  echo "$STAGED_TS" | xargs npx eslint
-  echo "$STAGED_TS" | xargs npx vitest related --run
-fi
-
-# Re-stage only the files that were already staged, so prettier fixes get committed
+BIN=./node_modules/.bin
 STAGED=$(git diff --cached --name-only --diff-filter=ACMR)
-npm run format
-echo "$STAGED" | xargs -r git add
+STAGED_TS=$(echo "$STAGED" | grep -E '\.(ts|tsx)$' || true)
+
+# Independent checks run in parallel; name each so a failure says which one.
+# (full tsc + eslint + test suite still run in CI on PRs)
+jobs=""
+npm run typecheck:fast & jobs="$jobs typecheck:$!"
+if [ -n "$STAGED_TS" ]; then
+  echo "$STAGED_TS" | xargs $BIN/eslint & jobs="$jobs eslint:$!"
+  echo "$STAGED_TS" | xargs $BIN/vitest related --run & jobs="$jobs vitest:$!"
+fi
+fail=0
+for job in $jobs; do
+  name=${job%%:*}
+  wait "${job#*:}" || { echo "✖ $name failed"; fail=1; }
+done
+[ "$fail" -eq 0 ] || exit 1
+
+# Fail the commit if any staged file isn't prettier-clean — fix it for you,
+# then you stage and commit the formatted result yourself.
+if [ -n "$STAGED" ]; then
+  if ! echo "$STAGED" | xargs $BIN/prettier --check --ignore-unknown; then
+    echo "$STAGED" | xargs $BIN/prettier --write --ignore-unknown
+    echo "✖ Prettier reformatted files — stage the changes and commit again."
+    exit 1
+  fi
+fi
