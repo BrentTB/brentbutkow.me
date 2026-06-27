@@ -31,7 +31,41 @@ first tool calls of your first turn. Stop only if told to.
   `data.ts` copy), invoke the **humanizer** skill on that copy to strip AI-writing tells — skip comments,
   code, and identifiers. A Stop hook reminds you at end of turn. If no human-facing text changed, skip it.
 
-Both hooks live in [.claude/hooks/](.claude/hooks/), wired in [.claude/settings.json](.claude/settings.json).
+### Automated guardrails (hooks + lint)
+
+These catch the deterministic half of the issues `cr` keeps finding, so they never reach review. Hooks
+live in [.claude/hooks/](.claude/hooks/), wired in [.claude/settings.json](.claude/settings.json); their
+logic is unit-tested (`npm run test:hooks`).
+
+- **frontend-design-reminder** (PreToolUse) — nudges the frontend-design skill on UI-file edits.
+- **humanizer-reminder** (Stop) — flags changed copy-bearing files for the humanizer skill.
+- **stale-comment-reminder** (PreToolUse) — blocks comments that narrate history ("no longer",
+  "previously", "used to", …). Comments are present-tense.
+- **test-companion-reminder** (Stop) — if a `useX` hook or `engine/` module changed without its
+  colocated `*.test.ts`, reminds you to add/extend the test.
+- **changelog-bump-reminder** (Stop) — if Null Space files changed without a `CHANGELOG`/`GAME_VERSION`
+  bump in `data.ts`, reminds you (skip for internal refactors).
+
+ESLint (in [eslint.config.js](eslint.config.js), runs under `npm run check`) also enforces:
+no magic-string union types; no `Math.random`/`Date.now` in the Null Space engine (use the seeded `rng`
+— the rng module itself is the one exempt seam).
+
+## Before you finish — recurring review misses
+
+The judgment calls `cr` flags most often. Self-check before declaring done:
+
+1. **Tests.** Changed a `useX` hook or engine logic → add/extend its colocated test. Fixed a bug → add a
+   regression test that **fails without the fix** (verify by reverting). Added a `GameState` field → add a
+   save→load round-trip test (the `...state` spread silently drops locally-mutated fields).
+2. **Duplication.** Copied a block to a 2nd caller → extract a helper (see [homing.ts](src/projects/NullSpace/engine/homing.ts)).
+3. **One source of truth.** Don't re-declare config/derived data (e.g. `ENEMY_CONFIGS` vs `ENEMY_STATS`)
+   or re-implement an exported helper in the UI — import it.
+4. **Propagation.** Renamed something → grep for stale strings/glyphs across every surface. User-facing
+   change → bump the changelog and check its prose matches the shipped constants.
+5. **Dead code.** After a refactor/rename, delete orphaned exports, enum members, config, and re-export
+   shims — `tsc` won't catch cross-file dead code.
+6. **Hot loop.** No per-frame allocation in canvas render (cache gradients/paths outside the frame).
+7. **a11y.** New interactive control → `aria-pressed`/`role`/focus management consistent with siblings.
 
 ## Stack
 
