@@ -2,6 +2,8 @@ import { Base } from './image-encoder.types'
 
 export const DEFAULT_BASE: Base = Base.binary
 export const ENCODED_FILENAME = 'encoded.png'
+// Used when a revealed file carries no name, so its Download button still works.
+export const DECODED_FILE_FALLBACK = 'decoded.bin'
 
 // AES-GCM appends a 16-byte authentication tag, so an encrypted payload is a
 // little larger than the text — the capacity readout accounts for it.

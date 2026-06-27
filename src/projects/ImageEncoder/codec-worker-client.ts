@@ -17,7 +17,7 @@ const pending = new Map<number, Pending>()
 // Reject every in-flight request and drop the worker. Without this a crashed
 // worker would leave promises (and the UI's busy flag) hanging forever, so the
 // page would look frozen. The next call spins up a fresh worker.
-function failAllPending(reason: Error): void {
+function discardWorker(reason: Error): void {
   pending.forEach((entry) => entry.reject(reason))
   pending.clear()
   if (worker) {
@@ -26,20 +26,29 @@ function failAllPending(reason: Error): void {
   }
 }
 
+// Reclaim the singleton worker when the encoder page unmounts — nothing else
+// owns its lifetime, so the thread would otherwise linger for the whole session.
+export function terminateWorker(): void {
+  discardWorker(new Error('The image worker was stopped'))
+}
+
 function getWorker(): Worker {
   if (!worker) {
     worker = new Worker(new URL('./codec.worker.ts', import.meta.url), { type: 'module' })
     worker.onmessage = (event: MessageEvent) => {
-      const { id, ok, capacity, ...rest } = event.data
+      const { id, ok, capacity, needed, available, ...rest } = event.data
       const entry = pending.get(id)
       if (!entry) return
       pending.delete(id)
       if (ok) entry.resolve(rest)
-      else entry.reject(capacity ? new CapacityExceededError(0, 0) : new Error('Encoding failed'))
+      else
+        entry.reject(
+          capacity ? new CapacityExceededError(needed, available) : new Error('Encoding failed')
+        )
     }
-    worker.onerror = () => failAllPending(new Error('The image worker stopped unexpectedly'))
+    worker.onerror = () => discardWorker(new Error('The image worker stopped unexpectedly'))
     worker.onmessageerror = () =>
-      failAllPending(new Error('The image worker sent an unreadable message'))
+      discardWorker(new Error('The image worker sent an unreadable message'))
   }
   return worker
 }
@@ -49,7 +58,13 @@ function request<T>(message: Record<string, unknown>, transfer: Transferable[]):
   const id = nextId++
   return new Promise<T>((resolve, reject) => {
     pending.set(id, { resolve: resolve as (value: unknown) => void, reject })
-    target.postMessage({ id, ...message }, transfer)
+    try {
+      target.postMessage({ id, ...message }, transfer)
+    } catch (cause) {
+      // A failed post never resolves, so drop the entry and surface the error.
+      pending.delete(id)
+      reject(cause instanceof Error ? cause : new Error('Could not reach the image worker'))
+    }
   })
 }
 

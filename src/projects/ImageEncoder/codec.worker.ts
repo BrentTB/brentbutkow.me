@@ -3,7 +3,7 @@
 // transferred back (no copy) where possible.
 
 import { Base } from './image-encoder.types'
-import { DecodedImage, embedPayload, extractPayload } from './engine/codec'
+import { CapacityExceededError, DecodedImage, embedPayload, extractPayload } from './engine/codec'
 import { buildDiff } from './engine/diff'
 
 interface EncodeRequest {
@@ -61,7 +61,11 @@ ctx.onmessage = (event: MessageEvent) => {
       ctx.postMessage({ id: request.id, ok: true, found })
     }
   } catch (cause) {
-    const capacity = cause instanceof Error && cause.name === 'CapacityExceededError'
-    ctx.postMessage({ id: request.id, ok: false, capacity })
+    if (cause instanceof CapacityExceededError) {
+      const { needed, available } = cause
+      ctx.postMessage({ id: request.id, ok: false, capacity: true, needed, available })
+    } else {
+      ctx.postMessage({ id: request.id, ok: false, capacity: false })
+    }
   }
 }

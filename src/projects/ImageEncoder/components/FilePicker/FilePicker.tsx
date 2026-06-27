@@ -1,6 +1,6 @@
-import { ChangeEvent, DragEvent, useRef, useState } from 'react'
 import { formatBytes } from '../../data'
 import { SecretFileInfo } from '../../useEncoder'
+import { useFileDrop } from '../../useFileDrop'
 import styles from './FilePicker.module.scss'
 
 interface FilePickerProps {
@@ -9,32 +9,10 @@ interface FilePickerProps {
 }
 
 export function FilePicker({ file, onFile }: FilePickerProps) {
-  const inputRef = useRef<HTMLInputElement>(null)
-  const [dragging, setDragging] = useState(false)
-
-  const pick = (event: ChangeEvent<HTMLInputElement>) => {
-    const chosen = event.target.files?.[0]
-    if (chosen) onFile(chosen)
-    event.target.value = ''
-  }
-
-  const onDrop = (event: DragEvent) => {
-    event.preventDefault()
-    setDragging(false)
-    const dropped = event.dataTransfer.files?.[0]
-    if (dropped) onFile(dropped)
-  }
+  const { inputRef, dragging, dragProps, pick, open } = useFileDrop(onFile)
 
   return (
-    <div
-      className={`${styles.picker} ${dragging ? styles.dragging : ''}`}
-      onDragOver={(event) => {
-        event.preventDefault()
-        setDragging(true)
-      }}
-      onDragLeave={() => setDragging(false)}
-      onDrop={onDrop}
-    >
+    <div className={`${styles.picker} ${dragging ? styles.dragging : ''}`} {...dragProps}>
       {file ? (
         <div className={styles.file}>
           {file.previewUrl ? (
@@ -48,16 +26,12 @@ export function FilePicker({ file, onFile }: FilePickerProps) {
             <span className={styles.name}>{file.name}</span>
             <span className={styles.size}>{formatBytes(file.size)}</span>
           </span>
-          <button
-            type="button"
-            className={styles.replace}
-            onClick={() => inputRef.current?.click()}
-          >
+          <button type="button" className={styles.replace} onClick={open}>
             Replace
           </button>
         </div>
       ) : (
-        <button type="button" className={styles.prompt} onClick={() => inputRef.current?.click()}>
+        <button type="button" className={styles.prompt} onClick={open}>
           <span className={styles.promptLabel}>Choose a file to hide</span>
           <span className={styles.promptHint}>Any file. Drag it here, or click</span>
         </button>

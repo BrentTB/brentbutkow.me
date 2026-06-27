@@ -5,6 +5,7 @@ import { PayloadKind, unpackPayload } from './engine/payload'
 import { fileToImage } from './canvas-image'
 import { decodeInWorker } from './codec-worker-client'
 import { downloadBlob } from '../../components/utils/download'
+import { DECODED_FILE_FALLBACK } from './data'
 import { useObjectUrls } from './useObjectUrls'
 import { useLatestRequest } from './useLatestRequest'
 
@@ -177,8 +178,8 @@ export function useDecoder() {
   }, [passphrase, presentEnvelope, beginRequest])
 
   const downloadFile = useCallback(() => {
-    if (fileBlobRef.current && decoded?.fileName) {
-      downloadBlob(fileBlobRef.current, decoded.fileName)
+    if (fileBlobRef.current) {
+      downloadBlob(fileBlobRef.current, decoded?.fileName || DECODED_FILE_FALLBACK)
     }
   }, [decoded])
 

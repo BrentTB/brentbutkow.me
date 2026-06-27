@@ -4,6 +4,7 @@ import { PayloadKind } from '../../engine/payload'
 import { useDecoder } from '../../useDecoder'
 import { ImageDropper } from '../ImageDropper/ImageDropper'
 import { PasswordInput } from '../PasswordInput/PasswordInput'
+import { PanelError } from '../PanelError/PanelError'
 import styles from './DecodePanel.module.scss'
 
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'avif']
@@ -13,10 +14,20 @@ function isImageName(name: string | null): boolean {
   return extension !== undefined && IMAGE_EXTENSIONS.includes(extension)
 }
 
+// Transient state of the copy-to-clipboard button.
+const CopyStatus = { idle: 'idle', copied: 'copied', failed: 'failed' } as const
+type CopyStatus = (typeof CopyStatus)[keyof typeof CopyStatus]
+
+const copyLabels: Record<CopyStatus, string> = {
+  idle: 'Copy',
+  copied: 'Copied',
+  failed: 'Copy failed',
+}
+
 export function DecodePanel() {
   const dec = useDecoder()
   const decoded = dec.decoded
-  const [copied, setCopied] = useState(false)
+  const [copyStatus, setCopyStatus] = useState<CopyStatus>(CopyStatus.idle)
   const copyTimer = useRef<number | null>(null)
 
   useEffect(() => () => window.clearTimeout(copyTimer.current ?? undefined), [])
@@ -25,17 +36,20 @@ export function DecodePanel() {
     ? baseOptions.find((option) => option.value === decoded.base)?.label
     : null
 
-  const copyMessage = () => {
+  // The clipboard API is missing in insecure contexts and can reject, so the
+  // button reports failure rather than going dead — the message stays selectable.
+  const copyMessage = async () => {
     const text = decoded?.text
     if (!text) return
-    navigator.clipboard
-      ?.writeText(text)
-      .then(() => {
-        setCopied(true)
-        window.clearTimeout(copyTimer.current ?? undefined)
-        copyTimer.current = window.setTimeout(() => setCopied(false), 1500)
-      })
-      .catch(() => {})
+    window.clearTimeout(copyTimer.current ?? undefined)
+    try {
+      if (!navigator.clipboard) throw new Error('clipboard unavailable')
+      await navigator.clipboard.writeText(text)
+      setCopyStatus(CopyStatus.copied)
+    } catch {
+      setCopyStatus(CopyStatus.failed)
+    }
+    copyTimer.current = window.setTimeout(() => setCopyStatus(CopyStatus.idle), 1500)
   }
 
   const badges = (
@@ -55,7 +69,7 @@ export function DecodePanel() {
         onFile={dec.loadImage}
       />
 
-      {dec.error && <p className={styles.error}>{dec.error}</p>}
+      {dec.error && <PanelError message={dec.error} />}
 
       {decoded?.needsKey && (
         <div className={styles.locked}>
@@ -70,6 +84,7 @@ export function DecodePanel() {
               <PasswordInput
                 value={dec.passphrase}
                 placeholder="Secret key"
+                noun="key"
                 onChange={dec.setPassphrase}
                 onEnter={dec.submitKey}
               />
@@ -95,7 +110,7 @@ export function DecodePanel() {
             <span className={styles.revealMeta}>
               {badges}
               <button type="button" className={styles.copyBtn} onClick={copyMessage}>
-                {copied ? 'Copied' : 'Copy'}
+                {copyLabels[copyStatus]}
               </button>
             </span>
           </div>

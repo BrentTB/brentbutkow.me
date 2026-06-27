@@ -20,7 +20,9 @@ export function KeyField({ enabled, value, onToggle, onChange }: KeyFieldProps) 
         <span className={styles.toggleLabel}>Lock with a key</span>
       </label>
 
-      {enabled && <PasswordInput value={value} placeholder="Secret key" onChange={onChange} />}
+      {enabled && (
+        <PasswordInput value={value} placeholder="Secret key" noun="key" onChange={onChange} />
+      )}
 
       <p className={styles.note}>
         {enabled

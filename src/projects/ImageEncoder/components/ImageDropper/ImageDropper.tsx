@@ -1,5 +1,5 @@
-import { ChangeEvent, DragEvent, useRef, useState } from 'react'
 import styles from './ImageDropper.module.scss'
+import { useFileDrop } from '../../useFileDrop'
 
 interface ImageDropperProps {
   label: string
@@ -18,21 +18,7 @@ export function ImageDropper({
   onFile,
   onClear,
 }: ImageDropperProps) {
-  const inputRef = useRef<HTMLInputElement>(null)
-  const [dragging, setDragging] = useState(false)
-
-  const pick = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file) onFile(file)
-    event.target.value = '' // allow re-picking the same file
-  }
-
-  const onDrop = (event: DragEvent) => {
-    event.preventDefault()
-    setDragging(false)
-    const file = event.dataTransfer.files?.[0]
-    if (file?.type.startsWith('image/')) onFile(file)
-  }
+  const { inputRef, dragging, dragProps, pick, open } = useFileDrop(onFile)
 
   const classes = [
     styles.dropper,
@@ -43,24 +29,12 @@ export function ImageDropper({
     .join(' ')
 
   return (
-    <div
-      className={classes}
-      onDragOver={(event) => {
-        event.preventDefault()
-        setDragging(true)
-      }}
-      onDragLeave={() => setDragging(false)}
-      onDrop={onDrop}
-    >
+    <div className={classes} {...dragProps}>
       {previewUrl ? (
         <>
           <img src={previewUrl} alt={label} className={styles.preview} />
           <div className={styles.overlay}>
-            <button
-              type="button"
-              className={styles.smallBtn}
-              onClick={() => inputRef.current?.click()}
-            >
+            <button type="button" className={styles.smallBtn} onClick={open}>
               Replace
             </button>
             {onClear && (
@@ -71,12 +45,7 @@ export function ImageDropper({
           </div>
         </>
       ) : (
-        <button
-          type="button"
-          className={styles.prompt}
-          onClick={() => inputRef.current?.click()}
-          disabled={busy}
-        >
+        <button type="button" className={styles.prompt} onClick={open} disabled={busy}>
           <span className={styles.icon} aria-hidden="true">
             ⊹
           </span>

@@ -6,17 +6,22 @@ import { ImageDropper } from '../ImageDropper/ImageDropper'
 import { FilePicker } from '../FilePicker/FilePicker'
 import { CapacityMeter } from '../CapacityMeter/CapacityMeter'
 import { KeyField } from '../KeyField/KeyField'
-import { Segmented } from '../Segmented/Segmented'
+import { Segmented, SegmentedOption } from '../Segmented/Segmented'
+import { PanelError } from '../PanelError/PanelError'
 import styles from './EncodePanel.module.scss'
+
+// Which version of the result the preview shows.
+const ViewMode = { result: 'result', changes: 'changes' } as const
+type ViewMode = (typeof ViewMode)[keyof typeof ViewMode]
 
 const baseSegments = baseOptions.map((option) => ({ value: option.value, label: option.label }))
 const payloadSegments = [
   { value: PayloadMode.text, label: 'Message' },
   { value: PayloadMode.file, label: 'File' },
 ]
-const viewSegments = [
-  { value: 'result', label: 'Result' },
-  { value: 'changes', label: 'Changes' },
+const viewSegments: SegmentedOption<ViewMode>[] = [
+  { value: ViewMode.result, label: 'Result' },
+  { value: ViewMode.changes, label: 'Changes' },
 ]
 
 export function EncodePanel() {
@@ -154,7 +159,7 @@ export function EncodePanel() {
         </div>
       )}
 
-      {enc.error && <p className={styles.error}>{enc.error}</p>}
+      {enc.error && <PanelError message={enc.error} />}
 
       {enc.encoded && (
         <div className={styles.result}>
@@ -164,8 +169,8 @@ export function EncodePanel() {
               <Segmented
                 ariaLabel="Preview mode"
                 options={viewSegments}
-                value={showingDiff ? 'changes' : 'result'}
-                onChange={(value) => enc.setShowDiff(value === 'changes')}
+                value={showingDiff ? ViewMode.changes : ViewMode.result}
+                onChange={(value) => enc.setShowDiff(value === ViewMode.changes)}
               />
             )}
           </div>

@@ -6,6 +6,7 @@ import { embedPayload, extractPayload } from './engine/codec'
 import { PayloadKind, unpackPayload } from './engine/payload'
 import { buildDiff } from './engine/diff'
 import { maxPayloadBytes } from './engine/capacity'
+import { decryptMessage } from './engine/crypto'
 
 vi.mock('./canvas-image', () => ({
   fileToImage: vi.fn(),
@@ -113,6 +114,35 @@ describe('useEncoder', () => {
     expect(payload?.kind).toBe(PayloadKind.file)
     expect(payload?.name).toBe('notes.bin')
     expect(payload?.bytes).toEqual(fileBytes)
+  })
+
+  it('seals the payload when a key is set', async () => {
+    const captured: RasterImage[] = []
+    rasterToPngBlobMock.mockImplementation((raster) => {
+      captured.push(raster)
+      return Promise.resolve(new Blob(['png']))
+    })
+
+    const { result } = renderHook(() => useEncoder())
+    await act(async () => result.current.loadImage(file))
+    act(() => {
+      result.current.setMessage('classified')
+      result.current.setUseKey(true)
+      result.current.setPassphrase('s3cret')
+    })
+    await act(async () => result.current.runEncode())
+
+    expect(result.current.error).toBeNull()
+    const stego = captured[0]
+    const decoded = extractPayload(stego.data, stego.width, stego.height)
+    expect(decoded?.encrypted).toBe(true)
+    if (!decoded || !decoded.salt || !decoded.iv) throw new Error('expected an encrypted payload')
+
+    // The embedded bytes are ciphertext; only the key recovers the message.
+    const plain = await decryptMessage(decoded.payload, 's3cret', decoded.salt, decoded.iv)
+    const payload = unpackPayload(plain)
+    expect(payload?.kind).toBe(PayloadKind.text)
+    expect(decoder.decode(payload?.bytes)).toBe('classified')
   })
 
   it('tracks capacity for the typed message', async () => {

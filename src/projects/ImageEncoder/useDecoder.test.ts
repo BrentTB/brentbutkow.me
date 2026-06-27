@@ -4,6 +4,7 @@ import { useDecoder } from './useDecoder'
 import { Base } from './image-encoder.types'
 import { embedPayload, extractPayload } from './engine/codec'
 import { PayloadKind, packPayload } from './engine/payload'
+import { encryptMessage } from './engine/crypto'
 
 vi.mock('./canvas-image', () => ({
   fileToImage: vi.fn(),
@@ -171,6 +172,51 @@ describe('useDecoder', () => {
     await act(async () => result.current.loadImage(file))
 
     expect(result.current.decoded?.needsKey).toBe(true)
+    expect(result.current.decoded?.text).toBeNull()
+  })
+
+  async function sealedStego(text: string, key: string): Promise<Uint8ClampedArray> {
+    const envelope = packPayload({
+      kind: PayloadKind.text,
+      name: '',
+      bytes: new TextEncoder().encode(text),
+    })
+    const sealed = await encryptMessage(envelope, key)
+    return embedPayload(makeCover(64, 64), 64, 64, sealed.ciphertext, {
+      base: Base.binary,
+      encrypted: true,
+      spread: false,
+      seed: 555,
+      salt: sealed.salt,
+      iv: sealed.iv,
+    })
+  }
+
+  it('unlocks an encrypted message with the right key', async () => {
+    fileToImageMock.mockResolvedValue(loaded(await sealedStego('top secret', 'hunter2'), 64, 64))
+
+    const { result } = renderHook(() => useDecoder())
+    await act(async () => result.current.loadImage(file))
+    expect(result.current.decoded?.needsKey).toBe(true)
+
+    act(() => result.current.setPassphrase('hunter2'))
+    await act(async () => result.current.submitKey())
+
+    expect(result.current.decoded?.text).toBe('top secret')
+    expect(result.current.decoded?.encrypted).toBe(true)
+    expect(result.current.decoded?.needsKey).toBe(false)
+  })
+
+  it('rejects the wrong key', async () => {
+    fileToImageMock.mockResolvedValue(loaded(await sealedStego('top secret', 'hunter2'), 64, 64))
+
+    const { result } = renderHook(() => useDecoder())
+    await act(async () => result.current.loadImage(file))
+
+    act(() => result.current.setPassphrase('wrong'))
+    await act(async () => result.current.submitKey())
+
+    expect(result.current.error).toMatch(/did not work/i)
     expect(result.current.decoded?.text).toBeNull()
   })
 })

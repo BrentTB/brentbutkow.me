@@ -4,11 +4,18 @@ import styles from './PasswordInput.module.scss'
 interface PasswordInputProps {
   value: string
   placeholder?: string
+  noun?: string // what the reveal toggle is hiding, for its aria-label
   onChange: (value: string) => void
   onEnter?: () => void
 }
 
-export function PasswordInput({ value, placeholder, onChange, onEnter }: PasswordInputProps) {
+export function PasswordInput({
+  value,
+  placeholder,
+  noun = 'value',
+  onChange,
+  onEnter,
+}: PasswordInputProps) {
   const [visible, setVisible] = useState(false)
 
   return (
@@ -25,7 +32,7 @@ export function PasswordInput({ value, placeholder, onChange, onEnter }: Passwor
       <button
         type="button"
         className={styles.toggle}
-        aria-label={visible ? 'Hide key' : 'Show key'}
+        aria-label={`${visible ? 'Hide' : 'Show'} ${noun}`}
         aria-pressed={visible}
         onClick={() => setVisible((current) => !current)}
       >

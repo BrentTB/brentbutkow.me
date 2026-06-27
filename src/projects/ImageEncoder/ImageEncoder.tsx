@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { BackButton } from '../../components/PageFormatting/BackButton'
 import { useFunMode } from '../../contexts/useFunMode'
 import { Mode } from './image-encoder.types'
+import { terminateWorker } from './codec-worker-client'
 import { copy } from './data'
 import { Segmented } from './components/Segmented/Segmented'
 import { EncodePanel } from './components/EncodePanel/EncodePanel'
@@ -19,6 +20,10 @@ export function ImageEncoder() {
   // Both panels stay mounted; switching tabs only changes which one is shown, so
   // each keeps its own image, message, and result.
   const [mode, setMode] = useState<Mode>(Mode.encode)
+
+  // The codec worker is a module-level singleton shared by both panels; release
+  // it when the page unmounts so the thread doesn't outlive the route.
+  useEffect(() => () => terminateWorker(), [])
 
   return (
     <div className={styles.wrapper}>
