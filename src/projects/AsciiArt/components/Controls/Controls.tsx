@@ -13,6 +13,8 @@ import {
   MAX_ROWS,
   MIN_ROWS,
 } from '../../data'
+import { Select } from '../../../../components/inputs/Select'
+import type { SelectOption } from '../../../../components/inputs/option.types'
 import styles from './Controls.module.scss'
 
 type ControlsProps = {
@@ -30,6 +32,10 @@ type ControlsProps = {
 }
 
 const charsetNames = Object.keys(Charset) as CharsetName[]
+const charsetOptions: SelectOption[] = [
+  ...charsetNames.map((name) => ({ value: name, label: name })),
+  { value: CUSTOM_CHARSET, label: 'custom' },
+]
 
 export function Controls({
   options,
@@ -45,8 +51,6 @@ export function Controls({
   onMirror,
 }: ControlsProps) {
   const handleRows = (e: ChangeEvent<HTMLInputElement>) => onRows(Number(e.target.value))
-  const handleCharset = (e: ChangeEvent<HTMLSelectElement>) =>
-    onCharset(e.target.value as CharsetSelection)
   const isCustomRamp = options.charset === CUSTOM_CHARSET
 
   return (
@@ -127,14 +131,12 @@ export function Controls({
 
       <div className={styles.group}>
         <span className={styles.label}>Charset</span>
-        <select className={styles.select} value={options.charset} onChange={handleCharset}>
-          {charsetNames.map((name) => (
-            <option key={name} value={name}>
-              {name}
-            </option>
-          ))}
-          <option value={CUSTOM_CHARSET}>custom</option>
-        </select>
+        <Select
+          value={options.charset}
+          options={charsetOptions}
+          onChange={(value) => onCharset(value as CharsetSelection)}
+          ariaLabel="Charset"
+        />
         {isCustomRamp && (
           <input
             type="text"
