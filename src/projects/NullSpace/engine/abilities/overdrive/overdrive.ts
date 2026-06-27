@@ -9,6 +9,7 @@ import {
   applyTierSum,
   applyCostReduction,
   type AbilityDefinition,
+  AbilityActivation,
 } from '../ability-definition'
 import type {
   EffectDefinition,
@@ -161,7 +162,7 @@ export const overdriveFieldEffect: EffectDefinition = {
 export const overdrive: AbilityDefinition = {
   kind: AbilityKind.overdrive,
   meta: { icon: IconName.overdrive, label: 'Overdrive' },
-  activation: 'click',
+  activation: AbilityActivation.click,
   base: () => ({
     kind: AbilityKind.overdrive,
     cooldown: OVERDRIVE.cooldown,

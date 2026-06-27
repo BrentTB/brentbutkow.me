@@ -1,11 +1,11 @@
-import { ABILITY_LIST } from '../../engine/abilities'
+import { ABILITY_LIST, AbilityActivation } from '../../engine/abilities'
 import { SPACE_METAL_ABILITIES } from '../../engine/spaceMetalAbilities'
 import sharedStyles from '../OverlayShared.module.scss'
 import styles from './HelpScreen.module.scss'
 
 // Names of the channelled (hold-to-cast) abilities, derived from the registry
 // so the help text never drifts when a hold ability is added or renamed.
-const holdAbilityNames = ABILITY_LIST.filter((a) => a.activation === 'hold')
+const holdAbilityNames = ABILITY_LIST.filter((a) => a.activation === AbilityActivation.hold)
   .map((a) => a.meta.label)
   .join(', ')
 

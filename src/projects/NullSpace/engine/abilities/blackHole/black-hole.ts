@@ -10,6 +10,7 @@ import {
   applyTierSum,
   applyCostReduction,
   type AbilityDefinition,
+  AbilityActivation,
 } from '../ability-definition'
 import type {
   EffectDefinition,
@@ -200,7 +201,7 @@ export const blackHoleEffect: EffectDefinition = {
 export const blackHole: AbilityDefinition = {
   kind: AbilityKind.blackHole,
   meta: { icon: IconName.blackHole, label: 'Black Hole' },
-  activation: 'click',
+  activation: AbilityActivation.click,
   base: () => ({
     kind: AbilityKind.blackHole,
     cooldown: BLACK_HOLE.cooldown,

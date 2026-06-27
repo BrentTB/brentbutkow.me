@@ -14,8 +14,8 @@ import { UpgradeCategory } from '../types'
 import type { HoldAbilityConfig } from './hold-runtime'
 import type { IconName } from '../../icon-names'
 
-// eslint-disable-next-line no-restricted-syntax -- pre-existing union; const-object conversion tracked separately
-export type AbilityActivation = 'click' | 'hold'
+export const AbilityActivation = { click: 'click', hold: 'hold' } as const
+export type AbilityActivation = (typeof AbilityActivation)[keyof typeof AbilityActivation]
 
 // Fixed currency cost of an Ultimate purchase. The Singularity Shard portion is
 // dynamic (= ultimatesOwned.length + 1 at purchase time) so it lives in the

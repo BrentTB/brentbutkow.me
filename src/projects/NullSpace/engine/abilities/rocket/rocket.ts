@@ -15,6 +15,7 @@ import {
   applyCostReduction,
   applyTierSum,
   type AbilityDefinition,
+  AbilityActivation,
 } from '../ability-definition'
 import type {
   EffectDefinition,
@@ -247,7 +248,7 @@ export const rocketEffect: EffectDefinition = {
 export const rocket: AbilityDefinition = {
   kind: AbilityKind.rocket,
   meta: { icon: IconName.rocket, label: 'Rocket' },
-  activation: 'click',
+  activation: AbilityActivation.click,
   base: () => ({
     kind: AbilityKind.rocket,
     cooldown: ROCKET.cooldown,

@@ -6,6 +6,7 @@ import {
   applyCostReduction,
   applyTierSum,
   type AbilityDefinition,
+  AbilityActivation,
 } from '../ability-definition'
 import { IconName } from '../../../icon-names'
 
@@ -62,7 +63,7 @@ const radiusUpgrade = upgrade({
 export const meteor: AbilityDefinition = {
   kind: AbilityKind.meteor,
   meta: { icon: IconName.meteor, label: 'Meteor' },
-  activation: 'click',
+  activation: AbilityActivation.click,
   base: () => ({
     kind: AbilityKind.meteor,
     cooldown: METEOR_STRIKE.cooldown,

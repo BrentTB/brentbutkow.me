@@ -5,6 +5,7 @@ import {
   applyTierSum,
   composeUltimateUpgrades,
   type AbilityDefinition,
+  AbilityActivation,
 } from '../ability-definition'
 import { radiation, createRadiationFieldEffect } from './radiation'
 import { IconName } from '../../../icon-names'
@@ -31,7 +32,7 @@ export const meltdown: AbilityDefinition = {
   kind: AbilityKind.meltdown,
   ultimateOf: AbilityKind.radiation,
   meta: { icon: IconName.radiation, label: 'Meltdown' },
-  activation: 'click',
+  activation: AbilityActivation.click,
   base: () => ({
     kind: AbilityKind.meltdown,
     cooldown: RADIATION.cooldown,

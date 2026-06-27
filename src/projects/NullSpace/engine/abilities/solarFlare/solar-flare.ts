@@ -9,6 +9,7 @@ import {
   applyCostReduction,
   applyTierSum,
   type AbilityDefinition,
+  AbilityActivation,
 } from '../ability-definition'
 import { IconName } from '../../../icon-names'
 import type { HoldAbilityConfig } from '../hold-runtime'
@@ -156,7 +157,7 @@ const solarFlareHold: HoldAbilityConfig = {
 export const solarFlare: AbilityDefinition = {
   kind: AbilityKind.solarFlare,
   meta: { icon: IconName.solarFlare, label: 'Solar Flare' },
-  activation: 'hold',
+  activation: AbilityActivation.hold,
   base: () => ({
     kind: AbilityKind.solarFlare,
     cooldown: 0,

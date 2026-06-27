@@ -9,6 +9,7 @@ import {
   applyTierSum,
   applyCostReduction,
   type AbilityDefinition,
+  AbilityActivation,
 } from '../ability-definition'
 import type {
   EffectDefinition,
@@ -151,7 +152,7 @@ export const radiationFieldEffect: EffectDefinition = {
 export const radiation: AbilityDefinition = {
   kind: AbilityKind.radiation,
   meta: { icon: IconName.radiation, label: 'Radiation' },
-  activation: 'click',
+  activation: AbilityActivation.click,
   base: () => ({
     kind: AbilityKind.radiation,
     cooldown: RADIATION.cooldown,

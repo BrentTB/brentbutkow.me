@@ -6,6 +6,7 @@ import {
   applyCostReduction,
   applyTierSum,
   type AbilityDefinition,
+  AbilityActivation,
 } from '../ability-definition'
 import { IconName } from '../../../icon-names'
 
@@ -62,7 +63,7 @@ const costUpgrade = upgrade({
 export const helper: AbilityDefinition = {
   kind: AbilityKind.helper,
   meta: { icon: IconName.helper, label: 'Helper' },
-  activation: 'click',
+  activation: AbilityActivation.click,
   base: () => ({
     kind: AbilityKind.helper,
     cooldown: HELPER.cooldown,

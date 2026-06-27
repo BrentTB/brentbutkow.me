@@ -13,6 +13,7 @@ import {
   applyTierSum,
   applyCostReduction,
   type AbilityDefinition,
+  AbilityActivation,
 } from '../ability-definition'
 import type {
   EffectDefinition,
@@ -259,7 +260,7 @@ export const chainArcEffect: EffectDefinition = {
 export const chainLightning: AbilityDefinition = {
   kind: AbilityKind.chainLightning,
   meta: { icon: IconName.chainLightning, label: 'Chain Lightning' },
-  activation: 'click',
+  activation: AbilityActivation.click,
   base: () => ({
     kind: AbilityKind.chainLightning,
     cooldown: CHAIN_LIGHTNING.cooldown,
