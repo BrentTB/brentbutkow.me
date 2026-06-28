@@ -50,6 +50,9 @@
 
 html {
   scrollbar-gutter: stable;
+  // Clip the few full-bleed backgrounds that span 100vw. 100vw counts the reserved scrollbar gutter,
+  // so they overshoot the content area by the gutter width and would otherwise force a horizontal bar.
+  overflow-x: hidden;
 }
 
 * {
