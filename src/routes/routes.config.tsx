@@ -9,6 +9,7 @@ import { ProjectsPage } from '../pages/Projects/ProjectsPage'
 import { lazy } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { AppRoute } from './routes.types'
+import { routePaths } from './routes.paths'
 import { funStuffSubRoutes } from '../pages/FunStuff/data'
 import { gamesSubRoutes } from '../pages/FunStuff/subpages/Games/data'
 
@@ -53,18 +54,6 @@ const RecallDetail = lazy(() =>
     default: module.RecallDetail,
   }))
 )
-
-export const routePaths = {
-  home: '/',
-  experience: '/experience',
-  education: '/education',
-  achievements: '/achievements',
-  projects: '/projects',
-  recallRadar: '/projects/recall-radar',
-  funStuff: '/fun-stuff',
-  contact: '/contact',
-  notFound: '*',
-}
 
 // The dashboard moved from /recall-radar to /projects/recall-radar. Rewrite the old prefix while
 // keeping any sub-path, query, and hash so saved deep links (filters, single recalls) still resolve.

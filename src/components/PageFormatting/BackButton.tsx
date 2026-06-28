@@ -1,35 +1,12 @@
 import { useLocation, useNavigate } from 'react-router-dom'
+import { routeLabels } from '../../routes/routes.paths'
+import { previousVisitedPath } from '../../routes/navigation-history'
 import styles from './BackButton.module.scss'
 
 interface BackButtonProps {
-  // Where to land when the previous page isn't on this site. Pass this for routes the segment-strip
-  // can't guess — e.g. a detail page two levels deep. Defaults to the parent route.
+  // Structural parent to go back to. Pass this for routes the segment-strip can't guess — e.g. a
+  // detail page two levels deep. Defaults to the parent route derived from the path.
   fallbackPath?: string
-}
-
-const isSameWebsiteReferrer = (referrer: string) => {
-  if (!referrer) {
-    return false
-  }
-
-  try {
-    return new URL(referrer).origin === window.location.origin
-  } catch {
-    return false
-  }
-}
-
-export function shouldNavigateBack() {
-  const hasPreviousPage = window.history.length > 1
-  if (!hasPreviousPage) {
-    return false
-  }
-
-  const historyState = window.history.state as { idx?: number } | null
-  const previousPageIsSameWebsite = isSameWebsiteReferrer(document.referrer)
-  const previousAppHistoryIndex = typeof historyState?.idx === 'number' && historyState.idx > 0
-
-  return previousPageIsSameWebsite || previousAppHistoryIndex
 }
 
 export function getRouteFallbackPath(pathname: string) {
@@ -51,19 +28,29 @@ export function BackButton({ fallbackPath }: BackButtonProps) {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const target = fallbackPath ?? getRouteFallbackPath(pathname)
+  const label = (target && routeLabels[target]) || 'Back'
 
   const onClickHandler = () => {
-    if (shouldNavigateBack()) {
+    if (!target) {
+      return
+    }
+    // If the previous entry is the parent we'd land on, step back to it so its query string and scroll
+    // survive; otherwise go to the parent fresh (handles deep chains and arriving from off-site).
+    if (previousVisitedPath() === target) {
       navigate(-1)
-    } else if (target) {
+    } else {
       navigate(target)
     }
   }
 
   return (
-    <button className={styles.back} onClick={onClickHandler} aria-label="Go back">
+    <button
+      className={styles.back}
+      onClick={onClickHandler}
+      aria-label={label === 'Back' ? 'Go back' : `Back to ${label}`}
+    >
       <span className={styles.arrow}>&larr;</span>
-      Back
+      {label}
     </button>
   )
 }

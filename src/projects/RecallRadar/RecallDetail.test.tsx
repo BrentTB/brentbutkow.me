@@ -79,6 +79,8 @@ describe('RecallDetail page', () => {
     renderAt('/projects/recall-radar/fda/F-9')
 
     await waitFor(() => expect(screen.getByText('Sliced deli turkey')).toBeTruthy())
+    // The back button points at the dashboard, not one segment up (…/fda).
+    expect(screen.getByRole('button', { name: 'Back to Recall Radar' })).toBeTruthy()
     expect(screen.getByText('F-9')).toBeTruthy() // recall-number fact
     expect(screen.getByText('Acme Foods')).toBeTruthy()
     expect(screen.getByText('Severe')).toBeTruthy() // severity band

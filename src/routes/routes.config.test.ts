@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { routes, routePaths } from './routes.config'
+import { routes } from './routes.config'
+import { routePaths } from './routes.paths'
 
 describe('routes config', () => {
   it('has unique paths', () => {
