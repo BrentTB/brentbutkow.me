@@ -42,7 +42,10 @@ export function useRouteMeta() {
     const notFound = routes.find((route) => route.path === '*')
     const meta = match ?? notFound
 
-    const title = meta?.title ?? DEFAULT_TITLE
+    const titleBase = meta?.title ?? DEFAULT_TITLE
+    const isLocalhost =
+      typeof window !== 'undefined' && window.location.hostname.includes('localhost')
+    const title = isLocalhost ? `[Local] ${titleBase}` : titleBase
     const description = meta?.description ?? DEFAULT_DESCRIPTION
     const canonical = match ? `${SITE_URL}${pathname}` : `${SITE_URL}/`
 
