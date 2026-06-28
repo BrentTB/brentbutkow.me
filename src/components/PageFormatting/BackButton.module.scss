@@ -1,7 +1,5 @@
 .back {
-  position: absolute;
-  bottom: 100%;
-  left: 0;
+  align-self: flex-start;
   display: inline-flex;
   align-items: center;
   gap: 6px;

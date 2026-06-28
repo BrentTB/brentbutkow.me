@@ -36,7 +36,9 @@ export function useRouteMeta() {
   const { pathname } = useLocation()
 
   useEffect(() => {
-    const match = routes.find((route) => route.path !== '*' && matchPath(route.path, pathname))
+    const match = routes.find(
+      (route) => route.path !== '*' && !route.redirect && matchPath(route.path, pathname)
+    )
     const notFound = routes.find((route) => route.path === '*')
     const meta = match ?? notFound
 

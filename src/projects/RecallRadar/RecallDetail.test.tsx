@@ -54,7 +54,7 @@ const renderAt = (path: string) =>
   render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
-        <Route path="/recall-radar/:source/:recallNumber" element={<RecallDetail />} />
+        <Route path="/projects/recall-radar/:source/:recallNumber" element={<RecallDetail />} />
       </Routes>
     </MemoryRouter>
   )
@@ -76,9 +76,11 @@ describe('RecallDetail page', () => {
     })
     vi.stubGlobal('fetch', fetchMock)
 
-    renderAt('/recall-radar/fda/F-9')
+    renderAt('/projects/recall-radar/fda/F-9')
 
     await waitFor(() => expect(screen.getByText('Sliced deli turkey')).toBeTruthy())
+    // The back button points at the dashboard, not one segment up (…/fda).
+    expect(screen.getByRole('button', { name: 'Back to Recall Radar' })).toBeTruthy()
     expect(screen.getByText('F-9')).toBeTruthy() // recall-number fact
     expect(screen.getByText('Acme Foods')).toBeTruthy()
     expect(screen.getByText('Severe')).toBeTruthy() // severity band
@@ -88,18 +90,18 @@ describe('RecallDetail page', () => {
     // to the dashboard with that filter applied (carrying the country, since both are per-country).
     const themeChip = await screen.findByText(/Theme · /)
     expect(themeChip.closest('a')?.getAttribute('href')).toBe(
-      '/recall-radar?location=us&topic=listeria-deli'
+      '/projects/recall-radar?location=us&topic=listeria-deli'
     )
     const outbreakChip = await screen.findByText(/Outbreak · /)
     expect(outbreakChip.closest('a')?.getAttribute('href')).toBe(
-      '/recall-radar?location=us&event=listeria-2026-06'
+      '/projects/recall-radar?location=us&event=listeria-2026-06'
     )
   })
 
   it('rejects a malformed source param without fetching', () => {
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
-    renderAt('/recall-radar/epa/F-9') // epa is not a valid source
+    renderAt('/projects/recall-radar/epa/F-9') // epa is not a valid source
     expect(screen.getByText(/malformed/i)).toBeTruthy()
     expect(fetchMock).not.toHaveBeenCalled()
   })

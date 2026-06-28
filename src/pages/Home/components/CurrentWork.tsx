@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { routePaths } from '../../../routes/routes.config'
+import { routePaths } from '../../../routes/routes.paths'
 import styles from './CurrentWork.module.scss'
 
 type CurrentWorkProps = {

@@ -1,5 +1,6 @@
 import { Link, NavLink, useLocation } from 'react-router-dom'
-import { routePaths, routes } from '../../routes/routes.config'
+import { routes } from '../../routes/routes.config'
+import { routePaths } from '../../routes/routes.paths'
 import styles from './Navbar.module.scss'
 import { ModeToggle } from '../ModeToggle'
 import { useFunMode } from '../../contexts/useFunMode'

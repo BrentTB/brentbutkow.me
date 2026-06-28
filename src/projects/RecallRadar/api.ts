@@ -1,4 +1,5 @@
 import { apiRoutes } from '../../api/api'
+import { routePaths } from '../../routes/routes.paths'
 import type {
   RecallCategory,
   RecallClass,
@@ -93,12 +94,8 @@ export function buildRecallDetailPath(source: RecallSource, recallNumber: string
   return `${apiRoutes.recalls.list}/${encodeURIComponent(source)}/${encodeURIComponent(recallNumber)}`
 }
 
-// In-app route to a recall's detail page. The base mirrors routePaths.recallRadar — kept local so
-// this path module doesn't pull the route table (and every eager page import) into RecallRadar's
-// lazy chunk.
-const RECALL_RADAR_ROUTE = '/recall-radar'
 export function recallDetailRoute(source: RecallSource, recallNumber: string): string {
-  return `${RECALL_RADAR_ROUTE}/${encodeURIComponent(source)}/${encodeURIComponent(recallNumber)}`
+  return `${routePaths.recallRadar}/${encodeURIComponent(source)}/${encodeURIComponent(recallNumber)}`
 }
 
 // In-app route to the dashboard with a single filter preset — the detail page's theme/outbreak
@@ -110,5 +107,5 @@ export function recallRadarFilterRoute(
   slug: string
 ): string {
   const query = new URLSearchParams({ location: country, [param]: slug })
-  return `${RECALL_RADAR_ROUTE}?${query.toString()}`
+  return `${routePaths.recallRadar}?${query.toString()}`
 }

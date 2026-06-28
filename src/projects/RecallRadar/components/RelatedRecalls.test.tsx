@@ -67,7 +67,7 @@ describe('RelatedRecalls', () => {
     expect(screen.getByText(/Jun 10, 2026/)).toBeTruthy()
     // The product links to the neighbour's own detail page — the recursive-exploration entry point.
     expect(screen.getByText('Sliced deli turkey').closest('a')?.getAttribute('href')).toBe(
-      '/recall-radar/fda/F-42'
+      '/projects/recall-radar/fda/F-42'
     )
   })
 
