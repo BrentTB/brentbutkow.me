@@ -16,7 +16,7 @@ const headContent = (selector: string, attr: string) =>
 describe('useRouteMeta', () => {
   it('sets the document title for a known route', () => {
     renderHook(() => useRouteMeta(), { wrapper: wrapperFor('/experience') })
-    expect(document.title).toBe('Experience — Brent Butkow')
+    expect(document.title).toBe('[Local] Experience — Brent Butkow')
   })
 
   it('sets the meta description from the route config', () => {
@@ -36,7 +36,7 @@ describe('useRouteMeta', () => {
 
   it('matches dynamic routes by pattern instead of falling back to 404', () => {
     renderHook(() => useRouteMeta(), { wrapper: wrapperFor('/projects/recall-radar/fda/F-1234-5') })
-    expect(document.title).toBe('Recall — Recall Radar')
+    expect(document.title).toBe('[Local] Recall — Recall Radar')
     expect(headContent('link[rel="canonical"]', 'href')).toBe(
       'https://brentbutkow.me/projects/recall-radar/fda/F-1234-5'
     )
@@ -44,7 +44,7 @@ describe('useRouteMeta', () => {
 
   it('falls back to the 404 title and canonicalizes an unknown path to home', () => {
     renderHook(() => useRouteMeta(), { wrapper: wrapperFor('/no-such-page') })
-    expect(document.title).toBe('Page not found — Brent Butkow')
+    expect(document.title).toBe('[Local] Page not found — Brent Butkow')
     expect(headContent('link[rel="canonical"]', 'href')).toBe('https://brentbutkow.me/')
     expect(headContent('meta[property="og:url"]', 'content')).toBe('https://brentbutkow.me/')
   })
