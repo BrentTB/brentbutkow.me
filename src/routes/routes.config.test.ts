@@ -7,15 +7,22 @@ describe('routes config', () => {
     expect(new Set(paths).size).toBe(paths.length)
   })
 
-  it('gives every route a document title', () => {
-    for (const route of routes) {
+  it('gives every indexable route a document title', () => {
+    for (const route of routes.filter((route) => !route.redirect)) {
       expect(route.title, `route ${route.path} is missing a title`).toBeTruthy()
     }
   })
 
-  it('gives every route a meta description', () => {
-    for (const route of routes) {
+  it('gives every indexable route a meta description', () => {
+    for (const route of routes.filter((route) => !route.redirect)) {
       expect(route.description, `route ${route.path} is missing a description`).toBeTruthy()
+    }
+  })
+
+  it('redirect routes carry no title or description', () => {
+    for (const route of routes.filter((route) => route.redirect)) {
+      expect(route.title).toBeUndefined()
+      expect(route.description).toBeUndefined()
     }
   })
 

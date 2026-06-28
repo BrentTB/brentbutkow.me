@@ -63,7 +63,7 @@ describe('RecallFeed', () => {
   it('links the product title to the recall page without expanding the row', () => {
     const { container } = render(<RecallFeed recalls={[recall]} />)
     const title = screen.getByRole('link', { name: 'Test cookies' })
-    expect(title.getAttribute('href')).toContain('/recall-radar/usda/F-1234')
+    expect(title.getAttribute('href')).toContain('/projects/recall-radar/usda/F-1234')
     fireEvent.click(title)
     expect(container.querySelector('details')?.open).toBe(false) // navigates, doesn't toggle
   })

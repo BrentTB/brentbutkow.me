@@ -9,7 +9,7 @@
   align-items: center;
   gap: 24px;
   padding: 22px 0 18px;
-  margin-bottom: clamp(44px, 6vw, 80px);
+  margin-bottom: clamp(20px, 3vw, 36px);
   transition: transform 0.24s ease;
 
   // Recall Radar retracts the bar once scrolled (its minimal sticky bar takes over); returning to

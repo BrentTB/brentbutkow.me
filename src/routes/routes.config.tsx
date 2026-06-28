@@ -7,6 +7,7 @@ import { NotFoundPage } from '../pages/NotFound/NotFoundPage'
 import { AchievementsPage } from '../pages/Achievements/AchievementsPage'
 import { ProjectsPage } from '../pages/Projects/ProjectsPage'
 import { lazy } from 'react'
+import { Navigate, useLocation } from 'react-router-dom'
 import { AppRoute } from './routes.types'
 import { funStuffSubRoutes } from '../pages/FunStuff/data'
 import { gamesSubRoutes } from '../pages/FunStuff/subpages/Games/data'
@@ -59,10 +60,21 @@ export const routePaths = {
   education: '/education',
   achievements: '/achievements',
   projects: '/projects',
-  recallRadar: '/recall-radar',
+  recallRadar: '/projects/recall-radar',
   funStuff: '/fun-stuff',
   contact: '/contact',
   notFound: '*',
+}
+
+// The dashboard moved from /recall-radar to /projects/recall-radar. Rewrite the old prefix while
+// keeping any sub-path, query, and hash so saved deep links (filters, single recalls) still resolve.
+export function legacyRecallRadarTarget(pathname: string, search: string, hash: string) {
+  return pathname.replace(/^\/recall-radar/, routePaths.recallRadar) + search + hash
+}
+
+function LegacyRecallRadarRedirect() {
+  const { pathname, search, hash } = useLocation()
+  return <Navigate to={legacyRecallRadarTarget(pathname, search, hash)} replace />
 }
 
 const gamesPath = `${routePaths.funStuff}${funStuffSubRoutes.games}`
@@ -178,6 +190,19 @@ export const routes: AppRoute[] = [
     title: 'Recall — Recall Radar',
     description:
       'A single food-recall record on Recall Radar — full details, ML classification, and related recalls.',
+  },
+  {
+    // Legacy /recall-radar URLs redirect to the new /projects/recall-radar home.
+    path: '/recall-radar',
+    element: <LegacyRecallRadarRedirect />,
+    dontShowInNavbar: true,
+    redirect: true,
+  },
+  {
+    path: '/recall-radar/*',
+    element: <LegacyRecallRadarRedirect />,
+    dontShowInNavbar: true,
+    redirect: true,
   },
   {
     path: routePaths.funStuff,

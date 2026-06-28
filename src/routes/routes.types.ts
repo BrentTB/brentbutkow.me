@@ -9,4 +9,6 @@ export type AppRoute = {
   title?: string
   /** Meta description for this route (drives search snippets + Open Graph). */
   description?: string
+  /** Redirect-only route (legacy URL → new home). Not indexed, no title/description. */
+  redirect?: boolean
 }

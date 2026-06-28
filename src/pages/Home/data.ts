@@ -22,7 +22,7 @@ export const heroContent: HeroContent = {
   actions: [
     {
       label: 'Explore Recall Radar',
-      href: '/recall-radar',
+      href: '/projects/recall-radar',
       variant: 'primary',
     },
     {

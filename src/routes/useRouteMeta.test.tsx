@@ -20,23 +20,25 @@ describe('useRouteMeta', () => {
   })
 
   it('sets the meta description from the route config', () => {
-    renderHook(() => useRouteMeta(), { wrapper: wrapperFor('/recall-radar') })
+    renderHook(() => useRouteMeta(), { wrapper: wrapperFor('/projects/recall-radar') })
     expect(headContent('meta[name="description"]', 'content')).toContain('food-recall dashboard')
   })
 
   it('uses a self-referencing canonical and og:url per path', () => {
-    renderHook(() => useRouteMeta(), { wrapper: wrapperFor('/recall-radar') })
-    expect(headContent('link[rel="canonical"]', 'href')).toBe('https://brentbutkow.me/recall-radar')
+    renderHook(() => useRouteMeta(), { wrapper: wrapperFor('/projects/recall-radar') })
+    expect(headContent('link[rel="canonical"]', 'href')).toBe(
+      'https://brentbutkow.me/projects/recall-radar'
+    )
     expect(headContent('meta[property="og:url"]', 'content')).toBe(
-      'https://brentbutkow.me/recall-radar'
+      'https://brentbutkow.me/projects/recall-radar'
     )
   })
 
   it('matches dynamic routes by pattern instead of falling back to 404', () => {
-    renderHook(() => useRouteMeta(), { wrapper: wrapperFor('/recall-radar/fda/F-1234-5') })
+    renderHook(() => useRouteMeta(), { wrapper: wrapperFor('/projects/recall-radar/fda/F-1234-5') })
     expect(document.title).toBe('Recall — Recall Radar')
     expect(headContent('link[rel="canonical"]', 'href')).toBe(
-      'https://brentbutkow.me/recall-radar/fda/F-1234-5'
+      'https://brentbutkow.me/projects/recall-radar/fda/F-1234-5'
     )
   })
 

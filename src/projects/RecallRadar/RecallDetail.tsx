@@ -3,7 +3,7 @@ import { PageLayout } from '../../components/PageFormatting/PageLayout'
 import { PageHeader } from '../../components/PageFormatting/PageHeader'
 import { SafeLink } from '../../components/utils/SafeLink'
 import { getLinkArrow } from '../../components/utils/link-arrow'
-import { recallRadarFilterRoute } from './api'
+import { recallRadarFilterRoute, recallRadarRoute } from './api'
 import {
   categoryLabels,
   countryLabels,
@@ -30,7 +30,7 @@ export function RecallDetail() {
   if (!source || !isRecallSource(source) || !recallNumber) {
     return (
       <PageLayout>
-        <PageHeader title="Recall Radar" showBackButton />
+        <PageHeader title="Recall Radar" showBackButton backFallbackPath={recallRadarRoute} />
         <p className={styles.status}>That recall link looks malformed.</p>
       </PageLayout>
     )
