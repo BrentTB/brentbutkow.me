@@ -201,7 +201,53 @@ describe('useSubscriptionForm — HTTP response mapping', () => {
     expect(result.current.fieldErrors.email).toBe('bad email')
   })
 
-  it('6. network error sets status to "error" and errorMessage non-null', async () => {
+  it('6. HTTP 422 with a string detail surfaces it as an error (not a silent no-op)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => mockRes({ detail: 'You are already subscribed.' }, 422))
+    )
+
+    const { result } = renderHook(() => useSubscriptionForm())
+
+    act(() => {
+      result.current.setField('email', validFields().email)
+      result.current.setField('countries', validFields().countries)
+      result.current.setField('entities', validFields().entities)
+    })
+
+    await act(async () => {
+      await result.current.submit()
+    })
+
+    expect(result.current.status).toBe('error')
+    expect(result.current.errorMessage).toBe('You are already subscribed.')
+  })
+
+  it('7. HTTP 422 with no mappable field errors falls back to a generic error', async () => {
+    const body = { detail: [{ loc: ['body', 'unknown_field'], msg: 'nope', type: 'value_error' }] }
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => mockRes(body, 422))
+    )
+
+    const { result } = renderHook(() => useSubscriptionForm())
+
+    act(() => {
+      result.current.setField('email', validFields().email)
+      result.current.setField('countries', validFields().countries)
+      result.current.setField('entities', validFields().entities)
+    })
+
+    await act(async () => {
+      await result.current.submit()
+    })
+
+    expect(result.current.status).toBe('error')
+    expect(result.current.errorMessage).toBeTruthy()
+    expect(result.current.fieldErrors).toEqual({})
+  })
+
+  it('8. network error sets status to "error" and errorMessage non-null', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(() => Promise.reject(new Error('Network failure')))

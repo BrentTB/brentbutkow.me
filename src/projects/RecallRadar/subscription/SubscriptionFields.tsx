@@ -24,6 +24,14 @@ export const SUBSCRIPTION_DISCLAIMER =
   'Recall alerts are best-effort and sent via a free service. Always treat official agency ' +
   'channels (FDA, FSIS, FSA, NCC) as the source of truth.'
 
+// Append a trimmed value to a chip list, skipping blanks and case-insensitive duplicates. Returns
+// the same list reference when nothing is added, so callers can skip a no-op state update.
+const addUnique = (list: string[], raw: string): string[] => {
+  const value = raw.trim()
+  if (!value || list.some((item) => item.toLowerCase() === value.toLowerCase())) return list
+  return [...list, value]
+}
+
 // The filter criteria shared by the subscribe form and the manage page. Email lives only on the
 // subscribe form, so it is intentionally absent here.
 export type FilterFieldsValue = {
@@ -79,11 +87,9 @@ export function SubscriptionFields({
   }
 
   const addEntity = (raw: string) => {
-    const entity = raw.trim()
     setEntityDraft('')
-    if (!entity) return
-    if (value.entities.some((e) => e.toLowerCase() === entity.toLowerCase())) return
-    setField('entities', [...value.entities, entity])
+    const next = addUnique(value.entities, raw)
+    if (next !== value.entities) setField('entities', next)
   }
 
   const onEntityChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -113,10 +119,8 @@ export function SubscriptionFields({
     )
 
   const addCompany = (raw: string) => {
-    const company = raw.trim()
-    if (!company) return
-    if (value.companies.some((c) => c.toLowerCase() === company.toLowerCase())) return
-    setField('companies', [...value.companies, company])
+    const next = addUnique(value.companies, raw)
+    if (next !== value.companies) setField('companies', next)
   }
 
   const removeCompany = (company: string) =>

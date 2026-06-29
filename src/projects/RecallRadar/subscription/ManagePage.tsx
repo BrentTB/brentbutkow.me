@@ -3,13 +3,25 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { PageLayout } from '../../../components/PageFormatting/PageLayout'
 import { apiRoutes, apiUrl } from '../../../api/api'
 import { routePaths } from '../../../routes/routes.paths'
-import { RecallCategory, RecallCountry, type SeverityLabel } from '../recall.types'
+import { isRecallCategory, isRecallCountry, isSeverityLabel } from '../recall.types'
 import {
   SUBSCRIPTION_DISCLAIMER,
   SubscriptionFields,
   type FilterFieldsValue,
 } from './SubscriptionFields'
+import { FILTER_FIELD_MAP, filtersToPayload, parseValidationErrors } from './subscription-api'
 import styles from './SubscriptionPages.module.scss'
+
+const LoadState = {
+  loading: 'loading',
+  ready: 'ready',
+  unsubscribed: 'unsubscribed',
+  notfound: 'notfound',
+} as const
+type LoadState = (typeof LoadState)[keyof typeof LoadState]
+
+const SaveState = { idle: 'idle', saving: 'saving', saved: 'saved', error: 'error' } as const
+type SaveState = (typeof SaveState)[keyof typeof SaveState]
 
 const EMPTY: FilterFieldsValue = {
   countries: [],
@@ -22,25 +34,17 @@ const EMPTY: FilterFieldsValue = {
 const manageUrl = (token: string) =>
   apiUrl(`${apiRoutes.subscriptions.manage}?token=${encodeURIComponent(token)}`)
 
-// The manage API speaks snake_case and uses null for "unset"; map it onto the form's value shape.
+// The manage API speaks snake_case and uses null for "unset". Validate each field against the same
+// guards the dashboard uses, so a stale or garbage value can't flow into form state and back out.
 function toFields(body: Record<string, unknown>): FilterFieldsValue {
-  const asArray = (v: unknown) => (Array.isArray(v) ? (v as string[]) : [])
+  const strings = (v: unknown): string[] =>
+    Array.isArray(v) ? v.filter((item): item is string => typeof item === 'string') : []
   return {
-    countries: asArray(body.countries) as RecallCountry[],
-    entities: asArray(body.entities),
-    companies: asArray(body.companies),
-    categories: asArray(body.categories) as RecallCategory[],
-    minSeverity: typeof body.min_severity === 'string' ? (body.min_severity as SeverityLabel) : '',
-  }
-}
-
-function toPayload(value: FilterFieldsValue) {
-  return {
-    countries: value.countries,
-    entities: value.entities,
-    companies: value.companies,
-    categories: value.categories,
-    min_severity: value.minSeverity || null,
+    countries: strings(body.countries).filter(isRecallCountry),
+    entities: strings(body.entities),
+    companies: strings(body.companies),
+    categories: strings(body.categories).filter(isRecallCategory),
+    minSeverity: isSeverityLabel(body.min_severity) ? body.min_severity : '',
   }
 }
 
@@ -48,12 +52,12 @@ export function ManagePage() {
   const [params] = useSearchParams()
   const token = params.get('token')
 
-  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'unsubscribed' | 'notfound'>(
-    token ? 'loading' : 'notfound'
+  const [loadState, setLoadState] = useState<LoadState>(
+    token ? LoadState.loading : LoadState.notfound
   )
   const [value, setValue] = useState<FilterFieldsValue>(EMPTY)
   const [email, setEmail] = useState('')
-  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [saveState, setSaveState] = useState<SaveState>(SaveState.idle)
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof FilterFieldsValue, string>>>(
     {}
   )
@@ -62,7 +66,7 @@ export function ManagePage() {
   const setField = useCallback(
     <K extends keyof FilterFieldsValue>(key: K, fieldValue: FilterFieldsValue[K]) => {
       setValue((prev) => ({ ...prev, [key]: fieldValue }))
-      setSaveState('idle')
+      setSaveState(SaveState.idle)
     },
     []
   )
@@ -73,48 +77,48 @@ export function ManagePage() {
     fetch(manageUrl(token), { signal: controller.signal })
       .then(async (res) => {
         if (res.ok) {
-          const body = (await res.json()) as Record<string, unknown>
+          const body = (await res.json().catch(() => ({}))) as Record<string, unknown>
           setValue(toFields(body))
           if (typeof body.email === 'string') setEmail(body.email)
-          setLoadState('ready')
+          setLoadState(LoadState.ready)
         } else if (res.status === 410) {
-          setLoadState('unsubscribed')
+          setLoadState(LoadState.unsubscribed)
         } else {
-          setLoadState('notfound')
+          setLoadState(LoadState.notfound)
         }
       })
       .catch((err: unknown) => {
         if (err instanceof Error && err.name === 'AbortError') return
-        setLoadState('notfound')
+        setLoadState(LoadState.notfound)
       })
     return () => controller.abort()
   }, [token])
 
   const save = async () => {
     if (!token) return
-    setSaveState('saving')
+    setSaveState(SaveState.saving)
     setFieldErrors({})
     setMessage(null)
     try {
       const res = await fetch(manageUrl(token), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(toPayload(value)),
+        body: JSON.stringify(filtersToPayload(value)),
       })
       if (res.ok) {
-        setSaveState('saved')
+        setSaveState(SaveState.saved)
         setMessage('Preferences saved.')
       } else if (res.status === 422) {
-        const { fields, general } = await parseValidationError(res)
+        const { fields, general } = await parseValidationErrors(res, FILTER_FIELD_MAP)
         setFieldErrors(fields)
-        setSaveState('error')
+        setSaveState(SaveState.error)
         setMessage(general ?? 'Please check your selections and try again.')
       } else {
-        setSaveState('error')
+        setSaveState(SaveState.error)
         setMessage('Couldn’t save your preferences. Please try again.')
       }
     } catch {
-      setSaveState('error')
+      setSaveState(SaveState.error)
       setMessage('Couldn’t save your preferences. Please try again.')
     }
   }
@@ -128,10 +132,10 @@ export function ManagePage() {
         { method: 'POST' }
       )
       if (res.ok) {
-        setLoadState('unsubscribed')
+        setLoadState(LoadState.unsubscribed)
         setMessage('You have been unsubscribed.')
       } else if (res.status === 410) {
-        setLoadState('unsubscribed')
+        setLoadState(LoadState.unsubscribed)
         setMessage('Already unsubscribed.')
       } else {
         setMessage('Couldn’t unsubscribe. Please try again.')
@@ -147,11 +151,13 @@ export function ManagePage() {
         <h1 className={styles.title}>Manage alerts</h1>
         {email && <p className={styles.subEmail}>{email}</p>}
 
-        {loadState === 'loading' && <p>Loading your preferences…</p>}
+        {loadState === LoadState.loading && <p>Loading your preferences…</p>}
 
-        {loadState === 'unsubscribed' && <p>{message ?? 'You are already unsubscribed.'}</p>}
+        {loadState === LoadState.unsubscribed && (
+          <p>{message ?? 'You are already unsubscribed.'}</p>
+        )}
 
-        {loadState === 'notfound' && (
+        {loadState === LoadState.notfound && (
           <>
             <p>This link is invalid or could not be found.</p>
             <Link className={styles.link} to={routePaths.recallRadar}>
@@ -160,7 +166,7 @@ export function ManagePage() {
           </>
         )}
 
-        {loadState === 'ready' && (
+        {loadState === LoadState.ready && (
           <form
             className={styles.form}
             onSubmit={(e) => {
@@ -172,7 +178,10 @@ export function ManagePage() {
             <SubscriptionFields value={value} setField={setField} errors={fieldErrors} />
 
             {message && (
-              <p className={saveState === 'error' ? styles.error : styles.success} role="status">
+              <p
+                className={saveState === SaveState.error ? styles.error : styles.success}
+                role="status"
+              >
                 {message}
               </p>
             )}
@@ -180,8 +189,12 @@ export function ManagePage() {
             <p className={styles.disclaimer}>{SUBSCRIPTION_DISCLAIMER}</p>
 
             <div className={styles.actions}>
-              <button type="submit" className={styles.primary} disabled={saveState === 'saving'}>
-                {saveState === 'saving' ? 'Saving…' : 'Save preferences'}
+              <button
+                type="submit"
+                className={styles.primary}
+                disabled={saveState === SaveState.saving}
+              >
+                {saveState === SaveState.saving ? 'Saving…' : 'Save preferences'}
               </button>
               <button type="button" className={styles.secondary} onClick={() => void unsubscribe()}>
                 Unsubscribe
@@ -192,36 +205,4 @@ export function ManagePage() {
       </div>
     </PageLayout>
   )
-}
-
-// FastAPI 422s come in two shapes: our service returns {detail: "<message>"}, while Pydantic
-// returns {detail: [{loc, msg}]}. Map the latter onto field names; surface the former as-is.
-async function parseValidationError(
-  res: Response
-): Promise<{ fields: Partial<Record<keyof FilterFieldsValue, string>>; general: string | null }> {
-  const fieldMap: Record<string, keyof FilterFieldsValue> = {
-    countries: 'countries',
-    entities: 'entities',
-    companies: 'companies',
-    categories: 'categories',
-    min_severity: 'minSeverity',
-  }
-  try {
-    const body = (await res.json()) as { detail?: unknown }
-    if (typeof body.detail === 'string') return { fields: {}, general: body.detail }
-    if (Array.isArray(body.detail)) {
-      const fields: Partial<Record<keyof FilterFieldsValue, string>> = {}
-      for (const item of body.detail as Array<{ loc?: unknown; msg?: string }>) {
-        const loc = item.loc
-        if (Array.isArray(loc) && loc.length >= 2) {
-          const key = fieldMap[String(loc[loc.length - 1])]
-          if (key && item.msg) fields[key] = item.msg
-        }
-      }
-      return { fields, general: null }
-    }
-  } catch {
-    // fall through to a generic message
-  }
-  return { fields: {}, general: null }
 }

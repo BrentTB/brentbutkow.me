@@ -4,12 +4,21 @@ import { PageLayout } from '../../../components/PageFormatting/PageLayout'
 import { PageHeader } from '../../../components/PageFormatting/PageHeader'
 import { apiRoutes, apiUrl } from '../../../api/api'
 import { routePaths } from '../../../routes/routes.paths'
+import { OutcomeCard, OutcomeMark } from './OutcomeCard'
 import styles from './SubscriptionPages.module.scss'
+
+const ConfirmState = {
+  loading: 'loading',
+  confirmed: 'confirmed',
+  expired: 'expired',
+  invalid: 'invalid',
+} as const
+type ConfirmState = (typeof ConfirmState)[keyof typeof ConfirmState]
 
 export function ConfirmPage() {
   const [params] = useSearchParams()
   const token = params.get('token')
-  const [state, setState] = useState<'loading' | 'confirmed' | 'expired' | 'invalid'>('loading')
+  const [state, setState] = useState<ConfirmState>(ConfirmState.loading)
   const [manageToken, setManageToken] = useState<string | null>(null)
   // The same endpoint confirms an initial opt-in or a preference change; `updated` tells them apart.
   const [updated, setUpdated] = useState(false)
@@ -28,16 +37,16 @@ export function ConfirmPage() {
           }
           if (typeof body.management_token === 'string') setManageToken(body.management_token)
           setUpdated(body.updated === true)
-          setState('confirmed')
+          setState(ConfirmState.confirmed)
         } else if (res.status === 410) {
-          setState('expired')
+          setState(ConfirmState.expired)
         } else {
-          setState('invalid')
+          setState(ConfirmState.invalid)
         }
       })
       .catch((err: unknown) => {
         if (err instanceof Error && err.name === 'AbortError') return
-        setState('invalid')
+        setState(ConfirmState.invalid)
       })
     return () => controller.abort()
   }, [token])
@@ -67,40 +76,31 @@ export function ConfirmPage() {
       heading: 'This link isn’t valid',
       body: 'It may be invalid or already used. Head back and subscribe again.',
     },
-  }[state === 'loading' ? 'confirmed' : state]
+  }[state === ConfirmState.loading ? ConfirmState.confirmed : state]
 
   return (
     <PageLayout>
       <PageHeader title="Confirm subscription" />
-      <div className={styles.outcome}>
-        {state === 'loading' ? (
-          <p className={styles.loading}>Confirming your subscription…</p>
-        ) : (
-          <>
-            <span
-              className={`${styles.mark} ${state === 'confirmed' ? styles.markOk : styles.markWarn}`}
-              aria-hidden="true"
-            >
-              {outcome.mark}
-            </span>
-            <h2 className={styles.outcomeHeading}>{outcome.heading}</h2>
-            <p className={styles.outcomeBody}>{outcome.body}</p>
-            <div className={styles.outcomeActions}>
-              {state === 'confirmed' && manageToken && (
-                <Link
-                  className={styles.cta}
-                  to={`${routePaths.recallRadarManage}?token=${encodeURIComponent(manageToken)}`}
-                >
-                  Manage your alerts
-                </Link>
-              )}
-              <Link className={styles.ctaSecondary} to={routePaths.recallRadar}>
-                Go to Recall Radar
-              </Link>
-            </div>
-          </>
+      <OutcomeCard
+        loading={state === ConfirmState.loading}
+        loadingText="Confirming your subscription…"
+        mark={outcome.mark}
+        markVariant={state === ConfirmState.confirmed ? OutcomeMark.ok : OutcomeMark.warn}
+        heading={outcome.heading}
+        body={outcome.body}
+      >
+        {state === ConfirmState.confirmed && manageToken && (
+          <Link
+            className={styles.cta}
+            to={`${routePaths.recallRadarManage}?token=${encodeURIComponent(manageToken)}`}
+          >
+            Manage your alerts
+          </Link>
         )}
-      </div>
+        <Link className={styles.ctaSecondary} to={routePaths.recallRadar}>
+          Go to Recall Radar
+        </Link>
+      </OutcomeCard>
     </PageLayout>
   )
 }

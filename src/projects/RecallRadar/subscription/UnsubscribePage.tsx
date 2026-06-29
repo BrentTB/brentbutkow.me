@@ -4,12 +4,21 @@ import { PageLayout } from '../../../components/PageFormatting/PageLayout'
 import { PageHeader } from '../../../components/PageFormatting/PageHeader'
 import { apiRoutes, apiUrl } from '../../../api/api'
 import { routePaths } from '../../../routes/routes.paths'
+import { OutcomeCard, OutcomeMark } from './OutcomeCard'
 import styles from './SubscriptionPages.module.scss'
+
+const UnsubscribeState = {
+  loading: 'loading',
+  unsubscribed: 'unsubscribed',
+  already: 'already',
+  invalid: 'invalid',
+} as const
+type UnsubscribeState = (typeof UnsubscribeState)[keyof typeof UnsubscribeState]
 
 export function UnsubscribePage() {
   const [params] = useSearchParams()
   const token = params.get('token')
-  const [state, setState] = useState<'loading' | 'unsubscribed' | 'already' | 'invalid'>('loading')
+  const [state, setState] = useState<UnsubscribeState>(UnsubscribeState.loading)
 
   // One-click unsubscribe: the email link lands here and the request fires on mount.
   useEffect(() => {
@@ -20,13 +29,13 @@ export function UnsubscribePage() {
       signal: controller.signal,
     })
       .then((res) => {
-        if (res.ok) setState('unsubscribed')
-        else if (res.status === 410) setState('already')
-        else setState('invalid')
+        if (res.ok) setState(UnsubscribeState.unsubscribed)
+        else if (res.status === 410) setState(UnsubscribeState.already)
+        else setState(UnsubscribeState.invalid)
       })
       .catch((err: unknown) => {
         if (err instanceof Error && err.name === 'AbortError') return
-        setState('invalid')
+        setState(UnsubscribeState.invalid)
       })
     return () => controller.abort()
   }, [token])
@@ -46,30 +55,23 @@ export function UnsubscribePage() {
       heading: 'This link isn’t valid',
       body: 'It may be invalid or already used.',
     },
-  }[state === 'loading' ? 'unsubscribed' : state]
+  }[state === UnsubscribeState.loading ? UnsubscribeState.unsubscribed : state]
 
   return (
     <PageLayout>
       <PageHeader title="Unsubscribe" />
-      <div className={styles.outcome}>
-        {state === 'loading' ? (
-          <p className={styles.loading}>Unsubscribing…</p>
-        ) : (
-          <>
-            <span
-              className={`${styles.mark} ${state === 'invalid' ? styles.markWarn : styles.markOk}`}
-              aria-hidden="true"
-            >
-              {state === 'invalid' ? '⚠' : '✓'}
-            </span>
-            <h2 className={styles.outcomeHeading}>{outcome.heading}</h2>
-            <p className={styles.outcomeBody}>{outcome.body}</p>
-            <Link className={styles.cta} to={routePaths.recallRadar}>
-              Go to Recall Radar
-            </Link>
-          </>
-        )}
-      </div>
+      <OutcomeCard
+        loading={state === UnsubscribeState.loading}
+        loadingText="Unsubscribing…"
+        mark={state === UnsubscribeState.invalid ? '⚠' : '✓'}
+        markVariant={state === UnsubscribeState.invalid ? OutcomeMark.warn : OutcomeMark.ok}
+        heading={outcome.heading}
+        body={outcome.body}
+      >
+        <Link className={styles.cta} to={routePaths.recallRadar}>
+          Go to Recall Radar
+        </Link>
+      </OutcomeCard>
     </PageLayout>
   )
 }
