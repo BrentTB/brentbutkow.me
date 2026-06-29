@@ -131,8 +131,8 @@ describe('useSubscriptionForm — validation', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it('3. all filters empty sets errorMessage and does NOT call fetch', async () => {
-    const fetchMock = vi.fn()
+  it('3. a countries-only subscription (no other filters) is submitted', async () => {
+    const fetchMock = vi.fn(async () => mockRes(null, 200))
     vi.stubGlobal('fetch', fetchMock)
 
     const { result } = renderHook(() => useSubscriptionForm())
@@ -150,8 +150,8 @@ describe('useSubscriptionForm — validation', () => {
       await result.current.submit()
     })
 
-    expect(result.current.errorMessage).toBeTruthy()
-    expect(fetchMock).not.toHaveBeenCalled()
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(result.current.status).toBe('success')
   })
 })
 

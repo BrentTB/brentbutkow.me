@@ -58,8 +58,9 @@ export function useSubscriptionForm(
 
   const submit = useCallback(async () => {
     // --- Local validation ---
+    // Email + at least one country are required; the other filters are optional (countries-only
+    // means "every recall in those countries").
     const errors: Partial<Record<keyof SubscriptionFormState, string>> = {}
-    let localErrorMessage: string | null = null
 
     if (!EMAIL_RE.test(fields.email.trim())) {
       errors.email = 'Please enter a valid email address'
@@ -69,19 +70,9 @@ export function useSubscriptionForm(
       errors.countries = 'Please select at least one country'
     }
 
-    const allFiltersEmpty =
-      fields.entities.length === 0 &&
-      fields.companies.length === 0 &&
-      fields.categories.length === 0 &&
-      fields.minSeverity === ''
-
-    if (allFiltersEmpty) {
-      localErrorMessage = 'Please enter at least one filter criterion'
-    }
-
-    if (Object.keys(errors).length > 0 || localErrorMessage !== null) {
+    if (Object.keys(errors).length > 0) {
       setFieldErrors(errors)
-      setErrorMessage(localErrorMessage)
+      setErrorMessage(null)
       return
     }
 

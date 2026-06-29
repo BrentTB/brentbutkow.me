@@ -42,8 +42,7 @@ export function SubscriptionForm({
   if (status === 'success') {
     return (
       <p className={styles.success} role="status">
-        Thanks! If you’re not already subscribed, check your email for a confirmation link. If you
-        are, your preferences have been updated.
+        Check your email for a link to confirm. Nothing changes until you click it.
       </p>
     )
   }
