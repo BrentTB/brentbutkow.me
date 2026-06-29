@@ -7,6 +7,25 @@
   color: var(--text-secondary);
 }
 
+.title {
+  margin: 0;
+  text-align: center;
+  font-size: clamp(2.4rem, 6vw, 3.6rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.02;
+  color: var(--text);
+}
+
+// The address being managed — read-only, shown so the owner knows which account this is.
+.subEmail {
+  margin: 6px 0 32px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
 .form {
   display: flex;
   flex-direction: column;

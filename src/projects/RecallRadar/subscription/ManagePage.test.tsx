@@ -8,6 +8,7 @@ const res = (status: number, body: unknown = {}) =>
   ({ ok: status < 400, status, json: async () => body }) as Response
 
 const READY_BODY = {
+  email: 'subscriber@example.com',
   status: 'active',
   countries: ['us'],
   entities: ['peanut'],
@@ -42,10 +43,11 @@ afterEach(() => {
 })
 
 describe('ManagePage', () => {
-  it('pre-populates the form from a 200 response', async () => {
+  it('pre-populates the form from a 200 response and shows the email', async () => {
     vi.stubGlobal('fetch', mockFetch())
     renderManage()
     expect(await screen.findByText('peanut')).toBeTruthy()
+    expect(screen.getByText('subscriber@example.com')).toBeTruthy()
     const us = screen.getByRole('checkbox', { name: /united states/i }) as HTMLInputElement
     expect(us.checked).toBe(true)
   })

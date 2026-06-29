@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { PageLayout } from '../../../components/PageFormatting/PageLayout'
-import { PageHeader } from '../../../components/PageFormatting/PageHeader'
 import { apiRoutes, apiUrl } from '../../../api/api'
 import { routePaths } from '../../../routes/routes.paths'
 import { RecallCategory, RecallCountry, type SeverityLabel } from '../recall.types'
@@ -53,6 +52,7 @@ export function ManagePage() {
     token ? 'loading' : 'notfound'
   )
   const [value, setValue] = useState<FilterFieldsValue>(EMPTY)
+  const [email, setEmail] = useState('')
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof FilterFieldsValue, string>>>(
     {}
@@ -75,6 +75,7 @@ export function ManagePage() {
         if (res.ok) {
           const body = (await res.json()) as Record<string, unknown>
           setValue(toFields(body))
+          if (typeof body.email === 'string') setEmail(body.email)
           setLoadState('ready')
         } else if (res.status === 410) {
           setLoadState('unsubscribed')
@@ -107,7 +108,7 @@ export function ManagePage() {
         const { fields, general } = await parseValidationError(res)
         setFieldErrors(fields)
         setSaveState('error')
-        setMessage(general ?? 'Please keep at least one filter.')
+        setMessage(general ?? 'Please check your selections and try again.')
       } else {
         setSaveState('error')
         setMessage('Couldn’t save your preferences. Please try again.')
@@ -142,8 +143,10 @@ export function ManagePage() {
 
   return (
     <PageLayout>
-      <PageHeader title="Manage alerts" showBackButton />
       <div className={styles.message}>
+        <h1 className={styles.title}>Manage alerts</h1>
+        {email && <p className={styles.subEmail}>{email}</p>}
+
         {loadState === 'loading' && <p>Loading your preferences…</p>}
 
         {loadState === 'unsubscribed' && <p>{message ?? 'You are already unsubscribed.'}</p>}
