@@ -30,10 +30,13 @@ export type SubscriptionFormResult = {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-export function useSubscriptionForm(initialFilters?: RecallFilterValues): SubscriptionFormResult {
+export function useSubscriptionForm(
+  initialFilters?: RecallFilterValues,
+  initialCountries: RecallCountry[] = []
+): SubscriptionFormResult {
   const [fields, setFields] = useState<SubscriptionFormState>({
     email: '',
-    countries: [],
+    countries: initialCountries,
     entities: initialFilters?.entity ? [initialFilters.entity] : [],
     company: initialFilters?.company ?? '',
     categories: initialFilters?.category ? [initialFilters.category as RecallCategory] : [],

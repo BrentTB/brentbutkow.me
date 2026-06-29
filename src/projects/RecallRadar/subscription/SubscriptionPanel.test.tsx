@@ -2,19 +2,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { SubscriptionPanel } from './SubscriptionPanel'
 
-// useGeo and submit() both call fetch; route by URL so geo stays inert and submit returns the
-// status under test.
+// The company type-ahead and submit() both call fetch; the company fetch can return anything (it
+// just feeds suggestions), so a single status drives the submit assertions.
 const routeFetch = (subscribeStatus: number) =>
-  vi.fn(async (url: string) => {
-    if (String(url).includes('/api/geo')) {
-      return { ok: true, status: 200, json: async () => ({ country: null }) } as Response
-    }
-    return {
-      ok: subscribeStatus < 400,
-      status: subscribeStatus,
-      json: async () => ({}),
-    } as Response
-  })
+  vi.fn(
+    async () =>
+      ({
+        ok: subscribeStatus < 400,
+        status: subscribeStatus,
+        json: async () => ({}),
+      }) as Response
+  )
 
 const open = () => fireEvent.click(screen.getByRole('button', { name: /get recall alerts/i }))
 

@@ -1,19 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { RecallCountry, type RecallFilterValues } from '../recall.types'
-import {
-  SUBSCRIPTION_DISCLAIMER,
-  SubscriptionFields,
-  type FilterFieldsValue,
-} from './SubscriptionFields'
-import { useGeo } from './useGeo'
-import { useSubscriptionForm, type SubscriptionFormState } from './useSubscriptionForm'
+import { useState } from 'react'
+import { type RecallCountry, type RecallFilterValues } from '../recall.types'
+import { SubscriptionForm } from './SubscriptionForm'
 import styles from './SubscriptionPanel.module.scss'
 
-const ALL_COUNTRIES = Object.values(RecallCountry)
-
 type SubscriptionPanelProps = {
-  // Active dashboard filters and the selected country. When any filter that maps to an alert
-  // criterion is set, the form opens pre-populated from them; otherwise it falls back to geo.
+  // Live dashboard filters and the selected country. They are read when the panel opens (the form
+  // mounts then), so opening always snapshots the current dashboard state; closing discards it.
   initialFilters?: RecallFilterValues
   country: RecallCountry
   // Suggestions for the entity input, drawn from the dashboard's live facet data.
@@ -23,51 +15,9 @@ type SubscriptionPanelProps = {
 export function SubscriptionPanel({
   initialFilters,
   country,
-  entityOptions = [],
+  entityOptions,
 }: SubscriptionPanelProps) {
-  const hasActiveFilters = Boolean(
-    initialFilters &&
-    (initialFilters.entity ||
-      initialFilters.company ||
-      initialFilters.category ||
-      initialFilters.severity)
-  )
-  const { fields, setField, submit, status, fieldErrors, errorMessage } = useSubscriptionForm(
-    hasActiveFilters ? initialFilters : undefined
-  )
-  const geo = useGeo()
-
   const [open, setOpen] = useState(false)
-  const countriesTouched = useRef(false)
-  const initedCountries = useRef(false)
-
-  // Seed the country selection once: from the dashboard's country when filters are active, else all
-  // three until geo narrows it.
-  useEffect(() => {
-    if (initedCountries.current) return
-    initedCountries.current = true
-    setField('countries', hasActiveFilters ? [country] : ALL_COUNTRIES)
-  }, [hasActiveFilters, country, setField])
-
-  // Narrow to the detected country when nothing is pre-filled and the user hasn't picked yet.
-  useEffect(() => {
-    if (!hasActiveFilters && geo && !countriesTouched.current) setField('countries', [geo])
-  }, [geo, hasActiveFilters, setField])
-
-  // SubscriptionFields edits the filter subset; email stays on this form. The wrapper keeps the
-  // key→value correlation that a plain cast would lose.
-  const setFilterField = useCallback(
-    <K extends keyof FilterFieldsValue>(key: K, value: FilterFieldsValue[K]) =>
-      // FilterFieldsValue is a subset of the form state with identical value types, so the keys and
-      // values line up; the cast only bridges the two indexed-type parameters.
-      setField(key, value as SubscriptionFormState[K]),
-    [setField]
-  )
-
-  const onSubmit = (event: React.FormEvent) => {
-    event.preventDefault()
-    void submit()
-  }
 
   return (
     <section className={styles.panel}>
@@ -94,58 +44,15 @@ export function SubscriptionPanel({
         </span>
       </button>
 
+      {/* Mounting on open (and unmounting on close) is what makes the form snapshot the current
+          dashboard filters each time it is opened, and reset to defaults when reopened. */}
       {open && (
         <div className={styles.body}>
-          {status === 'success' ? (
-            <p className={styles.success} role="status">
-              Check your email — we’ve sent a confirmation link.
-            </p>
-          ) : (
-            <form className={styles.form} onSubmit={onSubmit} noValidate>
-              {status === 'duplicate' && (
-                <p className={styles.notice} role="status">
-                  You already have an active subscription with these criteria.
-                </p>
-              )}
-              {status === 'error' && errorMessage && (
-                <p className={styles.error} role="alert">
-                  {errorMessage}
-                </p>
-              )}
-
-              <label className={styles.field}>
-                <span className={styles.label}>Email</span>
-                <input
-                  type="email"
-                  className={styles.input}
-                  value={fields.email}
-                  onChange={(e) => setField('email', e.target.value)}
-                  placeholder="you@example.com"
-                  autoComplete="email"
-                  aria-invalid={Boolean(fieldErrors.email)}
-                />
-                {fieldErrors.email && (
-                  <span className={styles.fieldError}>{fieldErrors.email}</span>
-                )}
-              </label>
-
-              <SubscriptionFields
-                value={fields}
-                setField={setFilterField}
-                entityOptions={entityOptions}
-                errors={fieldErrors}
-                onCountriesUserChange={() => {
-                  countriesTouched.current = true
-                }}
-              />
-
-              <p className={styles.disclaimer}>{SUBSCRIPTION_DISCLAIMER}</p>
-
-              <button type="submit" className={styles.submit} disabled={status === 'loading'}>
-                {status === 'loading' ? 'Subscribing…' : 'Subscribe'}
-              </button>
-            </form>
-          )}
+          <SubscriptionForm
+            initialFilters={initialFilters}
+            country={country}
+            entityOptions={entityOptions}
+          />
         </div>
       )}
     </section>

@@ -76,6 +76,18 @@ describe('useSubscriptionForm — pre-population from dashboard filters', () => 
   })
 })
 
+describe('useSubscriptionForm — country seeding', () => {
+  it('pre-selects the provided initial countries', () => {
+    const { result } = renderHook(() => useSubscriptionForm(undefined, [RecallCountry.za]))
+    expect(result.current.fields.countries).toEqual([RecallCountry.za])
+  })
+
+  it('defaults to no selected countries when none are provided', () => {
+    const { result } = renderHook(() => useSubscriptionForm())
+    expect(result.current.fields.countries).toEqual([])
+  })
+})
+
 describe('useSubscriptionForm — validation', () => {
   it('1. invalid email sets fieldErrors.email and does NOT call fetch', async () => {
     const fetchMock = vi.fn()
