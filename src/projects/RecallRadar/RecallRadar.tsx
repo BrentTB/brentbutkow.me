@@ -22,6 +22,7 @@ import { TrendCallouts } from './components/TrendCallouts'
 import { HelpHint } from './components/HelpHint'
 import { Themes } from './components/Themes'
 import { Outbreaks } from './components/Outbreaks'
+import { SubscriptionPanel } from './subscription/SubscriptionPanel'
 import { Select } from '../../components/inputs/Select'
 import type { SelectOption } from '../../components/inputs/option.types'
 import {
@@ -311,6 +312,10 @@ export function RecallRadar() {
   const hasThemes = visibleTopics.length > 0
   const hasOutbreaks = visibleOutbreaks.length > 0
 
+  // Type-ahead suggestions for the subscription form, drawn from the live (filter-scoped) facets.
+  const entityOptions = (facets.data?.entity ?? []).map((entry) => entry.label)
+  const companyOptions = (facets.data?.company ?? []).map((entry) => entry.label)
+
   // Side-nav jump targets — only the sections that actually render for this country/data, in the
   // order they appear in the content column. Memoized so SectionNav's observer keys off a stable
   // array and doesn't tear down and rebuild on every render.
@@ -323,6 +328,7 @@ export function RecallRadar() {
       ...(stats.data ? [{ id: 'breakdowns', label: 'Breakdowns' }] : []),
       ...(hasThemes ? [{ id: 'themes', label: 'Themes' }] : []),
       { id: 'recalls', label: 'Recalls' },
+      { id: 'alerts', label: 'Alerts' },
       { id: 'about', label: 'About' },
     ],
     [stats.data, country, hasOutbreaks, hasThemes]
@@ -522,6 +528,20 @@ export function RecallRadar() {
                 onChange={goToPage}
               />
             )}
+          </section>
+
+          <section id="alerts" className={styles.section}>
+            <h2 className={styles.sectionTitle}>Recall alerts</h2>
+            <p className={styles.hint}>
+              Get a daily email when new recalls match your filters. Your current dashboard filters
+              pre-fill the form.
+            </p>
+            <SubscriptionPanel
+              initialFilters={filters}
+              country={country}
+              entityOptions={entityOptions}
+              companyOptions={companyOptions}
+            />
           </section>
 
           <section id="about" className={styles.section}>

@@ -9,6 +9,8 @@ export const routePaths = {
   achievements: '/achievements',
   projects: '/projects',
   recallRadar: '/projects/recall-radar',
+  recallRadarConfirm: '/projects/recall-radar/confirm',
+  recallRadarManage: '/projects/recall-radar/manage',
   funStuff: '/fun-stuff',
   contact: '/contact',
   notFound: '*',

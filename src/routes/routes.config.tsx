@@ -54,6 +54,16 @@ const RecallDetail = lazy(() =>
     default: module.RecallDetail,
   }))
 )
+const ConfirmPage = lazy(() =>
+  import('../projects/RecallRadar/subscription/ConfirmPage').then((module) => ({
+    default: module.ConfirmPage,
+  }))
+)
+const ManagePage = lazy(() =>
+  import('../projects/RecallRadar/subscription/ManagePage').then((module) => ({
+    default: module.ManagePage,
+  }))
+)
 
 // The dashboard moved from /recall-radar to /projects/recall-radar. Rewrite the old prefix while
 // keeping any sub-path, query, and hash so saved deep links (filters, single recalls) still resolve.
@@ -170,6 +180,22 @@ export const routes: AppRoute[] = [
     title: 'Recall Radar — Brent Butkow',
     description:
       'Recall Radar — a live US, UK, and SA food-recall dashboard. A FastAPI and ML pipeline ingests FDA, USDA FSIS, SA NCC, and UK FSA data daily.',
+  },
+  {
+    // Reached from the confirmation link in the opt-in email; activates a pending subscription.
+    path: routePaths.recallRadarConfirm,
+    element: <ConfirmPage />,
+    dontShowInNavbar: true,
+    title: 'Confirm subscription — Recall Radar',
+    description: 'Confirm your Recall Radar alert subscription.',
+  },
+  {
+    // Reached from the manage/unsubscribe links in every email; edit criteria or unsubscribe.
+    path: routePaths.recallRadarManage,
+    element: <ManagePage />,
+    dontShowInNavbar: true,
+    title: 'Manage alerts — Recall Radar',
+    description: 'Manage or unsubscribe from your Recall Radar alerts.',
   },
   {
     // Dedicated page for a single recall, reached by clicking a recall in the feed or a related one.
