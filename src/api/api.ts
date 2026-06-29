@@ -19,9 +19,15 @@ export const apiRoutes = {
     score: '/nullspace/score',
     leaderboard: '/nullspace/leaderboard',
   },
+  subscriptions: {
+    create: '/subscriptions',
+    confirm: '/subscriptions/confirm',
+    manage: '/subscriptions/manage',
+    unsubscribe: '/subscriptions/unsubscribe',
+  },
 } as const
 
-function apiUrl(path: string): string {
+export function apiUrl(path: string): string {
   return `${API_BASE_URL}${path}`
 }
 

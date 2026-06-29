@@ -56,16 +56,26 @@ export function Combobox({
       ? options
       : options.filter((option) => option.label.toLowerCase().includes(typed))
 
+  // Reset the input to the committed selection on close, and tell an async parent to do the same —
+  // otherwise a half-typed query (e.g. "wal") keeps driving suggestions the next time it opens, even
+  // though the input shows nothing typed.
+  const resetToSelection = () => {
+    setQuery(selectedLabel)
+    onInputChange?.(selectedLabel)
+  }
+
   useEffect(() => {
     if (!open) return
     const onPointerDown = (event: MouseEvent) => {
       if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
         setOpen(false)
-        setQuery(selectedLabel)
+        resetToSelection()
       }
     }
     document.addEventListener('mousedown', onPointerDown)
     return () => document.removeEventListener('mousedown', onPointerDown)
+    // resetToSelection closes over selectedLabel/onInputChange; re-bind when the selection changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, selectedLabel])
 
   useEffect(() => {
@@ -109,7 +119,7 @@ export function Combobox({
   const onKeyDown = (event: KeyboardEvent) => {
     if (event.key === 'Escape') {
       setOpen(false)
-      setQuery(selectedLabel)
+      resetToSelection()
     } else if (!open && (event.key === 'ArrowDown' || event.key === 'Enter')) {
       event.preventDefault()
       setOpen(true)

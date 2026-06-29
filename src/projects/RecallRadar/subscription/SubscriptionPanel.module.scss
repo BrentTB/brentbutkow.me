@@ -1,0 +1,283 @@
+// Deliberately set apart from the neutral dashboard cards: a warm accent border + tint and an icon
+// so the alert sign-up reads as a distinct call to action, not just another panel.
+.panel {
+  border: 1px solid rgba(var(--accent-rgb), 0.45);
+  border-radius: var(--radius-lg);
+  background: rgba(var(--accent-rgb), 0.06);
+  box-shadow: var(--shadow-sm);
+  // No overflow:hidden — it would clip the severity dropdown when it opens below the form.
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 18px 22px;
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text);
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+}
+
+.toggleIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(var(--accent-rgb), 0.16);
+  color: var(--accent-strong);
+}
+
+.toggleText {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.toggleTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--accent-strong);
+}
+
+.toggleHint {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.chevron {
+  margin-left: auto;
+  flex: none;
+  color: var(--accent);
+  font-size: 0.9rem;
+  transition: transform 0.18s ease;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.body {
+  padding: 4px 22px 22px;
+  border-top: 1px solid rgba(var(--accent-rgb), 0.25);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.input {
+  background: var(--surface-strong);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 9px 12px;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+
+  &::placeholder {
+    color: var(--muted);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  &[aria-invalid='true'] {
+    border-color: var(--danger);
+  }
+}
+
+.checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+
+  input {
+    accent-color: var(--accent);
+    width: 15px;
+    height: 15px;
+  }
+}
+
+// Chip-style multi-value input: the chips and the text field share one bordered well.
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px 8px;
+
+  &:focus-within {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+// Chips shown above the company search box (which is a separate dropdown, not an inline input).
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(var(--accent-rgb), 0.14);
+  color: var(--accent-strong);
+  border-radius: 999px;
+  padding: 3px 6px 3px 10px;
+  font-size: 0.82rem;
+}
+
+.tagRemove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  color: inherit;
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(var(--accent-rgb), 0.25);
+  }
+}
+
+.tagInput {
+  flex: 1 1 140px;
+  min-width: 120px;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  padding: 3px 4px;
+
+  &::placeholder {
+    color: var(--muted);
+  }
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.disclaimer {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--muted);
+  border-left: 2px solid var(--border-strong);
+  padding-left: 12px;
+}
+
+.submit {
+  align-self: flex-start;
+  background: var(--accent);
+  color: var(--on-accent);
+  border: none;
+  border-radius: var(--radius);
+  padding: 10px 22px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s ease;
+
+  &:hover:not(:disabled) {
+    background: var(--accent-strong);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+.fieldError {
+  font-size: 0.78rem;
+  color: var(--danger);
+}
+
+.error,
+.success {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+
+.error {
+  background: rgba(var(--danger-rgb), 0.12);
+  color: var(--danger);
+}
+
+.success {
+  background: rgba(var(--accent-rgb), 0.12);
+  color: var(--accent-strong);
+}

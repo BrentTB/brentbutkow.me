@@ -70,6 +70,44 @@ describe('Combobox', () => {
     expect(input.value).toBe('NY')
   })
 
+  it('resets the input to the selection and notifies the parent on Escape', () => {
+    const onInputChange = vi.fn()
+    render(
+      <Combobox
+        value="CA"
+        options={opts}
+        onChange={vi.fn()}
+        ariaLabel="Company"
+        onInputChange={onInputChange}
+      />
+    )
+    const input = screen.getByRole('combobox', { name: 'Company' }) as HTMLInputElement
+    fireEvent.focus(input)
+    fireEvent.change(input, { target: { value: 'walm' } })
+    fireEvent.keyDown(input, { key: 'Escape' })
+    expect(input.value).toBe('CA')
+    expect(onInputChange).toHaveBeenLastCalledWith('CA')
+  })
+
+  it('resets the input to the selection and notifies the parent on outside click', () => {
+    const onInputChange = vi.fn()
+    render(
+      <Combobox
+        value="CA"
+        options={opts}
+        onChange={vi.fn()}
+        ariaLabel="Company"
+        onInputChange={onInputChange}
+      />
+    )
+    const input = screen.getByRole('combobox', { name: 'Company' }) as HTMLInputElement
+    fireEvent.focus(input)
+    fireEvent.change(input, { target: { value: 'walm' } })
+    fireEvent.mouseDown(document.body)
+    expect(input.value).toBe('CA')
+    expect(onInputChange).toHaveBeenLastCalledWith('CA')
+  })
+
   it('clears the current selection', () => {
     const onChange = vi.fn()
     render(<Combobox value="CA" options={opts} onChange={onChange} ariaLabel="State" />)
