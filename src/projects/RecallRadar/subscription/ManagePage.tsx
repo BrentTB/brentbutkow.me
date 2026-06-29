@@ -34,8 +34,8 @@ const EMPTY: FilterFieldsValue = {
 const manageUrl = (token: string) =>
   apiUrl(`${apiRoutes.subscriptions.manage}?token=${encodeURIComponent(token)}`)
 
-// The manage API speaks snake_case and uses null for "unset". Validate each field against the same
-// guards the dashboard uses, so a stale or garbage value can't flow into form state and back out.
+// The manage API uses camelCase and null for "unset". Validate each field against the same guards
+// the dashboard uses, so a stale or garbage value can't flow into form state and back out.
 function toFields(body: Record<string, unknown>): FilterFieldsValue {
   const strings = (v: unknown): string[] =>
     Array.isArray(v) ? v.filter((item): item is string => typeof item === 'string') : []
@@ -44,7 +44,7 @@ function toFields(body: Record<string, unknown>): FilterFieldsValue {
     entities: strings(body.entities),
     companies: strings(body.companies),
     categories: strings(body.categories).filter(isRecallCategory),
-    minSeverity: isSeverityLabel(body.min_severity) ? body.min_severity : '',
+    minSeverity: isSeverityLabel(body.minSeverity) ? body.minSeverity : '',
   }
 }
 

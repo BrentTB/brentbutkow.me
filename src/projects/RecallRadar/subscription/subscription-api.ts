@@ -1,14 +1,14 @@
 import type { RecallCategory, RecallCountry, SeverityLabel } from '../recall.types'
 import type { FilterFieldsValue } from './SubscriptionFields'
 
-// The subscription API speaks snake_case and uses null for "unset". This shape is the wire payload
-// shared by the subscribe (POST) and manage (PATCH) endpoints.
+// The subscription API uses camelCase (like the rest of the backend) and null for "unset". This
+// shape is the wire payload shared by the subscribe (POST) and manage (PATCH) endpoints.
 export type FilterPayload = {
   countries: RecallCountry[]
   entities: string[]
   companies: string[]
   categories: RecallCategory[]
-  min_severity: SeverityLabel | null
+  minSeverity: SeverityLabel | null
 }
 
 export function filtersToPayload(value: FilterFieldsValue): FilterPayload {
@@ -17,18 +17,18 @@ export function filtersToPayload(value: FilterFieldsValue): FilterPayload {
     entities: value.entities,
     companies: value.companies,
     categories: value.categories,
-    min_severity: value.minSeverity || null,
+    minSeverity: value.minSeverity || null,
   }
 }
 
-// Maps snake_case API field names onto the form's value keys, so a Pydantic 422 lands on the right
-// input. The subscribe form extends this with its own `email` key.
+// Maps API field names onto the form's value keys, so a Pydantic 422 lands on the right input. The
+// subscribe form extends this with its own `email` key.
 export const FILTER_FIELD_MAP: Record<string, keyof FilterFieldsValue> = {
   countries: 'countries',
   entities: 'entities',
   companies: 'companies',
   categories: 'categories',
-  min_severity: 'minSeverity',
+  minSeverity: 'minSeverity',
 }
 
 export type ValidationErrors<K extends string> = {

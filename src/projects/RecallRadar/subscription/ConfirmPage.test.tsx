@@ -26,7 +26,7 @@ describe('ConfirmPage', () => {
   it('shows a success message and a manage link on HTTP 200', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () => res(200, { management_token: 'mtok' }))
+      vi.fn(async () => res(200, { managementToken: 'mtok' }))
     )
     renderAt(`${routePaths.recallRadarConfirm}?token=abc`)
     expect(await screen.findByText(/you’re subscribed/i)).toBeTruthy()
@@ -39,7 +39,7 @@ describe('ConfirmPage', () => {
   it('shows the preferences-updated message when the response is an update', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () => res(200, { management_token: 'mtok', updated: true }))
+      vi.fn(async () => res(200, { managementToken: 'mtok', updated: true }))
     )
     renderAt(`${routePaths.recallRadarConfirm}?token=abc`)
     expect(await screen.findByText(/preferences updated/i)).toBeTruthy()

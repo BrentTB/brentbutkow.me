@@ -32,10 +32,10 @@ export function ConfirmPage() {
       .then(async (res) => {
         if (res.ok) {
           const body = (await res.json().catch(() => ({}))) as {
-            management_token?: string
+            managementToken?: string
             updated?: boolean
           }
-          if (typeof body.management_token === 'string') setManageToken(body.management_token)
+          if (typeof body.managementToken === 'string') setManageToken(body.managementToken)
           setUpdated(body.updated === true)
           setState(ConfirmState.confirmed)
         } else if (res.status === 410) {

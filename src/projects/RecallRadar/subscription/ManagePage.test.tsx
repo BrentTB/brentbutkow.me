@@ -14,7 +14,7 @@ const READY_BODY = {
   entities: ['peanut'],
   companies: ['acme'],
   categories: ['allergen'],
-  min_severity: 'high',
+  minSeverity: 'high',
 }
 
 type MockOpts = { getStatus?: number; patchStatus?: number; unsubStatus?: number }
