@@ -57,13 +57,4 @@ describe('SubscriptionPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: /^subscribe$/i }))
     expect(await screen.findByText(/check your email/i)).toBeTruthy()
   })
-
-  it('renders the duplicate message when the API returns 409', async () => {
-    vi.stubGlobal('fetch', routeFetch(409))
-    render(<SubscriptionPanel country="us" />)
-    open()
-    fillValid()
-    fireEvent.click(screen.getByRole('button', { name: /^subscribe$/i }))
-    expect(await screen.findByText(/already have an active subscription/i)).toBeTruthy()
-  })
 })

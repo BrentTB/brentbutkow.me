@@ -156,10 +156,10 @@ describe('useSubscriptionForm — validation', () => {
 })
 
 describe('useSubscriptionForm — HTTP response mapping', () => {
-  it('4. HTTP 409 sets status to "duplicate"', async () => {
+  it('4. HTTP 200 sets status to "success"', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () => mockRes(null, 409))
+      vi.fn(async () => mockRes(null, 200))
     )
 
     const { result } = renderHook(() => useSubscriptionForm())
@@ -174,7 +174,7 @@ describe('useSubscriptionForm — HTTP response mapping', () => {
       await result.current.submit()
     })
 
-    expect(result.current.status).toBe('duplicate')
+    expect(result.current.status).toBe('success')
   })
 
   it('5. HTTP 422 with detail array maps to fieldErrors', async () => {

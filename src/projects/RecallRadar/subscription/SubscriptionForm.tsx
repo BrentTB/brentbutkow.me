@@ -42,18 +42,14 @@ export function SubscriptionForm({
   if (status === 'success') {
     return (
       <p className={styles.success} role="status">
-        Check your email — we’ve sent a confirmation link.
+        Thanks! If you’re not already subscribed, check your email for a confirmation link. If you
+        are, your preferences have been updated.
       </p>
     )
   }
 
   return (
     <form className={styles.form} onSubmit={onSubmit} noValidate>
-      {status === 'duplicate' && (
-        <p className={styles.notice} role="status">
-          You already have an active subscription with these criteria.
-        </p>
-      )}
       {status === 'error' && errorMessage && (
         <p className={styles.error} role="alert">
           {errorMessage}

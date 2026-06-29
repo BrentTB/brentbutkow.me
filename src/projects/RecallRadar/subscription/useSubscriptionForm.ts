@@ -23,7 +23,7 @@ export type SubscriptionFormResult = {
   fields: SubscriptionFormState
   setField: <K extends keyof SubscriptionFormState>(k: K, v: SubscriptionFormState[K]) => void
   submit: () => Promise<void>
-  status: 'idle' | 'loading' | 'success' | 'duplicate' | 'error'
+  status: 'idle' | 'loading' | 'success' | 'error'
   fieldErrors: Partial<Record<keyof SubscriptionFormState, string>>
   errorMessage: string | null
 }
@@ -106,8 +106,6 @@ export function useSubscriptionForm(
 
       if (res.status === 201 || res.status === 200) {
         setStatus('success')
-      } else if (res.status === 409) {
-        setStatus('duplicate')
       } else if (res.status === 422) {
         // Parse 422 body for field-level errors (FastAPI / Pydantic format)
         try {
