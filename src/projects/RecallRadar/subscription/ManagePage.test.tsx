@@ -8,7 +8,7 @@ const res = (status: number, body: unknown = {}) =>
   ({ ok: status < 400, status, json: async () => body }) as Response
 
 const READY_BODY = {
-  email: 'subscriber@example.com',
+  email: 's***@e***.com',
   status: 'active',
   countries: ['us'],
   entities: ['peanut'],
@@ -47,7 +47,7 @@ describe('ManagePage', () => {
     vi.stubGlobal('fetch', mockFetch())
     renderManage()
     expect(await screen.findByText('peanut')).toBeTruthy()
-    expect(screen.getByText('subscriber@example.com')).toBeTruthy()
+    expect(screen.getByText('s***@e***.com')).toBeTruthy()
     const us = screen.getByRole('checkbox', { name: /united states/i }) as HTMLInputElement
     expect(us.checked).toBe(true)
   })
