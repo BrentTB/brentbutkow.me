@@ -10,6 +10,7 @@ export function ConfirmPage() {
   const [params] = useSearchParams()
   const token = params.get('token')
   const [state, setState] = useState<'loading' | 'confirmed' | 'expired' | 'invalid'>('loading')
+  const [manageToken, setManageToken] = useState<string | null>(null)
 
   useEffect(() => {
     if (!token) return
@@ -17,10 +18,16 @@ export function ConfirmPage() {
     fetch(apiUrl(`${apiRoutes.subscriptions.confirm}?token=${encodeURIComponent(token)}`), {
       signal: controller.signal,
     })
-      .then((res) => {
-        if (res.ok) setState('confirmed')
-        else if (res.status === 410) setState('expired')
-        else setState('invalid')
+      .then(async (res) => {
+        if (res.ok) {
+          const body = (await res.json().catch(() => ({}))) as { management_token?: string }
+          if (typeof body.management_token === 'string') setManageToken(body.management_token)
+          setState('confirmed')
+        } else if (res.status === 410) {
+          setState('expired')
+        } else {
+          setState('invalid')
+        }
       })
       .catch((err: unknown) => {
         if (err instanceof Error && err.name === 'AbortError') return
@@ -66,9 +73,19 @@ export function ConfirmPage() {
             </span>
             <h2 className={styles.outcomeHeading}>{outcome.heading}</h2>
             <p className={styles.outcomeBody}>{outcome.body}</p>
-            <Link className={styles.cta} to={routePaths.recallRadar}>
-              Go to Recall Radar
-            </Link>
+            <div className={styles.outcomeActions}>
+              {state === 'confirmed' && manageToken && (
+                <Link
+                  className={styles.cta}
+                  to={`${routePaths.recallRadarManage}?token=${encodeURIComponent(manageToken)}`}
+                >
+                  Manage your alerts
+                </Link>
+              )}
+              <Link className={styles.ctaSecondary} to={routePaths.recallRadar}>
+                Go to Recall Radar
+              </Link>
+            </div>
           </>
         )}
       </div>

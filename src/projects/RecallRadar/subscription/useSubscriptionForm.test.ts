@@ -141,7 +141,7 @@ describe('useSubscriptionForm — validation', () => {
       result.current.setField('email', 'test@example.com')
       result.current.setField('countries', [RecallCountry.us])
       result.current.setField('entities', [])
-      result.current.setField('company', '')
+      result.current.setField('companies', [])
       result.current.setField('categories', [])
       result.current.setField('minSeverity', '')
     })

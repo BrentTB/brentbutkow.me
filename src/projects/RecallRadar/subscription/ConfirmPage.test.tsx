@@ -4,7 +4,8 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { ConfirmPage } from './ConfirmPage'
 import { routePaths } from '../../../routes/routes.paths'
 
-const res = (status: number) => ({ ok: status < 400, status, json: async () => ({}) }) as Response
+const res = (status: number, body: unknown = {}) =>
+  ({ ok: status < 400, status, json: async () => body }) as Response
 
 const renderAt = (entry: string) =>
   render(
@@ -22,13 +23,17 @@ afterEach(() => {
 })
 
 describe('ConfirmPage', () => {
-  it('shows a success message on HTTP 200', async () => {
+  it('shows a success message and a manage link on HTTP 200', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () => res(200))
+      vi.fn(async () => res(200, { management_token: 'mtok' }))
     )
     renderAt(`${routePaths.recallRadarConfirm}?token=abc`)
     expect(await screen.findByText(/you’re subscribed/i)).toBeTruthy()
+    const manage = (await screen.findByRole('link', {
+      name: /manage your alerts/i,
+    })) as HTMLAnchorElement
+    expect(manage.getAttribute('href')).toContain('token=mtok')
   })
 
   it('shows an expired message on HTTP 410', async () => {
