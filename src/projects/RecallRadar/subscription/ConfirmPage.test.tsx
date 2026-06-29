@@ -36,6 +36,15 @@ describe('ConfirmPage', () => {
     expect(manage.getAttribute('href')).toContain('token=mtok')
   })
 
+  it('shows the preferences-updated message when the response is an update', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => res(200, { management_token: 'mtok', updated: true }))
+    )
+    renderAt(`${routePaths.recallRadarConfirm}?token=abc`)
+    expect(await screen.findByText(/preferences updated/i)).toBeTruthy()
+  })
+
   it('shows an expired message on HTTP 410', async () => {
     vi.stubGlobal(
       'fetch',

@@ -11,6 +11,8 @@ export function ConfirmPage() {
   const token = params.get('token')
   const [state, setState] = useState<'loading' | 'confirmed' | 'expired' | 'invalid'>('loading')
   const [manageToken, setManageToken] = useState<string | null>(null)
+  // The same endpoint confirms an initial opt-in or a preference change; `updated` tells them apart.
+  const [updated, setUpdated] = useState(false)
 
   useEffect(() => {
     if (!token) return
@@ -20,8 +22,12 @@ export function ConfirmPage() {
     })
       .then(async (res) => {
         if (res.ok) {
-          const body = (await res.json().catch(() => ({}))) as { management_token?: string }
+          const body = (await res.json().catch(() => ({}))) as {
+            management_token?: string
+            updated?: boolean
+          }
           if (typeof body.management_token === 'string') setManageToken(body.management_token)
+          setUpdated(body.updated === true)
           setState('confirmed')
         } else if (res.status === 410) {
           setState('expired')
@@ -40,11 +46,17 @@ export function ConfirmPage() {
   if (!token) return <Navigate to={routePaths.recallRadar} replace />
 
   const outcome = {
-    confirmed: {
-      mark: '✓',
-      heading: 'You’re subscribed',
-      body: 'You’ll get an email whenever new recalls match the filters you chose.',
-    },
+    confirmed: updated
+      ? {
+          mark: '✓',
+          heading: 'Preferences updated',
+          body: 'Your alert filters are now in effect. You’ll get emails based on the new criteria.',
+        }
+      : {
+          mark: '✓',
+          heading: 'You’re subscribed',
+          body: 'You’ll get an email whenever new recalls match the filters you chose.',
+        },
     expired: {
       mark: '⏱',
       heading: 'This link has expired',
