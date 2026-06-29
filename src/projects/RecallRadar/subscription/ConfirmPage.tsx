@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Link, Navigate, useSearchParams } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { PageLayout } from '../../../components/PageFormatting/PageLayout'
 import { PageHeader } from '../../../components/PageFormatting/PageHeader'
 import { apiRoutes, apiUrl } from '../../../api/api'
 import { routePaths } from '../../../routes/routes.paths'
 import { OutcomeCard, OutcomeMark } from './OutcomeCard'
+import { SUBSCRIPTION_TOKEN_HEADER } from './subscription-api'
+import { useStripTokenFromUrl } from './useStripTokenFromUrl'
 import styles from './SubscriptionPages.module.scss'
 
 const ConfirmState = {
@@ -16,8 +18,7 @@ const ConfirmState = {
 type ConfirmState = (typeof ConfirmState)[keyof typeof ConfirmState]
 
 export function ConfirmPage() {
-  const [params] = useSearchParams()
-  const token = params.get('token')
+  const token = useStripTokenFromUrl()
   const [state, setState] = useState<ConfirmState>(ConfirmState.loading)
   const [manageToken, setManageToken] = useState<string | null>(null)
   // The same endpoint confirms an initial opt-in or a preference change; `updated` tells them apart.
@@ -26,7 +27,8 @@ export function ConfirmPage() {
   useEffect(() => {
     if (!token) return
     const controller = new AbortController()
-    fetch(apiUrl(`${apiRoutes.subscriptions.confirm}?token=${encodeURIComponent(token)}`), {
+    fetch(apiUrl(apiRoutes.subscriptions.confirm), {
+      headers: { [SUBSCRIPTION_TOKEN_HEADER]: token },
       signal: controller.signal,
     })
       .then(async (res) => {

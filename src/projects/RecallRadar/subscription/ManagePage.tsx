@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { PageLayout } from '../../../components/PageFormatting/PageLayout'
 import { apiRoutes, apiUrl } from '../../../api/api'
 import { routePaths } from '../../../routes/routes.paths'
@@ -9,7 +9,13 @@ import {
   SubscriptionFields,
   type FilterFieldsValue,
 } from './SubscriptionFields'
-import { FILTER_FIELD_MAP, filtersToPayload, parseValidationErrors } from './subscription-api'
+import {
+  FILTER_FIELD_MAP,
+  SUBSCRIPTION_TOKEN_HEADER,
+  filtersToPayload,
+  parseValidationErrors,
+} from './subscription-api'
+import { useStripTokenFromUrl } from './useStripTokenFromUrl'
 import styles from './SubscriptionPages.module.scss'
 
 const LoadState = {
@@ -31,8 +37,8 @@ const EMPTY: FilterFieldsValue = {
   minSeverity: '',
 }
 
-const manageUrl = (token: string) =>
-  apiUrl(`${apiRoutes.subscriptions.manage}?token=${encodeURIComponent(token)}`)
+const MANAGE_URL = apiUrl(apiRoutes.subscriptions.manage)
+const UNSUBSCRIBE_URL = apiUrl(apiRoutes.subscriptions.unsubscribe)
 
 // The manage API uses camelCase and null for "unset". Validate each field against the same guards
 // the dashboard uses, so a stale or garbage value can't flow into form state and back out.
@@ -49,8 +55,7 @@ function toFields(body: Record<string, unknown>): FilterFieldsValue {
 }
 
 export function ManagePage() {
-  const [params] = useSearchParams()
-  const token = params.get('token')
+  const token = useStripTokenFromUrl()
 
   const [loadState, setLoadState] = useState<LoadState>(
     token ? LoadState.loading : LoadState.notfound
@@ -74,7 +79,10 @@ export function ManagePage() {
   useEffect(() => {
     if (!token) return
     const controller = new AbortController()
-    fetch(manageUrl(token), { signal: controller.signal })
+    fetch(MANAGE_URL, {
+      headers: { [SUBSCRIPTION_TOKEN_HEADER]: token },
+      signal: controller.signal,
+    })
       .then(async (res) => {
         if (res.ok) {
           const body = (await res.json().catch(() => ({}))) as Record<string, unknown>
@@ -100,9 +108,12 @@ export function ManagePage() {
     setFieldErrors({})
     setMessage(null)
     try {
-      const res = await fetch(manageUrl(token), {
+      const res = await fetch(MANAGE_URL, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          [SUBSCRIPTION_TOKEN_HEADER]: token,
+        },
         body: JSON.stringify(filtersToPayload(value)),
       })
       if (res.ok) {
@@ -127,10 +138,10 @@ export function ManagePage() {
     if (!token) return
     setMessage(null)
     try {
-      const res = await fetch(
-        apiUrl(`${apiRoutes.subscriptions.unsubscribe}?token=${encodeURIComponent(token)}`),
-        { method: 'POST' }
-      )
+      const res = await fetch(UNSUBSCRIBE_URL, {
+        method: 'POST',
+        headers: { [SUBSCRIPTION_TOKEN_HEADER]: token },
+      })
       if (res.ok) {
         setLoadState(LoadState.unsubscribed)
         setMessage('You have been unsubscribed.')

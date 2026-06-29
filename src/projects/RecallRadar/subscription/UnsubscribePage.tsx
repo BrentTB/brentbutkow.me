@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Link, Navigate, useSearchParams } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { PageLayout } from '../../../components/PageFormatting/PageLayout'
 import { PageHeader } from '../../../components/PageFormatting/PageHeader'
 import { apiRoutes, apiUrl } from '../../../api/api'
 import { routePaths } from '../../../routes/routes.paths'
 import { OutcomeCard, OutcomeMark } from './OutcomeCard'
+import { SUBSCRIPTION_TOKEN_HEADER } from './subscription-api'
+import { useStripTokenFromUrl } from './useStripTokenFromUrl'
 import styles from './SubscriptionPages.module.scss'
 
 const UnsubscribeState = {
@@ -16,16 +18,16 @@ const UnsubscribeState = {
 type UnsubscribeState = (typeof UnsubscribeState)[keyof typeof UnsubscribeState]
 
 export function UnsubscribePage() {
-  const [params] = useSearchParams()
-  const token = params.get('token')
+  const token = useStripTokenFromUrl()
   const [state, setState] = useState<UnsubscribeState>(UnsubscribeState.loading)
 
   // One-click unsubscribe: the email link lands here and the request fires on mount.
   useEffect(() => {
     if (!token) return
     const controller = new AbortController()
-    fetch(apiUrl(`${apiRoutes.subscriptions.unsubscribe}?token=${encodeURIComponent(token)}`), {
+    fetch(apiUrl(apiRoutes.subscriptions.unsubscribe), {
       method: 'POST',
+      headers: { [SUBSCRIPTION_TOKEN_HEADER]: token },
       signal: controller.signal,
     })
       .then((res) => {

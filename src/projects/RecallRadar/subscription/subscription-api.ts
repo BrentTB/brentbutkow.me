@@ -1,6 +1,11 @@
 import type { RecallCategory, RecallCountry, SeverityLabel } from '../recall.types'
 import type { FilterFieldsValue } from './SubscriptionFields'
 
+// Confirmation and management tokens go in this header, not the query string, so they stay out of
+// access logs / browser history / Referer. The token still arrives via the email-link URL once; the
+// page reads it, forwards it here, and strips it from the address bar.
+export const SUBSCRIPTION_TOKEN_HEADER = 'X-Subscription-Token'
+
 // The subscription API uses camelCase (like the rest of the backend) and null for "unset". This
 // shape is the wire payload shared by the subscribe (POST) and manage (PATCH) endpoints.
 export type FilterPayload = {
