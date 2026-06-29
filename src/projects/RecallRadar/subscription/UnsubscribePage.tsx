@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { PageLayout } from '../../../components/PageFormatting/PageLayout'
-import { PageHeader } from '../../../components/PageFormatting/PageHeader'
 import { apiRoutes, apiUrl } from '../../../api/api'
 import { routePaths } from '../../../routes/routes.paths'
 import { OutcomeCard, OutcomeMark } from './OutcomeCard'
@@ -61,19 +60,21 @@ export function UnsubscribePage() {
 
   return (
     <PageLayout>
-      <PageHeader title="Unsubscribe" />
-      <OutcomeCard
-        loading={state === UnsubscribeState.loading}
-        loadingText="Unsubscribing…"
-        mark={state === UnsubscribeState.invalid ? '⚠' : '✓'}
-        markVariant={state === UnsubscribeState.invalid ? OutcomeMark.warn : OutcomeMark.ok}
-        heading={outcome.heading}
-        body={outcome.body}
-      >
-        <Link className={styles.cta} to={routePaths.recallRadar}>
-          Go to Recall Radar
-        </Link>
-      </OutcomeCard>
+      <div className={styles.message}>
+        <h1 className={styles.title}>Unsubscribe</h1>
+        <OutcomeCard
+          loading={state === UnsubscribeState.loading}
+          loadingText="Unsubscribing…"
+          mark={state === UnsubscribeState.invalid ? '⚠' : '✓'}
+          markVariant={state === UnsubscribeState.invalid ? OutcomeMark.warn : OutcomeMark.ok}
+          heading={outcome.heading}
+          body={outcome.body}
+        >
+          <Link className={styles.cta} to={routePaths.recallRadar}>
+            Go to Recall Radar
+          </Link>
+        </OutcomeCard>
+      </div>
     </PageLayout>
   )
 }

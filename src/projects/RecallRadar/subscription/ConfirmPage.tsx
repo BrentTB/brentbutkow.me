@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { PageLayout } from '../../../components/PageFormatting/PageLayout'
-import { PageHeader } from '../../../components/PageFormatting/PageHeader'
 import { apiRoutes, apiUrl } from '../../../api/api'
 import { routePaths } from '../../../routes/routes.paths'
 import { OutcomeCard, OutcomeMark } from './OutcomeCard'
@@ -82,27 +81,29 @@ export function ConfirmPage() {
 
   return (
     <PageLayout>
-      <PageHeader title="Confirm subscription" />
-      <OutcomeCard
-        loading={state === ConfirmState.loading}
-        loadingText="Confirming your subscription…"
-        mark={outcome.mark}
-        markVariant={state === ConfirmState.confirmed ? OutcomeMark.ok : OutcomeMark.warn}
-        heading={outcome.heading}
-        body={outcome.body}
-      >
-        {state === ConfirmState.confirmed && manageToken && (
-          <Link
-            className={styles.cta}
-            to={`${routePaths.recallRadarManage}?token=${encodeURIComponent(manageToken)}`}
-          >
-            Manage your alerts
+      <div className={styles.message}>
+        <h1 className={styles.title}>Confirm subscription</h1>
+        <OutcomeCard
+          loading={state === ConfirmState.loading}
+          loadingText="Confirming your subscription…"
+          mark={outcome.mark}
+          markVariant={state === ConfirmState.confirmed ? OutcomeMark.ok : OutcomeMark.warn}
+          heading={outcome.heading}
+          body={outcome.body}
+        >
+          <Link className={styles.cta} to={routePaths.recallRadar}>
+            Go to Recall Radar
           </Link>
-        )}
-        <Link className={styles.ctaSecondary} to={routePaths.recallRadar}>
-          Go to Recall Radar
-        </Link>
-      </OutcomeCard>
+          {state === ConfirmState.confirmed && manageToken && (
+            <Link
+              className={styles.ctaSecondary}
+              to={`${routePaths.recallRadarManage}?token=${encodeURIComponent(manageToken)}`}
+            >
+              Manage your alerts
+            </Link>
+          )}
+        </OutcomeCard>
+      </div>
     </PageLayout>
   )
 }

@@ -6,7 +6,8 @@ export type OutcomeMark = (typeof OutcomeMark)[keyof typeof OutcomeMark]
 
 type OutcomeCardProps = {
   loading: boolean
-  loadingText: string
+  // Only shown while loading; optional for callers that always render a resolved card.
+  loadingText?: string
   mark: string
   markVariant: OutcomeMark
   heading: string

@@ -9,6 +9,7 @@ import {
   SubscriptionFields,
   type FilterFieldsValue,
 } from './SubscriptionFields'
+import { OutcomeCard, OutcomeMark } from './OutcomeCard'
 import {
   FILTER_FIELD_MAP,
   SUBSCRIPTION_TOKEN_HEADER,
@@ -160,21 +161,36 @@ export function ManagePage() {
     <PageLayout>
       <div className={styles.message}>
         <h1 className={styles.title}>Manage alerts</h1>
-        {email && <p className={styles.subEmail}>{email}</p>}
+        {loadState === LoadState.ready && email && <p className={styles.subEmail}>{email}</p>}
 
         {loadState === LoadState.loading && <p>Loading your preferences…</p>}
 
         {loadState === LoadState.unsubscribed && (
-          <p>{message ?? 'You are already unsubscribed.'}</p>
+          <OutcomeCard
+            loading={false}
+            mark="✓"
+            markVariant={OutcomeMark.ok}
+            heading="You’re unsubscribed"
+            body="You won’t get any more recall alerts. Subscribe again any time from Recall Radar."
+          >
+            <Link className={styles.cta} to={routePaths.recallRadar}>
+              Go to Recall Radar
+            </Link>
+          </OutcomeCard>
         )}
 
         {loadState === LoadState.notfound && (
-          <>
-            <p>This link is invalid or could not be found.</p>
-            <Link className={styles.link} to={routePaths.recallRadar}>
-              Back to Recall Radar
+          <OutcomeCard
+            loading={false}
+            mark="⚠"
+            markVariant={OutcomeMark.warn}
+            heading="Link not found"
+            body="This link is invalid or could not be found."
+          >
+            <Link className={styles.cta} to={routePaths.recallRadar}>
+              Go to Recall Radar
             </Link>
-          </>
+          </OutcomeCard>
         )}
 
         {loadState === LoadState.ready && (

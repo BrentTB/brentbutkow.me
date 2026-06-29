@@ -32,18 +32,6 @@
   gap: 16px;
 }
 
-.link {
-  display: inline-block;
-  margin-top: 12px;
-  color: var(--accent);
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
-
-  &:hover {
-    color: var(--accent-strong);
-  }
-}
-
 .disclaimer {
   margin: 0;
   font-size: 0.78rem;

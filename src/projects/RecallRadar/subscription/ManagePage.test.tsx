@@ -65,13 +65,13 @@ describe('ManagePage', () => {
     renderManage()
     await screen.findByText('peanut')
     fireEvent.click(screen.getByRole('button', { name: /unsubscribe/i }))
-    expect(await screen.findByText(/you have been unsubscribed/i)).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: /unsubscribed/i })).toBeTruthy()
   })
 
-  it('shows the unsubscribed message on HTTP 410', async () => {
+  it('shows the unsubscribed outcome on HTTP 410', async () => {
     vi.stubGlobal('fetch', mockFetch({ getStatus: 410 }))
     renderManage()
-    expect(await screen.findByText(/already unsubscribed/i)).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: /unsubscribed/i })).toBeTruthy()
   })
 
   it('shows a not-found message on HTTP 404', async () => {
