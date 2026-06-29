@@ -14,7 +14,7 @@ export type SubscriptionFormState = {
   email: string
   countries: RecallCountry[]
   entities: string[]
-  company: string
+  companies: string[]
   categories: RecallCategory[]
   minSeverity: SeverityLabel | ''
 }
@@ -38,7 +38,7 @@ export function useSubscriptionForm(
     email: '',
     countries: initialCountries,
     entities: initialFilters?.entity ? [initialFilters.entity] : [],
-    company: initialFilters?.company ?? '',
+    companies: initialFilters?.company ? [initialFilters.company] : [],
     categories: initialFilters?.category ? [initialFilters.category as RecallCategory] : [],
     minSeverity: (initialFilters?.severity ?? '') as SeverityLabel | '',
   })
@@ -71,7 +71,7 @@ export function useSubscriptionForm(
 
     const allFiltersEmpty =
       fields.entities.length === 0 &&
-      fields.company.trim() === '' &&
+      fields.companies.length === 0 &&
       fields.categories.length === 0 &&
       fields.minSeverity === ''
 
@@ -98,7 +98,7 @@ export function useSubscriptionForm(
           email: fields.email.trim(),
           countries: fields.countries,
           entities: fields.entities,
-          company: fields.company.trim() || null,
+          companies: fields.companies,
           categories: fields.categories,
           min_severity: fields.minSeverity || null,
         }),
@@ -132,7 +132,7 @@ export function useSubscriptionForm(
                   email: 'email',
                   countries: 'countries',
                   entities: 'entities',
-                  company: 'company',
+                  companies: 'companies',
                   categories: 'categories',
                   min_severity: 'minSeverity',
                 }

@@ -17,7 +17,7 @@ const validFields = () => ({
   email: 'test@example.com',
   countries: [RecallCountry.us],
   entities: ['peanut'],
-  company: '',
+  companies: [] as string[],
   categories: [] as RecallCategory[],
   minSeverity: '' as SeverityLabel | '',
 })
@@ -58,8 +58,10 @@ describe('useSubscriptionForm — pre-population from dashboard filters', () => 
           expect(fields.entities).toContain(filters.entity)
         }
 
-        // company: equals filters.company
-        expect(fields.company).toBe(filters.company ?? '')
+        // companies: contains filters.company when non-empty
+        if (filters.company && filters.company.trim().length > 0) {
+          expect(fields.companies).toContain(filters.company)
+        }
 
         // categories: contains filters.category when non-empty
         if (filters.category && filters.category.length > 0) {

@@ -29,7 +29,7 @@ export const SUBSCRIPTION_DISCLAIMER =
 export type FilterFieldsValue = {
   countries: RecallCountry[]
   entities: string[]
-  company: string
+  companies: string[]
   categories: RecallCategory[]
   minSeverity: SeverityLabel | ''
 }
@@ -112,6 +112,19 @@ export function SubscriptionFields({
       value.entities.filter((e) => e !== entity)
     )
 
+  const addCompany = (raw: string) => {
+    const company = raw.trim()
+    if (!company) return
+    if (value.companies.some((c) => c.toLowerCase() === company.toLowerCase())) return
+    setField('companies', [...value.companies, company])
+  }
+
+  const removeCompany = (company: string) =>
+    setField(
+      'companies',
+      value.companies.filter((c) => c !== company)
+    )
+
   return (
     <>
       <fieldset className={styles.group}>
@@ -166,12 +179,26 @@ export function SubscriptionFields({
       </div>
 
       <div className={styles.field}>
-        <span className={styles.label}>Company</span>
-        <CompanyFilter
-          filters={companyScope}
-          value={value.company}
-          onChange={(next) => setField('company', next)}
-        />
+        <span className={styles.label}>Companies</span>
+        {value.companies.length > 0 && (
+          <div className={styles.chipRow}>
+            {value.companies.map((company) => (
+              <span key={company} className={styles.tag}>
+                {company}
+                <button
+                  type="button"
+                  className={styles.tagRemove}
+                  onClick={() => removeCompany(company)}
+                  aria-label={`Remove ${company}`}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+        {/* The Combobox value stays empty: each pick is added to the chip list above. */}
+        <CompanyFilter filters={companyScope} value="" onChange={addCompany} />
       </div>
 
       <fieldset className={styles.group}>

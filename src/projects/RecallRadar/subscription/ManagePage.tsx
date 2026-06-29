@@ -15,7 +15,7 @@ import styles from './SubscriptionPages.module.scss'
 const EMPTY: FilterFieldsValue = {
   countries: [],
   entities: [],
-  company: '',
+  companies: [],
   categories: [],
   minSeverity: '',
 }
@@ -29,7 +29,7 @@ function toFields(body: Record<string, unknown>): FilterFieldsValue {
   return {
     countries: asArray(body.countries) as RecallCountry[],
     entities: asArray(body.entities),
-    company: typeof body.company === 'string' ? body.company : '',
+    companies: asArray(body.companies),
     categories: asArray(body.categories) as RecallCategory[],
     minSeverity: typeof body.min_severity === 'string' ? (body.min_severity as SeverityLabel) : '',
   }
@@ -39,7 +39,7 @@ function toPayload(value: FilterFieldsValue) {
   return {
     countries: value.countries,
     entities: value.entities,
-    company: value.company.trim() || null,
+    companies: value.companies,
     categories: value.categories,
     min_severity: value.minSeverity || null,
   }
@@ -199,7 +199,7 @@ async function parseValidationError(
   const fieldMap: Record<string, keyof FilterFieldsValue> = {
     countries: 'countries',
     entities: 'entities',
-    company: 'company',
+    companies: 'companies',
     categories: 'categories',
     min_severity: 'minSeverity',
   }

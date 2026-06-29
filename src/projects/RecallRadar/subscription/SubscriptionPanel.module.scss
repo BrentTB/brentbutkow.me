@@ -164,6 +164,13 @@
   }
 }
 
+// Chips shown above the company search box (which is a separate dropdown, not an inline input).
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .tag {
   display: inline-flex;
   align-items: center;

@@ -11,7 +11,7 @@ const READY_BODY = {
   status: 'active',
   countries: ['us'],
   entities: ['peanut'],
-  company: null,
+  companies: ['acme'],
   categories: ['allergen'],
   min_severity: 'high',
 }
