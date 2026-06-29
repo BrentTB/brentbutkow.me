@@ -28,7 +28,7 @@ describe('ConfirmPage', () => {
       vi.fn(async () => res(200))
     )
     renderAt(`${routePaths.recallRadarConfirm}?token=abc`)
-    expect(await screen.findByText(/your subscription is confirmed/i)).toBeTruthy()
+    expect(await screen.findByText(/you’re subscribed/i)).toBeTruthy()
   })
 
   it('shows an expired message on HTTP 410', async () => {
@@ -46,7 +46,7 @@ describe('ConfirmPage', () => {
       vi.fn(async () => res(404))
     )
     renderAt(`${routePaths.recallRadarConfirm}?token=abc`)
-    expect(await screen.findByText(/invalid or has already been used/i)).toBeTruthy()
+    expect(await screen.findByText(/already used/i)).toBeTruthy()
   })
 
   it('redirects to the dashboard when no token is present', async () => {

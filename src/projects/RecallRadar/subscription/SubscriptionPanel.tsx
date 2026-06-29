@@ -16,16 +16,14 @@ type SubscriptionPanelProps = {
   // criterion is set, the form opens pre-populated from them; otherwise it falls back to geo.
   initialFilters?: RecallFilterValues
   country: RecallCountry
-  // Suggestions for the entity and company inputs, drawn from the dashboard's live facet data.
+  // Suggestions for the entity input, drawn from the dashboard's live facet data.
   entityOptions?: string[]
-  companyOptions?: string[]
 }
 
 export function SubscriptionPanel({
   initialFilters,
   country,
   entityOptions = [],
-  companyOptions = [],
 }: SubscriptionPanelProps) {
   const hasActiveFilters = Boolean(
     initialFilters &&
@@ -79,9 +77,20 @@ export function SubscriptionPanel({
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
       >
-        <span className={styles.toggleTitle}>Get recall alerts by email</span>
-        <span className={styles.toggleHint}>
-          {open ? 'Close' : 'A daily digest when new recalls match your filters'}
+        <span className={styles.toggleIcon} aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor">
+            <path d="M4 6h16v12H4z" strokeWidth="1.6" strokeLinejoin="round" />
+            <path d="m4 7 8 6 8-6" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
+        <span className={styles.toggleText}>
+          <span className={styles.toggleTitle}>Get recall alerts by email</span>
+          <span className={styles.toggleHint}>
+            A daily digest when new recalls match your filters
+          </span>
+        </span>
+        <span className={`${styles.chevron} ${open ? styles.chevronOpen : ''}`} aria-hidden="true">
+          ▾
         </span>
       </button>
 
@@ -124,7 +133,6 @@ export function SubscriptionPanel({
                 value={fields}
                 setField={setFilterField}
                 entityOptions={entityOptions}
-                companyOptions={companyOptions}
                 errors={fieldErrors}
                 onCountriesUserChange={() => {
                   countriesTouched.current = true

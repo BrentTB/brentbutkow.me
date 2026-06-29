@@ -98,3 +98,72 @@
   background: rgba(var(--accent-rgb), 0.12);
   color: var(--accent-strong);
 }
+
+// Confirm page — a centered outcome card with a status mark and a clear way back.
+.outcome {
+  max-width: 480px;
+  margin: 24px auto 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+}
+
+.loading {
+  margin: 40px auto 64px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  font-size: 1.8rem;
+}
+
+.markOk {
+  background: rgba(var(--accent-rgb), 0.15);
+  color: var(--accent-strong);
+}
+
+.markWarn {
+  background: rgba(var(--danger-rgb), 0.14);
+  color: var(--danger);
+}
+
+.outcomeHeading {
+  margin: 0;
+  font-size: 1.4rem;
+  color: var(--text);
+}
+
+.outcomeBody {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.cta {
+  margin-top: 8px;
+  background: var(--accent);
+  color: var(--on-accent);
+  border-radius: var(--radius);
+  padding: 11px 24px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+
+  &:hover {
+    background: var(--accent-strong);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}

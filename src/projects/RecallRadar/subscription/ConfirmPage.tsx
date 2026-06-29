@@ -32,32 +32,42 @@ export function ConfirmPage() {
   // No token to verify — send the visitor back to the dashboard rather than show a dead end.
   if (!token) return <Navigate to={routePaths.recallRadar} replace />
 
+  const outcome = {
+    confirmed: {
+      mark: '✓',
+      heading: 'You’re subscribed',
+      body: 'You’ll get an email whenever new recalls match the filters you chose.',
+    },
+    expired: {
+      mark: '⏱',
+      heading: 'This link has expired',
+      body: 'Confirmation links are valid for 72 hours. Head back and subscribe again.',
+    },
+    invalid: {
+      mark: '⚠',
+      heading: 'This link isn’t valid',
+      body: 'It may be invalid or already used. Head back and subscribe again.',
+    },
+  }[state === 'loading' ? 'confirmed' : state]
+
   return (
     <PageLayout>
       <PageHeader title="Confirm subscription" showBackButton />
-      <div className={styles.message}>
-        {state === 'loading' && <p>Confirming your subscription…</p>}
-        {state === 'confirmed' && (
-          <p>
-            Your subscription is confirmed. You’ll receive alerts when matching recalls are found.
-          </p>
-        )}
-        {state === 'expired' && (
+      <div className={styles.outcome}>
+        {state === 'loading' ? (
+          <p className={styles.loading}>Confirming your subscription…</p>
+        ) : (
           <>
-            <p>
-              This confirmation link has expired (links are valid for 72 hours). Please subscribe
-              again.
-            </p>
-            <Link className={styles.link} to={routePaths.recallRadar}>
-              Back to Recall Radar
-            </Link>
-          </>
-        )}
-        {state === 'invalid' && (
-          <>
-            <p>This link is invalid or has already been used.</p>
-            <Link className={styles.link} to={routePaths.recallRadar}>
-              Back to Recall Radar
+            <span
+              className={`${styles.mark} ${state === 'confirmed' ? styles.markOk : styles.markWarn}`}
+              aria-hidden="true"
+            >
+              {outcome.mark}
+            </span>
+            <h2 className={styles.outcomeHeading}>{outcome.heading}</h2>
+            <p className={styles.outcomeBody}>{outcome.body}</p>
+            <Link className={styles.cta} to={routePaths.recallRadar}>
+              Go to Recall Radar
             </Link>
           </>
         )}

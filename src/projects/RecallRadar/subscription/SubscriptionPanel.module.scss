@@ -1,16 +1,19 @@
+// Deliberately set apart from the neutral dashboard cards: a warm accent border + tint and an icon
+// so the alert sign-up reads as a distinct call to action, not just another panel.
 .panel {
-  border: 1px solid var(--border);
+  border: 1px solid rgba(var(--accent-rgb), 0.45);
   border-radius: var(--radius-lg);
-  background: var(--surface);
-  overflow: hidden;
+  background: rgba(var(--accent-rgb), 0.06);
+  box-shadow: var(--shadow-sm);
+  // No overflow:hidden — it would clip the severity dropdown when it opens below the form.
 }
 
 .toggle {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
+  align-items: center;
+  gap: 14px;
   width: 100%;
-  padding: 16px 20px;
+  padding: 18px 22px;
   background: transparent;
   border: none;
   text-align: left;
@@ -23,9 +26,28 @@
   }
 }
 
+.toggleIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(var(--accent-rgb), 0.16);
+  color: var(--accent-strong);
+}
+
+.toggleText {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
 .toggleTitle {
-  font-size: 1.05rem;
+  font-size: 1.1rem;
   font-weight: 600;
+  color: var(--accent-strong);
 }
 
 .toggleHint {
@@ -34,9 +56,21 @@
   color: var(--muted);
 }
 
+.chevron {
+  margin-left: auto;
+  flex: none;
+  color: var(--accent);
+  font-size: 0.9rem;
+  transition: transform 0.18s ease;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
 .body {
-  padding: 4px 20px 20px;
-  border-top: 1px solid var(--border);
+  padding: 4px 22px 22px;
+  border-top: 1px solid rgba(var(--accent-rgb), 0.25);
 }
 
 .form {

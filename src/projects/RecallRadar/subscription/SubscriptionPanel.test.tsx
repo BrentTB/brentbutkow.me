@@ -47,7 +47,7 @@ describe('SubscriptionPanel', () => {
     expect(screen.getByPlaceholderText('you@example.com')).toBeTruthy() // email
     expect(screen.getByText('United States')).toBeTruthy() // countries
     expect(screen.getByLabelText('Add an allergen, pathogen, or hazard')).toBeTruthy() // entities
-    expect(screen.getByPlaceholderText('Match a company name')).toBeTruthy() // company
+    expect(screen.getByRole('combobox', { name: 'Company' })).toBeTruthy() // company
     expect(screen.getByText('Undeclared allergen')).toBeTruthy() // categories
     expect(screen.getByText('Minimum severity')).toBeTruthy() // severity
   })

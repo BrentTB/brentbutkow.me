@@ -312,9 +312,9 @@ export function RecallRadar() {
   const hasThemes = visibleTopics.length > 0
   const hasOutbreaks = visibleOutbreaks.length > 0
 
-  // Type-ahead suggestions for the subscription form, drawn from the live (filter-scoped) facets.
+  // Entity-input suggestions for the subscription form, drawn from the live (filter-scoped) facets.
+  // Company suggestions come from SubscriptionPanel's own server-backed type-ahead.
   const entityOptions = (facets.data?.entity ?? []).map((entry) => entry.label)
-  const companyOptions = (facets.data?.company ?? []).map((entry) => entry.label)
 
   // Side-nav jump targets — only the sections that actually render for this country/data, in the
   // order they appear in the content column. Memoized so SectionNav's observer keys off a stable
@@ -540,7 +540,6 @@ export function RecallRadar() {
               initialFilters={filters}
               country={country}
               entityOptions={entityOptions}
-              companyOptions={companyOptions}
             />
           </section>
 

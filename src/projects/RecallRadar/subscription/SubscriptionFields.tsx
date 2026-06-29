@@ -1,8 +1,10 @@
-import { useId, useState, type KeyboardEvent } from 'react'
+import { useId, useState, type ChangeEvent, type KeyboardEvent } from 'react'
 import { Select } from '../../../components/inputs/Select'
 import type { SelectOption } from '../../../components/inputs/option.types'
 import { categoryLabels, countryLabels, severityLabels, severityOrder } from '../data'
 import { RecallCategory, RecallCountry, type SeverityLabel } from '../recall.types'
+import type { TrendFilters } from '../api'
+import { CompanyFilter } from '../components/CompanyFilter'
 import styles from './SubscriptionPanel.module.scss'
 
 const ALL_COUNTRIES = Object.values(RecallCountry)
@@ -36,7 +38,6 @@ type SubscriptionFieldsProps = {
   value: FilterFieldsValue
   setField: <K extends keyof FilterFieldsValue>(key: K, fieldValue: FilterFieldsValue[K]) => void
   entityOptions?: string[]
-  companyOptions?: string[]
   errors?: Partial<Record<keyof FilterFieldsValue, string>>
   // Lets a parent (the subscribe panel) stop auto-selecting the geo country once the user picks.
   onCountriesUserChange?: () => void
@@ -46,14 +47,17 @@ export function SubscriptionFields({
   value,
   setField,
   entityOptions = [],
-  companyOptions = [],
   errors = {},
   onCountriesUserChange,
 }: SubscriptionFieldsProps) {
   const [entityDraft, setEntityDraft] = useState('')
   const baseId = useId()
   const entityListId = `${baseId}-entities`
-  const companyListId = `${baseId}-companies`
+
+  // Scope the company type-ahead to the selected country when exactly one is chosen; otherwise search
+  // across all. The Combobox re-fetches whenever this path changes, so suggestions track typing.
+  const companyScope: TrendFilters =
+    value.countries.length === 1 ? { country: value.countries[0] } : {}
 
   const toggleCountry = (country: RecallCountry) => {
     onCountriesUserChange?.()
@@ -80,6 +84,17 @@ export function SubscriptionFields({
     if (!entity) return
     if (value.entities.some((e) => e.toLowerCase() === entity.toLowerCase())) return
     setField('entities', [...value.entities, entity])
+  }
+
+  const onEntityChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const next = event.target.value
+    // Picking a suggestion (or typing a full known entity) commits it as a chip immediately, so the
+    // field clears ready for the next one.
+    if (next && entityOptions.some((o) => o.toLowerCase() === next.toLowerCase())) {
+      addEntity(next)
+      return
+    }
+    setEntityDraft(next)
   }
 
   const onEntityKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -135,7 +150,7 @@ export function SubscriptionFields({
           <input
             className={styles.tagInput}
             value={entityDraft}
-            onChange={(e) => setEntityDraft(e.target.value)}
+            onChange={onEntityChange}
             onKeyDown={onEntityKeyDown}
             onBlur={() => addEntity(entityDraft)}
             placeholder={value.entities.length ? 'Add another…' : 'e.g. peanut, listeria'}
@@ -150,21 +165,14 @@ export function SubscriptionFields({
         </div>
       </div>
 
-      <label className={styles.field}>
+      <div className={styles.field}>
         <span className={styles.label}>Company</span>
-        <input
-          className={styles.input}
+        <CompanyFilter
+          filters={companyScope}
           value={value.company}
-          onChange={(e) => setField('company', e.target.value)}
-          placeholder="Match a company name"
-          list={companyListId}
+          onChange={(next) => setField('company', next)}
         />
-        <datalist id={companyListId}>
-          {companyOptions.map((option) => (
-            <option key={option} value={option} />
-          ))}
-        </datalist>
-      </label>
+      </div>
 
       <fieldset className={styles.group}>
         <legend className={styles.label}>Categories</legend>
