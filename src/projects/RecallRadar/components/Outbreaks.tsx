@@ -58,7 +58,9 @@ export function Outbreaks({ events, activeEvent, onSelect, sort, onSortChange }:
               `${event.companyCount} ${event.companyCount === 1 ? 'company' : 'companies'}`
             )
           }
-          if (event.stateCount > 0) metaParts.push(`${event.stateCount} states`)
+          if (event.stateCount > 0) {
+            metaParts.push(`${event.stateCount} ${event.stateCount === 1 ? 'state' : 'states'}`)
+          }
           return (
             <li key={event.slug}>
               <button

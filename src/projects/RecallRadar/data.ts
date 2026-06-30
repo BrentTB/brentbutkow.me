@@ -50,7 +50,7 @@ export const methodologyPoints: string[] = [
   'Data comes from the US (FDA openFDA + USDA FSIS), Canada (Canadian Food Inspection Agency), the UK (Food Standards Agency), and South Africa (National Consumer Commission, plus a few curated Woolworths/Shoprite/NRCS recalls the NCC feed misses), re-ingested daily via a GitHub Actions cron.',
   "Each recall's cause is predicted by a TF-IDF + logistic-regression classifier trained on its reason text; the % shown is the model's confidence.",
   'The model is weakly supervised by a keyword baseline (no human-labelled gold set), so it generalises that taxonomy rather than beating an independent ground truth.',
-  'Allergens, pathogens, and physical hazards are pulled from each reason with a curated gazetteer (the FDA/UK regulated allergen lists and named pathogens) — deterministic and fully explainable.',
+  'Allergens, pathogens, and physical hazards are pulled from each reason with a curated gazetteer (the FDA, CFIA, and UK regulated allergen lists and named pathogens) — deterministic and fully explainable.',
   'Severity is a transparent 0–100 composite (no model): the regulator\'s classification anchors it, lifted with diminishing returns by the named hazard (a lethal pathogen, a high-risk allergen), whether the notice reports harm actually occurred, and how widely the product was distributed. It rates the assessed hazard, not the realised outcome — recall notices carry no reliable death or illness counts — so "highest severity" ranks by danger, not by body count, and breaks ties toward larger outbreaks.',
   'Trend callouts come from a robust z-score (median + MAD) over the monthly counts — a flag means a month is unusual versus its own recent history, never a forecast. We surface the most significant from the last ~2 years, newest first. A statsmodels STL decomposition validates the detector offline against seasonality.',
   'The Outlook looks the other way: a short-horizon projection of overall monthly volume from a self-built multiplicative seasonal model (a 12-month seasonal index plus a linear trend, fit in log space so a seasonal swing scales with the level; pure numpy computed on read) with a ±band from recent forecast error — shown as the dashed bars on the chart. A statsmodels Holt-Winters backtest validates it offline. It is a projection, not a promise, and a short or sparse history shows no forecast at all.',
@@ -213,7 +213,7 @@ export const recallRadarLinks = [
   },
   {
     label: 'CFIA recalls open data API',
-    href: 'https://recalls-rappels.canada.ca/sites/default/files/',
+    href: 'https://open.canada.ca/data/en/dataset/d38de914-c94c-429b-8ab1-8776c31643e3',
   },
   { label: 'UK FSA food alerts API', href: 'https://data.food.gov.uk/food-alerts/ui/reference' },
   { label: 'South Africa NCC recalls', href: 'https://thencc.org.za/product-recalls/' },

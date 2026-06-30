@@ -98,6 +98,19 @@ describe('Outbreaks', () => {
     expect(screen.getByText(/3 companies/)).toBeTruthy()
   })
 
+  it('singularizes a count of one for both company and state', () => {
+    render(
+      <Outbreaks
+        events={[event({ companyCount: 1, stateCount: 1 })]}
+        activeEvent=""
+        onSelect={vi.fn()}
+        sort={EventSort.recent}
+        onSortChange={vi.fn()}
+      />
+    )
+    expect(screen.getByText(/1 company · 1 state/)).toBeTruthy()
+  })
+
   it('orders by the sort prop and reports a sort change on toggle', () => {
     const recent = event({
       slug: 'a',

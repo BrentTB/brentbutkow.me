@@ -136,7 +136,7 @@ export function RecallFilters({
   if (filters.source)
     chips.push({ key: 'source', label: sourceLabels[filters.source], patch: { source: '' } })
   if (filters.state) chips.push({ key: 'state', label: filters.state, patch: { state: '' } })
-  if (filters.company)
+  if (filters.company && hasCompanies)
     chips.push({ key: 'company', label: filters.company, patch: { company: '' } })
   if (filters.entity) chips.push({ key: 'entity', label: filters.entity, patch: { entity: '' } })
   if (filters.since)
@@ -201,7 +201,9 @@ export function RecallFilters({
           type="search"
           className={styles.search}
           aria-label="Search recalls"
-          placeholder="Search product, reason, or company…"
+          placeholder={
+            hasCompanies ? 'Search product, reason, or company…' : 'Search product or reason…'
+          }
           value={filters.search}
           onChange={(event) => onChange({ search: event.target.value })}
         />

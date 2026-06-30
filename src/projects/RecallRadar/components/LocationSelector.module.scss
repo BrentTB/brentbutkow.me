@@ -42,7 +42,6 @@
 
 // Collapsed: compact dropdown (name + caret), docked at the right of the sticky bar.
 .dropdown {
-  position: relative;
   // The collapsed form mounts only on scroll, so fade it in rather than the tabs popping into it.
   animation: locationCollapseIn 0.5s ease-out;
 }
