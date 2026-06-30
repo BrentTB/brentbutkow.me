@@ -103,7 +103,7 @@ export function ContactForm() {
         <button
           className={styles.submit}
           type="submit"
-          disabled={sending || !message.trim() || emailInvalid}
+          disabled={sending || !message.trim() || showEmailError}
         >
           {sending ? 'Sending…' : 'Send message'}
         </button>
