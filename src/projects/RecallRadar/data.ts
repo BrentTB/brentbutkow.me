@@ -15,13 +15,13 @@ import {
 export const recallRadarCopy = {
   title: 'Recall Radar',
   intro:
-    'A live view of US, UK & South African food-safety recalls. Each day this pulls the latest reports from the US (FDA, USDA FSIS), the UK (FSA), and South Africa (NCC), sorts them by likely cause, and tracks the trend over time.',
+    'A live view of US, Canadian, UK & South African food-safety recalls. Each day this pulls the latest reports from the US (FDA, USDA FSIS), Canada (CFIA), the UK (FSA), and South Africa (NCC), sorts them by likely cause, and tracks the trend over time.',
   introFun:
-    "Because nothing says 'fun side project' like undeclared peanuts and the occasional rogue metal fragment. Live US, UK & South African food recalls, sorted and plotted.",
+    "Because nothing says 'fun side project' like undeclared peanuts and the occasional rogue metal fragment. Live US, Canadian, UK & South African food recalls, sorted and plotted.",
   methodology:
-    "Sources: US openFDA + USDA FSIS, UK Food Standards Agency alerts, and South Africa's National Consumer Commission notices. Categories are assigned by a TF-IDF + logistic-regression classifier trained on the recall text; the % on each recall is the model confidence.",
+    "Sources: US openFDA + USDA FSIS, the Canadian Food Inspection Agency, UK Food Standards Agency alerts, and South Africa's National Consumer Commission notices. Categories are assigned by a TF-IDF + logistic-regression classifier trained on the recall text; the % on each recall is the model confidence.",
   about:
-    'A full-stack side project. A Python/FastAPI service ingests food-recall data from the US (FDA openFDA, USDA FSIS), the UK (Food Standards Agency), and South Africa (National Consumer Commission) every day, classifies each recall by likely cause, and stores it in Postgres. This React + TypeScript dashboard reads a documented JSON API to explore it. It is built to production standards: typed end to end, tested, migrated with Alembic, rate-limited, and deployed behind a daily ingest job.',
+    'A full-stack side project. A Python/FastAPI service ingests food-recall data from the US (FDA openFDA, USDA FSIS), Canada (Canadian Food Inspection Agency), the UK (Food Standards Agency), and South Africa (National Consumer Commission) every day, classifies each recall by likely cause, and stores it in Postgres. This React + TypeScript dashboard reads a documented JSON API to explore it. It is built to production standards: typed end to end, tested, migrated with Alembic, rate-limited, and deployed behind a daily ingest job.',
   stateMapTitle: 'US recalls by state',
 }
 
@@ -38,7 +38,7 @@ export const techStack: { area: string; items: string[] }[] = [
     area: 'Data & infra',
     items: [
       'PostgreSQL (Neon)',
-      'openFDA + USDA FSIS + UK FSA + NCC (SA)',
+      'openFDA + USDA FSIS + CFIA + UK FSA + NCC (SA)',
       'GitHub Actions (daily ingest)',
       'Render',
       'Docker',
@@ -47,7 +47,7 @@ export const techStack: { area: string; items: string[] }[] = [
 ]
 
 export const methodologyPoints: string[] = [
-  'Data comes from the US (FDA openFDA + USDA FSIS), the UK (Food Standards Agency), and South Africa (National Consumer Commission, plus a few curated Woolworths/Shoprite/NRCS recalls the NCC feed misses), re-ingested daily via a GitHub Actions cron.',
+  'Data comes from the US (FDA openFDA + USDA FSIS), Canada (Canadian Food Inspection Agency), the UK (Food Standards Agency), and South Africa (National Consumer Commission, plus a few curated Woolworths/Shoprite/NRCS recalls the NCC feed misses), re-ingested daily via a GitHub Actions cron.',
   "Each recall's cause is predicted by a TF-IDF + logistic-regression classifier trained on its reason text; the % shown is the model's confidence.",
   'The model is weakly supervised by a keyword baseline (no human-labelled gold set), so it generalises that taxonomy rather than beating an independent ground truth.',
   'Allergens, pathogens, and physical hazards are pulled from each reason with a curated gazetteer (the FDA/UK regulated allergen lists and named pathogens) — deterministic and fully explainable.',
@@ -60,7 +60,7 @@ export const methodologyPoints: string[] = [
 // Plain-language version of the above — no ML jargon — shown first under "How it works", with the
 // technical points tucked behind a toggle.
 export const methodologySimple: string[] = [
-  'Every day we pull the latest food recalls from the US (FDA, USDA), the UK (FSA), and South Africa (NCC).',
+  'Every day we pull the latest food recalls from the US (FDA, USDA), Canada (CFIA), the UK (FSA), and South Africa (NCC).',
   'Each recall is sorted automatically by its likely cause: an undeclared allergen, a pathogen, a foreign object, and so on.',
   "We rate how serious each one looks — from low to severe, based on its regulatory class, the hazard named, whether harm was reported, and how far it spread. That's an estimate of risk, not a count of who was harmed. We also group recalls that look related or part of the same outbreak.",
   'We chart the monthly trend, point out unusually busy months, and project the months ahead.',
@@ -80,6 +80,7 @@ export const sourceLabels: Record<RecallSource, string> = {
   [RecallSource.fda]: 'FDA',
   [RecallSource.usda]: 'USDA FSIS',
   [RecallSource.uk]: 'UK FSA',
+  [RecallSource.cfia]: 'CFIA',
   [RecallSource.ncc]: 'NCC',
   [RecallSource.woolworths]: 'Woolworths',
   [RecallSource.shoprite]: 'Shoprite/Checkers',
@@ -88,6 +89,7 @@ export const sourceLabels: Record<RecallSource, string> = {
 
 export const countryLabels: Record<RecallCountry, string> = {
   [RecallCountry.us]: 'United States',
+  [RecallCountry.ca]: 'Canada',
   [RecallCountry.uk]: 'United Kingdom',
   [RecallCountry.za]: 'South Africa',
 }
@@ -152,6 +154,7 @@ const SOURCE_COLORS: Record<RecallSource, string> = {
   [RecallSource.fda]: '#e9b872',
   [RecallSource.usda]: '#8fb0c9',
   [RecallSource.uk]: '#9fbf9f',
+  [RecallSource.cfia]: '#6a9aa8',
   [RecallSource.ncc]: '#c2a0b8',
   [RecallSource.woolworths]: '#d98c6a',
   [RecallSource.shoprite]: '#6aa888',
@@ -179,6 +182,8 @@ export const classesByCountry: Record<RecallCountry, RecallClass[]> = {
     RecallClass.classIII,
     RecallClass.publicHealthAlert,
   ],
+  // CFIA's Class 1/2/3 map onto the FDA classes, so Canada reuses them.
+  [RecallCountry.ca]: [RecallClass.classI, RecallClass.classII, RecallClass.classIII],
   [RecallCountry.uk]: [
     RecallClass.productRecall,
     RecallClass.allergyAlert,
@@ -190,6 +195,7 @@ export const classesByCountry: Record<RecallCountry, RecallClass[]> = {
 
 export const sourcesByCountry: Record<RecallCountry, RecallSource[]> = {
   [RecallCountry.us]: [RecallSource.fda, RecallSource.usda],
+  [RecallCountry.ca]: [RecallSource.cfia],
   [RecallCountry.uk]: [RecallSource.uk],
   [RecallCountry.za]: [
     RecallSource.ncc,
@@ -204,6 +210,10 @@ export const recallRadarLinks = [
   {
     label: 'USDA FSIS recall API',
     href: 'https://www.fsis.usda.gov/science-data/developer-resources/recall-api',
+  },
+  {
+    label: 'CFIA recalls open data API',
+    href: 'https://recalls-rappels.canada.ca/sites/default/files/',
   },
   { label: 'UK FSA food alerts API', href: 'https://data.food.gov.uk/food-alerts/ui/reference' },
   { label: 'South Africa NCC recalls', href: 'https://thencc.org.za/product-recalls/' },
