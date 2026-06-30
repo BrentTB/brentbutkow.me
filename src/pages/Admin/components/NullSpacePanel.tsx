@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { apiRoutes } from '../../../api/api'
-import { Select } from '../../../components/inputs/Select'
-import type { SelectOption } from '../../../components/inputs/option.types'
+import { SegmentedToggle } from '../../../components/inputs/SegmentedToggle'
 import { NullSpaceFilter, Paginated, ScoreAdminOut, isScorePage } from '../admin.types'
 import { formatDateTime, formatDuration } from '../admin-format'
 import { useAdminContext } from '../useAdminContext'
@@ -12,7 +11,7 @@ import styles from './Panel.module.scss'
 
 const LIMIT = 50
 
-const FILTER_OPTIONS: SelectOption[] = [
+const FILTER_OPTIONS: { value: NullSpaceFilter; label: string }[] = [
   { value: NullSpaceFilter.all, label: 'All runs' },
   { value: NullSpaceFilter.flagged, label: 'Flagged only' },
   { value: NullSpaceFilter.legit, label: 'Legit only' },
@@ -90,11 +89,11 @@ export function NullSpacePanel({ filter, onFilterChange }: NullSpacePanelProps) 
       <div className={styles.toolbar}>
         <div className={styles.select}>
           <span>Show</span>
-          <Select
+          <SegmentedToggle
             value={filter}
             options={FILTER_OPTIONS}
             ariaLabel="Filter scores"
-            onChange={(value) => onFilterChange(value as NullSpaceFilter)}
+            onChange={onFilterChange}
           />
         </div>
       </div>

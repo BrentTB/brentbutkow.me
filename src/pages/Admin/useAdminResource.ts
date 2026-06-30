@@ -1,10 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { AdminRequest } from './useAdminAuth'
 
-export type AdminResourceState<T> = {
+type FetchState<T> = {
   data: T | null
   loading: boolean
   error: string | null
+}
+
+export type AdminResourceState<T> = FetchState<T> & {
+  // Splice a mutation's result into the loaded data without a full refetch.
+  setData: (updater: (prev: T | null) => T | null) => void
 }
 
 // Authed GET-and-track hook: loading/error state plus in-flight cancellation on path/unmount.
@@ -15,7 +20,7 @@ export function useAdminResource<T>(
   path: string,
   validate?: (raw: unknown) => raw is T
 ): AdminResourceState<T> {
-  const [state, setState] = useState<AdminResourceState<T>>({
+  const [state, setState] = useState<FetchState<T>>({
     data: null,
     loading: true,
     error: null,
@@ -39,5 +44,9 @@ export function useAdminResource<T>(
     return () => controller.abort()
   }, [request, path, validate])
 
-  return state
+  const setData = useCallback((updater: (prev: T | null) => T | null) => {
+    setState((prev) => ({ ...prev, data: updater(prev.data) }))
+  }, [])
+
+  return { ...state, setData }
 }
