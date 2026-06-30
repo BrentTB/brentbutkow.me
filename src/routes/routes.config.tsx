@@ -189,7 +189,7 @@ export const routes: AppRoute[] = [
     dontShowInNavbar: true,
     title: 'Food Recall Tracker — US, Canada, UK & SA | Recall Radar — Brent Butkow',
     description:
-      'Track the latest food recalls across the US, Canada, UK and South Africa. Updated daily from FDA, USDA, CFIA and FSA data, with severity ratings and free email alerts.',
+      'Track the latest food recalls across the US, Canada, UK and South Africa. Updated daily from FDA, USDA, NCC, CFIA and FSA, with free email alerts and severity ratings.',
   },
   {
     // Reached from the confirmation link in the opt-in email; activates a pending subscription.
