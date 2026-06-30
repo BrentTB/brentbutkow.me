@@ -22,6 +22,7 @@ import { TrendCallouts } from './components/TrendCallouts'
 import { HelpHint } from './components/HelpHint'
 import { Themes } from './components/Themes'
 import { Outbreaks } from './components/Outbreaks'
+import { SubscriptionForm } from './subscription/SubscriptionForm'
 import { SubscriptionPanel } from './subscription/SubscriptionPanel'
 import { Select } from '../../components/inputs/Select'
 import type { SelectOption } from '../../components/inputs/option.types'
@@ -546,11 +547,13 @@ export function RecallRadar() {
               Get a daily email when new recalls match your filters. Your current dashboard filters
               pre-fill the form.
             </p>
-            <SubscriptionPanel
-              initialFilters={filters}
-              country={country}
-              entityOptions={entityOptions}
-            />
+            <SubscriptionPanel>
+              <SubscriptionForm
+                initialFilters={filters}
+                country={country}
+                entityOptions={entityOptions}
+              />
+            </SubscriptionPanel>
           </section>
 
           <section id="about" className={styles.section}>
