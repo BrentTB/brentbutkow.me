@@ -29,6 +29,9 @@ type RecallFiltersProps = {
   filters: RecallFilterValues
   country: RecallCountry
   stateOptions: string[]
+  // Whether the country has any company data — gates the company type-ahead. Derived from the
+  // unfiltered base set in RecallRadar (see the comment there).
+  hasCompanies: boolean
   // Live per-facet counts under the current filters; undefined while loading or on error (the
   // controls then render without counts).
   facets?: RecallFacets
@@ -65,6 +68,7 @@ export function RecallFilters({
   filters,
   country,
   stateOptions,
+  hasCompanies,
   facets,
   activeFilters,
   topicLabel,
@@ -132,6 +136,8 @@ export function RecallFilters({
   if (filters.source)
     chips.push({ key: 'source', label: sourceLabels[filters.source], patch: { source: '' } })
   if (filters.state) chips.push({ key: 'state', label: filters.state, patch: { state: '' } })
+  // Chip survives even on a company-less country (e.g. a shared ?company= URL on Canada) so the
+  // filter stays removable, though `hasCompanies` keeps the type-ahead itself hidden.
   if (filters.company)
     chips.push({ key: 'company', label: filters.company, patch: { company: '' } })
   if (filters.entity) chips.push({ key: 'entity', label: filters.entity, patch: { entity: '' } })
@@ -197,7 +203,9 @@ export function RecallFilters({
           type="search"
           className={styles.search}
           aria-label="Search recalls"
-          placeholder="Search product, reason, or company…"
+          placeholder={
+            hasCompanies ? 'Search product, reason, or company…' : 'Search product or reason…'
+          }
           value={filters.search}
           onChange={(event) => onChange({ search: event.target.value })}
         />
@@ -284,14 +292,16 @@ export function RecallFilters({
             </div>
           )}
 
-          <div className={styles.field}>
-            <span className={styles.label}>Company</span>
-            <CompanyFilter
-              filters={activeFilters}
-              value={filters.company}
-              onChange={(value) => onChange({ company: value })}
-            />
-          </div>
+          {hasCompanies && (
+            <div className={styles.field}>
+              <span className={styles.label}>Company</span>
+              <CompanyFilter
+                filters={activeFilters}
+                value={filters.company}
+                onChange={(value) => onChange({ company: value })}
+              />
+            </div>
+          )}
 
           <div className={styles.field}>
             <span className={styles.label}>From</span>

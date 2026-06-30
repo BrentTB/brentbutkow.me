@@ -30,6 +30,7 @@ const renderFilters = (props: Partial<Parameters<typeof RecallFilters>[0]> = {})
       filters={empty}
       country="us"
       stateOptions={[]}
+      hasCompanies={true}
       activeFilters={{ country: 'us' }}
       onChange={noop}
       onClear={noop}
@@ -63,6 +64,18 @@ describe('RecallFilters', () => {
     expect(screen.queryByLabelText('Source')).toBeNull() // hidden until expanded
     fireEvent.click(screen.getByRole('button', { name: /More filters/i }))
     expect(screen.getByLabelText('Source')).toBeTruthy()
+  })
+
+  it('shows the company type-ahead when the country has companies', () => {
+    renderFilters({ hasCompanies: true })
+    fireEvent.click(screen.getByRole('button', { name: /More filters/i }))
+    expect(screen.getByText('Company')).toBeTruthy()
+  })
+
+  it('hides the company type-ahead when the country has no companies (Canada)', () => {
+    renderFilters({ hasCompanies: false })
+    fireEvent.click(screen.getByRole('button', { name: /More filters/i }))
+    expect(screen.queryByText('Company')).toBeNull()
   })
 
   it('annotates options with facet counts and sorts zero-result ones last, disabled', () => {

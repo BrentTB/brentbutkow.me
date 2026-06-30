@@ -1,5 +1,5 @@
 import { EventSort, type EventOut } from '../recall.types'
-import { formatDate } from '../chart-format'
+import { formatDate, pluralize } from '../chart-format'
 import { SegmentedToggle } from '../../../components/inputs/SegmentedToggle'
 import styles from './Outbreaks.module.scss'
 
@@ -51,7 +51,11 @@ export function Outbreaks({ events, activeEvent, onSelect, sort, onSortChange }:
             event.firstDate && event.lastDate
               ? `${formatDate(event.firstDate)} – ${formatDate(event.lastDate)}`
               : null
-          const companies = `${event.companyCount} ${event.companyCount === 1 ? 'company' : 'companies'}`
+          // Canada carries no company or geography data, so omit a zero count rather than show "0".
+          const metaParts: string[] = []
+          if (event.companyCount > 0)
+            metaParts.push(pluralize(event.companyCount, 'company', 'companies'))
+          if (event.stateCount > 0) metaParts.push(pluralize(event.stateCount, 'state', 'states'))
           return (
             <li key={event.slug}>
               <button
@@ -71,10 +75,9 @@ export function Outbreaks({ events, activeEvent, onSelect, sort, onSortChange }:
                   </span>
                   <span className={styles.count}>{event.recallCount} recalls</span>
                 </span>
-                <span className={styles.meta}>
-                  {companies}
-                  {event.stateCount > 0 ? ` · ${event.stateCount} states` : ''}
-                </span>
+                {metaParts.length > 0 && (
+                  <span className={styles.meta}>{metaParts.join(' · ')}</span>
+                )}
                 {span && <span className={styles.span}>{span}</span>}
               </button>
             </li>

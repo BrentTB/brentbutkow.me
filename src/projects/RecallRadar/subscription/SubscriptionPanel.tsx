@@ -1,22 +1,13 @@
-import { useState } from 'react'
-import { type RecallCountry, type RecallFilterValues } from '../recall.types'
-import { SubscriptionForm } from './SubscriptionForm'
+import { useState, type ReactNode } from 'react'
 import styles from './SubscriptionPanel.module.scss'
 
 type SubscriptionPanelProps = {
-  // Live dashboard filters and the selected country. They are read when the panel opens (the form
-  // mounts then), so opening always snapshots the current dashboard state; closing discards it.
-  initialFilters?: RecallFilterValues
-  country: RecallCountry
-  // Suggestions for the entity input, drawn from the dashboard's live facet data.
-  entityOptions?: string[]
+  // The collapsible body — typically the subscribe form. Mounted only while open (see below), so the
+  // form snapshots the live dashboard state each time it is opened and resets when reopened.
+  children: ReactNode
 }
 
-export function SubscriptionPanel({
-  initialFilters,
-  country,
-  entityOptions,
-}: SubscriptionPanelProps) {
+export function SubscriptionPanel({ children }: SubscriptionPanelProps) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -45,16 +36,9 @@ export function SubscriptionPanel({
       </button>
 
       {/* Mounting on open (and unmounting on close) is what makes the form snapshot the current
-          dashboard filters each time it is opened, and reset to defaults when reopened. */}
-      {open && (
-        <div className={styles.body}>
-          <SubscriptionForm
-            initialFilters={initialFilters}
-            country={country}
-            entityOptions={entityOptions}
-          />
-        </div>
-      )}
+          dashboard filters each time it is opened, and reset to defaults when reopened. React
+          elements are lazy, so passing the form as children still only mounts it here. */}
+      {open && <div className={styles.body}>{children}</div>}
     </section>
   )
 }

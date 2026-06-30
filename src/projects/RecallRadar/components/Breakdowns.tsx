@@ -66,10 +66,13 @@ type BreakdownsProps = {
   // value never hides its siblings). Falls back to the global stats when facets aren't loaded.
   facets: RecallFacets
   filters: RecallFilterValues
+  // Whether the country has company data at all (unfiltered). Drives the Top companies card so it
+  // hides for company-less sources (Canada), not merely when a filter leaves no companies.
+  hasCompanies: boolean
   onSelect: (patch: Partial<RecallFilterValues>) => void
 }
 
-export function Breakdowns({ facets, filters, onSelect }: BreakdownsProps) {
+export function Breakdowns({ facets, filters, hasCompanies, onSelect }: BreakdownsProps) {
   const entityRows = (type: EntityType): Row[] =>
     facets.entity
       .filter((entry) => entry.type === type)
@@ -112,12 +115,15 @@ export function Breakdowns({ facets, filters, onSelect }: BreakdownsProps) {
           rows={facets.state.map((c) => ({ label: c.label, value: c.label, count: c.count }))}
         />
       )}
-      <BreakdownList
-        title="Top companies"
-        activeValue={filters.company}
-        onSelect={(value) => onSelect({ company: value })}
-        rows={facets.company.map((c) => ({ label: c.label, value: c.label, count: c.count }))}
-      />
+      {/* Canada's feed carries no firm name, so there's nothing to rank. */}
+      {hasCompanies && (
+        <BreakdownList
+          title="Top companies"
+          activeValue={filters.company}
+          onSelect={(value) => onSelect({ company: value })}
+          rows={facets.company.map((c) => ({ label: c.label, value: c.label, count: c.count }))}
+        />
+      )}
       {/* Entities extracted from the recall reason — click to filter. Hidden when none found. */}
       {allergenRows.length > 0 && (
         <BreakdownList

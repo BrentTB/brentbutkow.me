@@ -71,6 +71,59 @@ describe('Outbreaks', () => {
     expect(container.firstChild).toBeNull()
   })
 
+  it('omits a zero company/state count instead of showing "0" (Canada has neither)', () => {
+    render(
+      <Outbreaks
+        events={[event({ companyCount: 0, stateCount: 0 })]}
+        activeEvent=""
+        onSelect={vi.fn()}
+        sort={EventSort.recent}
+        onSortChange={vi.fn()}
+      />
+    )
+    expect(screen.queryByText(/0 companies/)).toBeNull()
+    expect(screen.queryByText(/companies|states/)).toBeNull()
+  })
+
+  it('still shows the company count when present', () => {
+    render(
+      <Outbreaks
+        events={[event({ companyCount: 3, stateCount: 0 })]}
+        activeEvent=""
+        onSelect={vi.fn()}
+        sort={EventSort.recent}
+        onSortChange={vi.fn()}
+      />
+    )
+    expect(screen.getByText(/3 companies/)).toBeTruthy()
+  })
+
+  it('pluralizes and joins company and state counts above one', () => {
+    render(
+      <Outbreaks
+        events={[event({ companyCount: 2, stateCount: 4 })]}
+        activeEvent=""
+        onSelect={vi.fn()}
+        sort={EventSort.recent}
+        onSortChange={vi.fn()}
+      />
+    )
+    expect(screen.getByText(/2 companies · 4 states/)).toBeTruthy()
+  })
+
+  it('singularizes a count of one for both company and state', () => {
+    render(
+      <Outbreaks
+        events={[event({ companyCount: 1, stateCount: 1 })]}
+        activeEvent=""
+        onSelect={vi.fn()}
+        sort={EventSort.recent}
+        onSortChange={vi.fn()}
+      />
+    )
+    expect(screen.getByText(/1 company · 1 state/)).toBeTruthy()
+  })
+
   it('orders by the sort prop and reports a sort change on toggle', () => {
     const recent = event({
       slug: 'a',

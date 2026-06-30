@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { SubscriptionForm } from './SubscriptionForm'
 import { SubscriptionPanel } from './SubscriptionPanel'
 
 // The company type-ahead and submit() both call fetch; the company fetch can return anything (it
@@ -33,14 +34,33 @@ afterEach(() => {
 describe('SubscriptionPanel', () => {
   beforeEach(() => vi.stubGlobal('fetch', routeFetch(201)))
 
+  it('mounts its children only once opened', () => {
+    render(
+      <SubscriptionPanel>
+        <p>panel body</p>
+      </SubscriptionPanel>
+    )
+    expect(screen.queryByText('panel body')).toBeNull()
+    open()
+    expect(screen.getByText('panel body')).toBeTruthy()
+  })
+
   it('shows the disclaimer before the form is submitted', () => {
-    render(<SubscriptionPanel country="us" />)
+    render(
+      <SubscriptionPanel>
+        <SubscriptionForm country="us" />
+      </SubscriptionPanel>
+    )
     open()
     expect(screen.getByText(/best-effort and sent via a free service/i)).toBeTruthy()
   })
 
   it('renders all six filter field types', () => {
-    render(<SubscriptionPanel country="us" />)
+    render(
+      <SubscriptionPanel>
+        <SubscriptionForm country="us" />
+      </SubscriptionPanel>
+    )
     open()
     expect(screen.getByPlaceholderText('you@example.com')).toBeTruthy() // email
     expect(screen.getByText('United States')).toBeTruthy() // countries
@@ -51,7 +71,11 @@ describe('SubscriptionPanel', () => {
   })
 
   it('renders the confirmation copy after a successful submit', async () => {
-    render(<SubscriptionPanel country="us" />)
+    render(
+      <SubscriptionPanel>
+        <SubscriptionForm country="us" />
+      </SubscriptionPanel>
+    )
     open()
     fillValid()
     fireEvent.click(screen.getByRole('button', { name: /^subscribe$/i }))

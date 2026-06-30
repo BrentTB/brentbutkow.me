@@ -1,11 +1,40 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { BreakdownList } from './Breakdowns'
+import { BreakdownList, Breakdowns } from './Breakdowns'
+import type { RecallFacets, RecallFilterValues } from '../recall.types'
+
+const NO_FILTERS: RecallFilterValues = {
+  category: '',
+  classification: '',
+  severity: '',
+  topic: '',
+  event: '',
+  state: '',
+  company: '',
+  source: '',
+  entity: '',
+  search: '',
+  since: '',
+  until: '',
+}
 
 const rows = [
   { label: 'All states', value: '', count: 10 },
   { label: 'California', value: 'CA', count: 7 },
 ]
+
+const facets = (over: Partial<RecallFacets>): RecallFacets => ({
+  category: [{ label: 'allergen', count: 5 }],
+  classification: [],
+  severity: [],
+  source: [],
+  state: [],
+  company: [{ label: 'Acme Foods', count: 4 }],
+  entity: [],
+  topicCounts: {},
+  eventCounts: {},
+  ...over,
+})
 
 describe('BreakdownList', () => {
   afterEach(cleanup)
@@ -37,5 +66,34 @@ describe('BreakdownList', () => {
     render(<BreakdownList title="Top states" rows={rows} activeValue="CA" onSelect={onSelect} />)
     fireEvent.click(screen.getByRole('button', { name: /California/ }))
     expect(onSelect).toHaveBeenCalledWith('')
+  })
+})
+
+describe('Breakdowns', () => {
+  afterEach(cleanup)
+
+  it('hides the Top companies card when the country has no company data (Canada)', () => {
+    render(
+      <Breakdowns
+        facets={facets({ company: [] })}
+        filters={NO_FILTERS}
+        hasCompanies={false}
+        onSelect={vi.fn()}
+      />
+    )
+    expect(screen.queryByText('Top companies')).toBeNull()
+  })
+
+  it('keeps the Top companies card when the country has companies, even if a filter leaves none', () => {
+    // hasCompanies is the unfiltered base signal; an empty filtered facet must not hide the card.
+    render(
+      <Breakdowns
+        facets={facets({ company: [] })}
+        filters={NO_FILTERS}
+        hasCompanies={true}
+        onSelect={vi.fn()}
+      />
+    )
+    expect(screen.getByText('Top companies')).toBeTruthy()
   })
 })

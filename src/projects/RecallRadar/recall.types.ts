@@ -24,6 +24,7 @@ export const RecallSource = {
   fda: 'fda',
   usda: 'usda',
   uk: 'uk',
+  cfia: 'cfia',
   ncc: 'ncc',
   woolworths: 'woolworths',
   shoprite: 'shoprite',
@@ -33,6 +34,7 @@ export type RecallSource = (typeof RecallSource)[keyof typeof RecallSource]
 
 export const RecallCountry = {
   us: 'us',
+  ca: 'ca',
   uk: 'uk',
   za: 'za',
 } as const

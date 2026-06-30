@@ -21,7 +21,9 @@ describe('useRouteMeta', () => {
 
   it('sets the meta description from the route config', () => {
     renderHook(() => useRouteMeta(), { wrapper: wrapperFor('/projects/recall-radar') })
-    expect(headContent('meta[name="description"]', 'content')).toContain('food-recall dashboard')
+    expect(headContent('meta[name="description"]', 'content')).toContain(
+      'Track the latest food recalls'
+    )
   })
 
   it('uses a self-referencing canonical and og:url per path', () => {
