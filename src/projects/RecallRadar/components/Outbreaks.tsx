@@ -1,6 +1,6 @@
 import { EventSort, type EventOut } from '../recall.types'
 import { formatDate } from '../chart-format'
-import { SegmentedToggle } from './SegmentedToggle'
+import { SegmentedToggle } from '../../../components/inputs/SegmentedToggle'
 import styles from './Outbreaks.module.scss'
 
 type OutbreaksProps = {

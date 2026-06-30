@@ -12,8 +12,7 @@ import { useAdminResource } from '../useAdminResource'
 import { Column, DataTable } from './DataTable'
 import { Pagination } from './Pagination'
 import styles from './Panel.module.scss'
-import { Select } from '../../../components/inputs/Select'
-import type { SelectOption } from '../../../components/inputs/option.types'
+import { SegmentedToggle } from '../../../components/inputs/SegmentedToggle'
 
 const LIMIT = 50
 const ALL = 'all'
@@ -25,7 +24,7 @@ const STATUS_LABELS: Record<SubscriptionAdminStatus, string> = {
   [SubscriptionAdminStatus.unsubscribed]: 'Unsubscribed',
 }
 
-const STATUS_OPTIONS: SelectOption[] = [
+const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: ALL, label: 'All' },
   ...Object.values(SubscriptionAdminStatus).map((value) => ({
     value,
@@ -81,7 +80,7 @@ export function SubscriptionsPanel() {
       <div className={styles.toolbar}>
         <div className={styles.select}>
           <span>Status</span>
-          <Select
+          <SegmentedToggle
             value={status}
             options={STATUS_OPTIONS}
             ariaLabel="Filter by status"
