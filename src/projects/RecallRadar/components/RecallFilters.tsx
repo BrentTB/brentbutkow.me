@@ -29,8 +29,8 @@ type RecallFiltersProps = {
   filters: RecallFilterValues
   country: RecallCountry
   stateOptions: string[]
-  // Whether the country has company data at all (unfiltered) — Canada's feed has none, so its
-  // company type-ahead is hidden. Based on the base set, not the current filters.
+  // Whether the country has any company data — gates the company type-ahead. Derived from the
+  // unfiltered base set in RecallRadar (see the comment there).
   hasCompanies: boolean
   // Live per-facet counts under the current filters; undefined while loading or on error (the
   // controls then render without counts).
@@ -136,7 +136,9 @@ export function RecallFilters({
   if (filters.source)
     chips.push({ key: 'source', label: sourceLabels[filters.source], patch: { source: '' } })
   if (filters.state) chips.push({ key: 'state', label: filters.state, patch: { state: '' } })
-  if (filters.company && hasCompanies)
+  // Chip survives even on a company-less country (e.g. a shared ?company= URL on Canada) so the
+  // filter stays removable, though `hasCompanies` keeps the type-ahead itself hidden.
+  if (filters.company)
     chips.push({ key: 'company', label: filters.company, patch: { company: '' } })
   if (filters.entity) chips.push({ key: 'entity', label: filters.entity, patch: { entity: '' } })
   if (filters.since)

@@ -98,6 +98,19 @@ describe('Outbreaks', () => {
     expect(screen.getByText(/3 companies/)).toBeTruthy()
   })
 
+  it('pluralizes and joins company and state counts above one', () => {
+    render(
+      <Outbreaks
+        events={[event({ companyCount: 2, stateCount: 4 })]}
+        activeEvent=""
+        onSelect={vi.fn()}
+        sort={EventSort.recent}
+        onSortChange={vi.fn()}
+      />
+    )
+    expect(screen.getByText(/2 companies · 4 states/)).toBeTruthy()
+  })
+
   it('singularizes a count of one for both company and state', () => {
     render(
       <Outbreaks

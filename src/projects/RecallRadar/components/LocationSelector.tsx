@@ -28,7 +28,11 @@ export function LocationSelector({ value, collapsed, onChange }: LocationSelecto
   // in-flow dropdown would be cut off. Portal the menu to the body and pin it under the trigger.
   const place = () => {
     const rect = triggerRef.current?.getBoundingClientRect()
-    if (rect) setCoords({ top: rect.bottom + 6, right: window.innerWidth - rect.right })
+    if (!rect) return
+    const top = rect.bottom + 6
+    const right = window.innerWidth - rect.right
+    // Bail when the anchor hasn't moved so a scroll storm doesn't re-render every frame.
+    setCoords((prev) => (prev && prev.top === top && prev.right === right ? prev : { top, right }))
   }
 
   useLayoutEffect(() => {

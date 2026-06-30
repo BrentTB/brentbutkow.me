@@ -15,6 +15,11 @@ export function formatNumber(value: number): string {
   return new Intl.NumberFormat(LOCALE).format(value)
 }
 
+// `${count} <unit>` with the plural form picked by count: pluralize(2, 'company', 'companies') → '2 companies'.
+export function pluralize(count: number, singular: string, plural: string): string {
+  return `${count} ${count === 1 ? singular : plural}`
+}
+
 // Largest count in a chart series, floored at 1 so an all-zero series divides safely.
 export function seriesMax(counts: number[]): number {
   return Math.max(...counts, 1)
@@ -65,12 +70,8 @@ const STALE_AFTER_HOURS = 48
 
 function relativeAge(hours: number): string {
   if (hours < 1) return 'just now'
-  if (hours < 24) {
-    const whole = Math.round(hours)
-    return `${whole} hour${whole === 1 ? '' : 's'} ago`
-  }
-  const days = Math.round(hours / 24)
-  return `${days} day${days === 1 ? '' : 's'} ago`
+  if (hours < 24) return `${pluralize(Math.round(hours), 'hour', 'hours')} ago`
+  return `${pluralize(Math.round(hours / 24), 'day', 'days')} ago`
 }
 
 // Freshness of the data from the last successful ingest. `now` is injected for testability.

@@ -7,6 +7,7 @@ import {
   ingestFreshness,
   median,
   monthsForYear,
+  pluralize,
   seriesMax,
 } from './chart-format'
 
@@ -33,6 +34,17 @@ describe('chart-format', () => {
     expect(formatDate('2026-03-01')).toBe('Mar 1, 2026')
     expect(formatDate(null)).toBe('—')
     expect(formatDate('not-a-date')).toBe('—')
+  })
+})
+
+describe('pluralize', () => {
+  it('uses the singular form for a count of one', () => {
+    expect(pluralize(1, 'company', 'companies')).toBe('1 company')
+  })
+
+  it('uses the plural form for zero and counts above one', () => {
+    expect(pluralize(0, 'state', 'states')).toBe('0 states')
+    expect(pluralize(4, 'state', 'states')).toBe('4 states')
   })
 })
 
