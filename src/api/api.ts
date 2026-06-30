@@ -30,6 +30,7 @@ export const apiRoutes = {
     overview: '/admin/overview',
     messages: '/admin/messages',
     subscriptions: '/admin/subscriptions',
+    nullspace: '/admin/nullspace',
   },
 } as const
 

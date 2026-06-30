@@ -9,6 +9,19 @@ export const SubscriptionAdminStatus = {
 export type SubscriptionAdminStatus =
   (typeof SubscriptionAdminStatus)[keyof typeof SubscriptionAdminStatus]
 
+// Null Space score-table filter. UI-only: maps to the `flagged` query param (all omits it). The
+// values double as the dropdown + `?score=` query-param values — no magic strings.
+export const NullSpaceFilter = {
+  all: 'all',
+  flagged: 'flagged',
+  legit: 'legit',
+} as const
+export type NullSpaceFilter = (typeof NullSpaceFilter)[keyof typeof NullSpaceFilter]
+
+export function isNullSpaceFilter(value: string): value is NullSpaceFilter {
+  return (Object.values(NullSpaceFilter) as string[]).includes(value)
+}
+
 export type AdminSession = {
   token: string
   expiresAt: string // ISO-8601
@@ -35,7 +48,7 @@ export type Overview = {
     upsertedCount: number
   } | null
   recalls: { total: number; us: number; uk: number; za: number }
-  nullspace: { scoreCount: number }
+  nullspace: { total: number; legit: number; flagged: number }
 }
 
 export type MessageOut = {
@@ -53,6 +66,26 @@ export type MessageOut = {
   country: string | null
   isBot: boolean
   botReason: string | null
+}
+
+export type ScoreAdminOut = {
+  id: string
+  createdAt: string
+  name: string
+  score: number
+  kills: number
+  wave: number
+  level: number
+  durationMs: number
+  shipKind: string
+  version: string
+  currency: number
+  spaceMetal: number
+  upgradesPurchased: number
+  ultimatesOwned: number
+  ipAddress: string | null
+  flagged: boolean
+  flagReason: string | null
 }
 
 export type SubscriptionAdminOut = {
@@ -101,14 +134,23 @@ export function isOverview(value: unknown): value is Overview {
       'unsubscribed',
     ]) &&
     hasNumbers(value.recalls, ['total', 'us', 'uk', 'za']) &&
-    hasNumbers(value.nullspace, ['scoreCount'])
+    hasNumbers(value.nullspace, ['total', 'legit', 'flagged'])
   )
 }
 
-export function isMessagePage(value: unknown): value is Paginated<MessageOut> {
+// All three admin lists share the { items, total } envelope; one guard covers them.
+function isPaginated(value: unknown): value is Paginated<unknown> {
   return isObject(value) && Array.isArray(value.items) && typeof value.total === 'number'
 }
 
+export function isMessagePage(value: unknown): value is Paginated<MessageOut> {
+  return isPaginated(value)
+}
+
 export function isSubscriptionPage(value: unknown): value is Paginated<SubscriptionAdminOut> {
-  return isObject(value) && Array.isArray(value.items) && typeof value.total === 'number'
+  return isPaginated(value)
+}
+
+export function isScorePage(value: unknown): value is Paginated<ScoreAdminOut> {
+  return isPaginated(value)
 }

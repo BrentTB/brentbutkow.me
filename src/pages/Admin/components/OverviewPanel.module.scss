@@ -11,6 +11,24 @@
   padding: 18px 20px;
 }
 
+// Cards that map to a tab are actionable — surface that on hover/focus.
+.clickable {
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+
+  &:hover {
+    border-color: var(--border-strong);
+    background: var(--surface-strong);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
 .groupTitle {
   margin: 0 0 14px;
   font-family: var(--font-mono);
@@ -46,6 +64,28 @@
   font-size: 1.05rem;
   font-variant-numeric: tabular-nums;
   color: var(--text);
+}
+
+// Flagged count doubles as a deep-link into the pre-filtered Null Space table.
+.inspect {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  color: var(--danger);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+
+  &:hover {
+    color: var(--text);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
 }
 
 .state {
