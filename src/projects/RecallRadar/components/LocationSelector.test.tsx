@@ -33,6 +33,16 @@ describe('LocationSelector', () => {
       expect(screen.getByRole('button', { name: 'United Kingdom' })).toBeTruthy()
     })
 
+    // The sticky control bar clips its overflow on phones, so the menu must portal out to the body
+    // rather than nest under the trigger — otherwise it's cut off behind the section rail.
+    it('portals the open menu to the document body, not inside the dropdown', () => {
+      const { container } = render(<LocationSelector value="us" collapsed onChange={() => {}} />)
+      fireEvent.click(screen.getByRole('button', { name: 'Location: United States' }))
+      const option = screen.getByRole('button', { name: 'United Kingdom' })
+      expect(container.contains(option)).toBe(false)
+      expect(document.body.contains(option)).toBe(true)
+    })
+
     it('reports the chosen location and closes the menu', () => {
       const onChange = vi.fn()
       render(<LocationSelector value="us" collapsed onChange={onChange} />)
