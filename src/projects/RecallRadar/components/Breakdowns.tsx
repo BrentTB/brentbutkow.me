@@ -112,12 +112,15 @@ export function Breakdowns({ facets, filters, onSelect }: BreakdownsProps) {
           rows={facets.state.map((c) => ({ label: c.label, value: c.label, count: c.count }))}
         />
       )}
-      <BreakdownList
-        title="Top companies"
-        activeValue={filters.company}
-        onSelect={(value) => onSelect({ company: value })}
-        rows={facets.company.map((c) => ({ label: c.label, value: c.label, count: c.count }))}
-      />
+      {/* Canada's feed carries no firm name, so there's nothing to rank. */}
+      {facets.company.length > 0 && (
+        <BreakdownList
+          title="Top companies"
+          activeValue={filters.company}
+          onSelect={(value) => onSelect({ company: value })}
+          rows={facets.company.map((c) => ({ label: c.label, value: c.label, count: c.count }))}
+        />
+      )}
       {/* Entities extracted from the recall reason — click to filter. Hidden when none found. */}
       {allergenRows.length > 0 && (
         <BreakdownList
