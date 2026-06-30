@@ -24,7 +24,11 @@ function Readout({ title, stats }: { title: string; stats: Stat[] }) {
   )
 }
 
-export function OverviewPanel() {
+type OverviewPanelProps = {
+  onInspectFlaggedScores: () => void
+}
+
+export function OverviewPanel({ onInspectFlaggedScores }: OverviewPanelProps) {
   const { request } = useAdminContext()
   const { data, loading, error } = useAdminResource<Overview>(
     request,
@@ -77,7 +81,21 @@ export function OverviewPanel() {
     },
     {
       title: 'Null Space',
-      stats: [{ label: 'Scores', value: data.nullspace.scoreCount }],
+      stats: [
+        { label: 'Total', value: data.nullspace.total },
+        { label: 'Legit', value: data.nullspace.legit },
+        {
+          label: 'Flagged',
+          value:
+            data.nullspace.flagged > 0 ? (
+              <button type="button" className={styles.inspect} onClick={onInspectFlaggedScores}>
+                {data.nullspace.flagged}
+              </button>
+            ) : (
+              data.nullspace.flagged
+            ),
+        },
+      ],
     },
   ]
 
