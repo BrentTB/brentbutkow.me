@@ -180,16 +180,16 @@ export const routes: AppRoute[] = [
     label: 'Projects',
     title: 'Projects — Brent Butkow',
     description:
-      'Software projects built by Brent Butkow, including Recall Radar — a live US, UK, and SA food-recall dashboard.',
+      'Software projects built by Brent Butkow, including Recall Radar, a live US, Canada, UK and SA food-recall dashboard.',
   },
   {
     // Reached via the Projects page, not a top-level nav tab.
     path: routePaths.recallRadar,
     element: <RecallRadar />,
     dontShowInNavbar: true,
-    title: 'Recall Radar — Brent Butkow',
+    title: 'Food Recall Tracker — US, Canada, UK & SA | Recall Radar — Brent Butkow',
     description:
-      'Recall Radar — a live US, UK, and SA food-recall dashboard. A FastAPI and ML pipeline ingests FDA, USDA FSIS, SA NCC, and UK FSA data daily.',
+      'Track the latest food recalls across the US, Canada, UK and South Africa. Updated daily from FDA, USDA, CFIA and FSA data, with severity ratings and free email alerts.',
   },
   {
     // Reached from the confirmation link in the opt-in email; activates a pending subscription.

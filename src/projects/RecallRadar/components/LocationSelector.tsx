@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { countryLabels } from '../data'
 import { RecallCountry } from '../recall.types'
 import styles from './LocationSelector.module.scss'
@@ -18,7 +19,33 @@ const LOCATIONS = Object.values(RecallCountry)
 // forms iterate the same list, so adding a place is a data-only change.
 export function LocationSelector({ value, collapsed, onChange }: LocationSelectorProps) {
   const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
+  // Anchor coords for the portaled menu; null until measured so it never flashes at the origin.
+  const [coords, setCoords] = useState<{ top: number; right: number } | null>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  // The sticky control bar clips its overflow on phones (the filters scroll inside it), so an
+  // in-flow dropdown would be cut off. Portal the menu to the body and pin it under the trigger.
+  const place = () => {
+    const rect = triggerRef.current?.getBoundingClientRect()
+    if (rect) setCoords({ top: rect.bottom + 6, right: window.innerWidth - rect.right })
+  }
+
+  useLayoutEffect(() => {
+    if (open) place()
+  }, [open])
+
+  // The bar re-pins as the page scrolls / navbar retracts, so track the trigger while open.
+  useEffect(() => {
+    if (!open) return
+    const reposition = () => place()
+    window.addEventListener('scroll', reposition, true)
+    window.addEventListener('resize', reposition)
+    return () => {
+      window.removeEventListener('scroll', reposition, true)
+      window.removeEventListener('resize', reposition)
+    }
+  }, [open])
 
   // Collapsing on scroll should never leave the menu hanging open.
   useEffect(() => {
@@ -29,7 +56,9 @@ export function LocationSelector({ value, collapsed, onChange }: LocationSelecto
   useEffect(() => {
     if (!open) return
     const onPointerDown = (event: PointerEvent) => {
-      if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false)
+      const target = event.target as Node
+      if (triggerRef.current?.contains(target) || menuRef.current?.contains(target)) return
+      setOpen(false)
     }
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setOpen(false)
@@ -63,8 +92,9 @@ export function LocationSelector({ value, collapsed, onChange }: LocationSelecto
   }
 
   return (
-    <div key="dropdown" className={styles.dropdown} ref={ref}>
+    <div key="dropdown" className={styles.dropdown}>
       <button
+        ref={triggerRef}
         type="button"
         className={styles.trigger}
         aria-haspopup="true"
@@ -77,24 +107,33 @@ export function LocationSelector({ value, collapsed, onChange }: LocationSelecto
           ▾
         </span>
       </button>
-      {open && (
-        <div className={styles.menu} role="group" aria-label="Location">
-          {LOCATIONS.map((country) => (
-            <button
-              key={country}
-              type="button"
-              aria-current={country === value ? 'true' : undefined}
-              className={`${styles.item} ${country === value ? styles.itemActive : ''}`}
-              onClick={() => {
-                onChange(country)
-                setOpen(false)
-              }}
-            >
-              {countryLabels[country]}
-            </button>
-          ))}
-        </div>
-      )}
+      {open &&
+        coords &&
+        createPortal(
+          <div
+            ref={menuRef}
+            className={styles.menu}
+            role="group"
+            aria-label="Location"
+            style={{ top: coords.top, right: coords.right }}
+          >
+            {LOCATIONS.map((country) => (
+              <button
+                key={country}
+                type="button"
+                aria-current={country === value ? 'true' : undefined}
+                className={`${styles.item} ${country === value ? styles.itemActive : ''}`}
+                onClick={() => {
+                  onChange(country)
+                  setOpen(false)
+                }}
+              >
+                {countryLabels[country]}
+              </button>
+            ))}
+          </div>,
+          document.body
+        )}
     </div>
   )
 }

@@ -93,10 +93,10 @@
   font-size: 0.62rem;
 }
 
+// Portaled to the body and pinned under the trigger (top/right set inline) so it escapes the
+// sticky control bar's overflow clip on phones. z-index clears the bar (9) and the section rail (8).
 .menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
+  position: fixed;
   z-index: 30;
   min-width: 180px;
   list-style: none;
