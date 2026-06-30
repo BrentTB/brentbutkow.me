@@ -69,6 +69,11 @@ const UnsubscribePage = lazy(() =>
     default: module.UnsubscribePage,
   }))
 )
+const AdminPage = lazy(() =>
+  import('../pages/Admin/AdminPage').then((module) => ({
+    default: module.AdminPage,
+  }))
+)
 
 // The dashboard moved from /recall-radar to /projects/recall-radar. Rewrite the old prefix while
 // keeping any sub-path, query, and hash so saved deep links (filters, single recalls) still resolve.
@@ -246,6 +251,15 @@ export const routes: AppRoute[] = [
     label: 'Contact Me',
     title: 'Contact — Brent Butkow',
     description: 'Get in touch with Brent Butkow — email, GitHub, LinkedIn, and more.',
+  },
+  {
+    // Private operator dashboard — token-gated, hidden from nav, not indexed, not in the sitemap.
+    path: routePaths.admin,
+    element: <AdminPage />,
+    dontShowInNavbar: true,
+    noindex: true,
+    title: 'Admin — Brent Butkow',
+    description: 'Private admin dashboard.',
   },
   {
     path: routePaths.notFound,

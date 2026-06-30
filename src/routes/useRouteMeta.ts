@@ -49,8 +49,11 @@ export function useRouteMeta() {
     const description = meta?.description ?? DEFAULT_DESCRIPTION
     const canonical = match ? `${SITE_URL}${pathname}` : `${SITE_URL}/`
 
+    const robots = meta?.noindex ? 'noindex, nofollow' : 'index, follow'
+
     document.title = title
     upsertHeadTag('meta', 'name', 'description', 'content', description)
+    upsertHeadTag('meta', 'name', 'robots', 'content', robots)
     upsertHeadTag('link', 'rel', 'canonical', 'href', canonical)
     upsertHeadTag('meta', 'property', 'og:title', 'content', title)
     upsertHeadTag('meta', 'property', 'og:description', 'content', description)

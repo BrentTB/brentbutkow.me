@@ -11,4 +11,6 @@ export type AppRoute = {
   description?: string
   /** Redirect-only route (legacy URL → new home). Not indexed, no title/description. */
   redirect?: boolean
+  /** Keep this route out of search indexes (emits `robots: noindex, nofollow`). */
+  noindex?: boolean
 }
