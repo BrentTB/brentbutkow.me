@@ -1,5 +1,6 @@
 import { ReactNode } from 'react'
 import { apiRoutes } from '../../../api/api'
+import { AdminTab } from '../admin-tabs'
 import { Overview, isOverview } from '../admin.types'
 import { formatDateTime } from '../admin-format'
 import { useAdminContext } from '../useAdminContext'
@@ -7,10 +8,28 @@ import { useAdminResource } from '../useAdminResource'
 import styles from './OverviewPanel.module.scss'
 
 type Stat = { label: string; value: ReactNode }
+type Group = { title: string; stats: Stat[]; tab?: AdminTab }
 
-function Readout({ title, stats }: { title: string; stats: Stat[] }) {
+function Readout({ title, stats, onOpen }: { title: string; stats: Stat[]; onOpen?: () => void }) {
+  const interactive = Boolean(onOpen)
   return (
-    <section className={styles.group}>
+    <section
+      className={`${styles.group} ${interactive ? styles.clickable : ''}`}
+      role={interactive ? 'button' : undefined}
+      aria-label={interactive ? `Open ${title}` : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      onClick={onOpen}
+      onKeyDown={
+        interactive
+          ? (event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault()
+                onOpen?.()
+              }
+            }
+          : undefined
+      }
+    >
       <h2 className={styles.groupTitle}>{title}</h2>
       <dl className={styles.stats}>
         {stats.map((stat) => (
@@ -25,10 +44,11 @@ function Readout({ title, stats }: { title: string; stats: Stat[] }) {
 }
 
 type OverviewPanelProps = {
+  onOpenTab: (tab: AdminTab) => void
   onInspectFlaggedScores: () => void
 }
 
-export function OverviewPanel({ onInspectFlaggedScores }: OverviewPanelProps) {
+export function OverviewPanel({ onOpenTab, onInspectFlaggedScores }: OverviewPanelProps) {
   const { request } = useAdminContext()
   const { data, loading, error } = useAdminResource<Overview>(
     request,
@@ -40,9 +60,10 @@ export function OverviewPanel({ onInspectFlaggedScores }: OverviewPanelProps) {
   if (error) return <p className={`${styles.state} ${styles.error}`}>{error}</p>
   if (!data) return null
 
-  const groups: { title: string; stats: Stat[] }[] = [
+  const groups: Group[] = [
     {
       title: 'Messages',
+      tab: AdminTab.messages,
       stats: [
         { label: 'Total', value: data.messages.total },
         { label: 'Real', value: data.messages.real },
@@ -51,6 +72,7 @@ export function OverviewPanel({ onInspectFlaggedScores }: OverviewPanelProps) {
     },
     {
       title: 'Subscriptions',
+      tab: AdminTab.subscriptions,
       stats: [
         { label: 'Total', value: data.subscriptions.total },
         { label: 'Active', value: data.subscriptions.active },
@@ -81,6 +103,7 @@ export function OverviewPanel({ onInspectFlaggedScores }: OverviewPanelProps) {
     },
     {
       title: 'Null Space',
+      tab: AdminTab.nullspace,
       stats: [
         { label: 'Total', value: data.nullspace.total },
         { label: 'Legit', value: data.nullspace.legit },
@@ -88,7 +111,15 @@ export function OverviewPanel({ onInspectFlaggedScores }: OverviewPanelProps) {
           label: 'Flagged',
           value:
             data.nullspace.flagged > 0 ? (
-              <button type="button" className={styles.inspect} onClick={onInspectFlaggedScores}>
+              <button
+                type="button"
+                className={styles.inspect}
+                onClick={(event) => {
+                  // Don't also fire the card's open-tab handler — go straight to the flagged view.
+                  event.stopPropagation()
+                  onInspectFlaggedScores()
+                }}
+              >
                 {data.nullspace.flagged}
               </button>
             ) : (
@@ -102,7 +133,12 @@ export function OverviewPanel({ onInspectFlaggedScores }: OverviewPanelProps) {
   return (
     <div className={styles.grid}>
       {groups.map((group) => (
-        <Readout key={group.title} title={group.title} stats={group.stats} />
+        <Readout
+          key={group.title}
+          title={group.title}
+          stats={group.stats}
+          onOpen={group.tab ? () => onOpenTab(group.tab as AdminTab) : undefined}
+        />
       ))}
     </div>
   )

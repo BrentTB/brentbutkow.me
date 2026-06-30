@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { apiRoutes } from '../../../api/api'
 import { Select } from '../../../components/inputs/Select'
 import type { SelectOption } from '../../../components/inputs/option.types'
-import { Paginated, ScoreAdminOut, isScorePage } from '../admin.types'
+import { NullSpaceFilter, Paginated, ScoreAdminOut, isScorePage } from '../admin.types'
 import { formatDateTime, formatDuration } from '../admin-format'
 import { useAdminContext } from '../useAdminContext'
 import { useAdminResource } from '../useAdminResource'
@@ -11,14 +11,6 @@ import { Pagination } from './Pagination'
 import styles from './Panel.module.scss'
 
 const LIMIT = 50
-
-// Filter values double as the UI dropdown values; the wire value (flagged=true|false) is derived below.
-export const NullSpaceFilter = {
-  all: 'all',
-  flagged: 'flagged',
-  legit: 'legit',
-} as const
-export type NullSpaceFilter = (typeof NullSpaceFilter)[keyof typeof NullSpaceFilter]
 
 const FILTER_OPTIONS: SelectOption[] = [
   { value: NullSpaceFilter.all, label: 'All runs' },

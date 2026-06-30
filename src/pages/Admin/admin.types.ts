@@ -9,6 +9,19 @@ export const SubscriptionAdminStatus = {
 export type SubscriptionAdminStatus =
   (typeof SubscriptionAdminStatus)[keyof typeof SubscriptionAdminStatus]
 
+// Null Space score-table filter. UI-only: maps to the `flagged` query param (all omits it). The
+// values double as the dropdown + `?score=` query-param values — no magic strings.
+export const NullSpaceFilter = {
+  all: 'all',
+  flagged: 'flagged',
+  legit: 'legit',
+} as const
+export type NullSpaceFilter = (typeof NullSpaceFilter)[keyof typeof NullSpaceFilter]
+
+export function isNullSpaceFilter(value: string): value is NullSpaceFilter {
+  return (Object.values(NullSpaceFilter) as string[]).includes(value)
+}
+
 export type AdminSession = {
   token: string
   expiresAt: string // ISO-8601
