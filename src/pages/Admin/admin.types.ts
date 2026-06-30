@@ -74,6 +74,11 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
 
+// Every listed key is present and numeric on `value`.
+function hasNumbers(value: unknown, keys: readonly string[]): boolean {
+  return isObject(value) && keys.every((key) => typeof value[key] === 'number')
+}
+
 // Light structural checks — enough to reject a malformed/foreign payload before render.
 // The backend is trusted; these guard against shape drift, not adversarial input.
 export function isAdminSession(value: unknown): value is AdminSession {
@@ -81,12 +86,22 @@ export function isAdminSession(value: unknown): value is AdminSession {
 }
 
 export function isOverview(value: unknown): value is Overview {
+  if (!isObject(value)) return false
+  // `ingest` is null until the first run; when present it carries fetched/upserted counts.
+  const ingestOk =
+    value.ingest === null || hasNumbers(value.ingest, ['fetchedCount', 'upsertedCount'])
   return (
-    isObject(value) &&
-    isObject(value.messages) &&
-    isObject(value.subscriptions) &&
-    isObject(value.recalls) &&
-    isObject(value.nullspace)
+    ingestOk &&
+    hasNumbers(value.messages, ['total', 'real', 'bot']) &&
+    hasNumbers(value.subscriptions, [
+      'total',
+      'active',
+      'pendingConfirmation',
+      'paused',
+      'unsubscribed',
+    ]) &&
+    hasNumbers(value.recalls, ['total', 'us', 'uk', 'za']) &&
+    hasNumbers(value.nullspace, ['scoreCount'])
   )
 }
 

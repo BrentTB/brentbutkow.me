@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { renderHook, waitFor } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { useAdminResource } from './useAdminResource'
 import { AdminApiError } from './admin-auth'
 import type { AdminRequest } from './useAdminAuth'
@@ -28,14 +28,22 @@ describe('useAdminResource', () => {
   })
 
   it('ignores AbortError without flipping to an error', async () => {
-    const request = vi.fn(async () => {
-      throw new DOMException('aborted', 'AbortError')
-    }) as unknown as AdminRequest
+    let reject!: (reason: unknown) => void
+    const pending = new Promise<never>((_, rej) => {
+      reject = rej
+    })
+    const request = vi.fn(() => pending) as unknown as AdminRequest
 
     const { result } = renderHook(() => useAdminResource(request, '/admin/overview'))
 
-    // Give the rejected promise a tick to settle; state must remain in its loading/no-error shape.
-    await Promise.resolve()
+    // Await the same rejection the hook handles, so its `.catch` has definitely run before we assert.
+    await act(async () => {
+      reject(new DOMException('aborted', 'AbortError'))
+      await pending.catch(() => {})
+    })
+
+    // Abort is silent: state stays in its loading/no-error shape, never flips to error.
     expect(result.current.error).toBeNull()
+    expect(result.current.loading).toBe(true)
   })
 })

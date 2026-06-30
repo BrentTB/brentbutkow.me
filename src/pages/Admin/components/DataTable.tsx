@@ -71,11 +71,25 @@ export function DataTable<T>({
               const key = getRowKey(row)
               const isExpandable = Boolean(renderExpanded)
               const isOpen = expanded === key
+              const toggle = () => setExpanded(isOpen ? null : key)
               return (
                 <Fragment key={key}>
                   <tr
                     className={isExpandable ? styles.expandable : undefined}
-                    onClick={isExpandable ? () => setExpanded(isOpen ? null : key) : undefined}
+                    role={isExpandable ? 'button' : undefined}
+                    tabIndex={isExpandable ? 0 : undefined}
+                    aria-expanded={isExpandable ? isOpen : undefined}
+                    onClick={isExpandable ? toggle : undefined}
+                    onKeyDown={
+                      isExpandable
+                        ? (event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault()
+                              toggle()
+                            }
+                          }
+                        : undefined
+                    }
                   >
                     {columns.map((col) => (
                       <td key={col.key} className={col.numeric ? styles.numCol : undefined}>

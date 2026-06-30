@@ -12,6 +12,8 @@ import { useAdminResource } from '../useAdminResource'
 import { Column, DataTable } from './DataTable'
 import { Pagination } from './Pagination'
 import styles from './Panel.module.scss'
+import { Select } from '../../../components/inputs/Select'
+import type { SelectOption } from '../../../components/inputs/option.types'
 
 const LIMIT = 50
 const ALL = 'all'
@@ -23,9 +25,17 @@ const STATUS_LABELS: Record<SubscriptionAdminStatus, string> = {
   [SubscriptionAdminStatus.unsubscribed]: 'Unsubscribed',
 }
 
+const STATUS_OPTIONS: SelectOption[] = [
+  { value: ALL, label: 'All' },
+  ...Object.values(SubscriptionAdminStatus).map((value) => ({
+    value,
+    label: STATUS_LABELS[value],
+  })),
+]
+
 const columns: Column<SubscriptionAdminOut>[] = [
   { key: 'email', header: 'Email', render: (s) => s.email },
-  { key: 'status', header: 'Status', render: (s) => STATUS_LABELS[s.status] ?? s.status },
+  { key: 'status', header: 'Status', render: (s) => STATUS_LABELS[s.status] },
   { key: 'countries', header: 'Countries', render: (s) => joinList(s.countries) },
   { key: 'categories', header: 'Categories', render: (s) => joinList(s.categories) },
   { key: 'minSeverity', header: 'Min severity', render: (s) => s.minSeverity || '—' },
@@ -69,23 +79,18 @@ export function SubscriptionsPanel() {
   return (
     <div>
       <div className={styles.toolbar}>
-        <label className={styles.select}>
+        <div className={styles.select}>
           <span>Status</span>
-          <select
+          <Select
             value={status}
-            onChange={(event) => {
-              setStatus(event.target.value)
+            options={STATUS_OPTIONS}
+            ariaLabel="Filter by status"
+            onChange={(value) => {
+              setStatus(value)
               setOffset(0)
             }}
-          >
-            <option value={ALL}>All</option>
-            {Object.values(SubscriptionAdminStatus).map((value) => (
-              <option key={value} value={value}>
-                {STATUS_LABELS[value]}
-              </option>
-            ))}
-          </select>
-        </label>
+          />
+        </div>
       </div>
       <DataTable
         columns={columns}
