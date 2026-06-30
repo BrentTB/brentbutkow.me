@@ -25,6 +25,12 @@ export const apiRoutes = {
     manage: '/subscriptions/manage',
     unsubscribe: '/subscriptions/unsubscribe',
   },
+  admin: {
+    login: '/admin/login',
+    overview: '/admin/overview',
+    messages: '/admin/messages',
+    subscriptions: '/admin/subscriptions',
+  },
 } as const
 
 export function apiUrl(path: string): string {

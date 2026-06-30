@@ -14,6 +14,7 @@ export const routePaths = {
   recallRadarUnsubscribe: '/projects/recall-radar/unsubscribe',
   funStuff: '/fun-stuff',
   contact: '/contact',
+  admin: '/admin',
   notFound: '*',
 }
 

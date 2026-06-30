@@ -42,6 +42,14 @@ describe('useRouteMeta', () => {
     )
   })
 
+  it('marks a noindex route as noindex, nofollow and a normal route as index, follow', () => {
+    renderHook(() => useRouteMeta(), { wrapper: wrapperFor('/admin') })
+    expect(headContent('meta[name="robots"]', 'content')).toBe('noindex, nofollow')
+
+    renderHook(() => useRouteMeta(), { wrapper: wrapperFor('/experience') })
+    expect(headContent('meta[name="robots"]', 'content')).toBe('index, follow')
+  })
+
   it('falls back to the 404 title and canonicalizes an unknown path to home', () => {
     renderHook(() => useRouteMeta(), { wrapper: wrapperFor('/no-such-page') })
     expect(document.title).toBe('[Local] Page not found — Brent Butkow')
