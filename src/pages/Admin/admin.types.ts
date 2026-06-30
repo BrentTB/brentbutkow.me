@@ -151,6 +151,16 @@ export function isSubscriptionPage(value: unknown): value is Paginated<Subscript
   return isPaginated(value)
 }
 
+// Single subscription — the shape a PATCH returns. Same light structural check as the lists.
+export function isSubscriptionAdmin(value: unknown): value is SubscriptionAdminOut {
+  return (
+    isObject(value) &&
+    typeof value.id === 'string' &&
+    typeof value.email === 'string' &&
+    typeof value.status === 'string'
+  )
+}
+
 export function isScorePage(value: unknown): value is Paginated<ScoreAdminOut> {
   return isPaginated(value)
 }

@@ -27,6 +27,26 @@ describe('useAdminResource', () => {
     expect(result.current.error).toContain('401')
   })
 
+  it('setData splices a mutation result into loaded data without a refetch', async () => {
+    type Page = { items: { id: string; status: string }[]; total: number }
+    const request = vi.fn(async () => ({
+      items: [{ id: 'a', status: 'active' }],
+      total: 1,
+    })) as unknown as AdminRequest
+
+    const { result } = renderHook(() => useAdminResource<Page>(request, '/admin/subscriptions'))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    act(() => {
+      result.current.setData((prev) =>
+        prev ? { ...prev, items: prev.items.map((s) => ({ ...s, status: 'paused' })) } : prev
+      )
+    })
+
+    expect(result.current.data).toEqual({ items: [{ id: 'a', status: 'paused' }], total: 1 })
+    expect(request).toHaveBeenCalledTimes(1)
+  })
+
   it('ignores AbortError without flipping to an error', async () => {
     let reject!: (reason: unknown) => void
     const pending = new Promise<never>((_, rej) => {

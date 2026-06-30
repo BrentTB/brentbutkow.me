@@ -1,12 +1,15 @@
 import { useState } from 'react'
 import { apiRoutes } from '../../../api/api'
+import { AdminApiError } from '../admin-auth'
 import {
   Paginated,
   SubscriptionAdminOut,
   SubscriptionAdminStatus,
+  isSubscriptionAdmin,
   isSubscriptionPage,
 } from '../admin.types'
 import { formatDateTime, joinList } from '../admin-format'
+import { StatusAction, statusActions } from '../subscription-actions'
 import { useAdminContext } from '../useAdminContext'
 import { useAdminResource } from '../useAdminResource'
 import { Column, DataTable } from './DataTable'
@@ -32,6 +35,11 @@ const STATUS_OPTIONS: { value: string; label: string }[] = [
   })),
 ]
 
+// Shown before reviving an opt-out — the operator should only do this on the subscriber's request.
+function confirmMessage(email: string): string {
+  return `${email} unsubscribed on purpose. Only reactivate them if they asked to come back. Continue?`
+}
+
 const columns: Column<SubscriptionAdminOut>[] = [
   { key: 'email', header: 'Email', render: (s) => s.email },
   { key: 'status', header: 'Status', render: (s) => STATUS_LABELS[s.status] },
@@ -41,7 +49,14 @@ const columns: Column<SubscriptionAdminOut>[] = [
   { key: 'createdAt', header: 'Created', render: (s) => formatDateTime(s.createdAt) },
 ]
 
-function SubscriptionDetail({ subscription }: { subscription: SubscriptionAdminOut }) {
+type SubscriptionDetailProps = {
+  subscription: SubscriptionAdminOut
+  onAction: (subscription: SubscriptionAdminOut, action: StatusAction) => void
+  pending: boolean
+  error: string | null
+}
+
+function SubscriptionDetail({ subscription, onAction, pending, error }: SubscriptionDetailProps) {
   const fields: { label: string; value: string }[] = [
     { label: 'Entities', value: joinList(subscription.entities) },
     { label: 'Companies', value: joinList(subscription.companies) },
@@ -49,15 +64,38 @@ function SubscriptionDetail({ subscription }: { subscription: SubscriptionAdminO
     { label: 'Updated', value: formatDateTime(subscription.updatedAt) },
     { label: 'Last digest', value: formatDateTime(subscription.lastDigestAt) },
   ]
+  const actions = statusActions(subscription.status)
   return (
-    <dl className={styles.detail}>
-      {fields.map((field) => (
-        <div key={field.label}>
-          <dt>{field.label}</dt>
-          <dd>{field.value}</dd>
+    <div className={styles.detailBlock}>
+      <dl className={styles.detail}>
+        {fields.map((field) => (
+          <div key={field.label}>
+            <dt>{field.label}</dt>
+            <dd>{field.value}</dd>
+          </div>
+        ))}
+      </dl>
+      {actions.length > 0 && (
+        <div className={styles.actions}>
+          {actions.map((action) => (
+            <button
+              key={action.to}
+              type="button"
+              className={styles.action}
+              disabled={pending}
+              onClick={() => onAction(subscription, action)}
+            >
+              {action.label}
+            </button>
+          ))}
         </div>
-      ))}
-    </dl>
+      )}
+      {error && (
+        <p className={styles.actionError} role="alert">
+          {error}
+        </p>
+      )}
+    </div>
   )
 }
 
@@ -65,15 +103,42 @@ export function SubscriptionsPanel() {
   const { request } = useAdminContext()
   const [status, setStatus] = useState<string>(ALL)
   const [offset, setOffset] = useState(0)
+  const [pendingId, setPendingId] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<{ id: string; message: string } | null>(null)
 
   const query = new URLSearchParams({ limit: String(LIMIT), offset: String(offset) })
   if (status !== ALL) query.set('status', status)
   const path = `${apiRoutes.admin.subscriptions}?${query.toString()}`
-  const { data, loading, error } = useAdminResource<Paginated<SubscriptionAdminOut>>(
+  const { data, loading, error, setData } = useAdminResource<Paginated<SubscriptionAdminOut>>(
     request,
     path,
     isSubscriptionPage
   )
+
+  async function changeStatus(subscription: SubscriptionAdminOut, action: StatusAction) {
+    if (action.confirm && !window.confirm(confirmMessage(subscription.email))) return
+    setPendingId(subscription.id)
+    setActionError(null)
+    try {
+      const updated = await request<SubscriptionAdminOut>(
+        `${apiRoutes.admin.subscriptions}/${subscription.id}`,
+        { method: 'PATCH', body: { status: action.to }, validate: isSubscriptionAdmin }
+      )
+      setData((prev) =>
+        prev ? { ...prev, items: prev.items.map((s) => (s.id === updated.id ? updated : s)) } : prev
+      )
+    } catch (err) {
+      const gone = err instanceof AdminApiError && err.status === 404
+      setActionError({
+        id: subscription.id,
+        message: gone
+          ? 'This subscription is gone — reload the list.'
+          : 'Could not update the status. Try again.',
+      })
+    } finally {
+      setPendingId(null)
+    }
+  }
 
   return (
     <div>
@@ -98,7 +163,14 @@ export function SubscriptionsPanel() {
         loading={loading}
         error={error}
         emptyMessage="No subscriptions."
-        renderExpanded={(s) => <SubscriptionDetail subscription={s} />}
+        renderExpanded={(s) => (
+          <SubscriptionDetail
+            subscription={s}
+            onAction={changeStatus}
+            pending={pendingId === s.id}
+            error={actionError?.id === s.id ? actionError.message : null}
+          />
+        )}
       />
       {data && data.total > 0 && (
         <Pagination offset={offset} limit={LIMIT} total={data.total} onOffsetChange={setOffset} />
