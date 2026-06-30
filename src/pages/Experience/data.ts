@@ -18,7 +18,7 @@ export const experience: Experience[] = [
     companyLink: 'https://entelect.co.za/',
     period: 'Jan 2025 - Mar 2026',
     description: [
-      'Joined Entelect as a Software Engineer through their Graduate Program, and have been working on Cloud infrastructure and web development since then',
+      'Joined Entelect as a Software Engineer through their Graduate Program, starting out on AWS cloud infrastructure and DevOps before shifting into full-stack web development later on',
     ],
     skills: ['AWS', 'Terraform', 'Jenkins', 'React', 'TypeScript', 'IaC'],
 

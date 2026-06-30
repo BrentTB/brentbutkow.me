@@ -14,8 +14,11 @@ import { useAdminContext } from '../useAdminContext'
 import { useAdminResource } from '../useAdminResource'
 import { Column, DataTable } from './DataTable'
 import { Pagination } from './Pagination'
+import { SubscriptionEditForm } from './SubscriptionEditForm'
 import styles from './Panel.module.scss'
 import { SegmentedToggle } from '../../../components/inputs/SegmentedToggle'
+import { useFacets } from '../../../projects/RecallRadar/useFacets'
+import type { FilterPayload } from '../../../projects/RecallRadar/subscription/subscription-api'
 
 const LIMIT = 50
 const ALL = 'all'
@@ -51,12 +54,38 @@ const columns: Column<SubscriptionAdminOut>[] = [
 
 type SubscriptionDetailProps = {
   subscription: SubscriptionAdminOut
+  entityOptions: string[]
   onAction: (subscription: SubscriptionAdminOut, action: StatusAction) => void
+  onSave: (subscription: SubscriptionAdminOut, payload: FilterPayload) => Promise<boolean>
   pending: boolean
   error: string | null
 }
 
-function SubscriptionDetail({ subscription, onAction, pending, error }: SubscriptionDetailProps) {
+function SubscriptionDetail({
+  subscription,
+  entityOptions,
+  onAction,
+  onSave,
+  pending,
+  error,
+}: SubscriptionDetailProps) {
+  const [editing, setEditing] = useState(false)
+
+  if (editing) {
+    return (
+      <SubscriptionEditForm
+        subscription={subscription}
+        entityOptions={entityOptions}
+        pending={pending}
+        error={error}
+        onCancel={() => setEditing(false)}
+        onSave={async (payload) => {
+          if (await onSave(subscription, payload)) setEditing(false)
+        }}
+      />
+    )
+  }
+
   const fields: { label: string; value: string }[] = [
     { label: 'Entities', value: joinList(subscription.entities) },
     { label: 'Companies', value: joinList(subscription.companies) },
@@ -75,21 +104,27 @@ function SubscriptionDetail({ subscription, onAction, pending, error }: Subscrip
           </div>
         ))}
       </dl>
-      {actions.length > 0 && (
-        <div className={styles.actions}>
-          {actions.map((action) => (
-            <button
-              key={action.to}
-              type="button"
-              className={styles.action}
-              disabled={pending}
-              onClick={() => onAction(subscription, action)}
-            >
-              {action.label}
-            </button>
-          ))}
-        </div>
-      )}
+      <div className={styles.actions}>
+        <button
+          type="button"
+          className={styles.action}
+          disabled={pending}
+          onClick={() => setEditing(true)}
+        >
+          Edit
+        </button>
+        {actions.map((action) => (
+          <button
+            key={action.to}
+            type="button"
+            className={styles.action}
+            disabled={pending}
+            onClick={() => onAction(subscription, action)}
+          >
+            {action.label}
+          </button>
+        ))}
+      </div>
       {error && (
         <p className={styles.actionError} role="alert">
           {error}
@@ -115,29 +150,44 @@ export function SubscriptionsPanel() {
     isSubscriptionPage
   )
 
-  async function changeStatus(subscription: SubscriptionAdminOut, action: StatusAction) {
-    if (action.confirm && !window.confirm(confirmMessage(subscription.email))) return
-    setPendingId(subscription.id)
+  // Entity autocomplete for the edit form, from the public recall facets (same source the subscribe
+  // form uses). Company suggestions come from the form's own server-backed type-ahead.
+  const facets = useFacets({})
+  const entityOptions = (facets.data?.entity ?? []).map((entry) => entry.label)
+
+  // One PATCH path for both status changes and field edits — splices the updated row in on success.
+  async function patchSubscription(id: string, body: object): Promise<boolean> {
+    setPendingId(id)
     setActionError(null)
     try {
       const updated = await request<SubscriptionAdminOut>(
-        `${apiRoutes.admin.subscriptions}/${subscription.id}`,
-        { method: 'PATCH', body: { status: action.to }, validate: isSubscriptionAdmin }
+        `${apiRoutes.admin.subscriptions}/${id}`,
+        { method: 'PATCH', body, validate: isSubscriptionAdmin }
       )
       setData((prev) =>
         prev ? { ...prev, items: prev.items.map((s) => (s.id === updated.id ? updated : s)) } : prev
       )
+      return true
     } catch (err) {
-      const gone = err instanceof AdminApiError && err.status === 404
+      const status = err instanceof AdminApiError ? err.status : 0
       setActionError({
-        id: subscription.id,
-        message: gone
-          ? 'This subscription is gone — reload the list.'
-          : 'Could not update the status. Try again.',
+        id,
+        message:
+          status === 404
+            ? 'This subscription is gone. Reload the list.'
+            : status === 422
+              ? 'Those values were rejected. Check them and try again.'
+              : 'Could not save. Try again.',
       })
+      return false
     } finally {
       setPendingId(null)
     }
+  }
+
+  function changeStatus(subscription: SubscriptionAdminOut, action: StatusAction) {
+    if (action.confirm && !window.confirm(confirmMessage(subscription.email))) return
+    void patchSubscription(subscription.id, { status: action.to })
   }
 
   return (
@@ -166,7 +216,9 @@ export function SubscriptionsPanel() {
         renderExpanded={(s) => (
           <SubscriptionDetail
             subscription={s}
+            entityOptions={entityOptions}
             onAction={changeStatus}
+            onSave={(sub, payload) => patchSubscription(sub.id, payload)}
             pending={pendingId === s.id}
             error={actionError?.id === s.id ? actionError.message : null}
           />

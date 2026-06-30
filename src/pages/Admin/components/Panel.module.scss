@@ -119,3 +119,10 @@
   color: var(--danger);
   font-size: 0.75rem;
 }
+
+.editForm {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 460px;
+}
