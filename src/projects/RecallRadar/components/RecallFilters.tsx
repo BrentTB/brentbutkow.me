@@ -29,6 +29,9 @@ type RecallFiltersProps = {
   filters: RecallFilterValues
   country: RecallCountry
   stateOptions: string[]
+  // Whether the country has company data at all (unfiltered) — Canada's feed has none, so its
+  // company type-ahead is hidden. Based on the base set, not the current filters.
+  hasCompanies: boolean
   // Live per-facet counts under the current filters; undefined while loading or on error (the
   // controls then render without counts).
   facets?: RecallFacets
@@ -65,6 +68,7 @@ export function RecallFilters({
   filters,
   country,
   stateOptions,
+  hasCompanies,
   facets,
   activeFilters,
   topicLabel,
@@ -284,14 +288,16 @@ export function RecallFilters({
             </div>
           )}
 
-          <div className={styles.field}>
-            <span className={styles.label}>Company</span>
-            <CompanyFilter
-              filters={activeFilters}
-              value={filters.company}
-              onChange={(value) => onChange({ company: value })}
-            />
-          </div>
+          {hasCompanies && (
+            <div className={styles.field}>
+              <span className={styles.label}>Company</span>
+              <CompanyFilter
+                filters={activeFilters}
+                value={filters.company}
+                onChange={(value) => onChange({ company: value })}
+              />
+            </div>
+          )}
 
           <div className={styles.field}>
             <span className={styles.label}>From</span>

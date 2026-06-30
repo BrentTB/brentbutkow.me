@@ -72,13 +72,28 @@ describe('BreakdownList', () => {
 describe('Breakdowns', () => {
   afterEach(cleanup)
 
-  it('hides the Top companies card when no company data exists (Canada)', () => {
-    render(<Breakdowns facets={facets({ company: [] })} filters={NO_FILTERS} onSelect={vi.fn()} />)
+  it('hides the Top companies card when the country has no company data (Canada)', () => {
+    render(
+      <Breakdowns
+        facets={facets({ company: [] })}
+        filters={NO_FILTERS}
+        hasCompanies={false}
+        onSelect={vi.fn()}
+      />
+    )
     expect(screen.queryByText('Top companies')).toBeNull()
   })
 
-  it('shows the Top companies card when company data exists', () => {
-    render(<Breakdowns facets={facets({})} filters={NO_FILTERS} onSelect={vi.fn()} />)
+  it('keeps the Top companies card when the country has companies, even if a filter leaves none', () => {
+    // hasCompanies is the unfiltered base signal; an empty filtered facet must not hide the card.
+    render(
+      <Breakdowns
+        facets={facets({ company: [] })}
+        filters={NO_FILTERS}
+        hasCompanies={true}
+        onSelect={vi.fn()}
+      />
+    )
     expect(screen.getByText('Top companies')).toBeTruthy()
   })
 })

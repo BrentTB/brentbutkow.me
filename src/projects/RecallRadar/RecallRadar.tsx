@@ -285,6 +285,10 @@ export function RecallRadar() {
   const topCategory = stats.data?.byCategory.slice().sort((a, b) => b.count - a.count)[0]
   const topState = stats.data?.byState[0]
   const stateOptions = stats.data?.byState.map((entry) => entry.label) ?? []
+  // Base (unfiltered) company presence — Canada's feed carries no firm name. Gates the company
+  // filter + leaderboard so they hide for company-less sources, but stay put when a filter combo
+  // merely happens to leave no companies.
+  const hasCompanies = (stats.data?.byCompany.length ?? 0) > 0
   // The breakdown cards + state map read these counts; prefer the live (filter-scoped) facets, and
   // fall back to the global stats so they still render if the facets endpoint is unavailable.
   const breakdownFacets = facets.data ?? (stats.data ? facetsFromStats(stats.data) : null)
@@ -364,6 +368,7 @@ export function RecallRadar() {
           filters={filters}
           country={country}
           stateOptions={stateOptions}
+          hasCompanies={hasCompanies}
           facets={facets.data ?? undefined}
           activeFilters={queryFilters}
           topicLabel={activeTopicLabel}
@@ -467,7 +472,12 @@ export function RecallRadar() {
             <section id="breakdowns" className={styles.section}>
               <h2 className={styles.sectionTitle}>Breakdowns</h2>
               <p className={styles.hint}>Click any row to filter the recalls below.</p>
-              <Breakdowns facets={breakdownFacets} filters={filters} onSelect={patch} />
+              <Breakdowns
+                facets={breakdownFacets}
+                filters={filters}
+                hasCompanies={hasCompanies}
+                onSelect={patch}
+              />
             </section>
           )}
 
