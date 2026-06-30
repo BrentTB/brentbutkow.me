@@ -8,6 +8,7 @@ export function Router() {
   const { pathname } = useLocation()
   useRouteMeta()
   useEffect(() => {
+    window.scrollTo(0, 0)
     recordVisit(pathname)
   }, [pathname])
 
