@@ -52,7 +52,7 @@
 // radius (the pill provides those) and add side dividers. Scoped under .stepper so it beats the
 // component's own .trigger rule regardless of stylesheet order.
 .stepper .yearTrigger {
-  min-width: 0;
+  min-width: 140px;
   height: 100%;
   justify-content: center;
   gap: 5px;

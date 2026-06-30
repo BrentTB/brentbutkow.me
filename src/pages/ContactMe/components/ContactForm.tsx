@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { ContactStatus, useContactForm } from '../useContactForm'
+import { ContactStatus, isValidEmail, useContactForm } from '../useContactForm'
 import styles from './ContactForm.module.scss'
 
 export function ContactForm() {
@@ -9,19 +9,28 @@ export function ContactForm() {
   const [email, setEmail] = useState('')
   const [message, setMessage] = useState('')
   const [website, setWebsite] = useState('') // honeypot
+  const [emailTouched, setEmailTouched] = useState(false)
 
   const sending = status === ContactStatus.sending
+  const emailInvalid = email.trim() !== '' && !isValidEmail(email)
+  // Hold the error until the field is left or submit is attempted — don't nag mid-typing.
+  const showEmailError = emailInvalid && emailTouched
 
   useEffect(() => {
     if (status === ContactStatus.success) {
       setName('')
       setEmail('')
       setMessage('')
+      setEmailTouched(false)
     }
   }, [status])
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (emailInvalid) {
+      setEmailTouched(true) // surface the error now that they've tried to send
+      return
+    }
     void submit({ name, email, message, website })
   }
 
@@ -52,8 +61,16 @@ export function ContactForm() {
             aria-label="Email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
+            onBlur={() => setEmailTouched(true)}
             autoComplete="email"
+            aria-invalid={showEmailError}
+            aria-describedby={showEmailError ? 'email-error' : undefined}
           />
+          {showEmailError && (
+            <span id="email-error" className={styles.fieldError} role="alert">
+              Enter a valid email, or leave it blank.
+            </span>
+          )}
         </label>
       </div>
 
@@ -83,7 +100,11 @@ export function ContactForm() {
       </div>
 
       <div className={styles.actions}>
-        <button className={styles.submit} type="submit" disabled={sending || !message.trim()}>
+        <button
+          className={styles.submit}
+          type="submit"
+          disabled={sending || !message.trim() || showEmailError}
+        >
           {sending ? 'Sending…' : 'Send message'}
         </button>
         {status === ContactStatus.success && (

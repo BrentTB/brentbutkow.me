@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, renderHook } from '@testing-library/react'
-import { useContactForm } from './useContactForm'
+import { isValidEmail, useContactForm } from './useContactForm'
 
 const okRes = { ok: true, status: 200, json: async () => ({ status: 'ok' }) } as Response
 
@@ -51,6 +51,19 @@ describe('useContactForm', () => {
     expect(second.elapsedMs).toBeLessThan(1000) // clock reset on the first success
   })
 
+  it('rejects an invalid email without hitting the network', async () => {
+    const fetchMock = vi.fn(async () => okRes)
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { result } = renderHook(() => useContactForm())
+    await act(async () => {
+      await result.current.submit({ name: '', email: 'not-an-email', message: 'hi', website: '' })
+    })
+
+    expect(result.current.status).toBe('invalidEmail')
+    expect(fetchMock).not.toHaveBeenCalled() // no round-trip → no generic backend error
+  })
+
   it('reports an error when the request fails', async () => {
     vi.stubGlobal(
       'fetch',
@@ -61,5 +74,18 @@ describe('useContactForm', () => {
       await result.current.submit({ name: '', email: '', message: 'x', website: '' })
     })
     expect(result.current.status).toBe('error')
+  })
+})
+
+describe('isValidEmail', () => {
+  it('accepts well-formed addresses', () => {
+    expect(isValidEmail('a@b.com')).toBe(true)
+    expect(isValidEmail('  brent@food.ai  ')).toBe(true) // trims surrounding space
+  })
+
+  it('rejects malformed addresses', () => {
+    for (const bad of ['not-an-email', 'a@b', 'a b@c.com', '@b.com', 'a@.com', '']) {
+      expect(isValidEmail(bad)).toBe(false)
+    }
   })
 })

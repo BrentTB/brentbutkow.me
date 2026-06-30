@@ -278,6 +278,7 @@
 }
 
 .success {
-  background: rgba(var(--accent-rgb), 0.12);
+  // Replaces the whole form, so it loses .form's padding-top — restore it to balance .body's spacing.
+  margin-top: 16px;
   color: var(--accent-strong);
 }
