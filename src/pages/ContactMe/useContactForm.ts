@@ -7,6 +7,7 @@ export const ContactStatus = {
   sending: 'sending',
   success: 'success',
   error: 'error',
+  invalidEmail: 'invalidEmail',
 } as const
 export type ContactStatus = (typeof ContactStatus)[keyof typeof ContactStatus]
 
@@ -17,6 +18,12 @@ export type ContactValues = {
   website: string // honeypot — humans leave it blank
 }
 
+// Email is optional; when given it must look like one. Single `@`, non-empty local + domain, a dot
+// in the domain. Catches the common typos the backend would otherwise reject with a generic error.
+export function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+}
+
 export function useContactForm() {
   const [status, setStatus] = useState<ContactStatus>(ContactStatus.idle)
   // Start of the current submission window — reset after each send so a rapid repeat is caught by
@@ -24,6 +31,11 @@ export function useContactForm() {
   const windowStart = useRef(Date.now())
 
   async function submit(values: ContactValues): Promise<void> {
+    // Guard a malformed email before the round-trip so the backend never answers with its generic error.
+    if (values.email && !isValidEmail(values.email)) {
+      setStatus(ContactStatus.invalidEmail)
+      return
+    }
     const elapsedMs = Date.now() - windowStart.current
     setStatus(ContactStatus.sending)
     try {

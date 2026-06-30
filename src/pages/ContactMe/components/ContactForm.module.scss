@@ -56,6 +56,15 @@
   outline-offset: 2px;
 }
 
+.input[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+
+.fieldError {
+  color: var(--danger);
+  font-size: 0.78rem;
+}
+
 .extraField {
   position: absolute;
   left: -9999px;
