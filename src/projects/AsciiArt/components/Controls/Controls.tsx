@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState } from 'react'
 import { BackgroundMode, ColorMode, RenderMode, SourceKind } from '../../ascii-art.types'
 import {
   AsciiOptions,
@@ -15,6 +14,7 @@ import {
 } from '../../data'
 import { Select } from '../../../../components/inputs/Select'
 import type { SelectOption } from '../../../../components/inputs/option.types'
+import { useCopiedFlag } from './useCopiedFlag'
 import styles from './Controls.module.scss'
 
 type ControlsProps = {
@@ -34,6 +34,10 @@ type ControlsProps = {
   onMirror: (mirror: boolean) => void
   onSaveImage: () => void
   onCopyText: () => Promise<boolean>
+  // Sharing is offered only when a link can recreate the source (clip, example,
+  // webcam) — not for uploads, whose file the recipient doesn't have.
+  canShareLink: boolean
+  onCopyShareLink: () => Promise<boolean>
   onDownloadText: () => void
   onToggleRecording: () => void
 }
@@ -61,24 +65,13 @@ export function Controls({
   onMirror,
   onSaveImage,
   onCopyText,
+  canShareLink,
+  onCopyShareLink,
   onDownloadText,
   onToggleRecording,
 }: ControlsProps) {
-  const [copied, setCopied] = useState(false)
-  const copyTimerRef = useRef<number | null>(null)
-  const handleCopy = async () => {
-    if (await onCopyText()) {
-      setCopied(true)
-      if (copyTimerRef.current !== null) window.clearTimeout(copyTimerRef.current)
-      copyTimerRef.current = window.setTimeout(() => setCopied(false), 1500)
-    }
-  }
-  useEffect(
-    () => () => {
-      if (copyTimerRef.current !== null) window.clearTimeout(copyTimerRef.current)
-    },
-    []
-  )
+  const [textCopied, flashText] = useCopiedFlag()
+  const [linkCopied, flashLink] = useCopiedFlag()
 
   const isCustomRamp = options.charset === CUSTOM_CHARSET
   // Edges use fixed line glyphs and are magnitude-based, so charset + invert don't apply.
@@ -245,12 +238,25 @@ export function Controls({
           <button type="button" className={styles.actionButton} onClick={onSaveImage}>
             Save image
           </button>
-          <button type="button" className={styles.actionButton} onClick={handleCopy}>
-            {copied ? 'Copied!' : 'Copy text'}
+          <button
+            type="button"
+            className={styles.actionButton}
+            onClick={() => flashText(onCopyText)}
+          >
+            {textCopied ? 'Copied!' : 'Copy text'}
           </button>
           <button type="button" className={styles.actionButton} onClick={onDownloadText}>
             Download .txt
           </button>
+          {canShareLink && (
+            <button
+              type="button"
+              className={styles.actionButton}
+              onClick={() => flashLink(onCopyShareLink)}
+            >
+              {linkCopied ? 'Link copied!' : 'Copy share link'}
+            </button>
+          )}
           {canRecord && (
             <button
               type="button"

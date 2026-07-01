@@ -1,5 +1,12 @@
 import { RefObject, useCallback, useEffect, useRef, useState } from 'react'
-import { AsciiGrid, BackgroundMode, ColorMode, RenderMode, SourceKind } from './ascii-art.types'
+import {
+  AsciiGrid,
+  BackgroundMode,
+  ColorMode,
+  RenderMode,
+  SourceKind,
+  SourceOrigin,
+} from './ascii-art.types'
 import {
   AsciiOptions,
   CANVAS_PAD,
@@ -55,13 +62,20 @@ const sourceSize = (src: SourceElement) =>
 // (raf, listeners, object URLs, camera tracks) on reset/unmount.
 export function useAsciiArt(
   canvasRef: RefObject<HTMLCanvasElement>,
-  initialColorMode: ColorMode = ColorMode.color
+  initialColorMode: ColorMode = ColorMode.color,
+  initialOptions?: Partial<AsciiOptions>
 ) {
   const [sourceKind, setSourceKind] = useState<SourceKind>(SourceKind.none)
-  const [options, setOptions] = useState<AsciiOptions>(() => defaultOptions(initialColorMode))
+  const [options, setOptions] = useState<AsciiOptions>(() => ({
+    ...defaultOptions(initialColorMode),
+    ...initialOptions,
+  }))
   const [playback, setPlayback] = useState<Playback>(PLAYBACK_DEFAULT)
   const [isRecording, setIsRecording] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Where the source came from — gates whether the look is shareable (an upload
+  // can't be recreated from a link; the example and webcam can).
+  const [sourceOrigin, setSourceOrigin] = useState<SourceOrigin>(SourceOrigin.none)
 
   // Loop reads the latest options/source without re-subscribing each change.
   const optionsRef = useRef(options)
@@ -270,6 +284,7 @@ export function useAsciiArt(
     }
     recorderRef.current = null
     setIsRecording(false)
+    setSourceOrigin(SourceOrigin.none)
     if (objectUrlRef.current) {
       URL.revokeObjectURL(objectUrlRef.current)
       objectUrlRef.current = null
@@ -300,6 +315,7 @@ export function useAsciiArt(
       img.onload = () => {
         sourceRef.current = img
         setSourceKind(SourceKind.image)
+        setSourceOrigin(SourceOrigin.upload)
         renderFrame()
       }
       img.onerror = () => setError('Could not load that image.')
@@ -317,6 +333,7 @@ export function useAsciiArt(
     img.onload = () => {
       sourceRef.current = img
       setSourceKind(SourceKind.image)
+      setSourceOrigin(SourceOrigin.example)
       renderFrame()
     }
     img.onerror = () => setError('Could not load the example.')
@@ -340,6 +357,7 @@ export function useAsciiArt(
         .then(() => {
           sourceRef.current = video
           setSourceKind(SourceKind.video)
+          setSourceOrigin(SourceOrigin.upload)
           startLoop()
         })
         .catch(() => setError('Could not play that video.'))
@@ -364,6 +382,7 @@ export function useAsciiArt(
       await video.play()
       sourceRef.current = video
       setSourceKind(SourceKind.webcam)
+      setSourceOrigin(SourceOrigin.webcam)
       startLoop()
     } catch {
       setError('Camera access was blocked.')
@@ -606,6 +625,7 @@ export function useAsciiArt(
 
   return {
     sourceKind,
+    sourceOrigin,
     options,
     playback,
     isRecording,

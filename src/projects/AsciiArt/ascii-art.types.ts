@@ -7,6 +7,17 @@ export const SourceKind = {
 } as const
 export type SourceKind = (typeof SourceKind)[keyof typeof SourceKind]
 
+// Where the current source came from. Reproducible origins (the built-in
+// example, the webcam) can be captured in a share link; an uploaded file can't,
+// since the recipient doesn't have it.
+export const SourceOrigin = {
+  none: 'none',
+  upload: 'upload',
+  example: 'example',
+  webcam: 'webcam',
+} as const
+export type SourceOrigin = (typeof SourceOrigin)[keyof typeof SourceOrigin]
+
 // Grayscale stays faithful to the original Python tool; color tints each glyph
 // by its source RGB.
 export const ColorMode = {

@@ -75,6 +75,29 @@ describe('useAsciiArt', () => {
     expect(result.current.options.colorMode).toBe(ColorMode.grayscale)
   })
 
+  it('merges initialOptions over the defaults (share-link hydration)', () => {
+    const { result } = renderHook(() =>
+      useAsciiArt(canvasRef, ColorMode.color, { rows: 88, charset: 'blocks', invert: true })
+    )
+    expect(result.current.options).toMatchObject({
+      colorMode: ColorMode.color,
+      rows: 88,
+      charset: 'blocks',
+      invert: true,
+      brightness: 0, // untouched fields keep their defaults
+    })
+  })
+
+  it('marks an uploaded video as the upload origin (not shareable), cleared on reset', async () => {
+    const { result } = renderHook(() => useAsciiArt(canvasRef))
+    act(() => result.current.loadVideo(new File(['x'], 'clip.mp4', { type: 'video/mp4' })))
+    await act(async () => {}) // flush play()
+    expect(result.current.sourceOrigin).toBe('upload')
+
+    act(() => result.current.reset())
+    expect(result.current.sourceOrigin).toBe('none')
+  })
+
   it('updates options through the setters', () => {
     const { result } = renderHook(() => useAsciiArt(canvasRef))
     act(() => result.current.setColorMode(ColorMode.grayscale))

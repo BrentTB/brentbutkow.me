@@ -1,9 +1,11 @@
-import { useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { BackButton } from '../../components/PageFormatting/BackButton'
 import { SafeLink } from '../../components/utils/SafeLink'
 import { useFunMode } from '../../contexts/useFunMode'
-import { ColorMode, SourceKind } from './ascii-art.types'
+import { ColorMode, SourceKind, SourceOrigin } from './ascii-art.types'
 import { useAsciiArt } from './useAsciiArt'
+import { parseAsciiParams, serializeAsciiParams } from './ascii-url'
 import { SourcePicker } from './components/SourcePicker/SourcePicker'
 import { Controls } from './components/Controls/Controls'
 import { VideoControls } from './components/VideoControls/VideoControls'
@@ -12,8 +14,16 @@ import styles from './AsciiArt.module.scss'
 export function AsciiArt() {
   const { isFunMode } = useFunMode()
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // Parse the URL once for initial hydration; from then on state drives the URL.
+  const initialRef = useRef<ReturnType<typeof parseAsciiParams> | null>(null)
+  if (initialRef.current === null) initialRef.current = parseAsciiParams(searchParams)
+  const initial = initialRef.current
+
   const {
     sourceKind,
+    sourceOrigin,
     options,
     playback,
     isRecording,
@@ -40,7 +50,40 @@ export function AsciiArt() {
     setBrightness,
     setContrast,
     setMirror,
-  } = useAsciiArt(canvasRef, isFunMode ? ColorMode.color : ColorMode.grayscale)
+  } = useAsciiArt(canvasRef, isFunMode ? ColorMode.color : ColorMode.grayscale, initial.options)
+
+  // Recreate the source named in the share link, once, after mount.
+  const didHydrateSource = useRef(false)
+  useEffect(() => {
+    if (didHydrateSource.current) return
+    didHydrateSource.current = true
+    if (initial.source.origin === SourceOrigin.example) loadExample()
+    else if (initial.source.origin === SourceOrigin.webcam) startWebcam()
+  }, [initial.source, loadExample, startWebcam])
+
+  // Mirror a reproducible look into the URL so it's shareable; clear the params
+  // for uploads (which a link can't recreate) and a bare landing. A ref guards
+  // against the write feeding back into a re-render loop.
+  const shareable = sourceOrigin === SourceOrigin.example || sourceOrigin === SourceOrigin.webcam
+  const lastWrittenRef = useRef<string | null>(null)
+  useEffect(() => {
+    const next = shareable
+      ? new URLSearchParams(serializeAsciiParams(options, { origin: sourceOrigin })).toString()
+      : ''
+    if (next === lastWrittenRef.current) return
+    lastWrittenRef.current = next
+    setSearchParams(next, { replace: true })
+  }, [options, sourceOrigin, shareable, setSearchParams])
+
+  const copyShareLink = useCallback(async () => {
+    if (!navigator.clipboard?.writeText) return false
+    try {
+      await navigator.clipboard.writeText(window.location.href)
+      return true
+    } catch {
+      return false
+    }
+  }, [])
 
   const hasSource = sourceKind !== SourceKind.none
   const canRecord =
@@ -108,6 +151,8 @@ export function AsciiArt() {
           onMirror={setMirror}
           onSaveImage={saveImage}
           onCopyText={copyText}
+          canShareLink={shareable}
+          onCopyShareLink={copyShareLink}
           onDownloadText={downloadText}
           onToggleRecording={toggleRecording}
         />
