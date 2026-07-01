@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { BackButton } from '../../components/PageFormatting/BackButton'
 import { SafeLink } from '../../components/utils/SafeLink'
@@ -9,6 +9,7 @@ import { parseAsciiParams, serializeAsciiParams } from './ascii-url'
 import { SourcePicker } from './components/SourcePicker/SourcePicker'
 import { Controls } from './components/Controls/Controls'
 import { VideoControls } from './components/VideoControls/VideoControls'
+import { PdfExportDialog } from './components/PdfExportDialog/PdfExportDialog'
 import styles from './AsciiArt.module.scss'
 
 export function AsciiArt() {
@@ -27,6 +28,7 @@ export function AsciiArt() {
     options,
     playback,
     isRecording,
+    pdfProgress,
     error,
     loadImage,
     loadVideo,
@@ -38,6 +40,8 @@ export function AsciiArt() {
     saveImage,
     copyText,
     downloadText,
+    exportPdf,
+    estimatePdf,
     loadExample,
     toggleRecording,
     setColorMode,
@@ -61,15 +65,17 @@ export function AsciiArt() {
     else if (initial.source.origin === SourceOrigin.webcam) startWebcam()
   }, [initial.source, loadExample, startWebcam])
 
-  // Mirror a reproducible look into the URL so it's shareable; clear the params
-  // for uploads (which a link can't recreate) and a bare landing. A ref guards
-  // against the write feeding back into a re-render loop.
+  // Mirror the current look into the URL so settings survive a refresh and can be
+  // shared. Options are always encoded (they persist even before a source is
+  // picked); the reproducible-source key (example/webcam) is added only for those,
+  // since a link can't recreate an upload. A ref guards the write from feeding
+  // back into a re-render loop.
   const shareable = sourceOrigin === SourceOrigin.example || sourceOrigin === SourceOrigin.webcam
   const lastWrittenRef = useRef<string | null>(null)
   useEffect(() => {
-    const next = shareable
-      ? new URLSearchParams(serializeAsciiParams(options, { origin: sourceOrigin })).toString()
-      : ''
+    const next = new URLSearchParams(
+      serializeAsciiParams(options, { origin: shareable ? sourceOrigin : SourceOrigin.none })
+    ).toString()
     if (next === lastWrittenRef.current) return
     lastWrittenRef.current = next
     setSearchParams(next, { replace: true })
@@ -84,6 +90,8 @@ export function AsciiArt() {
       return false
     }
   }, [])
+
+  const [pdfDialogOpen, setPdfDialogOpen] = useState(false)
 
   const hasSource = sourceKind !== SourceKind.none
   const canRecord =
@@ -122,6 +130,9 @@ export function AsciiArt() {
         ) : (
           <p className={styles.empty}>Pick an image, a video, or your webcam to begin.</p>
         )}
+        {pdfProgress !== null && (
+          <div className={styles.exporting}>Rendering PDF… {Math.round(pdfProgress * 100)}%</div>
+        )}
       </div>
 
       {sourceKind === SourceKind.video && (
@@ -155,12 +166,27 @@ export function AsciiArt() {
           onCopyShareLink={copyShareLink}
           onDownloadText={downloadText}
           onToggleRecording={toggleRecording}
+          canExportPdf={sourceKind === SourceKind.video}
+          pdfProgress={pdfProgress}
+          onExportPdf={() => setPdfDialogOpen(true)}
         />
       )}
 
       <p className={styles.privacy}>
         Everything runs in your browser. Your photos, videos, and webcam never leave your device.
       </p>
+
+      {pdfDialogOpen && (
+        <PdfExportDialog
+          clipDuration={playback.duration}
+          estimate={estimatePdf}
+          onClose={() => setPdfDialogOpen(false)}
+          onConfirm={(fps, dur) => {
+            setPdfDialogOpen(false)
+            exportPdf(fps, dur)
+          }}
+        />
+      )}
     </div>
   )
 }

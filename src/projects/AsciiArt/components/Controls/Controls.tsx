@@ -40,6 +40,11 @@ type ControlsProps = {
   onCopyShareLink: () => Promise<boolean>
   onDownloadText: () => void
   onToggleRecording: () => void
+  // Video only: render the whole clip to a self-playing ASCII PDF. `pdfProgress`
+  // runs 0..1 while exporting, null when idle.
+  canExportPdf: boolean
+  pdfProgress: number | null
+  onExportPdf: () => void
 }
 
 const charsetNames = Object.keys(Charset) as CharsetName[]
@@ -69,6 +74,9 @@ export function Controls({
   onCopyShareLink,
   onDownloadText,
   onToggleRecording,
+  canExportPdf,
+  pdfProgress,
+  onExportPdf,
 }: ControlsProps) {
   const [textCopied, flashText] = useCopiedFlag()
   const [linkCopied, flashLink] = useCopiedFlag()
@@ -248,6 +256,18 @@ export function Controls({
           <button type="button" className={styles.actionButton} onClick={onDownloadText}>
             Download .txt
           </button>
+          {canExportPdf && (
+            <button
+              type="button"
+              className={styles.actionButton}
+              onClick={onExportPdf}
+              disabled={pdfProgress !== null}
+            >
+              {pdfProgress !== null
+                ? `Rendering ${Math.round(pdfProgress * 100)}%`
+                : 'Download PDF'}
+            </button>
+          )}
           {canShareLink && (
             <button
               type="button"
