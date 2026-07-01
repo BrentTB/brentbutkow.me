@@ -1,8 +1,15 @@
-import { ChangeEvent, KeyboardEvent, useState } from 'react'
+import { ChangeEvent, KeyboardEvent, useEffect, useState } from 'react'
 import { Base } from '../../image-encoder.types'
-import { nearestWithRemainder } from '../../engine/codec'
 import { baseOptions } from '../../data'
 import { Segmented } from '../Segmented/Segmented'
+import {
+  activeChannelAt,
+  channelValueAt,
+  encodeChannel,
+  finalStep,
+  IDLE,
+  isHighlightStep,
+} from './encoding'
 import styles from './EncodingDemo.module.scss'
 
 // Two pixels, three channels each, so the message is a six-digit string.
@@ -17,10 +24,15 @@ const CHANNEL_COUNT = PIXEL_COUNT * CHANNEL_META.length
 // Channel values are scaled to 0..DEMO_MAX so the bars fit on one axis. Real
 // channels run 0..255, but the maths is identical: the digit stored in a channel
 // is value mod base. Originals stay inside 0..ORIGINAL_MAX, leaving headroom above
-// the tallest bar (the nudge adds at most 2) for its value label.
+// the tallest bar for its value label.
 const DEMO_MAX = 24
 const ORIGINAL_MIN = 2
 const ORIGINAL_MAX = 18
+
+// How long each animation step holds before the next channel or phase, and the
+// shorter beat a channel is only highlighted before it starts moving.
+const STEP_MS = 600
+const HIGHLIGHT_MS = 200
 
 const baseSegments = baseOptions.map((option) => ({ value: option.value, label: option.label }))
 
@@ -32,23 +44,49 @@ function randomValues(): number[] {
   )
 }
 
+// A random six-digit message, every digit valid for the chosen base.
+function randomCode(base: Base): string {
+  return Array.from({ length: CHANNEL_COUNT }, () => Math.floor(Math.random() * base)).join('')
+}
+
 export function EncodingDemo() {
   const [base, setBase] = useState<Base>(Base.binary)
   const [values, setValues] = useState<number[]>(() => [13, 6, 17, 9, 18, 4])
   // The typed code is the source of truth. It can be shorter than six while
   // typing; any channel the code doesn't reach stores a 0.
   const [code, setCode] = useState('100110')
+  const [animStep, setAnimStep] = useState(IDLE)
+  const animating = animStep !== IDLE
 
   const digits = Array.from({ length: CHANNEL_COUNT }, (_, i) => Number(code[i] ?? 0))
+
+  // Advance one step at a time, then return to the interactive idle state.
+  useEffect(() => {
+    if (animStep === IDLE) return
+    const next = animStep >= finalStep(CHANNEL_COUNT) ? IDLE : animStep + 1
+    const hold = isHighlightStep(animStep, CHANNEL_COUNT) ? HIGHLIGHT_MS : STEP_MS
+    const id = setTimeout(() => setAnimStep(next), hold)
+    return () => clearTimeout(id)
+  }, [animStep])
+
+  const activeChannel = animStep === IDLE ? -1 : activeChannelAt(animStep, CHANNEL_COUNT)
+
+  // The height, label, and remainder a channel shows at the current step.
+  const shownValue = (channel: number): number => {
+    if (animStep === IDLE) return encodeChannel(values[channel], base, digits[channel])
+    return channelValueAt(animStep, channel, values[channel], base, digits[channel], CHANNEL_COUNT)
+  }
+
+  // Pad the code first so every channel has a digit to add during playback.
+  const play = () => {
+    setCode((prev) => prev.padEnd(CHANNEL_COUNT, '0'))
+    setAnimStep(0)
+  }
 
   const changeBase = (next: Base) => {
     setBase(next)
     // A digit must stay below its base, so fold any that overshoot the new one.
-    setCode((prev) =>
-      [...prev]
-        .map((char) => Number(char) % next)
-        .join('')
-    )
+    setCode((prev) => [...prev].map((char) => Number(char) % next).join(''))
   }
 
   const nudgeDigit = (channel: number, step: number) => {
@@ -94,40 +132,62 @@ export function EncodingDemo() {
             options={baseSegments}
             value={base}
             onChange={changeBase}
+            disabled={animating}
           />
         </div>
 
         <div className={styles.field}>
           <label className={styles.controlLabel} htmlFor="demo-message">
-            Message ({CHANNEL_COUNT} {digitLabel}s
-            {base === Base.binary ? '' : `, 0 to ${base - 1}`})
+            Message ({CHANNEL_COUNT} {digitLabel}s{base === Base.binary ? '' : `, 0 to ${base - 1}`}
+            )
           </label>
-          <input
-            id="demo-message"
-            className={styles.message}
-            value={code}
-            onKeyDown={onMessageKeyDown}
-            onChange={onMessageChange}
-            onBlur={padCode}
-            inputMode="numeric"
-            maxLength={CHANNEL_COUNT}
-            spellCheck={false}
-            aria-describedby="demo-message-hint"
-          />
+          <div className={styles.messageRow}>
+            <input
+              id="demo-message"
+              className={styles.message}
+              value={code}
+              onKeyDown={onMessageKeyDown}
+              onChange={onMessageChange}
+              onBlur={padCode}
+              inputMode="numeric"
+              maxLength={CHANNEL_COUNT}
+              spellCheck={false}
+              disabled={animating}
+              aria-describedby="demo-message-hint"
+            />
+            <button
+              type="button"
+              className={styles.randomizeCode}
+              onClick={() => setCode(randomCode(base))}
+              disabled={animating}
+              aria-label={`Fill the message with random ${digitLabel}s`}
+            >
+              <span className={styles.reloadGlyph} aria-hidden="true">
+                ⟳
+              </span>
+            </button>
+          </div>
         </div>
 
-        <button
-          type="button"
-          className={styles.randomizeButton}
-          onClick={() => setValues(randomValues())}
-        >
-          New pixels
-        </button>
+        <div className={styles.actions}>
+          <button
+            type="button"
+            className={styles.randomizeButton}
+            onClick={() => setValues(randomValues())}
+            disabled={animating}
+          >
+            New pixels
+          </button>
+          <button type="button" className={styles.playButton} onClick={play} disabled={animating}>
+            {animating ? 'Encoding…' : '▶ Encode'}
+          </button>
+        </div>
       </div>
 
       <p id="demo-message-hint" className={styles.hint}>
-        Type the {digitLabel}s to hide, or nudge a channel with its arrows. Each bar moves to the
-        nearest color whose remainder matches its {digitLabel}.
+        Type the {digitLabel}s to hide, or nudge a channel with its arrows. Press Encode to watch it
+        in two passes: first it rounds every channel down to a multiple of {base}, then it adds each{' '}
+        {digitLabel} so the remainder carries your message.
       </p>
 
       <div className={styles.pixels}>
@@ -139,10 +199,14 @@ export function EncodingDemo() {
                 const i = pixelIndex * CHANNEL_META.length + c
                 const original = values[i]
                 const digit = digits[i]
-                const encoded = nearestWithRemainder(original, base, digit)
+                const shown = shownValue(i)
+                const active = i === activeChannel
 
                 return (
-                  <div key={channel.key} className={`${styles.channel} ${styles[channel.key]}`}>
+                  <div
+                    key={channel.key}
+                    className={`${styles.channel} ${styles[channel.key]} ${active ? styles.active : ''}`}
+                  >
                     <div className={styles.track}>
                       <span
                         className={styles.original}
@@ -152,21 +216,22 @@ export function EncodingDemo() {
                       </span>
                       <div
                         className={styles.fill}
-                        style={{ height: `${(encoded / DEMO_MAX) * 100}%` }}
+                        style={{ height: `${(shown / DEMO_MAX) * 100}%` }}
                       >
-                        <span className={styles.fillValue}>{encoded}</span>
+                        <span className={styles.fillValue}>{shown}</span>
                       </div>
                     </div>
 
                     <span className={styles.channelName}>{channel.name}</span>
                     <span className={styles.math}>
-                      {encoded} mod {base} = <strong>{encoded % base}</strong>
+                      {shown} mod {base} = <strong>{shown % base}</strong>
                     </span>
 
                     <div className={styles.stepper}>
                       <button
                         type="button"
                         onClick={() => nudgeDigit(i, -1)}
+                        disabled={animating}
                         aria-label={`Lower the ${digitLabel} in pixel ${pixelIndex + 1} ${channel.name}`}
                       >
                         −
@@ -175,6 +240,7 @@ export function EncodingDemo() {
                       <button
                         type="button"
                         onClick={() => nudgeDigit(i, +1)}
+                        disabled={animating}
                         aria-label={`Raise the ${digitLabel} in pixel ${pixelIndex + 1} ${channel.name}`}
                       >
                         +

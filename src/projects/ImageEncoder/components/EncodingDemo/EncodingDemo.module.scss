@@ -48,11 +48,66 @@
     border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.18);
   }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
+.messageRow {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.randomizeCode {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-strong);
+  color: var(--text);
+  font-size: 1.05rem;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    border-color 150ms ease,
+    color 150ms ease,
+    transform 0.1s;
+
+  &:hover:not(:disabled) {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
+// The ⟳ glyph renders low in its line box; nudge it up so it optically centers.
+.reloadGlyph {
+  display: block;
+  line-height: 1;
+  transform: translateY(-1px);
+}
+
+.actions {
+  margin-left: auto;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
 }
 
 .randomizeButton {
-  margin-left: auto;
-  align-self: flex-end;
   padding: 9px 16px;
   background: var(--surface-strong);
   color: var(--text);
@@ -66,14 +121,44 @@
     color 150ms ease,
     transform 0.1s;
 
-  &:hover {
+  &:hover:not(:disabled) {
     border-color: var(--accent);
     color: var(--accent);
   }
 
-  &:active {
+  &:active:not(:disabled) {
     transform: translateY(1px);
   }
+}
+
+.playButton {
+  padding: 9px 18px;
+  background: var(--accent);
+  color: var(--on-accent);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 150ms ease,
+    transform 0.1s;
+
+  &:hover:not(:disabled) {
+    background: var(--accent-strong);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+}
+
+.randomizeButton:disabled,
+.playButton:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .hint {
@@ -138,6 +223,25 @@
   border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--surface);
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+// The channel the animation is currently encoding: ring it in its own color so
+// the highlight visibly steps along even when the value doesn't move.
+.channel.active {
+  .track {
+    border-color: var(--chan);
+    box-shadow:
+      0 0 0 2px color-mix(in srgb, var(--chan) 70%, transparent),
+      0 0 18px color-mix(in srgb, var(--chan) 40%, transparent);
+  }
+
+  .channelName,
+  .math strong {
+    color: var(--chan);
+  }
 }
 
 // Dashed marker at the untouched value, so the nudge to the stored value shows.
@@ -232,12 +336,17 @@
     border-radius: var(--radius);
     transition: color 120ms ease;
 
-    &:hover {
+    &:hover:not(:disabled) {
       color: var(--chan);
     }
 
-    &:active {
+    &:active:not(:disabled) {
       transform: translateY(1px);
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: default;
     }
   }
 }

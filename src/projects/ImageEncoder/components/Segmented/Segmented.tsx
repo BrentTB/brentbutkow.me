@@ -11,6 +11,7 @@ interface SegmentedProps<T extends string | number> {
   options: SegmentedOption<T>[]
   value: T
   onChange: (value: T) => void
+  disabled?: boolean
 }
 
 // Controlled single-select pill toggle, generic over string or numeric values.
@@ -20,6 +21,7 @@ export function Segmented<T extends string | number>({
   options,
   value,
   onChange,
+  disabled = false,
 }: SegmentedProps<T>) {
   const buttonsRef = useRef<(HTMLButtonElement | null)[]>([])
   const selectedIndex = options.findIndex((option) => option.value === value)
@@ -60,7 +62,8 @@ export function Segmented<T extends string | number>({
             type="button"
             role="radio"
             aria-checked={selected}
-            tabIndex={index === focusIndex ? 0 : -1}
+            disabled={disabled}
+            tabIndex={disabled ? -1 : index === focusIndex ? 0 : -1}
             className={selected ? styles.active : undefined}
             onClick={() => onChange(option.value)}
             onKeyDown={(event) => onKeyDown(event, index)}

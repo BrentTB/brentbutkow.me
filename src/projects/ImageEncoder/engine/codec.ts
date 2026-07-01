@@ -169,7 +169,7 @@ function writeDigits(
 }
 
 // Closest value to `value` in [0, 255] whose remainder mod base equals digit.
-export function nearestWithRemainder(value: number, base: number, digit: number): number {
+function nearestWithRemainder(value: number, base: number, digit: number): number {
   const candidate = digit + Math.round((value - digit) / base) * base
   if (candidate < 0) return digit
   if (candidate > 255) return digit + Math.floor((255 - digit) / base) * base
