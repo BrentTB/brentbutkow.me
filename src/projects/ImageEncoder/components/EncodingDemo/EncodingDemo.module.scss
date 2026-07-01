@@ -249,7 +249,7 @@
   position: absolute;
   left: 0;
   right: 0;
-  border-top: 1px dashed rgba(255, 255, 255, 0.45);
+  border-top: 1px dashed color-mix(in srgb, var(--text) 45%, transparent);
   pointer-events: none;
   z-index: 2;
 }
@@ -368,7 +368,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .fill {
+  .fill,
+  .track {
     transition: none;
   }
 }

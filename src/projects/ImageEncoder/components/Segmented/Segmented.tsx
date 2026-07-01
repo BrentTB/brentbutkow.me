@@ -63,7 +63,7 @@ export function Segmented<T extends string | number>({
             role="radio"
             aria-checked={selected}
             disabled={disabled}
-            tabIndex={disabled ? -1 : index === focusIndex ? 0 : -1}
+            tabIndex={index === focusIndex ? 0 : -1}
             className={selected ? styles.active : undefined}
             onClick={() => onChange(option.value)}
             onKeyDown={(event) => onKeyDown(event, index)}
