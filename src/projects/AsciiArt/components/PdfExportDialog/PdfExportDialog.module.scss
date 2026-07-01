@@ -1,0 +1,187 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(2px);
+}
+
+.panel {
+  width: 100%;
+  max-width: 430px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  // Solid, not the near-transparent --surface, so the page doesn't bleed through.
+  background: var(--bg-elevated);
+  padding: 22px 24px;
+  box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.5);
+}
+
+.title {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.hint {
+  margin: -6px 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  input[type='range'] {
+    accent-color: var(--accent);
+    width: 100%;
+  }
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+// Small caption under a field (budget cap, rate hint).
+.sub {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+// Viewer caveat above the actions.
+.note {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  overflow: hidden;
+
+  button {
+    flex: 1;
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    background: transparent;
+    border: none;
+    padding: 8px 10px;
+    cursor: pointer;
+    transition:
+      background 0.18s ease,
+      color 0.18s ease;
+  }
+
+  button + button {
+    border-left: 1px solid var(--border-strong);
+  }
+
+  .active {
+    color: var(--on-accent);
+    background: var(--accent);
+  }
+
+  button:disabled {
+    color: var(--muted);
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+// Three-up readout of the predicted export figures.
+.estimate {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-strong);
+
+  div {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    text-align: center;
+  }
+
+  dt {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  dd {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--text);
+  }
+}
+
+.note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.primary,
+.secondary {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  border-radius: var(--radius);
+  padding: 10px 20px;
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    transform 0.18s ease;
+
+  &:active {
+    transform: translateY(1px);
+  }
+}
+
+.primary {
+  color: var(--on-accent);
+  background: var(--accent);
+  border: 1px solid var(--accent);
+
+  &:hover {
+    background: color-mix(in srgb, var(--accent) 88%, black);
+  }
+}
+
+.secondary {
+  color: var(--text);
+  background: var(--surface-strong);
+  border: 1px solid var(--border-strong);
+
+  &:hover {
+    border-color: var(--accent);
+    background: rgba(var(--accent-rgb), 0.12);
+  }
+}

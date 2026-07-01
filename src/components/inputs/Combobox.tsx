@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
+import { createPortal } from 'react-dom'
 import type { SelectOption } from './option.types'
+import { useAnchoredPosition } from './useAnchoredPosition'
 import styles from './Combobox.module.scss'
 
 type ComboboxProps = {
@@ -18,6 +20,12 @@ type ComboboxProps = {
   // Fix the control + dropdown to this many characters wide; longer option labels truncate with an
   // ellipsis rather than widening it. Omit to size to the input (good for short options).
   widthCh?: number
+  // Chip-input mode: the typed text is itself a committable value. Enter, comma, and blur commit
+  // the trimmed draft via onChange and clear the input; picking a suggestion commits the same way.
+  // Pass `value=""` so each commit reads as a fresh entry rather than a selection.
+  freeText?: boolean
+  // Chip-input hook: Backspace on an empty input (remove the last chip).
+  onBackspaceEmpty?: () => void
 }
 
 // A searchable dropdown (ARIA combobox): a text input that filters a listbox. Pick from the list —
@@ -33,12 +41,15 @@ export function Combobox({
   loading,
   error,
   widthCh,
+  freeText,
+  onBackspaceEmpty,
 }: ComboboxProps) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
   const rootRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const menuRef = useRef<HTMLUListElement>(null)
   const optionRefs = useRef<(HTMLLIElement | null)[]>([])
   const baseId = useId()
   const listboxId = `${baseId}-listbox`
@@ -56,6 +67,11 @@ export function Combobox({
       ? options
       : options.filter((option) => option.label.toLowerCase().includes(typed))
 
+  // The listbox is portaled to <body> (fixed-positioned) so it escapes any overflow/backdrop-filter
+  // ancestor that would clip it (e.g. the dashboard's scrollable sticky bar). Re-flow on the filtered
+  // count so a flipped-up menu repositions when async options change its height.
+  const coords = useAnchoredPosition(rootRef, menuRef, open, filtered.length)
+
   // Reset the input to the committed selection on close, and tell an async parent to do the same —
   // otherwise a half-typed query (e.g. "wal") keeps driving suggestions the next time it opens, even
   // though the input shows nothing typed.
@@ -64,13 +80,27 @@ export function Combobox({
     onInputChange?.(selectedLabel)
   }
 
+  // Arrow keys signal intent to pick from the list; typing reclaims Enter for the raw draft.
+  const navigatedRef = useRef(false)
+
+  // Chip mode: hand the trimmed draft to the parent and clear for the next entry.
+  const commitDraft = () => {
+    const draft = query.trim()
+    setQuery('')
+    navigatedRef.current = false
+    if (draft) onChange(draft)
+  }
+
   useEffect(() => {
     if (!open) return
     const onPointerDown = (event: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
-        setOpen(false)
-        resetToSelection()
-      }
+      const target = event.target as Node
+      // The listbox lives in a body portal, outside rootRef — don't treat a click on it as "outside".
+      if (rootRef.current?.contains(target) || menuRef.current?.contains(target)) return
+      setOpen(false)
+      // Chip mode commits on blur (which this click also triggers) — committing here too would
+      // hand the parent the same draft twice.
+      if (!freeText) resetToSelection()
     }
     document.addEventListener('mousedown', onPointerDown)
     return () => document.removeEventListener('mousedown', onPointerDown)
@@ -106,12 +136,15 @@ export function Combobox({
   const choose = (option: SelectOption) => {
     if (option.disabled) return
     onChange(option.value)
+    if (freeText) setQuery('')
+    navigatedRef.current = false
     setOpen(false)
   }
 
   const onType = (text: string) => {
     setQuery(text)
     setActiveIndex(0)
+    navigatedRef.current = false
     setOpen(true)
     onInputChange?.(text)
   }
@@ -120,15 +153,28 @@ export function Combobox({
     if (event.key === 'Escape') {
       setOpen(false)
       resetToSelection()
+    } else if (freeText && (event.key === 'Enter' || event.key === ',')) {
+      // The draft is the value in chip mode — Enter/comma commit it, unless the user explicitly
+      // arrowed onto a suggestion (then Enter picks that).
+      event.preventDefault()
+      if (event.key === 'Enter' && navigatedRef.current && open && filtered[activeIndex]) {
+        choose(filtered[activeIndex])
+      } else {
+        commitDraft()
+      }
+    } else if (freeText && event.key === 'Backspace' && query === '') {
+      onBackspaceEmpty?.()
     } else if (!open && (event.key === 'ArrowDown' || event.key === 'Enter')) {
       event.preventDefault()
       setOpen(true)
     } else if (open && event.key === 'ArrowDown') {
       event.preventDefault()
       if (filtered.length === 0) return
+      navigatedRef.current = true
       setActiveIndex((index) => seekEnabled(index + 1, 1) ?? index)
     } else if (open && event.key === 'ArrowUp') {
       event.preventDefault()
+      navigatedRef.current = true
       setActiveIndex((index) => seekEnabled(index - 1, -1) ?? index)
     } else if (open && event.key === 'Enter') {
       event.preventDefault()
@@ -156,9 +202,19 @@ export function Combobox({
         value={query}
         onChange={(event) => onType(event.target.value)}
         onFocus={() => {
-          setOpen(true)
           inputRef.current?.select()
         }}
+        onClick={() => setOpen(!open)}
+        // Chip mode: tabbing/tapping away commits the draft. Picking an option never blurs
+        // mid-click — the menu preventDefaults its own mousedown.
+        onBlur={
+          freeText
+            ? () => {
+                commitDraft()
+                setOpen(false)
+              }
+            : undefined
+        }
         onKeyDown={onKeyDown}
       />
       {value && (
@@ -171,46 +227,65 @@ export function Combobox({
           ✕
         </button>
       )}
-      {open && (
-        <ul className={styles.menu} id={listboxId} role="listbox" aria-label={ariaLabel}>
-          {filtered.length === 0 ? (
-            <li className={styles.empty}>
-              {loading ? 'Searching…' : error ? 'Couldn’t load options' : 'No matches'}
-            </li>
-          ) : (
-            filtered.map((option, index) => (
-              <li
-                key={option.value}
-                id={optionId(index)}
-                ref={(node) => {
-                  optionRefs.current[index] = node
-                }}
-                role="option"
-                aria-selected={option.value === value}
-                aria-disabled={option.disabled || undefined}
-                className={[
-                  styles.option,
-                  index === activeIndex && styles.active,
-                  option.value === value && styles.selected,
-                  option.disabled && styles.disabled,
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-                onMouseEnter={() => !option.disabled && setActiveIndex(index)}
-                onMouseDown={(event) => {
-                  event.preventDefault()
-                  choose(option)
-                }}
-              >
-                <span className={styles.optionLabel}>{option.label}</span>
-                {option.count !== undefined && (
-                  <span className={styles.count}>{option.count.toLocaleString()}</span>
-                )}
+      {open &&
+        createPortal(
+          <ul
+            ref={menuRef}
+            className={styles.menu}
+            id={listboxId}
+            role="listbox"
+            aria-label={ariaLabel}
+            style={
+              coords
+                ? {
+                    position: 'fixed',
+                    top: coords.top,
+                    left: coords.left,
+                    width: coords.width,
+                    minWidth: coords.width,
+                  }
+                : { position: 'fixed', visibility: 'hidden' }
+            }
+          >
+            {filtered.length === 0 ? (
+              <li className={styles.empty}>
+                {loading ? 'Searching…' : error ? 'Couldn’t load options' : 'No matches'}
               </li>
-            ))
-          )}
-        </ul>
-      )}
+            ) : (
+              filtered.map((option, index) => (
+                <li
+                  key={option.value}
+                  id={optionId(index)}
+                  ref={(node) => {
+                    optionRefs.current[index] = node
+                  }}
+                  role="option"
+                  aria-selected={option.value === value}
+                  aria-disabled={option.disabled || undefined}
+                  className={[
+                    styles.option,
+                    index === activeIndex && styles.active,
+                    option.value === value && styles.selected,
+                    option.disabled && styles.disabled,
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                  onMouseEnter={() => !option.disabled && setActiveIndex(index)}
+                  onMouseDown={(event) => {
+                    event.preventDefault()
+                    choose(option)
+                  }}
+                >
+                  <span className={styles.optionLabel}>{option.label}</span>
+                  {option.count !== undefined && (
+                    <span className={styles.count}>{option.count.toLocaleString()}</span>
+                  )}
+                </li>
+              ))
+            )}
+          </ul>,
+          document.body
+        )}
     </div>
   )
 }

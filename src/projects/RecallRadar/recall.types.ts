@@ -86,6 +86,16 @@ export const EventSort = {
 } as const
 export type EventSort = (typeof EventSort)[keyof typeof EventSort]
 
+// The dashboard splits into three tabs, each a distinct working surface — the analytics
+// (dashboard), the raw recall list (recalls), and the write-up (about). The active tab rides the URL
+// like every other view config, so a tab is shareable and survives a reload.
+export const RecallView = {
+  dashboard: 'dashboard',
+  recalls: 'recalls',
+  about: 'about',
+} as const
+export type RecallView = (typeof RecallView)[keyof typeof RecallView]
+
 // UI filter state — '' means "no filter".
 export type RecallFilterValues = {
   category: RecallCategory | ''
@@ -285,6 +295,7 @@ export const isTrendGroup = oneOf(TrendGroup)
 export const isSeverityLabel = oneOf(SeverityLabel)
 export const isRecallSort = oneOf(RecallSort)
 export const isEventSort = oneOf(EventSort)
+export const isRecallView = oneOf(RecallView)
 const isAnomalyScope = oneOf(AnomalyScope)
 
 // A 'YYYY-MM-DD' calendar date — the shape the date filters and the backend expect. Guards the

@@ -1,4 +1,5 @@
 import { ToggleableSection } from '../../../../components/ToggleableSection/ToggleableSection'
+import { EncodingDemo } from '../EncodingDemo/EncodingDemo'
 import styles from './HowItWorks.module.scss'
 
 export function HowItWorks() {
@@ -8,7 +9,7 @@ export function HowItWorks() {
         <div className={styles.body}>
           <p>
             Every pixel is three numbers: how much red, green, and blue it holds, each from 0 to
-            255. Shift one of those numbers by a step or two and the color barely changes, far too
+            255. Shift one of those numbers by one or two and the color barely changes, far too
             little for your eye to notice. The whole trick is hiding a message, or a whole file, in
             those tiny shifts.
           </p>
@@ -21,6 +22,8 @@ export function HowItWorks() {
             value that lands on the right remainder, so it never drifts by more than a step or two.
           </p>
 
+          <EncodingDemo />
+
           <h4>Binary, ternary, quaternary</h4>
           <p>
             The base sets how much each channel holds. <code>Binary</code> stores one bit per
@@ -32,11 +35,12 @@ export function HowItWorks() {
           <h4>How the image describes itself</h4>
           <p>
             The first pixels hold a small header: a marker that says a message is present, which
-            base was used, whether it is encrypted, and how long the message runs. That is why
-            reading any image just works. With no marker, the reader knows nothing is hidden and
-            tells you, rather than spitting out noise. The header also carries a small seed that
-            shuffles where the rest of the bytes go, so the changes scatter across the whole picture
-            instead of piling up in one corner.
+            base was used, whether it is encrypted, and the message length. That is why reading any
+            image just works. With no marker, the reader knows nothing is hidden and tells you,
+            rather than spitting out noise. When <code>Spread the data across the whole image</code>{' '}
+            is toggled on in settings, the header also carries a small seed that shuffles where the
+            rest of the bytes go, so the changes scatter across the whole picture instead of piling
+            up at the top.
           </p>
 
           <h4>The key</h4>

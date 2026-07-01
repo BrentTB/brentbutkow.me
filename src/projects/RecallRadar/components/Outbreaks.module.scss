@@ -9,6 +9,12 @@
   justify-content: flex-end;
 }
 
+// Positions the reveal under the grid — ShowMoreToggle owns the button's appearance.
+.moreToggle {
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
 // Compact cards — denser than a full card grid, with a red left-rail + faint warm tint + ⚠ so
 // outbreaks read as the alert area, but as their own visual block (not another row).
 .grid {

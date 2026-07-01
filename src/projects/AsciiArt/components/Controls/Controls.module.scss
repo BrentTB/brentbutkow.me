@@ -159,6 +159,21 @@ input[type='range'] {
   &:active {
     transform: translateY(1px);
   }
+
+  // Busy (e.g. rendering a PDF): inert, dimmed, no hover lift.
+  &:disabled {
+    opacity: 0.55;
+    cursor: progress;
+
+    &:hover {
+      border-color: var(--border-strong);
+      background: var(--surface-strong);
+    }
+
+    &:active {
+      transform: none;
+    }
+  }
 }
 
 // While recording, the button reads as live with a pulsing danger dot.

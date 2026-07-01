@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
+import { createPortal } from 'react-dom'
 import type { SelectOption } from './option.types'
+import { useAnchoredPosition } from './useAnchoredPosition'
 import styles from './Select.module.scss'
 
 type SelectProps = {
@@ -28,6 +30,8 @@ export function Select({
   const [open, setOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
   const rootRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLUListElement>(null)
   const optionRefs = useRef<(HTMLLIElement | null)[]>([])
   const baseId = useId()
   const listboxId = `${baseId}-listbox`
@@ -46,8 +50,11 @@ export function Select({
 
   useEffect(() => {
     if (!open) return
+    // The menu lives in a body portal, outside rootRef — so a click on it must not count as "outside".
     const onPointerDown = (event: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) setOpen(false)
+      const target = event.target as Node
+      if (rootRef.current?.contains(target) || menuRef.current?.contains(target)) return
+      setOpen(false)
     }
     document.addEventListener('mousedown', onPointerDown)
     return () => document.removeEventListener('mousedown', onPointerDown)
@@ -57,6 +64,10 @@ export function Select({
   useEffect(() => {
     if (open) optionRefs.current[activeIndex]?.scrollIntoView?.({ block: 'nearest' })
   }, [open, activeIndex])
+
+  // The menu is portaled to <body> (fixed-positioned) so it escapes any overflow/backdrop-filter
+  // ancestor that would otherwise clip it — e.g. the recall dashboard's scrollable sticky bar.
+  const coords = useAnchoredPosition(triggerRef, menuRef, open)
 
   const openMenu = () => {
     const current = options.findIndex((option) => option.value === value)
@@ -93,6 +104,7 @@ export function Select({
   return (
     <div className={styles.root} ref={rootRef}>
       <button
+        ref={triggerRef}
         type="button"
         className={[styles.trigger, triggerClassName].filter(Boolean).join(' ')}
         disabled={disabled}
@@ -109,37 +121,56 @@ export function Select({
           ▾
         </span>
       </button>
-      {open && (
-        <ul className={styles.menu} id={listboxId} role="listbox" aria-label={ariaLabel}>
-          {options.map((option, index) => (
-            <li
-              key={option.value}
-              id={optionId(index)}
-              ref={(node) => {
-                optionRefs.current[index] = node
-              }}
-              role="option"
-              aria-selected={option.value === value}
-              aria-disabled={option.disabled || undefined}
-              className={[
-                styles.option,
-                index === activeIndex && styles.active,
-                option.value === value && styles.selected,
-                option.disabled && styles.disabled,
-              ]
-                .filter(Boolean)
-                .join(' ')}
-              onMouseEnter={() => !option.disabled && setActiveIndex(index)}
-              onClick={() => choose(index)}
-            >
-              <span className={styles.optionLabel}>{option.label}</span>
-              {option.count !== undefined && (
-                <span className={styles.count}>{option.count.toLocaleString()}</span>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+      {open &&
+        createPortal(
+          <ul
+            ref={menuRef}
+            className={styles.menu}
+            id={listboxId}
+            role="listbox"
+            aria-label={ariaLabel}
+            style={
+              coords
+                ? {
+                    position: 'fixed',
+                    top: coords.top,
+                    left: coords.left,
+                    width: coords.width,
+                    minWidth: coords.width,
+                  }
+                : { position: 'fixed', visibility: 'hidden' }
+            }
+          >
+            {options.map((option, index) => (
+              <li
+                key={option.value}
+                id={optionId(index)}
+                ref={(node) => {
+                  optionRefs.current[index] = node
+                }}
+                role="option"
+                aria-selected={option.value === value}
+                aria-disabled={option.disabled || undefined}
+                className={[
+                  styles.option,
+                  index === activeIndex && styles.active,
+                  option.value === value && styles.selected,
+                  option.disabled && styles.disabled,
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                onMouseEnter={() => !option.disabled && setActiveIndex(index)}
+                onClick={() => choose(index)}
+              >
+                <span className={styles.optionLabel}>{option.label}</span>
+                {option.count !== undefined && (
+                  <span className={styles.count}>{option.count.toLocaleString()}</span>
+                )}
+              </li>
+            ))}
+          </ul>,
+          document.body
+        )}
     </div>
   )
 }

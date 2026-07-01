@@ -1,13 +1,33 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render as rtlRender, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import type { ReactElement } from 'react'
+import { useState, type ComponentProps, type ReactElement } from 'react'
 import { RecallFeed } from './RecallFeed'
 import type { Recall } from '../recall.types'
 
 // RecallFeed renders <Link>s (the per-row "Open recall page" + related recalls), so each render
 // needs a Router context. Wrap testing-library's render once rather than at every call site.
 const render = (ui: ReactElement) => rtlRender(<MemoryRouter>{ui}</MemoryRouter>)
+
+// RecallFeed's open rows are controlled by the parent (RecallRadar lifts them into the URL), so
+// most tests drive it through this stateful harness; controlled-behaviour tests pin the props.
+function Feed(props: Omit<ComponentProps<typeof RecallFeed>, 'openRows' | 'onRowToggle'>) {
+  const [openRows, setOpenRows] = useState<ReadonlySet<string>>(new Set())
+  return (
+    <RecallFeed
+      {...props}
+      openRows={openRows}
+      onRowToggle={(recallNumber, open) =>
+        setOpenRows((prev) => {
+          const next = new Set(prev)
+          if (open) next.add(recallNumber)
+          else next.delete(recallNumber)
+          return next
+        })
+      }
+    />
+  )
+}
 
 const mockRes = (body: unknown) => ({ ok: true, status: 200, json: async () => body }) as Response
 
@@ -39,11 +59,12 @@ describe('RecallFeed', () => {
   })
 
   it('shows the product summary and a drill-down with the recall metadata', () => {
-    render(<RecallFeed recalls={[recall]} />)
+    render(<Feed recalls={[recall]} />)
     expect(screen.getByText('Test cookies')).toBeTruthy()
-    expect(screen.getByText('92%')).toBeTruthy()
-    expect(screen.getByText('Severe')).toBeTruthy() // color-graded severity badge
+    expect(screen.getByLabelText('Severity: Severe')).toBeTruthy() // color-graded severity dot
     // fields revealed in the expandable detail panel
+    expect(screen.getByText('92%')).toBeTruthy() // classifier confidence
+    expect(screen.getByText('Acme Foods')).toBeTruthy() // company
     expect(screen.getByText('F-1234')).toBeTruthy()
     expect(screen.getByText('Nationwide')).toBeTruthy()
     expect(screen.getByText('USDA FSIS')).toBeTruthy() // source badge
@@ -52,7 +73,7 @@ describe('RecallFeed', () => {
   })
 
   it('toggles the detail panel open when the summary is clicked', () => {
-    const { container } = render(<RecallFeed recalls={[recall]} />)
+    const { container } = render(<Feed recalls={[recall]} />)
     const details = container.querySelector('details')
     const summary = container.querySelector('summary')
     expect(details?.open).toBe(false)
@@ -61,7 +82,7 @@ describe('RecallFeed', () => {
   })
 
   it('links the product title to the recall page without expanding the row', () => {
-    const { container } = render(<RecallFeed recalls={[recall]} />)
+    const { container } = render(<Feed recalls={[recall]} />)
     const title = screen.getByRole('link', { name: 'Test cookies' })
     expect(title.getAttribute('href')).toContain('/projects/recall-radar/usda/F-1234')
     fireEvent.click(title)
@@ -81,7 +102,7 @@ describe('RecallFeed', () => {
       ])
     )
     vi.stubGlobal('fetch', fetchMock)
-    const { container } = render(<RecallFeed recalls={[recall]} />)
+    const { container } = render(<Feed recalls={[recall]} />)
     const details = container.querySelector('details') as HTMLDetailsElement
 
     details.open = true
@@ -94,14 +115,38 @@ describe('RecallFeed', () => {
   })
 
   it('renders an empty state when there are no recalls', () => {
-    render(<RecallFeed recalls={[]} />)
+    render(<Feed recalls={[]} />)
     expect(screen.getByText('No recalls match these filters.')).toBeTruthy()
+  })
+
+  it('renders a row expanded when the controlled openRows set contains it', () => {
+    // Guards the URL-restore path: a shared ?open= link must render its rows already expanded.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => mockRes([]))
+    )
+    const { container } = render(
+      <RecallFeed recalls={[recall]} openRows={new Set(['F-1234'])} onRowToggle={vi.fn()} />
+    )
+    expect(container.querySelector('details')?.open).toBe(true)
+  })
+
+  it('reports summary toggles to onRowToggle with the recall number', () => {
+    const onRowToggle = vi.fn()
+    const { container } = render(
+      <RecallFeed recalls={[recall]} openRows={new Set<string>()} onRowToggle={onRowToggle} />
+    )
+    // jsdom flips `open` on summary click but never fires the toggle event — dispatch it directly.
+    const details = container.querySelector('details') as HTMLDetailsElement
+    details.open = true
+    fireEvent(details, new Event('toggle'))
+    expect(onRowToggle).toHaveBeenCalledWith('F-1234', true)
   })
 
   it('shows a theme chip that filters without toggling the row open', () => {
     const onTopicSelect = vi.fn()
     const { container } = render(
-      <RecallFeed
+      <Feed
         recalls={[{ ...recall, topicId: 2 }]}
         topicsById={
           new Map([
@@ -144,7 +189,7 @@ describe('RecallFeed', () => {
   it('shows an outbreak badge that filters without toggling the row open', () => {
     const onEventSelect = vi.fn()
     const { container } = render(
-      <RecallFeed
+      <Feed
         recalls={[{ ...recall, eventClusterId: 5 }]}
         eventsById={new Map([[5, outbreak()]])}
         onEventSelect={onEventSelect}
@@ -158,7 +203,7 @@ describe('RecallFeed', () => {
 
   it('shows no badge for a recall in a non-outbreak cluster', () => {
     render(
-      <RecallFeed
+      <Feed
         recalls={[{ ...recall, eventClusterId: 5 }]}
         eventsById={new Map([[5, outbreak({ isOutbreak: false })]])}
         onEventSelect={vi.fn()}
@@ -170,7 +215,7 @@ describe('RecallFeed', () => {
   it('clears the theme filter when its already-active chip is re-clicked', () => {
     const onTopicSelect = vi.fn()
     render(
-      <RecallFeed
+      <Feed
         recalls={[{ ...recall, topicId: 2 }]}
         topicsById={
           new Map([
@@ -197,7 +242,7 @@ describe('RecallFeed', () => {
   it('clears the outbreak filter when its already-active badge is re-clicked', () => {
     const onEventSelect = vi.fn()
     render(
-      <RecallFeed
+      <Feed
         recalls={[{ ...recall, eventClusterId: 5 }]}
         eventsById={new Map([[5, outbreak()]])}
         onEventSelect={onEventSelect}
@@ -218,7 +263,7 @@ describe('RecallFeed', () => {
       ])
     )
     vi.stubGlobal('fetch', fetchMock)
-    const { container } = render(<RecallFeed recalls={[recall]} />)
+    const { container } = render(<Feed recalls={[recall]} />)
 
     expect(fetchMock).not.toHaveBeenCalled() // nothing fetched before expanding
 

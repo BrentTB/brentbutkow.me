@@ -1,0 +1,408 @@
+.demo {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: clamp(16px, 3vw, 22px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.controls {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px 20px;
+  flex-wrap: wrap;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.controlLabel {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+
+.message {
+  width: 12ch;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  letter-spacing: 0.28em;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+
+  &:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.18);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
+.messageRow {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.randomizeCode {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-strong);
+  color: var(--text);
+  font-size: 1.05rem;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    border-color 150ms ease,
+    color 150ms ease,
+    transform 0.1s;
+
+  &:hover:not(:disabled) {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
+// The ⟳ glyph renders low in its line box; nudge it up so it optically centers.
+.reloadGlyph {
+  display: block;
+  line-height: 1;
+  transform: translateY(-1px);
+}
+
+.actions {
+  flex: 1 1 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+// The two encoding passes, spelled out beside the buttons. The step underway
+// during playback lights up in the accent.
+.phaseNote {
+  margin: 0;
+  padding: 0 0 0 18px;
+  list-style: decimal;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  line-height: 1.5;
+  color: var(--muted);
+
+  li {
+    transition: color 150ms ease;
+  }
+
+  li.phaseActive {
+    color: var(--accent);
+    font-weight: 600;
+
+    &::marker {
+      color: var(--accent);
+    }
+  }
+}
+
+.actionButtons {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.randomizeButton {
+  padding: 9px 16px;
+  background: var(--surface-strong);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition:
+    border-color 150ms ease,
+    color 150ms ease,
+    transform 0.1s;
+
+  &:hover:not(:disabled) {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+}
+
+.playButton {
+  padding: 9px 18px;
+  background: var(--accent);
+  color: var(--on-accent);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 150ms ease,
+    transform 0.1s;
+
+  &:hover:not(:disabled) {
+    background: var(--accent-strong);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+}
+
+.randomizeButton:disabled,
+.playButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.hint {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.pixels {
+  display: flex;
+  gap: clamp(16px, 4vw, 32px);
+  flex-wrap: wrap;
+}
+
+.pixel {
+  flex: 1 1 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+}
+
+.pixelLabel {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+}
+
+.channels {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.channel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+
+  &.r {
+    --chan: #e5675f;
+  }
+  &.g {
+    --chan: #57c08a;
+  }
+  &.b {
+    --chan: #5b9cf0;
+  }
+}
+
+.track {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+// The channel the animation is currently encoding: ring it in its own color so
+// the highlight visibly steps along even when the value doesn't move.
+.channel.active {
+  .track {
+    border-color: var(--chan);
+    box-shadow:
+      0 0 0 2px color-mix(in srgb, var(--chan) 70%, transparent),
+      0 0 18px color-mix(in srgb, var(--chan) 40%, transparent);
+  }
+
+  .channelName,
+  .math strong {
+    color: var(--chan);
+  }
+}
+
+// Dashed marker at the untouched value, so the nudge to the stored value shows.
+.original {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px dashed color-mix(in srgb, var(--text) 45%, transparent);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.originalTag {
+  position: absolute;
+  right: 0;
+  top: -8px;
+  // Sit mostly over the bar with a sliver hanging past the right edge, clear of
+  // the centered stored-value number.
+  transform: translateX(30%);
+  padding: 0 4px;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+  white-space: nowrap;
+}
+
+.fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 0 0 7px 7px;
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--chan) 55%, transparent),
+    color-mix(in srgb, var(--chan) 22%, transparent)
+  );
+  border-top: 2px solid var(--chan);
+  transition: height 380ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.fillValue {
+  position: absolute;
+  top: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--chan);
+}
+
+.channelName {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--chan);
+}
+
+.math {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--muted);
+  text-align: center;
+
+  strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-strong);
+
+  button {
+    width: 26px;
+    height: 30px;
+    border: none;
+    background: none;
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+    border-radius: var(--radius);
+    transition: color 120ms ease;
+
+    &:hover:not(:disabled) {
+      color: var(--chan);
+    }
+
+    &:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+  }
+}
+
+.digit {
+  min-width: 1.2ch;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--chan);
+}
+
+// Fun mode: the ink surfaces read as stark black over the water — swap to glass.
+:global(html.fun-mode) .pixel,
+:global(html.fun-mode) .message,
+:global(html.fun-mode) .originalTag {
+  background: var(--fun-surface);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fill,
+  .track {
+    transition: none;
+  }
+}

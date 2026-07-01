@@ -39,11 +39,13 @@ export function RecallTrendsChart({ data, year, legend, forecast }: RecallTrends
       .filter((point) => point.month.startsWith(`${year}-`) && point.month > latestActual)
       .map((point) => [point.month, point])
   )
-  // Scale over the actual stacks *and* the projection's upper band so neither bars nor whiskers clip.
-  const maxCount = seriesMax([
-    ...totals,
-    ...[...forecastByMonth.values()].map((point) => point.upper),
-  ])
+  // Scale to the actual stacks *and* the projection's upper band, so a forecast that expects far more
+  // than the year's recorded months so far can still rise above them — clamping the scale to the
+  // current max would hide that the projection runs higher. The band is faint now (not a bold
+  // whisker), so the taller axis reads fine. Round up so the axis is a count, not a "318.1" glitch.
+  const maxCount = Math.ceil(
+    seriesMax([...totals, ...[...forecastByMonth.values()].map((point) => point.upper)])
+  )
   const plotW = WIDTH - PADDING.left - PADDING.right
   const plotH = HEIGHT - PADDING.top - PADDING.bottom
   const slot = plotW / months.length
@@ -161,13 +163,24 @@ export function RecallTrendsChart({ data, year, legend, forecast }: RecallTrends
           const point = forecastByMonth.get(month.month)
           if (!point) return null
           const x = barX(index)
-          const cx = x + barW / 2
           const predicted = Math.round(point.predicted)
           const text =
             `${formatMonthLabel(month.month)} · projected ${formatNumber(predicted)} ` +
             `(range ${formatNumber(Math.round(point.lower))}–${formatNumber(Math.round(point.upper))})`
+          // The uncertainty range as a soft shaded band behind the ghost bar, clamped to the plot —
+          // reads as "roughly this range" instead of a towering error bar dwarfing the real months.
+          const bandTop = Math.max(PADDING.top, y(point.upper))
+          const bandHeight = Math.max(0, y(point.lower) - bandTop)
           return (
             <g key={`forecast-${month.month}`}>
+              <rect
+                x={x}
+                y={bandTop}
+                width={barW}
+                height={bandHeight}
+                className={styles.forecastBand}
+                aria-hidden="true"
+              />
               <rect
                 x={x}
                 y={y(point.predicted)}
@@ -180,27 +193,6 @@ export function RecallTrendsChart({ data, year, legend, forecast }: RecallTrends
                 onMouseEnter={showTip(text)}
                 onMouseMove={showTip(text)}
                 onMouseLeave={hideTip}
-              />
-              <line
-                x1={cx}
-                y1={y(point.lower)}
-                x2={cx}
-                y2={y(point.upper)}
-                className={styles.whisker}
-              />
-              <line
-                x1={cx - 5}
-                y1={y(point.upper)}
-                x2={cx + 5}
-                y2={y(point.upper)}
-                className={styles.whisker}
-              />
-              <line
-                x1={cx - 5}
-                y1={y(point.lower)}
-                x2={cx + 5}
-                y2={y(point.lower)}
-                className={styles.whisker}
               />
             </g>
           )

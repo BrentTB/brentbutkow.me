@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, useLocation } from 'react-router-dom'
 import { FunModeProvider } from '../../contexts/FunModeProvider'
 import { RecallRadar } from './RecallRadar'
 import { emptyFacets } from './test-fixtures'
@@ -154,6 +154,26 @@ const facets = {
 
 const mockRes = (body: unknown) => ({ ok: true, status: 200, json: async () => body }) as Response
 
+const stubApi = (over: { recalls?: unknown } = {}) => {
+  const fetchMock = vi.fn(async (url: string | URL) => {
+    const path = String(url)
+    if (path.includes('/similar')) return mockRes([])
+    if (path.includes('/recalls/trend')) return mockRes(trend)
+    if (path.includes('/recalls/stats')) return mockRes(stats)
+    if (path.includes('/recalls/topics')) return mockRes(topics)
+    if (path.includes('/recalls/events')) return mockRes(events)
+    if (path.includes('/recalls/facets')) return mockRes(facets)
+    return mockRes(over.recalls ?? recalls)
+  })
+  vi.stubGlobal('fetch', fetchMock)
+  return fetchMock
+}
+
+// Surfaces the router's current query string so tests can assert what the page writes to the URL.
+function SearchProbe() {
+  return <output data-testid="search">{useLocation().search}</output>
+}
+
 describe('RecallRadar page', () => {
   afterEach(() => {
     cleanup() // two tests now render the page; clear the DOM between them
@@ -161,16 +181,7 @@ describe('RecallRadar page', () => {
   })
 
   it('renders the overview, breakdowns, and a recall row from the API', async () => {
-    const fetchMock = vi.fn(async (url: string | URL) => {
-      const path = String(url)
-      if (path.includes('/recalls/trend')) return mockRes(trend)
-      if (path.includes('/recalls/stats')) return mockRes(stats)
-      if (path.includes('/recalls/topics')) return mockRes(topics)
-      if (path.includes('/recalls/events')) return mockRes(events)
-      if (path.includes('/recalls/facets')) return mockRes(facets)
-      return mockRes(recalls)
-    })
-    vi.stubGlobal('fetch', fetchMock)
+    const fetchMock = stubApi()
 
     render(
       <MemoryRouter>
@@ -181,19 +192,11 @@ describe('RecallRadar page', () => {
     )
 
     expect(screen.getByText('Recall Radar')).toBeTruthy()
-    // tech-stack overview + methodology render immediately (not data-gated)
-    expect(screen.getByText('FastAPI')).toBeTruthy()
-    expect(screen.getByText('How it works')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'United Kingdom' })).toBeTruthy() // location tabs (expanded)
 
-    // data-driven sections after the fetch resolves
-    await waitFor(() => expect(screen.getByText('Test cookies')).toBeTruthy())
-    expect(screen.getByText('Acme Foods')).toBeTruthy()
-    expect(screen.getByText('US recalls by state')).toBeTruthy()
+    // Dashboard tab (the default view) — the data-driven analytics after the fetch resolves.
+    await waitFor(() => expect(screen.getByText('US recalls by state')).toBeTruthy())
     expect(screen.getByRole('button', { name: 'California: 18 recalls' })).toBeTruthy()
-    // per-recall drill-down detail (the "Leading cause" callout now lives in the status strip)
-    expect(screen.getByText('Nationwide')).toBeTruthy()
-    expect(screen.getByText('100%')).toBeTruthy() // per-recall classifier confidence
     expect(screen.getByText('Top states')).toBeTruthy()
     // appears in the breakdown row and the company filter option
     expect(screen.getAllByText('Globex Foods').length).toBeGreaterThan(0)
@@ -201,7 +204,7 @@ describe('RecallRadar page', () => {
     expect(screen.getByText('42')).toBeTruthy()
     // entity leaderboard + a detected anomaly callout (headlined by the spike's count, not σ)
     expect(screen.getByText('Top allergens')).toBeTruthy()
-    // severity surface: the distribution bar + a color-graded per-recall badge
+    // severity surface: the distribution bar
     expect(screen.getByText('Severity mix')).toBeTruthy()
     expect(screen.getAllByText('Severe').length).toBeGreaterThan(0)
     expect(screen.getByText('Anomaly')).toBeTruthy()
@@ -212,10 +215,23 @@ describe('RecallRadar page', () => {
     // themes section + the per-card theme chip both render the topic label
     expect(screen.getAllByText('Themes').length).toBeGreaterThan(0) // nav rail + section heading
     expect(screen.getAllByText('listeria · deli · meat').length).toBeGreaterThan(0)
-    // outbreaks section renders its card, and the recall in that cluster gets an outbreak badge
+    // outbreaks section renders its card
     expect(screen.getAllByText('Outbreaks').length).toBeGreaterThan(0) // nav rail + section heading
     expect(screen.getByText('5 recalls')).toBeTruthy() // the outbreak card
+
+    // Recalls tab — the recall feed, its drill-down detail, and the per-recall outbreak badge.
+    fireEvent.click(screen.getByRole('tab', { name: /^Recalls/ }))
+    await waitFor(() => expect(screen.getByText('Test cookies')).toBeTruthy())
+    expect(screen.getByText('Acme Foods')).toBeTruthy()
+    expect(screen.getByText('Nationwide')).toBeTruthy()
+    expect(screen.getByText('100%')).toBeTruthy() // per-recall classifier confidence
     expect(screen.getByText('⚠ Outbreak')).toBeTruthy() // the per-recall badge
+
+    // About tab — the tech-stack write-up + methodology, tucked behind its own tab.
+    fireEvent.click(screen.getByRole('tab', { name: 'About' }))
+    expect(screen.getByText('FastAPI')).toBeTruthy()
+    expect(screen.getByText('How it works')).toBeTruthy()
+
     // similar recalls are lazy — nothing is fetched until a row is expanded
     expect(fetchMock).not.toHaveBeenCalledWith(
       expect.stringContaining('/similar'),
@@ -223,23 +239,51 @@ describe('RecallRadar page', () => {
     )
   })
 
+  it('persists expanded feed rows in the ?open= param and restores them from it', async () => {
+    stubApi()
+    const scrollSpy = vi.fn()
+    Element.prototype.scrollIntoView = scrollSpy
+
+    // Restore: a shared link with ?open= renders that row already expanded and jumps to it.
+    const { container, unmount } = render(
+      <MemoryRouter initialEntries={['/?view=recalls&open=F-1']}>
+        <FunModeProvider>
+          <RecallRadar />
+        </FunModeProvider>
+      </MemoryRouter>
+    )
+    await waitFor(() => expect(screen.getByText('Test cookies')).toBeTruthy())
+    expect(container.querySelector('details')?.open).toBe(true)
+    // The one-shot jump targets the restored row itself, like a #fragment.
+    await waitFor(() => expect(scrollSpy).toHaveBeenCalled())
+    expect((scrollSpy.mock.contexts[0] as Element).id).toBe('recall-F-1')
+    unmount()
+
+    // Persist: toggling a row writes its recall number to the URL, and closing clears it.
+    const { container: c2 } = render(
+      <MemoryRouter initialEntries={['/?view=recalls']}>
+        <FunModeProvider>
+          <RecallRadar />
+        </FunModeProvider>
+        <SearchProbe />
+      </MemoryRouter>
+    )
+    await waitFor(() => expect(screen.getByText('Test cookies')).toBeTruthy())
+    // jsdom flips `open` on summary click but never fires the toggle event — dispatch it directly.
+    const details = c2.querySelector('details') as HTMLDetailsElement
+    details.open = true
+    fireEvent(details, new Event('toggle'))
+    expect(screen.getByTestId('search').textContent).toContain('open=F-1')
+    details.open = false
+    fireEvent(details, new Event('toggle'))
+    expect(screen.getByTestId('search').textContent).not.toContain('open=')
+  })
+
   it('scrolls back to the recalls section when paging', async () => {
     const scrollSpy = vi.fn()
     // jsdom doesn't implement scrollIntoView; install a spy so the pager's call is observable.
     Element.prototype.scrollIntoView = scrollSpy
-    const manyRecalls = { items: recalls.items, total: 50 } // > PAGE_SIZE → a pager renders
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (url: string | URL) => {
-        const path = String(url)
-        if (path.includes('/recalls/trend')) return mockRes(trend)
-        if (path.includes('/recalls/stats')) return mockRes(stats)
-        if (path.includes('/recalls/topics')) return mockRes(topics)
-        if (path.includes('/recalls/events')) return mockRes(events)
-        if (path.includes('/recalls/facets')) return mockRes(facets)
-        return mockRes(manyRecalls)
-      })
-    )
+    stubApi({ recalls: { items: recalls.items, total: 50 } }) // > PAGE_SIZE → a pager renders
 
     render(
       <MemoryRouter>
@@ -249,7 +293,10 @@ describe('RecallRadar page', () => {
       </MemoryRouter>
     )
 
+    // The recall feed + its pager live on the Recalls tab now, so open it first.
+    fireEvent.click(screen.getByRole('tab', { name: /^Recalls/ }))
     await waitFor(() => expect(screen.getByText('Test cookies')).toBeTruthy())
+    scrollSpy.mockClear() // ignore any scroll from the tab switch; assert only the pager's
     fireEvent.click(screen.getByRole('button', { name: 'Next page' }))
     expect(scrollSpy).toHaveBeenCalled()
   })

@@ -47,12 +47,10 @@ describe('RelatedRecalls', () => {
     expect(screen.getByText('82%')).toBeTruthy()
   })
 
-  it('surfaces each neighbour’s identifying fields (recall number, company, severity, date)', async () => {
+  it('shows each neighbour’s severity, source, and date, and links to its detail page', async () => {
     const full: Recall = {
       ...neighbour,
       recallNumber: 'F-42',
-      companyName: 'Globex Foods',
-      classification: 'Class I',
       reportDate: '2026-06-10',
     }
     vi.stubGlobal(
@@ -60,10 +58,9 @@ describe('RelatedRecalls', () => {
       vi.fn(async () => mockRes([{ similarity: 0.7, recall: full }]))
     )
     render(<RelatedRecalls source={RecallSource.fda} recallNumber="F-1" />)
-    await waitFor(() => expect(screen.getByText('F-42')).toBeTruthy())
-    expect(screen.getByText('Globex Foods')).toBeTruthy()
-    expect(screen.getByText('Severe')).toBeTruthy() // severityLabel 'severe' → label
-    expect(screen.getByText('Class I')).toBeTruthy()
+    await waitFor(() => expect(screen.getByText('Sliced deli turkey')).toBeTruthy())
+    expect(screen.getByLabelText('Severity: Severe')).toBeTruthy() // color-graded severity dot
+    expect(screen.getByText('FDA')).toBeTruthy() // source
     expect(screen.getByText(/Jun 10, 2026/)).toBeTruthy()
     // The product links to the neighbour's own detail page — the recursive-exploration entry point.
     expect(screen.getByText('Sliced deli turkey').closest('a')?.getAttribute('href')).toBe(

@@ -12,6 +12,9 @@ type BreakdownListProps = {
   activeValue: string
   onSelect: (value: string) => void
   maxRows?: number
+  // Lay the rows out in two columns — for the long theme list, which would otherwise run down the
+  // page as one tall column. Collapses back to one column on narrow screens.
+  twoColumn?: boolean
 }
 
 const MAX_ROWS = 6
@@ -22,6 +25,7 @@ export function BreakdownList({
   activeValue,
   onSelect,
   maxRows = MAX_ROWS,
+  twoColumn = false,
 }: BreakdownListProps) {
   const shown = rows.slice(0, maxRows)
   const max = seriesMax(shown.map((row) => row.count))
@@ -31,7 +35,7 @@ export function BreakdownList({
       {shown.length === 0 ? (
         <p className={styles.empty}>No data.</p>
       ) : (
-        <ul className={styles.rows}>
+        <ul className={`${styles.rows} ${twoColumn ? styles.twoColumn : ''}`}>
           {shown.map((row) => {
             // Guard the empty active value: with no filter set (activeValue ''), nothing is active —
             // otherwise a row that happens to carry an empty value would light up the whole list.

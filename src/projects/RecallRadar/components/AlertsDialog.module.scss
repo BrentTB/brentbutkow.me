@@ -1,0 +1,85 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  // Sits below the top so a tall form still starts in view; the backdrop scrolls if it overflows.
+  padding: 8vh 16px 16px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+  overflow-y: auto;
+}
+
+// Opaque dark surface (like the sticky bar) so the dimmed page never bleeds through.
+.panel {
+  width: 100%;
+  max-width: 680px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: rgba(16, 18, 24, 0.98);
+  padding: 20px 22px;
+  outline: none;
+  box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.5);
+  animation: dialogIn 0.18s ease-out;
+}
+
+// Fun mode: the translucent navy glass, matching the command strip.
+:global(html.fun-mode) .panel {
+  background: var(--fun-surface);
+}
+
+@keyframes dialogIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    animation: none;
+  }
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+// Takes the row's width so the hint wraps at the panel edge, not at the title's width.
+.headText {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  margin: 0 0 4px;
+  font-size: 1.1rem;
+}
+
+.hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.close {
+  flex: 0 0 auto;
+  font: inherit;
+  font-size: 1.5rem;
+  line-height: 1;
+  padding: 0 4px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.close:hover {
+  color: var(--text);
+}

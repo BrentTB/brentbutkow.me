@@ -75,6 +75,29 @@ describe('useAsciiArt', () => {
     expect(result.current.options.colorMode).toBe(ColorMode.grayscale)
   })
 
+  it('merges initialOptions over the defaults (share-link hydration)', () => {
+    const { result } = renderHook(() =>
+      useAsciiArt(canvasRef, ColorMode.color, { rows: 88, charset: 'blocks', invert: true })
+    )
+    expect(result.current.options).toMatchObject({
+      colorMode: ColorMode.color,
+      rows: 88,
+      charset: 'blocks',
+      invert: true,
+      brightness: 0, // untouched fields keep their defaults
+    })
+  })
+
+  it('marks an uploaded video as the upload origin (not shareable), cleared on reset', async () => {
+    const { result } = renderHook(() => useAsciiArt(canvasRef))
+    act(() => result.current.loadVideo(new File(['x'], 'clip.mp4', { type: 'video/mp4' })))
+    await act(async () => {}) // flush play()
+    expect(result.current.sourceOrigin).toBe('upload')
+
+    act(() => result.current.reset())
+    expect(result.current.sourceOrigin).toBe('none')
+  })
+
   it('updates options through the setters', () => {
     const { result } = renderHook(() => useAsciiArt(canvasRef))
     act(() => result.current.setColorMode(ColorMode.grayscale))
@@ -311,6 +334,67 @@ describe('useAsciiArt', () => {
     const result = await renderOneVideoFrame()
     act(() => result.current.downloadText())
     expect(clickSpy).toHaveBeenCalled()
+  })
+
+  it('exports a video to a self-playing PDF download', async () => {
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    let video: HTMLVideoElement | undefined
+    const realCreate = document.createElement.bind(document)
+    vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+      const el = realCreate(tag)
+      if (tag === 'video') video = el as HTMLVideoElement
+      return el
+    })
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(
+      () =>
+        ({
+          drawImage: vi.fn(),
+          save: vi.fn(),
+          restore: vi.fn(),
+          translate: vi.fn(),
+          scale: vi.fn(),
+          fillRect: vi.fn(),
+          fillText: vi.fn(),
+          clearRect: vi.fn(),
+          getImageData: (_x: number, _y: number, w: number, h: number) => ({
+            data: new Uint8ClampedArray(Math.max(0, w * h * 4)),
+          }),
+        }) as unknown as CanvasRenderingContext2D
+    )
+
+    const { result } = renderHook(() => useAsciiArt(canvasRef))
+    act(() => result.current.loadVideo(new File(['x'], 'clip.mp4', { type: 'video/mp4' })))
+    await act(async () => {}) // sourceKind -> video
+    Object.defineProperty(video, 'videoWidth', { value: 320, configurable: true })
+    Object.defineProperty(video, 'videoHeight', { value: 240, configurable: true })
+    Object.defineProperty(video, 'duration', { value: 1, configurable: true })
+    // jsdom never fires 'seeked'; make each currentTime write resolve the seek.
+    let time = 0
+    Object.defineProperty(video, 'currentTime', {
+      configurable: true,
+      get: () => time,
+      set(value: number) {
+        time = value
+        this.dispatchEvent(new Event('seeked'))
+      },
+    })
+
+    await act(async () => {
+      await result.current.exportPdf()
+    })
+    expect(clickSpy).toHaveBeenCalled() // PDF downloaded
+    expect(result.current.pdfProgress).toBeNull() // reset when done
+  })
+
+  it('does not export a PDF when the video has no known duration', async () => {
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    const { result } = renderHook(() => useAsciiArt(canvasRef))
+    act(() => result.current.loadVideo(new File(['x'], 'clip.mp4', { type: 'video/mp4' })))
+    await act(async () => {}) // duration stays NaN in jsdom
+    await act(async () => {
+      await result.current.exportPdf()
+    })
+    expect(clickSpy).not.toHaveBeenCalled()
   })
 
   it('records to a webm download and toggles the recording flag', async () => {

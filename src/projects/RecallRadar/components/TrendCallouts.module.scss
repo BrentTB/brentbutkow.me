@@ -127,13 +127,19 @@
 
 .chevron {
   flex: 0 0 auto;
-  font-size: 0.6rem;
+  font-size: 1.2rem;
+  line-height: 1;
   color: var(--muted);
   transition: transform 0.15s ease;
 }
 
 .chevronOpen {
   transform: rotate(180deg);
+}
+
+// Positions the reveal under the list — ShowMoreToggle owns the button's appearance.
+.moreToggle {
+  margin: 8px 0 0;
 }
 
 // The chart that expands below the list when an anomaly row is opened.

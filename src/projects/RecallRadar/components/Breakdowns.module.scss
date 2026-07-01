@@ -1,8 +1,9 @@
 .grid {
   display: grid;
   // Narrower min column + a wider column gap than row gap: more leaderboards fit per row, and the
-  // borderless lists get horizontal breathing room to separate without card outlines.
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  // borderless lists get horizontal breathing room to separate without card outlines. The 160px min
+  // keeps two columns side by side on phones rather than collapsing to one tall stack.
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 20px 28px;
 }
 
@@ -32,6 +33,21 @@
   display: flex;
   flex-direction: column;
   gap: 1px;
+}
+
+// The theme list is long, so break it into columns to halve its height. Multi-column (not grid) so
+// the rows fill top-to-bottom down the left column first, then the right — keeping the rank order
+// reading down each column (biggest→middle on the left, middle→smallest on the right) rather than
+// zig-zagging left/right. A column-width (not a fixed count) makes it responsive: two columns at full
+// width, and a single column when it's narrowed beside the state map (or on a phone).
+.twoColumn {
+  display: block;
+  columns: 320px;
+  column-gap: 28px;
+}
+
+.twoColumn > li {
+  break-inside: avoid;
 }
 
 .row {

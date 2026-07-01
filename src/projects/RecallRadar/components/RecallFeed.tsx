@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   categoryLabels,
@@ -27,13 +26,26 @@ type RecallFeedProps = {
   eventsById?: Map<number, EventOut>
   onEventSelect?: (slug: string) => void
   activeEvent?: string
+  // Expanded rows, keyed by recall number and owned by the parent (RecallRadar lifts them into the
+  // URL so a refresh or shared link restores them).
+  openRows: ReadonlySet<string>
+  onRowToggle: (recallNumber: string, open: boolean) => void
 }
 
 type DetailRow = { term: string; value: string }
 
-// Fields revealed on expand — everything not already in the collapsed summary.
+// Fields revealed on expand — everything not on the compact collapsed line.
 function detailRows(recall: Recall): DetailRow[] {
-  const rows: DetailRow[] = [{ term: 'Recall number', value: recall.recallNumber }]
+  const rows: DetailRow[] = []
+  if (recall.companyName) rows.push({ term: 'Company', value: recall.companyName })
+  rows.push({
+    term: 'Severity',
+    value: `${severityLabels[recall.severityLabel]} (${recall.severityScore}/100)`,
+  })
+  rows.push({ term: 'Cause', value: categoryLabels[recall.category] })
+  rows.push({ term: 'Confidence', value: `${Math.round(recall.categoryConfidence * 100)}%` })
+  rows.push({ term: 'Source', value: sourceLabels[recall.source] })
+  rows.push({ term: 'Recall number', value: recall.recallNumber })
   if (recall.status) rows.push({ term: 'Status', value: recall.status })
   if (recall.classification) rows.push({ term: 'Classification', value: recall.classification })
   if (recall.distributionPattern) {
@@ -53,9 +65,9 @@ export function RecallFeed({
   eventsById,
   onEventSelect,
   activeEvent,
+  openRows,
+  onRowToggle,
 }: RecallFeedProps) {
-  // Track which rows are open so the Related-recalls child mounts (and fetches) only on expand.
-  const [openRows, setOpenRows] = useState<Set<string>>(new Set())
   const navigate = useNavigate()
 
   if (recalls.length === 0) {
@@ -70,42 +82,49 @@ export function RecallFeed({
           recall.eventClusterId != null ? eventsById?.get(recall.eventClusterId) : undefined
         const detailPath = recallDetailRoute(recall.source, recall.recallNumber)
         return (
-          <li key={recall.recallNumber} className={styles.row}>
+          // The id lets a URL-restored open row be scrolled to like a #fragment target.
+          <li key={recall.recallNumber} id={`recall-${recall.recallNumber}`} className={styles.row}>
             <details
               className={styles.details}
-              onToggle={(event) => {
-                // Read `open` synchronously: `currentTarget` is null by the time the (deferred)
-                // state updater runs, which crashes on rapid toggles.
-                const isOpen = event.currentTarget.open
-                setOpenRows((prev) => {
-                  const next = new Set(prev)
-                  if (isOpen) next.add(recall.recallNumber)
-                  else next.delete(recall.recallNumber)
-                  return next
-                })
-              }}
+              open={openRows.has(recall.recallNumber)}
+              // Read `open` synchronously: `currentTarget` is null once the event settles, which
+              // crashes on rapid toggles. Reporting the DOM state (rather than negating ours) keeps
+              // the two in sync even when React itself flips the attribute.
+              onToggle={(event) => onRowToggle(recall.recallNumber, event.currentTarget.open)}
             >
               <summary className={styles.summary}>
-                <div className={styles.meta}>
-                  <span className={styles.badge}>{categoryLabels[recall.category]}</span>
+                <div className={styles.head}>
                   <span
-                    className={styles.severity}
-                    style={{ color: severityColors[recall.severityLabel] }}
-                    title={`Severity ${recall.severityScore}/100`}
+                    className={styles.sevDot}
+                    style={{ background: severityColors[recall.severityLabel] }}
+                    title={`${severityLabels[recall.severityLabel]} · severity ${recall.severityScore}/100`}
+                    aria-label={`Severity: ${severityLabels[recall.severityLabel]}`}
+                  />
+                  <Link
+                    to={detailPath}
+                    className={styles.product}
+                    // Inside <summary>: keep a real href (right-click / open-in-new-tab) but stop the
+                    // click from toggling the row open — and from kicking off a throwaway similar
+                    // recalls fetch right before we navigate away — by driving the nav ourselves.
+                    onClick={(event) => {
+                      event.preventDefault()
+                      navigate(detailPath)
+                    }}
                   >
-                    {severityLabels[recall.severityLabel]}
-                  </span>
+                    {recall.productDescription}
+                  </Link>
+                  {/* Theme + outbreak chips ride the title line so they sit in the clickable summary
+                      — clicking the row around them toggles it, and each chip filters instead of
+                      toggling (preventDefault). */}
                   {theme && (
                     <button
                       type="button"
                       className={styles.themeChip}
-                      // Inside <summary>, so stop the click from toggling the row. Re-clicking the
-                      // active theme clears it (toggle), like the Themes cards.
-                      onClick={(event) => {
-                        event.preventDefault()
+                      onClick={(e) => {
+                        e.preventDefault()
                         onTopicSelect?.(theme.slug === activeTopic ? '' : theme.slug)
                       }}
-                      title="Filter by this theme"
+                      title={`Theme: ${theme.label} — filter by it`}
                     >
                       {theme.label}
                     </button>
@@ -114,8 +133,6 @@ export function RecallFeed({
                     <button
                       type="button"
                       className={styles.outbreakChip}
-                      // Inside <summary>, so stop the click from toggling the row. Re-clicking the
-                      // active outbreak clears it (toggle), like the Outbreaks cards.
                       onClick={(e) => {
                         e.preventDefault()
                         onEventSelect?.(cluster.slug === activeEvent ? '' : cluster.slug)
@@ -125,48 +142,28 @@ export function RecallFeed({
                       ⚠ Outbreak
                     </button>
                   )}
-                  <span className={styles.source}>{sourceLabels[recall.source]}</span>
-                  <span className={styles.confidence} title="Classifier confidence">
-                    {Math.round(recall.categoryConfidence * 100)}%
-                  </span>
-                  {recall.classification && (
-                    <span className={styles.class}>{recall.classification}</span>
-                  )}
                   <span className={styles.date}>{formatDate(recall.reportDate)}</span>
                   <span className={styles.chevron} aria-hidden="true">
                     ›
                   </span>
                 </div>
-                <Link
-                  to={detailPath}
-                  className={styles.product}
-                  // Inside <summary>: keep a real href (right-click / open-in-new-tab) but stop the
-                  // click from toggling the row open — and from kicking off a throwaway similar
-                  // recalls fetch right before we navigate away — by driving the nav ourselves.
-                  onClick={(event) => {
-                    event.preventDefault()
-                    navigate(detailPath)
-                  }}
-                >
-                  {recall.productDescription}
-                </Link>
-                {recall.companyName && <p className={styles.company}>{recall.companyName}</p>}
                 <p className={styles.reason}>{recall.reasonText}</p>
-                {recall.entities.length > 0 && (
-                  <ul className={styles.entities}>
-                    {recall.entities.map((entity) => (
-                      <li
-                        key={`${entity.type}-${entity.value}`}
-                        className={styles.entityChip}
-                        data-type={entity.type}
-                        title={entityTypeLabels[entity.type]}
-                      >
-                        {entity.value}
-                      </li>
-                    ))}
-                  </ul>
-                )}
               </summary>
+
+              {recall.entities.length > 0 && (
+                <div className={styles.tags}>
+                  {recall.entities.map((entity) => (
+                    <span
+                      key={`${entity.type}-${entity.value}`}
+                      className={styles.entityChip}
+                      data-type={entity.type}
+                      title={entityTypeLabels[entity.type]}
+                    >
+                      {entity.value}
+                    </span>
+                  ))}
+                </div>
+              )}
               <dl className={styles.detail}>
                 {detailRows(recall).map((row) => (
                   <div key={row.term} className={styles.detailItem}>

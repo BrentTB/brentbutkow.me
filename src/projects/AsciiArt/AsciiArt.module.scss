@@ -33,6 +33,7 @@
 }
 
 .stage {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -62,6 +63,23 @@
   color: var(--muted);
   font-family: var(--font-mono);
   font-size: 0.95rem;
+}
+
+// Covers the stage while a PDF renders, so the viewer sees progress instead of
+// the clip scrubbing past.
+.exporting {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--bg-elevated) 88%, transparent);
+  backdrop-filter: blur(2px);
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
 }
 
 .privacy {

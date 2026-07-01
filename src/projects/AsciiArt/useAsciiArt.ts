@@ -1,18 +1,26 @@
 import { RefObject, useCallback, useEffect, useRef, useState } from 'react'
-import { AsciiGrid, BackgroundMode, ColorMode, RenderMode, SourceKind } from './ascii-art.types'
+import {
+  AsciiGrid,
+  BackgroundMode,
+  ColorMode,
+  RenderMode,
+  SourceKind,
+  SourceOrigin,
+} from './ascii-art.types'
 import {
   AsciiOptions,
   CANVAS_PAD,
   CUSTOM_CHARSET,
   Charset,
   CharsetSelection,
-  MAX_COLS,
-  MAX_ROWS,
-  MIN_COLS,
-  MIN_ROWS,
+  DEFAULT_CHARSET,
   defaultOptions,
 } from './data'
-import { buildAsciiGrid, gridCols, gridToText, shouldInvertBrightness } from './engine/ascii-frame'
+import { gridToText } from './engine/ascii-frame'
+import { buildGridFromSource } from './engine/sample-grid'
+import { extractAsciiFrames, ExtractedFrames } from './export/extract-frames'
+import { buildAsciiPdf, isRampPdfSafe } from './export/ascii-pdf'
+import { estimateAsciiPdf, Estimate, PDF_MAX_FRAMES } from './export/pdf-estimate'
 import { renderGrid } from './renderer/render-grid'
 import { drawSampleScene } from './sample-image'
 import { downloadBlob } from '../../components/utils/download'
@@ -42,7 +50,37 @@ export type Playback = {
 
 const PLAYBACK_DEFAULT: Playback = { isPlaying: false, currentTime: 0, duration: 0, rate: 1 }
 
-const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
+// PDF export defaults; the user picks fps and length in the export dialog. The
+// frame ceiling (PDF_MAX_FRAMES) lives in pdf-estimate; rows are capped here for
+// readable glyphs.
+const PDF_FPS = 12
+const PDF_MAX_ROWS = 40
+
+// Seeks a video and resolves once the frame is decoded, so the export loop can
+// sample a stable frame at each position.
+const seekVideo = (video: HTMLVideoElement, time: number) =>
+  new Promise<void>((resolve, reject) => {
+    const cleanup = () => {
+      video.removeEventListener('seeked', onSeeked)
+      video.removeEventListener('error', onError)
+    }
+    const onSeeked = () => {
+      cleanup()
+      resolve()
+    }
+    const onError = () => {
+      cleanup()
+      reject(new Error('seek failed'))
+    }
+    video.addEventListener('seeked', onSeeked)
+    video.addEventListener('error', onError)
+    try {
+      video.currentTime = time
+    } catch {
+      cleanup()
+      reject(new Error('seek failed'))
+    }
+  })
 
 const sourceSize = (src: SourceElement) =>
   src instanceof HTMLVideoElement
@@ -55,13 +93,22 @@ const sourceSize = (src: SourceElement) =>
 // (raf, listeners, object URLs, camera tracks) on reset/unmount.
 export function useAsciiArt(
   canvasRef: RefObject<HTMLCanvasElement>,
-  initialColorMode: ColorMode = ColorMode.color
+  initialColorMode: ColorMode = ColorMode.color,
+  initialOptions?: Partial<AsciiOptions>
 ) {
   const [sourceKind, setSourceKind] = useState<SourceKind>(SourceKind.none)
-  const [options, setOptions] = useState<AsciiOptions>(() => defaultOptions(initialColorMode))
+  const [options, setOptions] = useState<AsciiOptions>(() => ({
+    ...defaultOptions(initialColorMode),
+    ...initialOptions,
+  }))
   const [playback, setPlayback] = useState<Playback>(PLAYBACK_DEFAULT)
   const [isRecording, setIsRecording] = useState(false)
+  // 0..1 while a PDF export runs, null when idle — drives the button's progress.
+  const [pdfProgress, setPdfProgress] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // Where the source came from — gates whether the look is shareable (an upload
+  // can't be recreated from a link; the example and webcam can).
+  const [sourceOrigin, setSourceOrigin] = useState<SourceOrigin>(SourceOrigin.none)
 
   // Loop reads the latest options/source without re-subscribing each change.
   const optionsRef = useRef(options)
@@ -80,6 +127,9 @@ export function useAsciiArt(
   const lastGridRef = useRef<AsciiGrid | null>(null)
   const wasPlayingRef = useRef(false)
   const recoverAttemptsRef = useRef(0)
+  // True while PDF export drives its own seeks, so the decode-error recovery
+  // (which reloads the blob) doesn't fight the extraction loop.
+  const exportingRef = useRef(false)
   // Fixed stage box size, kept fresh by a ResizeObserver so the loop doesn't
   // force a layout reflow reading clientWidth every frame.
   const boxSizeRef = useRef({ w: 640, h: 480 })
@@ -95,7 +145,10 @@ export function useAsciiArt(
       const video = document.createElement('video')
       video.playsInline = true
       video.loop = true
-      const onTime = () => setPlayback((p) => ({ ...p, currentTime: video.currentTime }))
+      const onTime = () => {
+        if (exportingRef.current) return // export scrubs the clip; keep the bar still
+        setPlayback((p) => ({ ...p, currentTime: video.currentTime }))
+      }
       const onMeta = () =>
         setPlayback((p) => ({
           ...p,
@@ -111,6 +164,7 @@ export function useAsciiArt(
       // when a seek lands on a frame they can't re-init. Reload the blob and
       // restore the position so a transient fault doesn't kill playback.
       const onError = () => {
+        if (exportingRef.current) return // export owns the seeks; skip blob recovery
         if (sourceKindRef.current !== SourceKind.video || !objectUrlRef.current) return
         if (recoverAttemptsRef.current >= 3) {
           stopLoopRef.current()
@@ -162,6 +216,8 @@ export function useAsciiArt(
   }, [])
 
   const renderFrame = useCallback(() => {
+    // While exporting, the clip is scrubbed off-screen; don't paint those frames.
+    if (exportingRef.current) return
     const src = sourceRef.current
     const display = canvasRef.current
     if (!src || !display) return
@@ -175,63 +231,32 @@ export function useAsciiArt(
     const dctx = display.getContext('2d')
     if (!sctx || !dctx) return
 
-    const {
-      charset,
-      customRamp,
-      invert,
-      colorMode,
-      background,
-      renderMode,
-      mirror,
-      brightness,
-      contrast,
-      rows: rawRows,
-    } = optionsRef.current
-    const ramp = charset === CUSTOM_CHARSET ? customRamp : Charset[charset]
-    const rows = clamp(Math.round(rawRows), MIN_ROWS, MAX_ROWS)
-    const cols = clamp(gridCols(rows, w, h), MIN_COLS, MAX_COLS)
-    if (cols < 1 || rows < 1) return
-
-    // Fit the canvas inside its fixed stage box, preserving the source aspect, so
-    // the on-screen size stays constant and glyphs scale with the row count.
-    const availW = Math.max(1, boxSizeRef.current.w - CANVAS_PAD * 2)
-    const availH = Math.max(1, boxSizeRef.current.h - CANVAS_PAD * 2)
-    const srcAspect = w / h
-    let canvasW = availW
-    let canvasH = availW / srcAspect
-    if (canvasH > availH) {
-      canvasH = availH
-      canvasW = availH * srcAspect
-    }
-
-    sample.width = cols
-    sample.height = rows
+    const opts = optionsRef.current
+    // Mirror the webcam (selfie view) by flipping the sample horizontally.
+    const flip = opts.mirror && sourceKindRef.current === SourceKind.webcam
     try {
-      // Mirror the webcam (selfie view) by flipping the sample horizontally.
-      const flip = mirror && sourceKindRef.current === SourceKind.webcam
-      if (flip) {
-        sctx.save()
-        sctx.translate(cols, 0)
-        sctx.scale(-1, 1)
-      }
-      sctx.drawImage(src, 0, 0, cols, rows)
-      if (flip) sctx.restore()
-      const grid = buildAsciiGrid(sctx.getImageData(0, 0, cols, rows).data, cols, rows, {
-        ramp,
-        invert: shouldInvertBrightness(background, invert),
-        invertColor: invert,
-        brightness,
-        contrast,
-        renderMode,
-      })
+      const grid = buildGridFromSource(sample, sctx, src, w, h, opts, flip)
+      if (!grid) return
       lastGridRef.current = grid // kept for text copy/download
+
+      // Fit the canvas inside its fixed stage box, preserving the source aspect, so
+      // the on-screen size stays constant and glyphs scale with the row count.
+      const availW = Math.max(1, boxSizeRef.current.w - CANVAS_PAD * 2)
+      const availH = Math.max(1, boxSizeRef.current.h - CANVAS_PAD * 2)
+      const srcAspect = w / h
+      let canvasW = availW
+      let canvasH = availW / srcAspect
+      if (canvasH > availH) {
+        canvasH = availH
+        canvasW = availH * srcAspect
+      }
       // Only resize when needed — reassigning width/height clears the canvas and
       // would disrupt an in-progress recording capture.
       const nextW = Math.round(canvasW)
       const nextH = Math.round(canvasH)
       if (display.width !== nextW) display.width = nextW
       if (display.height !== nextH) display.height = nextH
-      renderGrid(dctx, grid, colorMode, background)
+      renderGrid(dctx, grid, opts.colorMode, opts.background)
     } catch {
       // Source isn't drawable this frame (mid-seek or reloading); skip it.
     }
@@ -270,6 +295,7 @@ export function useAsciiArt(
     }
     recorderRef.current = null
     setIsRecording(false)
+    setSourceOrigin(SourceOrigin.none)
     if (objectUrlRef.current) {
       URL.revokeObjectURL(objectUrlRef.current)
       objectUrlRef.current = null
@@ -300,6 +326,7 @@ export function useAsciiArt(
       img.onload = () => {
         sourceRef.current = img
         setSourceKind(SourceKind.image)
+        setSourceOrigin(SourceOrigin.upload)
         renderFrame()
       }
       img.onerror = () => setError('Could not load that image.')
@@ -317,6 +344,7 @@ export function useAsciiArt(
     img.onload = () => {
       sourceRef.current = img
       setSourceKind(SourceKind.image)
+      setSourceOrigin(SourceOrigin.example)
       renderFrame()
     }
     img.onerror = () => setError('Could not load the example.')
@@ -340,6 +368,7 @@ export function useAsciiArt(
         .then(() => {
           sourceRef.current = video
           setSourceKind(SourceKind.video)
+          setSourceOrigin(SourceOrigin.upload)
           startLoop()
         })
         .catch(() => setError('Could not play that video.'))
@@ -364,6 +393,7 @@ export function useAsciiArt(
       await video.play()
       sourceRef.current = video
       setSourceKind(SourceKind.webcam)
+      setSourceOrigin(SourceOrigin.webcam)
       startLoop()
     } catch {
       setError('Camera access was blocked.')
@@ -434,6 +464,95 @@ export function useAsciiArt(
     const grid = lastGridRef.current
     if (!grid) return
     downloadBlob(new Blob([gridToText(grid)], { type: 'text/plain' }), 'ascii-art.txt')
+  }, [])
+
+  // Renders the whole video to a self-playing ASCII PDF. Seeks through the clip
+  // off-screen, sampling each frame to text, then packs them into a PDF whose
+  // built-in JS animates them. Pauses the live loop during extraction and
+  // restores the prior position/playback afterwards.
+  const exportPdf = useCallback(
+    async (fps: number = PDF_FPS, durationSec?: number) => {
+      const video = videoRef.current
+      if (!video || sourceRef.current !== video) return
+      if (!Number.isFinite(video.duration) || video.duration <= 0) return
+      if (!sampleRef.current) sampleRef.current = document.createElement('canvas')
+      const sctx = sampleRef.current.getContext('2d', { willReadFrequently: true })
+      if (!sctx) return
+
+      const wasPlaying = !video.paused
+      const resumeAt = video.currentTime
+      exportingRef.current = true
+      video.pause()
+      stopLoop()
+      setError(null)
+      setPdfProgress(0)
+
+      // The PDF font only draws ASCII/Latin-1; fall back to the classic ramp when
+      // the chosen glyphs (e.g. block shades) wouldn't render.
+      const active = optionsRef.current
+      const activeRamp =
+        active.charset === CUSTOM_CHARSET ? active.customRamp : Charset[active.charset]
+      const exportOptions = isRampPdfSafe(activeRamp)
+        ? active
+        : { ...active, charset: DEFAULT_CHARSET }
+
+      let extracted: ExtractedFrames = { frames: [], cols: 0, rows: 0, fps: 0 }
+      try {
+        extracted = await extractAsciiFrames(video, sampleRef.current, sctx, exportOptions, {
+          fps,
+          maxFrames: PDF_MAX_FRAMES,
+          maxRows: PDF_MAX_ROWS,
+          duration: durationSec,
+          seek: (time) => seekVideo(video, time),
+          onProgress: setPdfProgress,
+        })
+      } catch {
+        setError("Couldn't read this video for the PDF.")
+      }
+
+      exportingRef.current = false
+      setPdfProgress(null)
+
+      if (extracted.frames.length) {
+        const pdf = buildAsciiPdf(extracted.frames, {
+          cols: extracted.cols,
+          rows: extracted.rows,
+          fps: extracted.fps,
+        })
+        downloadBlob(pdf, 'ascii-art.pdf')
+      }
+
+      // Export scrubbed the clip; restore the viewer's position and playback.
+      try {
+        video.currentTime = resumeAt
+      } catch {
+        // position may not be seekable yet; ignore
+      }
+      if (wasPlaying) {
+        video
+          .play()
+          .then(() => startLoop())
+          .catch(() => {})
+      } else {
+        renderFrame()
+      }
+    },
+    [stopLoop, startLoop, renderFrame]
+  )
+
+  // Predicts frames/size/time for a PDF export at the given rate and length, so
+  // the dialog can show live figures. Null until the video has a known size.
+  const estimatePdf = useCallback((fps: number, durationSec: number): Estimate | null => {
+    const video = videoRef.current
+    if (!video || !video.videoWidth || !video.videoHeight) return null
+    return estimateAsciiPdf({
+      srcWidth: video.videoWidth,
+      srcHeight: video.videoHeight,
+      rows: Math.min(optionsRef.current.rows, PDF_MAX_ROWS),
+      fps,
+      duration: durationSec,
+      maxFrames: PDF_MAX_FRAMES,
+    })
   }, [])
 
   // Records the ASCII canvas plus the video's audio to a .webm in real time, via
@@ -606,9 +725,11 @@ export function useAsciiArt(
 
   return {
     sourceKind,
+    sourceOrigin,
     options,
     playback,
     isRecording,
+    pdfProgress,
     error,
     loadImage,
     loadVideo,
@@ -620,6 +741,8 @@ export function useAsciiArt(
     saveImage,
     copyText,
     downloadText,
+    exportPdf,
+    estimatePdf,
     loadExample,
     toggleRecording,
     setColorMode,
