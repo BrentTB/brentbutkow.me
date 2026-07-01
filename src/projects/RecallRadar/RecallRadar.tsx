@@ -398,6 +398,10 @@ export function RecallRadar() {
       <div
         ref={barRef}
         className={styles.stickyBar}
+        // Whether the section rail docks directly beneath the bar (Dashboard only). On a phone that
+        // decides the bar's bottom corners: squared to connect into the rail, rounded when nothing
+        // follows it (Recalls / About).
+        data-rail={showRail}
         style={{ top: navHidden ? 0 : 'var(--site-nav-height, 68px)' }}
       >
         <div className={styles.barHead}>

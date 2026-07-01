@@ -171,34 +171,35 @@ export function Select({
             }
           >
             {options.map((option, index) => (
-            <li
-              key={option.value}
-              id={optionId(index)}
-              ref={(node) => {
-                optionRefs.current[index] = node
-              }}
-              role="option"
-              aria-selected={option.value === value}
-              aria-disabled={option.disabled || undefined}
-              className={[
-                styles.option,
-                index === activeIndex && styles.active,
-                option.value === value && styles.selected,
-                option.disabled && styles.disabled,
-              ]
-                .filter(Boolean)
-                .join(' ')}
-              onMouseEnter={() => !option.disabled && setActiveIndex(index)}
-              onClick={() => choose(index)}
-            >
-              <span className={styles.optionLabel}>{option.label}</span>
-              {option.count !== undefined && (
-                <span className={styles.count}>{option.count.toLocaleString()}</span>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+              <li
+                key={option.value}
+                id={optionId(index)}
+                ref={(node) => {
+                  optionRefs.current[index] = node
+                }}
+                role="option"
+                aria-selected={option.value === value}
+                aria-disabled={option.disabled || undefined}
+                className={[
+                  styles.option,
+                  index === activeIndex && styles.active,
+                  option.value === value && styles.selected,
+                  option.disabled && styles.disabled,
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                onMouseEnter={() => !option.disabled && setActiveIndex(index)}
+                onClick={() => choose(index)}
+              >
+                <span className={styles.optionLabel}>{option.label}</span>
+                {option.count !== undefined && (
+                  <span className={styles.count}>{option.count.toLocaleString()}</span>
+                )}
+              </li>
+            ))}
+          </ul>,
+          document.body
+        )}
     </div>
   )
 }

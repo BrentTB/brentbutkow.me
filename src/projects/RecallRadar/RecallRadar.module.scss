@@ -184,6 +184,15 @@
     overflow-y: auto;
   }
 
+  // Dashboard: the section rail docks directly beneath, so square the bar's bottom to connect into
+  // it and drop the bar's bottom margin so the two meet with no seam. Recalls / About have nothing
+  // below, so the bar keeps its rounded bottom (the base radius) and its margin.
+  .stickyBar[data-rail='true'] {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    margin-bottom: 0;
+  }
+
   // The location scope sits at the left of its row, with Get alerts pinned to the right — so the
   // scope reads as the row's anchor rather than crowding the button.
   .barActions {
@@ -192,10 +201,15 @@
     justify-content: space-between;
   }
 
-  // PageLayout stacks its children with a 48px flex gap; trim most of it so the section strip sits
-  // just under the bar (both are self-contained rounded panels), without a cavernous gap.
+  // Dashboard: cancel PageLayout's 48px flex gap so the rail strip docks flush onto the squared bar.
   .layout {
-    margin-top: -40px;
+    margin-top: -48px;
+  }
+
+  // Recalls / About: no rail, and the bar is fully rounded — leave a small gap below it rather than
+  // docking the content flush.
+  .layoutSolo {
+    margin-top: -28px;
   }
 
   .barHead {

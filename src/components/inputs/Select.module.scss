@@ -67,12 +67,6 @@
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
 }
 
-// Flipped above the trigger when there's no room below.
-.menuUp {
-  top: auto;
-  bottom: calc(100% + 4px);
-}
-
 // Fun mode: float the menu on the translucent navy glass (+ blur) so it tints with the water rather
 // than reading as an opaque dark slab over it.
 :global(html.fun-mode) .menu {
