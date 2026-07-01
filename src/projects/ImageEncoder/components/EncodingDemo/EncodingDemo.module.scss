@@ -101,7 +101,40 @@
 }
 
 .actions {
-  margin-left: auto;
+  flex: 1 1 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+// The two encoding passes, spelled out beside the buttons. The step underway
+// during playback lights up in the accent.
+.phaseNote {
+  margin: 0;
+  padding: 0 0 0 18px;
+  list-style: decimal;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  line-height: 1.5;
+  color: var(--muted);
+
+  li {
+    transition: color 150ms ease;
+  }
+
+  li.phaseActive {
+    color: var(--accent);
+    font-weight: 600;
+
+    &::marker {
+      color: var(--accent);
+    }
+  }
+}
+
+.actionButtons {
   display: flex;
   align-items: flex-end;
   gap: 8px;

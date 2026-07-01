@@ -9,6 +9,7 @@ import {
   finalStep,
   IDLE,
   isHighlightStep,
+  passLength,
 } from './encoding'
 import styles from './EncodingDemo.module.scss'
 
@@ -31,7 +32,7 @@ const ORIGINAL_MAX = 18
 
 // How long each animation step holds before the next channel or phase, and the
 // shorter beat a channel is only highlighted before it starts moving.
-const STEP_MS = 600
+const STEP_MS = 500
 const HIGHLIGHT_MS = 200
 
 const baseSegments = baseOptions.map((option) => ({ value: option.value, label: option.label }))
@@ -70,6 +71,8 @@ export function EncodingDemo() {
   }, [animStep])
 
   const activeChannel = animStep === IDLE ? -1 : activeChannelAt(animStep, CHANNEL_COUNT)
+  // 0 = idle, 1 = rounding pass, 2 = adding pass.
+  const activePhase = animStep === IDLE ? 0 : animStep <= passLength(CHANNEL_COUNT) ? 1 : 2
 
   // The height, label, and remainder a channel shows at the current step.
   const shownValue = (channel: number): number => {
@@ -170,17 +173,27 @@ export function EncodingDemo() {
         </div>
 
         <div className={styles.actions}>
-          <button
-            type="button"
-            className={styles.randomizeButton}
-            onClick={() => setValues(randomValues())}
-            disabled={animating}
-          >
-            New pixels
-          </button>
-          <button type="button" className={styles.playButton} onClick={play} disabled={animating}>
-            {animating ? 'Encoding…' : '▶ Encode'}
-          </button>
+          <ol className={styles.phaseNote}>
+            <li className={activePhase === 1 ? styles.phaseActive : ''}>
+              Round each channel down to a multiple of {base}
+            </li>
+            <li className={activePhase === 2 ? styles.phaseActive : ''}>
+              Add the {digitLabel} you want to hide
+            </li>
+          </ol>
+          <div className={styles.actionButtons}>
+            <button
+              type="button"
+              className={styles.randomizeButton}
+              onClick={() => setValues(randomValues())}
+              disabled={animating}
+            >
+              New pixels
+            </button>
+            <button type="button" className={styles.playButton} onClick={play} disabled={animating}>
+              {animating ? 'Encoding…' : '▶ Encode'}
+            </button>
+          </div>
         </div>
       </div>
 
