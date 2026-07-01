@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { EventSort, type EventOut } from '../recall.types'
 import { formatDate, pluralize } from '../chart-format'
 import { SegmentedToggle } from '../../../components/inputs/SegmentedToggle'
+import { useIsMobile } from '../useIsMobile'
 import styles from './Outbreaks.module.scss'
 
 type OutbreaksProps = {
@@ -16,6 +18,9 @@ type OutbreaksProps = {
 // Show at most this many outbreak cards — the headline incidents, not an exhaustive list.
 const MAX_OUTBREAKS = 8
 
+// Phones preview fewer, with the rest behind a "show more" toggle (the cards are tall stacked).
+const MOBILE_PREVIEW = 4
+
 const SORT_OPTIONS: { value: EventSort; label: string }[] = [
   { value: EventSort.recent, label: 'Most recent' },
   { value: EventSort.biggest, label: 'Biggest' },
@@ -24,16 +29,21 @@ const SORT_OPTIONS: { value: EventSort; label: string }[] = [
 // The high-signal clusters (pathogen-driven, multi-recall) as clickable cards. Clicking one filters
 // the recall list + trend to that incident's recalls (its stable slug rides the URL).
 export function Outbreaks({ events, activeEvent, onSelect, sort, onSortChange }: OutbreaksProps) {
+  const isMobile = useIsMobile()
+  const [expanded, setExpanded] = useState(false)
   const outbreaks = events.filter((event) => event.isOutbreak)
   if (outbreaks.length === 0) return null
   // Recent = latest member report date first; Biggest = most recalls first (ISO dates sort lexically).
-  const shown = [...outbreaks]
+  const ranked = [...outbreaks]
     .sort((a, b) =>
       sort === EventSort.recent
         ? (b.lastDate ?? '').localeCompare(a.lastDate ?? '')
         : b.recallCount - a.recallCount
     )
     .slice(0, MAX_OUTBREAKS)
+  // Desktop shows the full set; a phone previews MOBILE_PREVIEW until expanded.
+  const shown = isMobile && !expanded ? ranked.slice(0, MOBILE_PREVIEW) : ranked
+  const canExpand = isMobile && ranked.length > MOBILE_PREVIEW
   return (
     <div className={styles.root}>
       <div className={styles.controls}>
@@ -84,6 +94,16 @@ export function Outbreaks({ events, activeEvent, onSelect, sort, onSortChange }:
           )
         })}
       </ul>
+      {canExpand && (
+        <button
+          type="button"
+          className={styles.moreToggle}
+          aria-expanded={expanded}
+          onClick={() => setExpanded((v) => !v)}
+        >
+          {expanded ? 'Show fewer' : `Show ${ranked.length - MOBILE_PREVIEW} more`}
+        </button>
+      )}
     </div>
   )
 }

@@ -68,6 +68,7 @@ import { useTopics } from './useTopics'
 import { useEvents } from './useEvents'
 import { useFacets } from './useFacets'
 import { useStickyHeader } from '../../components/navbar/useStickyHeader'
+import { useIsMobile } from './useIsMobile'
 import styles from './RecallRadar.module.scss'
 
 const EMPTY_FILTERS: RecallFilterValues = {
@@ -114,6 +115,8 @@ export function RecallRadar() {
   // `navHidden` (shared with the site navbar's auto-hide) decides whether the bar sits below the
   // retracting navbar or slides up to the top to fill the gap.
   const { collapsed, navHidden } = useStickyHeader()
+  // Phone-width layout tweaks that CSS can't express (dropdown scope, fewer outbreak cards).
+  const isMobile = useIsMobile()
 
   // The alert-signup form drops open from the command strip's "Get alerts" button, so it's reachable
   // from any tab without hunting for a section. Mounting it only while open snapshots the live
@@ -406,7 +409,12 @@ export function RecallRadar() {
             panelId="rr-view-panel"
           />
           <div className={styles.barActions}>
-            <LocationSelector value={country} collapsed={collapsed} onChange={changeCountry} />
+            {/* On a phone the tab row eats too much width, so keep the scope a dropdown there. */}
+            <LocationSelector
+              value={country}
+              collapsed={collapsed || isMobile}
+              onChange={changeCountry}
+            />
             {/* Sits last so it stays pinned to the strip's right edge — the location control's width
                 changes when it collapses to a dropdown, and anything after it would shift. */}
             <button

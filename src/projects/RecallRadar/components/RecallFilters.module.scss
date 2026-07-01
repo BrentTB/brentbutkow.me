@@ -222,9 +222,10 @@
     max-width: 100%;
   }
 
-  // Collapsed: the (tall) chips are hidden; the toggle's count badge signals active filters instead.
-  // Expanded (data-expanded='true') restores them.
-  .root[data-expanded='false'] .chips {
+  // The active-filter chips are dropped entirely on a phone: collapsed, the toggle's count badge
+  // signals how many are set; expanded, every field's own control already shows its value, so the
+  // (tall) chip list would just be a redundant second copy.
+  .chips {
     display: none;
   }
 
