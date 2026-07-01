@@ -32,6 +32,15 @@ export function finalStep(channelCount: number): number {
   return passLength(channelCount) * 2
 }
 
+// Which pass the animation is in at a step — drives which explanation line is highlighted.
+export const Phase = { idle: 0, rounding: 1, adding: 2 } as const
+export type Phase = (typeof Phase)[keyof typeof Phase]
+
+export function phaseAt(step: number, channelCount: number): Phase {
+  if (step === IDLE) return Phase.idle
+  return step <= passLength(channelCount) ? Phase.rounding : Phase.adding
+}
+
 // Step counted from the start of its own pass (1-based), so both passes share the
 // same per-channel arithmetic.
 function stepInPass(step: number, channelCount: number): number {

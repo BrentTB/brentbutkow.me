@@ -24,13 +24,26 @@ export function ViewTabs<T extends string>({
   const refs = useRef<(HTMLButtonElement | null)[]>([])
   const activeIndex = options.findIndex((option) => option.value === value)
 
+  const select = (index: number) => {
+    onChange(options[index].value)
+    refs.current[index]?.focus()
+  }
+
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Home') {
+      event.preventDefault()
+      select(0)
+      return
+    }
+    if (event.key === 'End') {
+      event.preventDefault()
+      select(options.length - 1)
+      return
+    }
     const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0
     if (step === 0) return
     event.preventDefault()
-    const next = (activeIndex + step + options.length) % options.length
-    onChange(options[next].value)
-    refs.current[next]?.focus()
+    select((activeIndex + step + options.length) % options.length)
   }
 
   return (

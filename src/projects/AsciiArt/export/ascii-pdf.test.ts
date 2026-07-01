@@ -42,22 +42,10 @@ describe('buildAsciiPdf', () => {
     expect(pdf).toContain('100)')
   })
 
-  it('uses a monospace field font resolvable via the AcroForm /DR', async () => {
+  it('uses a bold monospace field font resolvable via the AcroForm /DR', async () => {
     const pdf = await readBytes(buildAsciiPdf(['AB\nCD'], { cols: 2, rows: 2, fps: 10 }))
-    expect(pdf).toContain('/BaseFont /Courier')
+    expect(pdf).toContain('/BaseFont /Courier-Bold')
     expect(pdf).toContain('/DR << /Font << /F0 5 0 R >> >>')
-  })
-
-  it('embeds a supplied TrueType font and stays a valid PDF', async () => {
-    const font = { length1: 5, deflated: btoa('hello') }
-    const blob = buildAsciiPdf(['AB\nCD', 'EF\nGH'], { cols: 2, rows: 2, fps: 10, font })
-    const pdf = await readBytes(blob)
-    expect(pdf).toContain('/Subtype /TrueType')
-    expect(pdf).toContain('/FontFile2 12 0 R')
-    expect(pdf).toContain('/Length1 5')
-    expect(pdf).toContain('/Filter /FlateDecode')
-    expect(pdf).toContain('hello') // the raw font bytes made it into the stream
-    expect(xrefResolves(pdf)).toBe(true) // offsets still line up past the binary
   })
 
   it('stores a repeated multi-byte glyph once in the alphabet, not per cell', async () => {

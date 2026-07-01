@@ -9,7 +9,9 @@ import {
   finalStep,
   IDLE,
   isHighlightStep,
-  passLength,
+  Phase,
+  phaseAt,
+  START_STEP,
 } from './encoding'
 import styles from './EncodingDemo.module.scss'
 
@@ -71,8 +73,7 @@ export function EncodingDemo() {
   }, [animStep])
 
   const activeChannel = animStep === IDLE ? -1 : activeChannelAt(animStep, CHANNEL_COUNT)
-  // 0 = idle, 1 = rounding pass, 2 = adding pass.
-  const activePhase = animStep === IDLE ? 0 : animStep <= passLength(CHANNEL_COUNT) ? 1 : 2
+  const activePhase = phaseAt(animStep, CHANNEL_COUNT)
 
   // The height, label, and remainder a channel shows at the current step.
   const shownValue = (channel: number): number => {
@@ -83,7 +84,13 @@ export function EncodingDemo() {
   // Pad the code first so every channel has a digit to add during playback.
   const play = () => {
     setCode((prev) => prev.padEnd(CHANNEL_COUNT, '0'))
-    setAnimStep(0)
+    // Reduced-motion: skip the stepped playback and show the encoded result straight away (IDLE
+    // already renders the finished bars).
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      setAnimStep(IDLE)
+      return
+    }
+    setAnimStep(START_STEP)
   }
 
   const changeBase = (next: Base) => {
@@ -174,10 +181,10 @@ export function EncodingDemo() {
 
         <div className={styles.actions}>
           <ol className={styles.phaseNote}>
-            <li className={activePhase === 1 ? styles.phaseActive : ''}>
+            <li className={activePhase === Phase.rounding ? styles.phaseActive : ''}>
               Round each channel down to a multiple of {base}
             </li>
-            <li className={activePhase === 2 ? styles.phaseActive : ''}>
+            <li className={activePhase === Phase.adding ? styles.phaseActive : ''}>
               Add the {digitLabel} you want to hide
             </li>
           </ol>

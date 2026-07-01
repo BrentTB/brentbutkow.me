@@ -367,7 +367,7 @@ export function RecallRadar() {
   const hasOutbreaks = visibleOutbreaks.length > 0
 
   // Entity-input suggestions for the subscription form, drawn from the live (filter-scoped) facets.
-  // Company suggestions come from SubscriptionPanel's own server-backed type-ahead.
+  // Company suggestions come from CompanyFilter's own server-backed type-ahead.
   const entityOptions = (facets.data?.entity ?? []).map((entry) => entry.label)
 
   // Side-nav jump targets for the Dashboard tab — only the sections that actually render for this

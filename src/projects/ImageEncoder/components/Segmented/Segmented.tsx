@@ -50,7 +50,12 @@ export function Segmented<T extends string | number>({
   }
 
   return (
-    <div className={styles.segmented} role="radiogroup" aria-label={ariaLabel}>
+    <div
+      className={styles.segmented}
+      role="radiogroup"
+      aria-label={ariaLabel}
+      aria-disabled={disabled || undefined}
+    >
       {options.map((option, index) => {
         const selected = option.value === value
         return (

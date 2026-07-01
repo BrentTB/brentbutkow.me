@@ -514,19 +514,10 @@ export function useAsciiArt(
       setPdfProgress(null)
 
       if (extracted.frames.length) {
-        // Load the embedded mono font only when exporting; fall back to base-14
-        // Courier if the chunk fails to load.
-        let font
-        try {
-          font = (await import('./export/mono-font-data')).MONO_FONT
-        } catch {
-          font = undefined
-        }
         const pdf = buildAsciiPdf(extracted.frames, {
           cols: extracted.cols,
           rows: extracted.rows,
           fps: extracted.fps,
-          font,
         })
         downloadBlob(pdf, 'ascii-art.pdf')
       }

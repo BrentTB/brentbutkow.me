@@ -24,7 +24,7 @@ export function AlertsDialog({ title, description, onClose, children }: AlertsDi
         panel?.querySelectorAll<HTMLElement>(
           'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
         ) ?? []
-      ).filter((el) => el.offsetParent !== null)
+      ).filter((el) => el.getClientRects().length > 0)
 
     // Land focus on the first field rather than the panel, so typing starts immediately.
     ;(focusable()[0] ?? panel)?.focus()

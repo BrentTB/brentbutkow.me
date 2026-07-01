@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { TrendDirection } from '../trend-callouts'
 import type { TrendCallout } from '../trend-callouts'
 import { AnomalyChart } from './AnomalyChart'
+import { ShowMoreToggle } from './ShowMoreToggle'
 import styles from './TrendCallouts.module.scss'
 
 const DIRECTION_ARROW: Record<TrendDirection, string> = {
@@ -92,14 +93,11 @@ export function TrendCallouts({ callouts }: TrendCalloutsProps) {
       </ul>
 
       {hiddenAnomalies > 0 && (
-        <button
-          type="button"
+        <ShowMoreToggle
+          expanded={expanded}
+          onToggle={() => setExpanded((v) => !v)}
           className={styles.moreToggle}
-          aria-expanded={expanded}
-          onClick={() => setExpanded((v) => !v)}
-        >
-          {expanded ? 'Show fewer' : 'Show more'}
-        </button>
+        />
       )}
 
       {open?.chart && (

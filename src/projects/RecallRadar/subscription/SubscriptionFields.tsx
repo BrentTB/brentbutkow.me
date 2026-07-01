@@ -5,7 +5,7 @@ import { categoryLabels, countryLabels, severityLabels, severityOrder } from '..
 import { RecallCategory, RecallCountry, type SeverityLabel } from '../recall.types'
 import type { TrendFilters } from '../api'
 import { CompanyFilter } from '../components/CompanyFilter'
-import styles from './SubscriptionPanel.module.scss'
+import styles from './subscription.module.scss'
 
 const ALL_COUNTRIES = Object.values(RecallCountry)
 const ALL_CATEGORIES = Object.values(RecallCategory)

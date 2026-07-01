@@ -5,7 +5,10 @@ import {
   channelValueAt,
   encodeChannel,
   finalStep,
+  IDLE,
   isHighlightStep,
+  Phase,
+  phaseAt,
   START_STEP,
 } from './encoding'
 
@@ -58,6 +61,16 @@ describe('isHighlightStep', () => {
     expect(isHighlightStep(2, CC)).toBe(false) // round channel 0
     expect(isHighlightStep(7, CC)).toBe(true) // highlight channel 0, adding pass
     expect(isHighlightStep(8, CC)).toBe(false) // add channel 0
+  })
+})
+
+describe('phaseAt', () => {
+  it('reports idle, then the rounding pass, then the adding pass', () => {
+    expect(phaseAt(IDLE, CC)).toBe(Phase.idle)
+    expect(phaseAt(1, CC)).toBe(Phase.rounding)
+    expect(phaseAt(finalStep(CC) / 2, CC)).toBe(Phase.rounding) // last step of the rounding pass
+    expect(phaseAt(finalStep(CC) / 2 + 1, CC)).toBe(Phase.adding) // first step of the adding pass
+    expect(phaseAt(finalStep(CC), CC)).toBe(Phase.adding)
   })
 })
 

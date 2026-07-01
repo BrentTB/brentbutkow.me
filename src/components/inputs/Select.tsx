@@ -1,6 +1,7 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
 import type { SelectOption } from './option.types'
+import { useAnchoredPosition } from './useAnchoredPosition'
 import styles from './Select.module.scss'
 
 type SelectProps = {
@@ -28,10 +29,6 @@ export function Select({
 }: SelectProps) {
   const [open, setOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
-  // The menu is portaled to <body> (fixed-positioned) so it escapes any overflow/backdrop-filter
-  // ancestor that would otherwise clip it — e.g. the recall dashboard's scrollable sticky bar. These
-  // are its viewport coords, measured from the trigger; null until measured so it never flashes.
-  const [coords, setCoords] = useState<{ top: number; left: number; width: number } | null>(null)
   const rootRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLUListElement>(null)
@@ -68,35 +65,9 @@ export function Select({
     if (open) optionRefs.current[activeIndex]?.scrollIntoView?.({ block: 'nearest' })
   }, [open, activeIndex])
 
-  // Position the portaled menu under (or above) the trigger. Measured after render so the menu's
-  // height is known — it flips above when there isn't room below and there's more room above.
-  useLayoutEffect(() => {
-    if (!open) {
-      setCoords(null)
-      return
-    }
-    const place = () => {
-      const trigger = triggerRef.current
-      if (!trigger) return
-      const rect = trigger.getBoundingClientRect()
-      const menuHeight = menuRef.current?.offsetHeight ?? 0
-      const spaceBelow = window.innerHeight - rect.bottom
-      const up = menuHeight + 8 > spaceBelow && rect.top > spaceBelow
-      setCoords({
-        top: up ? rect.top - menuHeight - 4 : rect.bottom + 4,
-        left: rect.left,
-        width: rect.width,
-      })
-    }
-    place()
-    // Reposition while open — the sticky bar re-pins and the page scrolls under the fixed menu.
-    window.addEventListener('scroll', place, true)
-    window.addEventListener('resize', place)
-    return () => {
-      window.removeEventListener('scroll', place, true)
-      window.removeEventListener('resize', place)
-    }
-  }, [open])
+  // The menu is portaled to <body> (fixed-positioned) so it escapes any overflow/backdrop-filter
+  // ancestor that would otherwise clip it — e.g. the recall dashboard's scrollable sticky bar.
+  const coords = useAnchoredPosition(triggerRef, menuRef, open)
 
   const openMenu = () => {
     const current = options.findIndex((option) => option.value === value)

@@ -3,6 +3,7 @@ import { EventSort, type EventOut } from '../recall.types'
 import { formatDate, pluralize } from '../chart-format'
 import { SegmentedToggle } from '../../../components/inputs/SegmentedToggle'
 import { useIsMobile } from '../useIsMobile'
+import { ShowMoreToggle } from './ShowMoreToggle'
 import styles from './Outbreaks.module.scss'
 
 type OutbreaksProps = {
@@ -95,14 +96,11 @@ export function Outbreaks({ events, activeEvent, onSelect, sort, onSortChange }:
         })}
       </ul>
       {canExpand && (
-        <button
-          type="button"
+        <ShowMoreToggle
+          expanded={expanded}
+          onToggle={() => setExpanded((v) => !v)}
           className={styles.moreToggle}
-          aria-expanded={expanded}
-          onClick={() => setExpanded((v) => !v)}
-        >
-          {expanded ? 'Show fewer' : 'Show more'}
-        </button>
+        />
       )}
     </div>
   )

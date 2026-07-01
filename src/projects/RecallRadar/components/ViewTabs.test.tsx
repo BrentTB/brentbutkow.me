@@ -71,4 +71,21 @@ describe('ViewTabs', () => {
     fireEvent.keyDown(screen.getByRole('tablist'), { key: 'ArrowLeft' })
     expect(onChange).toHaveBeenLastCalledWith('about')
   })
+
+  it('jumps to the first and last tab with Home and End', () => {
+    const onChange = vi.fn()
+    render(
+      <ViewTabs
+        ariaLabel="View"
+        value="recalls"
+        options={options}
+        onChange={onChange}
+        panelId="panel"
+      />
+    )
+    fireEvent.keyDown(screen.getByRole('tablist'), { key: 'End' })
+    expect(onChange).toHaveBeenLastCalledWith('about')
+    fireEvent.keyDown(screen.getByRole('tablist'), { key: 'Home' })
+    expect(onChange).toHaveBeenLastCalledWith('dashboard')
+  })
 })

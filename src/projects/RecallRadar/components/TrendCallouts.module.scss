@@ -137,27 +137,9 @@
   transform: rotate(180deg);
 }
 
-// Reveals the anomaly rows held back from the preview. A quiet mono link, aligned with the list.
+// Positions the reveal under the list — ShowMoreToggle owns the button's appearance.
 .moreToggle {
   margin: 8px 0 0;
-  padding: 4px 2px;
-  background: none;
-  border: none;
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.02em;
-  color: var(--muted);
-  cursor: pointer;
-  transition: color 0.12s ease;
-}
-
-.moreToggle:hover {
-  color: var(--accent);
-}
-
-.moreToggle:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
 }
 
 // The chart that expands below the list when an anomaly row is opened.

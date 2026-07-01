@@ -1,6 +1,7 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
 import type { SelectOption } from './option.types'
+import { useAnchoredPosition } from './useAnchoredPosition'
 import styles from './Combobox.module.scss'
 
 type ComboboxProps = {
@@ -38,10 +39,6 @@ export function Combobox({
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
-  // The listbox is portaled to <body> (fixed-positioned) so it escapes any overflow/backdrop-filter
-  // ancestor that would clip it (e.g. the dashboard's scrollable sticky bar). Coords measured from
-  // the control; null until measured so it never flashes at the origin.
-  const [coords, setCoords] = useState<{ top: number; left: number; width: number } | null>(null)
   const rootRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const menuRef = useRef<HTMLUListElement>(null)
@@ -61,6 +58,11 @@ export function Combobox({
     onInputChange || typed === '' || query === selectedLabel
       ? options
       : options.filter((option) => option.label.toLowerCase().includes(typed))
+
+  // The listbox is portaled to <body> (fixed-positioned) so it escapes any overflow/backdrop-filter
+  // ancestor that would clip it (e.g. the dashboard's scrollable sticky bar). Re-flow on the filtered
+  // count so a flipped-up menu repositions when async options change its height.
+  const coords = useAnchoredPosition(rootRef, menuRef, open, filtered.length)
 
   // Reset the input to the committed selection on close, and tell an async parent to do the same —
   // otherwise a half-typed query (e.g. "wal") keeps driving suggestions the next time it opens, even
@@ -88,35 +90,6 @@ export function Combobox({
   useEffect(() => {
     if (open) optionRefs.current[activeIndex]?.scrollIntoView?.({ block: 'nearest' })
   }, [open, activeIndex])
-
-  // Position the portaled listbox under (or above) the control, flipping up when there's no room
-  // below. Re-measured on scroll/resize since the fixed menu doesn't move with the page otherwise.
-  useLayoutEffect(() => {
-    if (!open) {
-      setCoords(null)
-      return
-    }
-    const place = () => {
-      const root = rootRef.current
-      if (!root) return
-      const rect = root.getBoundingClientRect()
-      const menuHeight = menuRef.current?.offsetHeight ?? 0
-      const spaceBelow = window.innerHeight - rect.bottom
-      const up = menuHeight + 8 > spaceBelow && rect.top > spaceBelow
-      setCoords({
-        top: up ? rect.top - menuHeight - 4 : rect.bottom + 4,
-        left: rect.left,
-        width: rect.width,
-      })
-    }
-    place()
-    window.addEventListener('scroll', place, true)
-    window.addEventListener('resize', place)
-    return () => {
-      window.removeEventListener('scroll', place, true)
-      window.removeEventListener('resize', place)
-    }
-  }, [open])
 
   // After the list changes (typing refilters it, async options arrive), keep the active row on a
   // selectable option — a reset to index 0 could land on a disabled (zero-result) one, leaving

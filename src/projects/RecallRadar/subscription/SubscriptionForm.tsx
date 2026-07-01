@@ -6,10 +6,10 @@ import {
   type FilterFieldsValue,
 } from './SubscriptionFields'
 import { useSubscriptionForm, type SubscriptionFormState } from './useSubscriptionForm'
-import styles from './SubscriptionPanel.module.scss'
+import styles from './subscription.module.scss'
 
 type SubscriptionFormProps = {
-  // Snapshotted from the dashboard when the panel opens — see SubscriptionPanel.
+  // Snapshotted from the dashboard when the alerts dialog opens, which mounts this form fresh.
   initialFilters?: RecallFilterValues
   country: RecallCountry
   entityOptions?: string[]
