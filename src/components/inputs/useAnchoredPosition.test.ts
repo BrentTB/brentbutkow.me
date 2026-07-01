@@ -53,15 +53,15 @@ describe('useAnchoredPosition', () => {
   it('re-measures on resize and removes listeners on close', () => {
     let box = { top: 100, bottom: 130, left: 20, width: 200 }
     const el = document.createElement('div')
-    el.getBoundingClientRect = () => ({ ...box, right: 0, height: 0, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect
+    el.getBoundingClientRect = () =>
+      ({ ...box, right: 0, height: 0, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect
     const anchor = { current: el }
     const menu = menuOfHeight(0)
     const remove = vi.spyOn(window, 'removeEventListener')
 
-    const { result, rerender } = renderHook(
-      ({ open }) => useAnchoredPosition(anchor, menu, open),
-      { initialProps: { open: true } }
-    )
+    const { result, rerender } = renderHook(({ open }) => useAnchoredPosition(anchor, menu, open), {
+      initialProps: { open: true },
+    })
     expect(result.current).toEqual({ top: 134, left: 20, width: 200 })
 
     box = { top: 50, bottom: 80, left: 10, width: 120 }

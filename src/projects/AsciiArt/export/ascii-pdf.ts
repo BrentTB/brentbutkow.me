@@ -44,11 +44,7 @@ export const isRampPdfSafe = (ramp: string) =>
 
 // Escape for a PDF literal string: (), backslash, and newline -> CR line break.
 const pdfString = (text: string) =>
-  text
-    .replace(/\\/g, '\\\\')
-    .replace(/\(/g, '\\(')
-    .replace(/\)/g, '\\)')
-    .replace(/\n/g, '\\r')
+  text.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)').replace(/\n/g, '\\r')
 
 // Escape for a double-quoted JS string literal, keeping the body pure ASCII so
 // the PDF byte stream is unambiguous (non-ASCII glyphs become \uXXXX).
