@@ -40,10 +40,11 @@ export function RecallTrendsChart({ data, year, legend, forecast }: RecallTrends
       .map((point) => [point.month, point])
   )
   // Scale over the actual stacks *and* the projection's upper band so neither bars nor whiskers clip.
-  const maxCount = seriesMax([
-    ...totals,
-    ...[...forecastByMonth.values()].map((point) => point.upper),
-  ])
+  // Round up to a whole recall — the forecast band is fractional, and a "318.1" axis top reads as a
+  // glitch rather than a count.
+  const maxCount = Math.ceil(
+    seriesMax([...totals, ...[...forecastByMonth.values()].map((point) => point.upper)])
+  )
   const plotW = WIDTH - PADDING.left - PADDING.right
   const plotH = HEIGHT - PADDING.top - PADDING.bottom
   const slot = plotW / months.length

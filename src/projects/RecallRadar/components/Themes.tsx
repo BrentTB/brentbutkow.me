@@ -8,15 +8,23 @@ type ThemesProps = {
   // Recalls per theme under the current filters (keyed by topic id). When present, rows show the
   // filtered count and lead with the busiest; omitted (facets not loaded) → the global cluster size.
   counts?: Record<string, number>
+  // Cap on rows shown. Fewer when the list is squeezed into one column beside the state map.
+  maxRows?: number
 }
 
-// Show every theme — the NMF build yields at most 16.
+// The NMF build yields at most 16 themes.
 const MAX_THEME_ROWS = 16
 
 // Themes as a clickable breakdown — a topic's label already IS its top terms ("listeria · deli ·
 // meat"). The row value is the stable slug, so the chosen theme rides the URL by a key that survives
 // an analytics rebuild (the surrogate id would not).
-export function Themes({ topics, activeTopic, onSelect, counts }: ThemesProps) {
+export function Themes({
+  topics,
+  activeTopic,
+  onSelect,
+  counts,
+  maxRows = MAX_THEME_ROWS,
+}: ThemesProps) {
   const rows = topics.map((topic) => ({
     label: topic.label,
     value: topic.slug,
@@ -30,7 +38,8 @@ export function Themes({ topics, activeTopic, onSelect, counts }: ThemesProps) {
       rows={rows}
       activeValue={activeTopic}
       onSelect={onSelect}
-      maxRows={MAX_THEME_ROWS}
+      maxRows={maxRows}
+      twoColumn
     />
   )
 }

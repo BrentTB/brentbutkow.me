@@ -181,19 +181,11 @@ describe('RecallRadar page', () => {
     )
 
     expect(screen.getByText('Recall Radar')).toBeTruthy()
-    // tech-stack overview + methodology render immediately (not data-gated)
-    expect(screen.getByText('FastAPI')).toBeTruthy()
-    expect(screen.getByText('How it works')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'United Kingdom' })).toBeTruthy() // location tabs (expanded)
 
-    // data-driven sections after the fetch resolves
-    await waitFor(() => expect(screen.getByText('Test cookies')).toBeTruthy())
-    expect(screen.getByText('Acme Foods')).toBeTruthy()
-    expect(screen.getByText('US recalls by state')).toBeTruthy()
+    // Dashboard tab (the default view) — the data-driven analytics after the fetch resolves.
+    await waitFor(() => expect(screen.getByText('US recalls by state')).toBeTruthy())
     expect(screen.getByRole('button', { name: 'California: 18 recalls' })).toBeTruthy()
-    // per-recall drill-down detail (the "Leading cause" callout now lives in the status strip)
-    expect(screen.getByText('Nationwide')).toBeTruthy()
-    expect(screen.getByText('100%')).toBeTruthy() // per-recall classifier confidence
     expect(screen.getByText('Top states')).toBeTruthy()
     // appears in the breakdown row and the company filter option
     expect(screen.getAllByText('Globex Foods').length).toBeGreaterThan(0)
@@ -201,7 +193,7 @@ describe('RecallRadar page', () => {
     expect(screen.getByText('42')).toBeTruthy()
     // entity leaderboard + a detected anomaly callout (headlined by the spike's count, not σ)
     expect(screen.getByText('Top allergens')).toBeTruthy()
-    // severity surface: the distribution bar + a color-graded per-recall badge
+    // severity surface: the distribution bar
     expect(screen.getByText('Severity mix')).toBeTruthy()
     expect(screen.getAllByText('Severe').length).toBeGreaterThan(0)
     expect(screen.getByText('Anomaly')).toBeTruthy()
@@ -212,10 +204,23 @@ describe('RecallRadar page', () => {
     // themes section + the per-card theme chip both render the topic label
     expect(screen.getAllByText('Themes').length).toBeGreaterThan(0) // nav rail + section heading
     expect(screen.getAllByText('listeria · deli · meat').length).toBeGreaterThan(0)
-    // outbreaks section renders its card, and the recall in that cluster gets an outbreak badge
+    // outbreaks section renders its card
     expect(screen.getAllByText('Outbreaks').length).toBeGreaterThan(0) // nav rail + section heading
     expect(screen.getByText('5 recalls')).toBeTruthy() // the outbreak card
+
+    // Recalls tab — the recall feed, its drill-down detail, and the per-recall outbreak badge.
+    fireEvent.click(screen.getByRole('tab', { name: /^Recalls/ }))
+    await waitFor(() => expect(screen.getByText('Test cookies')).toBeTruthy())
+    expect(screen.getByText('Acme Foods')).toBeTruthy()
+    expect(screen.getByText('Nationwide')).toBeTruthy()
+    expect(screen.getByText('100%')).toBeTruthy() // per-recall classifier confidence
     expect(screen.getByText('⚠ Outbreak')).toBeTruthy() // the per-recall badge
+
+    // About tab — the tech-stack write-up + methodology, tucked behind its own tab.
+    fireEvent.click(screen.getByRole('tab', { name: 'About' }))
+    expect(screen.getByText('FastAPI')).toBeTruthy()
+    expect(screen.getByText('How it works')).toBeTruthy()
+
     // similar recalls are lazy — nothing is fetched until a row is expanded
     expect(fetchMock).not.toHaveBeenCalledWith(
       expect.stringContaining('/similar'),
@@ -249,7 +254,10 @@ describe('RecallRadar page', () => {
       </MemoryRouter>
     )
 
+    // The recall feed + its pager live on the Recalls tab now, so open it first.
+    fireEvent.click(screen.getByRole('tab', { name: /^Recalls/ }))
     await waitFor(() => expect(screen.getByText('Test cookies')).toBeTruthy())
+    scrollSpy.mockClear() // ignore any scroll from the tab switch; assert only the pager's
     fireEvent.click(screen.getByRole('button', { name: 'Next page' }))
     expect(scrollSpy).toHaveBeenCalled()
   })

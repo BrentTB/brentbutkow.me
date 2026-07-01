@@ -1,0 +1,53 @@
+// Underlined tab rail — the whole row shares one baseline, and the active tab sits on it with an
+// accent underline. Deliberately unlike the pill SegmentedToggle (filters/sorts) so these read as
+// page tabs.
+.tabs {
+  display: flex;
+  gap: 2px;
+  // The baseline rail as an inset shadow, not a border: it paints without adding to the box, so the
+  // active tab's underline overlaps it with no layout overflow (a real border here needs a negative
+  // margin to overlap, which overflows vertically and, with overflow-x set, becomes scrollable).
+  box-shadow: inset 0 -1px 0 var(--border);
+  // Let the row scroll horizontally if the labels ever outgrow the strip on a phone; never vertically
+  // (overflow-x alone computes overflow-y to auto, which is what let the tabs scroll up/down).
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  position: relative;
+  flex: 0 0 auto;
+  padding: 6px 14px 9px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: var(--muted);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    color 0.14s ease,
+    border-color 0.14s ease;
+}
+
+.tab:hover {
+  color: var(--text-secondary);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: 4px 4px 0 0;
+}
+
+.on {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+  font-weight: 500;
+}
