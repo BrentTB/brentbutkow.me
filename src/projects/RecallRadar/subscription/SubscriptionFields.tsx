@@ -1,4 +1,4 @@
-import { useId, useState, type ChangeEvent, type KeyboardEvent } from 'react'
+import { Combobox } from '../../../components/inputs/Combobox'
 import { Select } from '../../../components/inputs/Select'
 import type { SelectOption } from '../../../components/inputs/option.types'
 import { categoryLabels, countryLabels, severityLabels, severityOrder } from '../data'
@@ -58,10 +58,6 @@ export function SubscriptionFields({
   errors = {},
   onCountriesUserChange,
 }: SubscriptionFieldsProps) {
-  const [entityDraft, setEntityDraft] = useState('')
-  const baseId = useId()
-  const entityListId = `${baseId}-entities`
-
   // Scope the company type-ahead to the selected country when exactly one is chosen; otherwise search
   // across all. The Combobox re-fetches whenever this path changes, so suggestions track typing.
   const companyScope: TrendFilters =
@@ -87,30 +83,14 @@ export function SubscriptionFields({
   }
 
   const addEntity = (raw: string) => {
-    setEntityDraft('')
     const next = addUnique(value.entities, raw)
     if (next !== value.entities) setField('entities', next)
   }
 
-  const onEntityChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const next = event.target.value
-    // Picking a suggestion (or typing a full known entity) commits it as a chip immediately, so the
-    // field clears ready for the next one.
-    if (next && entityOptions.some((o) => o.toLowerCase() === next.toLowerCase())) {
-      addEntity(next)
-      return
-    }
-    setEntityDraft(next)
-  }
-
-  const onEntityKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter' || event.key === ',') {
-      event.preventDefault()
-      addEntity(entityDraft)
-    } else if (event.key === 'Backspace' && entityDraft === '' && value.entities.length > 0) {
-      setField('entities', value.entities.slice(0, -1))
-    }
-  }
+  // Suggestions minus the chips already picked, so the menu only offers new additions.
+  const entitySuggestions: SelectOption[] = entityOptions
+    .filter((option) => !value.entities.some((e) => e.toLowerCase() === option.toLowerCase()))
+    .map((option) => ({ value: option, label: option }))
 
   const removeEntity = (entity: string) =>
     setField(
@@ -150,36 +130,37 @@ export function SubscriptionFields({
 
       <div className={styles.field}>
         <span className={styles.label}>Allergens, pathogens & hazards</span>
-        <div className={styles.tags}>
-          {value.entities.map((entity) => (
-            <span key={entity} className={styles.tag}>
-              {entity}
-              <button
-                type="button"
-                className={styles.tagRemove}
-                onClick={() => removeEntity(entity)}
-                aria-label={`Remove ${entity}`}
-              >
-                ×
-              </button>
-            </span>
-          ))}
-          <input
-            className={styles.tagInput}
-            value={entityDraft}
-            onChange={onEntityChange}
-            onKeyDown={onEntityKeyDown}
-            onBlur={() => addEntity(entityDraft)}
-            placeholder={value.entities.length ? 'Add another…' : 'e.g. peanut, listeria'}
-            list={entityListId}
-            aria-label="Add an allergen, pathogen, or hazard"
-          />
-          <datalist id={entityListId}>
-            {entityOptions.map((option) => (
-              <option key={option} value={option} />
+        {value.entities.length > 0 && (
+          <div className={styles.chipRow}>
+            {value.entities.map((entity) => (
+              <span key={entity} className={styles.tag}>
+                {entity}
+                <button
+                  type="button"
+                  className={styles.tagRemove}
+                  onClick={() => removeEntity(entity)}
+                  aria-label={`Remove ${entity}`}
+                >
+                  ×
+                </button>
+              </span>
             ))}
-          </datalist>
-        </div>
+          </div>
+        )}
+        {/* A portaled Combobox menu, not a native datalist — mobile keyboards resize the viewport
+            when they open, which dismisses datalist popups the instant they appear. */}
+        <Combobox
+          freeText
+          value=""
+          options={entitySuggestions}
+          onChange={addEntity}
+          onBackspaceEmpty={() => {
+            if (value.entities.length > 0) setField('entities', value.entities.slice(0, -1))
+          }}
+          ariaLabel="Add an allergen, pathogen, or hazard"
+          placeholder={value.entities.length ? 'Add another…' : 'e.g. peanut, listeria'}
+          widthCh={36}
+        />
       </div>
 
       <div className={styles.field}>

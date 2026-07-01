@@ -9,6 +9,8 @@
 .row {
   padding: 11px 0;
   border-top: 1px solid var(--border);
+  // A URL-restored open row is scrolled to like a #fragment — land it below the sticky bar.
+  scroll-margin-top: calc(var(--rr-bar-height, 110px) + 20px);
 }
 
 .summary {

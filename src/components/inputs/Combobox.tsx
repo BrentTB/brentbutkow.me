@@ -20,6 +20,12 @@ type ComboboxProps = {
   // Fix the control + dropdown to this many characters wide; longer option labels truncate with an
   // ellipsis rather than widening it. Omit to size to the input (good for short options).
   widthCh?: number
+  // Chip-input mode: the typed text is itself a committable value. Enter, comma, and blur commit
+  // the trimmed draft via onChange and clear the input; picking a suggestion commits the same way.
+  // Pass `value=""` so each commit reads as a fresh entry rather than a selection.
+  freeText?: boolean
+  // Chip-input hook: Backspace on an empty input (remove the last chip).
+  onBackspaceEmpty?: () => void
 }
 
 // A searchable dropdown (ARIA combobox): a text input that filters a listbox. Pick from the list —
@@ -35,6 +41,8 @@ export function Combobox({
   loading,
   error,
   widthCh,
+  freeText,
+  onBackspaceEmpty,
 }: ComboboxProps) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -72,6 +80,17 @@ export function Combobox({
     onInputChange?.(selectedLabel)
   }
 
+  // Arrow keys signal intent to pick from the list; typing reclaims Enter for the raw draft.
+  const navigatedRef = useRef(false)
+
+  // Chip mode: hand the trimmed draft to the parent and clear for the next entry.
+  const commitDraft = () => {
+    const draft = query.trim()
+    setQuery('')
+    navigatedRef.current = false
+    if (draft) onChange(draft)
+  }
+
   useEffect(() => {
     if (!open) return
     const onPointerDown = (event: MouseEvent) => {
@@ -79,7 +98,9 @@ export function Combobox({
       // The listbox lives in a body portal, outside rootRef — don't treat a click on it as "outside".
       if (rootRef.current?.contains(target) || menuRef.current?.contains(target)) return
       setOpen(false)
-      resetToSelection()
+      // Chip mode commits on blur (which this click also triggers) — committing here too would
+      // hand the parent the same draft twice.
+      if (!freeText) resetToSelection()
     }
     document.addEventListener('mousedown', onPointerDown)
     return () => document.removeEventListener('mousedown', onPointerDown)
@@ -115,12 +136,15 @@ export function Combobox({
   const choose = (option: SelectOption) => {
     if (option.disabled) return
     onChange(option.value)
+    if (freeText) setQuery('')
+    navigatedRef.current = false
     setOpen(false)
   }
 
   const onType = (text: string) => {
     setQuery(text)
     setActiveIndex(0)
+    navigatedRef.current = false
     setOpen(true)
     onInputChange?.(text)
   }
@@ -129,15 +153,28 @@ export function Combobox({
     if (event.key === 'Escape') {
       setOpen(false)
       resetToSelection()
+    } else if (freeText && (event.key === 'Enter' || event.key === ',')) {
+      // The draft is the value in chip mode — Enter/comma commit it, unless the user explicitly
+      // arrowed onto a suggestion (then Enter picks that).
+      event.preventDefault()
+      if (event.key === 'Enter' && navigatedRef.current && open && filtered[activeIndex]) {
+        choose(filtered[activeIndex])
+      } else {
+        commitDraft()
+      }
+    } else if (freeText && event.key === 'Backspace' && query === '') {
+      onBackspaceEmpty?.()
     } else if (!open && (event.key === 'ArrowDown' || event.key === 'Enter')) {
       event.preventDefault()
       setOpen(true)
     } else if (open && event.key === 'ArrowDown') {
       event.preventDefault()
       if (filtered.length === 0) return
+      navigatedRef.current = true
       setActiveIndex((index) => seekEnabled(index + 1, 1) ?? index)
     } else if (open && event.key === 'ArrowUp') {
       event.preventDefault()
+      navigatedRef.current = true
       setActiveIndex((index) => seekEnabled(index - 1, -1) ?? index)
     } else if (open && event.key === 'Enter') {
       event.preventDefault()
@@ -165,9 +202,19 @@ export function Combobox({
         value={query}
         onChange={(event) => onType(event.target.value)}
         onFocus={() => {
-          setOpen(true)
           inputRef.current?.select()
         }}
+        onClick={() => setOpen(!open)}
+        // Chip mode: tabbing/tapping away commits the draft. Picking an option never blurs
+        // mid-click — the menu preventDefaults its own mousedown.
+        onBlur={
+          freeText
+            ? () => {
+                commitDraft()
+                setOpen(false)
+              }
+            : undefined
+        }
         onKeyDown={onKeyDown}
       />
       {value && (

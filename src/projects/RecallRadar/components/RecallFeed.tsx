@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   categoryLabels,
@@ -27,6 +26,10 @@ type RecallFeedProps = {
   eventsById?: Map<number, EventOut>
   onEventSelect?: (slug: string) => void
   activeEvent?: string
+  // Expanded rows, keyed by recall number and owned by the parent (RecallRadar lifts them into the
+  // URL so a refresh or shared link restores them).
+  openRows: ReadonlySet<string>
+  onRowToggle: (recallNumber: string, open: boolean) => void
 }
 
 type DetailRow = { term: string; value: string }
@@ -62,9 +65,9 @@ export function RecallFeed({
   eventsById,
   onEventSelect,
   activeEvent,
+  openRows,
+  onRowToggle,
 }: RecallFeedProps) {
-  // Track which rows are open so the Related-recalls child mounts (and fetches) only on expand.
-  const [openRows, setOpenRows] = useState<Set<string>>(new Set())
   const navigate = useNavigate()
 
   if (recalls.length === 0) {
@@ -79,20 +82,15 @@ export function RecallFeed({
           recall.eventClusterId != null ? eventsById?.get(recall.eventClusterId) : undefined
         const detailPath = recallDetailRoute(recall.source, recall.recallNumber)
         return (
-          <li key={recall.recallNumber} className={styles.row}>
+          // The id lets a URL-restored open row be scrolled to like a #fragment target.
+          <li key={recall.recallNumber} id={`recall-${recall.recallNumber}`} className={styles.row}>
             <details
               className={styles.details}
-              onToggle={(event) => {
-                // Read `open` synchronously: `currentTarget` is null by the time the (deferred)
-                // state updater runs, which crashes on rapid toggles.
-                const isOpen = event.currentTarget.open
-                setOpenRows((prev) => {
-                  const next = new Set(prev)
-                  if (isOpen) next.add(recall.recallNumber)
-                  else next.delete(recall.recallNumber)
-                  return next
-                })
-              }}
+              open={openRows.has(recall.recallNumber)}
+              // Read `open` synchronously: `currentTarget` is null once the event settles, which
+              // crashes on rapid toggles. Reporting the DOM state (rather than negating ours) keeps
+              // the two in sync even when React itself flips the attribute.
+              onToggle={(event) => onRowToggle(recall.recallNumber, event.currentTarget.open)}
             >
               <summary className={styles.summary}>
                 <div className={styles.head}>

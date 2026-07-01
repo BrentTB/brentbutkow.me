@@ -97,6 +97,7 @@ const DEFAULT_PARAMS = {
   eventSort: EventSort.recent,
   year: '',
   page: '',
+  open: '',
 }
 
 // The recall feed paginates this many rows at a time.
@@ -219,6 +220,15 @@ export function RecallRadar() {
     scrollToStripTop(true)
   }
   const page = Math.max(1, Number(values.page) || 1)
+  // Expanded feed rows ride the URL as comma-separated recall numbers, so a refresh or shared link
+  // restores them. Entries not on the current page are simply ignored by the feed.
+  const openRows = useMemo(() => new Set(values.open.split(',').filter(Boolean)), [values.open])
+  const toggleRow = (recallNumber: string, isOpen: boolean) => {
+    const next = new Set(openRows)
+    if (isOpen) next.add(recallNumber)
+    else next.delete(recallNumber)
+    patchParams({ open: [...next].join(',') })
+  }
   // Paging only swaps the rows in place, so bring the recalls section back into view — otherwise
   // you're left wherever you scrolled to click the pager. Scroll only here (the user-initiated pager
   // click), never in an effect on `page`, so a first load or a shared ?page=N URL doesn't yank.
@@ -256,6 +266,16 @@ export function RecallRadar() {
     offset: (page - 1) * PAGE_SIZE,
     sort: sort === RecallSort.recency ? undefined : sort,
   })
+  // A restored ?open= row acts like a #fragment: the first time the feed renders one, jump to it.
+  // One shot per visit — the flag is consumed even when nothing matches, so later toggles, paging,
+  // and filter changes never yank the scroll.
+  const scrolledToOpenRow = useRef(false)
+  useEffect(() => {
+    if (scrolledToOpenRow.current || view !== RecallView.recalls || !recalls.data) return
+    scrolledToOpenRow.current = true
+    const target = recalls.data.items.find((item) => openRows.has(item.recallNumber))
+    if (target) document.getElementById(`recall-${target.recallNumber}`)?.scrollIntoView()
+  }, [view, recalls.data, openRows])
   // Themes are per-country; refetches on country change. The id→topic map lets the per-card chip
   // show a recall's theme and filter by its slug; the active-topic chip resolves the slug → label.
   const topics = useTopics(country)
@@ -651,6 +671,8 @@ export function RecallRadar() {
               {recalls.data && (
                 <RecallFeed
                   recalls={recalls.data.items}
+                  openRows={openRows}
+                  onRowToggle={toggleRow}
                   topicsById={topicsById}
                   onTopicSelect={(slug) => patch({ topic: slug })}
                   activeTopic={filters.topic}
