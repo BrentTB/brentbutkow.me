@@ -7,14 +7,14 @@
 }
 
 .row {
-  padding: 18px 0;
+  padding: 11px 0;
   border-top: 1px solid var(--border);
 }
 
 .summary {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   cursor: pointer;
   list-style: none;
 }
@@ -29,33 +29,19 @@
   border-radius: 4px;
 }
 
-.meta {
+// The scannable one-line row: severity dot · product · outbreak · source · date · chevron.
+.head {
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
+  gap: 10px;
 }
 
-.badge {
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding: 3px 9px;
-  border-radius: 999px;
-  border: 1px solid var(--border-strong);
-  color: var(--text-secondary);
-}
-
-// Color is set inline from severityColors; the border tracks it via currentColor.
-.severity {
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding: 3px 9px;
-  border-radius: 999px;
-  border: 1px solid currentColor;
+// Severity as a colour-coded dot (label + score in the title / aria-label) — denser than a pill.
+.sevDot {
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
 }
 
 // Clickable theme pill — filters by the recall's NMF topic. Truncated; themes can be long labels.
@@ -107,19 +93,8 @@
   outline-offset: 2px;
 }
 
-.confidence {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  color: var(--muted);
-}
-
-.class {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  color: var(--muted);
-}
-
 .source {
+  flex: 0 0 auto;
   font-family: var(--font-mono);
   font-size: 0.66rem;
   text-transform: uppercase;
@@ -128,10 +103,10 @@
 }
 
 .date {
+  flex: 0 0 auto;
   font-family: var(--font-mono);
   font-size: 0.72rem;
   color: var(--muted);
-  margin-left: auto;
 }
 
 .chevron {
@@ -148,12 +123,16 @@
 // The title doubles as a link to the recall's page. Reads as a heading until hovered/focused, then
 // shows it's clickable (accent + underline) — like the related-recalls product links.
 .product {
-  display: block;
+  flex: 1;
+  min-width: 0;
   margin: 0;
-  font-size: 0.98rem;
+  font-size: 0.92rem;
   font-weight: 500;
   color: var(--text);
   text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .product:hover,
@@ -168,20 +147,16 @@
   border-radius: 4px;
 }
 
-.company {
-  margin: 0;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-}
-
+// Second line of the collapsed row: a one-line taste of the reason (clamped), full text on expand.
 .reason {
   margin: 0;
-  font-size: 0.85rem;
+  padding-left: 19px;
+  font-size: 0.82rem;
   color: var(--muted);
   line-height: 1.5;
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   overflow: hidden;
 }
 
@@ -191,10 +166,9 @@
   overflow: visible;
 }
 
-.entities {
-  list-style: none;
-  margin: 8px 0 0;
-  padding: 0;
+// Revealed on expand: the theme filter chip + the extracted allergen/pathogen/hazard chips.
+.tags {
+  margin: 14px 0 0;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;

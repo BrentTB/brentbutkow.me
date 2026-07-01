@@ -17,6 +17,7 @@ import { SeverityBar } from './components/SeverityBar'
 import { SectionNav, type NavSection } from './components/SectionNav'
 import { ViewTabs } from './components/ViewTabs'
 import { AlertsDialog } from './components/AlertsDialog'
+import { Skeleton } from './components/Skeleton'
 import { SegmentedToggle } from '../../components/inputs/SegmentedToggle'
 import { YearStepper } from './components/YearStepper'
 import { StatusStrip } from './components/StatusStrip'
@@ -470,7 +471,7 @@ export function RecallRadar() {
           {view === RecallView.dashboard && (
             <>
               <section id="overview" className={styles.section}>
-                {stats.data && (
+                {stats.data ? (
                   <>
                     <StatusStrip
                       total={stats.data.total}
@@ -487,6 +488,13 @@ export function RecallRadar() {
                     />
                     <SeverityBar data={stats.data.bySeverity} />
                   </>
+                ) : (
+                  stats.loading && (
+                    <div className={styles.loadingStack}>
+                      <Skeleton height={42} radius={12} />
+                      <Skeleton height={58} radius={12} />
+                    </div>
+                  )
                 )}
                 <TrendCallouts callouts={callouts} />
               </section>
@@ -534,7 +542,7 @@ export function RecallRadar() {
                     )}
                   </div>
                 </div>
-                {trend.loading && <p className={styles.status}>Loading trend…</p>}
+                {trend.loading && !trend.data && <Skeleton height={240} radius={12} />}
                 {trend.error && <p className={styles.status}>Couldn’t load trend data.</p>}
                 {trend.data && (
                   <RecallTrendsChart
@@ -620,7 +628,13 @@ export function RecallRadar() {
                   />
                 </div>
               </div>
-              {recalls.loading && <p className={styles.status}>Loading recalls…</p>}
+              {recalls.loading && !recalls.data && (
+                <div className={styles.loadingStack}>
+                  {Array.from({ length: 8 }, (_, i) => (
+                    <Skeleton key={i} height={34} radius={8} />
+                  ))}
+                </div>
+              )}
               {recalls.error && <p className={styles.status}>Couldn’t reach the recall service.</p>}
               {recalls.data && (
                 <RecallFeed

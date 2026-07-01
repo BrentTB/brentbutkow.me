@@ -41,9 +41,10 @@ describe('RecallFeed', () => {
   it('shows the product summary and a drill-down with the recall metadata', () => {
     render(<RecallFeed recalls={[recall]} />)
     expect(screen.getByText('Test cookies')).toBeTruthy()
-    expect(screen.getByText('92%')).toBeTruthy()
-    expect(screen.getByText('Severe')).toBeTruthy() // color-graded severity badge
+    expect(screen.getByLabelText('Severity: Severe')).toBeTruthy() // color-graded severity dot
     // fields revealed in the expandable detail panel
+    expect(screen.getByText('92%')).toBeTruthy() // classifier confidence
+    expect(screen.getByText('Acme Foods')).toBeTruthy() // company
     expect(screen.getByText('F-1234')).toBeTruthy()
     expect(screen.getByText('Nationwide')).toBeTruthy()
     expect(screen.getByText('USDA FSIS')).toBeTruthy() // source badge

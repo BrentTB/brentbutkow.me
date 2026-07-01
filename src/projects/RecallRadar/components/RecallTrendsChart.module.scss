@@ -93,10 +93,10 @@
   stroke-width: 1.2;
 }
 
-// Error-bar whisker spanning the forecast's lower–upper band.
-.whisker {
-  stroke: var(--text-secondary);
-  stroke-width: 1.5;
+// The forecast's lower–upper range as a soft shaded band behind the ghost bar (replacing a bold
+// error bar). Faint enough to read as "roughly this range" without dominating the real months.
+.forecastBand {
+  fill: rgba(var(--accent-rgb), 0.09);
 }
 
 .forecastNote {
