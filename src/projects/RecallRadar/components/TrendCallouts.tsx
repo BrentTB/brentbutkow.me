@@ -98,9 +98,7 @@ export function TrendCallouts({ callouts }: TrendCalloutsProps) {
           aria-expanded={expanded}
           onClick={() => setExpanded((v) => !v)}
         >
-          {expanded
-            ? 'Show fewer signals'
-            : `Show ${hiddenAnomalies} more signal${hiddenAnomalies === 1 ? '' : 's'}`}
+          {expanded ? 'Show fewer' : 'Show more'}
         </button>
       )}
 

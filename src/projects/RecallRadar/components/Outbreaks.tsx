@@ -101,7 +101,7 @@ export function Outbreaks({ events, activeEvent, onSelect, sort, onSortChange }:
           aria-expanded={expanded}
           onClick={() => setExpanded((v) => !v)}
         >
-          {expanded ? 'Show fewer' : `Show ${ranked.length - MOBILE_PREVIEW} more`}
+          {expanded ? 'Show fewer' : 'Show more'}
         </button>
       )}
     </div>

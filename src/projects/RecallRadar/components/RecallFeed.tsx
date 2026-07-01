@@ -35,8 +35,13 @@ type DetailRow = { term: string; value: string }
 function detailRows(recall: Recall): DetailRow[] {
   const rows: DetailRow[] = []
   if (recall.companyName) rows.push({ term: 'Company', value: recall.companyName })
+  rows.push({
+    term: 'Severity',
+    value: `${severityLabels[recall.severityLabel]} (${recall.severityScore}/100)`,
+  })
   rows.push({ term: 'Cause', value: categoryLabels[recall.category] })
   rows.push({ term: 'Confidence', value: `${Math.round(recall.categoryConfidence * 100)}%` })
+  rows.push({ term: 'Source', value: sourceLabels[recall.source] })
   rows.push({ term: 'Recall number', value: recall.recallNumber })
   if (recall.status) rows.push({ term: 'Status', value: recall.status })
   if (recall.classification) rows.push({ term: 'Classification', value: recall.classification })
@@ -110,12 +115,26 @@ export function RecallFeed({
                   >
                     {recall.productDescription}
                   </Link>
+                  {/* Theme + outbreak chips ride the title line so they sit in the clickable summary
+                      — clicking the row around them toggles it, and each chip filters instead of
+                      toggling (preventDefault). */}
+                  {theme && (
+                    <button
+                      type="button"
+                      className={styles.themeChip}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        onTopicSelect?.(theme.slug === activeTopic ? '' : theme.slug)
+                      }}
+                      title={`Theme: ${theme.label} — filter by it`}
+                    >
+                      {theme.label}
+                    </button>
+                  )}
                   {cluster?.isOutbreak && (
                     <button
                       type="button"
                       className={styles.outbreakChip}
-                      // Inside <summary>, so stop the click from toggling the row. Re-clicking the
-                      // active outbreak clears it (toggle), like the Outbreaks cards.
                       onClick={(e) => {
                         e.preventDefault()
                         onEventSelect?.(cluster.slug === activeEvent ? '' : cluster.slug)
@@ -125,7 +144,6 @@ export function RecallFeed({
                       ⚠ Outbreak
                     </button>
                   )}
-                  <span className={styles.source}>{sourceLabels[recall.source]}</span>
                   <span className={styles.date}>{formatDate(recall.reportDate)}</span>
                   <span className={styles.chevron} aria-hidden="true">
                     ›
@@ -134,19 +152,8 @@ export function RecallFeed({
                 <p className={styles.reason}>{recall.reasonText}</p>
               </summary>
 
-              {(theme || recall.entities.length > 0) && (
+              {recall.entities.length > 0 && (
                 <div className={styles.tags}>
-                  {theme && (
-                    <button
-                      type="button"
-                      className={styles.themeChip}
-                      // Re-clicking the active theme clears it (toggle), like the Themes cards.
-                      onClick={() => onTopicSelect?.(theme.slug === activeTopic ? '' : theme.slug)}
-                      title="Filter by this theme"
-                    >
-                      {theme.label}
-                    </button>
-                  )}
                   {recall.entities.map((entity) => (
                     <span
                       key={`${entity.type}-${entity.value}`}

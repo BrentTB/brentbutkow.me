@@ -85,13 +85,11 @@
   }
 }
 
-// Phones: the strip docks flush beneath the (now square-cornered) filter card — square top, rounded
-// bottom, no top border — so the two read as one continuous panel rather than a card meeting a
-// separate strip. Must follow the ≤860 block to win the cascade at ≤600.
+// Phones: the strip is its own fully-rounded panel sitting just under the (rounded) filter bar,
+// rather than docking flush to it. Must follow the ≤860 block to win the cascade at ≤600.
 @media (max-width: 600px) {
   .rail {
-    margin-top: 0;
-    border-top: none;
-    border-radius: 0 0 var(--radius) var(--radius);
+    margin-top: 8px;
+    border-radius: var(--radius);
   }
 }

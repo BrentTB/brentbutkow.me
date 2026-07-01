@@ -39,11 +39,12 @@ export function RecallTrendsChart({ data, year, legend, forecast }: RecallTrends
       .filter((point) => point.month.startsWith(`${year}-`) && point.month > latestActual)
       .map((point) => [point.month, point])
   )
-  // Scale to the actual stacks and the projected values — not the forecast's upper band, which can
-  // sit far above them and would shrink every real month to fit. The uncertainty band clamps to the
-  // plot top instead. Round up to a whole recall so the axis reads as a count, not a "318.1" glitch.
+  // Scale to the actual stacks *and* the projection's upper band, so a forecast that expects far more
+  // than the year's recorded months so far can still rise above them — clamping the scale to the
+  // current max would hide that the projection runs higher. The band is faint now (not a bold
+  // whisker), so the taller axis reads fine. Round up so the axis is a count, not a "318.1" glitch.
   const maxCount = Math.ceil(
-    seriesMax([...totals, ...[...forecastByMonth.values()].map((point) => point.predicted)])
+    seriesMax([...totals, ...[...forecastByMonth.values()].map((point) => point.upper)])
   )
   const plotW = WIDTH - PADDING.left - PADDING.right
   const plotH = HEIGHT - PADDING.top - PADDING.bottom

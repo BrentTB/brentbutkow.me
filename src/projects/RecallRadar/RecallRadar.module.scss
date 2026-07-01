@@ -182,16 +182,20 @@
   .stickyBar {
     max-height: calc(100dvh - 16px);
     overflow-y: auto;
-    // Square + flush to the section strip below, so the two read as one connected panel on mobile.
-    border-radius: 0;
-    margin-bottom: 0;
   }
 
-  // PageLayout stacks its children with a 48px flex gap, which sits between the bar and the section
-  // strip (in .layout) and shows as a seam at the top of the page (in scroll, sticky hides it).
-  // Cancel just that one gap so the strip docks directly onto the bar — the other page gaps stand.
+  // The location scope sits at the left of its row, with Get alerts pinned to the right — so the
+  // scope reads as the row's anchor rather than crowding the button.
+  .barActions {
+    margin-left: 0;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  // PageLayout stacks its children with a 48px flex gap; trim most of it so the section strip sits
+  // just under the bar (both are self-contained rounded panels), without a cavernous gap.
   .layout {
-    margin-top: -48px;
+    margin-top: -40px;
   }
 
   .barHead {
@@ -201,9 +205,11 @@
     top: -10px;
     z-index: 2;
     // Extend the head's background through the bar's padding so the sticky panel reads as one
-    // chrome block, with no padding gap showing the scrolled content peeking up around it.
+    // chrome block, with no padding gap showing the scrolled content peeking up around it. Round its
+    // top to match the bar so internal scrolling doesn't square off the bar's top corners.
     margin: -10px -14px 0;
     padding: 10px 14px;
+    border-radius: var(--radius) var(--radius) 0 0;
     background: rgba(16, 18, 24, 0.96);
     backdrop-filter: blur(8px);
   }

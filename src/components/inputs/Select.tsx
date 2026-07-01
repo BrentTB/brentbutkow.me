@@ -1,4 +1,5 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { createPortal } from 'react-dom'
 import type { SelectOption } from './option.types'
 import styles from './Select.module.scss'
 
@@ -27,9 +28,10 @@ export function Select({
 }: SelectProps) {
   const [open, setOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
-  // Flip the menu above the trigger when there isn't room below (near the page
-  // bottom), so the full list stays on screen.
-  const [dropUp, setDropUp] = useState(false)
+  // The menu is portaled to <body> (fixed-positioned) so it escapes any overflow/backdrop-filter
+  // ancestor that would otherwise clip it — e.g. the recall dashboard's scrollable sticky bar. These
+  // are its viewport coords, measured from the trigger; null until measured so it never flashes.
+  const [coords, setCoords] = useState<{ top: number; left: number; width: number } | null>(null)
   const rootRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLUListElement>(null)
@@ -51,8 +53,11 @@ export function Select({
 
   useEffect(() => {
     if (!open) return
+    // The menu lives in a body portal, outside rootRef — so a click on it must not count as "outside".
     const onPointerDown = (event: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) setOpen(false)
+      const target = event.target as Node
+      if (rootRef.current?.contains(target) || menuRef.current?.contains(target)) return
+      setOpen(false)
     }
     document.addEventListener('mousedown', onPointerDown)
     return () => document.removeEventListener('mousedown', onPointerDown)
@@ -63,20 +68,34 @@ export function Select({
     if (open) optionRefs.current[activeIndex]?.scrollIntoView?.({ block: 'nearest' })
   }, [open, activeIndex])
 
-  // On open, drop the menu up if it would overflow the viewport bottom and there's
-  // more room above. Measured after render so we know the menu's actual height.
+  // Position the portaled menu under (or above) the trigger. Measured after render so the menu's
+  // height is known — it flips above when there isn't room below and there's more room above.
   useLayoutEffect(() => {
     if (!open) {
-      setDropUp(false)
+      setCoords(null)
       return
     }
-    const trigger = triggerRef.current
-    const menu = menuRef.current
-    if (!trigger || !menu) return
-    const rect = trigger.getBoundingClientRect()
-    const spaceBelow = window.innerHeight - rect.bottom
-    const spaceAbove = rect.top
-    setDropUp(menu.offsetHeight + 8 > spaceBelow && spaceAbove > spaceBelow)
+    const place = () => {
+      const trigger = triggerRef.current
+      if (!trigger) return
+      const rect = trigger.getBoundingClientRect()
+      const menuHeight = menuRef.current?.offsetHeight ?? 0
+      const spaceBelow = window.innerHeight - rect.bottom
+      const up = menuHeight + 8 > spaceBelow && rect.top > spaceBelow
+      setCoords({
+        top: up ? rect.top - menuHeight - 4 : rect.bottom + 4,
+        left: rect.left,
+        width: rect.width,
+      })
+    }
+    place()
+    // Reposition while open — the sticky bar re-pins and the page scrolls under the fixed menu.
+    window.addEventListener('scroll', place, true)
+    window.addEventListener('resize', place)
+    return () => {
+      window.removeEventListener('scroll', place, true)
+      window.removeEventListener('resize', place)
+    }
   }, [open])
 
   const openMenu = () => {
@@ -131,15 +150,27 @@ export function Select({
           ▾
         </span>
       </button>
-      {open && (
-        <ul
-          ref={menuRef}
-          className={[styles.menu, dropUp && styles.menuUp].filter(Boolean).join(' ')}
-          id={listboxId}
-          role="listbox"
-          aria-label={ariaLabel}
-        >
-          {options.map((option, index) => (
+      {open &&
+        createPortal(
+          <ul
+            ref={menuRef}
+            className={styles.menu}
+            id={listboxId}
+            role="listbox"
+            aria-label={ariaLabel}
+            style={
+              coords
+                ? {
+                    position: 'fixed',
+                    top: coords.top,
+                    left: coords.left,
+                    width: coords.width,
+                    minWidth: coords.width,
+                  }
+                : { position: 'fixed', visibility: 'hidden' }
+            }
+          >
+            {options.map((option, index) => (
             <li
               key={option.value}
               id={optionId(index)}

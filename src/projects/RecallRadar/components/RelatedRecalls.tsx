@@ -30,32 +30,23 @@ export function RelatedRecalls({ source, recallNumber }: RelatedRecallsProps) {
       <ul className={styles.list}>
         {data.map(({ similarity, recall }) => (
           <li key={`${recall.source}-${recall.recallNumber}`} className={styles.item}>
+            <span
+              className={styles.sevDot}
+              style={{ background: severityColors[recall.severityLabel] }}
+              title={`${severityLabels[recall.severityLabel]} · severity ${recall.severityScore}/100`}
+              aria-label={`Severity: ${severityLabels[recall.severityLabel]}`}
+            />
+            <Link
+              className={styles.product}
+              to={recallDetailRoute(recall.source, recall.recallNumber)}
+            >
+              {recall.productDescription}
+            </Link>
             <span className={styles.sim} title="Text similarity">
               {Math.round(similarity * 100)}%
             </span>
-            <div className={styles.body}>
-              <Link
-                className={styles.product}
-                to={recallDetailRoute(recall.source, recall.recallNumber)}
-              >
-                {recall.productDescription}
-              </Link>
-              <div className={styles.meta}>
-                <span className={styles.recallNumber}>{recall.recallNumber}</span>
-                <span
-                  className={styles.severity}
-                  style={{ color: severityColors[recall.severityLabel] }}
-                  title={`Severity ${recall.severityScore}/100`}
-                >
-                  {severityLabels[recall.severityLabel]}
-                </span>
-                <span>{sourceLabels[recall.source]}</span>
-                {recall.classification && <span>{recall.classification}</span>}
-                <span>{formatDate(recall.reportDate)}</span>
-              </div>
-              {recall.companyName && <p className={styles.company}>{recall.companyName}</p>}
-              <p className={styles.reason}>{recall.reasonText}</p>
-            </div>
+            <span className={styles.source}>{sourceLabels[recall.source]}</span>
+            <span className={styles.date}>{formatDate(recall.reportDate)}</span>
           </li>
         ))}
       </ul>

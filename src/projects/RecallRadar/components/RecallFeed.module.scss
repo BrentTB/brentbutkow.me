@@ -29,11 +29,17 @@
   border-radius: 4px;
 }
 
-// The scannable one-line row: severity dot · product · outbreak · source · date · chevron.
+// The scannable one-line row: severity dot · product · theme · outbreak · source · date · chevron.
 .head {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+// Expanded, the product name wraps to its full length, so align the row's metadata to the top rather
+// than centring it against a now-tall title.
+.details[open] .head {
+  align-items: flex-start;
 }
 
 // Severity as a colour-coded dot (label + score in the title / aria-label) — denser than a pill.
@@ -44,8 +50,11 @@
   border-radius: 50%;
 }
 
-// Clickable theme pill — filters by the recall's NMF topic. Truncated; themes can be long labels.
+// Clickable theme pill — filters by the recall's NMF topic. Shares the title line, so it shrinks
+// (and truncates) rather than shoving the metadata off the row; themes can be long labels.
 .themeChip {
+  flex: 0 1 auto;
+  min-width: 0;
   font-family: var(--font-mono);
   font-size: 0.66rem;
   letter-spacing: 0.04em;
@@ -55,7 +64,7 @@
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
-  max-width: 220px;
+  max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -72,6 +81,7 @@
 }
 
 .outbreakChip {
+  flex: 0 0 auto;
   font-family: var(--font-mono);
   font-size: 0.66rem;
   letter-spacing: 0.04em;
@@ -91,15 +101,6 @@
 .outbreakChip:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-}
-
-.source {
-  flex: 0 0 auto;
-  font-family: var(--font-mono);
-  font-size: 0.66rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-secondary);
 }
 
 .date {
@@ -133,6 +134,14 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+// Expanded: show the full product name (no ellipsis) — a long name shouldn't stay truncated once you
+// open the row to read the detail.
+.details[open] .product {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
 }
 
 .product:hover,

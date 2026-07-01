@@ -222,10 +222,12 @@
     max-width: 100%;
   }
 
-  // The active-filter chips are dropped entirely on a phone: collapsed, the toggle's count badge
-  // signals how many are set; expanded, every field's own control already shows its value, so the
-  // (tall) chip list would just be a redundant second copy.
-  .chips {
+  // On a phone the chip list itself is dropped — collapsed, the toggle's count badge signals how many
+  // are set; expanded, every field's own control already shows its value, so the chips would be a
+  // redundant second copy. The Clear all button stays, though, since clearing every field one by one
+  // is tedious.
+  .chipsLabel,
+  .chip {
     display: none;
   }
 

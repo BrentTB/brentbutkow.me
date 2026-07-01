@@ -22,30 +22,32 @@
   gap: 10px;
 }
 
+// One compact line per neighbour — the same vocabulary as the collapsed feed row (severity dot ·
+// product · source · date) plus the text-similarity score, so a neighbour reads like a recall in the
+// main list rather than a heavier nested card.
 .item {
   display: flex;
+  align-items: center;
   gap: 10px;
-  align-items: flex-start;
 }
 
-.sim {
+.sevDot {
   flex: 0 0 auto;
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  color: var(--accent);
-  padding-top: 1px;
-}
-
-.body {
-  min-width: 0;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
 }
 
 .product {
-  display: block;
+  flex: 1;
+  min-width: 0;
   margin: 0;
-  font-size: 0.85rem;
+  font-size: 0.84rem;
   color: var(--text);
   text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 a.product:hover {
@@ -53,41 +55,27 @@ a.product:hover {
   text-decoration: underline;
 }
 
-// Compact identifying line — mirrors the feed row's meta vocabulary (recall number · severity ·
-// source · class · date), so a neighbour reads the same as a recall in the main list.
-.meta {
-  margin: 4px 0 0;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 10px;
+.sim {
+  flex: 0 0 auto;
   font-family: var(--font-mono);
-  font-size: 0.68rem;
-  color: var(--muted);
+  font-size: 0.72rem;
+  color: var(--accent);
 }
 
-.recallNumber {
+.source {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   color: var(--text-secondary);
 }
 
-.severity {
-  font-weight: 600;
-}
-
-.company {
-  margin: 4px 0 0;
-  font-size: 0.78rem;
-  color: var(--text-secondary);
-}
-
-.reason {
-  margin: 2px 0 0;
-  font-size: 0.78rem;
+.date {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
   color: var(--muted);
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
 }
 
 .status {
