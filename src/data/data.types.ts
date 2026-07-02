@@ -1,15 +1,23 @@
 export type HeroContent = {
   eyebrow: string
+  /** Other identities the hero eyebrow periodically retypes, returning to `eyebrow` between each. */
+  eyebrowAlternates?: string[]
+  /** Extra identities appended to the rotation in Fun mode only. */
+  eyebrowAlternatesFun?: string[]
   title: string
   subtitle: string
   subtitleFun: string
   actions: HeroAction[]
 }
 
+// The hero keeps a single gold primary; everything else is a quiet mono text link.
+export const HeroActionVariant = { primary: 'primary', link: 'link' } as const
+export type HeroActionVariant = (typeof HeroActionVariant)[keyof typeof HeroActionVariant]
+
 export type HeroAction = {
   label: string
   href: string
-  variant?: 'primary' | 'ghost'
+  variant?: HeroActionVariant
   onlyShowInFunMode?: boolean
   /** Render as a plain anchor (opens in a new tab) instead of a router link — for files/external URLs. */
   external?: boolean

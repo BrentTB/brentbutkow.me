@@ -3,7 +3,8 @@
 .main {
   display: flex;
   flex-direction: column;
-  gap: 80px;
+  /* Tight enough that About reads as part of the intro; jokes restore the wider beat below. */
+  gap: 48px;
 }
 
 .section {
@@ -12,6 +13,7 @@
 
 .jokes {
   max-width: 880px;
+  margin-top: 32px;
 }
 
 .jokesHeader {
@@ -73,6 +75,6 @@
 
 @media (max-width: 768px) {
   .main {
-    gap: 64px;
+    gap: 40px;
   }
 }

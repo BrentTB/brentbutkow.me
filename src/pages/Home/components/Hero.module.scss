@@ -4,12 +4,11 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  padding: clamp(32px, 7vw, 88px) 0 clamp(24px, 4vw, 48px);
+  padding: clamp(8px, 1.5vw, 16px) 0 clamp(24px, 4vw, 48px);
   max-width: 880px;
 }
 
-/* Staggered entrance — one orchestrated load moment. */
-.eyebrow,
+/* Staggered entrance — the eyebrow types itself out; the rest rises beneath it. */
 .title,
 .subtitle,
 .actions {
@@ -18,25 +17,9 @@
 }
 
 .eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
-  font-weight: 500;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-  color: var(--accent);
   margin: 0 0 20px;
-  animation-delay: 0ms;
-
-  &::before {
-    content: '';
-    width: 28px;
-    height: 1px;
-    background: currentColor;
-    opacity: 0.6;
-  }
+  /* Reserves the line while the typewriter fills it, so the title never jumps. */
+  min-height: 1.4em;
 }
 
 .title {
@@ -60,11 +43,12 @@
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 14px;
+  align-items: center;
+  gap: 12px 24px;
   animation-delay: 240ms;
 }
 
-.button {
+.primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -75,18 +59,13 @@
   font-size: 0.9rem;
   font-weight: 500;
   letter-spacing: 0.01em;
-  border: 1px solid transparent;
-  transition:
-    transform 180ms ease,
-    box-shadow 180ms ease,
-    border-color 180ms ease,
-    background 180ms ease;
-}
-
-.primary {
   background: var(--accent);
   color: var(--on-accent);
   box-shadow: 0 10px 30px -12px rgba(var(--accent-rgb), 0.7);
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    background 180ms ease;
 }
 
 .primary:hover,
@@ -96,15 +75,36 @@
   box-shadow: 0 16px 36px -14px rgba(var(--accent-rgb), 0.85);
 }
 
-.ghost {
-  border-color: var(--border-strong);
-  background: var(--surface);
-  color: var(--text);
+.link {
+  display: inline-flex;
+  align-items: center;
+  padding: 13px 0;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: color 180ms ease;
 }
 
-.ghost:hover,
-.ghost:focus-visible {
-  border-color: var(--accent);
+.link::after {
+  content: '→';
+  display: inline-block;
+  margin-left: 8px;
   color: var(--accent);
-  transform: translateY(-2px);
+  opacity: 0;
+  transform: translateX(-6px);
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+.link:hover,
+.link:focus-visible {
+  color: var(--accent);
+}
+
+.link:hover::after,
+.link:focus-visible::after {
+  opacity: 1;
+  transform: translateX(0);
 }

@@ -2,7 +2,7 @@ import { Hero } from './components/Hero'
 import { CurrentWork } from './components/CurrentWork'
 import { About } from './components/About'
 import styles from './HomePage.module.scss'
-import { heroContent, aboutSectionEnabled, aboutParagraphs } from './data'
+import { heroContent, aboutSectionEnabled, aboutParagraphs, cvHref } from './data'
 import { useFunMode } from '../../contexts/useFunMode'
 import { experience } from '../Experience/data'
 import { JokeTypes, jokeTypeLabels } from '../../data/jokes.types'
@@ -22,7 +22,7 @@ export function HomePage() {
         <Hero content={heroContent} isFunMode={isFunMode} />
         {currentRole && <CurrentWork role={currentRole.role} company={currentRole.company} />}
       </section>
-      {aboutSectionEnabled && <About paragraphs={aboutParagraphs} />}
+      {aboutSectionEnabled && <About paragraphs={aboutParagraphs} cvHref={cvHref} />}
       {isFunMode && (
         <section id="jokes" className={`${styles.section} ${styles.jokes}`}>
           <div className={styles.jokesHeader}>

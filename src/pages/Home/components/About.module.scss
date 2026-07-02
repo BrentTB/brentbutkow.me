@@ -1,25 +1,14 @@
+@use '../../../styles/shared' as *;
+
 .about {
   max-width: 720px;
+  /* Last row of the load moment — slides in off the left rail like the Currently row. */
+  opacity: 0;
+  animation: slideIn 700ms cubic-bezier(0.2, 0.7, 0.2, 1) 420ms forwards;
 }
 
 .eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
   margin: 0 0 18px;
-  font-family: var(--font-mono);
-  font-size: 0.74rem;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--accent);
-}
-
-.eyebrow::before {
-  content: '';
-  width: 28px;
-  height: 1px;
-  background: currentColor;
-  opacity: 0.6;
 }
 
 .body {
@@ -33,4 +22,33 @@
   color: var(--text-secondary);
   font-size: clamp(1.05rem, 2vw, 1.2rem);
   line-height: 1.65;
+}
+
+.cvLink {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 20px;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: color 180ms ease;
+}
+
+.cvLink::after {
+  content: '↓';
+  display: inline-block;
+  margin-left: 8px;
+  color: var(--accent);
+  transition: transform 180ms ease;
+}
+
+.cvLink:hover,
+.cvLink:focus-visible {
+  color: var(--accent);
+}
+
+.cvLink:hover::after,
+.cvLink:focus-visible::after {
+  transform: translateY(2px);
 }
