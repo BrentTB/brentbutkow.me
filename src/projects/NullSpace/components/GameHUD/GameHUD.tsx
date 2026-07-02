@@ -1,10 +1,12 @@
 import { GamePhase } from '../../engine/types'
 import { useGameUIState } from '../../useGameUIState'
 import styles from './GameHUD.module.scss'
+import { EnemiesRemaining } from './EnemiesRemaining'
 import { SectorProgress } from './SectorProgress'
 import { SpeedUpWarning } from './SpeedUpWarning'
 import { TopBar } from './TopBar'
 import { BossHpBar } from './BossHpBar'
+import { WaveClearBanner } from './WaveClearBanner'
 
 type GameHUDProps = {
   onPause: () => void
@@ -24,6 +26,8 @@ export function GameHUD({ onPause, onToggleFullscreen, isFullscreen, gameSpeed }
     <div className={styles.hud}>
       <SectorProgress dimmed={uiState.boss !== null} />
       <SpeedUpWarning countdown={uiState.speedUpCountdown} />
+      <EnemiesRemaining />
+      <WaveClearBanner wave={uiState.wave} phase={uiState.phase} />
       <BossHpBar boss={uiState.boss} />
       <TopBar
         isFullscreen={isFullscreen}

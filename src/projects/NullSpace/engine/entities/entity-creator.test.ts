@@ -39,6 +39,12 @@ describe('createShip', () => {
     const ship = createShip(ShipKind.fighter, WORLD_SIZE)
     expect(ship.hitFlash).toBe(0)
   })
+
+  it('starts with i-frames disarmed (worm contact + general post-hit)', () => {
+    const ship = createShip(ShipKind.fighter, WORLD_SIZE)
+    expect(ship.wormContactCooldown).toBe(0)
+    expect(ship.damageIFrame).toBe(0)
+  })
 })
 
 describe('createEnemy', () => {

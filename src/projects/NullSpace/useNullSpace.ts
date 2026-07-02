@@ -72,6 +72,8 @@ import {
   centerCameraOn,
   computeZoom,
   screenToWorld,
+  triggerCameraShake,
+  SHAKE_STRENGTH_SHIELD,
   type Camera,
 } from './renderer/camera'
 import { generateStarfield, type Star } from './renderer/starfield'
@@ -290,6 +292,11 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
   const isTouchRef = useRef(isTouch)
   isTouchRef.current = isTouch
   const starsRef = useRef<Star[]>([])
+  // Ship HP / shield at the end of the previous frame — a drop this frame kicks the
+  // damage screen-shake (a heavier jolt for HP, a lighter one for a shield-only hit).
+  // Seeded high; the first playing frame reseats them before comparing.
+  const prevShipHpRef = useRef<number>(Infinity)
+  const prevShipShieldRef = useRef<number>(Infinity)
   const rafRef = useRef<number>(0)
   const gameTimeRef = useRef<GameTime>(createGameTime())
   // Run timing + one-shot submit guard for the leaderboard. runStart marks the
@@ -390,12 +397,18 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     })
   }, [])
 
-  // Autosave the run on every wave clear: the between-waves screen (waveComplete)
-  // and the sector / pre-boss shop (upgradeScreen) both land here. Drop the save when
-  // a run ends. Keyed on the synced phase so it fires for the warp path and dev jumps
-  // alike, independent of the rAF loop's timing.
+  // Autosave the run whenever the wave counter climbs — the clean checkpoint a
+  // resumed run picks up from. Both mid-sector auto-advance (startNextWave) and
+  // opening a sector / pre-boss shop (openUpgradeScreen) bump `wave`, so one
+  // wave-increase check covers every between-wave beat, independent of the rAF
+  // loop's timing. Drop the save when a run ends.
+  const prevSavedWaveRef = useRef(uiState.wave)
   useEffect(() => {
-    if (uiState.phase === GamePhase.waveComplete || uiState.phase === GamePhase.upgradeScreen) {
+    const phase = uiState.phase
+    const waveAdvanced = uiState.wave > prevSavedWaveRef.current
+    prevSavedWaveRef.current = uiState.wave
+    const inLiveRun = phase === GamePhase.playing || phase === GamePhase.upgradeScreen
+    if (waveAdvanced && inLiveRun) {
       // Bank the live segment into the run duration before persisting, then
       // restart it — so a resumed run keeps the time played before exiting
       // instead of submitting only the post-resume stretch.
@@ -411,14 +424,14 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       runStartRef.current = now
       saveGame(gameStateRef.current, rng.getState())
       setHasSave(true)
-    } else if (uiState.phase === GamePhase.gameOver) {
+    } else if (phase === GamePhase.gameOver) {
       // Stamp the run-end here (not at submit) so the duration sent to the
       // leaderboard excludes time spent reading the game-over screen.
       runEndRef.current = Date.now()
       clearSave()
       setHasSave(false)
     }
-  }, [uiState.phase])
+  }, [uiState.phase, uiState.wave])
 
   // Snap the camera onto the ship and reseed the starfield — called whenever a
   // fresh sector is laid out (game start, warp).
@@ -452,11 +465,6 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     },
     [syncUI, enterSector]
   )
-
-  const handleNextWave = useCallback(() => {
-    gameStateRef.current = startNextWave(gameStateRef.current)
-    syncUI(gameStateRef.current)
-  }, [syncUI])
 
   const handleRestart = useCallback(() => {
     handleStart()
@@ -973,6 +981,25 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
           ? centerCameraOn(cameraRef.current, gameStateRef.current.ship.pos)
           : updateCamera(cameraRef.current, gameStateRef.current.ship.pos, simDt)
 
+      // Kick the screen-shake when the ship takes a hit mid-play: a full jolt on HP
+      // damage, a lighter one when the shield alone soaks it. Gated on both frames
+      // being `playing` so the first frame (with a stale prev value) and the death
+      // frame (phase already flipped to dying) never fire it; reduce-motion opts out.
+      const postState = gameStateRef.current
+      if (
+        postState.phase === GamePhase.playing &&
+        prevPhase === GamePhase.playing &&
+        !reducedMotionRef.current
+      ) {
+        if (postState.ship.hp < prevShipHpRef.current) {
+          cameraRef.current = triggerCameraShake(cameraRef.current)
+        } else if (postState.ship.shield < prevShipShieldRef.current) {
+          cameraRef.current = triggerCameraShake(cameraRef.current, SHAKE_STRENGTH_SHIELD)
+        }
+      }
+      prevShipHpRef.current = postState.ship.hp
+      prevShipShieldRef.current = postState.ship.shield
+
       if (spritesRef.current && animationsRef.current) {
         renderFrame(
           ctx,
@@ -1056,7 +1083,6 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     handleContinue,
     handleSaveAndExit,
     handleSelectShip,
-    handleNextWave,
     handleRestart,
     handleSubmitScore,
     setSelectedAbility,

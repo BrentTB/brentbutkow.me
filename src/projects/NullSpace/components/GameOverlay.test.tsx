@@ -61,7 +61,6 @@ function renderOverlay(phase: GameUIState['phase'], hasSave = false) {
     hasSave,
     onSaveAndExit: noop,
     onSelectShip: noop,
-    onNextWave: noop,
     onRestart: noop,
     onSubmitScore: () => Promise.resolve(true),
     onPurchaseUpgrade: noop,

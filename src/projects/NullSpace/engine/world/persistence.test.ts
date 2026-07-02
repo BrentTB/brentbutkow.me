@@ -285,6 +285,23 @@ describe('saveGame / loadGame / clearSave', () => {
     expect(loadGame()?.state.ship.wormContactCooldown).toBe(0)
   })
 
+  // Same guard for the general post-hit i-frame: the loop subtracts dt each frame,
+  // so a pre-damageIFrame save loading with undefined would go NaN and permanently
+  // block all damage (the gate `damageIFrame > 0` is false for NaN, so it never
+  // fires — but `Math.max(0, NaN - dt)` stays NaN and any later read breaks).
+  it('backfills ship.damageIFrame on a save written before it existed', () => {
+    saveGame(createInitialState(), 1)
+    const raw = JSON.parse(localStorage.getItem('null-space-save')!) as {
+      version: number
+      rngState: number
+      state: { ship: Record<string, unknown> } & Record<string, unknown>
+    }
+    delete raw.state.ship.damageIFrame
+    localStorage.setItem('null-space-save', JSON.stringify(raw))
+
+    expect(loadGame()?.state.ship.damageIFrame).toBe(0)
+  })
+
   // Guards the post-clear warp coast surviving a save: warpDelay is a plain state
   // field, so a stale `...state` spread in save/load would silently drop it.
   it('round-trips warpDelay', () => {

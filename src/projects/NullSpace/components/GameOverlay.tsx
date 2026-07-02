@@ -8,7 +8,6 @@ import { PauseMenu } from './PauseMenu/PauseMenu'
 import { SettingsScreen } from './PauseMenu/SettingsScreen'
 import { MenuScreen } from './StartScreen/MenuScreen'
 import { ShipSelectionScreen } from './StartScreen/ShipSelectionScreen'
-import { WaveCompleteScreen } from './WaveCompleteScreen'
 import { UpgradeScreen } from './UpgradeScreen/UpgradeScreen'
 import { GameOverScreen } from './GameOverScreen'
 import { LeaderboardScreen } from './LeaderboardScreen'
@@ -19,7 +18,6 @@ type GameOverlayProps = {
   hasSave: boolean
   onSaveAndExit: () => void
   onSelectShip: (kind: ShipKind) => void
-  onNextWave: () => void
   onRestart: () => void
   onSubmitScore: (name: string) => Promise<boolean>
   onPurchaseUpgrade: (upgradeId: UpgradeId) => void
@@ -41,7 +39,6 @@ export function GameOverlay({
   hasSave,
   onSaveAndExit,
   onSelectShip,
-  onNextWave,
   onRestart,
   onSubmitScore,
   onPurchaseUpgrade,
@@ -131,14 +128,6 @@ export function GameOverlay({
                   canSaveAndExit={hasSave}
                 />
               ))}
-            {uiState.phase === GamePhase.waveComplete && (
-              <WaveCompleteScreen
-                wave={uiState.wave}
-                level={uiState.level}
-                score={uiState.score}
-                onNextWave={onNextWave}
-              />
-            )}
             {uiState.phase === GamePhase.upgradeScreen && (
               <UpgradeScreen
                 onPurchase={onPurchaseUpgrade}

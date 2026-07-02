@@ -37,7 +37,6 @@ export function NullSpace() {
     handleContinue,
     handleSaveAndExit,
     handleSelectShip,
-    handleNextWave,
     handleRestart,
     handleSubmitScore,
     setSelectedAbility,
@@ -200,7 +199,6 @@ export function NullSpace() {
               hasSave={hasSave}
               onSaveAndExit={handleSaveAndExit}
               onSelectShip={handleSelectShip}
-              onNextWave={handleNextWave}
               onRestart={handleRestart}
               onSubmitScore={handleSubmitScore}
               onPurchaseUpgrade={handlePurchaseUpgrade}

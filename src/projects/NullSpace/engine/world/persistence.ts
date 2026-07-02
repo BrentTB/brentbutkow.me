@@ -222,8 +222,11 @@ export function loadGame(): SavedGame | null {
       runDurationMs?: number
       spawn?: GameState['spawn']
       // Ship sub-fields added after a save was written are optional here too —
-      // `wormContactCooldown` is summed each frame, so undefined would go NaN.
-      ship: Omit<Ship, 'wormContactCooldown'> & { wormContactCooldown?: number }
+      // they're subtracted each frame, so undefined would go NaN.
+      ship: Omit<Ship, 'wormContactCooldown' | 'damageIFrame'> & {
+        wormContactCooldown?: number
+        damageIFrame?: number
+      }
       // Legacy flat spawn fields (pre-grouping saves) — migrated into `spawn`.
       waveTimer?: number
       spawnQueue?: GameState['spawn']['queue']
@@ -250,7 +253,11 @@ export function loadGame(): SavedGame | null {
         asteroids: savedState.asteroids ?? [],
         warpDelay: savedState.warpDelay ?? 0,
         runDurationMs: savedState.runDurationMs ?? 0,
-        ship: { ...savedState.ship, wormContactCooldown: savedState.ship.wormContactCooldown ?? 0 },
+        ship: {
+          ...savedState.ship,
+          wormContactCooldown: savedState.ship.wormContactCooldown ?? 0,
+          damageIFrame: savedState.ship.damageIFrame ?? 0,
+        },
         spawn,
       },
     }

@@ -1,4 +1,4 @@
-import { ANIMATION, SECTOR, SHIELD_COOLDOWN, SLINGSHOT } from '../../data'
+import { ANIMATION, DAMAGE_IFRAME, SECTOR, SHIELD_COOLDOWN, SLINGSHOT } from '../../data'
 import { driftWithWeave } from '../math/steering'
 import { clamp } from '../math/utils'
 import { toroidalDelta } from '../math/toroid'
@@ -96,6 +96,9 @@ export function applyDamageToShip(ship: Ship, damage: number): Ship {
   if (damage <= 0) return ship
   // Escape Mode grants full damage immunity to both HP and shield.
   if (ship.escapeMode !== null) return ship
+  // Post-hit i-frame: a blow through the shield bought a brief window where the
+  // ship shrugs off everything, so a swarm can't chain hits into an instant kill.
+  if (ship.damageIFrame > 0) return ship
   const shieldAbsorb = Math.min(ship.shield, damage)
   const hpDamage = damage - shieldAbsorb
   // Flash white only on HP damage (a shield absorb reads via its ring), throttled
@@ -111,6 +114,9 @@ export function applyDamageToShip(ship: Ship, damage: number): Ship {
     hp: ship.hp - hpDamage,
     hitFlash: flashing ? ANIMATION.hitFlash : ship.hitFlash,
     hitFlashCooldown: flashing ? ANIMATION.hitFlashThrottle : ship.hitFlashCooldown,
+    // A hit that reaches HP arms the i-frame; a pure shield absorb leaves the ship
+    // fully exposed, so the shield stays a resource that drains under fire.
+    damageIFrame: hpDamage > 0 ? DAMAGE_IFRAME : ship.damageIFrame,
   }
 }
 

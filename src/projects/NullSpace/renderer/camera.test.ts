@@ -8,9 +8,13 @@ import {
   HUD_SCALE_MAX,
   createCamera,
   centerCameraOn,
+  updateCamera,
   worldToScreen,
   screenToWorld,
   isWithinView,
+  triggerCameraShake,
+  cameraShakeOffset,
+  SHAKE_STRENGTH_SHIELD,
 } from './camera'
 import { WORLD_SIZE } from '../data'
 
@@ -63,6 +67,56 @@ describe('computeZoom (geometric mean of area + min-dim)', () => {
   })
 })
 
+describe('damage screen-shake', () => {
+  it('a fresh camera is still (no shake, zero offset)', () => {
+    const cam = createCamera(W, H)
+    expect(cam.shake).toBe(0)
+    expect(cameraShakeOffset(cam, 1.23)).toEqual({ x: 0, y: 0 })
+  })
+
+  it('triggering arms the shake and produces a non-zero offset', () => {
+    const cam = triggerCameraShake(createCamera(W, H))
+    expect(cam.shake).toBeGreaterThan(0)
+    const offset = cameraShakeOffset(cam, 0.4)
+    expect(Math.hypot(offset.x, offset.y)).toBeGreaterThan(0)
+  })
+
+  it('the offset amplitude fades as the shake decays', () => {
+    const full = triggerCameraShake(createCamera(W, H))
+    // Advance the camera (which decays the shake) by a slice of the shake window.
+    const faded = updateCamera(full, { x: full.x, y: full.y }, 0.1)
+    expect(faded.shake).toBeLessThan(full.shake)
+    // Sample both at the same clock so only the amplitude differs.
+    const clock = 0.4
+    const fullMag = Math.hypot(...Object.values(cameraShakeOffset(full, clock)))
+    const fadedMag = Math.hypot(...Object.values(cameraShakeOffset(faded, clock)))
+    expect(fadedMag).toBeLessThan(fullMag)
+  })
+
+  it('a shield hit shakes lighter than an HP hit', () => {
+    const clock = 0.4
+    const hp = triggerCameraShake(createCamera(W, H))
+    const shield = triggerCameraShake(createCamera(W, H), SHAKE_STRENGTH_SHIELD)
+    expect(shield.shake).toBeLessThan(hp.shake)
+    const hpMag = Math.hypot(...Object.values(cameraShakeOffset(hp, clock)))
+    const shieldMag = Math.hypot(...Object.values(cameraShakeOffset(shield, clock)))
+    expect(shieldMag).toBeLessThan(hpMag)
+    expect(shieldMag).toBeGreaterThan(0)
+  })
+
+  it('a light shield trigger never cuts a stronger HP shake short', () => {
+    const hp = triggerCameraShake(createCamera(W, H)) // full HP jolt
+    const then = triggerCameraShake(hp, SHAKE_STRENGTH_SHIELD) // a shield tap right after
+    expect(then.shake).toBe(hp.shake)
+  })
+
+  it('updateCamera never drives the shake below zero', () => {
+    const cam = updateCamera(triggerCameraShake(createCamera(W, H)), { x: 0, y: 0 }, 10)
+    expect(cam.shake).toBe(0)
+    expect(cameraShakeOffset(cam, 5)).toEqual({ x: 0, y: 0 })
+  })
+})
+
 describe('computeHudScale', () => {
   it('is 1 at the reference view size', () => {
     expect(computeHudScale(W, H)).toBeCloseTo(1, 5)
@@ -87,20 +141,36 @@ describe('isWithinView', () => {
     // (width / zoom), not raw canvas pixels. On a 375px-wide phone at the
     // mobile zoom, ~635 world units are visible, so a point at world-x 500 is
     // on screen — comparing against camera.width (375) would wrongly cull it.
-    const cam = { x: 0, y: 0, width: 375, height: 812, zoom: computeZoom(375, 812), dpr: 1 }
+    const cam = {
+      x: 0,
+      y: 0,
+      width: 375,
+      height: 812,
+      zoom: computeZoom(375, 812),
+      dpr: 1,
+      shake: 0,
+    }
     const onScreen = worldToScreen({ x: 500, y: 0 }, cam)
     expect(500).toBeGreaterThan(cam.width) // beyond the canvas-pixel bound...
     expect(isWithinView(onScreen, cam, 0)).toBe(true) // ...but still visible
   })
 
   it('culls a position past the visible world extent', () => {
-    const cam = { x: 0, y: 0, width: 375, height: 812, zoom: computeZoom(375, 812), dpr: 1 }
+    const cam = {
+      x: 0,
+      y: 0,
+      width: 375,
+      height: 812,
+      zoom: computeZoom(375, 812),
+      dpr: 1,
+      shake: 0,
+    }
     const vw = cam.width / cam.zoom
     expect(isWithinView({ x: vw + 100, y: 0 }, cam, 0)).toBe(false)
   })
 
   it('honors the world-unit margin on every edge', () => {
-    const cam = { x: 0, y: 0, width: W, height: H, zoom: 1, dpr: 1 }
+    const cam = { x: 0, y: 0, width: W, height: H, zoom: 1, dpr: 1, shake: 0 }
     expect(isWithinView({ x: -5, y: -5 }, cam, 10)).toBe(true)
     expect(isWithinView({ x: -15, y: 0 }, cam, 10)).toBe(false)
     expect(isWithinView({ x: W + 5, y: H + 5 }, cam, 10)).toBe(true)

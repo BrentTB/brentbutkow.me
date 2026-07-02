@@ -1,11 +1,47 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { applySlingshot, updateShipDrift } from './ship'
+import { applyDamageToShip, applySlingshot, updateShipDrift } from './ship'
 import { createShip } from './entity-creator'
-import { NEBULA, WORLD_SIZE } from '../../data'
+import { DAMAGE_IFRAME, NEBULA, WORLD_SIZE } from '../../data'
 import { ShipKind } from '../types'
 import { rng } from '../math/random'
 
 beforeEach(() => rng.reseed(3))
+
+describe('applyDamageToShip — post-hit invincibility', () => {
+  // Zero shield so damage lands straight on HP, and arm nothing else.
+  const bareShip = () => ({ ...createShip(ShipKind.fighter, WORLD_SIZE), shield: 0 })
+
+  it('arms the i-frame on a hit that reaches HP', () => {
+    const hit = applyDamageToShip(bareShip(), 10)
+    expect(hit.hp).toBe(bareShip().hp - 10)
+    expect(hit.damageIFrame).toBe(DAMAGE_IFRAME)
+  })
+
+  it('shrugs off further hits while the i-frame is active — a swarm can not chain a kill', () => {
+    let ship = bareShip()
+    const startHp = ship.hp
+    ship = applyDamageToShip(ship, 10) // lands, arms i-frame
+    // Nine more contacts in the same beat (no tick to decay the i-frame) do nothing.
+    for (let i = 0; i < 9; i++) ship = applyDamageToShip(ship, 10)
+    expect(ship.hp).toBe(startHp - 10)
+  })
+
+  it('does not arm the i-frame on a pure shield absorb — the shield still drains under fire', () => {
+    const ship = { ...createShip(ShipKind.fighter, WORLD_SIZE), shield: 50 }
+    const hit = applyDamageToShip(ship, 10)
+    expect(hit.shield).toBe(40)
+    expect(hit.hp).toBe(ship.hp)
+    expect(hit.damageIFrame).toBe(0)
+  })
+
+  it('lands again once the i-frame has decayed to zero', () => {
+    let ship = applyDamageToShip(bareShip(), 10)
+    ship = { ...ship, damageIFrame: 0 } // simulate the frame tick draining it
+    const startHp = ship.hp
+    ship = applyDamageToShip(ship, 10)
+    expect(ship.hp).toBe(startHp - 10)
+  })
+})
 
 describe('slow nebula hinders the ship', () => {
   it('only gently weakens the slingshot launch (the gentler sling multiplier)', () => {
