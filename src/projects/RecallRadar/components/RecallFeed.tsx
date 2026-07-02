@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import {
   categoryLabels,
   entityTypeLabels,
@@ -68,8 +68,6 @@ export function RecallFeed({
   openRows,
   onRowToggle,
 }: RecallFeedProps) {
-  const navigate = useNavigate()
-
   if (recalls.length === 0) {
     return <p className={styles.empty}>No recalls match these filters.</p>
   }
@@ -81,12 +79,13 @@ export function RecallFeed({
         const cluster =
           recall.eventClusterId != null ? eventsById?.get(recall.eventClusterId) : undefined
         const detailPath = recallDetailRoute(recall.source, recall.recallNumber)
+        const isOpen = openRows.has(recall.recallNumber)
         return (
           // The id lets a URL-restored open row be scrolled to like a #fragment target.
           <li key={recall.recallNumber} id={`recall-${recall.recallNumber}`} className={styles.row}>
             <details
               className={styles.details}
-              open={openRows.has(recall.recallNumber)}
+              open={isOpen}
               // Read `open` synchronously: `currentTarget` is null once the event settles, which
               // crashes on rapid toggles. Reporting the DOM state (rather than negating ours) keeps
               // the two in sync even when React itself flips the attribute.
@@ -104,13 +103,14 @@ export function RecallFeed({
                     <Link
                       to={detailPath}
                       className={styles.product}
-                      // Inside <summary>: keep a real href (right-click / open-in-new-tab) but stop
-                      // the click from toggling the row open — and from kicking off a throwaway
-                      // similar recalls fetch right before we navigate away — by driving the nav
-                      // ourselves.
+                      // The title is the row's own control: a plain click expands/collapses it (the
+                      // explicit "Open recall page" button handles the detail page). The real href is
+                      // kept so a modifier click (cmd/ctrl/shift) or right-click still opens the
+                      // recall in a new tab.
                       onClick={(event) => {
+                        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
                         event.preventDefault()
-                        navigate(detailPath)
+                        onRowToggle(recall.recallNumber, !isOpen)
                       }}
                     >
                       {recall.productDescription}
@@ -177,17 +177,19 @@ export function RecallFeed({
                   </div>
                 ))}
               </dl>
-              <p className={styles.detailPageLink}>
-                <Link to={detailPath}>Open recall page →</Link>
-              </p>
-              {recall.sourceUrl && (
-                <p className={styles.sourceLink}>
-                  <SafeLink href={recall.sourceUrl}>
-                    View original notice {getLinkArrow(false)}
-                  </SafeLink>
+              <div className={styles.actions}>
+                <p className={styles.detailPageLink}>
+                  <Link to={detailPath}>Open recall page →</Link>
                 </p>
-              )}
-              {openRows.has(recall.recallNumber) && (
+                {recall.sourceUrl && (
+                  <p className={styles.sourceLink}>
+                    <SafeLink href={recall.sourceUrl}>
+                      View original notice {getLinkArrow(false)}
+                    </SafeLink>
+                  </p>
+                )}
+              </div>
+              {isOpen && (
                 <RelatedRecalls source={recall.source} recallNumber={recall.recallNumber} />
               )}
             </details>

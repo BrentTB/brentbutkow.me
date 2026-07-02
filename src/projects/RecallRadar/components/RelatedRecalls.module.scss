@@ -26,7 +26,7 @@
 }
 
 // One compact line per neighbour — the same vocabulary as the collapsed feed row (severity dot ·
-// product · source · date) plus the text-similarity score, so a neighbour reads like a recall in the
+// product · cause - severity · date) plus the text-similarity score, so a neighbour reads like a recall in the
 // main list rather than a heavier nested card.
 .item {
   display: flex;
@@ -65,12 +65,16 @@ a.product:hover {
   color: var(--accent);
 }
 
-.source {
-  flex: 0 0 auto;
+.cause {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-family: var(--font-mono);
   font-size: 0.66rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   color: var(--text-secondary);
 }
 

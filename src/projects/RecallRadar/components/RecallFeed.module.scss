@@ -7,8 +7,10 @@
 }
 
 .row {
-  padding: 11px 0;
-  border-top: 1px solid var(--border);
+  padding: 14px 0;
+  // A stronger divider than a hairline: an expanded row carries a lot of detail, so the boundary to
+  // the next recall has to stay obvious.
+  border-top: 2px solid var(--border-strong);
   // A URL-restored open row is scrolled to like a #fragment — land it below the sticky bar.
   scroll-margin-top: calc(var(--rr-bar-height, 110px) + 20px);
 }
@@ -38,10 +40,11 @@
   gap: 10px;
 }
 
-// Severity dot + product name — grows to fill the row, pushing the meta group to the right.
+// Severity dot + product name — grows to fill the row, pushing the meta group to the right. Top
+// aligned so the dot sits on the first line whether the title is one line or wraps to several.
 .title {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
   flex: 1;
   min-width: 0;
@@ -55,15 +58,16 @@
   flex: 0 0 auto;
 }
 
-// Expanded, the product name wraps to its full length, so align the row's metadata to the top rather
-// than centring it against a now-tall title.
-.details[open] .head,
-.details[open] .title {
+// Expanded, the product name wraps to its full length, so align the meta group to the top rather
+// than centring it against a now-tall title. The title itself stays centred so the severity dot
+// keeps its vertical position instead of jumping up on expand.
+.details[open] .head {
   align-items: flex-start;
 }
 
 // Narrow rows: wrap the meta group under the title so the product name keeps the full width instead
-// of collapsing to one word per line — worst when an outbreak chip shares the line.
+// of collapsing to one word per line — worst when an outbreak chip shares the line. The meta group
+// itself wraps too, so a theme chip + outbreak badge + date never spill past the card edge.
 @media (max-width: 600px) {
   .head {
     flex-wrap: wrap;
@@ -71,6 +75,13 @@
 
   .title {
     flex-basis: 100%;
+  }
+
+  // Full width on its own line so the internal wrap engages — otherwise the group sizes to its
+  // content and a theme chip + outbreak badge + date run off the right edge.
+  .meta {
+    flex-basis: 100%;
+    flex-wrap: wrap;
   }
 }
 
@@ -80,6 +91,9 @@
   width: 9px;
   height: 9px;
   border-radius: 50%;
+  // Centre the dot on the title's first line (line-box height minus the dot, halved), so it holds
+  // its position when the title grows from one line to several on expand.
+  margin-top: calc((0.92rem * 1.4 - 9px) / 2);
 }
 
 // Clickable theme pill — filters by the recall's NMF topic. Shares the title line, so it shrinks
@@ -153,13 +167,14 @@
   transform: rotate(90deg);
 }
 
-// The title doubles as a link to the recall's page. Reads as a heading until hovered/focused, then
-// shows it's clickable (accent + underline) — like the related-recalls product links.
+// The title toggles the row; it reads as a heading and shifts to the accent on hover to hint it's
+// clickable. Explicit line-height so the severity dot can be centred on the first line exactly.
 .product {
   flex: 1;
   min-width: 0;
   margin: 0;
   font-size: 0.92rem;
+  line-height: 1.4;
   font-weight: 500;
   color: var(--text);
   text-decoration: none;
@@ -176,10 +191,10 @@
   text-overflow: clip;
 }
 
-.product:hover,
-.product:focus-visible {
+// The title toggles the row, so it hints it's clickable by shifting to the accent on hover — but no
+// underline, which would read as a hyperlink (the "Open recall page" button carries navigation).
+.product:hover {
   color: var(--accent);
-  text-decoration: underline;
 }
 
 .product:focus-visible {
@@ -245,6 +260,15 @@
   gap: 12px 24px;
 }
 
+// Phones can't fit the 170px columns, so pin the grid to two even columns rather than dropping to a
+// single stacked list.
+@media (max-width: 600px) {
+  .detail {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px 16px;
+  }
+}
+
 .detailItem {
   display: flex;
   flex-direction: column;
@@ -266,8 +290,18 @@
   word-break: break-word;
 }
 
+// The row's two actions on one line: the primary "Open recall page" button, then the secondary
+// "View original notice" link.
+.actions {
+  margin: 16px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+}
+
 .sourceLink {
-  margin: 14px 0 0;
+  margin: 0;
   font-size: 0.82rem;
 }
 
@@ -276,17 +310,35 @@
 }
 
 .detailPageLink {
-  margin: 10px 0 0;
-  font-size: 0.82rem;
+  margin: 0;
 }
 
+// The row's primary action, so it reads as a real button (outlined accent) rather than a quiet text
+// link — clicking the title only toggles the row now.
 .detailPageLink a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
   color: var(--accent);
   text-decoration: none;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
 }
 
 .detailPageLink a:hover {
-  text-decoration: underline;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.detailPageLink a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .empty {

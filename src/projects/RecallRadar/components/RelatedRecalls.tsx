@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { formatDate } from '../chart-format'
 import { recallDetailRoute } from '../api'
-import { severityColors, severityLabels, sourceLabels } from '../data'
+import { categoryLabels, severityColors, severityLabels } from '../data'
 import { useSimilar } from '../useSimilar'
 import type { RecallSource } from '../recall.types'
 import styles from './RelatedRecalls.module.scss'
@@ -12,9 +12,9 @@ type RelatedRecallsProps = {
 }
 
 // A recall's nearest neighbours by reason/product text, fetched on demand. Each neighbour shows its
-// identifying fields (recall number, company, date, severity) and links to its own detail page —
-// where the original notice lives. We deliberately don't repeat the "view notice" link per row here;
-// it clutters the list, and the detail page is one click away.
+// identifying fields (severity, similarity, cause, date) and links to its own detail page — where the
+// original notice lives. We deliberately don't repeat the "view notice" link per row here; it
+// clutters the list, and the detail page is one click away.
 export function RelatedRecalls({ source, recallNumber }: RelatedRecallsProps) {
   const { data, loading, error } = useSimilar(source, recallNumber)
 
@@ -45,7 +45,9 @@ export function RelatedRecalls({ source, recallNumber }: RelatedRecallsProps) {
             <span className={styles.sim} title="Text similarity">
               {Math.round(similarity * 100)}%
             </span>
-            <span className={styles.source}>{sourceLabels[recall.source]}</span>
+            <span className={styles.cause}>
+              {`${categoryLabels[recall.category]} - ${severityLabels[recall.severityLabel]}`}
+            </span>
             <span className={styles.date}>{formatDate(recall.reportDate)}</span>
           </li>
         ))}

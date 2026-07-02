@@ -207,10 +207,11 @@ export function RecallRadar() {
     if (onlyIfBelow && window.scrollY <= target + 4) return
     window.scrollTo({ top: target })
   }
-  // Switching country is a fresh view — reset filters + year so US selections don't leak into UK.
+  // Switching country is a fresh view — reset filters + year so US selections don't leak into UK, and
+  // drop the expanded rows since those recall numbers belong to the old country's feed.
   // If you're scrolled down into the data, come back up to the strip; if you're already up top, stay.
   const changeCountry = (next: RecallCountry) => {
-    patchParams({ location: next, ...EMPTY_FILTERS, year: '', page: '' })
+    patchParams({ location: next, ...EMPTY_FILTERS, year: '', page: '', open: '' })
     scrollToStripTop(true)
   }
   // Switching tabs keeps the filters (they scope every tab). If you were scrolled down into the old
