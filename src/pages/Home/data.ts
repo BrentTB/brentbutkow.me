@@ -16,13 +16,16 @@ export const heroContent: HeroContent = {
     'Biltong connoisseur',
     'Wacky algorithm creator',
     'Null space cadet',
+    'Head in the cloud',
   ],
   eyebrowAlternatesFun: [
+    '01101000 01101001', // "hi"
     'Professional eater',
+    'Full snack engineer',
     'Gulag sort survivor',
-    'Never gonna give you up',
     'You just lost the game',
     'Sudo make me a sandwich',
+    'Never gonna give you up',
     'semicolon free since 1993',
     'According to all known laws of aviation there is no way that a bee should be able to fly...',
   ],
