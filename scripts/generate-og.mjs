@@ -40,7 +40,8 @@ for (const { variant, out } of cards) {
       '--headless=new',
       `--screenshot=${outPath}`,
       '--window-size=1200,630',
-      '--force-device-scale-factor=1',
+      // 2x render: social CDNs downscale gracefully, and text stays crisp on retina previews.
+      '--force-device-scale-factor=2',
       '--hide-scrollbars',
       '--disable-gpu',
       // Lets web fonts finish loading before the shot is taken.
