@@ -94,58 +94,63 @@ export function RecallFeed({
             >
               <summary className={styles.summary}>
                 <div className={styles.head}>
-                  <span
-                    className={styles.sevDot}
-                    style={{ background: severityColors[recall.severityLabel] }}
-                    title={`${severityLabels[recall.severityLabel]} · severity ${recall.severityScore}/100`}
-                    aria-label={`Severity: ${severityLabels[recall.severityLabel]}`}
-                  />
-                  <Link
-                    to={detailPath}
-                    className={styles.product}
-                    // Inside <summary>: keep a real href (right-click / open-in-new-tab) but stop the
-                    // click from toggling the row open — and from kicking off a throwaway similar
-                    // recalls fetch right before we navigate away — by driving the nav ourselves.
-                    onClick={(event) => {
-                      event.preventDefault()
-                      navigate(detailPath)
-                    }}
-                  >
-                    {recall.productDescription}
-                  </Link>
-                  {/* Theme + outbreak chips ride the title line so they sit in the clickable summary
-                      — clicking the row around them toggles it, and each chip filters instead of
-                      toggling (preventDefault). */}
-                  {theme && (
-                    <button
-                      type="button"
-                      className={styles.themeChip}
-                      onClick={(e) => {
-                        e.preventDefault()
-                        onTopicSelect?.(theme.slug === activeTopic ? '' : theme.slug)
+                  <div className={styles.title}>
+                    <span
+                      className={styles.sevDot}
+                      style={{ background: severityColors[recall.severityLabel] }}
+                      title={`${severityLabels[recall.severityLabel]} · severity ${recall.severityScore}/100`}
+                      aria-label={`Severity: ${severityLabels[recall.severityLabel]}`}
+                    />
+                    <Link
+                      to={detailPath}
+                      className={styles.product}
+                      // Inside <summary>: keep a real href (right-click / open-in-new-tab) but stop
+                      // the click from toggling the row open — and from kicking off a throwaway
+                      // similar recalls fetch right before we navigate away — by driving the nav
+                      // ourselves.
+                      onClick={(event) => {
+                        event.preventDefault()
+                        navigate(detailPath)
                       }}
-                      title={`Theme: ${theme.label} — filter by it`}
                     >
-                      {theme.label}
-                    </button>
-                  )}
-                  {cluster?.isOutbreak && (
-                    <button
-                      type="button"
-                      className={styles.outbreakChip}
-                      onClick={(e) => {
-                        e.preventDefault()
-                        onEventSelect?.(cluster.slug === activeEvent ? '' : cluster.slug)
-                      }}
-                      title="Part of an outbreak — filter to it"
-                    >
-                      ⚠ Outbreak
-                    </button>
-                  )}
-                  <span className={styles.date}>{formatDate(recall.reportDate)}</span>
-                  <span className={styles.chevron} aria-hidden="true">
-                    ›
-                  </span>
+                      {recall.productDescription}
+                    </Link>
+                  </div>
+                  {/* Theme + outbreak chips + date sit in one meta group that wraps below the title on
+                      a narrow row, so the product name keeps the full width instead of being squeezed
+                      to one word per line. Chips filter instead of toggling (preventDefault). */}
+                  <div className={styles.meta}>
+                    {theme && (
+                      <button
+                        type="button"
+                        className={styles.themeChip}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          onTopicSelect?.(theme.slug === activeTopic ? '' : theme.slug)
+                        }}
+                        title={`Theme: ${theme.label} — filter by it`}
+                      >
+                        {theme.label}
+                      </button>
+                    )}
+                    {cluster?.isOutbreak && (
+                      <button
+                        type="button"
+                        className={styles.outbreakChip}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          onEventSelect?.(cluster.slug === activeEvent ? '' : cluster.slug)
+                        }}
+                        title="Part of an outbreak — filter to it"
+                      >
+                        ⚠ Outbreak
+                      </button>
+                    )}
+                    <span className={styles.date}>{formatDate(recall.reportDate)}</span>
+                    <span className={styles.chevron} aria-hidden="true">
+                      ›
+                    </span>
+                  </div>
                 </div>
                 <p className={styles.reason}>{recall.reasonText}</p>
               </summary>

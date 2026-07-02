@@ -308,6 +308,9 @@ export function RecallRadar() {
   const fallbackYear = years[0] ?? new Date().getFullYear()
   const selectedYear = year !== null && years.includes(year) ? year : fallbackYear
   const chart = trend.data ? toChartMonths(trend.data, selectedYear) : { months: [], legend: [] }
+  // The in-progress calendar month, so the chart can project its partial bar to a full-month total.
+  const now = new Date()
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
   // Per-year recall totals under the current filters — summed across groups from the (filter-scoped,
   // all-months) trend buckets. Feeds the year stepper's dropdown so empty years grey out + show 0,
   // while the arrows still walk every year linearly (no surprise skips).
@@ -582,6 +585,7 @@ export function RecallRadar() {
                     year={selectedYear}
                     legend={chart.legend}
                     forecast={trendFiltered ? undefined : stats.data?.forecast}
+                    currentMonth={currentMonth}
                   />
                 )}
               </section>
