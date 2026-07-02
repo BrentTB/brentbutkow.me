@@ -8,6 +8,7 @@ import { resetPinchZoom } from './reset-pinch-zoom'
 import { GameHUD } from './components/GameHUD/GameHUD'
 import { GameControls } from './components/GameHUD/GameControls'
 import { GameOverlay } from './components/GameOverlay'
+import { GameUIStateProvider } from './useGameUIState'
 import { TutorialOverlay } from './components/Tutorial/TutorialOverlay'
 import { DevConsole } from './components/Development/DevConsole'
 import { ChangelogFilters } from './components/ChangelogFilters/ChangelogFilters'
@@ -163,67 +164,65 @@ export function NullSpace() {
     <div className={styles.wrapper}>
       <BackButton />
       <div className={styles.gameRow}>
-        <div
-          ref={gameContainerRef}
-          className={`${styles.gameContainer} ${pseudoFullscreen ? styles.pseudoFullscreen : ''}`}
-        >
-          <div className={styles.playArea}>
-            <canvas ref={canvasRef} className={styles.canvas} />
-            <GameHUD
-              uiState={uiState}
-              onPause={handlePause}
-              onToggleFullscreen={handleToggleFullscreen}
-              isFullscreen={isFullscreen}
+        <GameUIStateProvider value={uiState}>
+          <div
+            ref={gameContainerRef}
+            className={`${styles.gameContainer} ${pseudoFullscreen ? styles.pseudoFullscreen : ''}`}
+          >
+            <div className={styles.playArea}>
+              <canvas ref={canvasRef} className={styles.canvas} />
+              <GameHUD
+                onPause={handlePause}
+                onToggleFullscreen={handleToggleFullscreen}
+                isFullscreen={isFullscreen}
+                gameSpeed={gameSpeed}
+              />
+              {uiState.tutorialActive && (
+                <TutorialOverlay
+                  copy={uiState.tutorialCopy}
+                  awaitingAck={uiState.tutorialAwaitingAck}
+                  ackLabel={uiState.tutorialAckLabel}
+                  isFinal={uiState.tutorialIsFinal}
+                  onAck={handleTutorialAck}
+                  onSkip={handleSkipTutorial}
+                />
+              )}
+            </div>
+            <div className={styles.controlBar}>
+              <GameControls
+                onAbilitySelect={setSelectedAbility}
+                onUseSpaceMetalAbility={handleUseSpaceMetalAbility}
+              />
+            </div>
+            <GameOverlay
+              onStart={handleMenuStart}
+              onContinue={handleContinue}
+              hasSave={hasSave}
+              onSaveAndExit={handleSaveAndExit}
+              onSelectShip={handleSelectShip}
+              onNextWave={handleNextWave}
+              onRestart={handleRestart}
+              onSubmitScore={handleSubmitScore}
+              onPurchaseUpgrade={handlePurchaseUpgrade}
+              onPurchaseUltimate={handlePurchaseUltimate}
+              onSalvageAbility={handleSalvageAbility}
+              onFinishUpgrades={handleFinishUpgrades}
+              onResume={handleResume}
+              onSetSpeed={handleSetSpeedAndSync}
+              onReplayTutorial={handleReplayTutorial}
               gameSpeed={gameSpeed}
             />
-            {uiState.tutorialActive && (
-              <TutorialOverlay
-                copy={uiState.tutorialCopy}
-                awaitingAck={uiState.tutorialAwaitingAck}
-                ackLabel={uiState.tutorialAckLabel}
-                isFinal={uiState.tutorialIsFinal}
-                onAck={handleTutorialAck}
-                onSkip={handleSkipTutorial}
-              />
-            )}
           </div>
-          <div className={styles.controlBar}>
-            <GameControls
-              uiState={uiState}
-              onAbilitySelect={setSelectedAbility}
-              onUseSpaceMetalAbility={handleUseSpaceMetalAbility}
+          {DEV_MODE && (
+            <DevConsole
+              onPatch={handleDevPatch}
+              onJumpToUpgrades={handleDevJumpToUpgrades}
+              onJumpToBoss={handleDevJumpToBoss}
+              onQuickStart={handleDevQuickStart}
+              onSpawnCalamity={handleDevSpawnCalamity}
             />
-          </div>
-          <GameOverlay
-            uiState={uiState}
-            onStart={handleMenuStart}
-            onContinue={handleContinue}
-            hasSave={hasSave}
-            onSaveAndExit={handleSaveAndExit}
-            onSelectShip={handleSelectShip}
-            onNextWave={handleNextWave}
-            onRestart={handleRestart}
-            onSubmitScore={handleSubmitScore}
-            onPurchaseUpgrade={handlePurchaseUpgrade}
-            onPurchaseUltimate={handlePurchaseUltimate}
-            onSalvageAbility={handleSalvageAbility}
-            onFinishUpgrades={handleFinishUpgrades}
-            onResume={handleResume}
-            onSetSpeed={handleSetSpeedAndSync}
-            onReplayTutorial={handleReplayTutorial}
-            gameSpeed={gameSpeed}
-          />
-        </div>
-        {DEV_MODE && (
-          <DevConsole
-            uiState={uiState}
-            onPatch={handleDevPatch}
-            onJumpToUpgrades={handleDevJumpToUpgrades}
-            onJumpToBoss={handleDevJumpToBoss}
-            onQuickStart={handleDevQuickStart}
-            onSpawnCalamity={handleDevSpawnCalamity}
-          />
-        )}
+          )}
+        </GameUIStateProvider>
       </div>
       <div className={styles.changelog}>
         <ToggleableSection title={`Release Notes (v${GAME_VERSION})`} allowOverflow>

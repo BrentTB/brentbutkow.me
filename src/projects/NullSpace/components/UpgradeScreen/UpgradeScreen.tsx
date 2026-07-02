@@ -3,7 +3,7 @@ import { CURRENCY_NAME, SINGULARITY_SHARD_NAME, SPACE_METAL_NAME } from '../../d
 import { ULTIMATE_KIND_OF } from '../../engine/abilities'
 import { AbilityKind, UpgradeCategory } from '../../engine/types'
 import type { UpgradeId } from '../../engine/upgrade-ids'
-import type { GameUIState } from '../../useNullSpace'
+import { useGameUIState } from '../../useGameUIState'
 import {
   UPGRADE_CATEGORY_LABELS,
   UPGRADE_DEFINITIONS,
@@ -24,7 +24,6 @@ const CATEGORY_ORDER: UpgradeCategory[] = [
 ]
 
 type UpgradeScreenProps = {
-  uiState: GameUIState
   onPurchase: (upgradeId: UpgradeId) => void
   onPurchaseUltimate: (baseKind: AbilityKind) => void
   onSalvageAbility: (baseKind: AbilityKind) => void
@@ -32,12 +31,12 @@ type UpgradeScreenProps = {
 }
 
 export function UpgradeScreen({
-  uiState,
   onPurchase,
   onPurchaseUltimate,
   onSalvageAbility,
   onContinue,
 }: UpgradeScreenProps) {
+  const uiState = useGameUIState()
   const [activeTab, setActiveTab] = useState<UpgradeCategory>(UpgradeCategory.weapons)
   const [selectedWeapon, setSelectedWeapon] = useState<AbilityKind | null>(null)
 
@@ -95,21 +94,18 @@ export function UpgradeScreen({
 
       <div className={styles.upgradeGrid}>
         {activeTab === UpgradeCategory.weapons && !selectedWeapon && (
-          <WeaponsList uiState={uiState} onSelect={setSelectedWeapon} onPurchase={onPurchase} />
+          <WeaponsList onSelect={setSelectedWeapon} onPurchase={onPurchase} />
         )}
         {activeTab === UpgradeCategory.weapons && selectedWeapon && (
           <WeaponDetail
             weapon={selectedWeapon}
-            uiState={uiState}
             onBack={() => setSelectedWeapon(null)}
             onPurchase={onPurchase}
             onPurchaseUltimate={handlePurchaseUltimate}
             onSalvage={onSalvageAbility}
           />
         )}
-        {activeTab === UpgradeCategory.ship && (
-          <ShipTab uiState={uiState} onPurchase={onPurchase} />
-        )}
+        {activeTab === UpgradeCategory.ship && <ShipTab onPurchase={onPurchase} />}
         {activeTab === UpgradeCategory.powers &&
           Object.values(UPGRADE_DEFINITIONS)
             .filter((def) => def.category === activeTab)

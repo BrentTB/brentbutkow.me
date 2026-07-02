@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
 import { UpgradeScreen } from './UpgradeScreen'
+import { GameUIStateProvider } from '../../useGameUIState'
 import { AbilityKind, EnemyKind, GamePhase, ShipKind, HelperWeaponKind } from '../../engine/types'
 import type { PlayerUpgrades } from '../../engine/types'
 import type { GameUIState } from '../../useNullSpace'
@@ -55,13 +56,14 @@ const noop = () => {}
 
 function renderShop(over: Partial<GameUIState> = {}) {
   render(
-    <UpgradeScreen
-      uiState={makeUiState(over)}
-      onPurchase={noop}
-      onPurchaseUltimate={noop}
-      onSalvageAbility={noop}
-      onContinue={noop}
-    />
+    <GameUIStateProvider value={makeUiState(over)}>
+      <UpgradeScreen
+        onPurchase={noop}
+        onPurchaseUltimate={noop}
+        onSalvageAbility={noop}
+        onContinue={noop}
+      />
+    </GameUIStateProvider>
   )
 }
 

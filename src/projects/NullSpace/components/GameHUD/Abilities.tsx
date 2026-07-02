@@ -1,17 +1,18 @@
 import { ABILITY_META, BASE_KIND_OF } from '../../engine/abilities'
 import { getUnlockedAbilitiesInOrder } from '../../useNullSpace'
 import type { GameUIState } from '../../useNullSpace'
+import { useGameUIState } from '../../useGameUIState'
 import { Icon } from '../Icon/Icon'
 import { RechargeRing } from './RechargeRing'
 import sharedStyles from './shared.module.scss'
 import styles from './Abilities.module.scss'
 
 type AbilitiesProps = {
-  uiState: GameUIState
   onAbilitySelect: (kind: GameUIState['selectedAbility']) => void
 }
 
-export function Abilities({ uiState, onAbilitySelect }: AbilitiesProps) {
+export function Abilities({ onAbilitySelect }: AbilitiesProps) {
+  const uiState = useGameUIState()
   return (
     <div className={styles.abilities}>
       {getUnlockedAbilitiesInOrder(uiState.abilities, uiState.ultimatesOwned).map(

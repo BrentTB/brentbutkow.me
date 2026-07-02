@@ -2,18 +2,18 @@ import { ABILITY_META, WEAPON_UNLOCK_UPGRADE } from '../../engine/abilities'
 import { UPGRADE_DEFINITIONS, canPurchaseUpgrade, isWeaponFullyMaxed } from '../../engine/upgrades'
 import type { AbilityKind } from '../../engine/types'
 import type { UpgradeId } from '../../engine/upgrade-ids'
-import type { GameUIState } from '../../useNullSpace'
+import { useGameUIState } from '../../useGameUIState'
 import { orderWeaponsForShop } from './weapons-list-order'
 import sharedStyles from '../OverlayShared.module.scss'
 import styles from './WeaponsList.module.scss'
 
 type WeaponsListProps = {
-  uiState: GameUIState
   onSelect: (weapon: AbilityKind) => void
   onPurchase: (upgradeId: UpgradeId) => void
 }
 
-export function WeaponsList({ uiState, onSelect, onPurchase }: WeaponsListProps) {
+export function WeaponsList({ onSelect, onPurchase }: WeaponsListProps) {
+  const uiState = useGameUIState()
   const offers = uiState.levelUpWeaponOffers
   const order = orderWeaponsForShop(uiState.abilities, offers, uiState.ultimatesOwned)
 

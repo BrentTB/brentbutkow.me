@@ -7,7 +7,7 @@ import {
 } from '../../engine/upgrades'
 import { AbilityKind } from '../../engine/types'
 import type { UpgradeId } from '../../engine/upgrade-ids'
-import type { GameUIState } from '../../useNullSpace'
+import { useGameUIState } from '../../useGameUIState'
 import { UpgradeCard } from './UpgradeCard'
 import { UltimateCard } from './UltimateCard'
 import styles from './WeaponDetail.module.scss'
@@ -15,7 +15,6 @@ import listStyles from './WeaponsList.module.scss'
 
 type WeaponDetailProps = {
   weapon: AbilityKind
-  uiState: GameUIState
   onBack: () => void
   onPurchase: (upgradeId: UpgradeId) => void
   onPurchaseUltimate: (baseKind: AbilityKind) => void
@@ -24,12 +23,12 @@ type WeaponDetailProps = {
 
 export function WeaponDetail({
   weapon,
-  uiState,
   onBack,
   onPurchase,
   onPurchaseUltimate,
   onSalvage,
 }: WeaponDetailProps) {
+  const uiState = useGameUIState()
   const [showAllyWeapons, setShowAllyWeapons] = useState(false)
   // Salvage acts on the base line; `weapon` may be the ultimate kind when viewing it.
   const salvageBase = BASE_KIND_OF[weapon] ?? weapon
@@ -101,7 +100,7 @@ export function WeaponDetail({
         </button>
       )}
       {ultimateUpgrades.map(card)}
-      <UltimateCard weapon={weapon} uiState={uiState} onPurchaseUltimate={onPurchaseUltimate} />
+      <UltimateCard weapon={weapon} onPurchaseUltimate={onPurchaseUltimate} />
       <button
         type="button"
         className={styles.salvageBtn}

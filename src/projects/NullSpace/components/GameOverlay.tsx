@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { AbilityKind, GamePhase, ShipKind } from '../engine/types'
 import type { UpgradeId } from '../engine/upgrade-ids'
-import type { GameUIState } from '../useNullSpace'
+import { useGameUIState } from '../useGameUIState'
 import styles from './GameOverlay.module.scss'
 import { HelpScreen } from './PauseMenu/HelpScreen'
 import { PauseMenu } from './PauseMenu/PauseMenu'
@@ -14,7 +14,6 @@ import { GameOverScreen } from './GameOverScreen'
 import { LeaderboardScreen } from './LeaderboardScreen'
 
 type GameOverlayProps = {
-  uiState: GameUIState
   onStart: () => void
   onContinue: () => void
   hasSave: boolean
@@ -37,7 +36,6 @@ const SettingsSubPages = { settings: 'settings', help: 'help' }
 type SettingsSubPages = (typeof SettingsSubPages)[keyof typeof SettingsSubPages]
 
 export function GameOverlay({
-  uiState,
   onStart,
   onContinue,
   hasSave,
@@ -55,6 +53,7 @@ export function GameOverlay({
   onReplayTutorial,
   gameSpeed,
 }: GameOverlayProps) {
+  const uiState = useGameUIState()
   const [pauseSubPage, setPauseSubPage] = useState<SettingsSubPages | null>(null)
   // Leaderboard is a pure-UI overlay (not a game phase), opened from the menu or
   // the game-over screen and dismissed with Back.
@@ -142,7 +141,6 @@ export function GameOverlay({
             )}
             {uiState.phase === GamePhase.upgradeScreen && (
               <UpgradeScreen
-                uiState={uiState}
                 onPurchase={onPurchaseUpgrade}
                 onPurchaseUltimate={onPurchaseUltimate}
                 onSalvageAbility={onSalvageAbility}

@@ -1,15 +1,15 @@
 import { BOSS_LEVEL_INTERVAL, WAVES_PER_LEVEL } from '../../data'
 import { sectorProgress } from '../../engine/world/waves'
-import type { GameUIState } from '../../useNullSpace'
+import { useGameUIState } from '../../useGameUIState'
 import styles from './SectorProgress.module.scss'
 
 type SectorProgressProps = {
-  uiState: GameUIState
   // When true (a boss is on-screen), the bar fades so the boss HP bar can cross-fade in.
   dimmed: boolean
 }
 
-export function SectorProgress({ uiState, dimmed }: SectorProgressProps) {
+export function SectorProgress({ dimmed }: SectorProgressProps) {
+  const uiState = useGameUIState()
   const progress = sectorProgress({
     wave: uiState.wave,
     spawnedInWave: uiState.spawnedInWave,

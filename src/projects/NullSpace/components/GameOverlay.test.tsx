@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import { GameOverlay } from './GameOverlay'
+import { GameUIStateProvider } from '../useGameUIState'
 import { HelpScreen } from './PauseMenu/HelpScreen'
 import { AbilityKind, EnemyKind, GamePhase, ShipKind, HelperWeaponKind } from '../engine/types'
 import type { PlayerUpgrades } from '../engine/types'
@@ -55,7 +56,6 @@ const noop = () => {}
 
 function renderOverlay(phase: GameUIState['phase'], hasSave = false) {
   const props = {
-    uiState: makeUiState(phase),
     onStart: noop,
     onContinue: noop,
     hasSave,
@@ -73,11 +73,19 @@ function renderOverlay(phase: GameUIState['phase'], hasSave = false) {
     onReplayTutorial: noop,
     gameSpeed: 1,
   }
-  const utils = render(<GameOverlay {...props} />)
+  const utils = render(
+    <GameUIStateProvider value={makeUiState(phase)}>
+      <GameOverlay {...props} />
+    </GameUIStateProvider>
+  )
   return {
     ...utils,
     rerender: (next: GameUIState['phase']) =>
-      utils.rerender(<GameOverlay {...props} uiState={makeUiState(next)} />),
+      utils.rerender(
+        <GameUIStateProvider value={makeUiState(next)}>
+          <GameOverlay {...props} />
+        </GameUIStateProvider>
+      ),
   }
 }
 

@@ -2,18 +2,18 @@ import { SINGULARITY_SHARD_NAME } from '../../data'
 import { ULTIMATE_DEFINITIONS } from '../../engine/abilities'
 import { canPurchaseUltimate, ultimateShardCost } from '../../engine/ultimates'
 import type { AbilityKind } from '../../engine/types'
-import type { GameUIState } from '../../useNullSpace'
+import { useGameUIState } from '../../useGameUIState'
 import styles from './UltimateCard.module.scss'
 
 type UltimateCardProps = {
   weapon: AbilityKind
-  uiState: GameUIState
   onPurchaseUltimate: (baseKind: AbilityKind) => void
 }
 
 // Purchase card for a weapon's Ultimate, shown at the bottom of its WeaponDetail.
 // Renders nothing for weapons without an ultimate.
-export function UltimateCard({ weapon, uiState, onPurchaseUltimate }: UltimateCardProps) {
+export function UltimateCard({ weapon, onPurchaseUltimate }: UltimateCardProps) {
+  const uiState = useGameUIState()
   const def = ULTIMATE_DEFINITIONS[weapon]
   if (!def) return null
 
