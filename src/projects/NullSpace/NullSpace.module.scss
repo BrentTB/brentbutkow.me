@@ -3,7 +3,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 24px 0;
+  /* Top padding stays 0 so the back button + heading line up with PageLayout pages (e.g. Games). */
+  padding: 0 0 24px;
 
   @media (max-width: 768px) {
     padding: 0;
@@ -11,6 +12,22 @@
     width: calc(100% + 40px);
     overflow: hidden;
   }
+}
+
+.pageIntro {
+  width: 100%;
+  max-width: 1280px;
+
+  @media (max-width: 768px) {
+    padding: 16px 20px 0;
+  }
+}
+
+.intro {
+  margin: 12px 0 24px;
+  max-width: 70ch;
+  color: var(--text-secondary);
+  line-height: 1.6;
 }
 
 .gameRow {
@@ -39,9 +56,9 @@
   @media (max-width: 768px) {
     max-width: none;
     aspect-ratio: auto;
-    // Subtract just enough for the page nav + the BackButton above the canvas.
-    // The changelog below is display:none on mobile so it doesn't need room.
-    height: calc(100dvh - 140px);
+    // Subtract the page nav + the heading/back button above the canvas (the
+    // intro paragraph and changelog are display:none on mobile, so no room needed).
+    height: calc(100dvh - 200px);
     border: none;
     border-radius: 0;
     // Controls live OUTSIDE the canvas on mobile: stack play area + control bar.

@@ -52,6 +52,21 @@ describe('useRouteMeta', () => {
     expect(headContent('meta[name="robots"]', 'content')).toBe('index, follow')
   })
 
+  it('uses the route-specific og:image and falls back to the site image elsewhere', () => {
+    renderHook(() => useRouteMeta(), { wrapper: wrapperFor('/projects/recall-radar') })
+    expect(headContent('meta[property="og:image"]', 'content')).toBe(
+      'https://brentbutkow.me/og/recall-radar.png'
+    )
+    expect(headContent('meta[name="twitter:image"]', 'content')).toBe(
+      'https://brentbutkow.me/og/recall-radar.png'
+    )
+
+    renderHook(() => useRouteMeta(), { wrapper: wrapperFor('/experience') })
+    expect(headContent('meta[property="og:image"]', 'content')).toBe(
+      'https://brentbutkow.me/og-image.png'
+    )
+  })
+
   it('falls back to the 404 title and canonicalizes an unknown path to home', () => {
     renderHook(() => useRouteMeta(), { wrapper: wrapperFor('/no-such-page') })
     expect(document.title).toBe('[Local] Page not found — Brent Butkow')

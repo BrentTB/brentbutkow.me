@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { BackButton } from '../../components/PageFormatting/BackButton'
+import { PageHeader } from '../../components/PageFormatting/PageHeader'
 import { ToggleableSection } from '../../components/ToggleableSection/ToggleableSection'
 import { useNullSpace } from './useNullSpace'
 import { usePseudoFullscreenChrome } from './usePseudoFullscreenChrome'
@@ -12,7 +12,7 @@ import { GameUIStateProvider } from './useGameUIState'
 import { TutorialOverlay } from './components/Tutorial/TutorialOverlay'
 import { DevConsole } from './components/Development/DevConsole'
 import { ChangelogFilters } from './components/ChangelogFilters/ChangelogFilters'
-import { GAME_VERSION, CHANGELOG } from './data'
+import { GAME_NAME, GAME_VERSION, CHANGELOG } from './data'
 import { TutorialEntry } from './engine/tutorial/tutorial-machine'
 import { computeHudScale } from './renderer/camera'
 import {
@@ -161,7 +161,14 @@ export function NullSpace() {
 
   return (
     <div className={styles.wrapper}>
-      <BackButton />
+      <div className={styles.pageIntro}>
+        <PageHeader title={GAME_NAME} showBackButton />
+        <p className={styles.intro}>
+          A space-defense game where you bend space itself: sling meteors, open black holes, and
+          warp reality to keep your ship alive. It runs right here in your browser and saves
+          locally, so you can pick your run back up later.
+        </p>
+      </div>
       <div className={styles.gameRow}>
         <GameUIStateProvider value={uiState}>
           <div

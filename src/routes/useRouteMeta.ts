@@ -1,8 +1,8 @@
 import { useEffect } from 'react'
 import { matchPath, useLocation } from 'react-router-dom'
 import { routes } from './routes.config'
+import { SITE_URL, DEFAULT_OG_IMAGE } from './routes.meta'
 
-const SITE_URL = 'https://brentbutkow.me'
 const DEFAULT_TITLE = 'Brent Butkow'
 const DEFAULT_DESCRIPTION = 'The personal site and portfolio of Brent Butkow, full-stack engineer.'
 
@@ -31,6 +31,9 @@ function upsertHeadTag(
  * page. Dynamic routes are matched by pattern; unmatched paths fall back to the
  * catch-all (404) route and canonicalize to home rather than declaring a
  * soft-404 URL indexable.
+ *
+ * JSON-LD is intentionally not injected here — it's emitted only into the
+ * prerendered HTML (see scripts/prerender-plugin.ts), which is what crawlers read.
  */
 export function useRouteMeta() {
   const { pathname } = useLocation()
@@ -60,5 +63,9 @@ export function useRouteMeta() {
     upsertHeadTag('meta', 'property', 'og:url', 'content', canonical)
     upsertHeadTag('meta', 'name', 'twitter:title', 'content', title)
     upsertHeadTag('meta', 'name', 'twitter:description', 'content', description)
+
+    const ogImage = `${SITE_URL}${meta?.ogImage ?? DEFAULT_OG_IMAGE}`
+    upsertHeadTag('meta', 'property', 'og:image', 'content', ogImage)
+    upsertHeadTag('meta', 'name', 'twitter:image', 'content', ogImage)
   }, [pathname])
 }

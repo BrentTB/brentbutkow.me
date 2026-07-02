@@ -607,6 +607,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.16.1',
+    date: '2026-07-02',
+    changes: {
+      ui: [
+        'The game page now opens with a proper heading and a short intro above the canvas, so you (and search engines) know what you are looking at before you press Start.',
+        'The heading and back button now line up with every other page instead of sitting slightly lower.',
+      ],
+    },
+  },
+  {
     version: '1.16.0',
     date: '2026-07-02',
     changes: {
