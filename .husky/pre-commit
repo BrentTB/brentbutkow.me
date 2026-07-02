@@ -20,12 +20,32 @@ for job in $jobs; do
 done
 [ "$fail" -eq 0 ] || exit 1
 
-# Fail the commit if any staged file isn't prettier-clean — fix it for you,
-# then you stage and commit the formatted result yourself.
+# Prettier the staged files. A fully-staged file (index matches working tree)
+# gets auto-formatted and re-staged for you. A partially-staged file has
+# unstaged hunks — auto-staging would sweep those in, so we fail instead and
+# let you stage the formatting yourself.
 if [ -n "$STAGED" ]; then
-  if ! echo "$STAGED" | xargs $BIN/prettier --check --ignore-unknown; then
-    echo "$STAGED" | xargs $BIN/prettier --write --ignore-unknown
-    echo "✖ Prettier reformatted files — stage the changes and commit again."
-    exit 1
+  DIRTY=$(echo "$STAGED" | xargs $BIN/prettier --list-different --ignore-unknown || true)
+  if [ -n "$DIRTY" ]; then
+    UNSTAGED=$(git diff --name-only --diff-filter=ACMR)
+    partial=""
+    clean=""
+    for f in $DIRTY; do
+      if echo "$UNSTAGED" | grep -qxF "$f"; then
+        partial="$partial $f"
+      else
+        clean="$clean $f"
+      fi
+    done
+    if [ -n "$clean" ]; then
+      echo "$clean" | xargs $BIN/prettier --write --ignore-unknown
+      echo "$clean" | xargs git add
+      echo "✔ Prettier formatted and re-staged: $clean"
+    fi
+    if [ -n "$partial" ]; then
+      echo "✖ Prettier needs to reformat partially-staged files:$partial"
+      echo "  These have unstaged changes — format and stage them yourself, then commit again."
+      exit 1
+    fi
   fi
 fi
