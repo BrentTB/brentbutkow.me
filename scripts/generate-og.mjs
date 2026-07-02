@@ -24,6 +24,9 @@ if (!chrome) {
   process.exit(1)
 }
 
+// One entry per designed card. `out` must match the corresponding `ogImage` path in
+// src/routes/routes.meta.ts (and DEFAULT_OG_IMAGE for the home card) — a route pointing at an
+// image with no entry here won't get one generated.
 const cards = [
   { variant: 'home', out: 'public/og-image.png' },
   { variant: 'recall-radar', out: 'public/og/recall-radar.png' },

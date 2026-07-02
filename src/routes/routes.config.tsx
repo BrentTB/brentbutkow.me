@@ -78,6 +78,9 @@ const AdminPage = lazy(() =>
 
 // The dashboard moved from /recall-radar to /projects/recall-radar. Rewrite the old prefix while
 // keeping any sub-path, query, and hash so saved deep links (filters, single recalls) still resolve.
+// vercel.json also 301s this prefix at the edge (for crawlers / direct hits, which never reach the
+// SPA); this client-side twin covers in-app <Link> navigation. Keep both — dropping either regresses
+// one of those paths.
 export function legacyRecallRadarTarget(pathname: string, search: string, hash: string) {
   return pathname.replace(/^\/recall-radar/, routePaths.recallRadar) + search + hash
 }

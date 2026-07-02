@@ -11,8 +11,8 @@ export default defineConfig({
     // Installs a working localStorage/sessionStorage. Node 22+ ships an inert native Web Storage global
     // that shadows jsdom's in the Vitest environment, so without this storage-backed tests fail.
     setupFiles: ['./vitest.setup.ts'],
-    // Repo tests are colocated under src/. Hook tests in .claude/ run via `npm run test:hooks`
-    // (node --test) since they use node:test, which Vite can't bundle.
-    include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    // Repo tests are colocated under src/ and scripts/. Hook tests in .claude/ run via
+    // `npm run test:hooks` (node --test) since they use node:test, which Vite can't bundle.
+    include: ['src/**/*.{test,spec}.{ts,tsx}', 'scripts/**/*.{test,spec}.{ts,tsx}'],
   },
 })

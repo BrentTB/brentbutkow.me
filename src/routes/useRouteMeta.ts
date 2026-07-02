@@ -31,6 +31,9 @@ function upsertHeadTag(
  * page. Dynamic routes are matched by pattern; unmatched paths fall back to the
  * catch-all (404) route and canonicalize to home rather than declaring a
  * soft-404 URL indexable.
+ *
+ * JSON-LD is intentionally not injected here — it's emitted only into the
+ * prerendered HTML (see scripts/prerender-plugin.ts), which is what crawlers read.
  */
 export function useRouteMeta() {
   const { pathname } = useLocation()
