@@ -22,7 +22,12 @@ export function About({ paragraphs, cvHref }: AboutProps) {
         ))}
       </div>
       {cvHref && (
-        <SafeLink className={styles.cvLink} href={cvHref} internal={false}>
+        <SafeLink
+          className={styles.cvLink}
+          href={cvHref}
+          internal={false}
+          download="Brent Butkow - CV.pdf"
+        >
           Download CV
         </SafeLink>
       )}
