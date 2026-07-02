@@ -119,10 +119,13 @@ export function renderFrame(
   // the canvas multiplies them by `zoom`, so sprite sizes scale automatically.
   ctx.save()
   // Damage shake: jolt the whole world layer (CSS px, applied before the zoom
-  // scale) against the static background fill. Zero offset when not shaking, and
-  // the trigger is suppressed under reduce-motion so this stays still there.
-  const shake = cameraShakeOffset(camera, opts.clock)
-  if (shake.x !== 0 || shake.y !== 0) ctx.translate(shake.x, shake.y)
+  // scale) against the static background fill. The trigger is suppressed under
+  // reduce-motion so this stays still there. Skip the offset call on the common
+  // still frame so it allocates nothing off the hot path.
+  if (camera.shake > 0) {
+    const shake = cameraShakeOffset(camera, opts.clock)
+    ctx.translate(shake.x, shake.y)
+  }
   ctx.scale(camera.zoom, camera.zoom)
 
   // No ship in the world before one is chosen, or once it's exploded (dying →

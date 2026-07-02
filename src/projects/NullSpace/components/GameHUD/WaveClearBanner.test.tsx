@@ -1,14 +1,27 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
 import { WaveClearBanner } from './WaveClearBanner'
+import { GameUIStateProvider } from '../../useGameUIState'
+import type { GameUIState } from '../../useNullSpace'
 import { GamePhase } from '../../engine/types'
 
+// The banner only reads wave + phase off the UI state, so a partial value suffices.
+const uiState = (wave: number, phase: GamePhase) => ({ wave, phase }) as unknown as GameUIState
+
 function renderBanner(wave: number, phase: GamePhase = GamePhase.playing) {
-  const utils = render(<WaveClearBanner wave={wave} phase={phase} />)
+  const utils = render(
+    <GameUIStateProvider value={uiState(wave, phase)}>
+      <WaveClearBanner />
+    </GameUIStateProvider>
+  )
   return {
     ...utils,
     advance: (nextWave: number, nextPhase: GamePhase = GamePhase.playing) =>
-      utils.rerender(<WaveClearBanner wave={nextWave} phase={nextPhase} />),
+      utils.rerender(
+        <GameUIStateProvider value={uiState(nextWave, nextPhase)}>
+          <WaveClearBanner />
+        </GameUIStateProvider>
+      ),
   }
 }
 

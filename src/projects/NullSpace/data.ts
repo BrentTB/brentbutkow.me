@@ -18,6 +18,8 @@ export const WORM_CONTACT_IFRAME = 0.8
 // Seconds of full damage immunity granted after any hit that reaches HP. A dense
 // swarm can chip the shield freely, but the first blow through it buys a brief
 // breather so several contacts in one beat can't chain into an instant kill.
+// Separate from WORM_CONTACT_IFRAME above: that one gates a single worm lunge's
+// multi-segment sweep, this one gates any HP hit from any source.
 export const DAMAGE_IFRAME = 0.6
 
 // Slingshot (flick the ship). Base values are deliberately weak + wild; the

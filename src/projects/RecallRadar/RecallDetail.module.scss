@@ -22,8 +22,9 @@
   color: var(--muted);
 }
 
-// A faint divider between each meta item (severity | source | country | class | date) so they read
-// as distinct fields rather than one run-on line. Its own colour overrides the severity span's tint.
+// A faint divider before every meta item except the first (order: category · severity · source ·
+// country · class · date) so they read as distinct fields rather than one run-on line. Its own
+// colour overrides the severity span's tint.
 .metaRow > *:not(:first-child)::before {
   content: '|';
   margin-right: 12px;

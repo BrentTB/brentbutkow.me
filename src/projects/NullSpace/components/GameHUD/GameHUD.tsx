@@ -25,9 +25,9 @@ export function GameHUD({ onPause, onToggleFullscreen, isFullscreen, gameSpeed }
   return (
     <div className={styles.hud}>
       <SectorProgress dimmed={uiState.boss !== null} />
-      <SpeedUpWarning countdown={uiState.speedUpCountdown} />
+      <SpeedUpWarning />
       <EnemiesRemaining />
-      <WaveClearBanner wave={uiState.wave} phase={uiState.phase} />
+      <WaveClearBanner />
       <BossHpBar boss={uiState.boss} />
       <TopBar
         isFullscreen={isFullscreen}

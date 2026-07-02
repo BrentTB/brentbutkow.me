@@ -1,21 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
 import { WAVES_PER_LEVEL } from '../../data'
 import { GamePhase } from '../../engine/types'
+import { useGameUIState } from '../../useGameUIState'
 import styles from './WaveNotice.module.scss'
 
 // How long the cleared flash lingers, in ms — matches the CSS animation length.
 const CLEARED_FLASH_MS = 1800
 
-type WaveClearBannerProps = {
-  wave: number
-  phase: GamePhase
-}
-
 // Flashes the wave you just cleared. Fires only on a mid-sector auto-advance —
 // the wave counter climbs while play keeps running — so it never shows on the
 // first wave, a sector shop, or a boss start, all of which cross a non-playing
 // phase between waves.
-export function WaveClearBanner({ wave, phase }: WaveClearBannerProps) {
+export function WaveClearBanner() {
+  const { wave, phase } = useGameUIState()
   const prevWave = useRef(wave)
   const prevPhase = useRef(phase)
   const [cleared, setCleared] = useState<number | null>(null)
