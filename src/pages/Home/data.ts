@@ -16,16 +16,14 @@ export const heroContent: HeroContent = {
     'Biltong connoisseur',
     'Wacky algorithm creator',
     'Null space cadet',
-    'Gulag sort survivor',
   ],
   eyebrowAlternatesFun: [
     'Professional eater',
-    'Serial rickroller',
+    'Gulag sort survivor',
     'Never gonna give you up',
     'You just lost the game',
     'Sudo make me a sandwich',
-    'Hey Alexa play despacito',
-    'semicolon free since 1993', // or 'semicolon free since 93'?
+    'semicolon free since 1993',
     'According to all known laws of aviation there is no way that a bee should be able to fly...',
   ],
   title: 'Brent Butkow',

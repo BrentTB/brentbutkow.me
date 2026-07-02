@@ -41,7 +41,7 @@ export function useTypewriter(
     alternates = [],
     typeMs = 55,
     deleteMs = 35,
-    holdPrimaryMs = 10,
+    holdPrimaryMs = 6500,
     holdAltMs = 4000,
     keepChars = 2,
     randomizeOrder = false,
