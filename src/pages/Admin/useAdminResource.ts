@@ -10,6 +10,8 @@ type FetchState<T> = {
 export type AdminResourceState<T> = FetchState<T> & {
   // Splice a mutation's result into the loaded data without a full refetch.
   setData: (updater: (prev: T | null) => T | null) => void
+  // Force a refetch — e.g. after a mutation elsewhere invalidates this resource.
+  reload: () => void
 }
 
 // Authed GET-and-track hook: loading/error state plus in-flight cancellation on path/unmount.
@@ -25,6 +27,7 @@ export function useAdminResource<T>(
     loading: true,
     error: null,
   })
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -42,11 +45,13 @@ export function useAdminResource<T>(
       })
 
     return () => controller.abort()
-  }, [request, path, validate])
+  }, [request, path, validate, reloadKey])
 
   const setData = useCallback((updater: (prev: T | null) => T | null) => {
     setState((prev) => ({ ...prev, data: updater(prev.data) }))
   }, [])
 
-  return { ...state, setData }
+  const reload = useCallback(() => setReloadKey((key) => key + 1), [])
+
+  return { ...state, setData, reload }
 }

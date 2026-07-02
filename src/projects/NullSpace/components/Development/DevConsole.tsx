@@ -5,11 +5,10 @@ import { SHIP_ORDER, SHIP_VARIANTS } from '../../engine/ship/ship-data'
 import { WEAPON_ORDER } from '../../data'
 import { GamePhase, ShipKind } from '../../engine/types'
 import { DevCalamity, type DevPatch } from '../../engine/dev-tools'
-import type { GameUIState } from '../../useNullSpace'
+import { useGameUIState } from '../../useGameUIState'
 import styles from './DevConsole.module.scss'
 
 type DevConsoleProps = {
-  uiState: GameUIState
   onPatch: (patch: DevPatch) => void
   onJumpToUpgrades: () => void
   onJumpToBoss: () => void
@@ -33,13 +32,13 @@ const CALAMITY_BUTTONS: { kind: DevCalamity; label: string }[] = [
 ]
 
 export function DevConsole({
-  uiState,
   onPatch,
   onJumpToUpgrades,
   onJumpToBoss,
   onQuickStart,
   onSpawnCalamity,
 }: DevConsoleProps) {
+  const uiState = useGameUIState()
   const inGame = uiState.phase !== GamePhase.menu && uiState.phase !== GamePhase.shipSelection
   const [showAdvanced, setShowAdvanced] = useState(false)
 

@@ -21,7 +21,7 @@ export function MenuScreen({
     <>
       <h2 className={sharedStyles.title}>{GAME_NAME}</h2>
       <p className={sharedStyles.subtitle}>
-        You are a cosmic guardian. Shepherd the ship through hostile sectors.
+        You are a cosmic guardian. Guide the ship through enemy territory.
       </p>
       {hasSave && (
         <button className={sharedStyles.primaryBtn} onClick={onContinue}>

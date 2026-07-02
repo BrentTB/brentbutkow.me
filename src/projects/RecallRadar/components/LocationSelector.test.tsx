@@ -43,6 +43,35 @@ describe('LocationSelector', () => {
       expect(document.body.contains(option)).toBe(true)
     })
 
+    // A left-docked trigger (the Recalls tab on phones) used to push a right-anchored menu off the
+    // left edge; the menu is now clamped to stay fully within the viewport.
+    it('keeps the open menu on screen when the trigger is docked at the left edge', () => {
+      const originalWidth = window.innerWidth
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: 360 })
+      const rectSpy = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+        top: 40,
+        bottom: 60,
+        left: 12,
+        right: 120,
+        width: 108,
+        height: 20,
+        x: 12,
+        y: 40,
+        toJSON: () => ({}),
+      } as DOMRect)
+
+      render(<LocationSelector value="us" collapsed onChange={() => {}} />)
+      fireEvent.click(screen.getByRole('button', { name: 'Location: United States' }))
+      const menu = screen.getByRole('group', { name: 'Location' })
+      const left = parseFloat(menu.style.left)
+
+      expect(left).toBeGreaterThanOrEqual(8)
+      expect(left + 180).toBeLessThanOrEqual(360)
+
+      rectSpy.mockRestore()
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalWidth })
+    })
+
     it('reports the chosen location and closes the menu', () => {
       const onChange = vi.fn()
       render(<LocationSelector value="us" collapsed onChange={onChange} />)

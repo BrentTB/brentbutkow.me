@@ -1,0 +1,86 @@
+// Small centered pills sitting just under the sector bar (below the speed-up
+// warning). The enemies-left tally counts a wave down; the cleared flash pops in
+// the same slot the instant it hits zero, so the two read as one continuous beat.
+.pill {
+  position: absolute;
+  top: calc(78px * var(--hud-scale, 1));
+  left: 50%;
+  transform: translateX(-50%);
+  padding: calc(4px * var(--hud-scale, 1)) calc(14px * var(--hud-scale, 1));
+  border-radius: 999px;
+  font-size: calc(0.72rem * var(--hud-scale, 1));
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+// Enemies-left tally — calm cyan, no pulse: it's a readout, not an alarm.
+.count {
+  color: #bfe9ff;
+  background: rgba(10, 26, 38, 0.72);
+  border: 1px solid rgba(90, 190, 255, 0.45);
+}
+
+.value {
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+// Wave-cleared flash — green, pops in then fades over its brief life (JS unmounts
+// it on the same timer).
+.cleared {
+  color: #b8f5c8;
+  background: rgba(12, 40, 22, 0.82);
+  border: 1px solid rgba(90, 220, 130, 0.6);
+  animation: clearedPop 1.8s ease-out forwards;
+}
+
+// Fun mode: add the glow the rest of the HUD carries.
+:global(html.fun-mode) .count {
+  box-shadow: 0 0 calc(9px * var(--hud-scale, 1)) rgba(90, 190, 255, 0.5);
+}
+
+:global(html.fun-mode) .cleared {
+  box-shadow: 0 0 calc(11px * var(--hud-scale, 1)) rgba(90, 220, 130, 0.55);
+}
+
+// Pop in, hold, fade out — a one-shot beat that lands the clear.
+@keyframes clearedPop {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.7);
+  }
+  12% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.08);
+  }
+  22% {
+    transform: translateX(-50%) scale(1);
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+// Reduced motion: swap the pop for a plain fade.
+@media (prefers-reduced-motion: reduce) {
+  .cleared {
+    animation: clearedFade 1.8s ease-out forwards;
+  }
+}
+
+@keyframes clearedFade {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  10%,
+  80% {
+    opacity: 1;
+  }
+}

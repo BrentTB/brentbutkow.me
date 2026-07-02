@@ -1,26 +1,23 @@
 import { useEffect, useState } from 'react'
 import { AbilityKind, GamePhase, ShipKind } from '../engine/types'
 import type { UpgradeId } from '../engine/upgrade-ids'
-import type { GameUIState } from '../useNullSpace'
+import { useGameUIState } from '../useGameUIState'
 import styles from './GameOverlay.module.scss'
 import { HelpScreen } from './PauseMenu/HelpScreen'
 import { PauseMenu } from './PauseMenu/PauseMenu'
 import { SettingsScreen } from './PauseMenu/SettingsScreen'
 import { MenuScreen } from './StartScreen/MenuScreen'
 import { ShipSelectionScreen } from './StartScreen/ShipSelectionScreen'
-import { WaveCompleteScreen } from './WaveCompleteScreen'
 import { UpgradeScreen } from './UpgradeScreen/UpgradeScreen'
 import { GameOverScreen } from './GameOverScreen'
 import { LeaderboardScreen } from './LeaderboardScreen'
 
 type GameOverlayProps = {
-  uiState: GameUIState
   onStart: () => void
   onContinue: () => void
   hasSave: boolean
   onSaveAndExit: () => void
   onSelectShip: (kind: ShipKind) => void
-  onNextWave: () => void
   onRestart: () => void
   onSubmitScore: (name: string) => Promise<boolean>
   onPurchaseUpgrade: (upgradeId: UpgradeId) => void
@@ -37,13 +34,11 @@ const SettingsSubPages = { settings: 'settings', help: 'help' }
 type SettingsSubPages = (typeof SettingsSubPages)[keyof typeof SettingsSubPages]
 
 export function GameOverlay({
-  uiState,
   onStart,
   onContinue,
   hasSave,
   onSaveAndExit,
   onSelectShip,
-  onNextWave,
   onRestart,
   onSubmitScore,
   onPurchaseUpgrade,
@@ -55,6 +50,7 @@ export function GameOverlay({
   onReplayTutorial,
   gameSpeed,
 }: GameOverlayProps) {
+  const uiState = useGameUIState()
   const [pauseSubPage, setPauseSubPage] = useState<SettingsSubPages | null>(null)
   // Leaderboard is a pure-UI overlay (not a game phase), opened from the menu or
   // the game-over screen and dismissed with Back.
@@ -132,17 +128,8 @@ export function GameOverlay({
                   canSaveAndExit={hasSave}
                 />
               ))}
-            {uiState.phase === GamePhase.waveComplete && (
-              <WaveCompleteScreen
-                wave={uiState.wave}
-                level={uiState.level}
-                score={uiState.score}
-                onNextWave={onNextWave}
-              />
-            )}
             {uiState.phase === GamePhase.upgradeScreen && (
               <UpgradeScreen
-                uiState={uiState}
                 onPurchase={onPurchaseUpgrade}
                 onPurchaseUltimate={onPurchaseUltimate}
                 onSalvageAbility={onSalvageAbility}

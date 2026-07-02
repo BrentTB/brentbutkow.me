@@ -67,6 +67,7 @@ export function OverviewPanel({ onOpenTab, onInspectFlaggedScores }: OverviewPan
       stats: [
         { label: 'Total', value: data.messages.total },
         { label: 'Real', value: data.messages.real },
+        { label: 'Unread', value: data.messages.unseen },
         { label: 'Bot', value: data.messages.bot },
       ],
     },

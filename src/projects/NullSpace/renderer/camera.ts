@@ -1,4 +1,5 @@
 import type { Vec2 } from '../engine/types'
+import { GamePhase } from '../engine/types'
 import { toroidalDelta, wrapPosition } from '../engine/math/toroid'
 
 /**
@@ -17,6 +18,45 @@ export const REFERENCE_VIEW = { width: 1000, height: 625 }
  */
 export const DEFAULT_GAME_ZOOM = 0.85
 
+// Damage screen-shake tuning. On a hit the world jitters for SHAKE_DURATION and
+// eases back to still; SHAKE_MAGNITUDE is the peak offset in CSS pixels, and the
+// two frequencies keep x/y out of phase so the wobble reads as a rattle, not a slide.
+// Both amplitude and length scale off the timer, so a weaker trigger (a shield hit)
+// reads as a shorter, gentler rattle than a full HP hit.
+const SHAKE_DURATION = 0.32
+const SHAKE_MAGNITUDE = 9
+const SHAKE_FREQ_X = 47
+const SHAKE_FREQ_Y = 61
+
+// Shield hits get a lighter jolt than HP hits — the shield still absorbed the blow.
+export const SHAKE_STRENGTH_HP = 1
+export const SHAKE_STRENGTH_SHIELD = 0.45
+
+export type ShakeHitParams = {
+  prevPhase: GamePhase
+  phase: GamePhase
+  prevHp: number
+  hp: number
+  prevShield: number
+  shield: number
+  reducedMotion: boolean
+}
+
+/**
+ * Decides the shake strength for a frame from the ship's HP/shield deltas, or null
+ * when nothing should shake. Gated on BOTH frames being `playing` so the first frame
+ * (stale prev values) and the death frame (phase flipped to dying) never fire it,
+ * reduce-motion opts out entirely, and an HP drop outranks a shield drop.
+ */
+export function shakeStrengthForHit(params: ShakeHitParams): number | null {
+  const { prevPhase, phase, prevHp, hp, prevShield, shield, reducedMotion } = params
+  if (reducedMotion) return null
+  if (phase !== GamePhase.playing || prevPhase !== GamePhase.playing) return null
+  if (hp < prevHp) return SHAKE_STRENGTH_HP
+  if (shield < prevShield) return SHAKE_STRENGTH_SHIELD
+  return null
+}
+
 export type Camera = {
   /** Top-left of the viewport in WORLD coordinates. */
   x: number
@@ -28,6 +68,8 @@ export type Camera = {
   zoom: number
   /** Device pixel ratio — canvas internal resolution is width/height × dpr. */
   dpr: number
+  /** Seconds left in the damage shake (0 = still). Decays in updateCamera. */
+  shake: number
 }
 
 export function createCamera(viewportWidth: number, viewportHeight: number): Camera {
@@ -38,6 +80,30 @@ export function createCamera(viewportWidth: number, viewportHeight: number): Cam
     height: viewportHeight,
     zoom: computeZoom(viewportWidth, viewportHeight),
     dpr: 1,
+    shake: 0,
+  }
+}
+
+/**
+ * Kick off (or refresh) the damage shake. `strength` scales both amplitude and
+ * length (1 = a full HP hit, less = a lighter shield hit). Never shortens a
+ * stronger shake still ringing, so a light shield tap can't cut an HP jolt short.
+ */
+export function triggerCameraShake(camera: Camera, strength = SHAKE_STRENGTH_HP): Camera {
+  return { ...camera, shake: Math.max(camera.shake, SHAKE_DURATION * strength) }
+}
+
+/**
+ * Current shake offset in CSS pixels for this frame. Amplitude fades linearly with
+ * the remaining time and two out-of-phase sinusoids driven by `clock` (seconds)
+ * jitter x/y — deterministic, so it never touches the seeded sim rng.
+ */
+export function cameraShakeOffset(camera: Camera, clock: number): Vec2 {
+  if (camera.shake <= 0) return { x: 0, y: 0 }
+  const amp = SHAKE_MAGNITUDE * (camera.shake / SHAKE_DURATION)
+  return {
+    x: amp * Math.sin(clock * SHAKE_FREQ_X),
+    y: amp * Math.cos(clock * SHAKE_FREQ_Y),
   }
 }
 
@@ -123,7 +189,8 @@ export function updateCamera(camera: Camera, target: Vec2, dt: number): Camera {
   const center = { x: camera.x + vw / 2, y: camera.y + vh / 2 }
   const d = toroidalDelta(center, target)
   const lerp = 1 - Math.pow(0.01, dt)
-  return wrapCameraOrigin(camera, camera.x + d.x * lerp, camera.y + d.y * lerp)
+  const shaken = { ...camera, shake: Math.max(0, camera.shake - dt) }
+  return wrapCameraOrigin(shaken, shaken.x + d.x * lerp, shaken.y + d.y * lerp)
 }
 
 /** Snap the camera so its viewport is centred on `target` (torus-wrapped). */

@@ -98,6 +98,7 @@ export function createShip(kind: ShipKind, worldSize: Vec2): Ship {
     hitFlash: 0,
     hitFlashCooldown: 0,
     wormContactCooldown: 0,
+    damageIFrame: 0,
   }
 }
 

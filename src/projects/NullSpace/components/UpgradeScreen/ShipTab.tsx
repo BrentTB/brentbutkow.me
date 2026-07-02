@@ -2,13 +2,12 @@ import { useState } from 'react'
 import { SLINGSHOT_UPGRADE_IDS, UPGRADE_DEFINITIONS } from '../../engine/upgrades'
 import { UpgradeCategory } from '../../engine/types'
 import type { UpgradeId } from '../../engine/upgrade-ids'
-import type { GameUIState } from '../../useNullSpace'
+import { useGameUIState } from '../../useGameUIState'
 import { UpgradeCard } from './UpgradeCard'
 import detailStyles from './WeaponDetail.module.scss'
 import listStyles from './WeaponsList.module.scss'
 
 type ShipTabProps = {
-  uiState: GameUIState
   onPurchase: (upgradeId: UpgradeId) => void
 }
 
@@ -16,7 +15,8 @@ const SLING_SET = new Set<UpgradeId>(SLINGSHOT_UPGRADE_IDS)
 
 // Ship tab: core ship upgrades at the top level, with the four Slingshot
 // upgrades tucked behind a drill-down (mirrors the weapon list → detail pattern).
-export function ShipTab({ uiState, onPurchase }: ShipTabProps) {
+export function ShipTab({ onPurchase }: ShipTabProps) {
+  const uiState = useGameUIState()
   const [showSlingshot, setShowSlingshot] = useState(false)
 
   const shipUpgrades = Object.values(UPGRADE_DEFINITIONS).filter(

@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { drawTutorialFocus } from './tutorial-overlay'
 import type { Camera } from './camera'
 
-const camera: Camera = { x: 0, y: 0, width: 800, height: 600, zoom: 1, dpr: 2 }
+const camera: Camera = { x: 0, y: 0, width: 800, height: 600, zoom: 1, dpr: 2, shake: 0 }
 const opts = { reducedMotion: true, pulseClock: 0 }
 
 function mockCtx() {

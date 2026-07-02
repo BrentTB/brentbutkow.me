@@ -15,6 +15,13 @@ export const SHIELD_COOLDOWN = 3
 // Caps a lunge that sweeps through the head and several segments to a single hit.
 export const WORM_CONTACT_IFRAME = 0.8
 
+// Seconds of full damage immunity granted after any hit that reaches HP. A dense
+// swarm can chip the shield freely, but the first blow through it buys a brief
+// breather so several contacts in one beat can't chain into an instant kill.
+// Separate from WORM_CONTACT_IFRAME above: that one gates a single worm lunge's
+// multi-segment sweep, this one gates any HP hit from any source.
+export const DAMAGE_IFRAME = 0.6
+
 // Slingshot (flick the ship). Base values are deliberately weak + wild; the
 // ship upgrades (Power / Control / Cadence / Heat Sink) push toward strong,
 // precise, fast, and sustainable.
@@ -600,8 +607,22 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.16.0',
+    date: '2026-07-02',
+    changes: {
+      features: [
+        'A hit that gets through your shield now grants a brief moment of invincibility, so a tight swarm can no longer stack several blows into a single-beat kill — you always get a breather to slip away.',
+        'Clearing a wave no longer freezes the game with a Next Wave prompt. The next wave flows straight in and a small notice tells you the one you just cleared — only shops still pause the action.',
+      ],
+      ui: [
+        'A counter appears once five or fewer enemies remain in a wave, so you know how close you are to clearing it.',
+        'The screen now shakes when you take damage, and settles as you recover (respects the reduce-motion setting).',
+      ],
+    },
+  },
+  {
     version: '1.15.0',
-    date: '2026-06-22',
+    date: '2026-06-24',
     changes: {
       features: [
         'New ability — Hypnosis: click near an enemy to seize its mind. It turns and fights for you, keeping its own look, full strength, attack, and even its size/speed modifier — a charmed gunner keeps shooting, while rammers chase down the nearest enemy and a charmed bomber charges in for one last blast. Other enemies round on it; it bleeds down over time (and from their fire) and only goes when it actually dies — no timer, no revert. Bosses are immune. Its ultimate, Pied Piper, flips a whole crowd inside a radius at once.',

@@ -1,11 +1,10 @@
 import { CURRENCY_NAME } from '../../data'
 import { Icon, IconName } from '../Icon/Icon'
 import { GamePhase } from '../../engine/types'
-import type { GameUIState } from '../../useNullSpace'
+import { useGameUIState } from '../../useGameUIState'
 import styles from './TopBar.module.scss'
 
 type TopBarProps = {
-  uiState: GameUIState
   isFullscreen: boolean
   gameSpeed: number
   onPause: () => void
@@ -16,13 +15,8 @@ function getHpColor(ratio: number) {
   return ratio > 0.5 ? '#44bb44' : ratio > 0.25 ? '#ccaa22' : '#cc3333'
 }
 
-export function TopBar({
-  uiState,
-  isFullscreen,
-  gameSpeed,
-  onPause,
-  onToggleFullscreen,
-}: TopBarProps) {
+export function TopBar({ isFullscreen, gameSpeed, onPause, onToggleFullscreen }: TopBarProps) {
+  const uiState = useGameUIState()
   const hpRatio = Math.max(0, uiState.shipHp / uiState.shipMaxHp)
   const hpColor = getHpColor(hpRatio)
   const shieldRatio = Math.max(0, uiState.shipShield / uiState.shipMaxShield)

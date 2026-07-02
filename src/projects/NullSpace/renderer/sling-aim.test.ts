@@ -5,7 +5,7 @@ import { createShip } from '../engine/entities/entity-creator'
 import { ShipKind } from '../engine/types'
 import { WORLD_SIZE } from '../data'
 
-const camera: Camera = { x: 0, y: 0, width: 800, height: 600, zoom: 1, dpr: 2 }
+const camera: Camera = { x: 0, y: 0, width: 800, height: 600, zoom: 1, dpr: 2, shake: 0 }
 
 function mockCtx() {
   // Capture moveTo coords — the first is the arrow's origin (the ship), which a

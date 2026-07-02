@@ -42,7 +42,7 @@ import { enemyFacing } from '../engine/entities/enemy'
 import { waveSpeedEscalation } from '../engine/world/wave-escalation'
 import { isBossWave } from '../engine/world/waves'
 import type { Camera } from './camera'
-import { isWithinView, worldToScreen } from './camera'
+import { cameraShakeOffset, isWithinView, worldToScreen } from './camera'
 import type { AnimationCache, SpriteCache } from './sprite-cache'
 import { getSpriteSize, pickFrame } from './sprite-cache'
 import { AnimationKey, SpriteKey } from './sprites'
@@ -118,6 +118,14 @@ export function renderFrame(
   // worldToScreen which returns positions in WORLD units relative to camera —
   // the canvas multiplies them by `zoom`, so sprite sizes scale automatically.
   ctx.save()
+  // Damage shake: jolt the whole world layer (CSS px, applied before the zoom
+  // scale) against the static background fill. The trigger is suppressed under
+  // reduce-motion so this stays still there. Skip the offset call on the common
+  // still frame so it allocates nothing off the hot path.
+  if (camera.shake > 0) {
+    const shake = cameraShakeOffset(camera, opts.clock)
+    ctx.translate(shake.x, shake.y)
+  }
   ctx.scale(camera.zoom, camera.zoom)
 
   // No ship in the world before one is chosen, or once it's exploded (dying →

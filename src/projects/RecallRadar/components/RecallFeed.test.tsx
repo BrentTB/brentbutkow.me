@@ -81,12 +81,21 @@ describe('RecallFeed', () => {
     expect(details?.open).toBe(true)
   })
 
-  it('links the product title to the recall page without expanding the row', () => {
+  it('toggles the row on a plain title click while keeping a real href for new-tab', () => {
+    // Opening the row mounts RelatedRecalls, which fetches; stub it so the toggle is all we exercise.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => mockRes([]))
+    )
     const { container } = render(<Feed recalls={[recall]} />)
     const title = screen.getByRole('link', { name: 'Test cookies' })
+    // The href stays so a modifier / right click still opens the detail page in a new tab.
     expect(title.getAttribute('href')).toContain('/projects/recall-radar/usda/F-1234')
+    // A plain click expands the row instead of navigating away.
     fireEvent.click(title)
-    expect(container.querySelector('details')?.open).toBe(false) // navigates, doesn't toggle
+    expect(container.querySelector('details')?.open).toBe(true)
+    fireEvent.click(title)
+    expect(container.querySelector('details')?.open).toBe(false)
   })
 
   it('mounts related recalls on open and unmounts them on close across a rapid toggle', async () => {

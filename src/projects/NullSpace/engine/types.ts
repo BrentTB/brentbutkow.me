@@ -94,6 +94,10 @@ export type Ship = Entity & {
   // ship through the head and several segments lands one hit, not one per part.
   // Counts down each tick; worm contact deals damage only at 0, then re-arms it.
   wormContactCooldown: number
+  // General post-hit i-frame. Any blow that reaches HP arms it; while > 0 the ship
+  // shrugs off all damage. Counts down each tick — stops a swarm chaining hits into
+  // an instant kill in one beat.
+  damageIFrame: number
 }
 
 export const EnemyKind = {
@@ -789,7 +793,6 @@ export const GamePhase = {
   shipSelection: 'shipSelection',
   playing: 'playing',
   paused: 'paused',
-  waveComplete: 'waveComplete',
   upgradeScreen: 'upgradeScreen',
   // Timed, non-interactive portal jump between sectors — sim frozen, animation runs.
   warping: 'warping',

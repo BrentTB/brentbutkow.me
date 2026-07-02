@@ -766,12 +766,14 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
   let holdStates = state.holdStates
 
   // Cosmetic damage-flash decays each frame; a hit later this frame refreshes it.
-  // The Void Worm contact i-frame ticks down here too, re-armed on a worm hit.
+  // The Void Worm contact i-frame and the general post-hit i-frame tick down here
+  // too, each re-armed by its own trigger (worm contact / any HP hit).
   ship = {
     ...ship,
     hitFlash: Math.max(0, ship.hitFlash - dt),
     hitFlashCooldown: Math.max(0, ship.hitFlashCooldown - dt),
     wormContactCooldown: Math.max(0, ship.wormContactCooldown - dt),
+    damageIFrame: Math.max(0, ship.damageIFrame - dt),
   }
 
   // Upgrade-derived economy multipliers (constant across the frame).
@@ -1540,9 +1542,12 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
 
   // --- Check wave complete ---
   if (spawnQueue.length === 0 && enemies.length === 0 && state.spawn.total > 0) {
+    // Base cleared state. `phase` is a placeholder — every branch below overrides
+    // it (shop / warp / straight into the next wave), so the wave never lands on a
+    // frozen "wave complete" screen; a mid-sector clear just flows on.
     const cleared: GameState = {
       ...state,
-      phase: GamePhase.waveComplete,
+      phase: GamePhase.playing,
       ship,
       enemies,
       projectiles,
@@ -1575,18 +1580,21 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     // A boss waits on the very next wave → open the shop now, with NO warp: the boss
     // is this sector's finale, so the squad and field have to ride into it (a warp
     // would wipe both). A fully cleared sector warps to the next one, then shops.
-    // Other mid-sector waves just wait for the Next Wave button.
+    // Other mid-sector waves flow straight into the next wave (below).
     if (isBossWave(state.wave + 1)) return openUpgradeScreen(cleared)
     // Sector cleared → don't yank control: keep flying under control for a beat
     // (WARP.preDelay), then warp. beginWarp places the portal along the ship's
-    // heading, so the fly-in needs no turn. Mid-sector waves wait for Next Wave.
+    // heading, so the fly-in needs no turn.
     if (isUpgradeWave(state.wave)) {
       const warpDelay = state.warpDelay > 0 ? state.warpDelay - dt : WARP.preDelay
       return warpDelay <= 0
         ? beginWarp(cleared)
         : { ...cleared, phase: GamePhase.playing, warpDelay }
     }
-    return cleared
+    // Mid-sector wave: no shop, no warp — flow straight into the next wave. Its
+    // inter-wave delay (spawn.waveTimer) gives a short breather before enemies
+    // arrive, and the HUD flashes a "wave cleared" notice off the wave-number bump.
+    return startNextWave(cleared)
   }
 
   return {

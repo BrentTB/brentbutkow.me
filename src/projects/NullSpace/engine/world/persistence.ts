@@ -1,4 +1,5 @@
-import type { GameState, Ship } from '../types'
+import type { Ship } from '../types'
+import { GamePhase, type GameState } from '../types'
 import { CALAMITY } from '../../data'
 import type { ChangelogEntry } from '../../data'
 
@@ -222,8 +223,11 @@ export function loadGame(): SavedGame | null {
       runDurationMs?: number
       spawn?: GameState['spawn']
       // Ship sub-fields added after a save was written are optional here too —
-      // `wormContactCooldown` is summed each frame, so undefined would go NaN.
-      ship: Omit<Ship, 'wormContactCooldown'> & { wormContactCooldown?: number }
+      // they're subtracted each frame, so undefined would go NaN.
+      ship: Omit<Ship, 'wormContactCooldown' | 'damageIFrame'> & {
+        wormContactCooldown?: number
+        damageIFrame?: number
+      }
       // Legacy flat spawn fields (pre-grouping saves) — migrated into `spawn`.
       waveTimer?: number
       spawnQueue?: GameState['spawn']['queue']
@@ -244,13 +248,21 @@ export function loadGame(): SavedGame | null {
       ...parsed,
       state: {
         ...savedState,
+        // Coerce an unrecognised phase (a save written against an older phase set)
+        // back to `playing`, so the run resumes rather than restoring into a phase no
+        // overlay renders and no code advances.
+        phase: isGamePhase(savedState.phase) ? savedState.phase : GamePhase.playing,
         kills: savedState.kills ?? 0,
         salvageOfferUsed: savedState.salvageOfferUsed ?? false,
         calamityTimer: savedState.calamityTimer ?? CALAMITY.shockwaveIntervalMin,
         asteroids: savedState.asteroids ?? [],
         warpDelay: savedState.warpDelay ?? 0,
         runDurationMs: savedState.runDurationMs ?? 0,
-        ship: { ...savedState.ship, wormContactCooldown: savedState.ship.wormContactCooldown ?? 0 },
+        ship: {
+          ...savedState.ship,
+          wormContactCooldown: savedState.ship.wormContactCooldown ?? 0,
+          damageIFrame: savedState.ship.damageIFrame ?? 0,
+        },
         spawn,
       },
     }
@@ -265,6 +277,10 @@ export function clearSave(): void {
   } catch {
     // localStorage unavailable
   }
+}
+
+function isGamePhase(value: unknown): value is GamePhase {
+  return typeof value === 'string' && (Object.values(GamePhase) as string[]).includes(value)
 }
 
 function isSavedGame(value: unknown): value is SavedGame {

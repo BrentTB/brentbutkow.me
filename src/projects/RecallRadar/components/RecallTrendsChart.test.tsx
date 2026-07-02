@@ -38,6 +38,24 @@ describe('RecallTrendsChart forecast overlay', () => {
     expect(screen.getByText(/Projected/i)).toBeTruthy()
   })
 
+  it('projects the in-progress current month on top of its partial bar', () => {
+    // July is the current month with only a few recalls so far → its ghost shows the full-month
+    // projection alongside the "so far" count, and August still projects as a future month.
+    const { container } = render(
+      <RecallTrendsChart
+        data={yearData(2026, { 5: 20, 6: 22, 7: 3 })}
+        year={2026}
+        legend={legend}
+        forecast={forecast}
+        currentMonth="2026-07"
+      />
+    )
+    expect(
+      container.querySelector('[aria-label^="Jul 2026 · 3 so far, projected 20"]')
+    ).toBeTruthy()
+    expect(container.querySelectorAll('[aria-label*="projected"]')).toHaveLength(2)
+  })
+
   it('shows no projection for a year that has no forecast months', () => {
     const { container } = render(
       <RecallTrendsChart

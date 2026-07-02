@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import {
   categoryLabels,
   entityTypeLabels,
@@ -68,8 +68,6 @@ export function RecallFeed({
   openRows,
   onRowToggle,
 }: RecallFeedProps) {
-  const navigate = useNavigate()
-
   if (recalls.length === 0) {
     return <p className={styles.empty}>No recalls match these filters.</p>
   }
@@ -81,12 +79,13 @@ export function RecallFeed({
         const cluster =
           recall.eventClusterId != null ? eventsById?.get(recall.eventClusterId) : undefined
         const detailPath = recallDetailRoute(recall.source, recall.recallNumber)
+        const isOpen = openRows.has(recall.recallNumber)
         return (
           // The id lets a URL-restored open row be scrolled to like a #fragment target.
           <li key={recall.recallNumber} id={`recall-${recall.recallNumber}`} className={styles.row}>
             <details
               className={styles.details}
-              open={openRows.has(recall.recallNumber)}
+              open={isOpen}
               // Read `open` synchronously: `currentTarget` is null once the event settles, which
               // crashes on rapid toggles. Reporting the DOM state (rather than negating ours) keeps
               // the two in sync even when React itself flips the attribute.
@@ -94,58 +93,64 @@ export function RecallFeed({
             >
               <summary className={styles.summary}>
                 <div className={styles.head}>
-                  <span
-                    className={styles.sevDot}
-                    style={{ background: severityColors[recall.severityLabel] }}
-                    title={`${severityLabels[recall.severityLabel]} · severity ${recall.severityScore}/100`}
-                    aria-label={`Severity: ${severityLabels[recall.severityLabel]}`}
-                  />
-                  <Link
-                    to={detailPath}
-                    className={styles.product}
-                    // Inside <summary>: keep a real href (right-click / open-in-new-tab) but stop the
-                    // click from toggling the row open — and from kicking off a throwaway similar
-                    // recalls fetch right before we navigate away — by driving the nav ourselves.
-                    onClick={(event) => {
-                      event.preventDefault()
-                      navigate(detailPath)
-                    }}
-                  >
-                    {recall.productDescription}
-                  </Link>
-                  {/* Theme + outbreak chips ride the title line so they sit in the clickable summary
-                      — clicking the row around them toggles it, and each chip filters instead of
-                      toggling (preventDefault). */}
-                  {theme && (
-                    <button
-                      type="button"
-                      className={styles.themeChip}
-                      onClick={(e) => {
-                        e.preventDefault()
-                        onTopicSelect?.(theme.slug === activeTopic ? '' : theme.slug)
+                  <div className={styles.title}>
+                    <span
+                      className={styles.sevDot}
+                      style={{ background: severityColors[recall.severityLabel] }}
+                      title={`${severityLabels[recall.severityLabel]} · severity ${recall.severityScore}/100`}
+                      aria-label={`Severity: ${severityLabels[recall.severityLabel]}`}
+                    />
+                    <Link
+                      to={detailPath}
+                      className={styles.product}
+                      // Plain click toggles the row; the real href lets a modifier/right-click open
+                      // the recall page in a new tab, and aria-expanded tells a screen reader the
+                      // click toggles rather than navigates.
+                      aria-expanded={isOpen}
+                      onClick={(event) => {
+                        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+                        event.preventDefault()
+                        onRowToggle(recall.recallNumber, !isOpen)
                       }}
-                      title={`Theme: ${theme.label} — filter by it`}
                     >
-                      {theme.label}
-                    </button>
-                  )}
-                  {cluster?.isOutbreak && (
-                    <button
-                      type="button"
-                      className={styles.outbreakChip}
-                      onClick={(e) => {
-                        e.preventDefault()
-                        onEventSelect?.(cluster.slug === activeEvent ? '' : cluster.slug)
-                      }}
-                      title="Part of an outbreak — filter to it"
-                    >
-                      ⚠ Outbreak
-                    </button>
-                  )}
-                  <span className={styles.date}>{formatDate(recall.reportDate)}</span>
-                  <span className={styles.chevron} aria-hidden="true">
-                    ›
-                  </span>
+                      {recall.productDescription}
+                    </Link>
+                  </div>
+                  {/* Theme + outbreak chips + date sit in one meta group that wraps below the title on
+                      a narrow row, so the product name keeps the full width instead of being squeezed
+                      to one word per line. Chips filter instead of toggling (preventDefault). */}
+                  <div className={styles.meta}>
+                    {theme && (
+                      <button
+                        type="button"
+                        className={styles.themeChip}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          onTopicSelect?.(theme.slug === activeTopic ? '' : theme.slug)
+                        }}
+                        title={`Theme: ${theme.label} — filter by it`}
+                      >
+                        {theme.label}
+                      </button>
+                    )}
+                    {cluster?.isOutbreak && (
+                      <button
+                        type="button"
+                        className={styles.outbreakChip}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          onEventSelect?.(cluster.slug === activeEvent ? '' : cluster.slug)
+                        }}
+                        title="Part of an outbreak — filter to it"
+                      >
+                        ⚠ Outbreak
+                      </button>
+                    )}
+                    <span className={styles.date}>{formatDate(recall.reportDate)}</span>
+                    <span className={styles.chevron} aria-hidden="true">
+                      ›
+                    </span>
+                  </div>
                 </div>
                 <p className={styles.reason}>{recall.reasonText}</p>
               </summary>
@@ -172,17 +177,19 @@ export function RecallFeed({
                   </div>
                 ))}
               </dl>
-              <p className={styles.detailPageLink}>
-                <Link to={detailPath}>Open recall page →</Link>
-              </p>
-              {recall.sourceUrl && (
-                <p className={styles.sourceLink}>
-                  <SafeLink href={recall.sourceUrl}>
-                    View original notice {getLinkArrow(false)}
-                  </SafeLink>
+              <div className={styles.actions}>
+                <p className={styles.detailPageLink}>
+                  <Link to={detailPath}>Open recall page →</Link>
                 </p>
-              )}
-              {openRows.has(recall.recallNumber) && (
+                {recall.sourceUrl && (
+                  <p className={styles.sourceLink}>
+                    <SafeLink href={recall.sourceUrl}>
+                      View original notice {getLinkArrow(false)}
+                    </SafeLink>
+                  </p>
+                )}
+              </div>
+              {isOpen && (
                 <RelatedRecalls source={recall.source} recallNumber={recall.recallNumber} />
               )}
             </details>

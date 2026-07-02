@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, cleanup } from '@testing-library/react'
 import { Abilities } from './Abilities'
+import { GameUIStateProvider } from '../../useGameUIState'
 import { AbilityKind } from '../../engine/types'
 import type { Ability } from '../../engine/types'
 import type { GameUIState } from '../../useNullSpace'
@@ -26,7 +27,11 @@ function renderBar(ability: Ability, power: number) {
     selectedAbility: null,
     power,
   } as unknown as GameUIState
-  return render(<Abilities uiState={uiState} onAbilitySelect={() => {}} />)
+  return render(
+    <GameUIStateProvider value={uiState}>
+      <Abilities onAbilitySelect={() => {}} />
+    </GameUIStateProvider>
+  )
 }
 
 // The affordability dim is the only overlay carrying an inline opacity, so it's

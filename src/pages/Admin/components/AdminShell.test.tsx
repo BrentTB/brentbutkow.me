@@ -7,7 +7,7 @@ import { AdminAuth, AdminAuthStatus } from '../useAdminAuth'
 import { Overview } from '../admin.types'
 
 const overview: Overview = {
-  messages: { total: 3, real: 2, bot: 1 },
+  messages: { total: 3, real: 2, bot: 1, unseen: 1 },
   subscriptions: { total: 5, active: 3, pendingConfirmation: 1, paused: 0, unsubscribed: 1 },
   ingest: null,
   recalls: { total: 9, us: 5, uk: 3, za: 1 },
@@ -69,6 +69,25 @@ describe('AdminShell tab navigation', () => {
 
     expect(search()).toBe('?tab=messages')
     expect(screen.getByText('Include bot and spam')).toBeTruthy()
+  })
+
+  it('badges the Messages tab with the overview unseen count', async () => {
+    renderShell()
+    const nav = () => screen.getByRole('navigation', { name: 'Admin sections' })
+    await waitFor(() => expect(within(nav()).getByLabelText('1 unread').textContent).toBe('1'))
+  })
+
+  it('opens Messages on the unread filter and reflects the choice in the URL', async () => {
+    renderShell()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Open Messages' })).toBeTruthy())
+    fireEvent.click(screen.getByRole('button', { name: 'Open Messages' }))
+
+    // Unread is the default, so it carries no `seen` param but is the pressed segment.
+    expect(search()).toBe('?tab=messages')
+    expect(screen.getByRole('button', { name: 'Unread' }).getAttribute('aria-pressed')).toBe('true')
+
+    fireEvent.click(screen.getByRole('button', { name: 'All' }))
+    expect(search()).toContain('seen=all')
   })
 
   it('deep-links the flagged count to a pre-filtered Null Space view', async () => {

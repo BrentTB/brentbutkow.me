@@ -13,13 +13,22 @@ type RecallTrendsChartProps = {
   // latest actual month are drawn (a ghost bar + band). Pass only on the unfiltered chart, where the
   // stacked totals represent the same overall series the forecast was fit on.
   forecast?: ForecastPoint[]
+  // The in-progress month ('YYYY-MM'). Its partial real bar gets the projected full-month total drawn
+  // as a ghost extension on top, so a month that's only days old doesn't read as a real dip.
+  currentMonth?: string
 }
 
 const WIDTH = 720
 const HEIGHT = 240
 const PADDING = { top: 16, right: 12, bottom: 36, left: 44 }
 
-export function RecallTrendsChart({ data, year, legend, forecast }: RecallTrendsChartProps) {
+export function RecallTrendsChart({
+  data,
+  year,
+  legend,
+  forecast,
+  currentMonth,
+}: RecallTrendsChartProps) {
   const { figureRef, tip, showTip, hideTip } = useChartTooltip()
 
   const months = data.slice(-12)
@@ -36,7 +45,11 @@ export function RecallTrendsChart({ data, year, legend, forecast }: RecallTrends
   )
   const forecastByMonth = new Map(
     (forecast ?? [])
-      .filter((point) => point.month.startsWith(`${year}-`) && point.month > latestActual)
+      .filter(
+        (point) =>
+          point.month.startsWith(`${year}-`) &&
+          (point.month > latestActual || point.month === currentMonth)
+      )
       .map((point) => [point.month, point])
   )
   // Scale to the actual stacks *and* the projection's upper band, so a forecast that expects far more
@@ -164,13 +177,21 @@ export function RecallTrendsChart({ data, year, legend, forecast }: RecallTrends
           if (!point) return null
           const x = barX(index)
           const predicted = Math.round(point.predicted)
-          const text =
-            `${formatMonthLabel(month.month)} · projected ${formatNumber(predicted)} ` +
-            `(range ${formatNumber(Math.round(point.lower))}–${formatNumber(Math.round(point.upper))})`
+          // The in-progress month keeps its partial real stack; the ghost picks up from its top and
+          // rises to the projected total. Future months rise from the axis.
+          const actualTotal = totals[index]
+          const inProgress = month.month === currentMonth && actualTotal > 0
+          const range = `(range ${formatNumber(Math.round(point.lower))}–${formatNumber(Math.round(point.upper))})`
+          const text = inProgress
+            ? `${formatMonthLabel(month.month)} · ${formatNumber(actualTotal)} so far, ` +
+              `projected ${formatNumber(predicted)} ${range}`
+            : `${formatMonthLabel(month.month)} · projected ${formatNumber(predicted)} ${range}`
           // The uncertainty range as a soft shaded band behind the ghost bar, clamped to the plot —
           // reads as "roughly this range" instead of a towering error bar dwarfing the real months.
           const bandTop = Math.max(PADDING.top, y(point.upper))
           const bandHeight = Math.max(0, y(point.lower) - bandTop)
+          const ghostTop = y(point.predicted)
+          const ghostBottom = inProgress ? y(actualTotal) : PADDING.top + plotH
           return (
             <g key={`forecast-${month.month}`}>
               <rect
@@ -183,9 +204,9 @@ export function RecallTrendsChart({ data, year, legend, forecast }: RecallTrends
               />
               <rect
                 x={x}
-                y={y(point.predicted)}
+                y={ghostTop}
                 width={barW}
-                height={Math.max(0, PADDING.top + plotH - y(point.predicted))}
+                height={Math.max(0, ghostBottom - ghostTop)}
                 rx={3}
                 fill="url(#forecastHatch)"
                 className={styles.forecastBar}
@@ -217,7 +238,7 @@ export function RecallTrendsChart({ data, year, legend, forecast }: RecallTrends
       {forecastByMonth.size > 0 && (
         <p className={styles.forecastNote}>
           <span className={styles.forecastSwatch} aria-hidden="true" />
-          Projected — upcoming months with a typical-error band
+          Projected — current and upcoming months, with a typical-error band
         </p>
       )}
 

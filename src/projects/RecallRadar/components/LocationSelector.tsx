@@ -20,7 +20,7 @@ const LOCATIONS = Object.values(RecallCountry)
 export function LocationSelector({ value, collapsed, onChange }: LocationSelectorProps) {
   const [open, setOpen] = useState(false)
   // Anchor coords for the portaled menu; null until measured so it never flashes at the origin.
-  const [coords, setCoords] = useState<{ top: number; right: number } | null>(null)
+  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -29,10 +29,15 @@ export function LocationSelector({ value, collapsed, onChange }: LocationSelecto
   const place = () => {
     const rect = triggerRef.current?.getBoundingClientRect()
     if (!rect) return
+    const margin = 8
+    const menuWidth = menuRef.current?.offsetWidth ?? 180
     const top = rect.bottom + 6
-    const right = window.innerWidth - rect.right
+    // Align the menu's left edge to the trigger, then clamp it inside the viewport. Anchoring by the
+    // right edge pushed the menu off-screen when the trigger sits near the left (the Recalls tab on
+    // phones); clamping keeps a right-docked trigger (the scrolled sticky bar) on screen too.
+    const left = Math.max(margin, Math.min(rect.left, window.innerWidth - menuWidth - margin))
     // Bail when the anchor hasn't moved so a scroll storm doesn't re-render every frame.
-    setCoords((prev) => (prev && prev.top === top && prev.right === right ? prev : { top, right }))
+    setCoords((prev) => (prev && prev.top === top && prev.left === left ? prev : { top, left }))
   }
 
   useLayoutEffect(() => {
@@ -119,7 +124,7 @@ export function LocationSelector({ value, collapsed, onChange }: LocationSelecto
             className={styles.menu}
             role="group"
             aria-label="Location"
-            style={{ top: coords.top, right: coords.right }}
+            style={{ top: coords.top, left: coords.left }}
           >
             {LOCATIONS.map((country) => (
               <button

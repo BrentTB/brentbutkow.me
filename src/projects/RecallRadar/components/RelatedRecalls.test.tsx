@@ -47,7 +47,7 @@ describe('RelatedRecalls', () => {
     expect(screen.getByText('82%')).toBeTruthy()
   })
 
-  it('shows each neighbour’s severity, source, and date, and links to its detail page', async () => {
+  it('shows each neighbour’s severity, cause, and date, and links to its detail page', async () => {
     const full: Recall = {
       ...neighbour,
       recallNumber: 'F-42',
@@ -60,7 +60,7 @@ describe('RelatedRecalls', () => {
     render(<RelatedRecalls source={RecallSource.fda} recallNumber="F-1" />)
     await waitFor(() => expect(screen.getByText('Sliced deli turkey')).toBeTruthy())
     expect(screen.getByLabelText('Severity: Severe')).toBeTruthy() // color-graded severity dot
-    expect(screen.getByText('FDA')).toBeTruthy() // source
+    expect(screen.getByText('Pathogen - Severe')).toBeTruthy() // cause - severity
     expect(screen.getByText(/Jun 10, 2026/)).toBeTruthy()
     // The product links to the neighbour's own detail page — the recursive-exploration entry point.
     expect(screen.getByText('Sliced deli turkey').closest('a')?.getAttribute('href')).toBe(

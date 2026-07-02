@@ -38,7 +38,6 @@ import {
   HelperWeaponKind,
 } from './types'
 import { UpgradeId } from './upgrade-ids'
-import { isUpgradeWave } from './upgrades'
 import { BOSS_KINDS } from './bosses'
 import { updateBossAI } from './bosses/boss-ai'
 import { getBossRuntime } from './bosses/boss-definition'
@@ -406,17 +405,19 @@ describe('updateGameState', () => {
     expect(state.allies).toHaveLength(1)
   })
 
-  it('shows correct phase after wave completion', () => {
+  it('flows straight into the next wave when a mid-sector wave clears', () => {
     let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
+    const clearedWave = state.wave
     state = {
       ...state,
       enemies: [],
       spawn: { ...state.spawn, queue: [], spawned: state.spawn.total, waveTimer: 0 },
     }
     state = updateGameState(state, 0.016, { clicks: [], selectedAbility: null })
-    const expected = isUpgradeWave(state.wave) ? GamePhase.warping : GamePhase.waveComplete
-    expect(state.phase).toBe(expected)
+    // A mid-sector clear never freezes: play continues and the wave counter climbs.
+    expect(state.phase).toBe(GamePhase.playing)
+    expect(state.wave).toBe(clearedWave + 1)
   })
 })
 
@@ -1015,11 +1016,12 @@ describe('updateGameState — state field round-trip persistence', () => {
     expect(state.kills).toBe(5)
   })
 
-  // Regression: the wave-complete early-return spread `...state` but forgot to
-  // thread `escapeTrailAccumulator`, so the frame's escape-trail update was lost
-  // whenever a wave ended mid-dash. The dash tick advances the accumulator, so a
+  // Regression: the wave-clear early-return spread `...state` but forgot to thread
+  // `escapeTrailAccumulator`, so the frame's escape-trail update was lost whenever a
+  // wave ended mid-dash. The clear now flows straight into the next wave, which must
+  // still carry the accumulator through (startNextWave spreads it, no reset). A
   // returned value of 0 (the stale frame-start value) means the field was dropped.
-  it('escapeTrailAccumulator threads through the wave-complete early return', () => {
+  it('escapeTrailAccumulator threads through the wave-clear auto-advance', () => {
     let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
     // Ship mid-dash so tickEscapeMode advances the accumulator this frame.
@@ -1043,7 +1045,8 @@ describe('updateGameState — state field round-trip persistence', () => {
 
     state = updateGameState(state, dt, { clicks: [], selectedAbility: null })
 
-    expect(state.phase).toBe(GamePhase.waveComplete)
+    expect(state.phase).toBe(GamePhase.playing)
+    expect(state.wave).toBe(2)
     expect(state.escapeTrailAccumulator).toBeCloseTo(expected)
   })
 
@@ -1071,14 +1074,13 @@ describe('updateGameState — state field round-trip persistence', () => {
     expect(state.spawn.elapsed).toBeCloseTo(before + 3 * dt)
   })
 
-  // Companion to escapeTrailAccumulator: waveElapsed is incremented before the
-  // wave-complete early return, so that branch must thread the frame's increment
-  // too — a `...state` spread would silently emit the stale frame-start value.
-  it('waveElapsed threads through the wave-complete early return', () => {
+  // A mid-sector clear auto-advances into the next wave: startNextWave lays down a
+  // fresh spawn slice (new queue, elapsed reset to 0, an inter-wave delay before
+  // enemies arrive) rather than freezing on a wave-complete screen.
+  it('mid-sector clear lays down a fresh spawn for the next wave', () => {
     let state = startGame(createInitialState(), ShipKind.fighter)
     state = startNextWave(state)
-    // Force the wave-complete branch: nothing left to spawn or fight; mid-sector
-    // wave (1) returns directly without warping.
+    // Force the clear branch: nothing left to spawn or fight; mid-sector wave (1).
     state = {
       ...state,
       phase: GamePhase.playing,
@@ -1090,8 +1092,12 @@ describe('updateGameState — state field round-trip persistence', () => {
     const dt = 0.016
     state = updateGameState(state, dt, { clicks: [], selectedAbility: null })
 
-    expect(state.phase).toBe(GamePhase.waveComplete)
-    expect(state.spawn.elapsed).toBeCloseTo(5 + dt)
+    expect(state.phase).toBe(GamePhase.playing)
+    expect(state.wave).toBe(2)
+    expect(state.spawn.elapsed).toBe(0)
+    expect(state.spawn.spawned).toBe(0)
+    expect(state.spawn.queue.length).toBeGreaterThan(0)
+    expect(state.spawn.waveTimer).toBeGreaterThan(0)
   })
 
   // wormContactCooldown is a ship sub-field ticked toward 0 each frame (game-loop
@@ -1108,6 +1114,21 @@ describe('updateGameState — state field round-trip persistence', () => {
 
     expect(state.ship.wormContactCooldown).toBeCloseTo(0.5 - dt)
     expect(Number.isFinite(state.ship.wormContactCooldown)).toBe(true)
+  })
+
+  // Companion guard for the general post-hit i-frame: same tick-toward-0 contract,
+  // so a stale `...state`/`...ship` spread would drop it and a save resumed with it
+  // undefined would surface here as NaN, wedging damage immunity on forever.
+  it('ship.damageIFrame decays by dt and stays finite across a tick', () => {
+    let state = startGame(createInitialState(), ShipKind.fighter)
+    state = startNextWave(state)
+    state = { ...state, ship: { ...state.ship, damageIFrame: 0.5 } }
+
+    const dt = 1 / 60
+    state = updateGameState(state, dt, { clicks: [], selectedAbility: null })
+
+    expect(state.ship.damageIFrame).toBeCloseTo(0.5 - dt)
+    expect(Number.isFinite(state.ship.damageIFrame)).toBe(true)
   })
 
   // Spawn a Void Worm head + its linked segment chain far from the ship, pinned in
@@ -2023,21 +2044,25 @@ describe('updateGameState — sector progression', () => {
     expect(updateGameState(state, 0.016, noInput).hazards).toHaveLength(1)
   })
 
-  it('threads hazards through the wave-complete early return', () => {
+  it('threads hazards through the wave-clear auto-advance', () => {
     let state = playing()
+    const planted = mine({ x: state.ship.pos.x + 9999, y: state.ship.pos.y })
     state = {
       ...state,
-      hazards: [mine({ x: state.ship.pos.x + 9999, y: state.ship.pos.y })],
+      hazards: [planted],
       enemies: [],
       spawn: { ...state.spawn, queue: [], total: 1, spawned: 1, waveTimer: 0 },
     }
     const next = updateGameState(state, 0.016, noInput)
-    expect(next.phase).not.toBe(GamePhase.playing)
-    expect(next.hazards).toHaveLength(1)
+    // The clear flows into the next wave and carries the far-off mine through (the
+    // next wave's field replenishment tops up around it, never drops it).
+    expect(next.phase).toBe(GamePhase.playing)
+    expect(next.hazards.some((h) => h.id === planted.id)).toBe(true)
   })
 
   it('hazards do not block wave completion (they are not enemies)', () => {
     let state = playing()
+    const clearedWave = state.wave
     state = {
       ...state,
       hazards: [mine({ x: state.ship.pos.x, y: state.ship.pos.y })],
@@ -2045,7 +2070,7 @@ describe('updateGameState — sector progression', () => {
       spawn: { ...state.spawn, queue: [], total: 3, spawned: 3, waveTimer: 0 },
     }
     const next = updateGameState(state, 0.016, noInput)
-    expect([GamePhase.waveComplete, GamePhase.upgradeScreen]).toContain(next.phase)
+    expect(next.wave).toBe(clearedWave + 1)
   })
 
   it('hunts toward a nearby enemy instead of ignoring it', () => {

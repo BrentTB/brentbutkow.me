@@ -1,15 +1,15 @@
 import { SPACE_METAL_ABILITIES, SpaceMetalAbilityKind } from '../../engine/spaceMetalAbilities'
-import type { GameUIState } from '../../useNullSpace'
+import { useGameUIState } from '../../useGameUIState'
 import { Icon } from '../Icon/Icon'
 import sharedStyles from './shared.module.scss'
 import styles from './SpaceMetalRail.module.scss'
 
 type SpaceMetalRailProps = {
-  uiState: GameUIState
   onUseSpaceMetalAbility: (kind: SpaceMetalAbilityKind) => void
 }
 
-export function SpaceMetalRail({ uiState, onUseSpaceMetalAbility }: SpaceMetalRailProps) {
+export function SpaceMetalRail({ onUseSpaceMetalAbility }: SpaceMetalRailProps) {
+  const uiState = useGameUIState()
   return (
     <div className={styles.spaceMetalRail}>
       <span className={styles.spaceMetalCounter}>⬢ {uiState.spaceMetal}</span>

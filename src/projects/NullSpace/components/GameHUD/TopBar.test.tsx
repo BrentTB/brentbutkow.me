@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
 import { TopBar } from './TopBar'
+import { GameUIStateProvider } from '../../useGameUIState'
 import { AbilityKind, EnemyKind, GamePhase, ShipKind, HelperWeaponKind } from '../../engine/types'
 import type { PlayerUpgrades } from '../../engine/types'
 import type { GameUIState } from '../../useNullSpace'
@@ -55,13 +56,9 @@ const noop = () => {}
 
 function renderTopBar(over: Partial<GameUIState> = {}) {
   return render(
-    <TopBar
-      uiState={makeUiState(over)}
-      isFullscreen={false}
-      gameSpeed={1}
-      onPause={noop}
-      onToggleFullscreen={noop}
-    />
+    <GameUIStateProvider value={makeUiState(over)}>
+      <TopBar isFullscreen={false} gameSpeed={1} onPause={noop} onToggleFullscreen={noop} />
+    </GameUIStateProvider>
   )
 }
 

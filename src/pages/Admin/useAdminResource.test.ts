@@ -47,6 +47,19 @@ describe('useAdminResource', () => {
     expect(request).toHaveBeenCalledTimes(1)
   })
 
+  it('reload refetches from the request', async () => {
+    let calls = 0
+    const request = vi.fn(async () => ({ value: ++calls })) as unknown as AdminRequest
+
+    const { result } = renderHook(() => useAdminResource(request, '/admin/overview'))
+    await waitFor(() => expect(result.current.data).toEqual({ value: 1 }))
+
+    act(() => result.current.reload())
+
+    await waitFor(() => expect(result.current.data).toEqual({ value: 2 }))
+    expect(request).toHaveBeenCalledTimes(2)
+  })
+
   it('ignores AbortError without flipping to an error', async () => {
     let reject!: (reason: unknown) => void
     const pending = new Promise<never>((_, rej) => {

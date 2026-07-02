@@ -65,7 +65,6 @@ describe('useNullSpace', () => {
     const { result } = renderHook(() => useNullSpace(canvasRef))
     expect(typeof result.current.handleStart).toBe('function')
     expect(typeof result.current.handleSelectShip).toBe('function')
-    expect(typeof result.current.handleNextWave).toBe('function')
     expect(typeof result.current.handleRestart).toBe('function')
     expect(typeof result.current.setSelectedAbility).toBe('function')
     expect(typeof result.current.handlePurchaseUpgrade).toBe('function')
@@ -111,16 +110,16 @@ describe('useNullSpace', () => {
     expect(result.current.uiState.phase).toBe(GamePhase.playing)
   })
 
-  it('resumes a run saved mid-sector (waveComplete) straight into the Next Wave screen', () => {
-    // Autosave now fires on every wave clear, so a save can carry a mid-sector
-    // waveComplete phase — Continue must restore directly into it.
+  it('resumes a run saved mid-sector straight back into play', () => {
+    // Autosave now checkpoints at each wave start while play continues, so a save
+    // carries a live `playing` phase — Continue must restore straight into it.
     clearSave()
-    const saved = { ...createInitialState(), phase: GamePhase.waveComplete, wave: 2, level: 1 }
+    const saved = { ...createInitialState(), phase: GamePhase.playing, wave: 2, level: 1 }
     saveGame(saved, 12345)
     const canvasRef = createRef<HTMLCanvasElement>()
     const { result } = renderHook(() => useNullSpace(canvasRef))
     act(() => result.current.handleContinue())
-    expect(result.current.uiState.phase).toBe(GamePhase.waveComplete)
+    expect(result.current.uiState.phase).toBe(GamePhase.playing)
     expect(result.current.uiState.wave).toBe(2)
     clearSave()
   })

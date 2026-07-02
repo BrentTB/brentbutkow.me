@@ -279,6 +279,27 @@ describe('RecallRadar page', () => {
     expect(screen.getByTestId('search').textContent).not.toContain('open=')
   })
 
+  it('drops expanded rows from the URL when the country changes', async () => {
+    stubApi()
+    window.scrollTo = vi.fn()
+
+    render(
+      <MemoryRouter initialEntries={['/?view=recalls&open=F-1']}>
+        <FunModeProvider>
+          <RecallRadar />
+        </FunModeProvider>
+        <SearchProbe />
+      </MemoryRouter>
+    )
+    await waitFor(() => expect(screen.getByText('Test cookies')).toBeTruthy())
+    expect(screen.getByTestId('search').textContent).toContain('open=F-1')
+
+    // Switching country is a fresh scope — those recall numbers belong to the old feed, so the ?open=
+    // param must clear rather than trying to reopen rows that don't exist here.
+    fireEvent.click(screen.getByRole('button', { name: 'United Kingdom' }))
+    expect(screen.getByTestId('search').textContent).not.toContain('open=')
+  })
+
   it('scrolls back to the recalls section when paging', async () => {
     const scrollSpy = vi.fn()
     // jsdom doesn't implement scrollIntoView; install a spy so the pager's call is observable.
