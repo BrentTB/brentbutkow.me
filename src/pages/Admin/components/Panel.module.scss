@@ -38,6 +38,11 @@
   color: var(--danger);
 }
 
+.seen {
+  color: var(--accent);
+  font-weight: 600;
+}
+
 .detail {
   margin: 0;
   display: grid;

@@ -22,6 +22,19 @@ export function isNullSpaceFilter(value: string): value is NullSpaceFilter {
   return (Object.values(NullSpaceFilter) as string[]).includes(value)
 }
 
+// Messages read/unread filter. UI-only tri-state that maps to the `seen` query param (all omits it).
+// Values double as the segmented-toggle + query-mapping keys — no magic strings.
+export const MessageSeenFilter = {
+  all: 'all',
+  unread: 'unread',
+  read: 'read',
+} as const
+export type MessageSeenFilter = (typeof MessageSeenFilter)[keyof typeof MessageSeenFilter]
+
+export function isMessageSeenFilter(value: string): value is MessageSeenFilter {
+  return (Object.values(MessageSeenFilter) as string[]).includes(value)
+}
+
 export type AdminSession = {
   token: string
   expiresAt: string // ISO-8601
@@ -33,7 +46,8 @@ export type Paginated<T> = {
 }
 
 export type Overview = {
-  messages: { total: number; real: number; bot: number }
+  // `unseen` = real (non-bot) messages not yet marked seen — the actionable inbox count (≤ real).
+  messages: { total: number; real: number; bot: number; unseen: number }
   subscriptions: {
     total: number
     active: number
@@ -52,7 +66,7 @@ export type Overview = {
 }
 
 export type MessageOut = {
-  id: string
+  id: number
   createdAt: string
   message: string
   name: string | null
@@ -66,6 +80,7 @@ export type MessageOut = {
   country: string | null
   isBot: boolean
   botReason: string | null
+  seen: boolean
 }
 
 export type ScoreAdminOut = {
@@ -125,7 +140,7 @@ export function isOverview(value: unknown): value is Overview {
     value.ingest === null || hasNumbers(value.ingest, ['fetchedCount', 'upsertedCount'])
   return (
     ingestOk &&
-    hasNumbers(value.messages, ['total', 'real', 'bot']) &&
+    hasNumbers(value.messages, ['total', 'real', 'bot', 'unseen']) &&
     hasNumbers(value.subscriptions, [
       'total',
       'active',
@@ -145,6 +160,11 @@ function isPaginated(value: unknown): value is Paginated<unknown> {
 
 export function isMessagePage(value: unknown): value is Paginated<MessageOut> {
   return isPaginated(value)
+}
+
+// Single message — the shape a seen-toggle PATCH returns. Same light structural check as the lists.
+export function isMessageAdmin(value: unknown): value is MessageOut {
+  return isObject(value) && typeof value.id === 'number' && typeof value.seen === 'boolean'
 }
 
 export function isSubscriptionPage(value: unknown): value is Paginated<SubscriptionAdminOut> {

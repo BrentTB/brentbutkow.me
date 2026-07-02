@@ -11,7 +11,7 @@ export type Column<T> = {
 type DataTableProps<T> = {
   columns: Column<T>[]
   rows: T[]
-  getRowKey: (row: T) => string
+  getRowKey: (row: T) => string | number
   loading?: boolean
   error?: string | null
   emptyMessage?: string
@@ -28,7 +28,7 @@ export function DataTable<T>({
   emptyMessage = 'Nothing here yet.',
   renderExpanded,
 }: DataTableProps<T>) {
-  const [expanded, setExpanded] = useState<string | null>(null)
+  const [expanded, setExpanded] = useState<string | number | null>(null)
   const span = columns.length
 
   return (
