@@ -1,0 +1,182 @@
+<!doctype html>
+<!-- 1200x630 Open Graph card template. Rendered to PNG by scripts/generate-og.mjs via headless
+     Chrome; pick a variant with ?v=home|recall-radar|null-space. Mirrors the site's design
+     tokens (ink bg, warm gold accent, IBM Plex) and the terminal ~/ path motif. -->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0b0c0f;
+        --accent: #e9b872;
+        --text: #f3efe7;
+        --text-secondary: #cdc9c0;
+        --muted: #8d8a82;
+        --border: rgba(255, 255, 255, 0.09);
+      }
+      * {
+        margin: 0;
+        box-sizing: border-box;
+      }
+      body {
+        width: 1200px;
+        height: 630px;
+        background: var(--bg);
+        font-family: 'IBM Plex Sans', sans-serif;
+        color: var(--text);
+        overflow: hidden;
+      }
+      .card {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        padding: 72px 84px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      .glow {
+        position: absolute;
+        top: -300px;
+        right: -200px;
+        width: 900px;
+        height: 900px;
+        background: radial-gradient(circle, rgba(233, 184, 114, 0.14) 0%, transparent 60%);
+      }
+      .path {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 30px;
+        font-weight: 500;
+        letter-spacing: 0.06em;
+        color: var(--accent);
+        margin-bottom: 28px;
+      }
+      .caret {
+        display: inline-block;
+        width: 16px;
+        height: 34px;
+        margin-left: 6px;
+        vertical-align: text-bottom;
+        background: var(--accent);
+      }
+      .title {
+        font-size: 96px;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        line-height: 1.02;
+        margin-bottom: 30px;
+      }
+      .subtitle {
+        max-width: 21em;
+        font-size: 34px;
+        line-height: 1.45;
+        color: var(--text-secondary);
+      }
+      .tags {
+        display: flex;
+        gap: 14px;
+        margin-top: 34px;
+      }
+      .tag {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 22px;
+        color: var(--muted);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 8px 18px;
+      }
+      .brand {
+        position: absolute;
+        left: 84px;
+        bottom: 56px;
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 26px;
+        color: var(--muted);
+      }
+      .brand .prompt {
+        color: var(--accent);
+        margin-right: 12px;
+      }
+      .stars span {
+        position: absolute;
+        border-radius: 50%;
+        background: rgba(243, 239, 231, 0.7);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="glow"></div>
+      <div class="stars" id="stars"></div>
+      <div class="path" id="path"></div>
+      <div class="title" id="title"></div>
+      <div class="subtitle" id="subtitle"></div>
+      <div class="tags" id="tags"></div>
+      <div class="brand"><span class="prompt">&gt;</span>brentbutkow.me</div>
+    </div>
+    <script>
+      const variants = {
+        home: {
+          path: '~/full-stack-engineer',
+          caret: true,
+          title: 'Brent Butkow',
+          subtitle:
+            'Building compliance tools by day and designing wacky projects at night. Loving dad jokes around the clock.',
+          tags: [],
+        },
+        'recall-radar': {
+          path: '~/projects/recall-radar',
+          title: 'Recall Radar',
+          subtitle:
+            'Live food-recall tracking across the US, Canada, UK and South Africa — updated daily, with severity ratings and free email alerts.',
+          tags: ['FDA', 'USDA', 'CFIA', 'FSA', 'NCC'],
+        },
+        'null-space': {
+          path: '~/fun-stuff/games/null-space',
+          title: 'Null Space',
+          subtitle:
+            'A browser space-defense game where you bend space itself — sling meteors, open black holes, protect your ship.',
+          tags: ['Playable in your browser'],
+          stars: true,
+        },
+      }
+
+      const variant = variants[new URLSearchParams(location.search).get('v')] ?? variants.home
+      document.getElementById('path').textContent = variant.path
+      if (variant.caret) {
+        const caret = document.createElement('span')
+        caret.className = 'caret'
+        document.getElementById('path').appendChild(caret)
+      }
+      document.getElementById('title').textContent = variant.title
+      document.getElementById('subtitle').textContent = variant.subtitle
+      for (const label of variant.tags) {
+        const tag = document.createElement('span')
+        tag.className = 'tag'
+        tag.textContent = label
+        document.getElementById('tags').appendChild(tag)
+      }
+      if (variant.stars) {
+        // Deterministic pseudo-random starfield so regenerating gives the same image.
+        let seed = 42
+        const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647
+        const stars = document.getElementById('stars')
+        for (let i = 0; i < 70; i++) {
+          const star = document.createElement('span')
+          const size = 1 + rand() * 2.5
+          star.style.width = star.style.height = size + 'px'
+          star.style.left = rand() * 1200 + 'px'
+          star.style.top = rand() * 630 + 'px'
+          star.style.opacity = 0.25 + rand() * 0.6
+          stars.appendChild(star)
+        }
+      }
+    </script>
+  </body>
+</html>

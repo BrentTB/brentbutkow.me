@@ -1,8 +1,8 @@
 import { useEffect } from 'react'
 import { matchPath, useLocation } from 'react-router-dom'
 import { routes } from './routes.config'
+import { SITE_URL, DEFAULT_OG_IMAGE } from './routes.meta'
 
-const SITE_URL = 'https://brentbutkow.me'
 const DEFAULT_TITLE = 'Brent Butkow'
 const DEFAULT_DESCRIPTION = 'The personal site and portfolio of Brent Butkow, full-stack engineer.'
 
@@ -60,5 +60,9 @@ export function useRouteMeta() {
     upsertHeadTag('meta', 'property', 'og:url', 'content', canonical)
     upsertHeadTag('meta', 'name', 'twitter:title', 'content', title)
     upsertHeadTag('meta', 'name', 'twitter:description', 'content', description)
+
+    const ogImage = `${SITE_URL}${meta?.ogImage ?? DEFAULT_OG_IMAGE}`
+    upsertHeadTag('meta', 'property', 'og:image', 'content', ogImage)
+    upsertHeadTag('meta', 'name', 'twitter:image', 'content', ogImage)
   }, [pathname])
 }

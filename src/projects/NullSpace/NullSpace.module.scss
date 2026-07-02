@@ -13,6 +13,22 @@
   }
 }
 
+.pageIntro {
+  width: 100%;
+  max-width: 1280px;
+
+  @media (max-width: 768px) {
+    padding: 16px 20px 0;
+  }
+}
+
+.intro {
+  margin: 0 0 24px;
+  max-width: 70ch;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
 .gameRow {
   display: flex;
   gap: 16px;

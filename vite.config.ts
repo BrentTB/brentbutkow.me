@@ -1,10 +1,11 @@
 /// <reference types="vitest/config" />
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { prerenderMeta } from './scripts/prerender-plugin'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), prerenderMeta()],
   test: {
     environment: 'jsdom',
     // Installs a working localStorage/sessionStorage. Node 22+ ships an inert native Web Storage global

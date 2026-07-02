@@ -9,6 +9,8 @@ export type AppRoute = {
   title?: string
   /** Meta description for this route (drives search snippets + Open Graph). */
   description?: string
+  /** Route-specific Open Graph image path under /public; falls back to the site image. */
+  ogImage?: string
   /** Redirect-only route (legacy URL → new home). Not indexed, no title/description. */
   redirect?: boolean
   /** Keep this route out of search indexes (emits `robots: noindex, nofollow`). */

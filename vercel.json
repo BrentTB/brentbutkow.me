@@ -1,4 +1,16 @@
 {
+  "redirects": [
+    {
+      "source": "/recall-radar",
+      "destination": "/projects/recall-radar",
+      "permanent": true
+    },
+    {
+      "source": "/recall-radar/:path*",
+      "destination": "/projects/recall-radar/:path*",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",
