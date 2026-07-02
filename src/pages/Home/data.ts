@@ -57,6 +57,7 @@ export const heroContent: HeroContent = {
 export const aboutSectionEnabled = true
 
 export const aboutParagraphs: string[] = [
-  "I'm a software engineer at Foodcomply, writing TypeScript most of the day: React on the frontend, Node services behind it. I got here through Entelect's grad program, after an Information Engineering degree at Wits in Johannesburg.",
-  "The project I'm proudest of is Recall Radar, a food-recall tracker pulling from regulators in four countries. It started as a portfolio piece and ended up as something that could warn a real person about dodgy peanut butter, which is more than most side projects can say. Off the keyboard I cook a bit and eat a lot, and there's music playing through most of it.",
+  "I'm a software engineer at Foodcomply, building food-safety compliance software, mostly in TypeScript. Before this I worked at Entelect, from their graduate program through to client work, right after an information engineering degree at Wits.",
+  'Outside of work I love to get sidetracked into my own world - solving weird problems and thinking about things no normal person would. I like exploring new technologies, making games, listening to music, and messing around.',
+  "I built Recall Radar so that I could do something that might just help people (and admittedly to let me play with ML). Null Space, on the other hand, helps absolutely nobody - it's a space game I'm still building, purely for the fun of it.",
 ]
