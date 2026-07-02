@@ -4,7 +4,7 @@ import { HeroActionVariant, HeroContent } from '../../data/data.types'
 const cvPath = '/brent-butkow-cv.pdf'
 
 // Feature flag — set to `true` once the CV PDF is in place at public/brent-butkow-cv.pdf.
-const cvDownloadEnabled = true
+const cvDownloadEnabled = false
 
 /** CV download link shown under the About section, or null while the PDF isn't published. */
 export const cvHref: string | null = cvDownloadEnabled ? cvPath : null

@@ -2,6 +2,9 @@
 set -e
 
 BIN=./node_modules/.bin
+NL='
+'
+
 STAGED=$(git diff --cached --name-only --diff-filter=ACMR)
 STAGED_TS=$(echo "$STAGED" | grep -E '\.(ts|tsx)$' || true)
 
@@ -10,8 +13,8 @@ STAGED_TS=$(echo "$STAGED" | grep -E '\.(ts|tsx)$' || true)
 jobs=""
 npm run typecheck:fast & jobs="$jobs typecheck:$!"
 if [ -n "$STAGED_TS" ]; then
-  echo "$STAGED_TS" | xargs $BIN/eslint & jobs="$jobs eslint:$!"
-  echo "$STAGED_TS" | xargs $BIN/vitest related --run & jobs="$jobs vitest:$!"
+  echo "$STAGED_TS" | tr '\n' '\0' | xargs -0 $BIN/eslint & jobs="$jobs eslint:$!"
+  echo "$STAGED_TS" | tr '\n' '\0' | xargs -0 $BIN/vitest related --run & jobs="$jobs vitest:$!"
 fi
 fail=0
 for job in $jobs; do
@@ -25,25 +28,30 @@ done
 # unstaged hunks — auto-staging would sweep those in, so we fail instead and
 # let you stage the formatting yourself.
 if [ -n "$STAGED" ]; then
-  DIRTY=$(echo "$STAGED" | xargs $BIN/prettier --list-different --ignore-unknown || true)
+  DIRTY=$(echo "$STAGED" | tr '\n' '\0' | xargs -0 $BIN/prettier --list-different --ignore-unknown || true)
   if [ -n "$DIRTY" ]; then
     UNSTAGED=$(git diff --name-only --diff-filter=ACMR)
     partial=""
     clean=""
+    # Split on newlines only so paths with spaces stay intact.
+    IFS="$NL"
     for f in $DIRTY; do
       if echo "$UNSTAGED" | grep -qxF "$f"; then
-        partial="$partial $f"
+        partial="$partial$f$NL"
       else
-        clean="$clean $f"
+        clean="$clean$f$NL"
       fi
     done
+    unset IFS
     if [ -n "$clean" ]; then
-      echo "$clean" | xargs $BIN/prettier --write --ignore-unknown
-      echo "$clean" | xargs git add
-      echo "✔ Prettier formatted and re-staged: $clean"
+      printf '%s' "$clean" | tr '\n' '\0' | xargs -0 $BIN/prettier --write --ignore-unknown
+      printf '%s' "$clean" | tr '\n' '\0' | xargs -0 git add
+      echo "✔ Prettier formatted and re-staged:"
+      printf '%s' "$clean"
     fi
     if [ -n "$partial" ]; then
-      echo "✖ Prettier needs to reformat partially-staged files:$partial"
+      echo "✖ Prettier needs to reformat partially-staged files:"
+      printf '%s' "$partial"
       echo "  These have unstaged changes — format and stage them yourself, then commit again."
       exit 1
     fi

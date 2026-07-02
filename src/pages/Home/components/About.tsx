@@ -5,7 +5,7 @@ import styles from './About.module.scss'
 type AboutProps = {
   paragraphs: string[]
   /** CV download link; hidden while null (PDF not published yet). */
-  cvHref?: string | null
+  cvHref: string | null
 }
 
 export function About({ paragraphs, cvHref }: AboutProps) {
