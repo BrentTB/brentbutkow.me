@@ -612,6 +612,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     changes: {
       ui: [
         'The game page now opens with a proper heading and a short intro above the canvas, so you (and search engines) know what you are looking at before you press Start.',
+        'The heading and back button now line up with every other page instead of sitting slightly lower.',
       ],
     },
   },

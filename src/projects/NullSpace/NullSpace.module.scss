@@ -3,7 +3,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 24px 0;
+  /* Top padding stays 0 so the back button + heading line up with PageLayout pages (e.g. Games). */
+  padding: 0 0 24px;
 
   @media (max-width: 768px) {
     padding: 0;

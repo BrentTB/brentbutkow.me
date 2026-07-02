@@ -95,7 +95,7 @@
 }
 
 /* Terminal selection marker — a reserved slot so tabs never shift when it appears.
-   Hover previews the selector; the active tab owns it, in the same gold as its label. */
+   Hover previews the selector; the active tab owns it, kept plain so the gold label leads. */
 .link::before {
   content: '>' / '';
   display: inline-block;
@@ -175,7 +175,7 @@
 .active::before,
 .active:hover::before,
 .active:focus-visible::before {
-  color: currentColor;
+  color: var(--text);
   font-weight: 700;
   opacity: 1;
   transform: translateX(0);
