@@ -103,11 +103,9 @@ export function RecallFeed({
                     <Link
                       to={detailPath}
                       className={styles.product}
-                      // The title is the row's own control: a plain click expands/collapses it (the
-                      // explicit "Open recall page" button handles the detail page). The real href is
-                      // kept so a modifier click (cmd/ctrl/shift) or right-click still opens the
-                      // recall in a new tab. aria-expanded tells a screen reader the click toggles
-                      // the row rather than only navigating.
+                      // Plain click toggles the row; the real href lets a modifier/right-click open
+                      // the recall page in a new tab, and aria-expanded tells a screen reader the
+                      // click toggles rather than navigates.
                       aria-expanded={isOpen}
                       onClick={(event) => {
                         if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return

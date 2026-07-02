@@ -8,8 +8,7 @@ const SPED_UP_FLASH_MS = 2500
 // Telegraphs the wave speed-up: a countdown over the final seconds before enemies
 // ramp up, and then — the instant the countdown lapses — a brief "sped up" sign so
 // the lurch reads as a warned, confirmed event instead of the timer just vanishing.
-// Purely cosmetic — waveSpeedEscalation drives the actual speed change. `countdown`
-// is the seconds until enemies speed up, or null when the warning window is shut.
+// Purely cosmetic — waveSpeedEscalation drives the actual speed change.
 export function SpeedUpWarning() {
   const { speedUpCountdown: countdown } = useGameUIState()
   const prevCountdown = useRef<number | null>(countdown)
