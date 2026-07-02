@@ -1,4 +1,5 @@
-import type { GameState, Ship } from '../types'
+import type { Ship } from '../types'
+import { GamePhase, type GameState } from '../types'
 import { CALAMITY } from '../../data'
 import type { ChangelogEntry } from '../../data'
 
@@ -247,6 +248,10 @@ export function loadGame(): SavedGame | null {
       ...parsed,
       state: {
         ...savedState,
+        // Coerce an unrecognised phase (a save written against an older phase set)
+        // back to `playing`, so the run resumes rather than restoring into a phase no
+        // overlay renders and no code advances.
+        phase: isGamePhase(savedState.phase) ? savedState.phase : GamePhase.playing,
         kills: savedState.kills ?? 0,
         salvageOfferUsed: savedState.salvageOfferUsed ?? false,
         calamityTimer: savedState.calamityTimer ?? CALAMITY.shockwaveIntervalMin,
@@ -272,6 +277,10 @@ export function clearSave(): void {
   } catch {
     // localStorage unavailable
   }
+}
+
+function isGamePhase(value: unknown): value is GamePhase {
+  return typeof value === 'string' && (Object.values(GamePhase) as string[]).includes(value)
 }
 
 function isSavedGame(value: unknown): value is SavedGame {

@@ -13,6 +13,7 @@ import {
   saveTutorialSeen,
 } from './persistence'
 import { createInitialState } from '../game-loop'
+import { GamePhase } from '../types'
 import { CALAMITY } from '../../data'
 
 beforeEach(() => {
@@ -310,5 +311,30 @@ describe('saveGame / loadGame / clearSave', () => {
     saveGame(state, 1)
 
     expect(loadGame()?.state.warpDelay).toBe(0.5)
+  })
+
+  // A save written against an older phase set can carry a phase this build dropped
+  // (e.g. the retired `waveComplete` pause). Loading it verbatim would strand the run
+  // in a phase no overlay renders and no code advances, so it coerces to `playing`.
+  it('coerces an unrecognised saved phase to playing', () => {
+    saveGame(createInitialState(), 1)
+    const raw = JSON.parse(localStorage.getItem('null-space-save')!) as {
+      version: number
+      rngState: number
+      state: Record<string, unknown>
+    }
+    raw.state.phase = 'waveComplete'
+    localStorage.setItem('null-space-save', JSON.stringify(raw))
+
+    expect(loadGame()?.state.phase).toBe(GamePhase.playing)
+  })
+
+  // A live phase is left untouched — coercion only rescues unknown values.
+  it('keeps a recognised saved phase', () => {
+    const state = createInitialState()
+    state.phase = GamePhase.paused
+    saveGame(state, 1)
+
+    expect(loadGame()?.state.phase).toBe(GamePhase.paused)
   })
 })

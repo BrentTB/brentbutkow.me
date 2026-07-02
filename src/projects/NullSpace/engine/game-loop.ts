@@ -1580,11 +1580,11 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
     // A boss waits on the very next wave → open the shop now, with NO warp: the boss
     // is this sector's finale, so the squad and field have to ride into it (a warp
     // would wipe both). A fully cleared sector warps to the next one, then shops.
-    // Other mid-sector waves just wait for the Next Wave button.
+    // Other mid-sector waves flow straight into the next wave (below).
     if (isBossWave(state.wave + 1)) return openUpgradeScreen(cleared)
     // Sector cleared → don't yank control: keep flying under control for a beat
     // (WARP.preDelay), then warp. beginWarp places the portal along the ship's
-    // heading, so the fly-in needs no turn. Mid-sector waves wait for Next Wave.
+    // heading, so the fly-in needs no turn.
     if (isUpgradeWave(state.wave)) {
       const warpDelay = state.warpDelay > 0 ? state.warpDelay - dt : WARP.preDelay
       return warpDelay <= 0

@@ -73,7 +73,7 @@ import {
   computeZoom,
   screenToWorld,
   triggerCameraShake,
-  SHAKE_STRENGTH_SHIELD,
+  shakeStrengthForHit,
   type Camera,
 } from './renderer/camera'
 import { generateStarfield, type Star } from './renderer/starfield'
@@ -982,20 +982,19 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
           : updateCamera(cameraRef.current, gameStateRef.current.ship.pos, simDt)
 
       // Kick the screen-shake when the ship takes a hit mid-play: a full jolt on HP
-      // damage, a lighter one when the shield alone soaks it. Gated on both frames
-      // being `playing` so the first frame (with a stale prev value) and the death
-      // frame (phase already flipped to dying) never fire it; reduce-motion opts out.
+      // damage, a lighter one when the shield alone soaks it.
       const postState = gameStateRef.current
-      if (
-        postState.phase === GamePhase.playing &&
-        prevPhase === GamePhase.playing &&
-        !reducedMotionRef.current
-      ) {
-        if (postState.ship.hp < prevShipHpRef.current) {
-          cameraRef.current = triggerCameraShake(cameraRef.current)
-        } else if (postState.ship.shield < prevShipShieldRef.current) {
-          cameraRef.current = triggerCameraShake(cameraRef.current, SHAKE_STRENGTH_SHIELD)
-        }
+      const shakeStrength = shakeStrengthForHit({
+        prevPhase,
+        phase: postState.phase,
+        prevHp: prevShipHpRef.current,
+        hp: postState.ship.hp,
+        prevShield: prevShipShieldRef.current,
+        shield: postState.ship.shield,
+        reducedMotion: reducedMotionRef.current,
+      })
+      if (shakeStrength !== null) {
+        cameraRef.current = triggerCameraShake(cameraRef.current, shakeStrength)
       }
       prevShipHpRef.current = postState.ship.hp
       prevShipShieldRef.current = postState.ship.shield

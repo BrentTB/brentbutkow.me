@@ -14,8 +14,11 @@ import {
   isWithinView,
   triggerCameraShake,
   cameraShakeOffset,
+  shakeStrengthForHit,
+  SHAKE_STRENGTH_HP,
   SHAKE_STRENGTH_SHIELD,
 } from './camera'
+import { GamePhase } from '../engine/types'
 import { WORLD_SIZE } from '../data'
 
 const W = REFERENCE_VIEW.width
@@ -114,6 +117,48 @@ describe('damage screen-shake', () => {
     const cam = updateCamera(triggerCameraShake(createCamera(W, H)), { x: 0, y: 0 }, 10)
     expect(cam.shake).toBe(0)
     expect(cameraShakeOffset(cam, 5)).toEqual({ x: 0, y: 0 })
+  })
+})
+
+describe('shakeStrengthForHit', () => {
+  const base = {
+    prevPhase: GamePhase.playing,
+    phase: GamePhase.playing,
+    prevHp: 100,
+    hp: 100,
+    prevShield: 50,
+    shield: 50,
+    reducedMotion: false,
+  }
+
+  it('fires a full jolt on an HP drop', () => {
+    expect(shakeStrengthForHit({ ...base, prevHp: 100, hp: 80 })).toBe(SHAKE_STRENGTH_HP)
+  })
+
+  it('fires a lighter jolt on a shield-only drop', () => {
+    expect(shakeStrengthForHit({ ...base, prevShield: 50, shield: 30 })).toBe(SHAKE_STRENGTH_SHIELD)
+  })
+
+  it('prefers the HP jolt when both HP and shield drop in one frame', () => {
+    expect(shakeStrengthForHit({ ...base, prevHp: 100, hp: 90, prevShield: 50, shield: 40 })).toBe(
+      SHAKE_STRENGTH_HP
+    )
+  })
+
+  it('does not fire when nothing dropped', () => {
+    expect(shakeStrengthForHit(base)).toBeNull()
+  })
+
+  it('does not fire under reduce-motion', () => {
+    expect(shakeStrengthForHit({ ...base, hp: 80, reducedMotion: true })).toBeNull()
+  })
+
+  it('does not fire on the first frame (prev phase not yet playing)', () => {
+    expect(shakeStrengthForHit({ ...base, prevPhase: GamePhase.menu, hp: 80 })).toBeNull()
+  })
+
+  it('does not fire on the death frame (phase already flipped away from playing)', () => {
+    expect(shakeStrengthForHit({ ...base, phase: GamePhase.dying, hp: 0 })).toBeNull()
   })
 })
 

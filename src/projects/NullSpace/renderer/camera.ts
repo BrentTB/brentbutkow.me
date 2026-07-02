@@ -1,4 +1,5 @@
 import type { Vec2 } from '../engine/types'
+import { GamePhase } from '../engine/types'
 import { toroidalDelta, wrapPosition } from '../engine/math/toroid'
 
 /**
@@ -30,6 +31,31 @@ const SHAKE_FREQ_Y = 61
 // Shield hits get a lighter jolt than HP hits — the shield still absorbed the blow.
 export const SHAKE_STRENGTH_HP = 1
 export const SHAKE_STRENGTH_SHIELD = 0.45
+
+export type ShakeHitParams = {
+  prevPhase: GamePhase
+  phase: GamePhase
+  prevHp: number
+  hp: number
+  prevShield: number
+  shield: number
+  reducedMotion: boolean
+}
+
+/**
+ * Decides the shake strength for a frame from the ship's HP/shield deltas, or null
+ * when nothing should shake. Gated on BOTH frames being `playing` so the first frame
+ * (stale prev values) and the death frame (phase flipped to dying) never fire it,
+ * reduce-motion opts out entirely, and an HP drop outranks a shield drop.
+ */
+export function shakeStrengthForHit(params: ShakeHitParams): number | null {
+  const { prevPhase, phase, prevHp, hp, prevShield, shield, reducedMotion } = params
+  if (reducedMotion) return null
+  if (phase !== GamePhase.playing || prevPhase !== GamePhase.playing) return null
+  if (hp < prevHp) return SHAKE_STRENGTH_HP
+  if (shield < prevShield) return SHAKE_STRENGTH_SHIELD
+  return null
+}
 
 export type Camera = {
   /** Top-left of the viewport in WORLD coordinates. */

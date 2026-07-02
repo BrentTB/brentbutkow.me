@@ -39,7 +39,12 @@ export function WaveClearBanner({ wave, phase }: WaveClearBannerProps) {
   const waveInLevel = ((cleared - 1) % WAVES_PER_LEVEL) + 1
 
   return (
-    <div className={`${styles.pill} ${styles.cleared}`} role="status" aria-live="polite">
+    <div
+      key={cleared}
+      className={`${styles.pill} ${styles.cleared}`}
+      role="status"
+      aria-live="polite"
+    >
       Wave {waveInLevel}/{WAVES_PER_LEVEL} cleared
     </div>
   )
