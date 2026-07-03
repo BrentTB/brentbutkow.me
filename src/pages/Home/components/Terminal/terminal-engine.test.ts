@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { completions, execute, TerminalActionType, TerminalContext } from './terminal-engine'
 import { routePaths } from '../../../../routes/routes.paths'
+import { routesMeta } from '../../../../routes/routes.meta'
 
 const ctx: TerminalContext = {
   isFunMode: false,
@@ -135,6 +136,22 @@ describe('execute — easter eggs and misc', () => {
     expect(turningOn.action.type).toBe(TerminalActionType.toggleFun)
     expect(turningOn.output[0]).toMatch(/on/i)
     expect(execute('fun', funCtx).output[0]).toBe('Back to business.')
+  })
+
+  it('cat on a page prints its route description', () => {
+    expect(execute('cat education', ctx).output[0]).toBe(
+      routesMeta[routePaths.education].description
+    )
+    expect(execute('cat fun-stuff/games/null-space', ctx).output[0]).toContain('space-defense')
+    expect(execute('cat projects', ctx).output[0]).toContain('Recall Radar')
+  })
+
+  it('cat on the hidden mp4 opens the video externally', () => {
+    const result = execute('cat .homework.mp4', ctx)
+    expect(result.action.type).toBe(TerminalActionType.openExternal)
+    expect(result.action.path).toContain('youtube.com')
+    expect(execute('ls -a', ctx).output[0]).toContain('.homework.mp4')
+    expect(execute('tree -a', ctx).output.join('\n')).toContain('.homework.mp4')
   })
 
   it('cat cv.pdf downloads when published, jokes when not', () => {

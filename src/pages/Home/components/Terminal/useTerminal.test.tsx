@@ -76,6 +76,18 @@ describe('useTerminal', () => {
     expect(result.current.funMode.isFunMode).toBe(false)
   })
 
+  it('cat .homework.mp4 opens the video in a new tab', () => {
+    const openSpy = vi.spyOn(window, 'open').mockReturnValue(null)
+    const { result } = renderTerminal()
+    runCommand(result, 'cat .homework.mp4')
+    expect(openSpy).toHaveBeenCalledWith(
+      expect.stringContaining('youtube.com'),
+      '_blank',
+      'noopener,noreferrer'
+    )
+    openSpy.mockRestore()
+  })
+
   it('clear empties the log', () => {
     const { result } = renderTerminal()
     runCommand(result, 'help')

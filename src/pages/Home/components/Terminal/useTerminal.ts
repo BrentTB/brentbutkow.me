@@ -81,6 +81,9 @@ export function useTerminal({ onExit }: UseTerminalOptions) {
         case TerminalActionType.back:
           navigate(-1)
           return
+        case TerminalActionType.openExternal:
+          if (result.action.path) window.open(result.action.path, '_blank', 'noopener,noreferrer')
+          break
         case TerminalActionType.toggleFun:
           setIsFunMode(!isFunMode)
           break

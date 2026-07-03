@@ -1,4 +1,5 @@
 import { routePaths } from '../../../../routes/routes.paths'
+import { routesMeta } from '../../../../routes/routes.meta'
 import { funStuffSubRoutes } from '../../../FunStuff/data'
 import { gamesSubRoutes } from '../../../FunStuff/subpages/Games/data'
 
@@ -84,6 +85,7 @@ const publicCommands = [
 export const TerminalActionType = {
   navigate: 'navigate',
   back: 'back',
+  openExternal: 'openExternal',
   toggleFun: 'toggleFun',
   downloadCv: 'downloadCv',
   clear: 'clear',
@@ -114,6 +116,12 @@ const hasFlag = (args: string[], letter: string): boolean =>
   args.some((arg) => /^-[a-zA-Z]+$/.test(arg) && arg.includes(letter))
 
 const HIDDEN_FILE = '.the-game'
+
+// The classic hidden-folder gag — catting it opens the official upload in a new tab.
+const RICKROLL_FILE = '.homework.mp4'
+const RICKROLL_URL = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+
+const hiddenFiles = [RICKROLL_FILE, HIDDEN_FILE]
 
 // `rm -rf /` lands on the 404 page — any unknown path hits the catch-all route.
 const RM_CRASH_PATH = '/everything-is-gone'
@@ -174,7 +182,7 @@ function listPages(pathArg: string | undefined, showHidden: boolean): string[] {
     }
   }
   const names = children.map((page) => (page.children.length > 0 ? `${page.name}/` : page.name))
-  if (showHidden) names.unshift(HIDDEN_FILE)
+  if (showHidden) names.unshift(...hiddenFiles)
   return [names.join('  ')]
 }
 
@@ -189,7 +197,7 @@ function renderTree(pages: TerminalPage[], prefix: string, lines: string[]): voi
 
 function treePages(showHidden: boolean): string[] {
   const roots = showHidden
-    ? [{ name: HIDDEN_FILE, path: '', children: [] }, ...terminalPages]
+    ? [...hiddenFiles.map((name) => ({ name, path: '', children: [] })), ...terminalPages]
     : terminalPages
   const lines = ['.']
   renderTree(roots, '', lines)
@@ -229,6 +237,19 @@ function catFile(fileArg: string | undefined, ctx: TerminalContext): TerminalRes
   }
   if (fileArg === HIDDEN_FILE) {
     return { output: ['You just lost the game.'], action: none }
+  }
+  if (fileArg === RICKROLL_FILE) {
+    return {
+      output: [`opening ${RICKROLL_FILE}…`],
+      action: { type: TerminalActionType.openExternal, path: RICKROLL_URL },
+    }
+  }
+  // Catting a page prints its one-line description — the same one search engines see.
+  const segments = toSegments(fileArg)
+  const page = segments && segments.length > 0 ? findPage(segments) : null
+  const description = page ? routesMeta[page.path]?.description : undefined
+  if (description) {
+    return { output: [description], action: none }
   }
   return { output: [`cat: ${fileArg}: no such file`], action: none }
 }
