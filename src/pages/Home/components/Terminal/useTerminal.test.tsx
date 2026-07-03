@@ -103,6 +103,16 @@ describe('useTerminal', () => {
     expect(result.current.terminal.input).toBe('')
   })
 
+  it('restores the in-progress line after browsing history and back', () => {
+    const { result } = renderTerminal()
+    runCommand(result, 'pwd')
+    act(() => result.current.terminal.setInput('hel'))
+    act(() => result.current.terminal.recallHistory(-1))
+    expect(result.current.terminal.input).toBe('pwd')
+    act(() => result.current.terminal.recallHistory(1))
+    expect(result.current.terminal.input).toBe('hel')
+  })
+
   it('exposes the ghost remainder and accepts it on Tab', () => {
     const { result } = renderTerminal()
     act(() => result.current.terminal.setInput('cd exp'))

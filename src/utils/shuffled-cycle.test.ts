@@ -35,6 +35,18 @@ describe('createShuffledCycle', () => {
     expect([...seen].sort()).toEqual([1, 2, 3, 4])
   })
 
+  it('repeats the same shuffled order on every pass', () => {
+    const cycle = createShuffledCycle([1, 2, 3, 4, 5])
+    const firstPass = Array.from({ length: 5 }, () => cycle.next())
+    const secondPass = Array.from({ length: 5 }, () => cycle.next())
+    expect(secondPass).toEqual(firstPass)
+  })
+
+  it('yields the sole item repeatedly for a single-element pool', () => {
+    const cycle = createShuffledCycle([42])
+    expect([cycle.next(), cycle.next(), cycle.next()]).toEqual([42, 42, 42])
+  })
+
   it('returns null for an empty pool or a filter nothing passes', () => {
     expect(createShuffledCycle<number>([]).next()).toBeNull()
     expect(createShuffledCycle([1, 2]).next(() => false)).toBeNull()

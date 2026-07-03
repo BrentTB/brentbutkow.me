@@ -12,6 +12,8 @@ export type ShuffledCycle<T> = {
   next(matches?: (item: T) => boolean): T | null
 }
 
+const ALWAYS_MATCHES = () => true
+
 /**
  * Round-robins over `items` in an order shuffled once at creation, so every item appears
  * before any repeats. `next` returns the following item that passes `matches`, or null when
@@ -22,7 +24,7 @@ export function createShuffledCycle<T>(items: T[]): ShuffledCycle<T> {
   const order = shuffle(items)
   let cursor = 0
   return {
-    next(matches = () => true) {
+    next(matches = ALWAYS_MATCHES) {
       for (let step = 0; step < order.length; step++) {
         const item = order[cursor]
         cursor = (cursor + 1) % order.length

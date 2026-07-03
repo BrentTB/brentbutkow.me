@@ -33,6 +33,7 @@ export function useTerminal({ onExit }: UseTerminalOptions) {
   const [history, setHistory] = useState<string[]>([])
   const [historyIndex, setHistoryIndex] = useState<number | null>(null)
   const navigateTimeout = useRef<ReturnType<typeof setTimeout>>()
+  const draft = useRef('')
 
   useEffect(() => () => clearTimeout(navigateTimeout.current), [])
 
@@ -70,6 +71,7 @@ export function useTerminal({ onExit }: UseTerminalOptions) {
           if (!path) break
           setLines((previous) => [...previous, ...echoed])
           if (result.output.length > 0) {
+            clearTimeout(navigateTimeout.current)
             navigateTimeout.current = setTimeout(() => navigate(path), NAVIGATE_AFTER_OUTPUT_MS)
           } else {
             navigate(path)
@@ -117,15 +119,17 @@ export function useTerminal({ onExit }: UseTerminalOptions) {
       const current = historyIndex ?? history.length
       const next = current + direction
       if (next < 0) return
+      // Stash the live line the first time we leave the bottom, so it comes back on return.
+      if (historyIndex === null) draft.current = input
       if (next >= history.length) {
         setHistoryIndex(null)
-        setInput('')
+        setInput(draft.current)
         return
       }
       setHistoryIndex(next)
       setInput(history[next])
     },
-    [history, historyIndex]
+    [history, historyIndex, input]
   )
 
   return { lines, input, setInput, ghost, run, acceptCompletion, recallHistory }
