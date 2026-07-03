@@ -48,6 +48,8 @@ export function useTerminal({ onExit }: UseTerminalOptions) {
   const [mode, setMode] = useState<TerminalMode>(TerminalMode.inline)
   const navigateTimeout = useRef<ReturnType<typeof setTimeout>>()
   const animationTimeout = useRef<ReturnType<typeof setTimeout>>()
+  // The mode to return to when the rain is dismissed — matrix layers over inline or expanded.
+  const preMatrixMode = useRef<TerminalMode>(TerminalMode.inline)
   const draft = useRef('')
 
   const cancelAnimation = useCallback(() => {
@@ -56,6 +58,7 @@ export function useTerminal({ onExit }: UseTerminalOptions) {
   }, [])
 
   const exitFullscreen = useCallback(() => setMode(TerminalMode.inline), [])
+  const exitMatrix = useCallback(() => setMode(preMatrixMode.current), [])
 
   useEffect(
     () => () => {
@@ -129,7 +132,10 @@ export function useTerminal({ onExit }: UseTerminalOptions) {
           )
           break
         case TerminalActionType.matrix:
-          setMode(TerminalMode.matrix)
+          setMode((current) => {
+            if (current !== TerminalMode.matrix) preMatrixMode.current = current
+            return TerminalMode.matrix
+          })
           break
         case TerminalActionType.toggleFun:
           setIsFunMode(!isFunMode)
@@ -194,5 +200,6 @@ export function useTerminal({ onExit }: UseTerminalOptions) {
     recallHistory,
     cancelAnimation,
     exitFullscreen,
+    exitMatrix,
   }
 }

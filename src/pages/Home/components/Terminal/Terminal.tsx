@@ -20,6 +20,8 @@ export function Terminal() {
   const inputRef = useRef<HTMLInputElement>(null)
   const logRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const matrixRef = useRef<HTMLDivElement>(null)
+  const matrixArmed = useRef(false)
   const [active, setActive] = useState(false)
 
   const close = useCallback(() => {
@@ -39,6 +41,7 @@ export function Terminal() {
     recallHistory,
     cancelAnimation,
     exitFullscreen,
+    exitMatrix,
   } = useTerminal({ onExit: close })
 
   useMatrixRain(canvasRef, mode === TerminalMode.matrix)
@@ -51,32 +54,30 @@ export function Terminal() {
     }
   }, [active, cancelAnimation, exitFullscreen])
 
-  // While the rain plays there's no visible input — any key or click stops it, cmatrix-style.
-  // But arm only after the launching key is released: a held Enter fires repeat keydowns, and
-  // without this the command's own Enter would exit the instant it entered.
+  // Focus the rain so its own keydown handler can catch the exit — clicking elsewhere on the page
+  // blurs it and leaves the rain running. Arm only after the launching key is released: a held
+  // Enter fires repeat keydowns, and without this the command's own Enter would exit on entry.
   useEffect(() => {
     if (mode !== TerminalMode.matrix) return
-    let armed = false
+    matrixArmed.current = false
+    matrixRef.current?.focus()
     const arm = () => {
-      armed = true
-    }
-    const stop = (event: Event) => {
-      if (!armed) return
-      event.preventDefault()
-      exitFullscreen()
-      inputRef.current?.focus()
+      matrixArmed.current = true
     }
     window.addEventListener('keyup', arm, { once: true })
     window.addEventListener('pointerup', arm, { once: true })
-    document.addEventListener('keydown', stop)
-    document.addEventListener('pointerdown', stop)
     return () => {
       window.removeEventListener('keyup', arm)
       window.removeEventListener('pointerup', arm)
-      document.removeEventListener('keydown', stop)
-      document.removeEventListener('pointerdown', stop)
     }
-  }, [mode, exitFullscreen])
+  }, [mode])
+
+  const onMatrixKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (!matrixArmed.current) return
+    event.preventDefault()
+    exitMatrix()
+    inputRef.current?.focus()
+  }
 
   // '/' or '~' focuses the terminal from anywhere on the page, terminal-style.
   useEffect(() => {
@@ -124,22 +125,28 @@ export function Terminal() {
     }
   }
 
-  const showLog = active && lines.length > 0
+  // Expanded shows the (tall) log even before any command, so `fullscreen` visibly grows at once.
+  const showLog =
+    mode !== TerminalMode.matrix && (mode === TerminalMode.expanded || (active && lines.length > 0))
 
   return (
-    <section className={styles.terminal} aria-label="Site terminal">
+    <section className={styles.terminal} aria-label="Site terminal" data-mode={mode}>
       <div
         className={styles.frame}
         data-active={active || undefined}
-        data-mode={mode}
         onClick={() => {
-          if (mode === TerminalMode.matrix) return // the rain's own listener handles the exit
+          if (mode === TerminalMode.matrix) return // its own keydown handles the exit
           // Focus unless the click was selecting log text to copy.
           if (window.getSelection()?.toString() === '') inputRef.current?.focus()
         }}
       >
         {mode === TerminalMode.matrix && (
-          <div className={styles.matrixWrap}>
+          <div
+            ref={matrixRef}
+            className={styles.matrixWrap}
+            tabIndex={0}
+            onKeyDown={onMatrixKeyDown}
+          >
             <canvas ref={canvasRef} className={styles.matrix} aria-hidden="true" />
             <span className={styles.matrixHint} aria-hidden="true">
               press any key

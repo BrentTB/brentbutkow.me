@@ -29,9 +29,23 @@
   }
 }
 
-/* `fullscreen` / `cmatrix` — grow the terminal in place by giving the log much more room. */
-.frame[data-mode='expanded'] .log {
-  max-height: min(70vh, 640px);
+/* `fullscreen` / `cmatrix` — grow the terminal in place: wider, and a fixed-tall log. */
+.terminal[data-mode='expanded'],
+.terminal[data-mode='matrix'] {
+  max-width: none;
+}
+
+.terminal[data-mode='expanded'] .log {
+  height: min(70vh, 640px);
+  max-height: none;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Pin content to the bottom (empty space grows at the top) — margin collapses once it overflows,
+   so scrolling still works. */
+.terminal[data-mode='expanded'] .log > :first-child {
+  margin-top: auto;
 }
 
 /* The rain takes over the whole frame. */
@@ -39,6 +53,7 @@
   position: relative;
   overflow: hidden;
   border-radius: var(--radius);
+  outline: none;
 }
 
 .matrix {

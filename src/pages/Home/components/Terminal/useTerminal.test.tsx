@@ -136,12 +136,25 @@ describe('useTerminal', () => {
     expect(result.current.terminal.mode).toBe(TerminalMode.inline)
   })
 
-  it('cmatrix enters matrix mode, and exitFullscreen returns to inline', () => {
+  it('cmatrix enters matrix mode', () => {
     const { result } = renderTerminal()
     runCommand(result, 'cmatrix')
     expect(result.current.terminal.mode).toBe(TerminalMode.matrix)
-    act(() => result.current.terminal.exitFullscreen())
+  })
+
+  it('exitMatrix restores the mode from before the rain', () => {
+    const { result } = renderTerminal()
+    // From inline → back to inline.
+    runCommand(result, 'cmatrix')
+    act(() => result.current.terminal.exitMatrix())
     expect(result.current.terminal.mode).toBe(TerminalMode.inline)
+    // From expanded → back to expanded, not inline.
+    runCommand(result, 'fullscreen')
+    expect(result.current.terminal.mode).toBe(TerminalMode.expanded)
+    runCommand(result, 'cmatrix')
+    expect(result.current.terminal.mode).toBe(TerminalMode.matrix)
+    act(() => result.current.terminal.exitMatrix())
+    expect(result.current.terminal.mode).toBe(TerminalMode.expanded)
   })
 
   it('clear empties the log', () => {
