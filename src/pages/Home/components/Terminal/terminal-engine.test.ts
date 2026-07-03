@@ -115,9 +115,15 @@ describe('execute — tree', () => {
 describe('execute — easter eggs and misc', () => {
   it('help lists the public commands', () => {
     const output = execute('help', ctx).output.join('\n')
-    for (const command of ['help', 'ls', 'cd', 'cat', 'pwd', 'joke', 'clear', 'exit']) {
+    for (const command of ['help', 'ls', 'cd', 'cat', 'joke', 'clear', 'exit']) {
       expect(output).toContain(command)
     }
+  })
+
+  it('pwd still works but is kept out of help and Tab completion', () => {
+    expect(execute('pwd', ctx).output[0]).toBe('~ - the home page')
+    expect(execute('help', ctx).output.join('\n')).not.toContain('pwd')
+    expect(completions('pw')).toEqual([])
   })
 
   it('whoami answer depends on the mode', () => {

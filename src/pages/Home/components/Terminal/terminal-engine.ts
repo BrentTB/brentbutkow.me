@@ -17,6 +17,7 @@ import { gamesSubRoutes } from '../../../FunStuff/subpages/Games/data'
 //   Input UX: Tab ghost-completion, ↑/↓ history, `/` or `~` focuses, Esc closes
 //
 // Unlisted but ordinary (works, just not in `help`/Tab):
+//   pwd                  prints "~ - the home page" — real, but too trivial to advertise
 //   echo <text>          echoes it back — a real shell built-in, not an egg
 //
 // Easter eggs (undocumented in `help`, not Tab-completed):
@@ -109,7 +110,6 @@ const publicCommands = [
   TerminalCommand.tree,
   TerminalCommand.cd,
   TerminalCommand.cat,
-  TerminalCommand.pwd,
   TerminalCommand.joke,
   TerminalCommand.clear,
   TerminalCommand.exit,
@@ -173,7 +173,6 @@ const HELP_LINES = [
   'tree          the full page tree',
   'cd <page>     go to a page (Tab completes)',
   'cat <page>    a page in one line',
-  'pwd           where you are',
   'joke          one dad joke, on the house',
   'clear         wipe the screen',
   'exit          close the terminal',

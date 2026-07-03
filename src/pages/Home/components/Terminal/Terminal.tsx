@@ -40,9 +40,10 @@ export function Terminal() {
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [])
 
+  // Pin to the newest line — on each new command and when the log remounts on reopen.
   useEffect(() => {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight
-  }, [lines])
+  }, [lines, active])
 
   const onInputKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     switch (event.key) {
