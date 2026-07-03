@@ -2,7 +2,7 @@
 // line here, and the typewriter shows it as its next alternate before resuming rotation.
 
 // Cap so a runaway `echo` can't feed an absurdly long line into the hero.
-const EYEBROW_MAX_LENGTH = 100
+export const EYEBROW_MAX_LENGTH = 150
 
 let nextText: string | null = null
 
