@@ -115,7 +115,7 @@ describe('execute — tree', () => {
 describe('execute — easter eggs and misc', () => {
   it('help lists the public commands', () => {
     const output = execute('help', ctx).output.join('\n')
-    for (const command of ['help', 'ls', 'cd', 'pwd', 'joke', 'clear', 'exit']) {
+    for (const command of ['help', 'ls', 'cd', 'cat', 'pwd', 'joke', 'clear', 'exit']) {
       expect(output).toContain(command)
     }
   })
@@ -146,12 +146,12 @@ describe('execute — easter eggs and misc', () => {
     expect(execute('cat projects', ctx).output[0]).toContain('Recall Radar')
   })
 
-  it('cat on the hidden mp4 opens the video externally', () => {
-    const result = execute('cat .homework.mp4', ctx)
+  it('cat on the hidden homework file opens the video externally', () => {
+    const result = execute('cat .homework', ctx)
     expect(result.action.type).toBe(TerminalActionType.openExternal)
     expect(result.action.path).toContain('youtube.com')
-    expect(execute('ls -a', ctx).output[0]).toContain('.homework.mp4')
-    expect(execute('tree -a', ctx).output.join('\n')).toContain('.homework.mp4')
+    expect(execute('ls -a', ctx).output[0]).toContain('.homework')
+    expect(execute('tree -a', ctx).output.join('\n')).toContain('.homework')
   })
 
   it('cat cv.pdf downloads when published, jokes when not', () => {
@@ -242,7 +242,11 @@ describe('completions', () => {
 
   it('cat completes its root files, hiding dotfiles until a dot is typed', () => {
     expect(completions('cat c')).toEqual(['cat contact', 'cat cv.pdf'])
-    expect(completions('cat .')).toEqual(['cat .homework.mp4', 'cat .the-game'])
+    expect(completions('cat .')).toEqual(['cat .homework', 'cat .the-game'])
     expect(completions('cat ')).not.toContain('cat .the-game')
+  })
+
+  it('cat itself Tab-completes as a command', () => {
+    expect(completions('ca')).toEqual(['cat '])
   })
 })

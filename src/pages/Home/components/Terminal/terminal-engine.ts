@@ -76,6 +76,7 @@ const publicCommands = [
   TerminalCommand.ls,
   TerminalCommand.tree,
   TerminalCommand.cd,
+  TerminalCommand.cat,
   TerminalCommand.pwd,
   TerminalCommand.joke,
   TerminalCommand.clear,
@@ -118,7 +119,7 @@ const hasFlag = (args: string[], letter: string): boolean =>
 const HIDDEN_FILE = '.the-game'
 
 // The classic hidden-folder gag — catting it opens the official upload in a new tab.
-const RICKROLL_FILE = '.homework.mp4'
+const RICKROLL_FILE = '.homework'
 const RICKROLL_URL = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
 
 const hiddenFiles = [RICKROLL_FILE, HIDDEN_FILE]
@@ -131,6 +132,7 @@ const HELP_LINES = [
   'ls [page]     list pages here',
   'tree          the full page tree',
   'cd <page>     go to a page (Tab completes)',
+  'cat <page>    a page in one line',
   'pwd           where you are',
   'joke          one dad joke, on the house',
   'clear         wipe the screen',
