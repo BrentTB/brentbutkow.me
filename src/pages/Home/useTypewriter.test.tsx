@@ -102,6 +102,24 @@ describe('useTypewriter', () => {
     expect(result.current).toBe('~/cd')
   })
 
+  it('reads a value queued during the hold, not only at the start of it', () => {
+    stubMatchMedia(false)
+    // Mirrors the real eyebrow queue: hand out the pending value once, then nothing.
+    let queued: string | null = null
+    const nextOverride = () => {
+      const value = queued
+      queued = null
+      return value
+    }
+    const { result } = renderHook(() =>
+      useTypewriter('~/ab', { ...fast, alternates: ['~/cd'], nextOverride })
+    )
+    act(() => vi.advanceTimersByTime(40)) // primary typed; hold begins with the queue still empty
+    queued = '~/zz' // arrives mid-hold — too late for the old "decide at hold start" logic
+    act(() => vi.advanceTimersByTime(130)) // hold + erase + type the queued line
+    expect(result.current).toBe('~/zz')
+  })
+
   it('shows the primary immediately when disabled', () => {
     stubMatchMedia(false)
     const { result } = renderHook(() => useTypewriter('~/about', { enabled: false }))

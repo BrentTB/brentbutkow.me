@@ -88,12 +88,17 @@ export function useTypewriter(
     const settle = (current: string) => {
       if (alternateTexts.length === 0) return
       const isPrimary = current === text
-      // ?? short-circuits: an override leaves altIndex untouched, so rotation resumes in place.
-      const next = isPrimary
-        ? (nextOverride?.() ?? alternateTexts[altIndex++ % alternateTexts.length])
-        : text
       schedule(
-        () => erase(current, current.length, () => type(next, keepChars, () => settle(next))),
+        () =>
+          erase(current, current.length, () => {
+            // Chosen here, the last instant before typing, so an eyebrow queued during the hold or
+            // the erase-back-to-primary still lands on this cycle rather than the next one.
+            // ?? short-circuits: an override leaves altIndex untouched, so rotation resumes in place.
+            const next = isPrimary
+              ? (nextOverride?.() ?? alternateTexts[altIndex++ % alternateTexts.length])
+              : text
+            type(next, keepChars, () => settle(next))
+          }),
         isPrimary ? holdPrimaryMs : holdAltMs
       )
     }

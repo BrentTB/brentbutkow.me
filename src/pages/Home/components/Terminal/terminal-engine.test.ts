@@ -279,4 +279,19 @@ describe('completions', () => {
   it('cat itself Tab-completes as a command', () => {
     expect(completions('ca')).toEqual(['cat '])
   })
+
+  it('echo completes .eyebrow once a redirect is typed, keeping the input a prefix', () => {
+    expect(completions('echo cheese > .ey')).toEqual(['echo cheese > .eyebrow'])
+    expect(completions('echo cheese > ')).toEqual(['echo cheese > .eyebrow'])
+    // A bare '>' gains a space so it reads `> .eyebrow`, still a clean prefix of the input.
+    expect(completions('echo cheese >')).toEqual(['echo cheese > .eyebrow'])
+    // Only a self-attached partial stays attached — the sole way to keep the prefix intact.
+    expect(completions('echo cheese >.ey')).toEqual(['echo cheese >.eyebrow'])
+  })
+
+  it('echo suggests nothing without a redirect, when done, or for a wrong target', () => {
+    expect(completions('echo cheese')).toEqual([])
+    expect(completions('echo cheese > .eyebrow')).toEqual([])
+    expect(completions('echo cheese > wrong')).toEqual([])
+  })
 })

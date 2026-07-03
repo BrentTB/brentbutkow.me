@@ -14,8 +14,10 @@ import { gamesSubRoutes } from '../../../FunStuff/subpages/Games/data'
 //   pwd                  where you are
 //   joke                 a dad joke — shuffled round-robin; racier ones stay out of professional mode
 //   clear / exit         wipe the log / close the terminal
-//   echo <text>          echoes it back
 //   Input UX: Tab ghost-completion, ↑/↓ history, `/` or `~` focuses, Esc closes
+//
+// Unlisted but ordinary (works, just not in `help`/Tab):
+//   echo <text>          echoes it back — a real shell built-in, not an egg
 //
 // Easter eggs (undocumented in `help`, not Tab-completed):
 //   whoami                        mode-dependent identity (full-stack → full-snack in fun mode)
@@ -27,7 +29,8 @@ import { gamesSubRoutes } from '../../../FunStuff/subpages/Games/data'
 //   cat .the-game                 "You just lost the game."
 //   cat .homework                 rickroll — opens the official video in a new tab
 //   cat .eyebrow                  explains the write below
-//   echo <text> > .eyebrow        queues <text> as the hero's next typed eyebrow line (one-shot)
+//   echo <text> > .eyebrow        queues <text> as the hero's next typed eyebrow line (one-shot);
+//                                 the `>` redirect target Tab-completes to .eyebrow
 //   try 'help'                    typing the placeholder literally → "real funny."
 // ──────────────────────────────────────────────────────────────────────────────
 
@@ -421,6 +424,19 @@ const pathCommands: string[] = [
 // until the typed partial starts with '.' — same convention as a real shell.
 const catFiles = ['cv.pdf', ...hiddenFiles]
 
+// `echo <text> > ` completes its one writable target — the `.eyebrow` queue. The redirect
+// itself is the signal of intent, so the dotfile is offered even before a '.' is typed.
+function echoRedirectCompletion(input: string): string[] {
+  const gt = input.indexOf('>')
+  if (gt === -1) return []
+  const afterGt = input.slice(gt + 1)
+  const typed = afterGt.replace(/^\s*/, '')
+  if (typed.includes(' ') || !EYEBROW_FILE.startsWith(typed) || typed === EYEBROW_FILE) return []
+  // Insert a space when nothing yet follows the '>', so it reads `> .eyebrow`, not `>.eyebrow`.
+  const separator = afterGt === '' ? ' ' : ''
+  return [input + separator + EYEBROW_FILE.slice(typed.length)]
+}
+
 // Full-input completions for the current text, best match first. Completing a page that has
 // children appends '/' so the next Tab keeps digging.
 export function completions(input: string): string[] {
@@ -435,6 +451,8 @@ export function completions(input: string): string[] {
   }
 
   const [command, ...args] = tokens
+  if (command === TerminalCommand.echo) return echoRedirectCompletion(input)
+
   const pathArg = args[args.length - 1]
   if (!pathCommands.includes(command) || pathArg.startsWith('-')) return []
 
