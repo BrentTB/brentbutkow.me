@@ -2,6 +2,7 @@ import { routePaths } from '../../../../routes/routes.paths'
 import { routesMeta } from '../../../../routes/routes.meta'
 import { funStuffSubRoutes } from '../../../FunStuff/data'
 import { gamesSubRoutes } from '../../../FunStuff/subpages/Games/data'
+import { STEAM_LOCOMOTIVE, cowsay } from './ascii'
 
 // ─── Command index ────────────────────────────────────────────────────────────
 //
@@ -33,6 +34,8 @@ import { gamesSubRoutes } from '../../../FunStuff/subpages/Games/data'
 //   echo <text> > .eyebrow        queues <text> as the hero's next typed eyebrow line (one-shot);
 //                                 the `>` redirect target Tab-completes to .eyebrow
 //   try 'help'                    typing the placeholder literally → "real funny."
+//   sl                            the ls typo → a steam locomotive chugs across the log
+//   cowsay <text>                 an ASCII cow says <text> (defaults to "moo")
 // ──────────────────────────────────────────────────────────────────────────────
 
 // The virtual filesystem is the public route tree — one node per page a visitor can browse to.
@@ -100,6 +103,8 @@ export const TerminalCommand = {
   rm: 'rm',
   echo: 'echo',
   try: 'try',
+  sl: 'sl',
+  cowsay: 'cowsay',
 } as const
 export type TerminalCommand = (typeof TerminalCommand)[keyof typeof TerminalCommand]
 
@@ -120,6 +125,7 @@ export const TerminalActionType = {
   back: 'back',
   openExternal: 'openExternal',
   setEyebrow: 'setEyebrow',
+  animate: 'animate',
   toggleFun: 'toggleFun',
   downloadCv: 'downloadCv',
   clear: 'clear',
@@ -137,6 +143,8 @@ export type TerminalAction = {
 export type TerminalResult = {
   output: string[]
   action: TerminalAction
+  // Render the output as monospace art (no wrapping, its own x-scroll) rather than prose.
+  art?: boolean
 }
 
 export type TerminalContext = {
@@ -419,6 +427,11 @@ export function execute(rawInput: string, ctx: TerminalContext): TerminalResult 
       if (!text) return { output: ['echo: nothing to write'], action: none }
       return { output: [], action: { type: TerminalActionType.setEyebrow, text } }
     }
+    case TerminalCommand.sl:
+      // The classic ls typo — a steam locomotive chugs across the log.
+      return { output: [], action: { type: TerminalActionType.animate, text: STEAM_LOCOMOTIVE } }
+    case TerminalCommand.cowsay:
+      return { output: cowsay(args.join(' ')).split('\n'), action: none, art: true }
     case TerminalCommand.try:
       // Pays off the input placeholder — typing `try 'help'` literally instead of `help`.
       if (args.join(' ').replace(/['"]/g, '') === 'help') {

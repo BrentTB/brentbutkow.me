@@ -6,11 +6,13 @@ import { queueEyebrowText } from '../../eyebrow-queue'
 import { Joke } from '../../../../data/jokes.types'
 import { createShuffledCycle, ShuffledCycle } from '../../../../utils/shuffled-cycle'
 import { cvHref } from '../../data'
+import { TRAIN_DURATION_MS } from './ascii'
 import { completions, execute, TerminalActionType } from './terminal-engine'
 
 export const TerminalLineKind = {
   command: 'command',
   output: 'output',
+  art: 'art',
 } as const
 export type TerminalLineKind = (typeof TerminalLineKind)[keyof typeof TerminalLineKind]
 
@@ -33,10 +35,24 @@ export function useTerminal({ onExit }: UseTerminalOptions) {
   const [input, setInput] = useState('')
   const [history, setHistory] = useState<string[]>([])
   const [historyIndex, setHistoryIndex] = useState<number | null>(null)
+  // The multi-line sprite currently sliding across the log, or null when nothing is playing.
+  const [animation, setAnimation] = useState<string | null>(null)
   const navigateTimeout = useRef<ReturnType<typeof setTimeout>>()
+  const animationTimeout = useRef<ReturnType<typeof setTimeout>>()
   const draft = useRef('')
 
-  useEffect(() => () => clearTimeout(navigateTimeout.current), [])
+  const cancelAnimation = useCallback(() => {
+    clearTimeout(animationTimeout.current)
+    setAnimation(null)
+  }, [])
+
+  useEffect(
+    () => () => {
+      clearTimeout(navigateTimeout.current)
+      clearTimeout(animationTimeout.current)
+    },
+    []
+  )
 
   const ghost = useMemo(() => {
     const best = completions(input)[0]
@@ -59,11 +75,14 @@ export function useTerminal({ onExit }: UseTerminalOptions) {
       setInput('')
       setHistory((previous) => [...previous, raw])
       setHistoryIndex(null)
+      cancelAnimation() // a new command stops any train still chugging
 
       const result = execute(raw, { isFunMode, cvHref, pickJoke })
       const echoed: TerminalLine[] = [
         { kind: TerminalLineKind.command, text: raw },
-        ...result.output.map((text) => ({ kind: TerminalLineKind.output, text })),
+        ...(result.art
+          ? [{ kind: TerminalLineKind.art, text: result.output.join('\n') }]
+          : result.output.map((text) => ({ kind: TerminalLineKind.output, text }))),
       ]
 
       switch (result.action.type) {
@@ -88,6 +107,11 @@ export function useTerminal({ onExit }: UseTerminalOptions) {
         case TerminalActionType.setEyebrow:
           if (result.action.text) queueEyebrowText(result.action.text)
           break
+        case TerminalActionType.animate:
+          setLines((previous) => [...previous, ...echoed])
+          setAnimation(result.action.text ?? '')
+          animationTimeout.current = setTimeout(cancelAnimation, TRAIN_DURATION_MS)
+          return
         case TerminalActionType.toggleFun:
           setIsFunMode(!isFunMode)
           break
@@ -112,7 +136,7 @@ export function useTerminal({ onExit }: UseTerminalOptions) {
       }
       setLines((previous) => [...previous, ...echoed])
     },
-    [input, isFunMode, navigate, onExit, pickJoke, setIsFunMode]
+    [input, isFunMode, navigate, onExit, pickJoke, setIsFunMode, cancelAnimation]
   )
 
   const acceptCompletion = useCallback(() => {
