@@ -17,20 +17,20 @@
 
 // Enemies-left tally — calm cyan, no pulse: it's a readout, not an alarm.
 .count {
-  color: #bfe9ff;
+  color: #bfe9ff; /* calm readout cyan — HUD notice tint, not a currency */
   background: rgba(10, 26, 38, 0.72);
   border: 1px solid rgba(90, 190, 255, 0.45);
 }
 
 .value {
-  color: #fff;
+  color: #fff; /* pure-white numerals for max contrast on the dark HUD chip */
   font-variant-numeric: tabular-nums;
 }
 
 // Wave-cleared flash — green, pops in then fades over its brief life (JS unmounts
 // it on the same timer).
 .cleared {
-  color: #b8f5c8;
+  color: #b8f5c8; /* wave-cleared green, this flash only */
   background: rgba(12, 40, 22, 0.82);
   border: 1px solid rgba(90, 220, 130, 0.6);
   animation: clearedPop 1.8s ease-out forwards;

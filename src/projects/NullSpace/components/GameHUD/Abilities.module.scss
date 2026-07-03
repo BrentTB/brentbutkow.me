@@ -58,7 +58,7 @@
 
 .abilityCost {
   font-size: calc(0.5rem * var(--hud-scale, 1));
-  color: #5588dd;
+  color: #5588dd; /* power-cost blue — matches the power bar, not a currency */
   margin-top: 1px;
 }
 

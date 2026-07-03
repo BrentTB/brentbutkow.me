@@ -239,13 +239,13 @@
   gap: 6px;
 
   &.r {
-    --chan: #e5675f;
+    --chan: #e5675f; /* red channel identity — the demo's subject, not a theme colour */
   }
   &.g {
-    --chan: #57c08a;
+    --chan: #57c08a; /* green channel identity — the demo's subject, not a theme colour */
   }
   &.b {
-    --chan: #5b9cf0;
+    --chan: #5b9cf0; /* blue channel identity — the demo's subject, not a theme colour */
   }
 }
 

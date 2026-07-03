@@ -14,13 +14,16 @@ const rootDir = join(srcDir, '..')
 const publicDir = join(rootDir, 'public')
 const skillsDir = join(rootDir, '.claude', 'skills')
 
-function sourceFiles(dir: string): string[] {
+function filesUnder(dir: string, matches: (name: string) => boolean): string[] {
   return readdirSync(dir).flatMap((name) => {
     const path = join(dir, name)
-    if (statSync(path).isDirectory()) return sourceFiles(path)
-    return /\.tsx?$/.test(name) && !/\.test\.tsx?$/.test(name) ? [path] : []
+    if (statSync(path).isDirectory()) return filesUnder(path, matches)
+    return matches(name) ? [path] : []
   })
 }
+
+const sourceFiles = (dir: string) =>
+  filesUnder(dir, (name) => /\.tsx?$/.test(name) && !/\.test\.tsx?$/.test(name))
 
 const files = sourceFiles(srcDir)
 
@@ -70,6 +73,28 @@ describe('site invariants', () => {
     expect(
       missing,
       `indexable routes missing from public/sitemap.xml:\n${missing.join('\n')}`
+    ).toEqual([])
+  })
+
+  it('every hex color in a SCSS module is justified by a nearby comment (else use a token)', () => {
+    // Colors come from the design tokens in index.scss (or a scoped palette like the Null Space
+    // --ns-* block). A literal hex is allowed only with a justification comment on its line or
+    // within the two lines above.
+    const hex = /#[0-9a-fA-F]{3,8}\b/
+    const hasComment = (line: string) => line.includes('//') || line.includes('/*')
+    const unjustified: string[] = []
+    for (const file of filesUnder(srcDir, (name) => name.endsWith('.module.scss'))) {
+      const lines = readFileSync(file, 'utf8').split('\n')
+      lines.forEach((line, i) => {
+        if (!hex.test(line)) return
+        if (hasComment(line) || hasComment(lines[i - 1] ?? '') || hasComment(lines[i - 2] ?? ''))
+          return
+        unjustified.push(`${file.slice(srcDir.length + 1)}:${i + 1} → ${line.trim()}`)
+      })
+    }
+    expect(
+      unjustified,
+      `hex literals without a token or justification comment:\n${unjustified.join('\n')}`
     ).toEqual([])
   })
 
