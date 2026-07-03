@@ -1,0 +1,170 @@
+import { describe, it, expect } from 'vitest'
+import { completions, execute, TerminalActionType, TerminalContext } from './terminal-engine'
+import { routePaths } from '../../../../routes/routes.paths'
+
+const ctx: TerminalContext = {
+  isFunMode: false,
+  cvHref: null,
+  pickJoke: () => 'a joke',
+}
+
+const funCtx: TerminalContext = { ...ctx, isFunMode: true }
+
+describe('execute — navigation commands', () => {
+  it('cd navigates to a top-level page', () => {
+    const result = execute('cd experience', ctx)
+    expect(result.action).toEqual({
+      type: TerminalActionType.navigate,
+      path: routePaths.experience,
+    })
+    expect(result.output).toEqual([])
+  })
+
+  it('cd resolves nested and absolute paths', () => {
+    expect(execute('cd fun-stuff/games/null-space', ctx).action.path).toBe(
+      '/fun-stuff/games/null-space'
+    )
+    expect(execute('cd /projects/recall-radar', ctx).action.path).toBe(routePaths.recallRadar)
+    expect(execute('cd ~/contact', ctx).action.path).toBe(routePaths.contact)
+  })
+
+  it('cd handles .. inside a path', () => {
+    expect(execute('cd fun-stuff/../projects', ctx).action.path).toBe(routePaths.projects)
+  })
+
+  it('cd above the root stays put', () => {
+    expect(execute('cd ..', ctx).output[0]).toMatch(/top level/)
+  })
+
+  it('cd with no argument or ~ reports already home', () => {
+    expect(execute('cd', ctx).output[0]).toMatch(/already home/)
+    expect(execute('cd ~', ctx).output[0]).toMatch(/already home/)
+  })
+
+  it('cd - goes back', () => {
+    expect(execute('cd -', ctx).action.type).toBe(TerminalActionType.back)
+  })
+
+  it('cd rejects unknown pages', () => {
+    const result = execute('cd narnia', ctx)
+    expect(result.action.type).toBe(TerminalActionType.none)
+    expect(result.output[0]).toMatch(/no such page/)
+  })
+
+  it('open and goto alias cd', () => {
+    expect(execute('open contact', ctx).action.path).toBe(routePaths.contact)
+    expect(execute('goto education', ctx).action.path).toBe(routePaths.education)
+  })
+})
+
+describe('execute — ls', () => {
+  it('lists top-level pages with a slash on pages that have children', () => {
+    const listing = execute('ls', ctx).output[0]
+    expect(listing).toContain('experience')
+    expect(listing).toContain('projects/')
+    expect(listing).toContain('fun-stuff/')
+    expect(listing).not.toContain('.the-game')
+  })
+
+  it('lists a nested level by path', () => {
+    expect(execute('ls fun-stuff/games', ctx).output[0]).toBe('null-space')
+  })
+
+  it('rejects unknown paths', () => {
+    expect(execute('ls narnia', ctx).output[0]).toMatch(/no such page/)
+  })
+
+  it('-a reveals the hidden game file, which cat pays off', () => {
+    expect(execute('ls -a', ctx).output[0]).toContain('.the-game')
+    expect(execute('cat .the-game', ctx).output[0]).toBe('You just lost the game.')
+  })
+})
+
+describe('execute — easter eggs and misc', () => {
+  it('help lists the public commands', () => {
+    const output = execute('help', ctx).output.join('\n')
+    for (const command of ['help', 'ls', 'cd', 'pwd', 'joke', 'clear', 'exit']) {
+      expect(output).toContain(command)
+    }
+  })
+
+  it('whoami answer depends on the mode', () => {
+    expect(execute('whoami', ctx).output[0]).toMatch(/full-stack engineer/i)
+    expect(execute('whoami', funCtx).output[0]).toBe('Full snack engineer')
+  })
+
+  it('sudo make-me-a-sandwich complies; anything else gets reported', () => {
+    expect(execute('sudo make-me-a-sandwich', ctx).output[0]).toBe('Okay.')
+    expect(execute('sudo make me a sandwich', ctx).output[0]).toBe('Okay.')
+    expect(execute('sudo reboot', ctx).output[0]).toMatch(/not in the sudoers file/)
+  })
+
+  it('fun toggles the mode with a message for the new state', () => {
+    const turningOn = execute('fun', ctx)
+    expect(turningOn.action.type).toBe(TerminalActionType.toggleFun)
+    expect(turningOn.output[0]).toMatch(/on/i)
+    expect(execute('fun', funCtx).output[0]).toBe('Back to business.')
+  })
+
+  it('cat cv.pdf downloads when published, jokes when not', () => {
+    expect(execute('cat cv.pdf', ctx).output[0]).toMatch(/yet/)
+    expect(execute('cat cv.pdf', ctx).action.type).toBe(TerminalActionType.none)
+    const published = execute('cat cv.pdf', { ...ctx, cvHref: '/cv.pdf' })
+    expect(published.action.type).toBe(TerminalActionType.downloadCv)
+  })
+
+  it('rm -rf / navigates to a page that no longer exists', () => {
+    const result = execute('rm -rf /', ctx)
+    expect(result.action.type).toBe(TerminalActionType.navigate)
+    expect(result.output.length).toBeGreaterThan(0)
+  })
+
+  it('rm on anything else is refused', () => {
+    expect(execute('rm homework', ctx).output[0]).toMatch(/read-only/)
+  })
+
+  it('joke defers to the provided picker', () => {
+    expect(execute('joke', ctx).output[0]).toBe('a joke')
+  })
+
+  it('echo echoes, clear clears, exit exits', () => {
+    expect(execute('echo hello there', ctx).output[0]).toBe('hello there')
+    expect(execute('clear', ctx).action.type).toBe(TerminalActionType.clear)
+    expect(execute('exit', ctx).action.type).toBe(TerminalActionType.exit)
+  })
+
+  it('unknown commands point at help', () => {
+    expect(execute('dance', ctx).output[0]).toBe("command not found: dance (try 'help')")
+  })
+})
+
+describe('completions', () => {
+  it('completes command names with a trailing space', () => {
+    expect(completions('he')).toEqual(['help '])
+  })
+
+  it('does not advertise easter-egg commands', () => {
+    expect(completions('sud')).toEqual([])
+    expect(completions('who')).toEqual([])
+  })
+
+  it('completes top-level page names, marking parents with a slash', () => {
+    expect(completions('cd exp')).toEqual(['cd experience'])
+    expect(completions('cd pro')).toEqual(['cd projects/'])
+  })
+
+  it('completes nested paths so repeated Tab digs deeper', () => {
+    expect(completions('cd fun-stuff/ga')).toEqual(['cd fun-stuff/games/'])
+    expect(completions('cd fun-stuff/games/')).toEqual(['cd fun-stuff/games/null-space'])
+  })
+
+  it('returns every match sorted for ambiguous prefixes', () => {
+    expect(completions('cd e')).toEqual(['cd education', 'cd experience'])
+  })
+
+  it('offers nothing for unknown parents, empty input, or flags', () => {
+    expect(completions('cd narnia/x')).toEqual([])
+    expect(completions('')).toEqual([])
+    expect(completions('ls -')).toEqual([])
+  })
+})

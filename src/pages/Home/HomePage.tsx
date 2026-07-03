@@ -1,5 +1,6 @@
 import { Hero } from './components/Hero'
 import { CurrentWork } from './components/CurrentWork'
+import { Terminal } from './components/Terminal/Terminal'
 import { About } from './components/About'
 import styles from './HomePage.module.scss'
 import { heroContent, aboutSectionEnabled, aboutParagraphs, cvHref } from './data'
@@ -20,6 +21,7 @@ export function HomePage() {
     <main className={styles.main}>
       <section id="hero" className={styles.section}>
         <Hero content={heroContent} isFunMode={isFunMode} />
+        <Terminal />
         {currentRole && <CurrentWork role={currentRole.role} company={currentRole.company} />}
       </section>
       {aboutSectionEnabled && <About paragraphs={aboutParagraphs} cvHref={cvHref} />}
