@@ -7,4 +7,8 @@ export const isJokeType = (value: string): value is JokeTypes =>
 export const jokes: Joke[] = jokesData.map((joke) => ({
   joke: joke.joke,
   jokeType: isJokeType(joke.jokeType) ? joke.jokeType : JokeTypes.dad,
+  funMode: 'funMode' in joke && joke.funMode === true,
 }))
+
+// Professional mode hides the racier jokes; fun mode allows everything.
+export const isJokeAllowed = (joke: Joke, isFunMode: boolean): boolean => isFunMode || !joke.funMode
