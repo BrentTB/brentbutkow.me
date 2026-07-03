@@ -131,6 +131,12 @@ describe('execute — easter eggs and misc', () => {
     expect(execute('sudo reboot', ctx).output[0]).toMatch(/not in the sudoers file/)
   })
 
+  it('make-me-a-sandwich without sudo gets the xkcd setup line', () => {
+    expect(execute('make-me-a-sandwich', ctx).output[0]).toBe('What? Make it yourself.')
+    expect(execute('make me a sandwich', ctx).output[0]).toBe('What? Make it yourself.')
+    expect(execute('make me a coffee', ctx).output[0]).toMatch(/command not found/)
+  })
+
   it('fun toggles the mode with a message for the new state', () => {
     const turningOn = execute('fun', ctx)
     expect(turningOn.action.type).toBe(TerminalActionType.toggleFun)

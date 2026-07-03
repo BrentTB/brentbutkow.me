@@ -3,6 +3,32 @@ import { routesMeta } from '../../../../routes/routes.meta'
 import { funStuffSubRoutes } from '../../../FunStuff/data'
 import { gamesSubRoutes } from '../../../FunStuff/subpages/Games/data'
 
+// ─── Command index ────────────────────────────────────────────────────────────
+//
+// Everyday commands (listed in `help`, Tab-completable):
+//   help                 the command list
+//   ls [page]            pages at a level · -a adds hidden files · -R renders the tree
+//   tree                 the full page tree · -a adds hidden files
+//   cd <page>            navigate — relative paths, ~, .., and `cd -` (back); aliases: open, goto
+//   cat <page>           the page's one-line description (from routes.meta) · cat cv.pdf downloads the CV
+//   pwd                  where you are
+//   joke                 a dad joke — shuffled round-robin; racier ones stay out of professional mode
+//   clear / exit         wipe the log / close the terminal
+//   echo <text>          echoes it back
+//   Input UX: Tab ghost-completion, ↑/↓ history, `/` or `~` focuses, Esc closes
+//
+// Easter eggs (undocumented in `help`, not Tab-completed):
+//   whoami                        mode-dependent identity ("Full snack engineer" in fun mode)
+//   make-me-a-sandwich            "What? Make it yourself." — the xkcd 149 setup
+//   sudo make-me-a-sandwich       "Okay." — the punchline; any other sudo gets the sudoers warning
+//   fun                           flips the Fun-mode toggle
+//   rm -rf / (or . ./* * ~ …)     fake delete, then lands on the 404 page
+//   ls -a / tree -a               reveal the hidden files below
+//   cat .the-game                 "You just lost the game."
+//   cat .homework                 rickroll — opens the official video in a new tab
+//   try 'help'                    typing the placeholder literally → "real funny."
+// ──────────────────────────────────────────────────────────────────────────────
+
 // The virtual filesystem is the public route tree — one node per page a visitor can browse to.
 // Private, redirect-only, and dynamic-param routes stay out.
 export type TerminalPage = {
@@ -113,6 +139,9 @@ export type TerminalContext = {
 }
 
 const none: TerminalAction = { type: TerminalActionType.none }
+
+// xkcd 149 — the bare request is the setup, sudo is the punchline.
+const SANDWICH_REQUEST = /^make[- ]me[- ]a[- ]sandwich$/
 
 const hasFlag = (args: string[], letter: string): boolean =>
   args.some((arg) => /^-[a-zA-Z]+$/.test(arg) && arg.includes(letter))
@@ -282,6 +311,10 @@ export function execute(rawInput: string, ctx: TerminalContext): TerminalResult 
   const [command, ...args] = tokens
   if (!command) return { output: [], action: none }
 
+  if (SANDWICH_REQUEST.test(tokens.join(' '))) {
+    return { output: ['What? Make it yourself.'], action: none }
+  }
+
   switch (command) {
     case TerminalCommand.help:
       return { output: HELP_LINES, action: none }
@@ -318,7 +351,7 @@ export function execute(rawInput: string, ctx: TerminalContext): TerminalResult 
     case TerminalCommand.sudo:
       return {
         output: [
-          /^make[- ]me[- ]a[- ]sandwich$/.test(args.join(' ')) // xkcd 149
+          SANDWICH_REQUEST.test(args.join(' '))
             ? 'Okay.'
             : 'you are not in the sudoers file. This incident will be reported.',
         ],
