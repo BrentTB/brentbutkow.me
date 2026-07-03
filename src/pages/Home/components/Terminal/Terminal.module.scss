@@ -102,13 +102,18 @@
   }
 }
 
-/* Each new line launches up into the log as it's committed — only freshly mounted lines animate. */
+/* Each new line launches up into the log as it's committed — rising from below, past the baseline,
+   then settling back down. Only freshly mounted lines animate. */
 @keyframes logLineIn {
-  from {
+  0% {
     opacity: 0;
-    transform: translateY(7px);
+    transform: translateY(9px);
   }
-  to {
+  65% {
+    opacity: 1;
+    transform: translateY(-200px);
+  }
+  100% {
     opacity: 1;
     transform: translateY(0);
   }
@@ -120,7 +125,7 @@
   line-height: 1.6;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  animation: logLineIn 240ms $ease-shoot both;
+  animation: logLineIn 260ms ease-out both;
 }
 
 /* ASCII art (cowsay) — monospace, never wrapped; scrolls sideways if it outgrows the log. */
@@ -132,7 +137,7 @@
   white-space: pre;
   overflow-x: auto;
   scrollbar-width: none;
-  animation: logLineIn 240ms $ease-shoot both;
+  animation: logLineIn 260ms ease-out both;
 }
 
 .art::-webkit-scrollbar {

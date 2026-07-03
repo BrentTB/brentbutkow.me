@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, vi } from 'vitest'
+import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest'
 import { render, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { FunModeProvider } from '../../../../contexts/FunModeProvider'
@@ -95,5 +95,48 @@ describe('Terminal — fullscreen and matrix', () => {
     fireEvent.keyUp(document, { key: 'Enter' })
     fireEvent.keyDown(matrixEl(container), { key: 'j' })
     expect(modeOf(container)).toBe('expanded')
+  })
+})
+
+describe('Terminal — autocomplete cascade', () => {
+  // Fun mode persists to localStorage; reset so each test starts professional and `fun` reliably
+  // toggles it on.
+  beforeEach(() => localStorage.clear())
+
+  const inputOf = (container: HTMLElement) =>
+    container.querySelector('input[aria-label="Type a command"]') as HTMLInputElement
+  const cascadeChars = (container: HTMLElement) => container.querySelectorAll('[data-cascade-char]')
+
+  it('professional mode accepts the completion with no reveal', () => {
+    const { container } = renderTerminal()
+    const input = inputOf(container)
+    fireEvent.focus(input)
+    fireEvent.change(input, { target: { value: 'hel' } })
+    fireEvent.keyDown(input, { key: 'Tab' })
+    expect(input.value).toBe('help ') // completion (with its trailing arg space) applied
+    expect(cascadeChars(container)).toHaveLength(0)
+  })
+
+  it('fun mode reveals the accepted suffix letter-by-letter', () => {
+    const { container } = renderTerminal()
+    runCmd(container, 'fun') // toggle fun mode on
+    const input = inputOf(container)
+    fireEvent.focus(input)
+    fireEvent.change(input, { target: { value: 'hel' } })
+    fireEvent.keyDown(input, { key: 'Tab' })
+    expect(input.value).toBe('help ') // completion still applied immediately
+    expect(cascadeChars(container)).toHaveLength(2) // the revealed 'p' and trailing space
+  })
+
+  it('a keystroke cancels an in-flight reveal', () => {
+    const { container } = renderTerminal()
+    runCmd(container, 'fun')
+    const input = inputOf(container)
+    fireEvent.focus(input)
+    fireEvent.change(input, { target: { value: 'hel' } })
+    fireEvent.keyDown(input, { key: 'Tab' })
+    expect(cascadeChars(container)).toHaveLength(2)
+    fireEvent.keyDown(input, { key: 'x' })
+    expect(cascadeChars(container)).toHaveLength(0)
   })
 })
