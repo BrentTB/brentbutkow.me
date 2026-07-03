@@ -1,7 +1,8 @@
 import { KeyboardEvent, useCallback, useEffect, useRef, useState } from 'react'
 import styles from './Terminal.module.scss'
 import { TRAIN_DURATION_MS } from './ascii'
-import { TerminalLineKind, useTerminal } from './useTerminal'
+import { useMatrixRain } from './useMatrixRain'
+import { TerminalLineKind, TerminalMode, useTerminal } from './useTerminal'
 
 const PROMPT = 'brent@butkow:~$'
 
@@ -18,6 +19,7 @@ function isTypingTarget(target: EventTarget | null): boolean {
 export function Terminal() {
   const inputRef = useRef<HTMLInputElement>(null)
   const logRef = useRef<HTMLDivElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
   const [active, setActive] = useState(false)
 
   const close = useCallback(() => {
@@ -31,16 +33,50 @@ export function Terminal() {
     setInput,
     ghost,
     animation,
+    mode,
     run,
     acceptCompletion,
     recallHistory,
     cancelAnimation,
+    exitFullscreen,
   } = useTerminal({ onExit: close })
 
-  // Closing the terminal stops any train mid-run (Escape or the exit command).
+  useMatrixRain(canvasRef, mode === TerminalMode.matrix)
+
+  // Closing the terminal stops any train and drops out of fullscreen (Escape or the exit command).
   useEffect(() => {
-    if (!active) cancelAnimation()
-  }, [active, cancelAnimation])
+    if (!active) {
+      cancelAnimation()
+      exitFullscreen()
+    }
+  }, [active, cancelAnimation, exitFullscreen])
+
+  // While the rain plays there's no visible input — any key or click stops it, cmatrix-style.
+  // But arm only after the launching key is released: a held Enter fires repeat keydowns, and
+  // without this the command's own Enter would exit the instant it entered.
+  useEffect(() => {
+    if (mode !== TerminalMode.matrix) return
+    let armed = false
+    const arm = () => {
+      armed = true
+    }
+    const stop = (event: Event) => {
+      if (!armed) return
+      event.preventDefault()
+      exitFullscreen()
+      inputRef.current?.focus()
+    }
+    window.addEventListener('keyup', arm, { once: true })
+    window.addEventListener('pointerup', arm, { once: true })
+    document.addEventListener('keydown', stop)
+    document.addEventListener('pointerdown', stop)
+    return () => {
+      window.removeEventListener('keyup', arm)
+      window.removeEventListener('pointerup', arm)
+      document.removeEventListener('keydown', stop)
+      document.removeEventListener('pointerdown', stop)
+    }
+  }, [mode, exitFullscreen])
 
   // '/' or '~' focuses the terminal from anywhere on the page, terminal-style.
   useEffect(() => {
@@ -81,7 +117,9 @@ export function Terminal() {
         // Consume the key so the browser doesn't also act on it (e.g. exiting fullscreen).
         event.preventDefault()
         event.stopPropagation()
-        close()
+        // Step down one level: fullscreen → inline, then inline → closed.
+        if (mode !== TerminalMode.inline) exitFullscreen()
+        else close()
         break
     }
   }
@@ -93,12 +131,22 @@ export function Terminal() {
       <div
         className={styles.frame}
         data-active={active || undefined}
+        data-mode={mode}
         onClick={() => {
+          if (mode === TerminalMode.matrix) return // the rain's own listener handles the exit
           // Focus unless the click was selecting log text to copy.
           if (window.getSelection()?.toString() === '') inputRef.current?.focus()
         }}
       >
-        {showLog && (
+        {mode === TerminalMode.matrix && (
+          <div className={styles.matrixWrap}>
+            <canvas ref={canvasRef} className={styles.matrix} aria-hidden="true" />
+            <span className={styles.matrixHint} aria-hidden="true">
+              press any key
+            </span>
+          </div>
+        )}
+        {mode !== TerminalMode.matrix && showLog && (
           <div ref={logRef} className={styles.log} role="log" aria-live="polite">
             {lines.map((line, index) =>
               line.kind === TerminalLineKind.art ? (
@@ -128,33 +176,35 @@ export function Terminal() {
             )}
           </div>
         )}
-        <div className={styles.promptRow}>
-          <span className={styles.prompt} aria-hidden="true">
-            {PROMPT}
-          </span>
-          <div className={styles.inputWrap}>
-            {ghost && (
-              <span className={styles.ghost} aria-hidden="true">
-                <span className={styles.ghostTyped}>{input}</span>
-                {ghost}
-              </span>
-            )}
-            <input
-              ref={inputRef}
-              className={styles.input}
-              value={input}
-              onChange={(event) => setInput(event.target.value)}
-              onKeyDown={onInputKeyDown}
-              onFocus={() => setActive(true)}
-              placeholder="try 'help'"
-              aria-label="Type a command"
-              spellCheck={false}
-              autoComplete="off"
-              autoCapitalize="off"
-              autoCorrect="off"
-            />
+        {mode !== TerminalMode.matrix && (
+          <div className={styles.promptRow}>
+            <span className={styles.prompt} aria-hidden="true">
+              {PROMPT}
+            </span>
+            <div className={styles.inputWrap}>
+              {ghost && (
+                <span className={styles.ghost} aria-hidden="true">
+                  <span className={styles.ghostTyped}>{input}</span>
+                  {ghost}
+                </span>
+              )}
+              <input
+                ref={inputRef}
+                className={styles.input}
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+                onKeyDown={onInputKeyDown}
+                onFocus={() => setActive(true)}
+                placeholder="try 'help'"
+                aria-label="Type a command"
+                spellCheck={false}
+                autoComplete="off"
+                autoCapitalize="off"
+                autoCorrect="off"
+              />
+            </div>
           </div>
-        </div>
+        )}
       </div>
       <div className={styles.chips}>
         {mobileChips.map((chip) => (

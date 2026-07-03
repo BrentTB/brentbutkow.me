@@ -21,6 +21,14 @@ export type TerminalLine = {
   text: string
 }
 
+// inline = normal size; expanded = grown in place; matrix = expanded with the rain taking over.
+export const TerminalMode = {
+  inline: 'inline',
+  expanded: 'expanded',
+  matrix: 'matrix',
+} as const
+export type TerminalMode = (typeof TerminalMode)[keyof typeof TerminalMode]
+
 // Long enough to read the command's output before the page changes underneath it.
 const NAVIGATE_AFTER_OUTPUT_MS = 900
 
@@ -37,6 +45,7 @@ export function useTerminal({ onExit }: UseTerminalOptions) {
   const [historyIndex, setHistoryIndex] = useState<number | null>(null)
   // The multi-line sprite currently sliding across the log, or null when nothing is playing.
   const [animation, setAnimation] = useState<string | null>(null)
+  const [mode, setMode] = useState<TerminalMode>(TerminalMode.inline)
   const navigateTimeout = useRef<ReturnType<typeof setTimeout>>()
   const animationTimeout = useRef<ReturnType<typeof setTimeout>>()
   const draft = useRef('')
@@ -45,6 +54,8 @@ export function useTerminal({ onExit }: UseTerminalOptions) {
     clearTimeout(animationTimeout.current)
     setAnimation(null)
   }, [])
+
+  const exitFullscreen = useCallback(() => setMode(TerminalMode.inline), [])
 
   useEffect(
     () => () => {
@@ -112,6 +123,14 @@ export function useTerminal({ onExit }: UseTerminalOptions) {
           setAnimation(result.action.text ?? '')
           animationTimeout.current = setTimeout(cancelAnimation, TRAIN_DURATION_MS)
           return
+        case TerminalActionType.toggleFullscreen:
+          setMode((current) =>
+            current === TerminalMode.inline ? TerminalMode.expanded : TerminalMode.inline
+          )
+          break
+        case TerminalActionType.matrix:
+          setMode(TerminalMode.matrix)
+          break
         case TerminalActionType.toggleFun:
           setIsFunMode(!isFunMode)
           break
@@ -169,9 +188,11 @@ export function useTerminal({ onExit }: UseTerminalOptions) {
     setInput,
     ghost,
     animation,
+    mode,
     run,
     acceptCompletion,
     recallHistory,
     cancelAnimation,
+    exitFullscreen,
   }
 }

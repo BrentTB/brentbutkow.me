@@ -36,6 +36,8 @@ import { STEAM_LOCOMOTIVE, cowsay } from './ascii'
 //   try 'help'                    typing the placeholder literally → "real funny."
 //   sl                            the ls typo → a steam locomotive chugs across the log
 //   cowsay <text>                 an ASCII cow says <text> (defaults to "moo")
+//   fullscreen                    grows the terminal in place (toggle); Escape shrinks it back
+//   cmatrix / matrix              enters fullscreen + rains green glyphs; any key or click exits
 // ──────────────────────────────────────────────────────────────────────────────
 
 // The virtual filesystem is the public route tree — one node per page a visitor can browse to.
@@ -105,6 +107,9 @@ export const TerminalCommand = {
   try: 'try',
   sl: 'sl',
   cowsay: 'cowsay',
+  fullscreen: 'fullscreen',
+  cmatrix: 'cmatrix',
+  matrix: 'matrix',
 } as const
 export type TerminalCommand = (typeof TerminalCommand)[keyof typeof TerminalCommand]
 
@@ -126,6 +131,8 @@ export const TerminalActionType = {
   openExternal: 'openExternal',
   setEyebrow: 'setEyebrow',
   animate: 'animate',
+  toggleFullscreen: 'toggleFullscreen',
+  matrix: 'matrix',
   toggleFun: 'toggleFun',
   downloadCv: 'downloadCv',
   clear: 'clear',
@@ -432,6 +439,11 @@ export function execute(rawInput: string, ctx: TerminalContext): TerminalResult 
       return { output: [], action: { type: TerminalActionType.animate, text: STEAM_LOCOMOTIVE } }
     case TerminalCommand.cowsay:
       return { output: cowsay(args.join(' ')).split('\n'), action: none, art: true }
+    case TerminalCommand.fullscreen:
+      return { output: [], action: { type: TerminalActionType.toggleFullscreen } }
+    case TerminalCommand.cmatrix:
+    case TerminalCommand.matrix:
+      return { output: [], action: { type: TerminalActionType.matrix } }
     case TerminalCommand.try:
       // Pays off the input placeholder — typing `try 'help'` literally instead of `help`.
       if (args.join(' ').replace(/['"]/g, '') === 'help') {

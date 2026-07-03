@@ -7,7 +7,7 @@ import { useFunMode } from '../../../../contexts/useFunMode'
 import { routePaths } from '../../../../routes/routes.paths'
 import { jokes } from '../../../../data/jokes'
 import { takeQueuedEyebrowText } from '../../eyebrow-queue'
-import { TerminalLineKind, useTerminal } from './useTerminal'
+import { TerminalLineKind, TerminalMode, useTerminal } from './useTerminal'
 
 const wrapper = ({ children }: { children: ReactNode }) => (
   <MemoryRouter initialEntries={[routePaths.home]}>
@@ -125,6 +125,23 @@ describe('useTerminal', () => {
     runCommand(result, 'help')
     expect(result.current.terminal.animation).toBeNull()
     vi.useRealTimers()
+  })
+
+  it('fullscreen toggles between inline and expanded', () => {
+    const { result } = renderTerminal()
+    expect(result.current.terminal.mode).toBe(TerminalMode.inline)
+    runCommand(result, 'fullscreen')
+    expect(result.current.terminal.mode).toBe(TerminalMode.expanded)
+    runCommand(result, 'fullscreen')
+    expect(result.current.terminal.mode).toBe(TerminalMode.inline)
+  })
+
+  it('cmatrix enters matrix mode, and exitFullscreen returns to inline', () => {
+    const { result } = renderTerminal()
+    runCommand(result, 'cmatrix')
+    expect(result.current.terminal.mode).toBe(TerminalMode.matrix)
+    act(() => result.current.terminal.exitFullscreen())
+    expect(result.current.terminal.mode).toBe(TerminalMode.inline)
   })
 
   it('clear empties the log', () => {

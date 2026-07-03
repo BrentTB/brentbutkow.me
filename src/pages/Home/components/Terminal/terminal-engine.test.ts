@@ -255,6 +255,12 @@ describe('execute — easter eggs and misc', () => {
     expect(result.action.text).toContain('====')
   })
 
+  it('fullscreen toggles the mode; cmatrix and matrix start the rain', () => {
+    expect(execute('fullscreen', ctx).action.type).toBe(TerminalActionType.toggleFullscreen)
+    expect(execute('cmatrix', ctx).action.type).toBe(TerminalActionType.matrix)
+    expect(execute('matrix', ctx).action.type).toBe(TerminalActionType.matrix)
+  })
+
   it("typing the placeholder try 'help' literally gets called out", () => {
     expect(execute("try 'help'", ctx).output[0]).toBe('real funny.')
     expect(execute('try help', ctx).output[0]).toBe('real funny.')

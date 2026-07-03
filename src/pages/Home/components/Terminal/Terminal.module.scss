@@ -29,6 +29,38 @@
   }
 }
 
+/* `fullscreen` / `cmatrix` — grow the terminal in place by giving the log much more room. */
+.frame[data-mode='expanded'] .log {
+  max-height: min(70vh, 640px);
+}
+
+/* The rain takes over the whole frame. */
+.matrixWrap {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius);
+}
+
+.matrix {
+  display: block;
+  width: 100%;
+  height: min(70vh, 640px);
+  background: #06080a;
+  cursor: pointer;
+}
+
+.matrixHint {
+  position: absolute;
+  right: 14px;
+  bottom: 12px;
+  color: rgba(77, 255, 136, 0.55);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+  user-select: none;
+}
+
 .log {
   max-height: 220px;
   overflow-y: auto;
