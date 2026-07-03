@@ -64,9 +64,10 @@ export function Terminal() {
     }
   }, [active, cancelAnimation, exitFullscreen])
 
-  // Focus the rain so its own keydown handler can catch the exit — clicking elsewhere on the page
-  // blurs it and leaves the rain running. Arm only after the launching key is released: a held
-  // Enter fires repeat keydowns, and without this the command's own Enter would exit on entry.
+  // Focus the rain so its own keydown handler can catch the exit — the rain closes only on a key
+  // pressed while it holds focus, never on a click or a key aimed elsewhere. Arm only after the
+  // launching key is released: a held Enter fires repeat keydowns, and without this the command's
+  // own Enter would exit on entry.
   useEffect(() => {
     if (mode !== TerminalMode.matrix) return
     matrixArmed.current = false
@@ -75,24 +76,15 @@ export function Terminal() {
       matrixArmed.current = true
     }
     window.addEventListener('keyup', arm, { once: true })
-    window.addEventListener('pointerup', arm, { once: true })
-    return () => {
-      window.removeEventListener('keyup', arm)
-      window.removeEventListener('pointerup', arm)
-    }
+    return () => window.removeEventListener('keyup', arm)
   }, [mode])
-
-  const dismissMatrix = () => {
-    if (!matrixArmed.current) return
-    // The input isn't mounted yet (still matrix this render) — refocus once it comes back.
-    refocusAfterMatrix.current = true
-    exitMatrix()
-  }
 
   const onMatrixKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (!matrixArmed.current) return
     event.preventDefault()
-    dismissMatrix()
+    // The input isn't mounted yet (still matrix this render) — refocus once it comes back.
+    refocusAfterMatrix.current = true
+    exitMatrix()
   }
 
   // Return focus to the command input after the rain closes, so typing continues uninterrupted.
@@ -166,7 +158,7 @@ export function Terminal() {
         // Mouse convenience only — the input itself is the keyboard-accessible control.
         role="presentation"
         onClick={() => {
-          if (mode === TerminalMode.matrix) return // the overlay's own handlers exit
+          if (mode === TerminalMode.matrix) return // the rain closes only via its own keydown
           // Focus unless the click was selecting log text to copy.
           if (window.getSelection()?.toString() === '') inputRef.current?.focus()
         }}
@@ -176,10 +168,9 @@ export function Terminal() {
             ref={matrixRef}
             className={styles.matrixWrap}
             role="button"
-            aria-label="Dismiss the matrix rain"
+            aria-label="Matrix rain, press any key to close"
             tabIndex={0}
             onKeyDown={onMatrixKeyDown}
-            onClick={dismissMatrix}
           >
             <canvas ref={canvasRef} className={styles.matrix} aria-hidden="true" />
             <span className={styles.matrixHint} aria-hidden="true">
