@@ -117,25 +117,33 @@ describe('useTerminal', () => {
     expect(result.current.terminal.lines).toEqual([])
   })
 
-  // Guards the professional-mode joke pool — without jokesForMode filtering, a sweep of the
-  // random range lands on fun-mode-only jokes and this fails.
-  it('joke in professional mode never draws a fun-mode-only joke', () => {
-    const funOnlyJokes = new Set(jokes.filter((joke) => joke.funMode).map((joke) => joke.joke))
-    expect(funOnlyJokes.size).toBeGreaterThan(0)
-    const randomSpy = vi.spyOn(Math, 'random')
+  // Guards the professional-mode joke pool — without the isJokeAllowed filter, a full wrap
+  // of the cycle lands on fun-mode-only jokes and this fails.
+  it('joke round-robins the whole professional pool with no repeats and no racy jokes', () => {
+    const professionalJokes = jokes.filter((joke) => !joke.funMode).map((joke) => joke.joke)
     const { result } = renderTerminal()
-    const draws = 50
-    for (let i = 0; i < draws; i++) {
-      randomSpy.mockReturnValueOnce(i / draws)
-      runCommand(result, 'joke')
-    }
-    randomSpy.mockRestore()
+    for (let i = 0; i < professionalJokes.length; i++) runCommand(result, 'joke')
     const outputs = result.current.terminal.lines
       .filter((line) => line.kind === TerminalLineKind.output)
       .map((line) => line.text)
-    expect(outputs).toHaveLength(draws)
-    for (const text of outputs) {
-      expect(funOnlyJokes.has(text)).toBe(false)
-    }
+    expect([...outputs].sort()).toEqual([...professionalJokes].sort())
+  })
+
+  it('toggling fun mode mid-session widens the joke pool, and narrows it back', () => {
+    const funOnlyJokes = new Set(jokes.filter((joke) => joke.funMode).map((joke) => joke.joke))
+    const outputTexts = (result: ReturnType<typeof renderTerminal>['result']) =>
+      result.current.terminal.lines
+        .filter((line) => line.kind === TerminalLineKind.output)
+        .map((line) => line.text)
+
+    const { result } = renderTerminal()
+    runCommand(result, 'fun')
+    for (let i = 0; i < jokes.length; i++) runCommand(result, 'joke')
+    expect(outputTexts(result).some((text) => funOnlyJokes.has(text))).toBe(true)
+
+    runCommand(result, 'clear')
+    runCommand(result, 'fun')
+    for (let i = 0; i < jokes.length; i++) runCommand(result, 'joke')
+    expect(outputTexts(result).filter((text) => funOnlyJokes.has(text))).toEqual([])
   })
 })

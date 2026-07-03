@@ -10,6 +10,5 @@ export const jokes: Joke[] = jokesData.map((joke) => ({
   funMode: 'funMode' in joke && joke.funMode === true,
 }))
 
-// Professional mode hides the racier jokes; fun mode gets the whole pool.
-export const jokesForMode = (isFunMode: boolean): Joke[] =>
-  isFunMode ? jokes : jokes.filter((joke) => !joke.funMode)
+// Professional mode hides the racier jokes; fun mode allows everything.
+export const isJokeAllowed = (joke: Joke, isFunMode: boolean): boolean => isFunMode || !joke.funMode

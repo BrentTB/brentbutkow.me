@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { jokes, jokesForMode, isJokeType } from './jokes'
+import { jokes, isJokeAllowed, isJokeType } from './jokes'
 import { JokeTypes } from './jokes.types'
 
 describe('isJokeType', () => {
@@ -30,16 +30,15 @@ describe('jokes data', () => {
   })
 })
 
-describe('jokesForMode', () => {
-  it('keeps fun-mode-only jokes out of the professional pool', () => {
-    const professional = jokesForMode(false)
-    expect(professional.length).toBeGreaterThan(0)
-    expect(professional.every((joke) => !joke.funMode)).toBe(true)
-  })
-
-  it('gives fun mode the full pool, which is strictly bigger', () => {
-    const fun = jokesForMode(true)
-    expect(fun).toEqual(jokes)
-    expect(fun.length).toBeGreaterThan(jokesForMode(false).length)
+describe('isJokeAllowed', () => {
+  it('blocks fun-mode-only jokes in professional mode, allows everything in fun mode', () => {
+    const tagged = jokes.find((joke) => joke.funMode)
+    const clean = jokes.find((joke) => !joke.funMode)
+    expect(tagged).toBeDefined()
+    expect(clean).toBeDefined()
+    expect(isJokeAllowed(tagged!, false)).toBe(false)
+    expect(isJokeAllowed(tagged!, true)).toBe(true)
+    expect(isJokeAllowed(clean!, false)).toBe(true)
+    expect(isJokeAllowed(clean!, true)).toBe(true)
   })
 })

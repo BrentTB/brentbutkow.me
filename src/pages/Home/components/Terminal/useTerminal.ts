@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useFunMode } from '../../../../contexts/useFunMode'
-import { jokesForMode } from '../../../../data/jokes'
+import { isJokeAllowed, jokes } from '../../../../data/jokes'
+import { Joke } from '../../../../data/jokes.types'
+import { createShuffledCycle, ShuffledCycle } from '../../../../utils/shuffled-cycle'
 import { cvHref } from '../../data'
 import { completions, execute, TerminalActionType } from './terminal-engine'
 
@@ -39,10 +41,14 @@ export function useTerminal({ onExit }: UseTerminalOptions) {
     return best ? best.slice(input.length) : ''
   }, [input])
 
-  const pickJoke = useCallback(() => {
-    const pool = jokesForMode(isFunMode)
-    return pool[Math.floor(Math.random() * pool.length)].joke
-  }, [isFunMode])
+  // Shuffled once per mount, then round-robined — no repeats until the pool wraps. The cursor
+  // survives mode toggles; the filter just decides which jokes the current mode may see.
+  const jokeCycle = useRef<ShuffledCycle<Joke>>()
+  if (!jokeCycle.current) jokeCycle.current = createShuffledCycle(jokes)
+  const pickJoke = useCallback(
+    () => jokeCycle.current?.next((joke) => isJokeAllowed(joke, isFunMode))?.joke ?? '',
+    [isFunMode]
+  )
 
   const run = useCallback(
     (command?: string) => {

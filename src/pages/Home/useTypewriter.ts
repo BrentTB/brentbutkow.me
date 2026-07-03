@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { shuffle } from '../../utils/shuffled-cycle'
 
 type TypewriterOptions = {
   /** Extra texts the typewriter cycles through, returning to the primary text between each. */
@@ -17,16 +18,6 @@ type TypewriterOptions = {
   randomizeOrder?: boolean
   /** When false, returns the primary text with no animation. */
   enabled?: boolean
-}
-
-/** Fisher–Yates, returning a new array. */
-function shuffle<T>(items: T[]): T[] {
-  const result = [...items]
-  for (let i = result.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[result[i], result[j]] = [result[j], result[i]]
-  }
-  return result
 }
 
 /**
