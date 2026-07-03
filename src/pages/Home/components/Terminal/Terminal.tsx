@@ -23,6 +23,7 @@ export function Terminal() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const matrixRef = useRef<HTMLDivElement>(null)
   const matrixArmed = useRef(false)
+  const refocusAfterMatrix = useRef(false)
   const [active, setActive] = useState(false)
 
   const close = useCallback(() => {
@@ -84,9 +85,18 @@ export function Terminal() {
   const onMatrixKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (!matrixArmed.current) return
     event.preventDefault()
+    // The input isn't mounted yet (still matrix this render) — refocus once it comes back.
+    refocusAfterMatrix.current = true
     exitMatrix()
-    inputRef.current?.focus()
   }
+
+  // Return focus to the command input after the rain closes, so typing continues uninterrupted.
+  useEffect(() => {
+    if (mode !== TerminalMode.matrix && refocusAfterMatrix.current) {
+      refocusAfterMatrix.current = false
+      inputRef.current?.focus({ preventScroll: true })
+    }
+  }, [mode])
 
   // '/' or '~' focuses the terminal from anywhere on the page, terminal-style.
   useEffect(() => {

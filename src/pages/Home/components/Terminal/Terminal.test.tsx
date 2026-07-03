@@ -67,6 +67,16 @@ describe('Terminal — fullscreen and matrix', () => {
     expect(modeOf(container)).toBe('inline')
   })
 
+  it('refocuses the command input when the rain is dismissed', () => {
+    const { container } = renderTerminal()
+    runCmd(container, 'cmatrix')
+    fireEvent.keyUp(document, { key: 'Enter' })
+    fireEvent.keyDown(matrixEl(container), { key: 'j' })
+    expect(document.activeElement).toBe(
+      container.querySelector('input[aria-label="Type a command"]')
+    )
+  })
+
   it('matrix launched from fullscreen returns to fullscreen, not inline', () => {
     const { container } = renderTerminal()
     runCmd(container, 'fullscreen')
