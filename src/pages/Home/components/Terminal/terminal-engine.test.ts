@@ -80,6 +80,37 @@ describe('execute — ls', () => {
   })
 })
 
+describe('execute — tree', () => {
+  it('draws the full nested structure with branch glyphs', () => {
+    const output = execute('tree', ctx).output
+    expect(output[0]).toBe('.')
+    expect(output).toContain('├── projects/')
+    expect(output).toContain('│   └── recall-radar')
+    expect(output).toContain('│   └── games/')
+    expect(output).toContain('│       └── null-space')
+    expect(output).toContain('└── contact')
+  })
+
+  it('covers every page exactly once', () => {
+    const output = execute('tree', ctx).output.join('\n')
+    for (const name of ['experience', 'education', 'achievements', 'ascii-art', 'gulag-sort']) {
+      expect(output).toContain(name)
+    }
+  })
+
+  it('-a adds the hidden game file; ls -R is an alias', () => {
+    expect(execute('tree', ctx).output.join('\n')).not.toContain('.the-game')
+    expect(execute('tree -a', ctx).output.join('\n')).toContain('.the-game')
+    expect(execute('ls -R', ctx).output).toEqual(execute('tree', ctx).output)
+    expect(execute('ls -aR', ctx).output).toEqual(execute('tree -a', ctx).output)
+  })
+
+  it('is Tab-completable and listed in help', () => {
+    expect(completions('tr')).toEqual(['tree '])
+    expect(execute('help', ctx).output.join('\n')).toContain('tree')
+  })
+})
+
 describe('execute — easter eggs and misc', () => {
   it('help lists the public commands', () => {
     const output = execute('help', ctx).output.join('\n')

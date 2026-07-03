@@ -52,6 +52,7 @@ export const terminalPages: TerminalPage[] = buildTree(browsablePaths)
 export const TerminalCommand = {
   help: 'help',
   ls: 'ls',
+  tree: 'tree',
   cd: 'cd',
   open: 'open',
   goto: 'goto',
@@ -72,6 +73,7 @@ export type TerminalCommand = (typeof TerminalCommand)[keyof typeof TerminalComm
 const publicCommands = [
   TerminalCommand.help,
   TerminalCommand.ls,
+  TerminalCommand.tree,
   TerminalCommand.cd,
   TerminalCommand.pwd,
   TerminalCommand.joke,
@@ -108,6 +110,9 @@ export type TerminalContext = {
 
 const none: TerminalAction = { type: TerminalActionType.none }
 
+const hasFlag = (args: string[], letter: string): boolean =>
+  args.some((arg) => /^-[a-zA-Z]+$/.test(arg) && arg.includes(letter))
+
 const HIDDEN_FILE = '.the-game'
 
 // `rm -rf /` lands on the 404 page — any unknown path hits the catch-all route.
@@ -116,6 +121,7 @@ const RM_CRASH_PATH = '/everything-is-gone'
 const HELP_LINES = [
   'help          this list',
   'ls [page]     list pages here',
+  'tree          the full page tree',
   'cd <page>     go to a page (Tab completes)',
   'pwd           where you are',
   'joke          one dad joke, on the house',
@@ -170,6 +176,24 @@ function listPages(pathArg: string | undefined, showHidden: boolean): string[] {
   const names = children.map((page) => (page.children.length > 0 ? `${page.name}/` : page.name))
   if (showHidden) names.unshift(HIDDEN_FILE)
   return [names.join('  ')]
+}
+
+function renderTree(pages: TerminalPage[], prefix: string, lines: string[]): void {
+  pages.forEach((page, index) => {
+    const isLast = index === pages.length - 1
+    const name = page.children.length > 0 ? `${page.name}/` : page.name
+    lines.push(`${prefix}${isLast ? '└── ' : '├── '}${name}`)
+    renderTree(page.children, `${prefix}${isLast ? '    ' : '│   '}`, lines)
+  })
+}
+
+function treePages(showHidden: boolean): string[] {
+  const roots = showHidden
+    ? [{ name: HIDDEN_FILE, path: '', children: [] }, ...terminalPages]
+    : terminalPages
+  const lines = ['.']
+  renderTree(roots, '', lines)
+  return lines
 }
 
 function changePage(pathArg: string | undefined): TerminalResult {
@@ -238,13 +262,18 @@ export function execute(rawInput: string, ctx: TerminalContext): TerminalResult 
     case TerminalCommand.help:
       return { output: HELP_LINES, action: none }
     case TerminalCommand.ls:
+      // -R is ls's spelling of the tree view.
       return {
-        output: listPages(
-          args.find((arg) => !arg.startsWith('-')),
-          args.some((arg) => /^-[a-z]*a[a-z]*$/.test(arg))
-        ),
+        output: hasFlag(args, 'R')
+          ? treePages(hasFlag(args, 'a'))
+          : listPages(
+              args.find((arg) => !arg.startsWith('-')),
+              hasFlag(args, 'a')
+            ),
         action: none,
       }
+    case TerminalCommand.tree:
+      return { output: treePages(hasFlag(args, 'a')), action: none }
     case TerminalCommand.cd:
     case TerminalCommand.open:
     case TerminalCommand.goto:
