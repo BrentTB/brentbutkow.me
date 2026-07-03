@@ -19,8 +19,15 @@ describe('eyebrow-queue', () => {
     expect(takeQueuedEyebrowText()).toBeNull()
   })
 
-  it('caps the queued text at 100 chars', () => {
+  it('leaves text within the limit untouched', () => {
+    queueEyebrowText('a'.repeat(100))
+    expect(takeQueuedEyebrowText()).toBe('a'.repeat(100))
+  })
+
+  it('caps overflow at 100 chars and marks the cut with an ellipsis', () => {
     queueEyebrowText('a'.repeat(500))
-    expect(takeQueuedEyebrowText()).toHaveLength(100)
+    const out = takeQueuedEyebrowText()
+    expect(out).toHaveLength(100)
+    expect(out?.endsWith('…')).toBe(true)
   })
 })

@@ -491,6 +491,8 @@ export function completions(input: string): string[] {
 
   const pathArg = args[args.length - 1]
   if (!pathCommands.includes(command) || pathArg.startsWith('-')) return []
+  // These commands take a single path; an earlier non-flag arg means the line is already malformed.
+  if (args.slice(0, -1).some((arg) => !arg.startsWith('-'))) return []
 
   // Split the arg at the last '/': everything before resolves as the parent, the tail is the
   // name still being typed — kept verbatim so '.' never silently vanishes into a match-all.

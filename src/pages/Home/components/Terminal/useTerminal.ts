@@ -163,5 +163,15 @@ export function useTerminal({ onExit }: UseTerminalOptions) {
     [history, historyIndex, input]
   )
 
-  return { lines, input, setInput, ghost, run, acceptCompletion, recallHistory }
+  return {
+    lines,
+    input,
+    setInput,
+    ghost,
+    animation,
+    run,
+    acceptCompletion,
+    recallHistory,
+    cancelAnimation,
+  }
 }

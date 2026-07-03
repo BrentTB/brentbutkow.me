@@ -96,6 +96,37 @@ describe('useTerminal', () => {
     openSpy.mockRestore()
   })
 
+  it('cowsay commits a single art line', () => {
+    const { result } = renderTerminal()
+    runCommand(result, 'cowsay hello')
+    const artLines = result.current.terminal.lines.filter(
+      (line) => line.kind === TerminalLineKind.art
+    )
+    expect(artLines).toHaveLength(1)
+    expect(artLines[0].text).toContain('< hello >')
+    expect(artLines[0].text).toContain('^__^')
+  })
+
+  it('sl plays the train, then clears it after the duration', () => {
+    vi.useFakeTimers()
+    const { result } = renderTerminal()
+    runCommand(result, 'sl')
+    expect(result.current.terminal.animation).toContain('====')
+    act(() => vi.advanceTimersByTime(4000))
+    expect(result.current.terminal.animation).toBeNull()
+    vi.useRealTimers()
+  })
+
+  it('a new command cancels a train still playing', () => {
+    vi.useFakeTimers()
+    const { result } = renderTerminal()
+    runCommand(result, 'sl')
+    expect(result.current.terminal.animation).not.toBeNull()
+    runCommand(result, 'help')
+    expect(result.current.terminal.animation).toBeNull()
+    vi.useRealTimers()
+  })
+
   it('clear empties the log', () => {
     const { result } = renderTerminal()
     runCommand(result, 'help')

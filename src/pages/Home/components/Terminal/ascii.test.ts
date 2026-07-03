@@ -21,8 +21,9 @@ describe('cowsay', () => {
 })
 
 describe('STEAM_LOCOMOTIVE', () => {
-  it('is a multi-line sprite', () => {
+  it('is a multi-line sprite with a smoke plume', () => {
     expect(STEAM_LOCOMOTIVE.split('\n').length).toBeGreaterThan(4)
     expect(STEAM_LOCOMOTIVE).toContain('====')
+    expect(STEAM_LOCOMOTIVE).toContain('(@@@@)') // smoke puff
   })
 })

@@ -1,5 +1,6 @@
 import { KeyboardEvent, useCallback, useEffect, useRef, useState } from 'react'
 import styles from './Terminal.module.scss'
+import { TRAIN_DURATION_MS } from './ascii'
 import { TerminalLineKind, useTerminal } from './useTerminal'
 
 const PROMPT = 'brent@butkow:~$'
@@ -24,9 +25,22 @@ export function Terminal() {
     inputRef.current?.blur()
   }, [])
 
-  const { lines, input, setInput, ghost, run, acceptCompletion, recallHistory } = useTerminal({
-    onExit: close,
-  })
+  const {
+    lines,
+    input,
+    setInput,
+    ghost,
+    animation,
+    run,
+    acceptCompletion,
+    recallHistory,
+    cancelAnimation,
+  } = useTerminal({ onExit: close })
+
+  // Closing the terminal stops any train mid-run (Escape or the exit command).
+  useEffect(() => {
+    if (!active) cancelAnimation()
+  }, [active, cancelAnimation])
 
   // '/' or '~' focuses the terminal from anywhere on the page, terminal-style.
   useEffect(() => {
@@ -40,10 +54,11 @@ export function Terminal() {
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [])
 
-  // Pin to the newest line — on each new command and when the log remounts on reopen.
+  // Pin to the newest line — on each new command, when the log remounts on reopen, and when a
+  // train appears (animation flips null → sprite, not per frame — CSS drives the motion).
   useEffect(() => {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight
-  }, [lines, active])
+  }, [lines, active, animation])
 
   const onInputKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     switch (event.key) {
@@ -85,16 +100,32 @@ export function Terminal() {
       >
         {showLog && (
           <div ref={logRef} className={styles.log} role="log" aria-live="polite">
-            {lines.map((line, index) => (
-              <p key={index} className={styles.line}>
-                {line.kind === TerminalLineKind.command && (
-                  <span className={styles.prompt} aria-hidden="true">
-                    {PROMPT}{' '}
-                  </span>
-                )}
-                {line.text}
-              </p>
-            ))}
+            {lines.map((line, index) =>
+              line.kind === TerminalLineKind.art ? (
+                <pre key={index} className={styles.art}>
+                  {line.text}
+                </pre>
+              ) : (
+                <p key={index} className={styles.line}>
+                  {line.kind === TerminalLineKind.command && (
+                    <span className={styles.prompt} aria-hidden="true">
+                      {PROMPT}{' '}
+                    </span>
+                  )}
+                  {line.text}
+                </p>
+              )
+            )}
+            {animation !== null && (
+              <div className={styles.track}>
+                <pre
+                  className={styles.train}
+                  style={{ animationDuration: `${TRAIN_DURATION_MS}ms` }}
+                >
+                  {animation}
+                </pre>
+              </div>
+            )}
           </div>
         )}
         <div className={styles.promptRow}>

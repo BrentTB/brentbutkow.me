@@ -63,6 +63,56 @@
   overflow-wrap: anywhere;
 }
 
+/* ASCII art (cowsay) — monospace, never wrapped; scrolls sideways if it outgrows the log. */
+.art {
+  margin: 4px 0;
+  color: var(--text-secondary);
+  font: inherit;
+  line-height: 1.2;
+  white-space: pre;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.art::-webkit-scrollbar {
+  display: none;
+}
+
+/* The sl locomotive slides through this fixed window, clipped at both edges. */
+.track {
+  overflow: hidden;
+}
+
+.train {
+  display: inline-block;
+  margin: 4px 0;
+  color: var(--accent);
+  font: inherit;
+  line-height: 1.2;
+  white-space: pre;
+  will-change: transform;
+  animation-name: chug;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+/* Start fully off the right, exit fully off the left (percentages are of the train's own width). */
+@keyframes chug {
+  from {
+    transform: translateX(200%);
+  }
+  to {
+    transform: translateX(-120%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .train {
+    animation: none;
+    transform: none;
+  }
+}
+
 .prompt {
   color: var(--accent);
   user-select: none;

@@ -5,6 +5,9 @@
 export const TRAIN_DURATION_MS = 4000
 
 export const STEAM_LOCOMOTIVE = [
+  '                   (@@@@)',
+  '                (   )',
+  '            (@@)',
   '      ====        ________                ___________',
   '  _D _|  |_______/        \\__I_I_____===__|_________|',
   '   |(_)---  |   H\\________/ |   |        =|___ ___|',
@@ -26,6 +29,10 @@ const COWSAY_MAX_LENGTH = 40
 
 export function cowsay(message: string): string {
   const text = (message.trim() || 'moo').slice(0, COWSAY_MAX_LENGTH)
-  const bubble = [` ${'_'.repeat(text.length + 2)}`, `< ${text} >`, ` ${'-'.repeat(text.length + 2)}`]
+  const bubble = [
+    ` ${'_'.repeat(text.length + 2)}`,
+    `< ${text} >`,
+    ` ${'-'.repeat(text.length + 2)}`,
+  ]
   return [...bubble, ...COW].join('\n')
 }

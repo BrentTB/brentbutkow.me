@@ -7,7 +7,8 @@ const EYEBROW_MAX_LENGTH = 100
 let nextText: string | null = null
 
 export function queueEyebrowText(text: string): void {
-  nextText = text.slice(0, EYEBROW_MAX_LENGTH)
+  // Mark a truncation with an ellipsis instead of cutting off mid-word with nothing.
+  nextText = text.length > EYEBROW_MAX_LENGTH ? `${text.slice(0, EYEBROW_MAX_LENGTH - 1)}…` : text
 }
 
 /** Returns the queued text and clears it — each write shows exactly once. */

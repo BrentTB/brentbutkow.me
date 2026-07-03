@@ -238,6 +238,23 @@ describe('execute — easter eggs and misc', () => {
     expect(execute('ls -a', ctx).output[0]).toContain('.eyebrow')
   })
 
+  it('cowsay returns the bubble and cow as art', () => {
+    const result = execute('cowsay moo', ctx)
+    expect(result.art).toBe(true)
+    expect(result.output.join('\n')).toContain('< moo >')
+    expect(result.output.join('\n')).toContain('^__^')
+  })
+
+  it('cowsay with no message defaults to moo', () => {
+    expect(execute('cowsay', ctx).output.join('\n')).toContain('< moo >')
+  })
+
+  it('sl triggers the train animation carrying the sprite', () => {
+    const result = execute('sl', ctx)
+    expect(result.action.type).toBe(TerminalActionType.animate)
+    expect(result.action.text).toContain('====')
+  })
+
   it("typing the placeholder try 'help' literally gets called out", () => {
     expect(execute("try 'help'", ctx).output[0]).toBe('real funny.')
     expect(execute('try help', ctx).output[0]).toBe('real funny.')
@@ -280,6 +297,13 @@ describe('completions', () => {
   it('a bare dot never completes to a page for cd', () => {
     expect(completions('cd .')).toEqual([])
     expect(completions('cd fun-stuff/.')).toEqual([])
+  })
+
+  it('offers nothing once a path command already has an earlier argument', () => {
+    expect(completions('cd test a')).toEqual([])
+    expect(completions('cat foo bar')).toEqual([])
+    // Flags before the path are fine — only earlier non-flag args disqualify it.
+    expect(completions('ls -a fun')).toEqual(['ls -a fun-stuff/'])
   })
 
   it('ls and tree complete only directories, digging into nested ones', () => {
