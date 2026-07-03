@@ -17,7 +17,7 @@ export const DEFAULT_CHARSET: CharsetName = 'classic'
 export const CUSTOM_CHARSET = 'custom' as const
 export type CharsetSelection = CharsetName | typeof CUSTOM_CHARSET
 // Seed value when switching to a custom ramp, so it renders something right away.
-export const DEFAULT_CUSTOM_RAMP = '@%#*+=-:. '
+const DEFAULT_CUSTOM_RAMP = '@%#*+=-:. '
 
 // Output detail as character ROWS (height). Cols are derived from the source
 // aspect so vertical media stays viewable, and glyphs scale to the fixed canvas

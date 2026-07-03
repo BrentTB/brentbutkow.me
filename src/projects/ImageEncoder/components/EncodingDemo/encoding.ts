@@ -24,7 +24,7 @@ export const START_STEP = 0
 const STEPS_PER_CHANNEL = 2
 
 // Steps in a single pass over every channel.
-export function passLength(channelCount: number): number {
+function passLength(channelCount: number): number {
   return channelCount * STEPS_PER_CHANNEL
 }
 

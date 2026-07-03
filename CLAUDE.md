@@ -67,6 +67,12 @@ Repo-wide invariant tests in [site-invariants.test.ts](src/site-invariants.test.
 shipped as a 404), and every `import.meta.env.*` is `VITE_`-prefixed or a Vite built-in (Vite silently
 gives the client `undefined` otherwise — this shipped broken twice).
 
+[knip](knip.json) (`npm run knip`, part of `npm run check` and a CI step) catches cross-file dead
+code `tsc` can't — orphaned files, exports, and types (item 6 below). An export used only inside its
+own file isn't "used" to knip: drop the `export` keyword. Genuinely dead code gets deleted, not kept
+behind an `export` to dodge the unused warning. New dev-only entry points (extra root `*.html`) go in
+knip's `entry` list.
+
 ## Before you finish — recurring review misses
 
 The judgment calls `cr` flags most often (ranked from every past review + fix commit). Self-check
@@ -92,6 +98,7 @@ before declaring done:
    the options vary ("…or company" shown for a country with no company filter).
 6. **Dead code.** After a refactor/rename, delete orphaned exports, enum members, config, and re-export
    shims — `tsc` won't catch cross-file dead code (a whole orphaned `SubscriptionPanel.tsx` shipped).
+   `npm run knip` now flags this class; run it, then delete or de-export what it finds.
 7. **Comment drift.** The hook only blocks narration _words_; comments whose **content** went stale —
    JSDoc for a removed prop, a comment listing fields in an order the code no longer uses — are on you.
    Re-read comments adjacent to every change.

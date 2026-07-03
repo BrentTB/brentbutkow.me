@@ -42,7 +42,7 @@ import { STEAM_LOCOMOTIVE, cowsay } from './ascii'
 
 // The virtual filesystem is the public route tree — one node per page a visitor can browse to.
 // Private, redirect-only, and dynamic-param routes stay out.
-export type TerminalPage = {
+type TerminalPage = {
   name: string
   path: string
   children: TerminalPage[]
@@ -85,9 +85,9 @@ function buildTree(paths: string[]): TerminalPage[] {
   return root
 }
 
-export const terminalPages: TerminalPage[] = buildTree(browsablePaths)
+const terminalPages: TerminalPage[] = buildTree(browsablePaths)
 
-export const TerminalCommand = {
+const TerminalCommand = {
   help: 'help',
   ls: 'ls',
   tree: 'tree',
@@ -111,7 +111,7 @@ export const TerminalCommand = {
   cmatrix: 'cmatrix',
   matrix: 'matrix',
 } as const
-export type TerminalCommand = (typeof TerminalCommand)[keyof typeof TerminalCommand]
+type TerminalCommand = (typeof TerminalCommand)[keyof typeof TerminalCommand]
 
 // Commands offered by help + Tab — easter eggs stay discoverable, not advertised.
 const publicCommands = [
@@ -141,7 +141,7 @@ export const TerminalActionType = {
 } as const
 export type TerminalActionType = (typeof TerminalActionType)[keyof typeof TerminalActionType]
 
-export type TerminalAction = {
+type TerminalAction = {
   type: TerminalActionType
   path?: string
   text?: string

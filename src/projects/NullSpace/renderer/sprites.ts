@@ -69,21 +69,6 @@ const DRONE_SPRITE: SpriteData = [
   [_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _],
 ]
 
-// Not used locally, so exported to avoid TS errors
-export const _OLD_DRONE_SPRITE: SpriteData = [
-  [_, _, _, _, R, R, _, _, _, _, R, R, _, _, _, _],
-  [_, _, _, R, r, R, _, _, _, _, R, r, R, _, _, _],
-  [_, _, R, r, R, _, _, _, _, _, _, R, r, R, _, _],
-  [_, _, R, R, _, _, _, R, R, _, _, _, R, R, _, _],
-  [_, _, _, _, _, _, R, r, r, R, _, _, _, _, _, _],
-  [_, _, _, _, _, R, r, B, B, r, R, _, _, _, _, _],
-  [_, _, _, _, R, r, B, W, W, B, r, R, _, _, _, _],
-  [_, _, _, _, R, r, B, B, B, B, r, R, _, _, _, _],
-  [_, _, _, _, _, R, r, r, r, r, R, _, _, _, _, _],
-  [_, _, _, _, _, _, R, R, R, R, _, _, _, _, _, _],
-  [_, _, _, _, _, _, _, R, R, _, _, _, _, _, _, _],
-  [_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _],
-]
 // Bulky steel diamond — heavy plating with twin red sensor clusters.
 const TANK_SPRITE: SpriteData = [
   [_, _, _, _, _, _, _, t, t, _, _, _, _, _, _, _],
@@ -176,19 +161,6 @@ const SWARM_SPRITE: SpriteData = [
   [_, _, M, m, R, M, _, _],
   [_, _, _, M, M, _, _, _],
   [_, _, _, _, _, _, _, _],
-]
-
-// Wasp dart — white eye band behind the nose, flared mid wings, dark tail
-// tip. Reserved for a future enemy kind.
-export const _NEW_SWARM_SPRITE: SpriteData = [
-  [_, _, _, M, M, _, _, _],
-  [_, _, M, m, m, M, _, _],
-  [_, M, m, W, W, m, M, _],
-  [M, m, m, m, m, m, m, M],
-  [M, M, m, m, m, m, M, M],
-  [_, M, M, m, m, M, M, _],
-  [_, _, _, M, M, _, _, _],
-  [_, _, _, m, m, _, _, _],
 ]
 
 // Naval contact mine — dark round shell with eight protruding fuse horns
