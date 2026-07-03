@@ -435,8 +435,13 @@ const pathCommands: string[] = [
   TerminalCommand.open,
   TerminalCommand.goto,
   TerminalCommand.ls,
+  TerminalCommand.tree,
   TerminalCommand.cat,
 ]
+
+// ls/tree take a directory to descend into, so only pages with children are worth completing —
+// a leaf page still runs (`ls achievements`), it just isn't suggested.
+const dirOnlyCommands: string[] = [TerminalCommand.ls, TerminalCommand.tree]
 
 // Files cat can read at the root, offered alongside pages. Dotfiles stay out of suggestions
 // until the typed partial starts with '.' — same convention as a real shell.
@@ -483,8 +488,10 @@ export function completions(input: string): string[] {
   const parent = parentSegments.length === 0 ? null : findPage(parentSegments)
   const level = parentSegments.length === 0 ? terminalPages : (parent?.children ?? [])
 
+  const dirsOnly = dirOnlyCommands.includes(command)
   const pageMatches = level
     .filter((page) => page.name.startsWith(partial) && page.name !== partial)
+    .filter((page) => !dirsOnly || page.children.length > 0)
     .map((page) => `${base}${page.name}${page.children.length > 0 ? '/' : ''}`)
 
   const fileMatches =

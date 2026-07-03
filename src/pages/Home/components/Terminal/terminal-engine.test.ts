@@ -282,6 +282,19 @@ describe('completions', () => {
     expect(completions('cd fun-stuff/.')).toEqual([])
   })
 
+  it('ls and tree complete only directories, digging into nested ones', () => {
+    expect(completions('ls pro')).toEqual(['ls projects/'])
+    expect(completions('tree pro')).toEqual(['tree projects/'])
+    expect(completions('tree fun-stuff/')).toEqual(['tree fun-stuff/games/'])
+  })
+
+  it('ls and tree skip leaf pages, which still run without a suggestion', () => {
+    // 'achievements' is a leaf — allowed to list, but not offered as a completion.
+    expect(completions('ls ach')).toEqual([])
+    expect(completions('tree ach')).toEqual([])
+    expect(completions('ls projects/')).toEqual([])
+  })
+
   it('cat completes pages and digs into them like cd', () => {
     expect(completions('cat proj')).toEqual(['cat projects/'])
     expect(completions('cat projects/')).toEqual(['cat projects/recall-radar'])
