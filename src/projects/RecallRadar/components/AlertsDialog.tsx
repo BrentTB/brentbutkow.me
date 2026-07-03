@@ -61,7 +61,12 @@ export function AlertsDialog({ title, description, onClose, children }: AlertsDi
   }, [onClose])
 
   return (
-    <div className={styles.backdrop} onClick={onClose}>
+    <div
+      className={styles.backdrop}
+      role="presentation"
+      // Close only on clicks that start on the backdrop itself, not inside the panel.
+      onClick={(event) => event.target === event.currentTarget && onClose()}
+    >
       <div
         ref={panelRef}
         className={styles.panel}
@@ -69,7 +74,6 @@ export function AlertsDialog({ title, description, onClose, children }: AlertsDi
         aria-modal="true"
         aria-labelledby="alerts-dialog-title"
         tabIndex={-1}
-        onClick={(event) => event.stopPropagation()}
       >
         <div className={styles.head}>
           <div className={styles.headText}>

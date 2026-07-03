@@ -108,6 +108,8 @@ export function Select({
         type="button"
         className={[styles.trigger, triggerClassName].filter(Boolean).join(' ')}
         disabled={disabled}
+        // APG select-only combobox: the combobox role is what permits aria-activedescendant.
+        role="combobox"
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={open ? listboxId : undefined}
@@ -142,6 +144,9 @@ export function Select({
             }
           >
             {options.map((option, index) => (
+              // Keyboard selection happens on the combobox trigger (arrows + Enter via
+              // aria-activedescendant) — options themselves are mouse targets only.
+              // eslint-disable-next-line jsx-a11y/click-events-have-key-events
               <li
                 key={option.value}
                 id={optionId(index)}

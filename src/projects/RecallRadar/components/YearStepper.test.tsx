@@ -39,7 +39,7 @@ describe('YearStepper', () => {
   it('jumps to a year picked from the dropdown', () => {
     const onChange = vi.fn()
     render(<YearStepper year={2024} years={years} onChange={onChange} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Year' }))
+    fireEvent.click(screen.getByRole('combobox', { name: 'Year' }))
     fireEvent.click(screen.getByRole('option', { name: '2022' }))
     expect(onChange).toHaveBeenCalledWith(2022)
   })
@@ -53,7 +53,7 @@ describe('YearStepper', () => {
         onChange={vi.fn()}
       />
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Year' }))
+    fireEvent.click(screen.getByRole('combobox', { name: 'Year' }))
     // 2023 has no recalls → disabled; 2022 has some → enabled.
     expect(screen.getByRole('option', { name: /2023/ }).getAttribute('aria-disabled')).toBe('true')
     expect(screen.getByRole('option', { name: /2022/ }).getAttribute('aria-disabled')).toBeNull()

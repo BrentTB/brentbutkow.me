@@ -55,13 +55,17 @@ export function PdfExportDialog({
   const est = estimate(activeFps, length)
 
   return (
-    <div className={styles.backdrop} onClick={onClose}>
+    <div
+      className={styles.backdrop}
+      role="presentation"
+      // Close only on clicks that start on the backdrop itself, not inside the panel.
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
       <div
         className={styles.panel}
         role="dialog"
         aria-modal="true"
         aria-labelledby="pdf-export-title"
-        onClick={(e) => e.stopPropagation()}
       >
         <h2 id="pdf-export-title" className={styles.title}>
           Export ASCII PDF

@@ -55,7 +55,7 @@ describe('ViewTabs', () => {
         panelId="panel"
       />
     )
-    fireEvent.keyDown(screen.getByRole('tablist'), { key: 'ArrowRight' })
+    fireEvent.keyDown(screen.getByRole('tab', { name: 'Dashboard' }), { key: 'ArrowRight' })
     expect(onChange).toHaveBeenLastCalledWith('recalls')
 
     // ArrowLeft from the first tab wraps to the last.
@@ -68,7 +68,7 @@ describe('ViewTabs', () => {
         panelId="panel"
       />
     )
-    fireEvent.keyDown(screen.getByRole('tablist'), { key: 'ArrowLeft' })
+    fireEvent.keyDown(screen.getByRole('tab', { name: 'Dashboard' }), { key: 'ArrowLeft' })
     expect(onChange).toHaveBeenLastCalledWith('about')
   })
 
@@ -83,9 +83,9 @@ describe('ViewTabs', () => {
         panelId="panel"
       />
     )
-    fireEvent.keyDown(screen.getByRole('tablist'), { key: 'End' })
+    fireEvent.keyDown(screen.getByRole('tab', { name: 'Recalls' }), { key: 'End' })
     expect(onChange).toHaveBeenLastCalledWith('about')
-    fireEvent.keyDown(screen.getByRole('tablist'), { key: 'Home' })
+    fireEvent.keyDown(screen.getByRole('tab', { name: 'Recalls' }), { key: 'Home' })
     expect(onChange).toHaveBeenLastCalledWith('dashboard')
   })
 })

@@ -47,25 +47,52 @@ logic is unit-tested (`npm run test:hooks`).
   bump in `data.ts`, reminds you (skip for internal refactors).
 
 ESLint (in [eslint.config.js](eslint.config.js), runs under `npm run check`) also enforces:
-no magic-string union types; no `Math.random`/`Date.now` in the Null Space engine (use the seeded `rng`
-— the rng module itself is the one exempt seam).
+no magic-string union types; named exports only (no `default`); no raw `<a>` in JSX except same-page
+`#hash` anchors (use `SafeLink`/`Link`); `jsx-a11y` recommended rules; no wall-clock or unseeded
+randomness in the Null Space engine (`Math.random`/`Date.now`/`performance.now`/`new Date` — use the
+seeded `rng`; the rng module itself is the one exempt seam).
+
+Repo-wide invariant tests in [site-invariants.test.ts](src/site-invariants.test.ts) (run under
+`npm test`): every root-absolute asset path referenced in `src/` exists in `public/` (a CV link once
+shipped as a 404), and every `import.meta.env.*` is `VITE_`-prefixed or a Vite built-in (Vite silently
+gives the client `undefined` otherwise — this shipped broken twice).
 
 ## Before you finish — recurring review misses
 
-The judgment calls `cr` flags most often. Self-check before declaring done:
+The judgment calls `cr` flags most often (ranked from every past review + fix commit). Self-check
+before declaring done:
 
-1. **Tests.** Changed a `useX` hook or engine logic → add/extend its colocated test. Fixed a bug → add a
-   regression test that **fails without the fix** (verify by reverting). Added a `GameState` field → add a
-   save→load round-trip test (the `...state` spread silently drops locally-mutated fields).
+1. **Tests.** The #1 miss — flagged in 10 of 15 past reviews. Not just hooks/engine: a component that
+   gained an interactive branch or a `scripts/` module needs one too. Fixed a bug → add a regression
+   test that **fails without the fix** (verify by reverting). Added a `GameState` field → add a
+   save→load round-trip test (the `...state` spread silently drops locally-mutated fields). Assert
+   against **imported constants**, not hardcoded copies of their values; a test that only proves
+   "doesn't throw" proves nothing.
 2. **Duplication.** Copied a block to a 2nd caller → extract a helper (see [homing.ts](src/projects/NullSpace/engine/homing.ts)).
+   Past misses: the same 422-response parser pasted into a hook and a page; the same menu-positioning
+   effect in `Select` and `Combobox`.
 3. **One source of truth.** Don't re-declare config/derived data (e.g. `ENEMY_CONFIGS` vs `ENEMY_STATS`)
    or re-implement an exported helper in the UI — import it.
-4. **Propagation.** Renamed something → grep for stale strings/glyphs across every surface. User-facing
-   change → bump the changelog and check its prose matches the shipped constants.
-5. **Dead code.** After a refactor/rename, delete orphaned exports, enum members, config, and re-export
-   shims — `tsc` won't catch cross-file dead code.
-6. **Hot loop.** No per-frame allocation in canvas render (cache gradients/paths outside the frame).
-7. **a11y.** New interactive control → `aria-pressed`/`role`/focus management consistent with siblings.
+4. **Untrusted data.** Parse server/localStorage JSON through the repo's existing guards
+   (`isJokeType`-style) — never `as` casts. New external input gets a bound (length cap, phase check
+   for old saves). Flagged in 5 different sessions.
+5. **Propagation.** Renamed something → grep for stale strings/glyphs across every surface. User-facing
+   change → bump the changelog and check its prose matches the shipped constants. Copy propagates too:
+   pluralize counts ("1 states" shipped), and re-check placeholders/hints that enumerate options when
+   the options vary ("…or company" shown for a country with no company filter).
+6. **Dead code.** After a refactor/rename, delete orphaned exports, enum members, config, and re-export
+   shims — `tsc` won't catch cross-file dead code (a whole orphaned `SubscriptionPanel.tsx` shipped).
+7. **Comment drift.** The hook only blocks narration _words_; comments whose **content** went stale —
+   JSDoc for a removed prop, a comment listing fields in an order the code no longer uses — are on you.
+   Re-read comments adjacent to every change.
+8. **Hot loop.** No per-frame allocation in canvas render (cache gradients/paths outside the frame —
+   a per-frame `{x, y}` in `renderer.ts` shipped).
+9. **a11y.** Lint now enforces the basics (roles, keyboard handlers on clickables). Still on you: focus
+   trap/restore in dialogs, `prefers-reduced-motion` on new animation, Home/End in composite widgets,
+   `aria-pressed`/focus management consistent with siblings.
+10. **Behavior matches the label.** Walk the real click path once: a "Download CV" that navigated
+    instead of downloading, a submit button that disabled itself mid-typing, a seen-toggle that left
+    the row visible under an "Unread" filter — all shipped.
 
 ## Stack
 

@@ -82,12 +82,17 @@ export function Terminal() {
     }
   }, [mode])
 
-  const onMatrixKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+  const dismissMatrix = () => {
     if (!matrixArmed.current) return
-    event.preventDefault()
     // The input isn't mounted yet (still matrix this render) — refocus once it comes back.
     refocusAfterMatrix.current = true
     exitMatrix()
+  }
+
+  const onMatrixKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (!matrixArmed.current) return
+    event.preventDefault()
+    dismissMatrix()
   }
 
   // Return focus to the command input after the rain closes, so typing continues uninterrupted.
@@ -158,8 +163,10 @@ export function Terminal() {
       <div
         className={styles.frame}
         data-active={active || undefined}
+        // Mouse convenience only — the input itself is the keyboard-accessible control.
+        role="presentation"
         onClick={() => {
-          if (mode === TerminalMode.matrix) return // its own keydown handles the exit
+          if (mode === TerminalMode.matrix) return // the overlay's own handlers exit
           // Focus unless the click was selecting log text to copy.
           if (window.getSelection()?.toString() === '') inputRef.current?.focus()
         }}
@@ -168,8 +175,11 @@ export function Terminal() {
           <div
             ref={matrixRef}
             className={styles.matrixWrap}
+            role="button"
+            aria-label="Dismiss the matrix rain"
             tabIndex={0}
             onKeyDown={onMatrixKeyDown}
+            onClick={dismissMatrix}
           >
             <canvas ref={canvasRef} className={styles.matrix} aria-hidden="true" />
             <span className={styles.matrixHint} aria-hidden="true">
