@@ -17,6 +17,7 @@ function isTypingTarget(target: EventTarget | null): boolean {
 }
 
 export function Terminal() {
+  const sectionRef = useRef<HTMLElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const logRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -45,6 +46,14 @@ export function Terminal() {
   } = useTerminal({ onExit: close })
 
   useMatrixRain(canvasRef, mode === TerminalMode.matrix)
+
+  // Fullscreen grows the terminal past the fold — scroll it to the viewport center so the whole
+  // thing is visible without the user chasing it down the page.
+  useEffect(() => {
+    if (mode === TerminalMode.inline) return
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    sectionRef.current?.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' })
+  }, [mode])
 
   // Closing the terminal stops any train and drops out of fullscreen (Escape or the exit command).
   useEffect(() => {
@@ -130,7 +139,12 @@ export function Terminal() {
     mode !== TerminalMode.matrix && (mode === TerminalMode.expanded || (active && lines.length > 0))
 
   return (
-    <section className={styles.terminal} aria-label="Site terminal" data-mode={mode}>
+    <section
+      ref={sectionRef}
+      className={styles.terminal}
+      aria-label="Site terminal"
+      data-mode={mode}
+    >
       <div
         className={styles.frame}
         data-active={active || undefined}
@@ -228,7 +242,7 @@ export function Terminal() {
         ))}
       </div>
       <p className={styles.hint} aria-hidden="true">
-        press / anywhere to jump to the terminal · Tab completes · Esc closes
+        press / to jump here · Tab completes · Esc closes
       </p>
     </section>
   )

@@ -1,8 +1,13 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeAll, vi } from 'vitest'
 import { render, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { FunModeProvider } from '../../../../contexts/FunModeProvider'
 import { Terminal } from './Terminal'
+
+// jsdom doesn't implement scrollIntoView; the fullscreen effect calls it.
+beforeAll(() => {
+  Element.prototype.scrollIntoView = vi.fn()
+})
 
 function renderTerminal() {
   return render(
