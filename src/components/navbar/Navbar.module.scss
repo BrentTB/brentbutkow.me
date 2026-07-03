@@ -51,6 +51,7 @@
   letter-spacing: 0.01em;
   position: relative;
   z-index: 20;
+  white-space: nowrap;
 }
 
 .prompt {
@@ -87,6 +88,9 @@
   letter-spacing: 0.03em;
   color: var(--text-secondary);
   transition: color 150ms ease;
+  // Two-word labels ("Fun Stuff", "Contact Me") must stay on one line — otherwise the grid
+  // shrinks the nav to their min-content and they wrap in the band just above the mobile breakpoint.
+  white-space: nowrap;
 }
 
 .link:hover,
@@ -200,7 +204,10 @@
   }
 }
 
-@media (max-width: 1024px) {
+// Collapse to the hamburger before the desktop row runs out of space. Above ~1100px the shell's
+// side padding widens (clamp(20px, 4vw, 48px)), so the full nav only fits on one line past ~1110px;
+// below this it would squeeze the brand and wrap the two-word labels.
+@media (max-width: 1120px) {
   .navbar {
     grid-template-columns: auto 1fr auto;
     grid-template-rows: auto 0fr;

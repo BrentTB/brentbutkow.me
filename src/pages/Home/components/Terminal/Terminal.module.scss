@@ -198,6 +198,10 @@
 .input {
   width: 100%;
   border: none;
+  // Zero padding so the real text starts at the same x as the .ghost overlay's left edge —
+  // otherwise the completion suffix sits off-grid and a typed char jumps instead of just
+  // recoloring the ghost letter beneath it.
+  padding: 0;
   background: transparent;
   color: var(--text);
   font: inherit;
