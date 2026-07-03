@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useFunMode } from '../../../../contexts/useFunMode'
-import { jokes } from '../../../../data/jokes'
+import { jokesForMode } from '../../../../data/jokes'
 import { cvHref } from '../../data'
 import { completions, execute, TerminalActionType } from './terminal-engine'
 
@@ -39,7 +39,10 @@ export function useTerminal({ onExit }: UseTerminalOptions) {
     return best ? best.slice(input.length) : ''
   }, [input])
 
-  const pickJoke = useCallback(() => jokes[Math.floor(Math.random() * jokes.length)].joke, [])
+  const pickJoke = useCallback(() => {
+    const pool = jokesForMode(isFunMode)
+    return pool[Math.floor(Math.random() * pool.length)].joke
+  }, [isFunMode])
 
   const run = useCallback(
     (command?: string) => {

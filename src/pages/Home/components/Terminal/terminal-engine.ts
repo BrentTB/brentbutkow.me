@@ -209,13 +209,17 @@ function catFile(fileArg: string | undefined, ctx: TerminalContext): TerminalRes
   return { output: [`cat: ${fileArg}: no such file`], action: none }
 }
 
+// Every spelling of "delete everything" — cwd is always the site root, so '.', '*', and '~'
+// forms all point at the same thing '/' does.
+const nukeTargets = ['/', '/*', '.', './', './*', '*', '~', '~/', '~/*']
+
 function removeFile(args: string[]): TerminalResult {
   const flags = args.filter((arg) => arg.startsWith('-'))
   const target = args.find((arg) => !arg.startsWith('-'))
-  const recursiveForce = flags.some((flag) => /^-[rf]+$/.test(flag) && flag.includes('r'))
-  if (target === '/' && recursiveForce) {
+  const recursive = flags.some((flag) => /^-[rf]+$/.test(flag) && flag.includes('r'))
+  if (target && nukeTargets.includes(target) && recursive) {
     return {
-      output: ['removing /…'],
+      output: [`removing ${target}…`],
       action: { type: TerminalActionType.navigate, path: RM_CRASH_PATH },
     }
   }

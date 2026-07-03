@@ -5,6 +5,7 @@ import { MemoryRouter, useLocation } from 'react-router-dom'
 import { FunModeProvider } from '../../../../contexts/FunModeProvider'
 import { useFunMode } from '../../../../contexts/useFunMode'
 import { routePaths } from '../../../../routes/routes.paths'
+import { jokes } from '../../../../data/jokes'
 import { TerminalLineKind, useTerminal } from './useTerminal'
 
 const wrapper = ({ children }: { children: ReactNode }) => (
@@ -114,5 +115,27 @@ describe('useTerminal', () => {
     const { result } = renderTerminal()
     runCommand(result, '   ')
     expect(result.current.terminal.lines).toEqual([])
+  })
+
+  // Guards the professional-mode joke pool — without jokesForMode filtering, a sweep of the
+  // random range lands on fun-mode-only jokes and this fails.
+  it('joke in professional mode never draws a fun-mode-only joke', () => {
+    const funOnlyJokes = new Set(jokes.filter((joke) => joke.funMode).map((joke) => joke.joke))
+    expect(funOnlyJokes.size).toBeGreaterThan(0)
+    const randomSpy = vi.spyOn(Math, 'random')
+    const { result } = renderTerminal()
+    const draws = 50
+    for (let i = 0; i < draws; i++) {
+      randomSpy.mockReturnValueOnce(i / draws)
+      runCommand(result, 'joke')
+    }
+    randomSpy.mockRestore()
+    const outputs = result.current.terminal.lines
+      .filter((line) => line.kind === TerminalLineKind.output)
+      .map((line) => line.text)
+    expect(outputs).toHaveLength(draws)
+    for (const text of outputs) {
+      expect(funOnlyJokes.has(text)).toBe(false)
+    }
   })
 })

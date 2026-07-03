@@ -119,8 +119,20 @@ describe('execute — easter eggs and misc', () => {
     expect(result.output.length).toBeGreaterThan(0)
   })
 
+  it('every delete-everything spelling gets the same payoff', () => {
+    for (const raw of ['rm -rf ./*', 'rm -rf .', 'rm -rf *', 'rm -rf ~', 'rm -rf /*', 'rm -r ~/']) {
+      expect(execute(raw, ctx).action.type, raw).toBe(TerminalActionType.navigate)
+    }
+  })
+
+  it('rm without the recursive flag is refused even on /', () => {
+    expect(execute('rm /', ctx).output[0]).toMatch(/read-only/)
+    expect(execute('rm -f .', ctx).output[0]).toMatch(/read-only/)
+  })
+
   it('rm on anything else is refused', () => {
     expect(execute('rm homework', ctx).output[0]).toMatch(/read-only/)
+    expect(execute('rm -rf homework', ctx).output[0]).toMatch(/read-only/)
   })
 
   it('joke defers to the provided picker', () => {

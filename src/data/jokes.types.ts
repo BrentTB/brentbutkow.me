@@ -8,6 +8,8 @@ export enum JokeTypes {
 export interface Joke {
   jokeType: JokeTypes
   joke: string
+  // Racier jokes stay out of professional mode.
+  funMode: boolean
 }
 
 export const jokeTypeLabels: Record<JokeTypes, string> = {
