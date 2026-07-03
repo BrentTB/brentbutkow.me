@@ -1,6 +1,39 @@
 import { routePaths } from '../../../../routes/routes.paths'
+import { routesMeta } from '../../../../routes/routes.meta'
 import { funStuffSubRoutes } from '../../../FunStuff/data'
 import { gamesSubRoutes } from '../../../FunStuff/subpages/Games/data'
+
+// ─── Command index ────────────────────────────────────────────────────────────
+//
+// Everyday commands (listed in `help`, Tab-completable):
+//   help                 the command list
+//   ls [page]            pages at a level · -a adds hidden files · -R renders the tree
+//   tree                 the full page tree · -a adds hidden files
+//   cd <page>            navigate — relative paths, ~, .., and `cd -` (back); aliases: open, goto
+//   cat <page>           the page's one-line description (from routes.meta) · cat cv.pdf downloads the CV
+//   pwd                  where you are
+//   joke                 a dad joke — shuffled round-robin; racier ones stay out of professional mode
+//   clear / exit         wipe the log / close the terminal
+//   Input UX: Tab ghost-completion, ↑/↓ history, `/` or `~` focuses, Esc closes
+//
+// Unlisted but ordinary (works, just not in `help`/Tab):
+//   pwd                  prints "~ - the home page" — real, but too trivial to advertise
+//   echo <text>          echoes it back — a real shell built-in, not an egg
+//
+// Easter eggs (undocumented in `help`, not Tab-completed):
+//   whoami                        mode-dependent identity (full-stack → full-snack in fun mode)
+//   make-me-a-sandwich            "What? Make it yourself." — the xkcd 149 setup
+//   sudo make-me-a-sandwich       "Okay." — the punchline; any other sudo gets the sudoers warning
+//   fun                           flips the Fun-mode toggle
+//   rm -rf / (or . ./* * ~ …)     fake delete, then lands on the 404 page
+//   ls -a / tree -a               reveal the hidden files below
+//   cat .the-game                 "You just lost the game."
+//   cat .homework                 rickroll — opens the official video in a new tab
+//   cat .eyebrow                  explains the write below
+//   echo <text> > .eyebrow        queues <text> as the hero's next typed eyebrow line (one-shot);
+//                                 the `>` redirect target Tab-completes to .eyebrow
+//   try 'help'                    typing the placeholder literally → "real funny."
+// ──────────────────────────────────────────────────────────────────────────────
 
 // The virtual filesystem is the public route tree — one node per page a visitor can browse to.
 // Private, redirect-only, and dynamic-param routes stay out.
@@ -52,6 +85,7 @@ export const terminalPages: TerminalPage[] = buildTree(browsablePaths)
 export const TerminalCommand = {
   help: 'help',
   ls: 'ls',
+  tree: 'tree',
   cd: 'cd',
   open: 'open',
   goto: 'goto',
@@ -65,6 +99,7 @@ export const TerminalCommand = {
   cat: 'cat',
   rm: 'rm',
   echo: 'echo',
+  try: 'try',
 } as const
 export type TerminalCommand = (typeof TerminalCommand)[keyof typeof TerminalCommand]
 
@@ -72,8 +107,9 @@ export type TerminalCommand = (typeof TerminalCommand)[keyof typeof TerminalComm
 const publicCommands = [
   TerminalCommand.help,
   TerminalCommand.ls,
+  TerminalCommand.tree,
   TerminalCommand.cd,
-  TerminalCommand.pwd,
+  TerminalCommand.cat,
   TerminalCommand.joke,
   TerminalCommand.clear,
   TerminalCommand.exit,
@@ -82,6 +118,8 @@ const publicCommands = [
 export const TerminalActionType = {
   navigate: 'navigate',
   back: 'back',
+  openExternal: 'openExternal',
+  setEyebrow: 'setEyebrow',
   toggleFun: 'toggleFun',
   downloadCv: 'downloadCv',
   clear: 'clear',
@@ -93,6 +131,7 @@ export type TerminalActionType = (typeof TerminalActionType)[keyof typeof Termin
 export type TerminalAction = {
   type: TerminalActionType
   path?: string
+  text?: string
 }
 
 export type TerminalResult = {
@@ -108,7 +147,22 @@ export type TerminalContext = {
 
 const none: TerminalAction = { type: TerminalActionType.none }
 
+// xkcd 149 — the bare request is the setup, sudo is the punchline.
+const SANDWICH_REQUEST = /^make[- ]me[- ]a[- ]sandwich$/
+
+const hasFlag = (args: string[], letter: string): boolean =>
+  args.some((arg) => /^-[a-zA-Z]+$/.test(arg) && arg.includes(letter))
+
 const HIDDEN_FILE = '.the-game'
+
+// The classic hidden-folder gag — catting it opens the official upload in a new tab.
+const RICKROLL_FILE = '.homework'
+const RICKROLL_URL = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+
+// Writable via `echo <text> > .eyebrow` — queues the hero's next typed eyebrow line.
+const EYEBROW_FILE = '.eyebrow'
+
+const hiddenFiles = [EYEBROW_FILE, RICKROLL_FILE, HIDDEN_FILE]
 
 // `rm -rf /` lands on the 404 page — any unknown path hits the catch-all route.
 const RM_CRASH_PATH = '/everything-is-gone'
@@ -116,8 +170,9 @@ const RM_CRASH_PATH = '/everything-is-gone'
 const HELP_LINES = [
   'help          this list',
   'ls [page]     list pages here',
+  'tree          the full page tree',
   'cd <page>     go to a page (Tab completes)',
-  'pwd           where you are',
+  'cat <page>    a page in one line',
   'joke          one dad joke, on the house',
   'clear         wipe the screen',
   'exit          close the terminal',
@@ -168,8 +223,41 @@ function listPages(pathArg: string | undefined, showHidden: boolean): string[] {
     }
   }
   const names = children.map((page) => (page.children.length > 0 ? `${page.name}/` : page.name))
-  if (showHidden) names.unshift(HIDDEN_FILE)
+  if (showHidden) names.unshift(...hiddenFiles)
   return [names.join('  ')]
+}
+
+function renderTree(pages: TerminalPage[], prefix: string, lines: string[]): void {
+  pages.forEach((page, index) => {
+    const isLast = index === pages.length - 1
+    const name = page.children.length > 0 ? `${page.name}/` : page.name
+    lines.push(`${prefix}${isLast ? '└── ' : '├── '}${name}`)
+    renderTree(page.children, `${prefix}${isLast ? '    ' : '│   '}`, lines)
+  })
+}
+
+// `scope` narrows the tree to a subtree (`ls -R <page>` / `tree <page>`); omit for the full tree.
+function treePages(showHidden: boolean, scope?: { pathArg: string; cmd: string }): string[] {
+  let pages = terminalPages
+  let rootLabel = '.'
+  if (scope) {
+    const segments = toSegments(scope.pathArg)
+    const node = segments && segments.length > 0 ? findPage(segments) : null
+    if (segments && segments.length === 0) {
+      // Explicit root ('/', '~') — keep the full tree.
+    } else if (!node) {
+      return [`${scope.cmd}: ${scope.pathArg}: no such page`]
+    } else {
+      pages = node.children
+      rootLabel = node.children.length > 0 ? `${node.name}/` : node.name
+    }
+  }
+  const roots = showHidden
+    ? [...hiddenFiles.map((name) => ({ name, path: '', children: [] })), ...pages]
+    : pages
+  const lines = [rootLabel]
+  renderTree(roots, '', lines)
+  return lines
 }
 
 function changePage(pathArg: string | undefined): TerminalResult {
@@ -206,6 +294,25 @@ function catFile(fileArg: string | undefined, ctx: TerminalContext): TerminalRes
   if (fileArg === HIDDEN_FILE) {
     return { output: ['You just lost the game.'], action: none }
   }
+  if (fileArg === RICKROLL_FILE) {
+    return {
+      output: [`opening ${RICKROLL_FILE}…`],
+      action: { type: TerminalActionType.openExternal, path: RICKROLL_URL },
+    }
+  }
+  if (fileArg === EYEBROW_FILE) {
+    return {
+      output: [`the header's next line. write it: echo <text> > ${EYEBROW_FILE}`],
+      action: none,
+    }
+  }
+  // Catting a page prints its one-line description — the same one search engines see.
+  const segments = toSegments(fileArg)
+  const page = segments && segments.length > 0 ? findPage(segments) : null
+  const description = page ? routesMeta[page.path]?.description : undefined
+  if (description) {
+    return { output: [description], action: none }
+  }
   return { output: [`cat: ${fileArg}: no such file`], action: none }
 }
 
@@ -234,17 +341,30 @@ export function execute(rawInput: string, ctx: TerminalContext): TerminalResult 
   const [command, ...args] = tokens
   if (!command) return { output: [], action: none }
 
+  if (SANDWICH_REQUEST.test(tokens.join(' '))) {
+    return { output: ['What? Make it yourself.'], action: none }
+  }
+
   switch (command) {
     case TerminalCommand.help:
       return { output: HELP_LINES, action: none }
-    case TerminalCommand.ls:
+    case TerminalCommand.ls: {
+      const pathArg = args.find((arg) => !arg.startsWith('-'))
+      // -R is ls's spelling of the tree view.
       return {
-        output: listPages(
-          args.find((arg) => !arg.startsWith('-')),
-          args.some((arg) => /^-[a-z]*a[a-z]*$/.test(arg))
-        ),
+        output: hasFlag(args, 'R')
+          ? treePages(hasFlag(args, 'a'), pathArg ? { pathArg, cmd: 'ls' } : undefined)
+          : listPages(pathArg, hasFlag(args, 'a')),
         action: none,
       }
+    }
+    case TerminalCommand.tree: {
+      const pathArg = args.find((arg) => !arg.startsWith('-'))
+      return {
+        output: treePages(hasFlag(args, 'a'), pathArg ? { pathArg, cmd: 'tree' } : undefined),
+        action: none,
+      }
+    }
     case TerminalCommand.cd:
     case TerminalCommand.open:
     case TerminalCommand.goto:
@@ -259,13 +379,17 @@ export function execute(rawInput: string, ctx: TerminalContext): TerminalResult 
       return { output: [], action: { type: TerminalActionType.exit } }
     case TerminalCommand.whoami:
       return {
-        output: [ctx.isFunMode ? 'Full snack engineer' : 'Brent Butkow - full-stack engineer'],
+        output: [
+          ctx.isFunMode
+            ? 'Brent Butkow - full-snack engineer'
+            : 'Brent Butkow - full-stack engineer',
+        ],
         action: none,
       }
     case TerminalCommand.sudo:
       return {
         output: [
-          /^make[- ]me[- ]a[- ]sandwich$/.test(args.join(' ')) // xkcd 149
+          SANDWICH_REQUEST.test(args.join(' '))
             ? 'Okay.'
             : 'you are not in the sudoers file. This incident will be reported.',
         ],
@@ -280,8 +404,27 @@ export function execute(rawInput: string, ctx: TerminalContext): TerminalResult 
       return catFile(args[0], ctx)
     case TerminalCommand.rm:
       return removeFile(args)
-    case TerminalCommand.echo:
-      return { output: [args.join(' ')], action: none }
+    case TerminalCommand.echo: {
+      const redirect = args.findIndex((arg) => arg.startsWith('>'))
+      if (redirect === -1) return { output: [args.join(' ')], action: none }
+      const target = args[redirect] === '>' ? args[redirect + 1] : args[redirect].slice(1)
+      const text = args.slice(0, redirect).join(' ')
+      if (!target) return { output: ['echo: missing redirect target'], action: none }
+      if (target !== EYEBROW_FILE) {
+        return {
+          output: [`echo: cannot write to '${target}': this site is read-only`],
+          action: none,
+        }
+      }
+      if (!text) return { output: ['echo: nothing to write'], action: none }
+      return { output: [], action: { type: TerminalActionType.setEyebrow, text } }
+    }
+    case TerminalCommand.try:
+      // Pays off the input placeholder — typing `try 'help'` literally instead of `help`.
+      if (args.join(' ').replace(/['"]/g, '') === 'help') {
+        return { output: ['real funny.'], action: none }
+      }
+      return { output: [`command not found: ${command} (try 'help')`], action: none }
     default:
       return { output: [`command not found: ${command} (try 'help')`], action: none }
   }
@@ -292,7 +435,30 @@ const pathCommands: string[] = [
   TerminalCommand.open,
   TerminalCommand.goto,
   TerminalCommand.ls,
+  TerminalCommand.tree,
+  TerminalCommand.cat,
 ]
+
+// ls/tree take a directory to descend into, so only pages with children are worth completing —
+// a leaf page still runs (`ls achievements`), it just isn't suggested.
+const dirOnlyCommands: string[] = [TerminalCommand.ls, TerminalCommand.tree]
+
+// Files cat can read at the root, offered alongside pages. Dotfiles stay out of suggestions
+// until the typed partial starts with '.' — same convention as a real shell.
+const catFiles = ['cv.pdf', ...hiddenFiles]
+
+// `echo <text> > ` completes its one writable target — the `.eyebrow` queue. The redirect
+// itself is the signal of intent, so the dotfile is offered even before a '.' is typed.
+function echoRedirectCompletion(input: string): string[] {
+  const gt = input.indexOf('>')
+  if (gt === -1) return []
+  const afterGt = input.slice(gt + 1)
+  const typed = afterGt.replace(/^\s*/, '')
+  if (typed.includes(' ') || !EYEBROW_FILE.startsWith(typed) || typed === EYEBROW_FILE) return []
+  // Insert a space when nothing yet follows the '>', so it reads `> .eyebrow`, not `>.eyebrow`.
+  const separator = afterGt === '' ? ' ' : ''
+  return [input + separator + EYEBROW_FILE.slice(typed.length)]
+}
 
 // Full-input completions for the current text, best match first. Completing a page that has
 // children appends '/' so the next Tab keeps digging.
@@ -308,19 +474,33 @@ export function completions(input: string): string[] {
   }
 
   const [command, ...args] = tokens
+  if (command === TerminalCommand.echo) return echoRedirectCompletion(input)
+
   const pathArg = args[args.length - 1]
   if (!pathCommands.includes(command) || pathArg.startsWith('-')) return []
 
-  const segments = toSegments(pathArg)
-  if (!segments) return []
-  const partial =
-    pathArg.endsWith('/') || pathArg === '~' || pathArg === '' ? '' : (segments.pop() ?? '')
-  const parent = segments.length === 0 ? null : findPage(segments)
-  const level = parent ? parent.children : segments.length === 0 ? terminalPages : []
+  // Split the arg at the last '/': everything before resolves as the parent, the tail is the
+  // name still being typed — kept verbatim so '.' never silently vanishes into a match-all.
+  const partial = pathArg === '~' ? '' : pathArg.slice(pathArg.lastIndexOf('/') + 1)
+  const base = pathArg === '~' ? `${input}/` : input.slice(0, input.length - partial.length)
+  const parentSegments = toSegments(pathArg.slice(0, pathArg.length - partial.length))
+  if (!parentSegments) return []
+  const parent = parentSegments.length === 0 ? null : findPage(parentSegments)
+  const level = parentSegments.length === 0 ? terminalPages : (parent?.children ?? [])
 
-  const prefix = input.slice(0, input.length - partial.length)
-  return level
+  const dirsOnly = dirOnlyCommands.includes(command)
+  const pageMatches = level
     .filter((page) => page.name.startsWith(partial) && page.name !== partial)
-    .map((page) => `${prefix}${page.name}${page.children.length > 0 ? '/' : ''}`)
-    .sort()
+    .filter((page) => !dirsOnly || page.children.length > 0)
+    .map((page) => `${base}${page.name}${page.children.length > 0 ? '/' : ''}`)
+
+  const fileMatches =
+    command === TerminalCommand.cat && parentSegments.length === 0
+      ? catFiles
+          .filter((name) => name.startsWith(partial) && name !== partial)
+          .filter((name) => !name.startsWith('.') || partial.startsWith('.'))
+          .map((name) => `${base}${name}`)
+      : []
+
+  return [...pageMatches, ...fileMatches].sort()
 }

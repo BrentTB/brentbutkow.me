@@ -1,4 +1,6 @@
+import { useCallback } from 'react'
 import { useTypewriter } from '../useTypewriter'
+import { takeQueuedEyebrowText } from '../eyebrow-queue'
 import styles from './Eyebrow.module.scss'
 
 type EyebrowProps = {
@@ -17,9 +19,16 @@ function toPath(label: string): string {
 
 /** Section label as a terminal path: "About" → `~/about`. */
 export function Eyebrow({ label, muted, typed, alternates }: EyebrowProps) {
+  // Terminal-written lines (`echo <text> > .eyebrow`) jump the rotation queue, path-styled.
+  const nextOverride = useCallback(() => {
+    const queued = takeQueuedEyebrowText()
+    return queued ? toPath(queued) : null
+  }, [])
+
   const typedText = useTypewriter(toPath(label), {
     alternates: (alternates ?? []).map(toPath),
     randomizeOrder: true,
+    nextOverride,
     enabled: typed === true,
   })
 

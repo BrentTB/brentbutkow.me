@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useFunMode } from '../../../../contexts/useFunMode'
 import { isJokeAllowed, jokes } from '../../../../data/jokes'
+import { queueEyebrowText } from '../../eyebrow-queue'
 import { Joke } from '../../../../data/jokes.types'
 import { createShuffledCycle, ShuffledCycle } from '../../../../utils/shuffled-cycle'
 import { cvHref } from '../../data'
@@ -81,6 +82,12 @@ export function useTerminal({ onExit }: UseTerminalOptions) {
         case TerminalActionType.back:
           navigate(-1)
           return
+        case TerminalActionType.openExternal:
+          if (result.action.path) window.open(result.action.path, '_blank', 'noopener,noreferrer')
+          break
+        case TerminalActionType.setEyebrow:
+          if (result.action.text) queueEyebrowText(result.action.text)
+          break
         case TerminalActionType.toggleFun:
           setIsFunMode(!isFunMode)
           break
