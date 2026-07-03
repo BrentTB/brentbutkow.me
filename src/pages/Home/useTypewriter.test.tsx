@@ -85,6 +85,23 @@ describe('useTypewriter', () => {
     expect(result.current).toBe(seen[0])
   })
 
+  it('types a queued override as the next alternate, then resumes rotation', () => {
+    stubMatchMedia(false)
+    const nextOverride = vi
+      .fn<() => string | null>()
+      .mockReturnValueOnce('~/xx')
+      .mockReturnValue(null)
+    const { result } = renderHook(() =>
+      useTypewriter('~/ab', { ...fast, alternates: ['~/cd'], nextOverride })
+    )
+    act(() => vi.advanceTimersByTime(170)) // primary → override instead of the alternate
+    expect(result.current).toBe('~/xx')
+    act(() => vi.advanceTimersByTime(80)) // back on primary
+    expect(result.current).toBe('~/ab')
+    act(() => vi.advanceTimersByTime(130)) // rotation resumes with the skipped alternate
+    expect(result.current).toBe('~/cd')
+  })
+
   it('shows the primary immediately when disabled', () => {
     stubMatchMedia(false)
     const { result } = renderHook(() => useTypewriter('~/about', { enabled: false }))

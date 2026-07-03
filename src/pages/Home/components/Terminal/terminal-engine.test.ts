@@ -203,6 +203,24 @@ describe('execute — easter eggs and misc', () => {
     expect(execute('dance', ctx).output[0]).toBe("command not found: dance (try 'help')")
   })
 
+  it('echo redirected to .eyebrow queues the text, silently like a real shell', () => {
+    const result = execute('echo snack time > .eyebrow', ctx)
+    expect(result.action).toEqual({ type: TerminalActionType.setEyebrow, text: 'snack time' })
+    expect(result.output).toEqual([])
+    expect(execute('echo hi >.eyebrow', ctx).action.type).toBe(TerminalActionType.setEyebrow)
+  })
+
+  it('echo redirection is refused everywhere else', () => {
+    expect(execute('echo hi > /etc/passwd', ctx).output[0]).toMatch(/read-only/)
+    expect(execute('echo hi >', ctx).output[0]).toMatch(/missing redirect target/)
+    expect(execute('echo > .eyebrow', ctx).output[0]).toMatch(/nothing to write/)
+  })
+
+  it('cat .eyebrow explains the write', () => {
+    expect(execute('cat .eyebrow', ctx).output[0]).toContain('echo <text> > .eyebrow')
+    expect(execute('ls -a', ctx).output[0]).toContain('.eyebrow')
+  })
+
   it("typing the placeholder try 'help' literally gets called out", () => {
     expect(execute("try 'help'", ctx).output[0]).toBe('real funny.')
     expect(execute('try help', ctx).output[0]).toBe('real funny.')
@@ -254,7 +272,7 @@ describe('completions', () => {
 
   it('cat completes its root files, hiding dotfiles until a dot is typed', () => {
     expect(completions('cat c')).toEqual(['cat contact', 'cat cv.pdf'])
-    expect(completions('cat .')).toEqual(['cat .homework', 'cat .the-game'])
+    expect(completions('cat .')).toEqual(['cat .eyebrow', 'cat .homework', 'cat .the-game'])
     expect(completions('cat ')).not.toContain('cat .the-game')
   })
 

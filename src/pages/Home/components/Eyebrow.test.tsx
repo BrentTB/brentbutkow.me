@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, act } from '@testing-library/react'
 import { Eyebrow } from './Eyebrow'
+import { queueEyebrowText, takeQueuedEyebrowText } from '../eyebrow-queue'
 
 describe('Eyebrow', () => {
   beforeEach(() => {
@@ -23,5 +24,16 @@ describe('Eyebrow', () => {
     // Guards a regression where `enabled: undefined` fell back to the default and every eyebrow typed.
     render(<Eyebrow label="Currently" />)
     expect(screen.getByLabelText('Currently').textContent).toBe('~/currently')
+  })
+
+  it('types a terminal-queued line, path-styled, as the next alternate', () => {
+    takeQueuedEyebrowText()
+    queueEyebrowText('hi there')
+    render(<Eyebrow label="ab" typed alternates={['cd']} />)
+    const text = () => screen.getByLabelText('ab').textContent
+    // Defaults: 4 chars × 55ms type + 6500ms hold + 2 erase × 35ms + 8 chars × 55ms type.
+    act(() => vi.advanceTimersByTime(4 * 55 + 6500 + 2 * 35 + 8 * 55))
+    expect(text()).toBe('~/hi-there')
+    expect(takeQueuedEyebrowText()).toBeNull()
   })
 })

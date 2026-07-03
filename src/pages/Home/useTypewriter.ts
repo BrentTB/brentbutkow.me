@@ -16,6 +16,12 @@ type TypewriterOptions = {
   keepChars?: number
   /** Shuffles the alternates once per mount — every visitor sees all of them, in their own order. */
   randomizeOrder?: boolean
+  /**
+   * Asked before each swap away from the primary; a non-null return is typed as the next
+   * alternate instead of the rotation's pick (which stays put for the swap after). Must be a
+   * stable reference — a fresh function every render restarts the animation.
+   */
+  nextOverride?: () => string | null
   /** When false, returns the primary text with no animation. */
   enabled?: boolean
 }
@@ -36,6 +42,7 @@ export function useTypewriter(
     holdAltMs = 4000,
     keepChars = 2,
     randomizeOrder = false,
+    nextOverride,
     enabled = true,
   }: TypewriterOptions = {}
 ): string {
@@ -81,7 +88,10 @@ export function useTypewriter(
     const settle = (current: string) => {
       if (alternateTexts.length === 0) return
       const isPrimary = current === text
-      const next = isPrimary ? alternateTexts[altIndex++ % alternateTexts.length] : text
+      // ?? short-circuits: an override leaves altIndex untouched, so rotation resumes in place.
+      const next = isPrimary
+        ? (nextOverride?.() ?? alternateTexts[altIndex++ % alternateTexts.length])
+        : text
       schedule(
         () => erase(current, current.length, () => type(next, keepChars, () => settle(next))),
         isPrimary ? holdPrimaryMs : holdAltMs
@@ -99,6 +109,7 @@ export function useTypewriter(
     holdAltMs,
     keepChars,
     randomizeOrder,
+    nextOverride,
     enabled,
   ])
 

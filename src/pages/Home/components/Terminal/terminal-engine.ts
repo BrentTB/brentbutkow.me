@@ -26,6 +26,8 @@ import { gamesSubRoutes } from '../../../FunStuff/subpages/Games/data'
 //   ls -a / tree -a               reveal the hidden files below
 //   cat .the-game                 "You just lost the game."
 //   cat .homework                 rickroll — opens the official video in a new tab
+//   cat .eyebrow                  explains the write below
+//   echo <text> > .eyebrow        queues <text> as the hero's next typed eyebrow line (one-shot)
 //   try 'help'                    typing the placeholder literally → "real funny."
 // ──────────────────────────────────────────────────────────────────────────────
 
@@ -114,6 +116,7 @@ export const TerminalActionType = {
   navigate: 'navigate',
   back: 'back',
   openExternal: 'openExternal',
+  setEyebrow: 'setEyebrow',
   toggleFun: 'toggleFun',
   downloadCv: 'downloadCv',
   clear: 'clear',
@@ -125,6 +128,7 @@ export type TerminalActionType = (typeof TerminalActionType)[keyof typeof Termin
 export type TerminalAction = {
   type: TerminalActionType
   path?: string
+  text?: string
 }
 
 export type TerminalResult = {
@@ -152,7 +156,10 @@ const HIDDEN_FILE = '.the-game'
 const RICKROLL_FILE = '.homework'
 const RICKROLL_URL = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
 
-const hiddenFiles = [RICKROLL_FILE, HIDDEN_FILE]
+// Writable via `echo <text> > .eyebrow` — queues the hero's next typed eyebrow line.
+const EYEBROW_FILE = '.eyebrow'
+
+const hiddenFiles = [EYEBROW_FILE, RICKROLL_FILE, HIDDEN_FILE]
 
 // `rm -rf /` lands on the 404 page — any unknown path hits the catch-all route.
 const RM_CRASH_PATH = '/everything-is-gone'
@@ -276,6 +283,12 @@ function catFile(fileArg: string | undefined, ctx: TerminalContext): TerminalRes
       action: { type: TerminalActionType.openExternal, path: RICKROLL_URL },
     }
   }
+  if (fileArg === EYEBROW_FILE) {
+    return {
+      output: [`the header's next line. write it: echo <text> > ${EYEBROW_FILE}`],
+      action: none,
+    }
+  }
   // Catting a page prints its one-line description — the same one search engines see.
   const segments = toSegments(fileArg)
   const page = segments && segments.length > 0 ? findPage(segments) : null
@@ -370,8 +383,21 @@ export function execute(rawInput: string, ctx: TerminalContext): TerminalResult 
       return catFile(args[0], ctx)
     case TerminalCommand.rm:
       return removeFile(args)
-    case TerminalCommand.echo:
-      return { output: [args.join(' ')], action: none }
+    case TerminalCommand.echo: {
+      const redirect = args.findIndex((arg) => arg.startsWith('>'))
+      if (redirect === -1) return { output: [args.join(' ')], action: none }
+      const target = args[redirect] === '>' ? args[redirect + 1] : args[redirect].slice(1)
+      const text = args.slice(0, redirect).join(' ')
+      if (!target) return { output: ['echo: missing redirect target'], action: none }
+      if (target !== EYEBROW_FILE) {
+        return {
+          output: [`echo: cannot write to '${target}': this site is read-only`],
+          action: none,
+        }
+      }
+      if (!text) return { output: ['echo: nothing to write'], action: none }
+      return { output: [], action: { type: TerminalActionType.setEyebrow, text } }
+    }
     case TerminalCommand.try:
       // Pays off the input placeholder — typing `try 'help'` literally instead of `help`.
       if (args.join(' ').replace(/['"]/g, '') === 'help') {

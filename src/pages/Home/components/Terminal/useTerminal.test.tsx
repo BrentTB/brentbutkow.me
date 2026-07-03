@@ -6,6 +6,7 @@ import { FunModeProvider } from '../../../../contexts/FunModeProvider'
 import { useFunMode } from '../../../../contexts/useFunMode'
 import { routePaths } from '../../../../routes/routes.paths'
 import { jokes } from '../../../../data/jokes'
+import { takeQueuedEyebrowText } from '../../eyebrow-queue'
 import { TerminalLineKind, useTerminal } from './useTerminal'
 
 const wrapper = ({ children }: { children: ReactNode }) => (
@@ -40,6 +41,7 @@ describe('useTerminal', () => {
     onExit.mockClear()
     localStorage.clear()
     document.documentElement.classList.remove('fun-mode')
+    takeQueuedEyebrowText()
   })
 
   it('echoes the command and its output into the log', () => {
@@ -74,6 +76,12 @@ describe('useTerminal', () => {
     expect(result.current.funMode.isFunMode).toBe(true)
     runCommand(result, 'fun')
     expect(result.current.funMode.isFunMode).toBe(false)
+  })
+
+  it('echo > .eyebrow hands the text to the eyebrow queue', () => {
+    const { result } = renderTerminal()
+    runCommand(result, 'echo gouda gouda gouda > .eyebrow')
+    expect(takeQueuedEyebrowText()).toBe('gouda gouda gouda')
   })
 
   it('cat .homework opens the video in a new tab', () => {
