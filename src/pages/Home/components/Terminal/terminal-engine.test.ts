@@ -227,4 +227,22 @@ describe('completions', () => {
     expect(completions('')).toEqual([])
     expect(completions('ls -')).toEqual([])
   })
+
+  // Guards the '.' partial — it used to vanish during path resolution, so 'cd .' matched every
+  // page and Tab produced broken paths like 'cd .achievements'.
+  it('a bare dot never completes to a page for cd', () => {
+    expect(completions('cd .')).toEqual([])
+    expect(completions('cd fun-stuff/.')).toEqual([])
+  })
+
+  it('cat completes pages and digs into them like cd', () => {
+    expect(completions('cat proj')).toEqual(['cat projects/'])
+    expect(completions('cat projects/')).toEqual(['cat projects/recall-radar'])
+  })
+
+  it('cat completes its root files, hiding dotfiles until a dot is typed', () => {
+    expect(completions('cat c')).toEqual(['cat contact', 'cat cv.pdf'])
+    expect(completions('cat .')).toEqual(['cat .homework.mp4', 'cat .the-game'])
+    expect(completions('cat ')).not.toContain('cat .the-game')
+  })
 })

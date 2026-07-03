@@ -342,7 +342,12 @@ const pathCommands: string[] = [
   TerminalCommand.open,
   TerminalCommand.goto,
   TerminalCommand.ls,
+  TerminalCommand.cat,
 ]
+
+// Files cat can read at the root, offered alongside pages. Dotfiles stay out of suggestions
+// until the typed partial starts with '.' — same convention as a real shell.
+const catFiles = ['cv.pdf', ...hiddenFiles]
 
 // Full-input completions for the current text, best match first. Completing a page that has
 // children appends '/' so the next Tab keeps digging.
@@ -361,16 +366,26 @@ export function completions(input: string): string[] {
   const pathArg = args[args.length - 1]
   if (!pathCommands.includes(command) || pathArg.startsWith('-')) return []
 
-  const segments = toSegments(pathArg)
-  if (!segments) return []
-  const partial =
-    pathArg.endsWith('/') || pathArg === '~' || pathArg === '' ? '' : (segments.pop() ?? '')
-  const parent = segments.length === 0 ? null : findPage(segments)
-  const level = parent ? parent.children : segments.length === 0 ? terminalPages : []
+  // Split the arg at the last '/': everything before resolves as the parent, the tail is the
+  // name still being typed — kept verbatim so '.' never silently vanishes into a match-all.
+  const partial = pathArg === '~' ? '' : pathArg.slice(pathArg.lastIndexOf('/') + 1)
+  const base = pathArg === '~' ? `${input}/` : input.slice(0, input.length - partial.length)
+  const parentSegments = toSegments(pathArg.slice(0, pathArg.length - partial.length))
+  if (!parentSegments) return []
+  const parent = parentSegments.length === 0 ? null : findPage(parentSegments)
+  const level = parentSegments.length === 0 ? terminalPages : (parent?.children ?? [])
 
-  const prefix = input.slice(0, input.length - partial.length)
-  return level
+  const pageMatches = level
     .filter((page) => page.name.startsWith(partial) && page.name !== partial)
-    .map((page) => `${prefix}${page.name}${page.children.length > 0 ? '/' : ''}`)
-    .sort()
+    .map((page) => `${base}${page.name}${page.children.length > 0 ? '/' : ''}`)
+
+  const fileMatches =
+    command === TerminalCommand.cat && parentSegments.length === 0
+      ? catFiles
+          .filter((name) => name.startsWith(partial) && name !== partial)
+          .filter((name) => !name.startsWith('.') || partial.startsWith('.'))
+          .map((name) => `${base}${name}`)
+      : []
+
+  return [...pageMatches, ...fileMatches].sort()
 }
