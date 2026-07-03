@@ -196,6 +196,12 @@ describe('execute — easter eggs and misc', () => {
   it('unknown commands point at help', () => {
     expect(execute('dance', ctx).output[0]).toBe("command not found: dance (try 'help')")
   })
+
+  it("typing the placeholder try 'help' literally gets called out", () => {
+    expect(execute("try 'help'", ctx).output[0]).toBe('real funny.')
+    expect(execute('try help', ctx).output[0]).toBe('real funny.')
+    expect(execute('try harder', ctx).output[0]).toBe("command not found: try (try 'help')")
+  })
 })
 
 describe('completions', () => {

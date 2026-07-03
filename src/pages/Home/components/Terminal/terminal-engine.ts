@@ -67,6 +67,7 @@ export const TerminalCommand = {
   cat: 'cat',
   rm: 'rm',
   echo: 'echo',
+  try: 'try',
 } as const
 export type TerminalCommand = (typeof TerminalCommand)[keyof typeof TerminalCommand]
 
@@ -334,6 +335,12 @@ export function execute(rawInput: string, ctx: TerminalContext): TerminalResult 
       return removeFile(args)
     case TerminalCommand.echo:
       return { output: [args.join(' ')], action: none }
+    case TerminalCommand.try:
+      // Pays off the input placeholder — typing `try 'help'` literally instead of `help`.
+      if (args.join(' ').replace(/['"]/g, '') === 'help') {
+        return { output: ['real funny.'], action: none }
+      }
+      return { output: [`command not found: ${command} (try 'help')`], action: none }
     default:
       return { output: [`command not found: ${command} (try 'help')`], action: none }
   }
