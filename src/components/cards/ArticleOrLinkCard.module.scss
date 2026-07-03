@@ -55,13 +55,55 @@ a.card::before {
   color: var(--muted);
   font-family: var(--font-mono);
   font-size: 1.05rem;
+  // Colour eases; the return from a shoot eases back here (the hover keyframe drives the shoot).
   transition:
     color 180ms ease,
-    transform 180ms ease;
+    transform 200ms ease;
+}
+
+/* Internal (→) shoots hard to the right, then snaps back to a resting nudge. */
+@keyframes arrowShootRight {
+  0% {
+    transform: translateY(-50%) translateX(0);
+  }
+  55% {
+    transform: translateY(-50%) translateX(14px);
+  }
+  100% {
+    transform: translateY(-50%) translateX(5px);
+  }
+}
+
+/* External (↗) shoots up and to the right along its own diagonal. */
+@keyframes arrowShootUpRight {
+  0% {
+    transform: translateY(-50%) translate(0, 0);
+  }
+  55% {
+    transform: translateY(-50%) translate(13px, -13px);
+  }
+  100% {
+    transform: translateY(-50%) translate(5px, -5px);
+  }
 }
 
 a.card:hover .linkIcon,
 a.card:focus-visible .linkIcon {
   color: var(--accent);
-  transform: translateY(-50%) translateX(4px);
+  animation: arrowShootRight 360ms ease both;
+}
+
+a.card:hover .linkIcon[data-external],
+a.card:focus-visible .linkIcon[data-external] {
+  animation-name: arrowShootUpRight;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  a.card:hover .linkIcon,
+  a.card:focus-visible .linkIcon,
+  a.card:hover .linkIcon[data-external],
+  a.card:focus-visible .linkIcon[data-external] {
+    animation: none;
+    transform: translateY(-50%);
+  }
 }

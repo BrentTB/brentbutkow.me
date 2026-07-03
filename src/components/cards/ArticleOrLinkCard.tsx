@@ -34,7 +34,11 @@ export const ArticleOrLinkCard = ({
         internal={internal}
       >
         {children}
-        <span className={styles.linkIcon} aria-hidden="true">
+        <span
+          className={styles.linkIcon}
+          data-external={internal ? undefined : true}
+          aria-hidden="true"
+        >
           {getLinkArrow(internal)}
         </span>
       </SafeLink>

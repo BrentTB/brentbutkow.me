@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react'
+import { CloseButton } from '../../../components/utils/CloseButton'
 import styles from './AlertsDialog.module.scss'
 
 type AlertsDialogProps = {
@@ -82,14 +83,7 @@ export function AlertsDialog({ title, description, onClose, children }: AlertsDi
             </h2>
             {description && <p className={styles.hint}>{description}</p>}
           </div>
-          <button
-            type="button"
-            className={styles.close}
-            onClick={onClose}
-            aria-label="Close alerts form"
-          >
-            ×
-          </button>
+          <CloseButton onClick={onClose} label="Close alerts form" />
         </div>
         <div className={styles.body}>{children}</div>
       </div>

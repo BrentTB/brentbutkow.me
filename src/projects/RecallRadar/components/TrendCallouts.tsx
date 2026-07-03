@@ -3,6 +3,7 @@ import { TrendDirection } from '../trend-callouts'
 import type { TrendCallout } from '../trend-callouts'
 import { AnomalyChart } from './AnomalyChart'
 import { ShowMoreToggle } from './ShowMoreToggle'
+import { CloseButton } from '../../../components/utils/CloseButton'
 import styles from './TrendCallouts.module.scss'
 
 const DIRECTION_ARROW: Record<TrendDirection, string> = {
@@ -106,14 +107,7 @@ export function TrendCallouts({ callouts }: TrendCalloutsProps) {
             <span className={styles.chartTitle}>
               {open.title ?? open.eyebrow} — recalls per month
             </span>
-            <button
-              type="button"
-              className={styles.close}
-              onClick={() => setOpenId(null)}
-              aria-label="Close chart"
-            >
-              ×
-            </button>
+            <CloseButton onClick={() => setOpenId(null)} label="Close chart" />
           </div>
           <AnomalyChart
             series={open.chart.series}

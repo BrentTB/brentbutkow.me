@@ -164,21 +164,6 @@
   color: var(--text);
 }
 
-.close {
-  font: inherit;
-  font-size: 1.3rem;
-  line-height: 1;
-  padding: 0 4px;
-  background: none;
-  border: none;
-  color: var(--muted);
-  cursor: pointer;
-}
-
-.close:hover {
-  color: var(--text);
-}
-
 // On narrow screens a row can't fit on one line, so the caption was getting truncated. Let the row
 // wrap and drop the caption to its own full-width line (it reads in full) instead of an ellipsis.
 @media (max-width: 600px) {

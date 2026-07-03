@@ -1,0 +1,93 @@
+@use '../../styles/shared' as *;
+
+.close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  padding: 4px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 150ms ease;
+}
+
+.close:hover,
+.close:focus-visible {
+  color: var(--text);
+}
+
+.glyph {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  transition: transform 220ms $ease-shoot;
+}
+
+/* Spin the X as the cursor reaches it — the assemble on mount happens in a corner nobody
+   watches, so the visible flourish lives on hover, right before the click. */
+.close:hover .glyph,
+.close:focus-visible .glyph {
+  transform: rotate(90deg) scale(1.12);
+}
+
+.line {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  margin-top: -1px;
+  background: currentColor;
+  border-radius: 1px;
+}
+
+// Two horizontal bars fly in from opposite sides and rotate into the X.
+.line:first-child {
+  transform: rotate(45deg);
+  animation: closeAssembleA 360ms $ease-shoot both;
+}
+
+.line:last-child {
+  transform: rotate(-45deg);
+  animation: closeAssembleB 360ms $ease-shoot both;
+}
+
+@keyframes closeAssembleA {
+  from {
+    opacity: 0;
+    transform: translateX(65%) rotate(0deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) rotate(45deg);
+  }
+}
+
+@keyframes closeAssembleB {
+  from {
+    opacity: 0;
+    transform: translateX(-65%) rotate(0deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) rotate(-45deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glyph {
+    transition: none;
+  }
+
+  .close:hover .glyph,
+  .close:focus-visible .glyph {
+    transform: none;
+  }
+
+  .line:first-child,
+  .line:last-child {
+    animation: none;
+  }
+}
