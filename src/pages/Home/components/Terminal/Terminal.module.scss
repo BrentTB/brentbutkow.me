@@ -177,6 +177,11 @@
   .art {
     animation: none;
   }
+
+  .cascadeChar {
+    animation: none;
+    color: var(--text);
+  }
 }
 
 .prompt {
@@ -212,6 +217,44 @@
 
 .ghostTyped {
   visibility: hidden;
+}
+
+/* Fun-mode autocomplete reveal: the accepted suffix lights up letter-by-letter over the input
+   (whose own text is hidden by .inputCascading while this plays). */
+.cascade {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  white-space: pre;
+  overflow: hidden;
+}
+
+.cascadePrefix {
+  color: var(--text);
+}
+
+.cascadeChar {
+  display: inline-block;
+  color: var(--muted);
+  // Duration must match CASCADE_POP_MS in terminal-cascade.ts; per-letter delay is set inline.
+  animation: cascadePop 150ms $ease-shoot both;
+}
+
+@keyframes cascadePop {
+  0% {
+    color: var(--muted);
+    transform: translateY(3px);
+  }
+  100% {
+    color: var(--text);
+    transform: translateY(0);
+  }
+}
+
+.inputCascading {
+  color: transparent;
 }
 
 .input {

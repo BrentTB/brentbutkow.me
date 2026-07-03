@@ -1,6 +1,8 @@
 import { KeyboardEvent, useCallback, useEffect, useRef, useState } from 'react'
 import styles from './Terminal.module.scss'
+import { useFunMode } from '../../../../contexts/useFunMode'
 import { TRAIN_DURATION_MS } from './ascii'
+import { cascadeTiming } from './terminal-cascade'
 import { useMatrixRain } from './useMatrixRain'
 import { TerminalLineKind, TerminalMode, useTerminal } from './useTerminal'
 
@@ -25,6 +27,11 @@ export function Terminal() {
   const matrixArmed = useRef(false)
   const refocusAfterMatrix = useRef(false)
   const [active, setActive] = useState(false)
+  const { isFunMode } = useFunMode()
+  // Fun-mode-only: the just-accepted completion suffix, lit letter-by-letter over an input whose
+  // own text is hidden for the moment. Null when no cascade is playing.
+  const [cascade, setCascade] = useState<{ prefix: string; suffix: string } | null>(null)
+  const cascadeTimeout = useRef<ReturnType<typeof setTimeout>>()
 
   const close = useCallback(() => {
     setActive(false)
@@ -113,15 +120,38 @@ export function Terminal() {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight
   }, [lines, active, animation])
 
+  const cancelCascade = useCallback(() => {
+    clearTimeout(cascadeTimeout.current)
+    setCascade(null)
+  }, [])
+
+  // Play the fun-mode reveal over the accepted suffix. The completion is already applied, so this is
+  // purely cosmetic: it tears down on any keystroke (see onChange / onInputKeyDown) and on unmount.
+  const startCascade = (prefix: string, suffix: string) => {
+    if (!isFunMode || !suffix) return
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) return
+    clearTimeout(cascadeTimeout.current)
+    setCascade({ prefix, suffix })
+    const { clearAfter } = cascadeTiming(suffix.length)
+    cascadeTimeout.current = setTimeout(() => setCascade(null), clearAfter)
+  }
+
+  useEffect(() => () => clearTimeout(cascadeTimeout.current), [])
+
   const onInputKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== 'Tab') cancelCascade() // any other key finalizes the reveal
     switch (event.key) {
       case 'Enter':
         run()
         break
-      case 'Tab':
+      case 'Tab': {
         event.preventDefault()
+        const prefix = input
+        const suffix = ghost
         acceptCompletion()
+        startCascade(prefix, suffix)
         break
+      }
       case 'ArrowUp':
         event.preventDefault()
         recallHistory(-1)
@@ -214,17 +244,39 @@ export function Terminal() {
               {PROMPT}
             </span>
             <div className={styles.inputWrap}>
-              {ghost && (
+              {ghost && !cascade && (
                 <span className={styles.ghost} aria-hidden="true">
                   <span className={styles.ghostTyped}>{input}</span>
                   {ghost}
                 </span>
               )}
+              {cascade &&
+                (() => {
+                  const { step } = cascadeTiming(cascade.suffix.length)
+                  return (
+                    <span className={styles.cascade} aria-hidden="true" data-cascade>
+                      <span className={styles.cascadePrefix}>{cascade.prefix}</span>
+                      {[...cascade.suffix].map((char, index) => (
+                        <span
+                          key={index}
+                          className={styles.cascadeChar}
+                          data-cascade-char
+                          style={{ animationDelay: `${index * step}ms` }}
+                        >
+                          {char}
+                        </span>
+                      ))}
+                    </span>
+                  )
+                })()}
               <input
                 ref={inputRef}
-                className={styles.input}
+                className={`${styles.input}${cascade ? ` ${styles.inputCascading}` : ''}`}
                 value={input}
-                onChange={(event) => setInput(event.target.value)}
+                onChange={(event) => {
+                  cancelCascade()
+                  setInput(event.target.value)
+                }}
                 onKeyDown={onInputKeyDown}
                 onFocus={() => setActive(true)}
                 placeholder="try 'help'"

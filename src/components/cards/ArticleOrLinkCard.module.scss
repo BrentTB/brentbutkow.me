@@ -67,7 +67,7 @@ a.card::before {
     transform: translateY(-50%) translateX(0);
   }
   55% {
-    transform: translateY(-50%) translateX(14px);
+    transform: translateY(-50%) translateX(10px);
   }
   100% {
     transform: translateY(-50%) translateX(5px);
@@ -80,7 +80,7 @@ a.card::before {
     transform: translateY(-50%) translate(0, 0);
   }
   55% {
-    transform: translateY(-50%) translate(13px, -13px);
+    transform: translateY(-50%) translate(9px, -9px);
   }
   100% {
     transform: translateY(-50%) translate(5px, -5px);

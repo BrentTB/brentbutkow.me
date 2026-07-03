@@ -64,7 +64,8 @@
 }
 
 .modeToggle[aria-checked='true'] .toggleThumb {
-  left: 24px;
+  // 2px inset on the right to mirror the 2px on the left (track 44 − border 2 − thumb 18 − 2).
+  left: 22px;
   background: var(--accent);
 }
 
