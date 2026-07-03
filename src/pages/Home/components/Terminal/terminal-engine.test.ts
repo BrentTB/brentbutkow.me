@@ -110,6 +110,17 @@ describe('execute — tree', () => {
     expect(completions('tr')).toEqual(['tree '])
     expect(execute('help', ctx).output.join('\n')).toContain('tree')
   })
+
+  it('scopes to a subtree when given a page arg', () => {
+    const output = execute('ls -R projects', ctx).output
+    expect(output[0]).toBe('projects/')
+    expect(output.join('\n')).toContain('recall-radar')
+    expect(output.join('\n')).not.toContain('contact')
+  })
+
+  it('reports a missing page for a bad subtree arg', () => {
+    expect(execute('ls -R narnia', ctx).output[0]).toMatch(/no such page/)
+  })
 })
 
 describe('execute — easter eggs and misc', () => {

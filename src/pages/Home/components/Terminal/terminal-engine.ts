@@ -236,11 +236,26 @@ function renderTree(pages: TerminalPage[], prefix: string, lines: string[]): voi
   })
 }
 
-function treePages(showHidden: boolean): string[] {
+// `scope` narrows the tree to a subtree (`ls -R <page>` / `tree <page>`); omit for the full tree.
+function treePages(showHidden: boolean, scope?: { pathArg: string; cmd: string }): string[] {
+  let pages = terminalPages
+  let rootLabel = '.'
+  if (scope) {
+    const segments = toSegments(scope.pathArg)
+    const node = segments && segments.length > 0 ? findPage(segments) : null
+    if (segments && segments.length === 0) {
+      // Explicit root ('/', '~') — keep the full tree.
+    } else if (!node) {
+      return [`${scope.cmd}: ${scope.pathArg}: no such page`]
+    } else {
+      pages = node.children
+      rootLabel = node.children.length > 0 ? `${node.name}/` : node.name
+    }
+  }
   const roots = showHidden
-    ? [...hiddenFiles.map((name) => ({ name, path: '', children: [] })), ...terminalPages]
-    : terminalPages
-  const lines = ['.']
+    ? [...hiddenFiles.map((name) => ({ name, path: '', children: [] })), ...pages]
+    : pages
+  const lines = [rootLabel]
   renderTree(roots, '', lines)
   return lines
 }
@@ -333,19 +348,23 @@ export function execute(rawInput: string, ctx: TerminalContext): TerminalResult 
   switch (command) {
     case TerminalCommand.help:
       return { output: HELP_LINES, action: none }
-    case TerminalCommand.ls:
+    case TerminalCommand.ls: {
+      const pathArg = args.find((arg) => !arg.startsWith('-'))
       // -R is ls's spelling of the tree view.
       return {
         output: hasFlag(args, 'R')
-          ? treePages(hasFlag(args, 'a'))
-          : listPages(
-              args.find((arg) => !arg.startsWith('-')),
-              hasFlag(args, 'a')
-            ),
+          ? treePages(hasFlag(args, 'a'), pathArg ? { pathArg, cmd: 'ls' } : undefined)
+          : listPages(pathArg, hasFlag(args, 'a')),
         action: none,
       }
-    case TerminalCommand.tree:
-      return { output: treePages(hasFlag(args, 'a')), action: none }
+    }
+    case TerminalCommand.tree: {
+      const pathArg = args.find((arg) => !arg.startsWith('-'))
+      return {
+        output: treePages(hasFlag(args, 'a'), pathArg ? { pathArg, cmd: 'tree' } : undefined),
+        action: none,
+      }
+    }
     case TerminalCommand.cd:
     case TerminalCommand.open:
     case TerminalCommand.goto:

@@ -18,4 +18,9 @@ describe('eyebrow-queue', () => {
     expect(takeQueuedEyebrowText()).toBe('second')
     expect(takeQueuedEyebrowText()).toBeNull()
   })
+
+  it('caps the queued text at 100 chars', () => {
+    queueEyebrowText('a'.repeat(500))
+    expect(takeQueuedEyebrowText()).toHaveLength(100)
+  })
 })
