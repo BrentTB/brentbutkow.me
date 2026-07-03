@@ -18,7 +18,7 @@ import { gamesSubRoutes } from '../../../FunStuff/subpages/Games/data'
 //   Input UX: Tab ghost-completion, ↑/↓ history, `/` or `~` focuses, Esc closes
 //
 // Easter eggs (undocumented in `help`, not Tab-completed):
-//   whoami                        mode-dependent identity ("Full snack engineer" in fun mode)
+//   whoami                        mode-dependent identity (full-stack → full-snack in fun mode)
 //   make-me-a-sandwich            "What? Make it yourself." — the xkcd 149 setup
 //   sudo make-me-a-sandwich       "Okay." — the punchline; any other sudo gets the sudoers warning
 //   fun                           flips the Fun-mode toggle
@@ -345,7 +345,11 @@ export function execute(rawInput: string, ctx: TerminalContext): TerminalResult 
       return { output: [], action: { type: TerminalActionType.exit } }
     case TerminalCommand.whoami:
       return {
-        output: [ctx.isFunMode ? 'Full snack engineer' : 'Brent Butkow - full-stack engineer'],
+        output: [
+          ctx.isFunMode
+            ? 'Brent Butkow - full-snack engineer'
+            : 'Brent Butkow - full-stack engineer',
+        ],
         action: none,
       }
     case TerminalCommand.sudo:

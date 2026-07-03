@@ -121,8 +121,8 @@ describe('execute — easter eggs and misc', () => {
   })
 
   it('whoami answer depends on the mode', () => {
-    expect(execute('whoami', ctx).output[0]).toMatch(/full-stack engineer/i)
-    expect(execute('whoami', funCtx).output[0]).toBe('Full snack engineer')
+    expect(execute('whoami', ctx).output[0]).toBe('Brent Butkow - full-stack engineer')
+    expect(execute('whoami', funCtx).output[0]).toBe('Brent Butkow - full-snack engineer')
   })
 
   it('sudo make-me-a-sandwich complies; anything else gets reported', () => {
