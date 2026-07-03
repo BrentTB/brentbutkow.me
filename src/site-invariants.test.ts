@@ -2,13 +2,17 @@ import { describe, it, expect } from 'vitest'
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { routesMeta, SITE_URL } from './routes/routes.meta'
 
 // Repo-wide invariants that have each shipped broken at least once:
 // - a data.ts href pointed at a public/ asset that didn't exist (CV download 404)
 // - env vars referenced without the VITE_ prefix, which Vite silently strips from the client
+// - docs/skills referencing files that a later refactor moved or deleted
 
 const srcDir = dirname(fileURLToPath(import.meta.url))
-const publicDir = join(srcDir, '..', 'public')
+const rootDir = join(srcDir, '..')
+const publicDir = join(rootDir, 'public')
+const skillsDir = join(rootDir, '.claude', 'skills')
 
 function sourceFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -54,5 +58,44 @@ describe('site invariants', () => {
       invalid,
       `env vars Vite won't expose to the client (missing VITE_ prefix):\n${invalid.join('\n')}`
     ).toEqual([])
+  })
+
+  it('every indexable route is in sitemap.xml (hand-maintained — the easy step to forget)', () => {
+    const sitemap = readFileSync(join(publicDir, 'sitemap.xml'), 'utf8')
+    const listed = new Set([...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]))
+    const indexable = Object.entries(routesMeta)
+      .filter(([path, meta]) => !meta.noindex && path !== '*' && !path.includes(':'))
+      .map(([path]) => `${SITE_URL}${path}`)
+    const missing = indexable.filter((url) => !listed.has(url))
+    expect(
+      missing,
+      `indexable routes missing from public/sitemap.xml:\n${missing.join('\n')}`
+    ).toEqual([])
+  })
+
+  it('every repo file a skill runbook references still exists', () => {
+    const skillFiles = readdirSync(skillsDir).flatMap((name) => {
+      const skillMd = join(skillsDir, name, 'SKILL.md')
+      return existsSync(skillMd) ? [skillMd] : []
+    })
+    expect(skillFiles.length).toBeGreaterThan(0)
+
+    // Markdown links resolve relative to the skill file; backticked repo paths from the root.
+    const mdLink = /\]\(([^)#\s]+)\)/g
+    const tickedPath = /`((?:src|public|scripts|\.claude|\.husky)\/[\w\-/.]+\.\w+)`/g
+    const stale: string[] = []
+    for (const skill of skillFiles) {
+      const text = readFileSync(skill, 'utf8')
+      const skillName = skill.slice(skillsDir.length + 1)
+      for (const match of text.matchAll(mdLink)) {
+        const target = match[1]
+        if (/^[a-z]+:/.test(target)) continue // http(s), mailto — not repo files
+        if (!existsSync(join(dirname(skill), target))) stale.push(`${skillName} → ${target}`)
+      }
+      for (const match of text.matchAll(tickedPath)) {
+        if (!existsSync(join(rootDir, match[1]))) stale.push(`${skillName} → ${match[1]}`)
+      }
+    }
+    expect(stale, `skill runbooks reference moved/deleted files:\n${stale.join('\n')}`).toEqual([])
   })
 })

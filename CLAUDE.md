@@ -31,6 +31,16 @@ first tool calls of your first turn. Stop only if told to.
   `data.ts` copy), invoke the **humanizer** skill on that copy to strip AI-writing tells — skip comments,
   code, and identifiers. A Stop hook reminds you at end of turn. If no human-facing text changed, skip it.
 
+### Runbook skills (execution-verified)
+
+Step-by-step runbooks for the recurring multi-file workflows — each was verified by executing
+it end-to-end. Invoke before improvising:
+
+- **new-page** — add a route (paths → meta → page → config → sitemap → fun-mode).
+- **null-space-change** — change the game safely (determinism, round-trip test, changelog).
+- **recall-radar-country** — add a country/source (config records + the copy that enumerates countries).
+- **visual-verify** — see a UI change actually working in the browser (the miss class no test catches).
+
 ### Automated guardrails (hooks + lint)
 
 These catch the deterministic half of the issues `cr` keeps finding, so they never reach review. Hooks
