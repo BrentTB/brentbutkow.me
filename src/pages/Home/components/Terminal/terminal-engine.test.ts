@@ -56,40 +56,57 @@ describe('execute — navigation commands', () => {
     expect(execute('open contact', ctx).action.path).toBe(routePaths.contact)
     expect(execute('goto education', ctx).action.path).toBe(routePaths.education)
   })
+
+  it('cd into the hidden folder walks to the 404 page, immediately', () => {
+    for (const raw of ['cd .404', 'cd 404']) {
+      const result = execute(raw, ctx)
+      expect(result.action.type, raw).toBe(TerminalActionType.navigate)
+      expect(result.action.path, raw).toBe(execute('404', ctx).action.path)
+      expect(result.output, raw).toEqual([]) // empty output → no navigate delay
+    }
+  })
 })
 
 describe('execute — ls', () => {
-  it('lists top-level pages with a slash on pages that have children', () => {
+  it('lists every top-level page as a folder, with a trailing slash', () => {
     const listing = execute('ls', ctx).output[0]
-    expect(listing).toContain('experience')
+    expect(listing).toContain('experience/') // leaf pages are folders too
     expect(listing).toContain('projects/')
     expect(listing).toContain('fun-stuff/')
     expect(listing).not.toContain('.the-game')
   })
 
-  it('lists a nested level by path', () => {
-    expect(execute('ls fun-stuff/games', ctx).output[0]).toBe('null-space')
+  it('lists a nested level by path, still slashed', () => {
+    expect(execute('ls fun-stuff/games', ctx).output[0]).toBe('null-space/')
   })
 
   it('rejects unknown paths', () => {
     expect(execute('ls narnia', ctx).output[0]).toMatch(/no such page/)
   })
 
-  it('-a reveals the hidden game file, which cat pays off', () => {
-    expect(execute('ls -a', ctx).output[0]).toContain('.the-game')
+  it('-a reveals the hidden dotfiles and the .404/ folder', () => {
+    const listing = execute('ls -a', ctx).output[0]
+    expect(listing).toContain('.the-game')
+    expect(listing).toContain('.404/') // the folder keeps its slash; the dotfiles do not
+    expect(listing).not.toContain('.404 ') // never shown slashless
     expect(execute('cat .the-game', ctx).output[0]).toBe('You just lost the game.')
+  })
+
+  it('listing the hidden folder echoes its name, like any leaf page', () => {
+    expect(execute('ls .404', ctx).output[0]).toBe('.404')
+    expect(execute('ls 404', ctx).output[0]).toBe('.404')
   })
 })
 
 describe('execute — tree', () => {
-  it('draws the full nested structure with branch glyphs', () => {
+  it('draws the full nested structure with branch glyphs, every page a folder', () => {
     const output = execute('tree', ctx).output
     expect(output[0]).toBe('.')
     expect(output).toContain('├── projects/')
-    expect(output).toContain('│   └── recall-radar')
+    expect(output).toContain('│   └── recall-radar/') // leaf, still a folder
     expect(output).toContain('│   └── games/')
-    expect(output).toContain('│       └── null-space')
-    expect(output).toContain('└── contact')
+    expect(output).toContain('│       └── null-space/')
+    expect(output).toContain('└── contact/')
   })
 
   it('covers every page exactly once', () => {
@@ -99,11 +116,20 @@ describe('execute — tree', () => {
     }
   })
 
-  it('-a adds the hidden game file; ls -R is an alias', () => {
-    expect(execute('tree', ctx).output.join('\n')).not.toContain('.the-game')
-    expect(execute('tree -a', ctx).output.join('\n')).toContain('.the-game')
+  it('-a adds the hidden dotfiles (bare) and the .404/ folder; ls -R is an alias', () => {
+    const bare = execute('tree', ctx).output.join('\n')
+    expect(bare).not.toContain('.the-game')
+    expect(bare).not.toContain('.404')
+    const withHidden = execute('tree -a', ctx).output.join('\n')
+    expect(withHidden).toContain('.the-game') // a file — no trailing slash
+    expect(withHidden).toContain('.404/') // a folder — keeps its slash
     expect(execute('ls -R', ctx).output).toEqual(execute('tree', ctx).output)
     expect(execute('ls -aR', ctx).output).toEqual(execute('tree -a', ctx).output)
+  })
+
+  it('scoping the tree to the hidden folder prints just the empty folder', () => {
+    expect(execute('tree .404', ctx).output).toEqual(['.404/'])
+    expect(execute('ls -R 404', ctx).output).toEqual(['.404/'])
   })
 
   it('is Tab-completable and listed in help', () => {
@@ -122,14 +148,16 @@ describe('execute — tree', () => {
     expect(execute('ls -R narnia', ctx).output[0]).toMatch(/no such page/)
   })
 
-  it('keeps hidden files at root, never inside a scoped listing (-a)', () => {
+  it('keeps hidden entries at root, never inside a scoped listing (-a)', () => {
     const scopedTree = execute('ls -R fun-stuff -a', ctx).output.join('\n')
     expect(scopedTree).not.toContain('.the-game')
     expect(scopedTree).not.toContain('.homework')
     expect(scopedTree).not.toContain('.eyebrow')
+    expect(scopedTree).not.toContain('.404')
 
     const scopedList = execute('ls fun-stuff -a', ctx).output[0]
     expect(scopedList).not.toContain('.the-game')
+    expect(scopedList).not.toContain('.404')
 
     // Root listings still reveal them.
     expect(execute('ls -R -a', ctx).output.join('\n')).toContain('.the-game')
@@ -181,6 +209,12 @@ describe('execute — easter eggs and misc', () => {
     )
     expect(execute('cat fun-stuff/games/null-space', ctx).output[0]).toContain('space-defense')
     expect(execute('cat projects', ctx).output[0]).toContain('Recall Radar')
+  })
+
+  it('cat on the hidden folder prints the 404 route description, like any page', () => {
+    const notFoundDescription = routesMeta[routePaths.notFound].description
+    expect(execute('cat .404', ctx).output[0]).toBe(notFoundDescription)
+    expect(execute('cat 404', ctx).output[0]).toBe(notFoundDescription)
   })
 
   it('cat on the hidden homework file opens the video externally', () => {

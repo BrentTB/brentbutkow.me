@@ -28,7 +28,8 @@ import { STEAM_LOCOMOTIVE, cowsay } from './ascii'
 //   fun                           flips the Fun-mode toggle
 //   rm -rf / (or . ./* * ~ …)     fake delete, then lands on the 404 page
 //   404                           jumps straight to the 404 page (no delete theatrics, no delay)
-//   ls -a / tree -a               reveal the hidden files below
+//   ls -a / tree -a               reveal the hidden entries: the dotfiles below + the '.404/' folder
+//   cd .404 / cd 404              enter the hidden folder — same trip to the 404 page as `404`
 //   cat .the-game                 "You just lost the game."
 //   cat .homework                 rickroll — opens the official video in a new tab
 //   cat .eyebrow                  explains the write below
@@ -48,6 +49,10 @@ type TerminalPage = {
   path: string
   children: TerminalPage[]
 }
+
+// What the tree renderer draws: real pages (folders) plus the synthetic hidden entries. `isFile`
+// marks a dotfile so it renders without a trailing slash; everything else is a folder.
+type TreeEntry = { name: string; children: TreeEntry[]; isFile?: boolean }
 
 const gamesPath = `${routePaths.funStuff}${funStuffSubRoutes.games}`
 
@@ -181,11 +186,19 @@ const EYEBROW_FILE = '.eyebrow'
 
 const hiddenFiles = [EYEBROW_FILE, RICKROLL_FILE, HIDDEN_FILE]
 
+// The hidden folder: unlike the dotfiles you `cat`, this is a place you can enter. `cd .404`,
+// `cd 404`, and the bare `404` command all walk through it to the not-found page.
+const HIDDEN_DIR = '.404'
+
 // `rm -rf /` lands on the 404 page — any unknown path hits the catch-all route.
 const RM_CRASH_PATH = '/everything-is-gone'
 
 // The `404` command jumps straight to the not-found page (no fake-delete theatrics, no delay).
 const NOT_FOUND_PATH = '/404'
+
+// '.404' (the hidden folder) and its slashless command spelling '404' both resolve to that page.
+const isNotFoundDir = (pathArg: string): boolean =>
+  pathArg === HIDDEN_DIR || pathArg === TerminalCommand.notFound
 
 const HELP_LINES = [
   'help          this list',
@@ -231,6 +244,8 @@ function listPages(pathArg: string | undefined, showHidden: boolean): string[] {
   let children = terminalPages
   let atRoot = true
   if (pathArg) {
+    // The hidden folder has no contents — listing it just echoes its own name, like any leaf page.
+    if (isNotFoundDir(pathArg)) return [HIDDEN_DIR]
     const segments = toSegments(pathArg)
     const node = segments ? findPage(segments) : null
     if (segments && segments.length === 0) {
@@ -244,27 +259,31 @@ function listPages(pathArg: string | undefined, showHidden: boolean): string[] {
       atRoot = false
     }
   }
-  const names = children.map((page) => (page.children.length > 0 ? `${page.name}/` : page.name))
-  // Hidden files live at the site root only — never inside a listed subtree.
-  if (showHidden && atRoot) names.unshift(...hiddenFiles)
+  // Every page is a place you can cd into, so all render as folders; only dotfiles are files.
+  const names = children.map((page) => `${page.name}/`)
+  // Hidden entries live at the site root only — the '.404/' folder plus the cat-able dotfiles.
+  if (showHidden && atRoot) names.unshift(`${HIDDEN_DIR}/`, ...hiddenFiles)
   return [names.join('  ')]
 }
 
-function renderTree(pages: TerminalPage[], prefix: string, lines: string[]): void {
+function renderTree(pages: TreeEntry[], prefix: string, lines: string[]): void {
   pages.forEach((page, index) => {
     const isLast = index === pages.length - 1
-    const name = page.children.length > 0 ? `${page.name}/` : page.name
-    lines.push(`${prefix}${isLast ? '└── ' : '├── '}${name}`)
+    // Folders always carry a trailing slash (even when empty); only dotfiles render bare.
+    const label = page.isFile ? page.name : `${page.name}/`
+    lines.push(`${prefix}${isLast ? '└── ' : '├── '}${label}`)
     renderTree(page.children, `${prefix}${isLast ? '    ' : '│   '}`, lines)
   })
 }
 
 // `scope` narrows the tree to a subtree (`ls -R <page>` / `tree <page>`); omit for the full tree.
 function treePages(showHidden: boolean, scope?: { pathArg: string; cmd: string }): string[] {
-  let pages = terminalPages
+  let pages: TreeEntry[] = terminalPages
   let rootLabel = '.'
   let atRoot = true
   if (scope) {
+    // The hidden folder is empty — scoping to it just prints the folder itself.
+    if (isNotFoundDir(scope.pathArg)) return [`${HIDDEN_DIR}/`]
     const segments = toSegments(scope.pathArg)
     const node = segments && segments.length > 0 ? findPage(segments) : null
     if (segments && segments.length === 0) {
@@ -273,15 +292,16 @@ function treePages(showHidden: boolean, scope?: { pathArg: string; cmd: string }
       return [`${scope.cmd}: ${scope.pathArg}: no such page`]
     } else {
       pages = node.children
-      rootLabel = node.children.length > 0 ? `${node.name}/` : node.name
+      rootLabel = `${node.name}/`
       atRoot = false
     }
   }
-  // Hidden files live at the site root only — never inside a scoped subtree.
-  const roots =
-    showHidden && atRoot
-      ? [...hiddenFiles.map((name) => ({ name, path: '', children: [] })), ...pages]
-      : pages
+  // Hidden entries live at the site root only: the '.404/' folder plus the cat-able dotfiles.
+  const hidden: TreeEntry[] = [
+    { name: HIDDEN_DIR, children: [] },
+    ...hiddenFiles.map((name) => ({ name, children: [], isFile: true }) as TreeEntry),
+  ]
+  const roots = showHidden && atRoot ? [...hidden, ...pages] : pages
   const lines = [rootLabel]
   renderTree(roots, '', lines)
   return lines
@@ -293,6 +313,10 @@ function changePage(pathArg: string | undefined): TerminalResult {
   }
   if (pathArg === '-') {
     return { output: [], action: { type: TerminalActionType.back } }
+  }
+  // Entering the hidden folder walks you to the 404 page, same as the bare `404` command.
+  if (isNotFoundDir(pathArg)) {
+    return { output: [], action: { type: TerminalActionType.navigate, path: NOT_FOUND_PATH } }
   }
   const segments = toSegments(pathArg)
   if (segments && segments.length === 0) {
@@ -332,6 +356,11 @@ function catFile(fileArg: string | undefined, ctx: TerminalContext): TerminalRes
       output: [`the header's next line. write it: echo <text> > ${EYEBROW_FILE}`],
       action: none,
     }
+  }
+  // The hidden folder maps to the catch-all route — cat it like any page: its own description.
+  if (isNotFoundDir(fileArg)) {
+    const notFoundDescription = routesMeta[routePaths.notFound]?.description
+    if (notFoundDescription) return { output: [notFoundDescription], action: none }
   }
   // Catting a page prints its one-line description — the same one search engines see.
   const segments = toSegments(fileArg)
