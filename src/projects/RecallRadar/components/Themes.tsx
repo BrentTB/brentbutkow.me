@@ -12,7 +12,7 @@ type ThemesProps = {
   maxRows?: number
 }
 
-// The NMF build yields at most 16 themes.
+// The analytics build clusters into at most 16 themes.
 const MAX_THEME_ROWS = 16
 
 // Themes as a clickable breakdown — a topic's label already IS its top terms ("listeria · deli ·

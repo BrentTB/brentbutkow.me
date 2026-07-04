@@ -50,7 +50,6 @@ export function BackButton({ fallbackPath }: BackButtonProps) {
       aria-label={label === 'Back' ? 'Go back' : `Back to ${label}`}
     >
       <span className={styles.arrow}>&larr;</span>
-      {label}
     </button>
   )
 }

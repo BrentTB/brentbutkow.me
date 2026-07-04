@@ -1,16 +1,13 @@
 .back {
-  align-self: flex-start;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 18px;
   padding: 0;
   border: none;
   background: none;
   color: var(--muted);
   font-family: var(--font-mono);
   font-size: 0.85rem;
-  letter-spacing: 0.02em;
+  line-height: 1;
   cursor: pointer;
   transition: color 180ms ease;
 

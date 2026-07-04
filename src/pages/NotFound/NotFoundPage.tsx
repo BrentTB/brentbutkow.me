@@ -22,6 +22,9 @@ export function NotFoundPage() {
 
   useParticleField(canvasRef, spring, damping)
 
+  // The prompt's cwd is home (~), so the attempted page reads as a relative target: /widgets → widgets.
+  const attempted = pathname.replace(/^\/+/, '')
+
   // A preset is "active" when the live values match it — so it also highlights
   // when the sliders are dragged to a preset's exact values.
   const isPresetActive = (preset: (typeof PRESETS)[number]) =>
@@ -31,9 +34,9 @@ export function NotFoundPage() {
     <main className={styles.main}>
       <div className={styles.content}>
         <p className={styles.shellLine}>
-          <span className={styles.prompt}>brent@butkow:~$</span> cd {pathname}
+          <span className={styles.prompt}>brent@butkow:~$</span> cd {attempted}
         </p>
-        <p className={styles.shellError}>bash: cd: {pathname}: No such file or directory</p>
+        <p className={styles.shellError}>bash: cd: {attempted}: No such file or directory</p>
         <h1>Page not found</h1>
         <p className={styles.description}>
           The page you're looking for doesn't exist or has been moved.

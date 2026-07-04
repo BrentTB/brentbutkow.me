@@ -1,7 +1,6 @@
 import { AchievementCard } from './components/AchievementCard'
 import { PageLayout } from '../../components/PageFormatting/PageLayout'
 import { PageHeader } from '../../components/PageFormatting/PageHeader'
-import { CommandLine } from '../../components/PageFormatting/CommandLine'
 import styles from './AchievementsPage.module.scss'
 import { achievements } from './data'
 import { useMemo } from 'react'
@@ -37,7 +36,6 @@ export function AchievementsPage() {
   return (
     <PageLayout>
       <PageHeader title="Achievements & Awards" />
-      <CommandLine />
       <div className={styles.container}>
         {sortedYears.map((year) => (
           <section key={year} className={styles.yearGroup}>

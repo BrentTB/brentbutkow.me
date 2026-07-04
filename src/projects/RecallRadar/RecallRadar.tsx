@@ -613,10 +613,11 @@ export function RecallRadar() {
                       <h2 className={styles.sectionTitle}>
                         Themes{' '}
                         <HelpHint label="What is a theme?">
-                          A theme is a group of recalls that describe their problem in similar
-                          words, found automatically, not from a preset list. Its label is the words
-                          that set it apart (e.g. “listeria · deli · meat”), and a recall joins it
-                          only if its text uses them.
+                          A theme is a group of recalls that describe similar problems, found
+                          automatically, not from a preset list. Its label is the words that set it
+                          apart (e.g. “listeria · deli · meat”), and a recall joins it when its
+                          description means much the same thing — even if it doesn’t use those exact
+                          words.
                         </HelpHint>
                       </h2>
                       <p className={styles.hint}>

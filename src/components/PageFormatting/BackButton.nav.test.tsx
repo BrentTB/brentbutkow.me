@@ -35,7 +35,6 @@ describe('BackButton navigation', () => {
   it('uses the explicit fallbackPath rather than stripping a single segment', () => {
     renderAt('/projects/recall-radar/uk/FSA-PRIN-13-2019', '/projects/recall-radar')
     const button = screen.getByRole('button', { name: 'Back to Recall Radar' })
-    expect(button.textContent).toContain('Recall Radar')
     fireEvent.click(button)
     expect(navigateMock).toHaveBeenCalledWith('/projects/recall-radar')
   })
@@ -43,7 +42,6 @@ describe('BackButton navigation', () => {
   it('falls back to the parent route when no fallbackPath is given', () => {
     renderAt('/projects/recall-radar')
     const button = screen.getByRole('button', { name: 'Back to Projects' })
-    expect(button.textContent).toContain('Projects')
     fireEvent.click(button)
     expect(navigateMock).toHaveBeenCalledWith('/projects')
   })
@@ -51,7 +49,6 @@ describe('BackButton navigation', () => {
   it('labels a fun-stuff subpage back button with the section name', () => {
     renderAt('/fun-stuff/gulag-sort')
     const button = screen.getByRole('button', { name: 'Back to Fun Stuff' })
-    expect(button.textContent).toContain('Fun Stuff')
     fireEvent.click(button)
     expect(navigateMock).toHaveBeenCalledWith('/fun-stuff')
   })
@@ -59,7 +56,6 @@ describe('BackButton navigation', () => {
   it('falls back to a generic "Back" label when the destination has no registered name', () => {
     renderAt('/contact/details')
     const button = screen.getByRole('button', { name: 'Go back' })
-    expect(button.textContent).toContain('Back')
     fireEvent.click(button)
     expect(navigateMock).toHaveBeenCalledWith('/contact')
   })

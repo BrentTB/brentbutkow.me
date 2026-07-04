@@ -2,14 +2,46 @@
   max-width: 760px;
 }
 
-.path {
-  display: block;
+.rail {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin-bottom: 10px;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
   font-family: var(--font-mono);
   font-size: 0.82rem;
   font-weight: 500;
   letter-spacing: 0.08em;
+}
+
+.separator {
+  color: var(--muted);
+}
+
+// Ancestor crumbs are links — accent-colored and underlined on interaction so the path reads as
+// navigable, not decorative.
+.crumb {
   color: var(--accent);
+  text-decoration: none;
+  transition: color 150ms ease;
+
+  &:hover,
+  &:focus-visible {
+    color: var(--accent-strong);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
+// The page you're on: quiet, not clickable.
+.current {
+  color: var(--muted);
 }
 
 .title {
