@@ -162,7 +162,7 @@ export function NullSpace() {
   return (
     <div className={styles.wrapper}>
       <div className={styles.pageIntro}>
-        <PageHeader title={GAME_NAME} showBackButton />
+        <PageHeader title={GAME_NAME} />
         <p className={styles.intro}>
           A space-defense game where you bend space itself: sling meteors, open black holes, and
           warp reality to keep your ship alive. It runs right here in your browser and saves

@@ -413,7 +413,7 @@ export function RecallRadar() {
 
   return (
     <PageLayout>
-      <PageHeader title={recallRadarCopy.title} showBackButton />
+      <PageHeader title={recallRadarCopy.title} />
       <p className={styles.intro}>{isFunMode ? recallRadarCopy.introFun : recallRadarCopy.intro}</p>
 
       {/* Sticky control bar: a minimal heading + location scope on top, the filters beneath. Sits

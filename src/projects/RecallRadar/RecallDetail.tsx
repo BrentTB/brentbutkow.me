@@ -31,12 +31,7 @@ export function RecallDetail() {
   if (!source || !isRecallSource(source) || !recallNumber) {
     return (
       <PageLayout>
-        <PageHeader
-          title="Recall Radar"
-          showBackButton
-          backFallbackPath={routePaths.recallRadar}
-          path={routePaths.recallRadar}
-        />
+        <PageHeader title="Recall Radar" parentPath={routePaths.recallRadar} />
         <p className={styles.status}>That recall link looks malformed.</p>
       </PageLayout>
     )
@@ -55,7 +50,7 @@ function RecallDetailView({
 
   return (
     <PageLayout>
-      <PageHeader title="Recall Radar" showBackButton backFallbackPath={routePaths.recallRadar} />
+      <PageHeader title="Recall Radar" parentPath={routePaths.recallRadar} />
       {loading && <p className={styles.status}>Loading recall…</p>}
       {error && <p className={styles.status}>Couldn’t load this recall. It may not exist.</p>}
       {recall && <RecallDetailBody recall={recall} />}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { toBreadcrumbs, toTerminalPath } from './terminal-path'
+import { getRouteFallbackPath, toBreadcrumbs, toTerminalPath } from './terminal-path'
 
 describe('toTerminalPath', () => {
   it('maps the site root to ~', () => {
@@ -20,30 +20,33 @@ describe('toTerminalPath', () => {
 })
 
 describe('toBreadcrumbs', () => {
-  it('leads with a ~ crumb that links home', () => {
-    expect(toBreadcrumbs('/experience', true)[0]).toEqual({
-      label: '~',
-      href: '/',
-      current: false,
-    })
-  })
-
-  it('gives each segment its cumulative href and marks the last as current', () => {
-    expect(toBreadcrumbs('/fun-stuff/games/null-space', true)).toEqual([
-      { label: '~', href: '/', current: false },
-      { label: 'fun-stuff', href: '/fun-stuff', current: false },
-      { label: 'games', href: '/fun-stuff/games', current: false },
-      { label: 'null-space', href: '/fun-stuff/games/null-space', current: true },
+  it('links ~ and every ancestor, leaving the last segment as the current page', () => {
+    expect(toBreadcrumbs('/fun-stuff/games/null-space')).toEqual([
+      { label: '~', href: '/', linkable: true, current: false },
+      { label: 'fun-stuff', href: '/fun-stuff', linkable: true, current: false },
+      { label: 'games', href: '/fun-stuff/games', linkable: true, current: false },
+      { label: 'null-space', href: '/fun-stuff/games/null-space', linkable: false, current: true },
     ])
   })
 
-  it('keeps every crumb navigable when the last segment is a parent stand-in', () => {
-    const crumbs = toBreadcrumbs('/projects/recall-radar', false)
-    expect(crumbs.every((crumb) => !crumb.current)).toBe(true)
-    expect(crumbs.at(-1)).toEqual({
-      label: 'recall-radar',
-      href: '/projects/recall-radar',
-      current: false,
-    })
+  it('stops linking past linkableThrough so page-less tail segments are plain text', () => {
+    const crumbs = toBreadcrumbs('/projects/recall-radar/fda/H-1078-2026', '/projects/recall-radar')
+    const byLabel = Object.fromEntries(crumbs.map((c) => [c.label, c]))
+    expect(byLabel['recall-radar'].linkable).toBe(true)
+    expect(byLabel['fda'].linkable).toBe(false)
+    expect(byLabel['fda'].current).toBe(false)
+    expect(byLabel['H-1078-2026']).toMatchObject({ linkable: false, current: true })
+  })
+})
+
+describe('getRouteFallbackPath', () => {
+  it('returns the parent route for nested paths', () => {
+    expect(getRouteFallbackPath('/pages/test/5')).toBe('/pages/test')
+    expect(getRouteFallbackPath('/pages/test')).toBe('/pages')
+    expect(getRouteFallbackPath('/pages')).toBe('/')
+  })
+
+  it('returns undefined for root', () => {
+    expect(getRouteFallbackPath('/')).toBeUndefined()
   })
 })

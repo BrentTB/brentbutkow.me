@@ -1,6 +1,5 @@
-// Pure route data: the path table and the back-button labels keyed off it. No component or page
-// imports live here, so lazy page chunks (and BackButton) can pull paths/labels without dragging the
-// eager route table — and every page-level import — into their bundle.
+// Pure route data: the path table. No component or page imports live here, so lazy page chunks can
+// pull paths without dragging the eager route table — and every page-level import — into their bundle.
 
 export const routePaths = {
   home: '/',
@@ -16,14 +15,4 @@ export const routePaths = {
   contact: '/contact',
   admin: '/admin',
   notFound: '*',
-}
-
-// Short, human names for the routes a back button lands on. The structural BackButton looks up its
-// destination here to read "← Recall Radar" instead of a generic "← Back"; unlisted targets stay "Back".
-export const routeLabels: Record<string, string> = {
-  [routePaths.home]: 'Home',
-  [routePaths.projects]: 'Projects',
-  [routePaths.recallRadar]: 'Recall Radar',
-  [routePaths.funStuff]: 'Fun Stuff',
-  [`${routePaths.funStuff}/games`]: 'Games',
 }

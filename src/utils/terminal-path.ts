@@ -5,20 +5,35 @@ export function toTerminalPath(pathname: string): string {
   return trimmed === '' ? '~' : `~${trimmed}`
 }
 
-export type Breadcrumb = { label: string; href: string; current: boolean }
+export type Breadcrumb = { label: string; href: string; linkable: boolean; current: boolean }
 
-// Splits a route path into a clickable terminal breadcrumb: `~` (home) followed by one crumb per
-// segment, each carrying the cumulative href it links to. `lastIsCurrent` marks the final segment as
-// the page you're on (rendered plain, not a link) — pass false when the path is a parent stand-in
-// (e.g. a detail page pointing at its list), so every crumb stays navigable.
-export function toBreadcrumbs(displayPath: string, lastIsCurrent: boolean): Breadcrumb[] {
-  const segments = displayPath.split('/').filter(Boolean)
-  const crumbs: Breadcrumb[] = [{ label: '~', href: '/', current: segments.length === 0 }]
+// The structural parent of a route — one segment up. Used as the default back target when a page
+// doesn't name its own (e.g. a detail page pointing past URL segments that have no page).
+export function getRouteFallbackPath(pathname: string): string | undefined {
+  if (pathname === '/' || pathname === '') return undefined
+  const trimmed = pathname.replace(/\/$/, '')
+  const lastSlash = trimmed.lastIndexOf('/')
+  return lastSlash <= 0 ? '/' : trimmed.slice(0, lastSlash)
+}
+
+// Splits a route into a terminal breadcrumb: `~` (home) then one crumb per segment, each with its
+// cumulative href. A crumb is `linkable` when it maps to a real page — every ancestor by default, or
+// only those up to `linkableThrough` when the tail segments have no page of their own (a recall's
+// `/fda/H-1078-2026`). The final segment is the `current` page: shown, never a link.
+export function toBreadcrumbs(pathname: string, linkableThrough?: string): Breadcrumb[] {
+  const segments = pathname.split('/').filter(Boolean)
+  const crumbs: Breadcrumb[] = [
+    { label: '~', href: '/', linkable: segments.length > 0, current: segments.length === 0 },
+  ]
   let href = ''
   segments.forEach((segment, index) => {
     href += `/${segment}`
     const isLast = index === segments.length - 1
-    crumbs.push({ label: segment, href, current: isLast && lastIsCurrent })
+    const withinReach =
+      linkableThrough === undefined ||
+      href === linkableThrough ||
+      linkableThrough.startsWith(`${href}/`)
+    crumbs.push({ label: segment, href, linkable: !isLast && withinReach, current: isLast })
   })
   return crumbs
 }

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { BackButton } from '../../components/PageFormatting/BackButton'
+import { Breadcrumb } from '../../components/PageFormatting/Breadcrumb'
 import { SafeLink } from '../../components/utils/SafeLink'
 import { useFunMode } from '../../contexts/useFunMode'
 import { ColorMode, SourceKind, SourceOrigin } from './ascii-art.types'
@@ -101,7 +101,7 @@ export function AsciiArt() {
 
   return (
     <div className={styles.wrapper}>
-      <BackButton />
+      <Breadcrumb />
 
       <header className={styles.intro}>
         <h1 className={styles.title}>ASCII Art Studio</h1>

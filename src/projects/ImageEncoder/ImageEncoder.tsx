@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BackButton } from '../../components/PageFormatting/BackButton'
+import { Breadcrumb } from '../../components/PageFormatting/Breadcrumb'
 import { useFunMode } from '../../contexts/useFunMode'
 import { Mode } from './image-encoder.types'
 import { terminateWorker } from './codec-worker-client'
@@ -27,7 +27,7 @@ export function ImageEncoder() {
 
   return (
     <div className={styles.wrapper}>
-      <BackButton />
+      <Breadcrumb />
 
       <header className={styles.intro}>
         <h1 className={styles.title}>Image Encoder</h1>
