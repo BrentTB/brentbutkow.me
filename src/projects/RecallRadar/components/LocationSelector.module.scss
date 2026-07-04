@@ -10,9 +10,9 @@
   border-radius: var(--radius);
   background: var(--surface);
   transition:
-    gap 0.35s ease,
-    border-color 0.35s ease,
-    background 0.35s ease;
+    gap 0.5s ease,
+    border-color 0.5s ease,
+    background 0.5s ease;
 }
 
 .collapsed {
@@ -43,12 +43,17 @@
   // Generous cap (never reached by a label) purely to give the fold a width to animate from.
   max-width: 240px;
   overflow: hidden;
+  // This base rule times the EXPAND direction (the .collapsed override below times the fold).
+  // max-width animates 0↔240 but a label is only ~130 wide, so part of every tween is clamped
+  // invisible: folding hides the fast start of `ease`, expanding hides the tail — which made
+  // expansion look about twice as fast as the fold. The longer, slow-starting curve here keeps
+  // the visible motion of both directions at the same pace.
   transition:
     background 0.12s ease,
     color 0.12s ease,
-    max-width 0.35s ease,
-    padding 0.35s ease,
-    opacity 0.2s ease;
+    max-width 0.5s cubic-bezier(0.45, 0, 0.55, 1),
+    padding 0.5s cubic-bezier(0.45, 0, 0.55, 1),
+    opacity 0.3s ease;
 }
 
 .tab:hover {
@@ -59,11 +64,11 @@
 // the expanded tabs where hover needs to feel immediate.
 .collapsed .tab {
   transition:
-    background 0.35s ease,
-    color 0.35s ease,
-    max-width 0.35s ease,
-    padding 0.35s ease,
-    opacity 0.2s ease;
+    background 0.5s ease,
+    color 0.5s ease,
+    max-width 0.5s ease,
+    padding 0.5s ease,
+    opacity 0.3s ease;
 }
 
 .collapsed .tab:not(.active) {
@@ -100,9 +105,9 @@
   opacity: 0;
   overflow: hidden;
   transition:
-    max-width 0.35s ease,
-    margin-left 0.35s ease,
-    opacity 0.2s ease;
+    max-width 0.5s ease,
+    margin-left 0.5s ease,
+    opacity 0.4s ease;
 }
 
 .collapsed .caret {
