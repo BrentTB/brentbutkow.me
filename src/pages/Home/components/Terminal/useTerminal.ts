@@ -116,7 +116,16 @@ export function useTerminal({ onExit }: UseTerminalOptions) {
           navigate(-1)
           return
         case TerminalActionType.openExternal:
-          if (result.action.path) window.open(result.action.path, '_blank', 'noopener,noreferrer')
+          if (result.action.path) {
+            // An anchor click, not window.open: a real user-initiated navigation that popup blockers
+            // allow (window.open with a features string reads as a popup and gets blocked on deployed
+            // origins, even though localhost lets it through). Mirrors SafeLink and the CV download.
+            const link = document.createElement('a')
+            link.href = result.action.path
+            link.target = '_blank'
+            link.rel = 'noopener noreferrer'
+            link.click()
+          }
           break
         case TerminalActionType.setEyebrow:
           if (result.action.text) queueEyebrowText(result.action.text)
