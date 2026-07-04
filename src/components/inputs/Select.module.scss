@@ -53,14 +53,14 @@
   top: calc(100% + 4px);
   left: 0;
   // Grow to the widest option so labels like "Undeclared allergen" read in full, even past the
-  // trigger's width; capped so it never runs off a narrow viewport. `scrollbar-gutter: stable`
-  // reserves the scrollbar's width so it never overlaps (and clips) the longest label.
+  // trigger's width; capped so it never runs off a narrow viewport. The height fits the site's
+  // option lists outright — no scrollbar, so no reserved gutter to leave the menu looking clunky;
+  // longer lists scroll past this cap.
   min-width: 100%;
   width: max-content;
   max-width: min(440px, 90vw);
-  max-height: 280px;
+  max-height: 420px;
   overflow-y: auto;
-  scrollbar-gutter: stable;
   margin: 0;
   padding: 4px;
   list-style: none;

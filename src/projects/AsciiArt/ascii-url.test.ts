@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { parseAsciiParams, serializeAsciiParams } from './ascii-url'
-import { AsciiOptions, CUSTOM_CHARSET, defaultOptions } from './data'
+import { AsciiOptions, CUSTOM_CHARSET, MAX_ROWS, defaultOptions } from './data'
 import { BackgroundMode, ColorMode, RenderMode, SourceOrigin } from './ascii-art.types'
 import type { ShareSource } from './ascii-url'
 
@@ -77,7 +77,7 @@ describe('ascii-url codec', () => {
   it('clamps out-of-range numbers instead of trusting them', () => {
     const params = new URLSearchParams({ r: '9999', b: '-9999', ct: '99' })
     const { options } = parseAsciiParams(params)
-    expect(options.rows).toBe(120)
+    expect(options.rows).toBe(MAX_ROWS)
     expect(options.brightness).toBe(-100)
     expect(options.contrast).toBe(2.5)
   })

@@ -68,13 +68,8 @@
   color: var(--muted);
 }
 
+// Rendered only in fun mode (the component gates it), so it needs no display toggle here.
 .exit {
-  display: none;
-}
-
-// Fun mode only: the shell's parting line under the footer content.
-:global(html.fun-mode) .exit {
-  display: block;
   max-width: 1180px;
   margin: 20px auto 0;
   font-family: var(--font-mono);

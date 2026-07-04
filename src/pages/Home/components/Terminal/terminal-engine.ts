@@ -190,8 +190,9 @@ const hiddenFiles = [EYEBROW_FILE, RICKROLL_FILE, HIDDEN_FILE]
 // through it to the not-found page (the same page the bare `404` command jumps to).
 const HIDDEN_DIR = '.404'
 
-// `rm -rf /` lands on the 404 page — any unknown path hits the catch-all route.
-const RM_CRASH_PATH = '/everything-is-gone'
+// `rm -rf /` lands on the 404 page — any unknown path hits the catch-all route. The path is where
+// everything you deleted went, so the 404's `cd dev/null` line reads as the punchline.
+const RM_CRASH_PATH = '/dev/null'
 
 // The `404` command jumps straight to the not-found page (no fake-delete theatrics, no delay).
 const NOT_FOUND_PATH = '/404'
