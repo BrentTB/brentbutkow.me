@@ -20,8 +20,9 @@
 
 .shellLine,
 .shellError {
+  // Flush left (not centered like the hero below) so the prompt reads as a real terminal.
   max-width: 640px;
-  margin: 0 auto;
+  margin: 0;
   font-family: var(--font-mono);
   font-size: 0.9rem;
   text-align: left;

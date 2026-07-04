@@ -49,4 +49,8 @@ describe('getRouteFallbackPath', () => {
   it('returns undefined for root', () => {
     expect(getRouteFallbackPath('/')).toBeUndefined()
   })
+
+  it('trims trailing slashes before finding the parent', () => {
+    expect(getRouteFallbackPath('/pages/test/')).toBe('/pages')
+  })
 })

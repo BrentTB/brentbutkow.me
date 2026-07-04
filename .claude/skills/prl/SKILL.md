@@ -62,15 +62,3 @@ Write body to `/tmp/pr-body.md` with the **Write tool**, then:
 - **PR exists:** `gh pr edit --body-file /tmp/pr-body.md`
 
 Print the URL.
-
-## 5. Merge into `dev` locally
-
-Keep local `dev` current: merge the feature branch into `dev`, then return to the branch.
-
-```bash
-git checkout dev
-git merge my-branch --no-edit   # substitute the feature branch name literally
-git checkout my-branch          # back to the feature branch
-```
-
-If the merge reports conflicts, stop and surface them — don't force or abort silently.

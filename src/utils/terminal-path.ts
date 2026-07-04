@@ -11,7 +11,7 @@ export type Breadcrumb = { label: string; href: string; linkable: boolean; curre
 // doesn't name its own (e.g. a detail page pointing past URL segments that have no page).
 export function getRouteFallbackPath(pathname: string): string | undefined {
   if (pathname === '/' || pathname === '') return undefined
-  const trimmed = pathname.replace(/\/$/, '')
+  const trimmed = pathname.replace(/\/+$/, '')
   const lastSlash = trimmed.lastIndexOf('/')
   return lastSlash <= 0 ? '/' : trimmed.slice(0, lastSlash)
 }

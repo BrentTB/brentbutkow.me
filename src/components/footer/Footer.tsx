@@ -21,7 +21,7 @@ const LOADING_TARGETS = [
   'good intentions',
 ]
 const loadingCycle = createShuffledCycle(LOADING_TARGETS)
-const PROCESS_DONE = '[process completed - exit code 0]'
+export const PROCESS_DONE = '[process completed - exit code 0]'
 const LOADING_MS = 2400
 const DOT_MS = 300
 

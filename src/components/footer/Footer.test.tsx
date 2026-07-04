@@ -1,7 +1,7 @@
 import { act, cleanup, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { Footer } from './Footer'
+import { Footer, PROCESS_DONE } from './Footer'
 import { FunModeContext } from '../../contexts/useFunMode'
 
 function renderFooter(isFunMode: boolean) {
@@ -32,7 +32,7 @@ describe('Footer sign-off', () => {
     expect(screen.getByText(/^loading .+\.\.\.$/)).toBeTruthy()
     // Past the loading window it settles (advance generously so the test doesn't couple to the ms).
     act(() => vi.advanceTimersByTime(10_000))
-    expect(screen.getByText('[process completed - exit code 0]')).toBeTruthy()
+    expect(screen.getByText(PROCESS_DONE)).toBeTruthy()
     expect(screen.queryByText(/^loading /)).toBeNull()
   })
 
