@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { LocationSelector } from './LocationSelector'
+import { RecallCountry } from '../recall.types'
 
 describe('LocationSelector', () => {
   afterEach(cleanup)
@@ -21,6 +22,28 @@ describe('LocationSelector', () => {
       render(<LocationSelector value="us" collapsed={false} onChange={onChange} />)
       fireEvent.click(screen.getByRole('button', { name: 'United Kingdom' }))
       expect(onChange).toHaveBeenCalledWith('uk')
+    })
+  })
+
+  // The collapse is a CSS morph on one persistent element — if either form remounted (or the
+  // inactive tabs unmounted), the fold animation could never run and the swap would snap again.
+  describe('tabs ↔ dropdown morph', () => {
+    it('keeps the active button mounted across the collapse so the morph can animate', () => {
+      const { rerender } = render(
+        <LocationSelector value="us" collapsed={false} onChange={() => {}} />
+      )
+      const tab = screen.getByRole('button', { name: 'United States' })
+      rerender(<LocationSelector value="us" collapsed onChange={() => {}} />)
+      expect(screen.getByRole('button', { name: 'Location: United States' })).toBe(tab)
+    })
+
+    it('folds inactive tabs out of the a11y tree and tab order instead of unmounting them', () => {
+      const { container } = render(<LocationSelector value="us" collapsed onChange={() => {}} />)
+      const folded = Array.from(container.querySelectorAll('button[aria-hidden="true"]'))
+      // Every location except the active one folds; none may keep keyboard focus.
+      expect(folded.length).toBe(Object.values(RecallCountry).length - 1)
+      expect(folded.every((tab) => tab.getAttribute('tabindex') === '-1')).toBe(true)
+      expect(folded.some((tab) => tab.textContent?.includes('United States'))).toBe(false)
     })
   })
 

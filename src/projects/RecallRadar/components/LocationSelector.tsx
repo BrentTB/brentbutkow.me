@@ -6,7 +6,7 @@ import styles from './LocationSelector.module.scss'
 
 type LocationSelectorProps = {
   value: RecallCountry
-  // When the page has scrolled, the tabs tuck into a compact dropdown so the scope stays reachable
+  // When the page has scrolled, the tabs fold into a compact dropdown so the scope stays reachable
   // from the sticky bar without taking a full row.
   collapsed: boolean
   onChange: (country: RecallCountry) => void
@@ -15,8 +15,10 @@ type LocationSelectorProps = {
 const LOCATIONS = Object.values(RecallCountry)
 
 // Location is the view's scope (US vs UK are separate datasets), not a filter — so it reads as a
-// first-class choice. Expanded, it's a row of tabs; collapsed, a top-right dropdown. Both
-// forms iterate the same list, so adding a place is a data-only change.
+// first-class choice. One persistent element renders both forms: expanded it's a row of tabs;
+// collapsed, the inactive tabs shrink away and the active one becomes the dropdown trigger, so the
+// swap animates as a morph instead of one control replacing another. Both forms iterate the same
+// list, so adding a place is a data-only change.
 export function LocationSelector({ value, collapsed, onChange }: LocationSelectorProps) {
   const [open, setOpen] = useState(false)
   // Anchor coords for the portaled menu; null until measured so it never flashes at the origin.
@@ -56,7 +58,7 @@ export function LocationSelector({ value, collapsed, onChange }: LocationSelecto
     }
   }, [open])
 
-  // Collapsing on scroll should never leave the menu hanging open.
+  // Expanding on scroll-up should never leave the menu hanging open.
   useEffect(() => {
     if (!collapsed) setOpen(false)
   }, [collapsed])
@@ -80,42 +82,46 @@ export function LocationSelector({ value, collapsed, onChange }: LocationSelecto
     }
   }, [open])
 
-  if (!collapsed) {
-    return (
-      // Distinct keys on the two forms so collapsing remounts (rather than reusing) the element —
-      // that guarantees the fade-in animation fires on the swap, not just a silent class change.
-      <div key="tabs" className={styles.tabs} role="group" aria-label="Location">
-        {LOCATIONS.map((country) => (
+  return (
+    <div
+      className={`${styles.selector} ${collapsed ? styles.collapsed : ''}`}
+      // Only the expanded form is a group of choices; collapsed, the lone visible button is the
+      // whole control and the group role would just be noise (the portaled menu carries its own).
+      role={collapsed ? undefined : 'group'}
+      aria-label={collapsed ? undefined : 'Location'}
+    >
+      {LOCATIONS.map((country) => {
+        const active = country === value
+        const isTrigger = collapsed && active
+        const isFolded = collapsed && !active
+        return (
           <button
             key={country}
+            ref={active ? triggerRef : undefined}
             type="button"
-            className={`${styles.tab} ${country === value ? styles.active : ''}`}
-            onClick={() => onChange(country)}
-            aria-pressed={country === value}
+            className={`${styles.tab} ${active ? styles.active : ''}`}
+            // Folded tabs stay mounted so the width transition can run, but leave the a11y tree
+            // and tab order — a screen reader should only meet the trigger.
+            aria-hidden={isFolded || undefined}
+            tabIndex={isFolded ? -1 : undefined}
+            aria-pressed={collapsed ? undefined : active}
+            aria-haspopup={isTrigger ? 'true' : undefined}
+            aria-expanded={isTrigger ? open : undefined}
+            aria-label={isTrigger ? `Location: ${countryLabels[country]}` : undefined}
+            onClick={() => {
+              if (isTrigger) setOpen((prev) => !prev)
+              else onChange(country)
+            }}
           >
             {countryLabels[country]}
+            {active && (
+              <span className={styles.caret} aria-hidden="true">
+                ▾
+              </span>
+            )}
           </button>
-        ))}
-      </div>
-    )
-  }
-
-  return (
-    <div key="dropdown" className={styles.dropdown}>
-      <button
-        ref={triggerRef}
-        type="button"
-        className={styles.trigger}
-        aria-haspopup="true"
-        aria-expanded={open}
-        aria-label={`Location: ${countryLabels[value]}`}
-        onClick={() => setOpen((prev) => !prev)}
-      >
-        <span className={styles.triggerLabel}>{countryLabels[value]}</span>
-        <span className={styles.caret} aria-hidden="true">
-          ▾
-        </span>
-      </button>
+        )
+      })}
       {open &&
         coords &&
         createPortal(

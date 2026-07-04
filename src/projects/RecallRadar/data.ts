@@ -17,7 +17,7 @@ export const recallRadarCopy = {
   intro:
     'A live view of US, Canadian, UK & South African food-safety recalls. Each day this pulls the latest reports from the US (FDA, USDA FSIS), Canada (CFIA), the UK (FSA), and South Africa (NCC), sorts them by likely cause, and tracks the trend over time.',
   introFun:
-    "Because nothing says 'fun side project' like undeclared peanuts and the occasional rogue metal fragment. Live US, Canadian, UK & South African food recalls, sorted and plotted.",
+    'What says "free time" like building a tracker of food recalls throughout US, UK, Canada and South Africa, and then sorting through each one to work out what actually went wrong. But if this helps even one person avoid getting sick, then the time spent is worth it.',
   methodology:
     "Sources: US openFDA + USDA FSIS, the Canadian Food Inspection Agency, UK Food Standards Agency alerts, and South Africa's National Consumer Commission notices. Categories are assigned by a TF-IDF + logistic-regression classifier trained on the recall text; the % on each recall is the model confidence.",
   about:
