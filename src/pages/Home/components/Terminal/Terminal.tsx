@@ -252,7 +252,21 @@ export function Terminal() {
               {ghost && !cascade && (
                 <span className={styles.ghost} aria-hidden="true">
                   <span className={styles.ghostTyped}>{input}</span>
-                  {ghost}
+                  {/* Touch stand-in for Tab: on mobile the greyed suffix is tappable to accept the
+                      completion (pointer-events gated to mobile in CSS). Decorative for a11y — typing
+                      the full command works for everyone; desktop keeps Tab. */}
+                  {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */}
+                  <span
+                    className={styles.ghostSuffix}
+                    data-ghost-suffix
+                    onPointerDown={(event) => event.preventDefault()}
+                    onClick={() => {
+                      acceptCompletion()
+                      inputRef.current?.focus()
+                    }}
+                  >
+                    {ghost}
+                  </span>
                 </span>
               )}
               {cascade &&
@@ -295,31 +309,11 @@ export function Terminal() {
           </div>
         )}
       </div>
-      {/* Touch stand-in for Tab: appears only when a completion exists, fills it in on tap, and
-          re-appears for the next path segment. Hidden on desktop, which has the inline ghost + Tab. */}
-      {ghost && (
-        <button
-          type="button"
-          className={styles.complete}
-          // Keep focus (and the keyboard) on the input — the click still fires and does the work.
-          onPointerDown={(event) => event.preventDefault()}
-          onClick={() => {
-            acceptCompletion()
-            inputRef.current?.focus()
-          }}
-          aria-label={`Complete to ${input}${ghost}`}
-        >
-          <span className={styles.completeKey} aria-hidden="true">
-            ⇥
-          </span>
-          <span className={styles.completeText}>
-            {input}
-            {ghost}
-          </span>
-        </button>
-      )}
       <p className={styles.hint} aria-hidden="true">
         press / to jump here · Tab completes · Esc closes
+      </p>
+      <p className={styles.hintMobile} aria-hidden="true">
+        tap the grey text to complete
       </p>
     </section>
   )

@@ -165,25 +165,26 @@ describe('Terminal — autocomplete cascade', () => {
   })
 })
 
-describe('Terminal — touch completion pill (Tab stand-in)', () => {
+describe('Terminal — tap the ghost to complete (Tab stand-in)', () => {
   const inputOf = (container: HTMLElement) =>
     container.querySelector('input[aria-label="Type a command"]') as HTMLInputElement
 
-  it('shows a completion pill when one exists and fills it in on tap', () => {
-    const { container, getByRole } = renderTerminal()
+  it('tapping the greyed suffix fills in the completion', () => {
+    const { container } = renderTerminal()
     const input = inputOf(container)
     fireEvent.focus(input)
     fireEvent.change(input, { target: { value: 'hel' } })
-    const pill = getByRole('button', { name: /^Complete to help/ })
-    fireEvent.click(pill)
+    const suffix = container.querySelector('[data-ghost-suffix]') as HTMLElement
+    expect(suffix).not.toBeNull()
+    fireEvent.click(suffix)
     expect(input.value).toBe('help ') // same result Tab produces
   })
 
-  it('shows no pill when the input has no completion', () => {
-    const { container, queryByRole } = renderTerminal()
+  it('renders no ghost suffix when the input has no completion', () => {
+    const { container } = renderTerminal()
     const input = inputOf(container)
     fireEvent.focus(input)
     fireEvent.change(input, { target: { value: 'zzz' } })
-    expect(queryByRole('button', { name: /^Complete to/ })).toBeNull()
+    expect(container.querySelector('[data-ghost-suffix]')).toBeNull()
   })
 })
