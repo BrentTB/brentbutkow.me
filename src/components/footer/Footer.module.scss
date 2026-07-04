@@ -68,6 +68,21 @@
   color: var(--muted);
 }
 
+.exit {
+  display: none;
+}
+
+// Fun mode only: the shell's parting line under the footer content.
+:global(html.fun-mode) .exit {
+  display: block;
+  max-width: 1180px;
+  margin: 20px auto 0;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+}
+
 @media (max-width: 600px) {
   .content {
     flex-direction: column;

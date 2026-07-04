@@ -87,18 +87,22 @@ describe('useTerminal', () => {
   it('cat .homework opens the video in a new tab via an anchor click (not window.open)', () => {
     // Capture the anchor the handler builds and clicks — window.open would be popup-blocked on a
     // deployed origin, so a real anchor navigation is used instead.
-    let opened: { href: string; target: string; rel: string } | null = null
+    let href = ''
+    let target = ''
+    let rel = ''
     const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
       this: HTMLAnchorElement
     ) {
-      opened = { href: this.href, target: this.target, rel: this.rel }
+      href = this.href
+      target = this.target
+      rel = this.rel
     })
     const { result } = renderTerminal()
     runCommand(result, 'cat .homework')
     expect(clickSpy).toHaveBeenCalled()
-    expect(opened?.href).toContain('youtube.com')
-    expect(opened?.target).toBe('_blank')
-    expect(opened?.rel).toBe('noopener noreferrer')
+    expect(href).toContain('youtube.com')
+    expect(target).toBe('_blank')
+    expect(rel).toBe('noopener noreferrer')
     clickSpy.mockRestore()
   })
 

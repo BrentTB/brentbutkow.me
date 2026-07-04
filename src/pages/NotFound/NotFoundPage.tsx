@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import styles from './NotFoundPage.module.scss'
 import { useFunMode } from '../../contexts/useFunMode'
 import { useParticleField } from './useParticleField'
@@ -15,6 +15,7 @@ const PRESETS = [
 
 export function NotFoundPage() {
   const { isFunMode } = useFunMode()
+  const { pathname } = useLocation()
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const [spring, setSpring] = useState(DEFAULT_SPRING)
   const [damping, setDamping] = useState(DEFAULT_DAMPING)
@@ -29,6 +30,10 @@ export function NotFoundPage() {
   return (
     <main className={styles.main}>
       <div className={styles.content}>
+        <p className={styles.shellLine}>
+          <span className={styles.prompt}>brent@butkow:~$</span> cd {pathname}
+        </p>
+        <p className={styles.shellError}>bash: cd: {pathname}: No such file or directory</p>
         <h1>Page not found</h1>
         <p className={styles.description}>
           The page you're looking for doesn't exist or has been moved.

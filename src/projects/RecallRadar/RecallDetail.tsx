@@ -31,7 +31,12 @@ export function RecallDetail() {
   if (!source || !isRecallSource(source) || !recallNumber) {
     return (
       <PageLayout>
-        <PageHeader title="Recall Radar" showBackButton backFallbackPath={routePaths.recallRadar} />
+        <PageHeader
+          title="Recall Radar"
+          showBackButton
+          backFallbackPath={routePaths.recallRadar}
+          path={routePaths.recallRadar}
+        />
         <p className={styles.status}>That recall link looks malformed.</p>
       </PageLayout>
     )

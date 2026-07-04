@@ -21,6 +21,10 @@ export function Footer() {
         </nav>
         <p className={styles.copyright}>© {currentYear} Brent Butkow</p>
       </div>
+      {/* Fun-mode sign-off; shown via the html.fun-mode class since Footer sits outside the provider. */}
+      <p className={styles.exit} aria-hidden="true">
+        [process completed - exit code 0]
+      </p>
     </footer>
   )
 }
