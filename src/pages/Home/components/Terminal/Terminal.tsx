@@ -295,6 +295,29 @@ export function Terminal() {
           </div>
         )}
       </div>
+      {/* Touch stand-in for Tab: appears only when a completion exists, fills it in on tap, and
+          re-appears for the next path segment. Hidden on desktop, which has the inline ghost + Tab. */}
+      {ghost && (
+        <button
+          type="button"
+          className={styles.complete}
+          // Keep focus (and the keyboard) on the input — the click still fires and does the work.
+          onPointerDown={(event) => event.preventDefault()}
+          onClick={() => {
+            acceptCompletion()
+            inputRef.current?.focus()
+          }}
+          aria-label={`Complete to ${input}${ghost}`}
+        >
+          <span className={styles.completeKey} aria-hidden="true">
+            ⇥
+          </span>
+          <span className={styles.completeText}>
+            {input}
+            {ghost}
+          </span>
+        </button>
+      )}
       <p className={styles.hint} aria-hidden="true">
         press / to jump here · Tab completes · Esc closes
       </p>

@@ -164,3 +164,26 @@ describe('Terminal — autocomplete cascade', () => {
     expect(cascadeChars(container)).toHaveLength(0)
   })
 })
+
+describe('Terminal — touch completion pill (Tab stand-in)', () => {
+  const inputOf = (container: HTMLElement) =>
+    container.querySelector('input[aria-label="Type a command"]') as HTMLInputElement
+
+  it('shows a completion pill when one exists and fills it in on tap', () => {
+    const { container, getByRole } = renderTerminal()
+    const input = inputOf(container)
+    fireEvent.focus(input)
+    fireEvent.change(input, { target: { value: 'hel' } })
+    const pill = getByRole('button', { name: /^Complete to help/ })
+    fireEvent.click(pill)
+    expect(input.value).toBe('help ') // same result Tab produces
+  })
+
+  it('shows no pill when the input has no completion', () => {
+    const { container, queryByRole } = renderTerminal()
+    const input = inputOf(container)
+    fireEvent.focus(input)
+    fireEvent.change(input, { target: { value: 'zzz' } })
+    expect(queryByRole('button', { name: /^Complete to/ })).toBeNull()
+  })
+})
