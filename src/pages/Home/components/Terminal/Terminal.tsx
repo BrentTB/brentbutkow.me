@@ -261,7 +261,10 @@ export function Terminal() {
                     data-ghost-suffix
                     onPointerDown={(event) => event.preventDefault()}
                     onClick={() => {
+                      const prefix = input
+                      const suffix = ghost
                       acceptCompletion()
+                      startCascade(prefix, suffix)
                       inputRef.current?.focus()
                     }}
                   >

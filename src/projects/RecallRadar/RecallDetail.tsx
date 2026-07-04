@@ -71,6 +71,7 @@ function RecallDetailBody({ recall }: { recall: Recall }) {
     recall.eventClusterId != null
       ? events.data?.find((e) => e.id === recall.eventClusterId)
       : undefined
+  const predicted = predictedClassLabel(recall)
 
   return (
     <article className={styles.detail}>
@@ -86,9 +87,9 @@ function RecallDetailBody({ recall }: { recall: Recall }) {
         <span>{sourceLabels[recall.source]}</span>
         <span>{countryLabels[recall.country]}</span>
         {recall.classification && <span>{recall.classification}</span>}
-        {predictedClassLabel(recall) && (
+        {predicted && (
           <span className={styles.predictedBadge} title={predictedClassNote}>
-            {predictedClassLabel(recall)}
+            {predicted}
           </span>
         )}
         <span>{formatDate(recall.reportDate)}</span>
