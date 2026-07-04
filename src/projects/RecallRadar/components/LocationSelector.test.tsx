@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { LocationSelector } from './LocationSelector'
 import { RecallCountry } from '../recall.types'
+import styles from './LocationSelector.module.scss'
 
 describe('LocationSelector', () => {
   afterEach(cleanup)
@@ -44,6 +45,33 @@ describe('LocationSelector', () => {
       expect(folded.length).toBe(Object.values(RecallCountry).length - 1)
       expect(folded.every((tab) => tab.getAttribute('tabindex') === '-1')).toBe(true)
       expect(folded.some((tab) => tab.textContent?.includes('United States'))).toBe(false)
+    })
+
+    // Changing the country while collapsed hops the trigger role to another tab. Without the
+    // one-frame `snap` class the old tab folds while the new one unfolds, and the control visibly
+    // balloons then shrinks.
+    it('suppresses transitions while the trigger hops tabs on a collapsed country change', async () => {
+      const { container, rerender } = render(
+        <LocationSelector value="us" collapsed onChange={() => {}} />
+      )
+      const selector = container.firstElementChild as HTMLElement
+      expect(selector.classList.contains(styles.snap)).toBe(false)
+
+      rerender(<LocationSelector value="uk" collapsed onChange={() => {}} />)
+      expect(selector.classList.contains(styles.snap)).toBe(true)
+
+      // The class lifts again a frame later, so the next collapse/expand still animates.
+      await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)))
+      expect(selector.classList.contains(styles.snap)).toBe(false)
+    })
+
+    it('keeps transitions live when the collapse itself toggles (the morph must animate)', () => {
+      const { container, rerender } = render(
+        <LocationSelector value="us" collapsed={false} onChange={() => {}} />
+      )
+      rerender(<LocationSelector value="us" collapsed onChange={() => {}} />)
+      const selector = container.firstElementChild as HTMLElement
+      expect(selector.classList.contains(styles.snap)).toBe(false)
     })
   })
 

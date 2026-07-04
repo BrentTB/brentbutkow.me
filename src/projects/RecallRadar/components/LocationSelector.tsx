@@ -23,6 +23,11 @@ export function LocationSelector({ value, collapsed, onChange }: LocationSelecto
   const [open, setOpen] = useState(false)
   // Anchor coords for the portaled menu; null until measured so it never flashes at the origin.
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null)
+  // Suppresses transitions for one frame. Changing the country while collapsed moves the trigger
+  // role to another tab — without this, the old tab folds while the new one unfolds and the two
+  // racing width animations balloon the control. The collapse/expand morph itself still animates.
+  const [snap, setSnap] = useState(false)
+  const prevValue = useRef(value)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -63,6 +68,20 @@ export function LocationSelector({ value, collapsed, onChange }: LocationSelecto
     if (!collapsed) setOpen(false)
   }, [collapsed])
 
+  // Layout effect so the no-transition class is on before the width swap paints.
+  useLayoutEffect(() => {
+    if (prevValue.current === value) return
+    prevValue.current = value
+    if (collapsed) setSnap(true)
+  }, [value, collapsed])
+
+  // Restore transitions the frame after the swap has painted at its final widths.
+  useEffect(() => {
+    if (!snap) return
+    const frame = requestAnimationFrame(() => setSnap(false))
+    return () => cancelAnimationFrame(frame)
+  }, [snap])
+
   // Dismiss on outside click or Escape, like the app's other popovers.
   useEffect(() => {
     if (!open) return
@@ -84,7 +103,7 @@ export function LocationSelector({ value, collapsed, onChange }: LocationSelecto
 
   return (
     <div
-      className={`${styles.selector} ${collapsed ? styles.collapsed : ''}`}
+      className={`${styles.selector} ${collapsed ? styles.collapsed : ''} ${snap ? styles.snap : ''}`}
       // Only the expanded form is a group of choices; collapsed, the lone visible button is the
       // whole control and the group role would just be noise (the portaled menu carries its own).
       role={collapsed ? undefined : 'group'}
