@@ -38,6 +38,16 @@
   color: var(--text-secondary);
 }
 
+// The model's severity-class guess (UK/ZA only). Dashed, unlike the solid real-class text beside it,
+// so a prediction never passes for an assigned class — the tooltip carries the caveat.
+.predictedBadge {
+  padding: 2px 9px;
+  border: 1px dashed rgba(var(--accent-rgb), 0.55);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  cursor: help;
+}
+
 .severity {
   font-weight: 600;
 }

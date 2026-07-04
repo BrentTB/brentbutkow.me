@@ -55,6 +55,7 @@ describe('buildRecallsPath', () => {
 
   it('sets sort when provided and omits it by default', () => {
     expect(buildRecallsPath({ sort: RecallSort.severity })).toContain('sort=severity')
+    expect(buildRecallsPath({ sort: RecallSort.novelty })).toContain('sort=novelty')
     expect(buildRecallsPath({})).not.toContain('sort')
   })
 })

@@ -1,5 +1,6 @@
 import {
   EntityType,
+  PredictedClass,
   RecallCategory,
   RecallClass,
   RecallCountry,
@@ -10,6 +11,7 @@ import {
   isRecallCategory,
   isRecallSource,
   isSeverityLabel,
+  type Recall,
 } from './recall.types'
 
 export const recallRadarCopy = {
@@ -138,6 +140,26 @@ export const severityColors: Record<SeverityLabel, string> = {
 export const sortLabels: Record<RecallSort, string> = {
   [RecallSort.recency]: 'Newest first',
   [RecallSort.severity]: 'Highest severity',
+  [RecallSort.novelty]: 'Most unusual',
+}
+
+// Why the UK/ZA severity-class prediction exists and how far to trust it — the tooltip shared by the
+// predicted-class badge on the feed and the detail page. Kept honest per the brief: it's an estimate,
+// the % is what lets a reader calibrate, and it also feeds the severity score.
+export const predictedClassNote =
+  'An ML estimate. For recalls with no severity class, we predict one ' +
+  'from the recall text. Treat the confidence as a guide, not a verdict.'
+
+// The predicted-class badge text — non-null only for a predicted Class I (the case worth surfacing).
+// "not Class I" and the null US/CA case return null, so callers render nothing. The confidence % is
+// always shown when known, so the badge reads as a prediction rather than a fact.
+export function predictedClassLabel(recall: Recall): string | null {
+  if (recall.predictedClass !== PredictedClass.classI) return null
+  const pct =
+    recall.predictedClassConfidence != null
+      ? ` · ${Math.round(recall.predictedClassConfidence * 100)}%`
+      : ''
+  return `Predicted: Class I${pct}`
 }
 
 // Muted, warm-leaning palette for stacked trend segments — harmonises with the amber/dark theme.

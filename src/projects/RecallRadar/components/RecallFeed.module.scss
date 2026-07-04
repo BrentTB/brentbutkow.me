@@ -149,6 +149,23 @@
   outline-offset: 2px;
 }
 
+// A model's severity-class guess (UK/ZA only). The dashed border is deliberate — it separates a
+// prediction from the solid-bordered chips that state facts, so the badge never reads as an official
+// class. The "Predicted:" prefix and always-shown confidence % (from the label) do the rest.
+.predictedChip {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px dashed rgba(var(--accent-rgb), 0.55);
+  background: transparent;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  cursor: help;
+}
+
 .date {
   flex: 0 0 auto;
   font-family: var(--font-mono);

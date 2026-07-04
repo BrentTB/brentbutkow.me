@@ -76,8 +76,17 @@ export type SeverityLabel = (typeof SeverityLabel)[keyof typeof SeverityLabel]
 export const RecallSort = {
   recency: 'recency',
   severity: 'severity',
+  novelty: 'novelty',
 } as const
 export type RecallSort = (typeof RecallSort)[keyof typeof RecallSort]
+
+// A model's severity-class guess for countries that assign none (UK, ZA). Null for US/CA, which
+// carry a real classification. Values double as runtime identifiers.
+export const PredictedClass = {
+  classI: 'Class I',
+  notClassI: 'not Class I',
+} as const
+export type PredictedClass = (typeof PredictedClass)[keyof typeof PredictedClass]
 
 // How the Outbreaks section orders its cards — a URL param like every other view config.
 export const EventSort = {
@@ -132,6 +141,12 @@ export type Recall = {
   severityLabel: SeverityLabel
   topicId?: number | null // theme id (embedding cluster); absent/null until the analytics build runs
   eventClusterId?: number | null // event/outbreak cluster id; absent/null until events are built
+  // 0–1, how unlike its nearest neighbours a recall is (higher = more unusual). Null when there
+  // weren't enough neighbours to score.
+  noveltyScore?: number | null
+  // Model severity-class guess for UK/ZA (no official class); null for US/CA. Confidence is 0–1.
+  predictedClass?: PredictedClass | null
+  predictedClassConfidence?: number | null
   entities: RecallEntity[]
 }
 
@@ -288,6 +303,7 @@ const object =
 
 export const isRecallCategory = oneOf(RecallCategory)
 export const isRecallClass = oneOf(RecallClass)
+export const isPredictedClass = oneOf(PredictedClass)
 export const isRecallSource = oneOf(RecallSource)
 export const isRecallCountry = oneOf(RecallCountry)
 const isEntityType = oneOf(EntityType)
@@ -354,6 +370,9 @@ export const isRecall = object<Recall>({
   // Tolerant: absent (older payloads / fixtures), null (not yet built), or a number.
   topicId: optional(nullable(isNumber)),
   eventClusterId: optional(nullable(isNumber)),
+  noveltyScore: optional(nullable(isNumber)),
+  predictedClass: optional(nullable(isPredictedClass)),
+  predictedClassConfidence: optional(nullable(isNumber)),
   entities: arrayOf(isRecallEntity),
 })
 

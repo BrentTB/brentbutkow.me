@@ -164,3 +164,27 @@ describe('Terminal — autocomplete cascade', () => {
     expect(cascadeChars(container)).toHaveLength(0)
   })
 })
+
+describe('Terminal — tap the ghost to complete (Tab stand-in)', () => {
+  const inputOf = (container: HTMLElement) =>
+    container.querySelector('input[aria-label="Type a command"]') as HTMLInputElement
+
+  it('tapping the greyed suffix fills in the completion', () => {
+    const { container } = renderTerminal()
+    const input = inputOf(container)
+    fireEvent.focus(input)
+    fireEvent.change(input, { target: { value: 'hel' } })
+    const suffix = container.querySelector('[data-ghost-suffix]') as HTMLElement
+    expect(suffix).not.toBeNull()
+    fireEvent.click(suffix)
+    expect(input.value).toBe('help ') // same result Tab produces
+  })
+
+  it('renders no ghost suffix when the input has no completion', () => {
+    const { container } = renderTerminal()
+    const input = inputOf(container)
+    fireEvent.focus(input)
+    fireEvent.change(input, { target: { value: 'zzz' } })
+    expect(container.querySelector('[data-ghost-suffix]')).toBeNull()
+  })
+})

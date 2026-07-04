@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom'
 import {
   categoryLabels,
   entityTypeLabels,
+  predictedClassLabel,
+  predictedClassNote,
   severityColors,
   severityLabels,
   sourceLabels,
@@ -78,6 +80,7 @@ export function RecallFeed({
         const theme = recall.topicId != null ? topicsById?.get(recall.topicId) : undefined
         const cluster =
           recall.eventClusterId != null ? eventsById?.get(recall.eventClusterId) : undefined
+        const predicted = predictedClassLabel(recall)
         const detailPath = recallDetailRoute(recall.source, recall.recallNumber)
         const isOpen = openRows.has(recall.recallNumber)
         return (
@@ -145,6 +148,11 @@ export function RecallFeed({
                       >
                         ⚠ Outbreak
                       </button>
+                    )}
+                    {predicted && (
+                      <span className={styles.predictedChip} title={predictedClassNote}>
+                        {predicted}
+                      </span>
                     )}
                     <span className={styles.date}>{formatDate(recall.reportDate)}</span>
                     <span className={styles.chevron} aria-hidden="true">

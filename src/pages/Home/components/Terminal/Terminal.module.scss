@@ -294,33 +294,6 @@
   }
 }
 
-.chips {
-  display: none;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.chip {
-  padding: 6px 12px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--surface);
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition:
-    color 180ms ease,
-    border-color 180ms ease;
-
-  &:hover,
-  &:focus-visible {
-    color: var(--accent);
-    border-color: rgba(var(--accent-rgb), 0.5);
-  }
-}
-
 .hint {
   margin: 8px 2px 0;
   color: var(--muted);
@@ -328,14 +301,43 @@
   letter-spacing: 0.02em;
 }
 
-/* No physical keyboard below the navbar collapse point — chips replace '/' + Tab. */
+// The greyed completion suffix. Inert by default (desktop uses Tab); on touch it becomes the tap
+// target, cued by a dotted underline — see the mobile block below.
+.ghostSuffix {
+  pointer-events: none;
+}
+
+// Mobile-only instruction, shown in place of the desktop '/' + Tab + Esc hint.
+.hintMobile {
+  display: none;
+  margin: 8px 2px 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+}
+
 @media (max-width: 767px) {
-  .chips {
-    display: flex;
+  // 16px keeps iOS from zooming the page in when the input takes focus. The prompt, ghost, and
+  // cascade overlays all inherit this, so the completion stays aligned with the typed text.
+  .promptRow {
+    font-size: 16px;
   }
 
+  // No physical keyboard here, so the '/' + Tab hint doesn't apply — swap in the tap instruction.
   .hint {
     display: none;
+  }
+
+  .hintMobile {
+    display: block;
+  }
+
+  // Make the greyed suffix the tap-to-complete target, and signal it's interactive.
+  .ghostSuffix {
+    pointer-events: auto;
+    cursor: pointer;
+    text-decoration: underline dotted;
+    text-underline-offset: 3px;
   }
 }
 

@@ -8,9 +8,6 @@ import { TerminalLineKind, TerminalMode, useTerminal } from './useTerminal'
 
 const PROMPT = 'brent@butkow:~$'
 
-// Tap-to-run starters shown on narrow screens, where Tab-completion isn't available.
-const mobileChips = ['help', 'ls', 'cd projects', 'joke', 'fun']
-
 function isTypingTarget(target: EventTarget | null): boolean {
   return (
     target instanceof HTMLElement &&
@@ -255,7 +252,24 @@ export function Terminal() {
               {ghost && !cascade && (
                 <span className={styles.ghost} aria-hidden="true">
                   <span className={styles.ghostTyped}>{input}</span>
-                  {ghost}
+                  {/* Touch stand-in for Tab: on mobile the greyed suffix is tappable to accept the
+                      completion (pointer-events gated to mobile in CSS). Decorative for a11y — typing
+                      the full command works for everyone; desktop keeps Tab. */}
+                  {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */}
+                  <span
+                    className={styles.ghostSuffix}
+                    data-ghost-suffix
+                    onPointerDown={(event) => event.preventDefault()}
+                    onClick={() => {
+                      const prefix = input
+                      const suffix = ghost
+                      acceptCompletion()
+                      startCascade(prefix, suffix)
+                      inputRef.current?.focus()
+                    }}
+                  >
+                    {ghost}
+                  </span>
                 </span>
               )}
               {cascade &&
@@ -298,22 +312,11 @@ export function Terminal() {
           </div>
         )}
       </div>
-      <div className={styles.chips}>
-        {mobileChips.map((chip) => (
-          <button
-            key={chip}
-            className={styles.chip}
-            onClick={() => {
-              setActive(true)
-              run(chip)
-            }}
-          >
-            {chip}
-          </button>
-        ))}
-      </div>
       <p className={styles.hint} aria-hidden="true">
         press / to jump here · Tab completes · Esc closes
+      </p>
+      <p className={styles.hintMobile} aria-hidden="true">
+        tap the grey text to complete
       </p>
     </section>
   )
