@@ -111,7 +111,7 @@
   }
   65% {
     opacity: 1;
-    transform: translateY(-200px);
+    transform: translateY(-4px);
   }
   100% {
     opacity: 1;
@@ -250,7 +250,11 @@
 @keyframes cascadePop {
   0% {
     color: var(--muted);
-    transform: translateY(3px);
+    transform: translateY(0px);
+  }
+  50% {
+    color: var(--text);
+    transform: translateY(-1px);
   }
   100% {
     color: var(--text);
