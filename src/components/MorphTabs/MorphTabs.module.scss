@@ -1,7 +1,7 @@
-// One persistent control that morphs between its two forms: expanded, a segmented row of flagged
-// tabs (a first-class scope choice, not a filter); collapsed, the inactive tabs fold to zero width
-// and the active one stays put as the dropdown trigger, its caret sliding in. The scope pill never
-// leaves the screen — the tabs *become* the dropdown.
+// One persistent control that morphs between its two forms: expanded, a segmented row of tabs;
+// collapsed, the inactive tabs fold to zero width and the active one stays put as the dropdown
+// trigger, its caret sliding in. The active pill never leaves the screen — the tabs *become* the
+// dropdown.
 .selector {
   display: inline-flex;
   gap: 4px;
@@ -60,8 +60,8 @@
   color: var(--text);
 }
 
-// Slower background/color here so the gold fades in step with the fold — the base 0.12s stays on
-// the expanded tabs where hover needs to feel immediate.
+// Slower background/color here so the highlight fades in step with the fold — the base 0.12s stays
+// on the expanded tabs where hover needs to feel immediate.
 .collapsed .tab {
   transition:
     background 0.5s ease,
@@ -83,8 +83,8 @@
   color: var(--on-accent);
 }
 
-// The gold fades away as the tabs fold — collapsed, the selection reads as a quiet dropdown
-// trigger, not a pressed tab (the bar already has one gold button: Get alerts).
+// The highlight fades away as the tabs fold — collapsed, the selection reads as a quiet dropdown
+// trigger rather than a pressed tab.
 .collapsed .active {
   background: transparent;
   color: var(--text);
@@ -116,7 +116,7 @@
   opacity: 1;
 }
 
-// One-frame kill switch while the trigger role hops between tabs (country change while collapsed) —
+// One-frame kill switch while the trigger role hops between tabs (value change while collapsed) —
 // without it the old tab folds as the new one unfolds and the control balloons then shrinks.
 .snap,
 .snap .tab,
@@ -132,8 +132,8 @@
   }
 }
 
-// Portaled to the body and pinned under the trigger (top/left set inline) so it escapes the
-// sticky control bar's overflow clip on phones. z-index clears the bar (9) and the section rail (8).
+// Portaled to the body and pinned under the trigger (top/left set inline) so it escapes a collapsed
+// parent that clips its overflow. z-index sits high enough to clear a sticky bar and section rail.
 .menu {
   position: fixed;
   z-index: 30;
