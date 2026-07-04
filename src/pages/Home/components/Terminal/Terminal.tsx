@@ -8,9 +8,6 @@ import { TerminalLineKind, TerminalMode, useTerminal } from './useTerminal'
 
 const PROMPT = 'brent@butkow:~$'
 
-// Tap-to-run starters shown on narrow screens, where Tab-completion isn't available.
-const mobileChips = ['help', 'ls', 'cd projects', 'joke', 'fun']
-
 function isTypingTarget(target: EventTarget | null): boolean {
   return (
     target instanceof HTMLElement &&
@@ -297,20 +294,6 @@ export function Terminal() {
             </div>
           </div>
         )}
-      </div>
-      <div className={styles.chips}>
-        {mobileChips.map((chip) => (
-          <button
-            key={chip}
-            className={styles.chip}
-            onClick={() => {
-              setActive(true)
-              run(chip)
-            }}
-          >
-            {chip}
-          </button>
-        ))}
       </div>
       <p className={styles.hint} aria-hidden="true">
         press / to jump here · Tab completes · Esc closes
