@@ -52,7 +52,11 @@
   z-index: 30;
   top: calc(100% + 4px);
   left: 0;
+  // Grow to the widest option so labels like "Undeclared allergen" read in full, even past the
+  // trigger's width; capped so it never runs off a narrow viewport.
   min-width: 100%;
+  width: max-content;
+  max-width: min(320px, 90vw);
   max-height: 280px;
   overflow-y: auto;
   margin: 0;
@@ -87,9 +91,11 @@
   white-space: nowrap;
 }
 
+// No ellipsis clamp: the label reports its full width so the menu's `width: max-content` grows to
+// fit it (up to the menu's max-width). `.option` stays `white-space: nowrap`, so labels sit on one
+// line rather than truncating.
 .optionLabel {
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 // Faceted match count, right-aligned and muted so the label stays the focus.
