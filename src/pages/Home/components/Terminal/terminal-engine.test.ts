@@ -57,13 +57,19 @@ describe('execute — navigation commands', () => {
     expect(execute('goto education', ctx).action.path).toBe(routePaths.education)
   })
 
-  it('cd into the hidden folder walks to the 404 page, immediately', () => {
-    for (const raw of ['cd .404', 'cd 404']) {
-      const result = execute(raw, ctx)
-      expect(result.action.type, raw).toBe(TerminalActionType.navigate)
-      expect(result.action.path, raw).toBe(execute('404', ctx).action.path)
-      expect(result.output, raw).toEqual([]) // empty output → no navigate delay
-    }
+  it('cd into the hidden folder (.404) walks to the 404 page immediately', () => {
+    const result = execute('cd .404', ctx)
+    expect(result.action.type).toBe(TerminalActionType.navigate)
+    expect(result.action.path).toBe(execute('404', ctx).action.path)
+    expect(result.output).toEqual([]) // empty output → no navigate delay
+  })
+
+  it('the dotless 404 is only the command — not a cd target', () => {
+    const cd = execute('cd 404', ctx)
+    expect(cd.action.type).toBe(TerminalActionType.none)
+    expect(cd.output[0]).toMatch(/no such page/)
+    // the bare command still navigates
+    expect(execute('404', ctx).action.type).toBe(TerminalActionType.navigate)
   })
 })
 
@@ -92,9 +98,9 @@ describe('execute — ls', () => {
     expect(execute('cat .the-game', ctx).output[0]).toBe('You just lost the game.')
   })
 
-  it('listing the hidden folder echoes its name, like any leaf page', () => {
+  it('listing the hidden folder echoes its name; the dotless 404 is not a folder', () => {
     expect(execute('ls .404', ctx).output[0]).toBe('.404')
-    expect(execute('ls 404', ctx).output[0]).toBe('.404')
+    expect(execute('ls 404', ctx).output[0]).toMatch(/no such page/)
   })
 })
 
@@ -129,7 +135,8 @@ describe('execute — tree', () => {
 
   it('scoping the tree to the hidden folder prints just the empty folder', () => {
     expect(execute('tree .404', ctx).output).toEqual(['.404/'])
-    expect(execute('ls -R 404', ctx).output).toEqual(['.404/'])
+    expect(execute('ls -R .404', ctx).output).toEqual(['.404/'])
+    expect(execute('ls -R 404', ctx).output[0]).toMatch(/no such page/) // dotless is not a folder
   })
 
   it('is Tab-completable and listed in help', () => {
@@ -212,9 +219,8 @@ describe('execute — easter eggs and misc', () => {
   })
 
   it('cat on the hidden folder prints the 404 route description, like any page', () => {
-    const notFoundDescription = routesMeta[routePaths.notFound].description
-    expect(execute('cat .404', ctx).output[0]).toBe(notFoundDescription)
-    expect(execute('cat 404', ctx).output[0]).toBe(notFoundDescription)
+    expect(execute('cat .404', ctx).output[0]).toBe(routesMeta[routePaths.notFound].description)
+    expect(execute('cat 404', ctx).output[0]).toMatch(/no such file/) // dotless is not the folder
   })
 
   it('cat on the hidden homework file opens the video externally', () => {
@@ -290,7 +296,7 @@ describe('execute — easter eggs and misc', () => {
   })
 
   it('cat .eyebrow explains the write', () => {
-    expect(execute('cat .eyebrow', ctx).output[0]).toContain('echo <text> > .eyebrow')
+    expect(execute('cat .eyebrow', ctx).output[0]).toContain('echo [text] > .eyebrow')
     expect(execute('ls -a', ctx).output[0]).toContain('.eyebrow')
   })
 
@@ -390,6 +396,18 @@ describe('completions', () => {
     expect(completions('cat c')).toEqual(['cat contact', 'cat cv.pdf'])
     expect(completions('cat .')).toEqual(['cat .eyebrow', 'cat .homework', 'cat .the-game'])
     expect(completions('cat ')).not.toContain('cat .the-game')
+  })
+
+  it('every path command completes the hidden folder once you commit past the bare dot', () => {
+    expect(completions('cat .4')).toEqual(['cat .404'])
+    expect(completions('cd .4')).toEqual(['cd .404'])
+    expect(completions('ls .4')).toEqual(['ls .404'])
+    expect(completions('tree .40')).toEqual(['tree .404'])
+    // The bare dot stays buried (cat still lists only its dotfiles; cd surfaces nothing).
+    expect(completions('cat .')).not.toContain('cat .404')
+    expect(completions('cd .')).toEqual([])
+    // And never without a leading dot.
+    expect(completions('cd ')).not.toContain('cd .404')
   })
 
   it('cat itself Tab-completes as a command', () => {

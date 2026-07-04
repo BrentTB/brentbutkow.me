@@ -1,4 +1,4 @@
-// One-shot handoff from the terminal to the hero eyebrow: `echo <text> > .eyebrow` queues a
+// One-shot handoff from the terminal to the hero eyebrow: `echo [text] > .eyebrow` queues a
 // line here, and the typewriter shows it as its next alternate before resuming rotation.
 
 // Cap so a runaway `echo` can't feed an absurdly long line into the hero.

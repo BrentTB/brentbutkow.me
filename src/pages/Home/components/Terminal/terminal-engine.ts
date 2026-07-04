@@ -19,7 +19,7 @@ import { STEAM_LOCOMOTIVE, cowsay } from './ascii'
 //
 // Unlisted but ordinary (works, just not in `help`/Tab):
 //   pwd                  prints "~ - the home page" — real, but too trivial to advertise
-//   echo <text>          echoes it back — a real shell built-in, not an egg
+//   echo [text]          echoes it back — a real shell built-in, not an egg
 //
 // Easter eggs (undocumented in `help`, not Tab-completed):
 //   whoami                        mode-dependent identity (full-stack → full-snack in fun mode)
@@ -29,11 +29,11 @@ import { STEAM_LOCOMOTIVE, cowsay } from './ascii'
 //   rm -rf / (or . ./* * ~ …)     fake delete, then lands on the 404 page
 //   404                           jumps straight to the 404 page (no delete theatrics, no delay)
 //   ls -a / tree -a               reveal the hidden entries: the dotfiles below + the '.404/' folder
-//   cd .404 / cd 404              enter the hidden folder — same trip to the 404 page as `404`
+//   cd .404                       enter the hidden folder (its real dotted name) — trips to the 404 page
 //   cat .the-game                 "You just lost the game."
 //   cat .homework                 rickroll — opens the official video in a new tab
 //   cat .eyebrow                  explains the write below
-//   echo <text> > .eyebrow        queues <text> as the hero's next typed eyebrow line (one-shot);
+//   echo [text] > .eyebrow        queues <text> as the hero's next typed eyebrow line (one-shot);
 //                                 the `>` redirect target Tab-completes to .eyebrow
 //   try 'help'                    typing the placeholder literally → "real funny."
 //   sl                            the ls typo → a steam locomotive chugs across the log
@@ -181,13 +181,13 @@ const HIDDEN_FILE = '.the-game'
 const RICKROLL_FILE = '.homework'
 const RICKROLL_URL = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
 
-// Writable via `echo <text> > .eyebrow` — queues the hero's next typed eyebrow line.
+// Writable via `echo [text] > .eyebrow` — queues the hero's next typed eyebrow line.
 const EYEBROW_FILE = '.eyebrow'
 
 const hiddenFiles = [EYEBROW_FILE, RICKROLL_FILE, HIDDEN_FILE]
 
-// The hidden folder: unlike the dotfiles you `cat`, this is a place you can enter. `cd .404`,
-// `cd 404`, and the bare `404` command all walk through it to the not-found page.
+// The hidden folder: unlike the dotfiles you `cat`, this is a place you can enter — `cd .404` walks
+// through it to the not-found page (the same page the bare `404` command jumps to).
 const HIDDEN_DIR = '.404'
 
 // `rm -rf /` lands on the 404 page — any unknown path hits the catch-all route.
@@ -196,9 +196,9 @@ const RM_CRASH_PATH = '/everything-is-gone'
 // The `404` command jumps straight to the not-found page (no fake-delete theatrics, no delay).
 const NOT_FOUND_PATH = '/404'
 
-// '.404' (the hidden folder) and its slashless command spelling '404' both resolve to that page.
-const isNotFoundDir = (pathArg: string): boolean =>
-  pathArg === HIDDEN_DIR || pathArg === TerminalCommand.notFound
+// Path commands (ls/cd/cat/tree) reach the hidden folder only by its real, dotted name. Dotless
+// '404' is just the standalone command, not a folder any path arg can point at.
+const isNotFoundDir = (pathArg: string): boolean => pathArg === HIDDEN_DIR
 
 const HELP_LINES = [
   'help          this list',
@@ -353,7 +353,7 @@ function catFile(fileArg: string | undefined, ctx: TerminalContext): TerminalRes
   }
   if (fileArg === EYEBROW_FILE) {
     return {
-      output: [`the header's next line. write it: echo <text> > ${EYEBROW_FILE}`],
+      output: [`the header's next line. write it: echo [text] > ${EYEBROW_FILE}`],
       action: none,
     }
   }
@@ -516,7 +516,7 @@ const dirOnlyCommands: string[] = [TerminalCommand.ls, TerminalCommand.tree]
 // until the typed partial starts with '.' — same convention as a real shell.
 const catFiles = ['cv.pdf', ...hiddenFiles]
 
-// `echo <text> > ` completes its one writable target — the `.eyebrow` queue. The redirect
+// `echo [text] > ` completes its one writable target — the `.eyebrow` queue. The redirect
 // itself is the signal of intent, so the dotfile is offered even before a '.' is typed.
 function echoRedirectCompletion(input: string): string[] {
   const gt = input.indexOf('>')
@@ -573,5 +573,16 @@ export function completions(input: string): string[] {
           .map((name) => `${base}${name}`)
       : []
 
-  return [...pageMatches, ...fileMatches].sort()
+  // The hidden folder completes for every path command (cd/ls/tree/cat), but stays buried: it's
+  // offered only once you commit past the bare '.' (so `cd .`/`cat .` don't surface it, `.4` does).
+  const hiddenDirMatch =
+    parentSegments.length === 0 &&
+    partial.startsWith('.') &&
+    partial !== '.' &&
+    HIDDEN_DIR.startsWith(partial) &&
+    HIDDEN_DIR !== partial
+      ? [`${base}${HIDDEN_DIR}`]
+      : []
+
+  return [...pageMatches, ...fileMatches, ...hiddenDirMatch].sort()
 }
