@@ -98,6 +98,20 @@
   color: var(--text);
 }
 
+/* Fun-mode dock magnify: useDockMagnify sets --dock-scale per link from the pointer's distance.
+   The transition eases every change, so an item grows and shrinks gradually with no instant snap.
+   inline-block is load-bearing: transforms are ignored on non-replaced inline elements, and the
+   NavLink anchor is inline by default. */
+:global(html.fun-mode) .link {
+  display: inline-block;
+  transform: scale(var(--dock-scale, 1));
+  transform-origin: bottom center;
+  transition:
+    color 150ms ease,
+    transform 140ms ease-out;
+  will-change: transform;
+}
+
 /* Terminal selection marker — a reserved slot so tabs never shift when it appears.
    Hover previews the selector; the active tab owns it, kept plain so the gold label leads. */
 .link::before {
@@ -340,6 +354,11 @@
 
   .link {
     padding: 12px 0;
+  }
+
+  /* Dock magnify is a horizontal-nav, fine-pointer feature — off in the mobile menu. */
+  :global(html.fun-mode) .link {
+    transform: none;
   }
 
   .end {

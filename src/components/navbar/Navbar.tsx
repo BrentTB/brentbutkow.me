@@ -7,6 +7,7 @@ import { useFunMode } from '../../contexts/useFunMode'
 import { useLayoutEffect, useRef, useState } from 'react'
 import { useFocusTrap } from './useFocusTrap'
 import { useStickyHeader } from './useStickyHeader'
+import { useDockMagnify } from './useDockMagnify'
 
 export function Navbar() {
   const { isFunMode, setIsFunMode } = useFunMode()
@@ -47,6 +48,9 @@ export function Navbar() {
     toggleRef.current?.focus()
   })
 
+  // Fun-mode-only: dock-style magnification of the nav links as the pointer sweeps across them.
+  useDockMagnify(navbarRef, isFunMode)
+
   const openStyle = isMobileMenuOpen ? styles.open : ''
 
   return (
@@ -78,6 +82,7 @@ export function Navbar() {
                   className={({ isActive }) => `${styles.link} ${isActive ? styles.active : ''}`}
                   to={route.path}
                   onClick={closeMobileMenu}
+                  data-dock-item
                 >
                   {route.label}
                 </NavLink>
