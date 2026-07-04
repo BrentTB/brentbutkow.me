@@ -68,6 +68,16 @@
   color: var(--muted);
 }
 
+// Rendered only in fun mode (the component gates it), so it needs no display toggle here.
+.exit {
+  max-width: 1180px;
+  margin: 20px auto 0;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+}
+
 @media (max-width: 600px) {
   .content {
     flex-direction: column;

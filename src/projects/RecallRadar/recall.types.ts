@@ -130,7 +130,7 @@ export type Recall = {
   categoryConfidence: number
   severityScore: number
   severityLabel: SeverityLabel
-  topicId?: number | null // NMF theme id; absent/null until the analytics build runs
+  topicId?: number | null // theme id (embedding cluster); absent/null until the analytics build runs
   eventClusterId?: number | null // event/outbreak cluster id; absent/null until events are built
   entities: RecallEntity[]
 }

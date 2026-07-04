@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { RecallDetail } from './RecallDetail'
 import type { Recall } from './recall.types'
@@ -79,9 +79,15 @@ describe('RecallDetail page', () => {
     renderAt('/projects/recall-radar/fda/F-9')
 
     await waitFor(() => expect(screen.getByText('Sliced deli turkey')).toBeTruthy())
-    // The back button points at the dashboard, not one segment up (…/fda).
-    expect(screen.getByRole('button', { name: 'Back to Recall Radar' })).toBeTruthy()
-    expect(screen.getByText('F-9')).toBeTruthy() // recall-number fact
+    // The breadcrumb keeps the full URL but only links back to the dashboard — the source and recall
+    // number segments have no page of their own, so they stay plain text.
+    const nav = screen.getByRole('navigation', { name: 'Breadcrumb' })
+    expect(within(nav).getByRole('link', { name: 'recall-radar' }).getAttribute('href')).toBe(
+      '/projects/recall-radar'
+    )
+    expect(within(nav).queryByRole('link', { name: 'fda' })).toBeNull()
+    expect(within(nav).queryByRole('link', { name: 'F-9' })).toBeNull()
+    expect(within(nav).getByText('F-9')).toBeTruthy()
     expect(screen.getByText('Acme Foods')).toBeTruthy()
     expect(screen.getByText('Severe')).toBeTruthy() // severity band
     expect(screen.getByText('Listeria')).toBeTruthy() // entity chip

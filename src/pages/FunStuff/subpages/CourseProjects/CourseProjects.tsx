@@ -7,7 +7,7 @@ import styles from './CourseProjects.module.scss'
 export function CourseProjects() {
   return (
     <PageLayout>
-      <PageHeader title="Course Projects" showBackButton />
+      <PageHeader title="Course Projects" />
       <div className={styles.container}>
         {courseProjects.map((project) => (
           <ArticleOrLinkCard key={project.title} href={project.link}>

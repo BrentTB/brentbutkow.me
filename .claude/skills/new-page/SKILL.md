@@ -15,8 +15,7 @@ steps in order; each names its exact file.
 
 [src/routes/routes.paths.ts](../../../src/routes/routes.paths.ts) — add to `routePaths`
 (`kebab-case` URL). Nothing else may ever hard-code the URL string: consumers write
-`routePaths.myPage`. If a back button will land on this page, also add a short name to
-`routeLabels` in the same file.
+`routePaths.myPage`. The breadcrumb needs no entry here — it derives its trail from the path.
 
 ## 2. Add SEO meta (mandatory — the app throws without it)
 
@@ -34,6 +33,14 @@ Folder-per-page under `src/pages/`: folder `Thing/` with `ThingPage.tsx` +
 `Education/EducationPage.tsx`). Copy lives in `data.ts`, not JSX; components are
 presentational. Named exports only. Follow the editorial layout language in [src/pages/CLAUDE.md](../../../src/pages/CLAUDE.md)
 (rows + hairlines, not card grids) and casing rules in [src/CLAUDE.md](../../../src/CLAUDE.md).
+
+Wrap the page in the shared `<PageLayout>` and open with `<PageHeader title="…">` — the same two
+elements every page uses, so page width, spacing, and the terminal breadcrumb rail (`~/my-page`)
+all come for free; never hand-roll a bespoke wrapper with its own `max-width` (that's what made the
+tool pages inconsistent). `PageHeader` takes optional children as an intro line under the title. For
+a detail route whose trailing URL segments have no page of their own (e.g. `/x/:id`), pass
+`parentPath` so those segments render as plain text and the breadcrumb links back to the nearest
+real ancestor.
 
 ## 4. Register the route
 

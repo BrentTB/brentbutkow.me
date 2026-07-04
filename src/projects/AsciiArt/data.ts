@@ -24,7 +24,7 @@ const DEFAULT_CUSTOM_RAMP = '@%#*+=-:. '
 // (fewer rows = larger characters).
 export const DEFAULT_ROWS = 64
 export const MIN_ROWS = 24
-export const MAX_ROWS = 120
+export const MAX_ROWS = 100
 
 // Hard cap on derived columns — a perf guard for very wide sources at high rows.
 export const MAX_COLS = 400

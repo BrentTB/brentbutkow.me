@@ -7,8 +7,11 @@ Architecture, routing, folder conventions, and the Fun toggle. See [root CLAUDE.
 Entry: [main.tsx](main.tsx) → [App.tsx](App.tsx). `App` wires the shell:
 
 ```
-BrowserRouter → FunModeProvider → WaterRippleLayer + Navbar + Router   (Footer + analytics outside)
+BrowserRouter → FunModeProvider → [shell: WaterRippleLayer + Navbar + Router] + Footer + analytics
 ```
+
+Footer sits outside the `.shell` div (so it isn't painted over by the fixed water canvas) but inside
+both providers — it reads `useFunMode` and `useLocation` for its fun-mode page-swap sign-off.
 
 - **Routing is centralized + data-driven.** [routes.config.tsx](routes/routes.config.tsx) exports
   `routePaths`, `routes: AppRoute[]`, and fun-stuff subroutes. [Router.tsx](routes/Router.tsx) maps

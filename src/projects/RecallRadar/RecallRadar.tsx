@@ -11,6 +11,7 @@ import { Pagination } from './components/Pagination'
 import { ProjectOverview } from './components/ProjectOverview'
 import { RecallFeed } from './components/RecallFeed'
 import { RecallFilters } from './components/RecallFilters'
+import { RecallJumpButton } from './components/RecallJumpButton'
 import { RecallMap } from './components/RecallMap'
 import { RecallTrendsChart } from './components/RecallTrendsChart'
 import { SeverityBar } from './components/SeverityBar'
@@ -188,6 +189,8 @@ export function RecallRadar() {
     until: isIsoDate(values.until) ? values.until : '',
   }
   const debouncedSearch = useDebouncedValue(filters.search, 500)
+  // Any non-default filter narrows the set — the cue to offer a jump to the scoped recall list.
+  const hasActiveFilters = Object.values(filters).some(Boolean)
 
   // Any filter change resets to page 1; the pager sets `page` directly (goToPage).
   const patch = (next: Partial<RecallFilterValues>) => patchParams({ ...next, page: '' })
@@ -413,7 +416,7 @@ export function RecallRadar() {
 
   return (
     <PageLayout>
-      <PageHeader title={recallRadarCopy.title} showBackButton />
+      <PageHeader title={recallRadarCopy.title} />
       <p className={styles.intro}>{isFunMode ? recallRadarCopy.introFun : recallRadarCopy.intro}</p>
 
       {/* Sticky control bar: a minimal heading + location scope on top, the filters beneath. Sits
@@ -613,10 +616,11 @@ export function RecallRadar() {
                       <h2 className={styles.sectionTitle}>
                         Themes{' '}
                         <HelpHint label="What is a theme?">
-                          A theme is a group of recalls that describe their problem in similar
-                          words, found automatically, not from a preset list. Its label is the words
-                          that set it apart (e.g. “listeria · deli · meat”), and a recall joins it
-                          only if its text uses them.
+                          A theme is a group of recalls that describe similar problems, found
+                          automatically, not from a preset list. Its label is the words that set it
+                          apart (e.g. “listeria · deli · meat”), and a recall joins it when its
+                          description means much the same thing — even if it doesn’t use those exact
+                          words.
                         </HelpHint>
                       </h2>
                       <p className={styles.hint}>
@@ -715,6 +719,16 @@ export function RecallRadar() {
           )}
         </div>
       </div>
+
+      {view === RecallView.dashboard &&
+        hasActiveFilters &&
+        recalls.data &&
+        recalls.data.total > 0 && (
+          <RecallJumpButton
+            count={recalls.data.total}
+            onClick={() => changeView(RecallView.recalls)}
+          />
+        )}
     </PageLayout>
   )
 }

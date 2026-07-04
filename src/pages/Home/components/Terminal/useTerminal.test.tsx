@@ -84,16 +84,26 @@ describe('useTerminal', () => {
     expect(takeQueuedEyebrowText()).toBe('gouda gouda gouda')
   })
 
-  it('cat .homework opens the video in a new tab', () => {
-    const openSpy = vi.spyOn(window, 'open').mockReturnValue(null)
+  it('cat .homework opens the video in a new tab via an anchor click (not window.open)', () => {
+    // Capture the anchor the handler builds and clicks — window.open would be popup-blocked on a
+    // deployed origin, so a real anchor navigation is used instead.
+    let href = ''
+    let target = ''
+    let rel = ''
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+      this: HTMLAnchorElement
+    ) {
+      href = this.href
+      target = this.target
+      rel = this.rel
+    })
     const { result } = renderTerminal()
     runCommand(result, 'cat .homework')
-    expect(openSpy).toHaveBeenCalledWith(
-      expect.stringContaining('youtube.com'),
-      '_blank',
-      'noopener,noreferrer'
-    )
-    openSpy.mockRestore()
+    expect(clickSpy).toHaveBeenCalled()
+    expect(href).toContain('youtube.com')
+    expect(target).toBe('_blank')
+    expect(rel).toBe('noopener noreferrer')
+    clickSpy.mockRestore()
   })
 
   it('cowsay commits a single art line', () => {

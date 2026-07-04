@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { BackButton } from '../../components/PageFormatting/BackButton'
+import { PageLayout } from '../../components/PageFormatting/PageLayout'
+import { PageHeader } from '../../components/PageFormatting/PageHeader'
 import { SafeLink } from '../../components/utils/SafeLink'
 import { useFunMode } from '../../contexts/useFunMode'
 import { ColorMode, SourceKind, SourceOrigin } from './ascii-art.types'
@@ -100,93 +101,90 @@ export function AsciiArt() {
     typeof HTMLCanvasElement.prototype.captureStream === 'function'
 
   return (
-    <div className={styles.wrapper}>
-      <BackButton />
+    <PageLayout>
+      <PageHeader title="ASCII Art Studio">
+        Turn a photo, video, or your webcam into live ASCII art. A browser port of my{' '}
+        <SafeLink href="https://github.com/BrentTB/video_to_ascii" className={styles.link}>
+          Python vidToAscii
+        </SafeLink>{' '}
+        tool.
+      </PageHeader>
 
-      <header className={styles.intro}>
-        <h1 className={styles.title}>ASCII Art Studio</h1>
-        <p className={styles.tagline}>
-          Turn a photo, video, or your webcam into live ASCII art. A browser port of my{' '}
-          <SafeLink href="https://github.com/BrentTB" className={styles.link}>
-            Python vidToAscii
-          </SafeLink>{' '}
-          tool.
-        </p>
-      </header>
+      <div className={styles.body}>
+        <SourcePicker
+          sourceKind={sourceKind}
+          error={error}
+          onImage={loadImage}
+          onVideo={loadVideo}
+          onWebcam={startWebcam}
+          onExample={loadExample}
+          onReset={reset}
+        />
 
-      <SourcePicker
-        sourceKind={sourceKind}
-        error={error}
-        onImage={loadImage}
-        onVideo={loadVideo}
-        onWebcam={startWebcam}
-        onExample={loadExample}
-        onReset={reset}
-      />
+        <div className={styles.stage}>
+          {hasSource ? (
+            <canvas ref={canvasRef} className={styles.canvas} />
+          ) : (
+            <p className={styles.empty}>Pick an image, a video, or your webcam to begin.</p>
+          )}
+          {pdfProgress !== null && (
+            <div className={styles.exporting}>Rendering PDF… {Math.round(pdfProgress * 100)}%</div>
+          )}
+        </div>
 
-      <div className={styles.stage}>
-        {hasSource ? (
-          <canvas ref={canvasRef} className={styles.canvas} />
-        ) : (
-          <p className={styles.empty}>Pick an image, a video, or your webcam to begin.</p>
+        {sourceKind === SourceKind.video && (
+          <VideoControls
+            playback={playback}
+            onTogglePlay={togglePlay}
+            onSeek={seek}
+            onRate={setRate}
+          />
         )}
-        {pdfProgress !== null && (
-          <div className={styles.exporting}>Rendering PDF… {Math.round(pdfProgress * 100)}%</div>
+
+        {hasSource && (
+          <Controls
+            options={options}
+            sourceKind={sourceKind}
+            isRecording={isRecording}
+            canRecord={canRecord}
+            onColorMode={setColorMode}
+            onBackground={setBackground}
+            onRenderMode={setRenderMode}
+            onCharset={setCharset}
+            onCustomRamp={setCustomRamp}
+            onRows={setRows}
+            onInvert={setInvert}
+            onBrightness={setBrightness}
+            onContrast={setContrast}
+            onMirror={setMirror}
+            onSaveImage={saveImage}
+            onCopyText={copyText}
+            canShareLink={shareable}
+            onCopyShareLink={copyShareLink}
+            onDownloadText={downloadText}
+            onToggleRecording={toggleRecording}
+            canExportPdf={sourceKind === SourceKind.video}
+            pdfProgress={pdfProgress}
+            onExportPdf={() => setPdfDialogOpen(true)}
+          />
+        )}
+
+        <p className={styles.privacy}>
+          Everything runs in your browser. Your photos, videos, and webcam never leave your device.
+        </p>
+
+        {pdfDialogOpen && (
+          <PdfExportDialog
+            clipDuration={playback.duration}
+            estimate={estimatePdf}
+            onClose={() => setPdfDialogOpen(false)}
+            onConfirm={(fps, dur) => {
+              setPdfDialogOpen(false)
+              exportPdf(fps, dur)
+            }}
+          />
         )}
       </div>
-
-      {sourceKind === SourceKind.video && (
-        <VideoControls
-          playback={playback}
-          onTogglePlay={togglePlay}
-          onSeek={seek}
-          onRate={setRate}
-        />
-      )}
-
-      {hasSource && (
-        <Controls
-          options={options}
-          sourceKind={sourceKind}
-          isRecording={isRecording}
-          canRecord={canRecord}
-          onColorMode={setColorMode}
-          onBackground={setBackground}
-          onRenderMode={setRenderMode}
-          onCharset={setCharset}
-          onCustomRamp={setCustomRamp}
-          onRows={setRows}
-          onInvert={setInvert}
-          onBrightness={setBrightness}
-          onContrast={setContrast}
-          onMirror={setMirror}
-          onSaveImage={saveImage}
-          onCopyText={copyText}
-          canShareLink={shareable}
-          onCopyShareLink={copyShareLink}
-          onDownloadText={downloadText}
-          onToggleRecording={toggleRecording}
-          canExportPdf={sourceKind === SourceKind.video}
-          pdfProgress={pdfProgress}
-          onExportPdf={() => setPdfDialogOpen(true)}
-        />
-      )}
-
-      <p className={styles.privacy}>
-        Everything runs in your browser. Your photos, videos, and webcam never leave your device.
-      </p>
-
-      {pdfDialogOpen && (
-        <PdfExportDialog
-          clipDuration={playback.duration}
-          estimate={estimatePdf}
-          onClose={() => setPdfDialogOpen(false)}
-          onConfirm={(fps, dur) => {
-            setPdfDialogOpen(false)
-            exportPdf(fps, dur)
-          }}
-        />
-      )}
-    </div>
+    </PageLayout>
   )
 }

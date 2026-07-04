@@ -18,6 +18,31 @@
   font-size: 1.1rem;
 }
 
+.shellLine,
+.shellError {
+  // Flush left (not centered like the hero below) so the prompt reads as a real terminal.
+  max-width: 640px;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.shellLine {
+  color: var(--text-secondary);
+}
+
+.prompt {
+  color: var(--accent);
+}
+
+.shellError {
+  margin-bottom: 24px;
+  // Terminal-error red — a deliberate signal color, not part of the warm-gold token palette.
+  color: #e57373;
+}
+
 .canvasShell {
   width: min(760px, 100%);
   aspect-ratio: 3 / 1.2;

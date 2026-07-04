@@ -4,7 +4,8 @@ Page layout language (content-first, NOT card-based). See [src/CLAUDE.md](../CLA
 
 Content pages avoid the "title + subtitle + grid of boxes" template. Keep them editorial:
 
-- **`PageHeader` renders a title only** — no decorative subtitle restating the title.
+- **Content pages give `PageHeader` a title only** — no decorative subtitle restating the title. (Tool
+  pages like AsciiArt/ImageEncoder may pass a short tagline via `children`, which renders as a subtitle.)
 - **The two `cards/` atoms are editorial rows, not boxes.** `DetailCard` (Experience, Education) is a
   timeline row: mono **date rail** (`grid-template-columns: 150px 1fr`) beside content. `ArticleOrLinkCard`
   (Achievements, Fun Stuff, Contact) is a list row with a hairline `border-top`, left accent bar + `→`/`↗`
