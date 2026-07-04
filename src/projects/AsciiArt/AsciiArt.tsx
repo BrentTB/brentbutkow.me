@@ -104,7 +104,7 @@ export function AsciiArt() {
     <PageLayout>
       <PageHeader title="ASCII Art Studio">
         Turn a photo, video, or your webcam into live ASCII art. A browser port of my{' '}
-        <SafeLink href="https://github.com/BrentTB" className={styles.link}>
+        <SafeLink href="https://github.com/BrentTB/video_to_ascii" className={styles.link}>
           Python vidToAscii
         </SafeLink>{' '}
         tool.

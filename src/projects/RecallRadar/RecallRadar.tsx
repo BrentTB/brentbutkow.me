@@ -11,6 +11,7 @@ import { Pagination } from './components/Pagination'
 import { ProjectOverview } from './components/ProjectOverview'
 import { RecallFeed } from './components/RecallFeed'
 import { RecallFilters } from './components/RecallFilters'
+import { RecallJumpButton } from './components/RecallJumpButton'
 import { RecallMap } from './components/RecallMap'
 import { RecallTrendsChart } from './components/RecallTrendsChart'
 import { SeverityBar } from './components/SeverityBar'
@@ -188,6 +189,8 @@ export function RecallRadar() {
     until: isIsoDate(values.until) ? values.until : '',
   }
   const debouncedSearch = useDebouncedValue(filters.search, 500)
+  // Any non-default filter narrows the set — the cue to offer a jump to the scoped recall list.
+  const hasActiveFilters = Object.values(filters).some(Boolean)
 
   // Any filter change resets to page 1; the pager sets `page` directly (goToPage).
   const patch = (next: Partial<RecallFilterValues>) => patchParams({ ...next, page: '' })
@@ -716,6 +719,16 @@ export function RecallRadar() {
           )}
         </div>
       </div>
+
+      {view === RecallView.dashboard &&
+        hasActiveFilters &&
+        recalls.data &&
+        recalls.data.total > 0 && (
+          <RecallJumpButton
+            count={recalls.data.total}
+            onClick={() => changeView(RecallView.recalls)}
+          />
+        )}
     </PageLayout>
   )
 }
