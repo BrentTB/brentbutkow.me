@@ -607,6 +607,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.16.2',
+    date: '2026-07-03',
+    changes: {
+      fixes: [
+        'The Stardust counter in the top bar is now the same cyan as everywhere else, instead of a violet that made it look like Singularity Shards.',
+      ],
+    },
+  },
+  {
     version: '1.16.1',
     date: '2026-07-02',
     changes: {

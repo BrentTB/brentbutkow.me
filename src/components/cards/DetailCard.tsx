@@ -77,20 +77,15 @@ export function DetailCard({
               </li>
             ))}
             {isCollapsible && (
-              <li
-                className={styles.pillToggle}
-                role="button"
-                tabIndex={0}
-                aria-expanded={expanded}
-                onClick={toggle}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault()
-                    toggle()
-                  }
-                }}
-              >
-                {expanded ? 'Show less' : `+${pills.length - (pillsLimit ?? 0)}`}
+              <li>
+                <button
+                  type="button"
+                  className={styles.pillToggle}
+                  aria-expanded={expanded}
+                  onClick={toggle}
+                >
+                  {expanded ? 'Show less' : `+${pills.length - (pillsLimit ?? 0)}`}
+                </button>
               </li>
             )}
           </ul>

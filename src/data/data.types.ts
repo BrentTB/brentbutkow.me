@@ -14,7 +14,7 @@ export type HeroContent = {
 export const HeroActionVariant = { primary: 'primary', link: 'link' } as const
 export type HeroActionVariant = (typeof HeroActionVariant)[keyof typeof HeroActionVariant]
 
-export type HeroAction = {
+type HeroAction = {
   label: string
   href: string
   variant?: HeroActionVariant

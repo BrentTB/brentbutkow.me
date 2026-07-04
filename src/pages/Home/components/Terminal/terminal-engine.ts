@@ -2,6 +2,7 @@ import { routePaths } from '../../../../routes/routes.paths'
 import { routesMeta } from '../../../../routes/routes.meta'
 import { funStuffSubRoutes } from '../../../FunStuff/data'
 import { gamesSubRoutes } from '../../../FunStuff/subpages/Games/data'
+import { STEAM_LOCOMOTIVE, cowsay } from './ascii'
 
 // ─── Command index ────────────────────────────────────────────────────────────
 //
@@ -9,8 +10,8 @@ import { gamesSubRoutes } from '../../../FunStuff/subpages/Games/data'
 //   help                 the command list
 //   ls [page]            pages at a level · -a adds hidden files · -R renders the tree
 //   tree                 the full page tree · -a adds hidden files
-//   cd <page>            navigate — relative paths, ~, .., and `cd -` (back); aliases: open, goto
-//   cat <page>           the page's one-line description (from routes.meta) · cat cv.pdf downloads the CV
+//   cd [page]            navigate — relative paths, ~, .., and `cd -` (back); aliases: open, goto
+//   cat [page]           the page's one-line description (from routes.meta) · cat cv.pdf downloads the CV
 //   pwd                  where you are
 //   joke                 a dad joke — shuffled round-robin; racier ones stay out of professional mode
 //   clear / exit         wipe the log / close the terminal
@@ -18,7 +19,7 @@ import { gamesSubRoutes } from '../../../FunStuff/subpages/Games/data'
 //
 // Unlisted but ordinary (works, just not in `help`/Tab):
 //   pwd                  prints "~ - the home page" — real, but too trivial to advertise
-//   echo <text>          echoes it back — a real shell built-in, not an egg
+//   echo [text]          echoes it back — a real shell built-in, not an egg
 //
 // Easter eggs (undocumented in `help`, not Tab-completed):
 //   whoami                        mode-dependent identity (full-stack → full-snack in fun mode)
@@ -26,22 +27,32 @@ import { gamesSubRoutes } from '../../../FunStuff/subpages/Games/data'
 //   sudo make-me-a-sandwich       "Okay." — the punchline; any other sudo gets the sudoers warning
 //   fun                           flips the Fun-mode toggle
 //   rm -rf / (or . ./* * ~ …)     fake delete, then lands on the 404 page
-//   ls -a / tree -a               reveal the hidden files below
+//   404                           jumps straight to the 404 page (no delete theatrics, no delay)
+//   ls -a / tree -a               reveal the hidden entries: the dotfiles below + the '.404/' folder
+//   cd .404                       enter the hidden folder (its real dotted name) — trips to the 404 page
 //   cat .the-game                 "You just lost the game."
 //   cat .homework                 rickroll — opens the official video in a new tab
 //   cat .eyebrow                  explains the write below
-//   echo <text> > .eyebrow        queues <text> as the hero's next typed eyebrow line (one-shot);
+//   echo [text] > .eyebrow        queues [text] as the hero's next typed eyebrow line (one-shot);
 //                                 the `>` redirect target Tab-completes to .eyebrow
 //   try 'help'                    typing the placeholder literally → "real funny."
+//   sl                            the ls typo → a steam locomotive chugs across the log
+//   cowsay [text]                 an ASCII cow says [text] (defaults to "moo")
+//   fullscreen                    grows the terminal in place (toggle); Escape shrinks it back
+//   cmatrix / matrix              enters fullscreen + rains green glyphs; any key or click exits
 // ──────────────────────────────────────────────────────────────────────────────
 
 // The virtual filesystem is the public route tree — one node per page a visitor can browse to.
 // Private, redirect-only, and dynamic-param routes stay out.
-export type TerminalPage = {
+type TerminalPage = {
   name: string
   path: string
   children: TerminalPage[]
 }
+
+// What the tree renderer draws: real pages (folders) plus the synthetic hidden entries. `isFile`
+// marks a dotfile so it renders without a trailing slash; everything else is a folder.
+type TreeEntry = { name: string; children: TreeEntry[]; isFile?: boolean }
 
 const gamesPath = `${routePaths.funStuff}${funStuffSubRoutes.games}`
 
@@ -80,9 +91,9 @@ function buildTree(paths: string[]): TerminalPage[] {
   return root
 }
 
-export const terminalPages: TerminalPage[] = buildTree(browsablePaths)
+const terminalPages: TerminalPage[] = buildTree(browsablePaths)
 
-export const TerminalCommand = {
+const TerminalCommand = {
   help: 'help',
   ls: 'ls',
   tree: 'tree',
@@ -100,8 +111,14 @@ export const TerminalCommand = {
   rm: 'rm',
   echo: 'echo',
   try: 'try',
+  sl: 'sl',
+  cowsay: 'cowsay',
+  fullscreen: 'fullscreen',
+  cmatrix: 'cmatrix',
+  matrix: 'matrix',
+  notFound: '404',
 } as const
-export type TerminalCommand = (typeof TerminalCommand)[keyof typeof TerminalCommand]
+type TerminalCommand = (typeof TerminalCommand)[keyof typeof TerminalCommand]
 
 // Commands offered by help + Tab — easter eggs stay discoverable, not advertised.
 const publicCommands = [
@@ -120,6 +137,9 @@ export const TerminalActionType = {
   back: 'back',
   openExternal: 'openExternal',
   setEyebrow: 'setEyebrow',
+  animate: 'animate',
+  toggleFullscreen: 'toggleFullscreen',
+  matrix: 'matrix',
   toggleFun: 'toggleFun',
   downloadCv: 'downloadCv',
   clear: 'clear',
@@ -128,7 +148,7 @@ export const TerminalActionType = {
 } as const
 export type TerminalActionType = (typeof TerminalActionType)[keyof typeof TerminalActionType]
 
-export type TerminalAction = {
+type TerminalAction = {
   type: TerminalActionType
   path?: string
   text?: string
@@ -137,6 +157,8 @@ export type TerminalAction = {
 export type TerminalResult = {
   output: string[]
   action: TerminalAction
+  // Render the output as monospace art (no wrapping, its own x-scroll) rather than prose.
+  art?: boolean
 }
 
 export type TerminalContext = {
@@ -159,20 +181,31 @@ const HIDDEN_FILE = '.the-game'
 const RICKROLL_FILE = '.homework'
 const RICKROLL_URL = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
 
-// Writable via `echo <text> > .eyebrow` — queues the hero's next typed eyebrow line.
+// Writable via `echo [text] > .eyebrow` — queues the hero's next typed eyebrow line.
 const EYEBROW_FILE = '.eyebrow'
 
 const hiddenFiles = [EYEBROW_FILE, RICKROLL_FILE, HIDDEN_FILE]
 
+// The hidden folder: unlike the dotfiles you `cat`, this is a place you can enter — `cd .404` walks
+// through it to the not-found page (the same page the bare `404` command jumps to).
+const HIDDEN_DIR = '.404'
+
 // `rm -rf /` lands on the 404 page — any unknown path hits the catch-all route.
 const RM_CRASH_PATH = '/everything-is-gone'
+
+// The `404` command jumps straight to the not-found page (no fake-delete theatrics, no delay).
+const NOT_FOUND_PATH = '/404'
+
+// Path commands (ls/cd/cat/tree) reach the hidden folder only by its real, dotted name. Dotless
+// '404' is just the standalone command, not a folder any path arg can point at.
+const isNotFoundDir = (pathArg: string): boolean => pathArg === HIDDEN_DIR
 
 const HELP_LINES = [
   'help          this list',
   'ls [page]     list pages here',
   'tree          the full page tree',
-  'cd <page>     go to a page (Tab completes)',
-  'cat <page>    a page in one line',
+  'cd [page]     go to a page (Tab completes)',
+  'cat [page]    a page in one line',
   'joke          one dad joke, on the house',
   'clear         wipe the screen',
   'exit          close the terminal',
@@ -209,7 +242,10 @@ function toSegments(rawPath: string): string[] | null {
 
 function listPages(pathArg: string | undefined, showHidden: boolean): string[] {
   let children = terminalPages
+  let atRoot = true
   if (pathArg) {
+    // The hidden folder has no contents — listing it just echoes its own name, like any leaf page.
+    if (isNotFoundDir(pathArg)) return [HIDDEN_DIR]
     const segments = toSegments(pathArg)
     const node = segments ? findPage(segments) : null
     if (segments && segments.length === 0) {
@@ -220,27 +256,34 @@ function listPages(pathArg: string | undefined, showHidden: boolean): string[] {
       return [node.name]
     } else {
       children = node.children
+      atRoot = false
     }
   }
-  const names = children.map((page) => (page.children.length > 0 ? `${page.name}/` : page.name))
-  if (showHidden) names.unshift(...hiddenFiles)
+  // Every page is a place you can cd into, so all render as folders; only dotfiles are files.
+  const names = children.map((page) => `${page.name}/`)
+  // Hidden entries live at the site root only — the '.404/' folder plus the cat-able dotfiles.
+  if (showHidden && atRoot) names.unshift(`${HIDDEN_DIR}/`, ...hiddenFiles)
   return [names.join('  ')]
 }
 
-function renderTree(pages: TerminalPage[], prefix: string, lines: string[]): void {
+function renderTree(pages: TreeEntry[], prefix: string, lines: string[]): void {
   pages.forEach((page, index) => {
     const isLast = index === pages.length - 1
-    const name = page.children.length > 0 ? `${page.name}/` : page.name
-    lines.push(`${prefix}${isLast ? '└── ' : '├── '}${name}`)
+    // Folders always carry a trailing slash (even when empty); only dotfiles render bare.
+    const label = page.isFile ? page.name : `${page.name}/`
+    lines.push(`${prefix}${isLast ? '└── ' : '├── '}${label}`)
     renderTree(page.children, `${prefix}${isLast ? '    ' : '│   '}`, lines)
   })
 }
 
-// `scope` narrows the tree to a subtree (`ls -R <page>` / `tree <page>`); omit for the full tree.
+// `scope` narrows the tree to a subtree (`ls -R [page]` / `tree [page]`); omit for the full tree.
 function treePages(showHidden: boolean, scope?: { pathArg: string; cmd: string }): string[] {
-  let pages = terminalPages
+  let pages: TreeEntry[] = terminalPages
   let rootLabel = '.'
+  let atRoot = true
   if (scope) {
+    // The hidden folder is empty — scoping to it just prints the folder itself.
+    if (isNotFoundDir(scope.pathArg)) return [`${HIDDEN_DIR}/`]
     const segments = toSegments(scope.pathArg)
     const node = segments && segments.length > 0 ? findPage(segments) : null
     if (segments && segments.length === 0) {
@@ -249,12 +292,16 @@ function treePages(showHidden: boolean, scope?: { pathArg: string; cmd: string }
       return [`${scope.cmd}: ${scope.pathArg}: no such page`]
     } else {
       pages = node.children
-      rootLabel = node.children.length > 0 ? `${node.name}/` : node.name
+      rootLabel = `${node.name}/`
+      atRoot = false
     }
   }
-  const roots = showHidden
-    ? [...hiddenFiles.map((name) => ({ name, path: '', children: [] })), ...pages]
-    : pages
+  // Hidden entries live at the site root only: the '.404/' folder plus the cat-able dotfiles.
+  const hidden: TreeEntry[] = [
+    { name: HIDDEN_DIR, children: [] },
+    ...hiddenFiles.map((name) => ({ name, children: [], isFile: true }) as TreeEntry),
+  ]
+  const roots = showHidden && atRoot ? [...hidden, ...pages] : pages
   const lines = [rootLabel]
   renderTree(roots, '', lines)
   return lines
@@ -266,6 +313,10 @@ function changePage(pathArg: string | undefined): TerminalResult {
   }
   if (pathArg === '-') {
     return { output: [], action: { type: TerminalActionType.back } }
+  }
+  // Entering the hidden folder walks you to the 404 page, same as the bare `404` command.
+  if (isNotFoundDir(pathArg)) {
+    return { output: [], action: { type: TerminalActionType.navigate, path: NOT_FOUND_PATH } }
   }
   const segments = toSegments(pathArg)
   if (segments && segments.length === 0) {
@@ -302,9 +353,14 @@ function catFile(fileArg: string | undefined, ctx: TerminalContext): TerminalRes
   }
   if (fileArg === EYEBROW_FILE) {
     return {
-      output: [`the header's next line. write it: echo <text> > ${EYEBROW_FILE}`],
+      output: [`the header's next line. write it: echo [text] > ${EYEBROW_FILE}`],
       action: none,
     }
+  }
+  // The hidden folder maps to the catch-all route — cat it like any page: its own description.
+  if (isNotFoundDir(fileArg)) {
+    const notFoundDescription = routesMeta[routePaths.notFound]?.description
+    if (notFoundDescription) return { output: [notFoundDescription], action: none }
   }
   // Catting a page prints its one-line description — the same one search engines see.
   const segments = toSegments(fileArg)
@@ -419,6 +475,19 @@ export function execute(rawInput: string, ctx: TerminalContext): TerminalResult 
       if (!text) return { output: ['echo: nothing to write'], action: none }
       return { output: [], action: { type: TerminalActionType.setEyebrow, text } }
     }
+    case TerminalCommand.sl:
+      // The classic ls typo — a steam locomotive chugs across the log.
+      return { output: [], action: { type: TerminalActionType.animate, text: STEAM_LOCOMOTIVE } }
+    case TerminalCommand.cowsay:
+      return { output: cowsay(args.join(' ')).split('\n'), action: none, art: true }
+    case TerminalCommand.fullscreen:
+      return { output: [], action: { type: TerminalActionType.toggleFullscreen } }
+    case TerminalCommand.cmatrix:
+    case TerminalCommand.matrix:
+      return { output: [], action: { type: TerminalActionType.matrix } }
+    case TerminalCommand.notFound:
+      // Straight to the 404 page — empty output so run() navigates immediately, no delay.
+      return { output: [], action: { type: TerminalActionType.navigate, path: NOT_FOUND_PATH } }
     case TerminalCommand.try:
       // Pays off the input placeholder — typing `try 'help'` literally instead of `help`.
       if (args.join(' ').replace(/['"]/g, '') === 'help') {
@@ -447,7 +516,7 @@ const dirOnlyCommands: string[] = [TerminalCommand.ls, TerminalCommand.tree]
 // until the typed partial starts with '.' — same convention as a real shell.
 const catFiles = ['cv.pdf', ...hiddenFiles]
 
-// `echo <text> > ` completes its one writable target — the `.eyebrow` queue. The redirect
+// `echo [text] > ` completes its one writable target — the `.eyebrow` queue. The redirect
 // itself is the signal of intent, so the dotfile is offered even before a '.' is typed.
 function echoRedirectCompletion(input: string): string[] {
   const gt = input.indexOf('>')
@@ -478,6 +547,8 @@ export function completions(input: string): string[] {
 
   const pathArg = args[args.length - 1]
   if (!pathCommands.includes(command) || pathArg.startsWith('-')) return []
+  // These commands take a single path; an earlier non-flag arg means the line is already malformed.
+  if (args.slice(0, -1).some((arg) => !arg.startsWith('-'))) return []
 
   // Split the arg at the last '/': everything before resolves as the parent, the tail is the
   // name still being typed — kept verbatim so '.' never silently vanishes into a match-all.
@@ -502,5 +573,16 @@ export function completions(input: string): string[] {
           .map((name) => `${base}${name}`)
       : []
 
-  return [...pageMatches, ...fileMatches].sort()
+  // The hidden folder completes for every path command (cd/ls/tree/cat), but stays buried: it's
+  // offered only once you commit past the bare '.' (so `cd .`/`cat .` don't surface it, `.4` does).
+  const hiddenDirMatch =
+    parentSegments.length === 0 &&
+    partial.startsWith('.') &&
+    partial !== '.' &&
+    HIDDEN_DIR.startsWith(partial) &&
+    HIDDEN_DIR !== partial
+      ? [`${base}${HIDDEN_DIR}`]
+      : []
+
+  return [...pageMatches, ...fileMatches, ...hiddenDirMatch].sort()
 }

@@ -4,7 +4,6 @@ const API_BASE_URL = (import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '')
 // Central registry of backend route paths, grouped by module.
 // Add a new module = add a key here — no new env var needed.
 export const apiRoutes = {
-  health: '/health',
   recalls: {
     list: '/recalls',
     stats: '/recalls/stats',

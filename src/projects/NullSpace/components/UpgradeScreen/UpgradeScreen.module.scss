@@ -37,17 +37,17 @@
 // Per-currency colours, shared with the cost rows so a glyph always reads the
 // same: Stardust cyan, Space Metal gold, Singularity Shard violet.
 .stardustValue {
-  color: #7ad1ff;
+  color: var(--ns-stardust);
   font-weight: 600;
 }
 
 .metalValue {
-  color: #e9b872;
+  color: var(--ns-metal);
   font-weight: 600;
 }
 
 .shardValue {
-  color: #d8b4ff;
+  color: var(--ns-shard);
   font-weight: 600;
 }
 

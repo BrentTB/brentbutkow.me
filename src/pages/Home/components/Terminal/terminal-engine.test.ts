@@ -56,40 +56,63 @@ describe('execute — navigation commands', () => {
     expect(execute('open contact', ctx).action.path).toBe(routePaths.contact)
     expect(execute('goto education', ctx).action.path).toBe(routePaths.education)
   })
+
+  it('cd into the hidden folder (.404) walks to the 404 page immediately', () => {
+    const result = execute('cd .404', ctx)
+    expect(result.action.type).toBe(TerminalActionType.navigate)
+    expect(result.action.path).toBe(execute('404', ctx).action.path)
+    expect(result.output).toEqual([]) // empty output → no navigate delay
+  })
+
+  it('the dotless 404 is only the command — not a cd target', () => {
+    const cd = execute('cd 404', ctx)
+    expect(cd.action.type).toBe(TerminalActionType.none)
+    expect(cd.output[0]).toMatch(/no such page/)
+    // the bare command still navigates
+    expect(execute('404', ctx).action.type).toBe(TerminalActionType.navigate)
+  })
 })
 
 describe('execute — ls', () => {
-  it('lists top-level pages with a slash on pages that have children', () => {
+  it('lists every top-level page as a folder, with a trailing slash', () => {
     const listing = execute('ls', ctx).output[0]
-    expect(listing).toContain('experience')
+    expect(listing).toContain('experience/') // leaf pages are folders too
     expect(listing).toContain('projects/')
     expect(listing).toContain('fun-stuff/')
     expect(listing).not.toContain('.the-game')
   })
 
-  it('lists a nested level by path', () => {
-    expect(execute('ls fun-stuff/games', ctx).output[0]).toBe('null-space')
+  it('lists a nested level by path, still slashed', () => {
+    expect(execute('ls fun-stuff/games', ctx).output[0]).toBe('null-space/')
   })
 
   it('rejects unknown paths', () => {
     expect(execute('ls narnia', ctx).output[0]).toMatch(/no such page/)
   })
 
-  it('-a reveals the hidden game file, which cat pays off', () => {
-    expect(execute('ls -a', ctx).output[0]).toContain('.the-game')
+  it('-a reveals the hidden dotfiles and the .404/ folder', () => {
+    const listing = execute('ls -a', ctx).output[0]
+    expect(listing).toContain('.the-game')
+    expect(listing).toContain('.404/') // the folder keeps its slash; the dotfiles do not
+    expect(listing).not.toContain('.404 ') // never shown slashless
     expect(execute('cat .the-game', ctx).output[0]).toBe('You just lost the game.')
+  })
+
+  it('listing the hidden folder echoes its name; the dotless 404 is not a folder', () => {
+    expect(execute('ls .404', ctx).output[0]).toBe('.404')
+    expect(execute('ls 404', ctx).output[0]).toMatch(/no such page/)
   })
 })
 
 describe('execute — tree', () => {
-  it('draws the full nested structure with branch glyphs', () => {
+  it('draws the full nested structure with branch glyphs, every page a folder', () => {
     const output = execute('tree', ctx).output
     expect(output[0]).toBe('.')
     expect(output).toContain('├── projects/')
-    expect(output).toContain('│   └── recall-radar')
+    expect(output).toContain('│   └── recall-radar/') // leaf, still a folder
     expect(output).toContain('│   └── games/')
-    expect(output).toContain('│       └── null-space')
-    expect(output).toContain('└── contact')
+    expect(output).toContain('│       └── null-space/')
+    expect(output).toContain('└── contact/')
   })
 
   it('covers every page exactly once', () => {
@@ -99,11 +122,21 @@ describe('execute — tree', () => {
     }
   })
 
-  it('-a adds the hidden game file; ls -R is an alias', () => {
-    expect(execute('tree', ctx).output.join('\n')).not.toContain('.the-game')
-    expect(execute('tree -a', ctx).output.join('\n')).toContain('.the-game')
+  it('-a adds the hidden dotfiles (bare) and the .404/ folder; ls -R is an alias', () => {
+    const bare = execute('tree', ctx).output.join('\n')
+    expect(bare).not.toContain('.the-game')
+    expect(bare).not.toContain('.404')
+    const withHidden = execute('tree -a', ctx).output.join('\n')
+    expect(withHidden).toContain('.the-game') // a file — no trailing slash
+    expect(withHidden).toContain('.404/') // a folder — keeps its slash
     expect(execute('ls -R', ctx).output).toEqual(execute('tree', ctx).output)
     expect(execute('ls -aR', ctx).output).toEqual(execute('tree -a', ctx).output)
+  })
+
+  it('scoping the tree to the hidden folder prints just the empty folder', () => {
+    expect(execute('tree .404', ctx).output).toEqual(['.404/'])
+    expect(execute('ls -R .404', ctx).output).toEqual(['.404/'])
+    expect(execute('ls -R 404', ctx).output[0]).toMatch(/no such page/) // dotless is not a folder
   })
 
   it('is Tab-completable and listed in help', () => {
@@ -120,6 +153,22 @@ describe('execute — tree', () => {
 
   it('reports a missing page for a bad subtree arg', () => {
     expect(execute('ls -R narnia', ctx).output[0]).toMatch(/no such page/)
+  })
+
+  it('keeps hidden entries at root, never inside a scoped listing (-a)', () => {
+    const scopedTree = execute('ls -R fun-stuff -a', ctx).output.join('\n')
+    expect(scopedTree).not.toContain('.the-game')
+    expect(scopedTree).not.toContain('.homework')
+    expect(scopedTree).not.toContain('.eyebrow')
+    expect(scopedTree).not.toContain('.404')
+
+    const scopedList = execute('ls fun-stuff -a', ctx).output[0]
+    expect(scopedList).not.toContain('.the-game')
+    expect(scopedList).not.toContain('.404')
+
+    // Root listings still reveal them.
+    expect(execute('ls -R -a', ctx).output.join('\n')).toContain('.the-game')
+    expect(execute('ls -a', ctx).output[0]).toContain('.the-game')
   })
 })
 
@@ -169,6 +218,11 @@ describe('execute — easter eggs and misc', () => {
     expect(execute('cat projects', ctx).output[0]).toContain('Recall Radar')
   })
 
+  it('cat on the hidden folder prints the 404 route description, like any page', () => {
+    expect(execute('cat .404', ctx).output[0]).toBe(routesMeta[routePaths.notFound].description)
+    expect(execute('cat 404', ctx).output[0]).toMatch(/no such file/) // dotless is not the folder
+  })
+
   it('cat on the hidden homework file opens the video externally', () => {
     const result = execute('cat .homework', ctx)
     expect(result.action.type).toBe(TerminalActionType.openExternal)
@@ -194,6 +248,14 @@ describe('execute — easter eggs and misc', () => {
     for (const raw of ['rm -rf ./*', 'rm -rf .', 'rm -rf *', 'rm -rf ~', 'rm -rf /*', 'rm -r ~/']) {
       expect(execute(raw, ctx).action.type, raw).toBe(TerminalActionType.navigate)
     }
+  })
+
+  it('the 404 command navigates immediately, with no output to delay it', () => {
+    const result = execute('404', ctx)
+    expect(result.action.type).toBe(TerminalActionType.navigate)
+    expect(result.action.path).toBeTruthy()
+    // Empty output → run() navigates right away, unlike rm's fake-delete line.
+    expect(result.output).toEqual([])
   })
 
   it('rm without the recursive flag is refused even on /', () => {
@@ -234,8 +296,31 @@ describe('execute — easter eggs and misc', () => {
   })
 
   it('cat .eyebrow explains the write', () => {
-    expect(execute('cat .eyebrow', ctx).output[0]).toContain('echo <text> > .eyebrow')
+    expect(execute('cat .eyebrow', ctx).output[0]).toContain('echo [text] > .eyebrow')
     expect(execute('ls -a', ctx).output[0]).toContain('.eyebrow')
+  })
+
+  it('cowsay returns the bubble and cow as art', () => {
+    const result = execute('cowsay moo', ctx)
+    expect(result.art).toBe(true)
+    expect(result.output.join('\n')).toContain('< moo >')
+    expect(result.output.join('\n')).toContain('^__^')
+  })
+
+  it('cowsay with no message defaults to moo', () => {
+    expect(execute('cowsay', ctx).output.join('\n')).toContain('< moo >')
+  })
+
+  it('sl triggers the train animation carrying the sprite', () => {
+    const result = execute('sl', ctx)
+    expect(result.action.type).toBe(TerminalActionType.animate)
+    expect(result.action.text).toContain('====')
+  })
+
+  it('fullscreen toggles the mode; cmatrix and matrix start the rain', () => {
+    expect(execute('fullscreen', ctx).action.type).toBe(TerminalActionType.toggleFullscreen)
+    expect(execute('cmatrix', ctx).action.type).toBe(TerminalActionType.matrix)
+    expect(execute('matrix', ctx).action.type).toBe(TerminalActionType.matrix)
   })
 
   it("typing the placeholder try 'help' literally gets called out", () => {
@@ -282,6 +367,13 @@ describe('completions', () => {
     expect(completions('cd fun-stuff/.')).toEqual([])
   })
 
+  it('offers nothing once a path command already has an earlier argument', () => {
+    expect(completions('cd test a')).toEqual([])
+    expect(completions('cat foo bar')).toEqual([])
+    // Flags before the path are fine — only earlier non-flag args disqualify it.
+    expect(completions('ls -a fun')).toEqual(['ls -a fun-stuff/'])
+  })
+
   it('ls and tree complete only directories, digging into nested ones', () => {
     expect(completions('ls pro')).toEqual(['ls projects/'])
     expect(completions('tree pro')).toEqual(['tree projects/'])
@@ -304,6 +396,18 @@ describe('completions', () => {
     expect(completions('cat c')).toEqual(['cat contact', 'cat cv.pdf'])
     expect(completions('cat .')).toEqual(['cat .eyebrow', 'cat .homework', 'cat .the-game'])
     expect(completions('cat ')).not.toContain('cat .the-game')
+  })
+
+  it('every path command completes the hidden folder once you commit past the bare dot', () => {
+    expect(completions('cat .4')).toEqual(['cat .404'])
+    expect(completions('cd .4')).toEqual(['cd .404'])
+    expect(completions('ls .4')).toEqual(['ls .404'])
+    expect(completions('tree .40')).toEqual(['tree .404'])
+    // The bare dot stays buried (cat still lists only its dotfiles; cd surfaces nothing).
+    expect(completions('cat .')).not.toContain('cat .404')
+    expect(completions('cd .')).toEqual([])
+    // And never without a leading dot.
+    expect(completions('cd ')).not.toContain('cd .404')
   })
 
   it('cat itself Tab-completes as a command', () => {

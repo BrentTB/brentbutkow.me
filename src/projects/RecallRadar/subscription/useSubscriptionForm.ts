@@ -20,13 +20,13 @@ export type SubscriptionFormState = {
   minSeverity: SeverityLabel | ''
 }
 
-export const SubscriptionStatus = {
+const SubscriptionStatus = {
   idle: 'idle',
   loading: 'loading',
   success: 'success',
   error: 'error',
 } as const
-export type SubscriptionStatus = (typeof SubscriptionStatus)[keyof typeof SubscriptionStatus]
+type SubscriptionStatus = (typeof SubscriptionStatus)[keyof typeof SubscriptionStatus]
 
 export type SubscriptionFormResult = {
   fields: SubscriptionFormState

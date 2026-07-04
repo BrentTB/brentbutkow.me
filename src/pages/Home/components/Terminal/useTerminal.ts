@@ -6,11 +6,13 @@ import { queueEyebrowText } from '../../eyebrow-queue'
 import { Joke } from '../../../../data/jokes.types'
 import { createShuffledCycle, ShuffledCycle } from '../../../../utils/shuffled-cycle'
 import { cvHref } from '../../data'
+import { TRAIN_DURATION_MS } from './ascii'
 import { completions, execute, TerminalActionType } from './terminal-engine'
 
 export const TerminalLineKind = {
   command: 'command',
   output: 'output',
+  art: 'art',
 } as const
 export type TerminalLineKind = (typeof TerminalLineKind)[keyof typeof TerminalLineKind]
 
@@ -18,6 +20,14 @@ export type TerminalLine = {
   kind: TerminalLineKind
   text: string
 }
+
+// inline = normal size; expanded = grown in place; matrix = expanded with the rain taking over.
+export const TerminalMode = {
+  inline: 'inline',
+  expanded: 'expanded',
+  matrix: 'matrix',
+} as const
+export type TerminalMode = (typeof TerminalMode)[keyof typeof TerminalMode]
 
 // Long enough to read the command's output before the page changes underneath it.
 const NAVIGATE_AFTER_OUTPUT_MS = 900
@@ -33,10 +43,30 @@ export function useTerminal({ onExit }: UseTerminalOptions) {
   const [input, setInput] = useState('')
   const [history, setHistory] = useState<string[]>([])
   const [historyIndex, setHistoryIndex] = useState<number | null>(null)
+  // The multi-line sprite currently sliding across the log, or null when nothing is playing.
+  const [animation, setAnimation] = useState<string | null>(null)
+  const [mode, setMode] = useState<TerminalMode>(TerminalMode.inline)
   const navigateTimeout = useRef<ReturnType<typeof setTimeout>>()
+  const animationTimeout = useRef<ReturnType<typeof setTimeout>>()
+  // The mode to return to when the rain is dismissed — matrix layers over inline or expanded.
+  const preMatrixMode = useRef<TerminalMode>(TerminalMode.inline)
   const draft = useRef('')
 
-  useEffect(() => () => clearTimeout(navigateTimeout.current), [])
+  const cancelAnimation = useCallback(() => {
+    clearTimeout(animationTimeout.current)
+    setAnimation(null)
+  }, [])
+
+  const exitFullscreen = useCallback(() => setMode(TerminalMode.inline), [])
+  const exitMatrix = useCallback(() => setMode(preMatrixMode.current), [])
+
+  useEffect(
+    () => () => {
+      clearTimeout(navigateTimeout.current)
+      clearTimeout(animationTimeout.current)
+    },
+    []
+  )
 
   const ghost = useMemo(() => {
     const best = completions(input)[0]
@@ -59,11 +89,14 @@ export function useTerminal({ onExit }: UseTerminalOptions) {
       setInput('')
       setHistory((previous) => [...previous, raw])
       setHistoryIndex(null)
+      cancelAnimation() // a new command stops any train still chugging
 
       const result = execute(raw, { isFunMode, cvHref, pickJoke })
       const echoed: TerminalLine[] = [
         { kind: TerminalLineKind.command, text: raw },
-        ...result.output.map((text) => ({ kind: TerminalLineKind.output, text })),
+        ...(result.art
+          ? [{ kind: TerminalLineKind.art, text: result.output.join('\n') }]
+          : result.output.map((text) => ({ kind: TerminalLineKind.output, text }))),
       ]
 
       switch (result.action.type) {
@@ -87,6 +120,22 @@ export function useTerminal({ onExit }: UseTerminalOptions) {
           break
         case TerminalActionType.setEyebrow:
           if (result.action.text) queueEyebrowText(result.action.text)
+          break
+        case TerminalActionType.animate:
+          setLines((previous) => [...previous, ...echoed])
+          setAnimation(result.action.text ?? '')
+          animationTimeout.current = setTimeout(cancelAnimation, TRAIN_DURATION_MS)
+          return
+        case TerminalActionType.toggleFullscreen:
+          setMode((current) =>
+            current === TerminalMode.inline ? TerminalMode.expanded : TerminalMode.inline
+          )
+          break
+        case TerminalActionType.matrix:
+          setMode((current) => {
+            if (current !== TerminalMode.matrix) preMatrixMode.current = current
+            return TerminalMode.matrix
+          })
           break
         case TerminalActionType.toggleFun:
           setIsFunMode(!isFunMode)
@@ -112,7 +161,7 @@ export function useTerminal({ onExit }: UseTerminalOptions) {
       }
       setLines((previous) => [...previous, ...echoed])
     },
-    [input, isFunMode, navigate, onExit, pickJoke, setIsFunMode]
+    [input, isFunMode, navigate, onExit, pickJoke, setIsFunMode, cancelAnimation]
   )
 
   const acceptCompletion = useCallback(() => {
@@ -139,5 +188,18 @@ export function useTerminal({ onExit }: UseTerminalOptions) {
     [history, historyIndex, input]
   )
 
-  return { lines, input, setInput, ghost, run, acceptCompletion, recallHistory }
+  return {
+    lines,
+    input,
+    setInput,
+    ghost,
+    animation,
+    mode,
+    run,
+    acceptCompletion,
+    recallHistory,
+    cancelAnimation,
+    exitFullscreen,
+    exitMatrix,
+  }
 }

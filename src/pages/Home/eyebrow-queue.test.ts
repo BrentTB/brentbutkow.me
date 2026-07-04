@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { queueEyebrowText, takeQueuedEyebrowText } from './eyebrow-queue'
+import { EYEBROW_MAX_LENGTH, queueEyebrowText, takeQueuedEyebrowText } from './eyebrow-queue'
 
 describe('eyebrow-queue', () => {
   it('starts empty', () => {
@@ -19,8 +19,15 @@ describe('eyebrow-queue', () => {
     expect(takeQueuedEyebrowText()).toBeNull()
   })
 
-  it('caps the queued text at 100 chars', () => {
-    queueEyebrowText('a'.repeat(500))
-    expect(takeQueuedEyebrowText()).toHaveLength(100)
+  it('leaves text within the limit untouched', () => {
+    queueEyebrowText('a'.repeat(EYEBROW_MAX_LENGTH))
+    expect(takeQueuedEyebrowText()).toBe('a'.repeat(EYEBROW_MAX_LENGTH))
+  })
+
+  it('caps overflow at the limit chars and marks the cut with an ellipsis', () => {
+    queueEyebrowText('a'.repeat(EYEBROW_MAX_LENGTH * 2))
+    const out = takeQueuedEyebrowText()
+    expect(out).toHaveLength(EYEBROW_MAX_LENGTH)
+    expect(out?.endsWith('…')).toBe(true)
   })
 })

@@ -13,6 +13,6 @@ Styling & polish. See [src/CLAUDE.md](../CLAUDE.md) for the Fun toggle (CSS hook
   (`float`, `glow`, `rainbow-shadow`). Use via `@use '../../styles/shared' as *;` then `@include card-base;`.
   Since pages are de-carded into rows, `card-base` is mainly the home **joke card** (which keeps the Fun-mode
   rainbow glow alive). Reach for it only for a genuinely boxed surface; default to row+hairline (see [src/pages/CLAUDE.md](../pages/CLAUDE.md)).
-- **Responsive**: `.shell` ([App.module.scss](../App.module.scss)) caps width; Navbar collapses to a hamburger under 1100px. Mobile-first.
+- **Responsive**: `.shell` ([App.module.scss](../App.module.scss)) caps width; Navbar collapses to a hamburger under 1120px. Mobile-first.
 - **Accessibility**: semantic elements, real `<button>`s, `aria-label`/`aria-expanded`/`aria-checked`/`role="switch"`
   (see ModeToggle, Navbar, ToggleableSection). Maintain this bar on new interactive elements.

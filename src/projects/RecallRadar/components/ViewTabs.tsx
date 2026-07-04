@@ -29,7 +29,7 @@ export function ViewTabs<T extends string>({
     refs.current[index]?.focus()
   }
 
-  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+  const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
     if (event.key === 'Home') {
       event.preventDefault()
       select(0)
@@ -47,7 +47,7 @@ export function ViewTabs<T extends string>({
   }
 
   return (
-    <div className={styles.tabs} role="tablist" aria-label={ariaLabel} onKeyDown={onKeyDown}>
+    <div className={styles.tabs} role="tablist" aria-label={ariaLabel}>
       {options.map((option, index) => {
         const selected = option.value === value
         return (
@@ -58,6 +58,7 @@ export function ViewTabs<T extends string>({
             }}
             type="button"
             role="tab"
+            onKeyDown={onKeyDown}
             id={`${panelId}-tab-${option.value}`}
             aria-selected={selected}
             aria-controls={panelId}

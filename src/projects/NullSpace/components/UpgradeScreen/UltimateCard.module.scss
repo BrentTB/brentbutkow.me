@@ -45,7 +45,7 @@
   font-family: var(--font-mono);
   font-size: 0.75rem;
   font-weight: 600;
-  color: #d8b4ff;
+  color: var(--ns-shard);
 }
 
 .desc {
@@ -68,22 +68,22 @@
 // Per-currency colours, matched to the HUD so a glyph always reads the same:
 // Stardust cyan ✦, Space Metal gold ⬢, Singularity Shard violet ◆.
 .costStardust {
-  color: #7ad1ff;
+  color: var(--ns-stardust);
 }
 
 .costMetal {
-  color: #e9b872;
+  color: var(--ns-metal);
 }
 
 .costShard {
-  color: #d8b4ff;
+  color: var(--ns-shard);
 }
 
 .ownedLabel {
   font-family: var(--font-mono);
   font-size: 0.62rem;
   font-weight: 600;
-  color: #d8b4ff;
+  color: var(--ns-shard);
   min-width: 48px;
   text-align: center;
 }

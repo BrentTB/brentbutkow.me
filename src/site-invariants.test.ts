@@ -1,0 +1,123 @@
+import { describe, it, expect } from 'vitest'
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { routesMeta, SITE_URL } from './routes/routes.meta'
+
+// Repo-wide invariants that have each shipped broken at least once:
+
+const srcDir = dirname(fileURLToPath(import.meta.url))
+const rootDir = join(srcDir, '..')
+const publicDir = join(rootDir, 'public')
+const skillsDir = join(rootDir, '.claude', 'skills')
+
+function filesUnder(dir: string, matches: (name: string) => boolean): string[] {
+  return readdirSync(dir).flatMap((name) => {
+    const path = join(dir, name)
+    if (statSync(path).isDirectory()) return filesUnder(path, matches)
+    return matches(name) ? [path] : []
+  })
+}
+
+const sourceFiles = (dir: string) =>
+  filesUnder(dir, (name) => /\.tsx?$/.test(name) && !/\.test\.tsx?$/.test(name))
+
+const files = sourceFiles(srcDir)
+
+describe('site invariants', () => {
+  it('every root-absolute asset path referenced in src exists in public/', () => {
+    const assetRef =
+      /['"`](\/[\w\-/.]+\.(?:pdf|png|jpe?g|svg|webp|avif|gif|ico|txt|xml|mp4|webm))['"`]/g
+    const missing: string[] = []
+    for (const file of files) {
+      const source = readFileSync(file, 'utf8')
+      for (const match of source.matchAll(assetRef)) {
+        const asset = match[1]
+        if (!existsSync(join(publicDir, asset))) {
+          missing.push(`${file.slice(srcDir.length + 1)} → ${asset}`)
+        }
+      }
+    }
+    expect(missing, `referenced assets missing from public/:\n${missing.join('\n')}`).toEqual([])
+  })
+
+  it('every import.meta.env variable is VITE_-prefixed or a Vite built-in', () => {
+    const builtIns = new Set(['MODE', 'DEV', 'PROD', 'SSR', 'BASE_URL'])
+    const envRef = /import\.meta\.env\.(\w+)/g
+    const invalid: string[] = []
+    for (const file of files) {
+      const source = readFileSync(file, 'utf8')
+      for (const match of source.matchAll(envRef)) {
+        const name = match[1]
+        if (!name.startsWith('VITE_') && !builtIns.has(name)) {
+          invalid.push(`${file.slice(srcDir.length + 1)} → ${name}`)
+        }
+      }
+    }
+    expect(
+      invalid,
+      `env vars Vite won't expose to the client (missing VITE_ prefix):\n${invalid.join('\n')}`
+    ).toEqual([])
+  })
+
+  it('every indexable route is in sitemap.xml (hand-maintained — the easy step to forget)', () => {
+    const sitemap = readFileSync(join(publicDir, 'sitemap.xml'), 'utf8')
+    const listed = new Set([...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]))
+    const indexable = Object.entries(routesMeta)
+      .filter(([path, meta]) => !meta.noindex && path !== '*' && !path.includes(':'))
+      .map(([path]) => `${SITE_URL}${path}`)
+    const missing = indexable.filter((url) => !listed.has(url))
+    expect(
+      missing,
+      `indexable routes missing from public/sitemap.xml:\n${missing.join('\n')}`
+    ).toEqual([])
+  })
+
+  it('every hex color in a SCSS module is justified by a nearby comment (else use a token)', () => {
+    // Colors come from the design tokens in index.scss (or a scoped palette like the Null Space
+    // --ns-* block). A literal hex is allowed only with a justification comment on its line or
+    // within the two lines above.
+    const hex = /#[0-9a-fA-F]{3,8}\b/
+    const hasComment = (line: string) => line.includes('//') || line.includes('/*')
+    const unjustified: string[] = []
+    for (const file of filesUnder(srcDir, (name) => name.endsWith('.module.scss'))) {
+      const lines = readFileSync(file, 'utf8').split('\n')
+      lines.forEach((line, i) => {
+        if (!hex.test(line)) return
+        if (hasComment(line) || hasComment(lines[i - 1] ?? '') || hasComment(lines[i - 2] ?? ''))
+          return
+        unjustified.push(`${file.slice(srcDir.length + 1)}:${i + 1} → ${line.trim()}`)
+      })
+    }
+    expect(
+      unjustified,
+      `hex literals without a token or justification comment:\n${unjustified.join('\n')}`
+    ).toEqual([])
+  })
+
+  it('every repo file a skill runbook references still exists', () => {
+    const skillFiles = readdirSync(skillsDir).flatMap((name) => {
+      const skillMd = join(skillsDir, name, 'SKILL.md')
+      return existsSync(skillMd) ? [skillMd] : []
+    })
+    expect(skillFiles.length).toBeGreaterThan(0)
+
+    // Markdown links resolve relative to the skill file; backticked repo paths from the root.
+    const mdLink = /\]\(([^)#\s]+)\)/g
+    const tickedPath = /`((?:src|public|scripts|\.claude|\.husky)\/[\w\-/.]+\.\w+)`/g
+    const stale: string[] = []
+    for (const skill of skillFiles) {
+      const text = readFileSync(skill, 'utf8')
+      const skillName = skill.slice(skillsDir.length + 1)
+      for (const match of text.matchAll(mdLink)) {
+        const target = match[1]
+        if (/^[a-z]+:/.test(target)) continue // http(s), mailto — not repo files
+        if (!existsSync(join(dirname(skill), target))) stale.push(`${skillName} → ${target}`)
+      }
+      for (const match of text.matchAll(tickedPath)) {
+        if (!existsSync(join(rootDir, match[1]))) stale.push(`${skillName} → ${match[1]}`)
+      }
+    }
+    expect(stale, `skill runbooks reference moved/deleted files:\n${stale.join('\n')}`).toEqual([])
+  })
+})

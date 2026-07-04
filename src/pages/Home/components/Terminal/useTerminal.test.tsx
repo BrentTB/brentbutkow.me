@@ -7,7 +7,7 @@ import { useFunMode } from '../../../../contexts/useFunMode'
 import { routePaths } from '../../../../routes/routes.paths'
 import { jokes } from '../../../../data/jokes'
 import { takeQueuedEyebrowText } from '../../eyebrow-queue'
-import { TerminalLineKind, useTerminal } from './useTerminal'
+import { TerminalLineKind, TerminalMode, useTerminal } from './useTerminal'
 
 const wrapper = ({ children }: { children: ReactNode }) => (
   <MemoryRouter initialEntries={[routePaths.home]}>
@@ -94,6 +94,67 @@ describe('useTerminal', () => {
       'noopener,noreferrer'
     )
     openSpy.mockRestore()
+  })
+
+  it('cowsay commits a single art line', () => {
+    const { result } = renderTerminal()
+    runCommand(result, 'cowsay hello')
+    const artLines = result.current.terminal.lines.filter(
+      (line) => line.kind === TerminalLineKind.art
+    )
+    expect(artLines).toHaveLength(1)
+    expect(artLines[0].text).toContain('< hello >')
+    expect(artLines[0].text).toContain('^__^')
+  })
+
+  it('sl plays the train, then clears it after the duration', () => {
+    vi.useFakeTimers()
+    const { result } = renderTerminal()
+    runCommand(result, 'sl')
+    expect(result.current.terminal.animation).toContain('====')
+    act(() => vi.advanceTimersByTime(4000))
+    expect(result.current.terminal.animation).toBeNull()
+    vi.useRealTimers()
+  })
+
+  it('a new command cancels a train still playing', () => {
+    vi.useFakeTimers()
+    const { result } = renderTerminal()
+    runCommand(result, 'sl')
+    expect(result.current.terminal.animation).not.toBeNull()
+    runCommand(result, 'help')
+    expect(result.current.terminal.animation).toBeNull()
+    vi.useRealTimers()
+  })
+
+  it('fullscreen toggles between inline and expanded', () => {
+    const { result } = renderTerminal()
+    expect(result.current.terminal.mode).toBe(TerminalMode.inline)
+    runCommand(result, 'fullscreen')
+    expect(result.current.terminal.mode).toBe(TerminalMode.expanded)
+    runCommand(result, 'fullscreen')
+    expect(result.current.terminal.mode).toBe(TerminalMode.inline)
+  })
+
+  it('cmatrix enters matrix mode', () => {
+    const { result } = renderTerminal()
+    runCommand(result, 'cmatrix')
+    expect(result.current.terminal.mode).toBe(TerminalMode.matrix)
+  })
+
+  it('exitMatrix restores the mode from before the rain', () => {
+    const { result } = renderTerminal()
+    // From inline → back to inline.
+    runCommand(result, 'cmatrix')
+    act(() => result.current.terminal.exitMatrix())
+    expect(result.current.terminal.mode).toBe(TerminalMode.inline)
+    // From expanded → back to expanded, not inline.
+    runCommand(result, 'fullscreen')
+    expect(result.current.terminal.mode).toBe(TerminalMode.expanded)
+    runCommand(result, 'cmatrix')
+    expect(result.current.terminal.mode).toBe(TerminalMode.matrix)
+    act(() => result.current.terminal.exitMatrix())
+    expect(result.current.terminal.mode).toBe(TerminalMode.expanded)
   })
 
   it('clear empties the log', () => {

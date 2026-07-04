@@ -13,7 +13,7 @@ export const AdminAuthStatus = {
 } as const
 export type AdminAuthStatus = (typeof AdminAuthStatus)[keyof typeof AdminAuthStatus]
 
-export type AdminRequestOptions<T> = {
+type AdminRequestOptions<T> = {
   signal?: AbortSignal
   method?: string
   body?: unknown

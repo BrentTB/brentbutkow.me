@@ -12,8 +12,11 @@ type Group = { title: string; stats: Stat[]; tab?: AdminTab }
 
 function Readout({ title, stats, onOpen }: { title: string; stats: Stat[]; onOpen?: () => void }) {
   const interactive = Boolean(onOpen)
+  // Interactive readouts act as one big button (aria-label announces the action), so they render a
+  // div — a <section> landmark must not carry interaction listeners.
+  const Wrapper = interactive ? 'div' : 'section'
   return (
-    <section
+    <Wrapper
       className={`${styles.group} ${interactive ? styles.clickable : ''}`}
       role={interactive ? 'button' : undefined}
       aria-label={interactive ? `Open ${title}` : undefined}
@@ -39,7 +42,7 @@ function Readout({ title, stats, onOpen }: { title: string; stats: Stat[]; onOpe
           </div>
         ))}
       </dl>
-    </section>
+    </Wrapper>
   )
 }
 

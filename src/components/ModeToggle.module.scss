@@ -1,3 +1,5 @@
+@use '../styles/shared' as *;
+
 .modeControl {
   display: flex;
   align-items: center;
@@ -8,6 +10,9 @@
   font-size: 0.875rem;
   color: var(--muted);
   white-space: nowrap;
+  transition:
+    color 200ms ease,
+    transform 280ms $ease-shoot;
 }
 
 .modeToggle {
@@ -45,7 +50,8 @@
   height: 18px;
   background: var(--text);
   border-radius: 10px;
-  transition: left 200ms ease;
+  // Shoots across and bounces off the track edge before settling (the 2px rest inset gives it room).
+  transition: left 260ms $ease-shoot;
 }
 
 .modeToggle:hover .toggleTrack {
@@ -58,10 +64,27 @@
 }
 
 .modeToggle[aria-checked='true'] .toggleThumb {
-  left: 24px;
+  // 2px inset on the right to mirror the 2px on the left (track 44 − border 2 − thumb 18 − 2).
+  left: 22px;
   background: var(--accent);
 }
 
 .activeText {
   color: var(--accent);
+  // Small kinetic pop as a label takes over, like it got kicked by the thumb.
+  transform: scale(1.07);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toggleThumb {
+    transition: left 200ms ease;
+  }
+
+  .modeLabel {
+    transition: color 200ms ease;
+  }
+
+  .activeText {
+    transform: none;
+  }
 }

@@ -97,6 +97,7 @@
   color: var(--muted);
   font-family: var(--font-mono);
   font-size: 0.76rem;
+  line-height: inherit; /* match the static pills — buttons default to a shorter line box */
   cursor: pointer;
   transition:
     border-color 150ms ease,

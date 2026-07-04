@@ -65,7 +65,7 @@
   height: 0;
   border-top: calc(5px * var(--hud-scale, 1)) solid transparent;
   border-bottom: calc(5px * var(--hud-scale, 1)) solid transparent;
-  border-left: calc(8px * var(--hud-scale, 1)) solid #fff;
+  border-left: calc(8px * var(--hud-scale, 1)) solid #fff; /* pure-white ship marker for max contrast on the track */
   transform: translate(-40%, -50%);
   filter: drop-shadow(0 0 2px var(--accent));
   transition: left 0.4s ease;
@@ -85,7 +85,7 @@
 }
 
 .endCapBoss {
-  border-color: #ff6b6b;
+  border-color: #ff6b6b; /* boss-alarm red, hotter than the site --danger */
   background: rgba(255, 80, 80, 0.18);
 }
 

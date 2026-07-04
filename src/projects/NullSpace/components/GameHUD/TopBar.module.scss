@@ -61,7 +61,8 @@
 }
 
 .currency {
-  color: #c8a8ff;
+  /* Stardust count — same cyan as the upgrade screen so the currency reads the same everywhere. */
+  color: var(--ns-stardust);
 }
 
 .speedBadge {

@@ -17,12 +17,14 @@ BrowserRouter → FunModeProvider → WaterRippleLayer + Navbar + Router   (Foot
   self-referencing canonical, Open Graph, Twitter) via [useRouteMeta.ts](routes/useRouteMeta.ts)
   (called in `Router`; pattern-matches dynamic paths, unmatched → `*`/404). **Add a page by editing the
   config — never hard-code a path, nav link, title, or description.**
-  - **New page checklist (SEO):** every new public route MUST (1) set a meaningful `title` + `description`
-    in [routes.config.tsx](routes/routes.config.tsx) — that's what `useRouteMeta` turns into the page's
-    title, meta description, canonical, Open Graph, and Twitter tags — and (2) get a `<url>` entry added to
-    [public/sitemap.xml](../../public/sitemap.xml). The sitemap is a hand-maintained static file; it does
-    NOT update itself, so it's the easy step to forget. Skip the sitemap only for non-indexable routes
-    (the `*`/404 catch-all and dynamic detail pages like `/recall-radar/:source/:recallNumber`).
+  - **New page checklist (SEO):** every new public route MUST (1) get a `routesMeta` entry with a
+    meaningful `title` + `description` in [routes.meta.ts](routes/routes.meta.ts) (spread into the route
+    via `metaFor`; `useRouteMeta` turns it into the page's title, meta description, canonical, Open Graph,
+    and Twitter tags) — and (2) get a `<url>` entry added to
+    [public/sitemap.xml](../../public/sitemap.xml). The sitemap is a hand-maintained static file; a
+    `site-invariants` test fails if an indexable route is missing from it. Skip the sitemap only for
+    non-indexable routes (`noindex`, the `*`/404 catch-all, and dynamic detail pages like
+    `/recall-radar/:source/:recallNumber`). Full runbook: the `new-page` skill.
 - **State is minimal**: Context for the global Fun-mode flag, `useState` for local UI. No Redux/external store.
 - **Content lives in `data.ts`**, not JSX — typed against [data/data.types.ts](data/data.types.ts).
   Components are presentational, fed via props.

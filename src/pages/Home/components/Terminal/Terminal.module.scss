@@ -29,6 +29,60 @@
   }
 }
 
+/* `fullscreen` / `cmatrix` — grow the terminal in place: wider, and a fixed-tall log. */
+.terminal[data-mode='expanded'],
+.terminal[data-mode='matrix'] {
+  max-width: none;
+}
+
+.terminal[data-mode='expanded'] .log {
+  height: min(70vh, 640px);
+  max-height: none;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Pin content to the bottom (empty space grows at the top) — margin collapses once it overflows,
+   so scrolling still works. */
+.terminal[data-mode='expanded'] .log > :first-child {
+  margin-top: auto;
+}
+
+/* The rain takes over the whole frame. */
+.matrixWrap {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius);
+  outline: none;
+  transition: box-shadow 150ms ease;
+}
+
+/* Focused = "armed": an inset matrix-green ring shows the rain has the keyboard, so the next key
+   dismisses it. '/' brings focus here without dismissing; any other key then exits. */
+.matrixWrap:focus {
+  box-shadow: inset 0 0 0 2px rgba(77, 255, 136, 0.55);
+}
+
+.matrix {
+  display: block;
+  width: 100%;
+  height: min(70vh, 640px);
+  background: #06080a; /* matrix-rain void — deliberately darker than the site --bg */
+  cursor: pointer;
+}
+
+.matrixHint {
+  position: absolute;
+  right: 14px;
+  bottom: 12px;
+  color: rgba(77, 255, 136, 0.55);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+  user-select: none;
+}
+
 .log {
   max-height: 220px;
   overflow-y: auto;
@@ -55,12 +109,91 @@
   }
 }
 
+/* Each new line launches up into the log as it's committed — rising from below, past the baseline,
+   then settling back down. Only freshly mounted lines animate. */
+@keyframes logLineIn {
+  0% {
+    opacity: 0;
+    transform: translateY(9px);
+  }
+  65% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .line {
   margin: 0 0 2px;
   color: var(--text-secondary);
   line-height: 1.6;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+  animation: logLineIn 260ms ease-out both;
+}
+
+/* ASCII art (cowsay) — monospace, never wrapped; scrolls sideways if it outgrows the log. */
+.art {
+  margin: 4px 0;
+  color: var(--text-secondary);
+  font: inherit;
+  line-height: 1.2;
+  white-space: pre;
+  overflow-x: auto;
+  scrollbar-width: none;
+  animation: logLineIn 260ms ease-out both;
+}
+
+.art::-webkit-scrollbar {
+  display: none;
+}
+
+/* The sl locomotive slides through this fixed window, clipped at both edges. */
+.track {
+  overflow: hidden;
+}
+
+.train {
+  display: inline-block;
+  margin: 4px 0;
+  color: var(--accent);
+  font: inherit;
+  line-height: 1.2;
+  white-space: pre;
+  will-change: transform;
+  animation-name: chug;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+/* Start fully off the right, exit fully off the left (percentages are of the train's own width). */
+@keyframes chug {
+  from {
+    transform: translateX(200%);
+  }
+  to {
+    transform: translateX(-120%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .train {
+    animation: none;
+    transform: none;
+  }
+
+  .line,
+  .art {
+    animation: none;
+  }
+
+  .cascadeChar {
+    animation: none;
+    color: var(--text);
+  }
 }
 
 .prompt {
@@ -98,9 +231,55 @@
   visibility: hidden;
 }
 
+/* Fun-mode autocomplete reveal: the accepted suffix lights up letter-by-letter over the input
+   (whose own text is hidden by .inputCascading while this plays). */
+.cascade {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  white-space: pre;
+  overflow: hidden;
+}
+
+.cascadePrefix {
+  color: var(--text);
+}
+
+.cascadeChar {
+  display: inline-block;
+  color: var(--muted);
+  // Duration must match CASCADE_POP_MS in terminal-cascade.ts; per-letter delay is set inline.
+  animation: cascadePop 150ms $ease-shoot both;
+}
+
+@keyframes cascadePop {
+  0% {
+    color: var(--muted);
+    transform: translateY(0px);
+  }
+  50% {
+    color: var(--text);
+    transform: translateY(-1px);
+  }
+  100% {
+    color: var(--text);
+    transform: translateY(0);
+  }
+}
+
+.inputCascading {
+  color: transparent;
+}
+
 .input {
   width: 100%;
   border: none;
+  // Zero padding so the real text starts at the same x as the .ghost overlay's left edge —
+  // otherwise the completion suffix sits off-grid and a typed char jumps instead of just
+  // recoloring the ghost letter beneath it.
+  padding: 0;
   background: transparent;
   color: var(--text);
   font: inherit;

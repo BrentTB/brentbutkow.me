@@ -26,7 +26,7 @@ export type RouteMeta = {
 }
 
 const gamesPath = `${routePaths.funStuff}${funStuffSubRoutes.games}`
-export const nullSpacePath = `${gamesPath}${gamesSubRoutes.nullSpace}`
+const nullSpacePath = `${gamesPath}${gamesSubRoutes.nullSpace}`
 
 /** Looks up meta for a path, failing loudly at module-init if a route forgot its entry. */
 export function metaFor(path: string): RouteMeta {
@@ -90,17 +90,21 @@ export const routesMeta: Record<string, RouteMeta> = {
       creator: { '@type': 'Person', name: 'Brent Butkow', url: SITE_URL },
     },
   },
+  // Subscription flow pages are reached from email links only — keep them out of search indexes.
   [routePaths.recallRadarConfirm]: {
     title: 'Confirm subscription — Recall Radar',
     description: 'Confirm your Recall Radar alert subscription.',
+    noindex: true,
   },
   [routePaths.recallRadarManage]: {
     title: 'Manage alerts — Recall Radar',
     description: 'Manage or unsubscribe from your Recall Radar alerts.',
+    noindex: true,
   },
   [routePaths.recallRadarUnsubscribe]: {
     title: 'Unsubscribe — Recall Radar',
     description: 'Unsubscribe from your Recall Radar alerts.',
+    noindex: true,
   },
   [`${routePaths.recallRadar}/:source/:recallNumber`]: {
     title: 'Recall — Recall Radar',

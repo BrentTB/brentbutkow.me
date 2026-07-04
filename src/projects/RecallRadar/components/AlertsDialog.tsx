@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react'
+import { CloseButton } from '../../../components/utils/CloseButton'
 import styles from './AlertsDialog.module.scss'
 
 type AlertsDialogProps = {
@@ -61,7 +62,12 @@ export function AlertsDialog({ title, description, onClose, children }: AlertsDi
   }, [onClose])
 
   return (
-    <div className={styles.backdrop} onClick={onClose}>
+    <div
+      className={styles.backdrop}
+      role="presentation"
+      // Close only on clicks that start on the backdrop itself, not inside the panel.
+      onClick={(event) => event.target === event.currentTarget && onClose()}
+    >
       <div
         ref={panelRef}
         className={styles.panel}
@@ -69,7 +75,6 @@ export function AlertsDialog({ title, description, onClose, children }: AlertsDi
         aria-modal="true"
         aria-labelledby="alerts-dialog-title"
         tabIndex={-1}
-        onClick={(event) => event.stopPropagation()}
       >
         <div className={styles.head}>
           <div className={styles.headText}>
@@ -78,14 +83,7 @@ export function AlertsDialog({ title, description, onClose, children }: AlertsDi
             </h2>
             {description && <p className={styles.hint}>{description}</p>}
           </div>
-          <button
-            type="button"
-            className={styles.close}
-            onClick={onClose}
-            aria-label="Close alerts form"
-          >
-            ×
-          </button>
+          <CloseButton onClick={onClose} label="Close alerts form" />
         </div>
         <div className={styles.body}>{children}</div>
       </div>

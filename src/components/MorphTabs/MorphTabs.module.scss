@@ -1,0 +1,185 @@
+// One persistent control that morphs between its two forms: expanded, a segmented row of tabs;
+// collapsed, the inactive tabs fold to zero width and the active one stays put as the dropdown
+// trigger, its caret sliding in. The active pill never leaves the screen — the tabs *become* the
+// dropdown.
+.selector {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  transition:
+    gap 0.5s ease,
+    border-color 0.5s ease,
+    background 0.5s ease;
+}
+
+.collapsed {
+  // Zero the gap so the folded tabs leave no seam beside the trigger.
+  gap: 0;
+  border-color: var(--border-strong);
+  background: var(--surface-strong);
+}
+
+.collapsed:hover {
+  border-color: var(--accent);
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  appearance: none;
+  background: transparent;
+  border: none;
+  border-radius: calc(var(--radius) - 4px);
+  padding: 7px 14px;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+  // Generous cap (never reached by a label) purely to give the fold a width to animate from.
+  max-width: 240px;
+  overflow: hidden;
+  // This base rule times the EXPAND direction (the .collapsed override below times the fold).
+  // max-width animates 0↔240 but a label is only ~130 wide, so part of every tween is clamped
+  // invisible: folding hides the fast start of `ease`, expanding hides the tail — which made
+  // expansion look about twice as fast as the fold. The longer, slow-starting curve here keeps
+  // the visible motion of both directions at the same pace.
+  transition:
+    background 0.12s ease,
+    color 0.12s ease,
+    max-width 0.5s cubic-bezier(0.45, 0, 0.55, 1),
+    padding 0.5s cubic-bezier(0.45, 0, 0.55, 1),
+    opacity 0.3s ease;
+}
+
+.tab:hover {
+  color: var(--text);
+}
+
+// Slower background/color here so the highlight fades in step with the fold — the base 0.12s stays
+// on the expanded tabs where hover needs to feel immediate.
+.collapsed .tab {
+  transition:
+    background 0.5s ease,
+    color 0.5s ease,
+    max-width 0.5s ease,
+    padding 0.5s ease,
+    opacity 0.3s ease;
+}
+
+.collapsed .tab:not(.active) {
+  max-width: 0;
+  padding-inline: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.active {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+// The highlight fades away as the tabs fold — collapsed, the selection reads as a quiet dropdown
+// trigger rather than a pressed tab.
+.collapsed .active {
+  background: transparent;
+  color: var(--text);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+// Lives inside the active tab; hidden while expanded (negative margin swallows the tab's gap so
+// the active pill measures the same as its siblings), unfolds when the control collapses.
+.caret {
+  color: var(--muted);
+  font-size: 0.62rem;
+  max-width: 0;
+  margin-left: -8px;
+  opacity: 0;
+  overflow: hidden;
+  transition:
+    max-width 0.5s ease,
+    margin-left 0.5s ease,
+    opacity 0.4s ease;
+}
+
+.collapsed .caret {
+  max-width: 12px;
+  margin-left: 0;
+  opacity: 1;
+}
+
+// One-frame kill switch while the trigger role hops between tabs (value change while collapsed) —
+// without it the old tab folds as the new one unfolds and the control balloons then shrinks.
+.snap,
+.snap .tab,
+.snap .caret {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .selector,
+  .tab,
+  .caret {
+    transition: none;
+  }
+}
+
+// Portaled to the body and pinned under the trigger (top/left set inline) so it escapes a collapsed
+// parent that clips its overflow. z-index sits high enough to clear a sticky bar and section rail.
+.menu {
+  position: fixed;
+  z-index: 30;
+  min-width: 180px;
+  list-style: none;
+  margin: 0;
+  padding: 5px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+// Fun mode: float the menu on the translucent navy glass (+ blur) so it tints with the water rather
+// than reading as an opaque dark slab over it.
+:global(html.fun-mode) .menu {
+  background: var(--fun-surface);
+  backdrop-filter: blur(12px);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  background: none;
+  border: none;
+  border-radius: calc(var(--radius) - 3px);
+  padding: 8px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-align: left;
+}
+
+.item:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.itemActive {
+  color: var(--accent);
+}
+
+.item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}

@@ -14,7 +14,7 @@
   font-weight: 600;
   letter-spacing: 0.04em;
   white-space: nowrap;
-  color: #ffd27a;
+  color: #ffd27a; /* amber countdown — escalation ramp lives only in this warning */
   background: rgba(38, 20, 8, 0.72);
   border: 1px solid rgba(255, 150, 60, 0.5);
   pointer-events: none;
@@ -22,21 +22,21 @@
 }
 
 .icon {
-  color: #ff8a3c;
+  color: #ff8a3c; /* hotter step of the amber→red escalation ramp */
 }
 
 // The confirmed-speed-up sign: a hotter red than the amber countdown, popping in
 // then fading over its brief life (JS unmounts it on the same timer). Declared
 // after .warning so it overrides the gentle amber pulse.
 .spedUp {
-  color: #ffb4a0;
+  color: #ffb4a0; /* hot step of the ramp */
   background: rgba(60, 16, 10, 0.82);
   border-color: rgba(255, 90, 60, 0.7);
   animation: spedUpFlash 2.5s ease-out forwards;
 }
 
 .spedUp .icon {
-  color: #ff5a3c;
+  color: #ff5a3c; /* hottest step of the ramp */
 }
 
 // Visually hidden, still announced — carries one stable sentence so the live
