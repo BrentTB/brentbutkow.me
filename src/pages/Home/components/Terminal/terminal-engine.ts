@@ -27,6 +27,7 @@ import { STEAM_LOCOMOTIVE, cowsay } from './ascii'
 //   sudo make-me-a-sandwich       "Okay." — the punchline; any other sudo gets the sudoers warning
 //   fun                           flips the Fun-mode toggle
 //   rm -rf / (or . ./* * ~ …)     fake delete, then lands on the 404 page
+//   404                           jumps straight to the 404 page (no delete theatrics, no delay)
 //   ls -a / tree -a               reveal the hidden files below
 //   cat .the-game                 "You just lost the game."
 //   cat .homework                 rickroll — opens the official video in a new tab
@@ -110,6 +111,7 @@ const TerminalCommand = {
   fullscreen: 'fullscreen',
   cmatrix: 'cmatrix',
   matrix: 'matrix',
+  notFound: '404',
 } as const
 type TerminalCommand = (typeof TerminalCommand)[keyof typeof TerminalCommand]
 
@@ -181,6 +183,9 @@ const hiddenFiles = [EYEBROW_FILE, RICKROLL_FILE, HIDDEN_FILE]
 
 // `rm -rf /` lands on the 404 page — any unknown path hits the catch-all route.
 const RM_CRASH_PATH = '/everything-is-gone'
+
+// The `404` command jumps straight to the not-found page (no fake-delete theatrics, no delay).
+const NOT_FOUND_PATH = '/404'
 
 const HELP_LINES = [
   'help          this list',
@@ -451,6 +456,9 @@ export function execute(rawInput: string, ctx: TerminalContext): TerminalResult 
     case TerminalCommand.cmatrix:
     case TerminalCommand.matrix:
       return { output: [], action: { type: TerminalActionType.matrix } }
+    case TerminalCommand.notFound:
+      // Straight to the 404 page — empty output so run() navigates immediately, no delay.
+      return { output: [], action: { type: TerminalActionType.navigate, path: NOT_FOUND_PATH } }
     case TerminalCommand.try:
       // Pays off the input placeholder — typing `try 'help'` literally instead of `help`.
       if (args.join(' ').replace(/['"]/g, '') === 'help') {

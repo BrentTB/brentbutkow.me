@@ -210,6 +210,14 @@ describe('execute — easter eggs and misc', () => {
     }
   })
 
+  it('the 404 command navigates immediately, with no output to delay it', () => {
+    const result = execute('404', ctx)
+    expect(result.action.type).toBe(TerminalActionType.navigate)
+    expect(result.action.path).toBeTruthy()
+    // Empty output → run() navigates right away, unlike rm's fake-delete line.
+    expect(result.output).toEqual([])
+  })
+
   it('rm without the recursive flag is refused even on /', () => {
     expect(execute('rm /', ctx).output[0]).toMatch(/read-only/)
     expect(execute('rm -f .', ctx).output[0]).toMatch(/read-only/)
