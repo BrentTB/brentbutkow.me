@@ -22,21 +22,36 @@ const LOADING_TARGETS = [
 ]
 const loadingCycle = createShuffledCycle(LOADING_TARGETS)
 const PROCESS_DONE = '[process completed - exit code 0]'
-const LOADING_MS = 2500
+const LOADING_MS = 2400
+const DOT_MS = 300
 
 export function Footer() {
   const currentYear = new Date().getFullYear()
   const { isFunMode } = useFunMode()
   const { pathname } = useLocation()
-  const [status, setStatus] = useState(PROCESS_DONE)
+  // The label being "loaded" (null once it settles) and the animated ellipsis length (0–3).
+  const [target, setTarget] = useState<string | null>(null)
+  const [dots, setDots] = useState(0)
 
-  // On each navigation (fun mode only), flash a "loading …" line, then settle back to done.
+  // On each navigation (fun mode only), flash a "loading …" line whose ellipsis cycles 0→3 dots,
+  // then settle on the completed line. Reduced motion keeps the dots static (no cycling).
   useEffect(() => {
     if (!isFunMode) return
-    setStatus(`loading ${loadingCycle.next() ?? LOADING_TARGETS[0]}...`)
-    const timer = setTimeout(() => setStatus(PROCESS_DONE), LOADING_MS)
-    return () => clearTimeout(timer)
+    setTarget(loadingCycle.next() ?? LOADING_TARGETS[0])
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    setDots(reduce ? 3 : 0)
+    const dotTimer = reduce ? undefined : setInterval(() => setDots((d) => (d + 1) % 4), DOT_MS)
+    const doneTimer = setTimeout(() => {
+      if (dotTimer) clearInterval(dotTimer)
+      setTarget(null)
+    }, LOADING_MS)
+    return () => {
+      if (dotTimer) clearInterval(dotTimer)
+      clearTimeout(doneTimer)
+    }
   }, [pathname, isFunMode])
+
+  const status = target === null ? PROCESS_DONE : `loading ${target}${'.'.repeat(dots)}`
 
   return (
     <footer className={styles.footer}>

@@ -22,10 +22,15 @@ describe('Footer sign-off', () => {
     cleanup()
   })
 
-  it('flashes a loading line on load, then settles on the completed line (fun mode)', () => {
+  it('flashes a loading line whose ellipsis animates, then settles on completed (fun mode)', () => {
     renderFooter(true)
+    // First frame has no dots yet.
+    expect(screen.getByText(/^loading \S/)).toBeTruthy()
+    expect(screen.queryByText(/^loading .+\.\.\.$/)).toBeNull()
+    // A few dot-ticks in, the ellipsis has grown to three dots.
+    act(() => vi.advanceTimersByTime(900))
     expect(screen.getByText(/^loading .+\.\.\.$/)).toBeTruthy()
-    // Advance well past the loading window (kept short so the test doesn't couple to its exact ms).
+    // Past the loading window it settles (advance generously so the test doesn't couple to the ms).
     act(() => vi.advanceTimersByTime(10_000))
     expect(screen.getByText('[process completed - exit code 0]')).toBeTruthy()
     expect(screen.queryByText(/^loading /)).toBeNull()
