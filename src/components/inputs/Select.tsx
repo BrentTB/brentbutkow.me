@@ -137,7 +137,8 @@ export function Select({
                     position: 'fixed',
                     top: coords.top,
                     left: coords.left,
-                    width: coords.width,
+                    // Floor at the trigger width; the stylesheet's `width: max-content` (capped)
+                    // grows it past that to fit the longest option rather than truncating.
                     minWidth: coords.width,
                   }
                 : { position: 'fixed', visibility: 'hidden' }

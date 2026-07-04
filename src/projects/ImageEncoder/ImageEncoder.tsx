@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Breadcrumb } from '../../components/PageFormatting/Breadcrumb'
+import { PageLayout } from '../../components/PageFormatting/PageLayout'
+import { PageHeader } from '../../components/PageFormatting/PageHeader'
 import { useFunMode } from '../../contexts/useFunMode'
 import { Mode } from './image-encoder.types'
 import { terminateWorker } from './codec-worker-client'
@@ -26,31 +27,30 @@ export function ImageEncoder() {
   useEffect(() => () => terminateWorker(), [])
 
   return (
-    <div className={styles.wrapper}>
-      <Breadcrumb />
+    <PageLayout>
+      <PageHeader title="Image Encoder">{isFunMode ? copy.taglineFun : copy.tagline}</PageHeader>
 
-      <header className={styles.intro}>
-        <h1 className={styles.title}>Image Encoder</h1>
-        <p className={styles.tagline}>{isFunMode ? copy.taglineFun : copy.tagline}</p>
-      </header>
+      <div className={styles.body}>
+        <div className={styles.modeSwitch}>
+          <Segmented
+            ariaLabel="Hide or reveal a message"
+            options={modeSegments}
+            value={mode}
+            onChange={setMode}
+          />
+        </div>
 
-      <Segmented
-        ariaLabel="Hide or reveal a message"
-        options={modeSegments}
-        value={mode}
-        onChange={setMode}
-      />
+        <div className={styles.panelHost} hidden={mode !== Mode.encode}>
+          <EncodePanel />
+        </div>
+        <div className={styles.panelHost} hidden={mode !== Mode.decode}>
+          <DecodePanel />
+        </div>
 
-      <div className={styles.panelHost} hidden={mode !== Mode.encode}>
-        <EncodePanel />
+        <HowItWorks />
+
+        <p className={styles.privacy}>{copy.privacy}</p>
       </div>
-      <div className={styles.panelHost} hidden={mode !== Mode.decode}>
-        <DecodePanel />
-      </div>
-
-      <HowItWorks />
-
-      <p className={styles.privacy}>{copy.privacy}</p>
-    </div>
+    </PageLayout>
   )
 }
