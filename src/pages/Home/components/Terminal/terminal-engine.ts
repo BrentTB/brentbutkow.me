@@ -10,8 +10,8 @@ import { STEAM_LOCOMOTIVE, cowsay } from './ascii'
 //   help                 the command list
 //   ls [page]            pages at a level · -a adds hidden files · -R renders the tree
 //   tree                 the full page tree · -a adds hidden files
-//   cd <page>            navigate — relative paths, ~, .., and `cd -` (back); aliases: open, goto
-//   cat <page>           the page's one-line description (from routes.meta) · cat cv.pdf downloads the CV
+//   cd [page]            navigate — relative paths, ~, .., and `cd -` (back); aliases: open, goto
+//   cat [page]           the page's one-line description (from routes.meta) · cat cv.pdf downloads the CV
 //   pwd                  where you are
 //   joke                 a dad joke — shuffled round-robin; racier ones stay out of professional mode
 //   clear / exit         wipe the log / close the terminal
@@ -33,11 +33,11 @@ import { STEAM_LOCOMOTIVE, cowsay } from './ascii'
 //   cat .the-game                 "You just lost the game."
 //   cat .homework                 rickroll — opens the official video in a new tab
 //   cat .eyebrow                  explains the write below
-//   echo [text] > .eyebrow        queues <text> as the hero's next typed eyebrow line (one-shot);
+//   echo [text] > .eyebrow        queues [text] as the hero's next typed eyebrow line (one-shot);
 //                                 the `>` redirect target Tab-completes to .eyebrow
 //   try 'help'                    typing the placeholder literally → "real funny."
 //   sl                            the ls typo → a steam locomotive chugs across the log
-//   cowsay <text>                 an ASCII cow says <text> (defaults to "moo")
+//   cowsay [text]                 an ASCII cow says [text] (defaults to "moo")
 //   fullscreen                    grows the terminal in place (toggle); Escape shrinks it back
 //   cmatrix / matrix              enters fullscreen + rains green glyphs; any key or click exits
 // ──────────────────────────────────────────────────────────────────────────────
@@ -204,8 +204,8 @@ const HELP_LINES = [
   'help          this list',
   'ls [page]     list pages here',
   'tree          the full page tree',
-  'cd <page>     go to a page (Tab completes)',
-  'cat <page>    a page in one line',
+  'cd [page]     go to a page (Tab completes)',
+  'cat [page]    a page in one line',
   'joke          one dad joke, on the house',
   'clear         wipe the screen',
   'exit          close the terminal',
@@ -276,7 +276,7 @@ function renderTree(pages: TreeEntry[], prefix: string, lines: string[]): void {
   })
 }
 
-// `scope` narrows the tree to a subtree (`ls -R <page>` / `tree <page>`); omit for the full tree.
+// `scope` narrows the tree to a subtree (`ls -R [page]` / `tree [page]`); omit for the full tree.
 function treePages(showHidden: boolean, scope?: { pathArg: string; cmd: string }): string[] {
   let pages: TreeEntry[] = terminalPages
   let rootLabel = '.'

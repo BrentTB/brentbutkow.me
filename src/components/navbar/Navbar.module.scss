@@ -109,7 +109,6 @@
   transition:
     color 150ms ease,
     transform 140ms ease-out;
-  will-change: transform;
 }
 
 /* Terminal selection marker — a reserved slot so tabs never shift when it appears.

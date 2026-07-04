@@ -5,9 +5,6 @@ import { fileURLToPath } from 'node:url'
 import { routesMeta, SITE_URL } from './routes/routes.meta'
 
 // Repo-wide invariants that have each shipped broken at least once:
-// - a data.ts href pointed at a public/ asset that didn't exist (CV download 404)
-// - env vars referenced without the VITE_ prefix, which Vite silently strips from the client
-// - docs/skills referencing files that a later refactor moved or deleted
 
 const srcDir = dirname(fileURLToPath(import.meta.url))
 const rootDir = join(srcDir, '..')
