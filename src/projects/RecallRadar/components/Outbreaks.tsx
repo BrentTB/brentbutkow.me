@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { EventSort, type EventOut } from '../recall.types'
 import { formatDate, pluralize } from '../chart-format'
 import { SegmentedToggle } from '../../../components/inputs/SegmentedToggle'
-import { useIsMobile } from '../useIsMobile'
+import { useMediaQuery } from '../useMediaQuery'
 import { ShowMoreToggle } from './ShowMoreToggle'
 import styles from './Outbreaks.module.scss'
 
@@ -30,7 +30,7 @@ const SORT_OPTIONS: { value: EventSort; label: string }[] = [
 // The high-signal clusters (pathogen-driven, multi-recall) as clickable cards. Clicking one filters
 // the recall list + trend to that incident's recalls (its stable slug rides the URL).
 export function Outbreaks({ events, activeEvent, onSelect, sort, onSortChange }: OutbreaksProps) {
-  const isMobile = useIsMobile()
+  const isMobile = useMediaQuery('(max-width: 600px)')
   const [expanded, setExpanded] = useState(false)
   const outbreaks = events.filter((event) => event.isOutbreak)
   if (outbreaks.length === 0) return null

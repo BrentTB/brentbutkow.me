@@ -9,6 +9,8 @@ import {
   categoryLabels,
   countryLabels,
   entityTypeLabels,
+  predictedClassLabel,
+  predictedClassNote,
   severityColors,
   severityLabels,
   sourceLabels,
@@ -84,6 +86,11 @@ function RecallDetailBody({ recall }: { recall: Recall }) {
         <span>{sourceLabels[recall.source]}</span>
         <span>{countryLabels[recall.country]}</span>
         {recall.classification && <span>{recall.classification}</span>}
+        {predictedClassLabel(recall) && (
+          <span className={styles.predictedBadge} title={predictedClassNote}>
+            {predictedClassLabel(recall)}
+          </span>
+        )}
         <span>{formatDate(recall.reportDate)}</span>
       </div>
 
