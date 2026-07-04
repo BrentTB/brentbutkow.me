@@ -224,6 +224,7 @@ function toSegments(rawPath: string): string[] | null {
 
 function listPages(pathArg: string | undefined, showHidden: boolean): string[] {
   let children = terminalPages
+  let atRoot = true
   if (pathArg) {
     const segments = toSegments(pathArg)
     const node = segments ? findPage(segments) : null
@@ -235,10 +236,12 @@ function listPages(pathArg: string | undefined, showHidden: boolean): string[] {
       return [node.name]
     } else {
       children = node.children
+      atRoot = false
     }
   }
   const names = children.map((page) => (page.children.length > 0 ? `${page.name}/` : page.name))
-  if (showHidden) names.unshift(...hiddenFiles)
+  // Hidden files live at the site root only — never inside a listed subtree.
+  if (showHidden && atRoot) names.unshift(...hiddenFiles)
   return [names.join('  ')]
 }
 
@@ -255,6 +258,7 @@ function renderTree(pages: TerminalPage[], prefix: string, lines: string[]): voi
 function treePages(showHidden: boolean, scope?: { pathArg: string; cmd: string }): string[] {
   let pages = terminalPages
   let rootLabel = '.'
+  let atRoot = true
   if (scope) {
     const segments = toSegments(scope.pathArg)
     const node = segments && segments.length > 0 ? findPage(segments) : null
@@ -265,11 +269,14 @@ function treePages(showHidden: boolean, scope?: { pathArg: string; cmd: string }
     } else {
       pages = node.children
       rootLabel = node.children.length > 0 ? `${node.name}/` : node.name
+      atRoot = false
     }
   }
-  const roots = showHidden
-    ? [...hiddenFiles.map((name) => ({ name, path: '', children: [] })), ...pages]
-    : pages
+  // Hidden files live at the site root only — never inside a scoped subtree.
+  const roots =
+    showHidden && atRoot
+      ? [...hiddenFiles.map((name) => ({ name, path: '', children: [] })), ...pages]
+      : pages
   const lines = [rootLabel]
   renderTree(roots, '', lines)
   return lines

@@ -121,6 +121,20 @@ describe('execute — tree', () => {
   it('reports a missing page for a bad subtree arg', () => {
     expect(execute('ls -R narnia', ctx).output[0]).toMatch(/no such page/)
   })
+
+  it('keeps hidden files at root, never inside a scoped listing (-a)', () => {
+    const scopedTree = execute('ls -R fun-stuff -a', ctx).output.join('\n')
+    expect(scopedTree).not.toContain('.the-game')
+    expect(scopedTree).not.toContain('.homework')
+    expect(scopedTree).not.toContain('.eyebrow')
+
+    const scopedList = execute('ls fun-stuff -a', ctx).output[0]
+    expect(scopedList).not.toContain('.the-game')
+
+    // Root listings still reveal them.
+    expect(execute('ls -R -a', ctx).output.join('\n')).toContain('.the-game')
+    expect(execute('ls -a', ctx).output[0]).toContain('.the-game')
+  })
 })
 
 describe('execute — easter eggs and misc', () => {

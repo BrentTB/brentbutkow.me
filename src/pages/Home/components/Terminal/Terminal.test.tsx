@@ -85,6 +85,30 @@ describe('Terminal — fullscreen and matrix', () => {
     )
   })
 
+  it('"/" highlights the rain without ending it; a following key ends it', () => {
+    const { container } = renderTerminal()
+    runCmd(container, 'cmatrix')
+    fireEvent.keyUp(document, { key: 'Enter' }) // release arms the exit
+    ;(document.activeElement as HTMLElement | null)?.blur?.() // move focus off the rain
+
+    // First press only brings focus (highlight) back to the rain — it keeps running.
+    fireEvent.keyDown(document, { key: '/' })
+    expect(modeOf(container)).toBe('matrix')
+    expect(document.activeElement).toBe(matrixEl(container))
+
+    // The next key actually dismisses it.
+    fireEvent.keyDown(matrixEl(container), { key: 'j' })
+    expect(modeOf(container)).toBe('inline')
+  })
+
+  it('"/" pressed on the already-focused rain does not dismiss it', () => {
+    const { container } = renderTerminal()
+    runCmd(container, 'cmatrix')
+    fireEvent.keyUp(document, { key: 'Enter' })
+    fireEvent.keyDown(matrixEl(container), { key: '/' })
+    expect(modeOf(container)).toBe('matrix')
+  })
+
   it('matrix launched from fullscreen returns to fullscreen, not inline', () => {
     const { container } = renderTerminal()
     runCmd(container, 'fullscreen')

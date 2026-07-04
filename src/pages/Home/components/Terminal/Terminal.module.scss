@@ -54,6 +54,13 @@
   overflow: hidden;
   border-radius: var(--radius);
   outline: none;
+  transition: box-shadow 150ms ease;
+}
+
+/* Focused = "armed": an inset matrix-green ring shows the rain has the keyboard, so the next key
+   dismisses it. '/' brings focus here without dismissing; any other key then exits. */
+.matrixWrap:focus {
+  box-shadow: inset 0 0 0 2px rgba(77, 255, 136, 0.55);
 }
 
 .matrix {

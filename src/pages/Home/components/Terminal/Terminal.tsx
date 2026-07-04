@@ -88,6 +88,9 @@ export function Terminal() {
 
   const onMatrixKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (!matrixArmed.current) return
+    // '/' and '~' are the terminal's focus keys — in the rain they only (re)highlight it, so the
+    // press that brings focus here never doubles as the press that dismisses it.
+    if (event.key === '/' || event.key === '~') return
     event.preventDefault()
     // The input isn't mounted yet (still matrix this render) — refocus once it comes back.
     refocusAfterMatrix.current = true
@@ -102,17 +105,22 @@ export function Terminal() {
     }
   }, [mode])
 
-  // '/' or '~' focuses the terminal from anywhere on the page, terminal-style.
+  // '/' or '~' focuses the terminal from anywhere on the page, terminal-style. During the rain the
+  // input isn't mounted, so it highlights the rain instead — a following key then dismisses it.
   useEffect(() => {
     const onKeyDown = (event: globalThis.KeyboardEvent) => {
       if (event.key !== '/' && event.key !== '~') return
       if (isTypingTarget(event.target) || event.metaKey || event.ctrlKey || event.altKey) return
       event.preventDefault()
-      inputRef.current?.focus()
+      if (mode === TerminalMode.matrix) {
+        matrixRef.current?.focus()
+      } else {
+        inputRef.current?.focus()
+      }
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [])
+  }, [mode])
 
   // Pin to the newest line — on each new command, when the log remounts on reopen, and when a
   // train appears (animation flips null → sprite, not per frame — CSS drives the motion).
