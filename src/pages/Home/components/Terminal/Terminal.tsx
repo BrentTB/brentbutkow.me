@@ -24,6 +24,10 @@ export function Terminal() {
   const matrixArmed = useRef(false)
   const refocusAfterMatrix = useRef(false)
   const [active, setActive] = useState(false)
+  // The rain closes on a key (desktop) or a second tap (works on mobile, which has no keys). The
+  // first tap only "selects" it, so the tap that might have been meant for something else can't
+  // dismiss it by accident.
+  const [matrixSelected, setMatrixSelected] = useState(false)
   const { isFunMode } = useFunMode()
   // Fun-mode-only: the just-accepted completion suffix, lit letter-by-letter over an input whose
   // own text is hidden for the moment. Null when no cascade is playing.
@@ -68,13 +72,13 @@ export function Terminal() {
     }
   }, [active, cancelAnimation, exitFullscreen])
 
-  // Focus the rain so its own keydown handler can catch the exit — the rain closes only on a key
-  // pressed while it holds focus, never on a click or a key aimed elsewhere. Arm only after the
-  // launching key is released: a held Enter fires repeat keydowns, and without this the command's
-  // own Enter would exit on entry.
+  // Focus the rain so its keydown handler can catch a key-press exit; start it unselected so the
+  // first tap only selects. Arm the key path only after the launching key is released: a held Enter
+  // fires repeat keydowns, and without this the command's own Enter would exit on entry.
   useEffect(() => {
     if (mode !== TerminalMode.matrix) return
     matrixArmed.current = false
+    setMatrixSelected(false)
     matrixRef.current?.focus()
     const arm = () => {
       matrixArmed.current = true
@@ -83,15 +87,44 @@ export function Terminal() {
     return () => window.removeEventListener('keyup', arm)
   }, [mode])
 
+  // A tap/click anywhere outside the rain resets the two-step counter (and clears the ring), so
+  // re-selecting it always takes two taps again — one stray tap can never leave it one-tap-from-close.
+  useEffect(() => {
+    if (mode !== TerminalMode.matrix) return
+    const onOutside = (event: PointerEvent) => {
+      if (matrixRef.current && !matrixRef.current.contains(event.target as Node)) {
+        setMatrixSelected(false)
+        matrixRef.current.blur()
+      }
+    }
+    document.addEventListener('pointerdown', onOutside)
+    return () => document.removeEventListener('pointerdown', onOutside)
+  }, [mode])
+
+  const dismissMatrix = () => {
+    // The input isn't mounted yet (still matrix this render) — refocus once it comes back.
+    refocusAfterMatrix.current = true
+    exitMatrix()
+  }
+
   const onMatrixKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (!matrixArmed.current) return
     // '/' and '~' are the terminal's focus keys — in the rain they only (re)highlight it, so the
     // press that brings focus here never doubles as the press that dismisses it.
     if (event.key === '/' || event.key === '~') return
     event.preventDefault()
-    // The input isn't mounted yet (still matrix this render) — refocus once it comes back.
-    refocusAfterMatrix.current = true
-    exitMatrix()
+    dismissMatrix()
+  }
+
+  // Tap/click to close — the mobile path, since there's no key to press there. The first tap only
+  // selects (arming the exit); the next tap closes. Mirrors the '/'-then-key flow for keyboards.
+  const onMatrixClick = () => {
+    if (matrixSelected) {
+      dismissMatrix()
+    } else {
+      setMatrixSelected(true)
+      matrixRef.current?.focus()
+    }
   }
 
   // Return focus to the command input after the rain closes, so typing continues uninterrupted.
@@ -193,7 +226,7 @@ export function Terminal() {
         // Mouse convenience only — the input itself is the keyboard-accessible control.
         role="presentation"
         onClick={() => {
-          if (mode === TerminalMode.matrix) return // the rain closes only via its own keydown
+          if (mode === TerminalMode.matrix) return // the rain handles its own tap/key close
           // Focus unless the click was selecting log text to copy.
           if (window.getSelection()?.toString() === '') inputRef.current?.focus()
         }}
@@ -203,13 +236,14 @@ export function Terminal() {
             ref={matrixRef}
             className={styles.matrixWrap}
             role="button"
-            aria-label="Matrix rain, press any key to close"
+            aria-label="Matrix rain, tap or press a key to close"
             tabIndex={0}
             onKeyDown={onMatrixKeyDown}
+            onClick={onMatrixClick}
           >
             <canvas ref={canvasRef} className={styles.matrix} aria-hidden="true" />
             <span className={styles.matrixHint} aria-hidden="true">
-              press any key
+              {matrixSelected ? 'tap again to close' : 'tap or press a key'}
             </span>
           </div>
         )}

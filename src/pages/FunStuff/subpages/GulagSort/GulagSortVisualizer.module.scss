@@ -215,6 +215,17 @@
   flex-shrink: 0;
 }
 
+// A slot held open in a merge destination while its block flies up into it. The
+// dashed outline shows the row's final shape up front, so arriving blocks fill a
+// gap instead of shoving their neighbours.
+.placeholderSlot {
+  background: transparent;
+  border-style: dashed;
+  border-color: rgba(var(--accent-rgb), 0.3);
+  color: transparent;
+  animation: none;
+}
+
 // Fun mode: the input and gulag containers use the dark ink surface, which reads
 // as stark near-black boxes over the light-blue water — swap to the glass panel.
 :global(html.fun-mode) .inputGroup input,

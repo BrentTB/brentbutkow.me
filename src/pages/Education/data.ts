@@ -1,17 +1,17 @@
 import { Education } from '../../data/data.types'
 
 export const education: Education[] = [
-  {
-    institution: 'Online Learning - Coursera',
-    degree: 'IBM AI Engineering Professional Certificate',
-    period: 'Jan 2026 - Present',
-    link: 'https://www.coursera.org/professional-certificates/ai-engineer',
-    description: [
-      'A course about modern AI and ML models, and their uses. Including their fundamentals, the theory behind different ML models, and hands on experience using models to solve real-world problems',
-      'Includes topics such as Neural Networks, CNN, RAG, GANs, Generative AI, Transformers, and more',
-      'Taught using Python, TensorFlow, PyTorch, Keras, and other popular AI/ML tools and libraries',
-    ],
-  },
+  // {
+  //   institution: 'Online Learning - Coursera',
+  //   degree: 'IBM AI Engineering Professional Certificate',
+  //   period: 'Jan 2026 - Present',
+  //   link: 'https://www.coursera.org/professional-certificates/ai-engineer',
+  //   description: [
+  //     'A course about modern AI and ML models, and their uses. Including their fundamentals, the theory behind different ML models, and hands on experience using models to solve real-world problems',
+  //     'Includes topics such as Neural Networks, CNN, RAG, GANs, Generative AI, Transformers, and more',
+  //     'Taught using Python, TensorFlow, PyTorch, Keras, and other popular AI/ML tools and libraries',
+  //   ],
+  // },
   {
     institution: 'University of the Witwatersrand',
     degree: 'Bachelor of Science in Information Engineering - BSc (Eng)',
@@ -41,7 +41,7 @@ export const education: Education[] = [
     achievements: [
       '8 Subject Distinctions',
       'Top 1% in Information Technology Nationally',
-      'Top 1% in Mathematics Nationally',
+      'Top 1% in Physical Sciences Nationally',
       'IEB Commendable List for Academic Excellence',
       'Final average of over 90%',
     ],

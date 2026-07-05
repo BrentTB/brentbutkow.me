@@ -7,6 +7,10 @@ export interface GulagBlock {
   id: string
   removed?: boolean
   movingUp?: boolean
+  // A reserved empty slot in a merge destination, waiting for its block to arrive.
+  placeholder?: boolean
+  // The id of the incoming block this reserved slot belongs to.
+  placeholderFor?: string
 }
 
 export interface AnimationFrame {
@@ -14,6 +18,8 @@ export interface AnimationFrame {
   fromGulagIndex: number
   toGulagIndex: number
   isMerging?: boolean
+  // First frame of a merge pair — the destination reserves its slots before blocks arrive.
+  startsMerge?: boolean
 }
 
 export const parseInput = (input: string): number[] => {
@@ -59,6 +65,34 @@ export const removeEmptyFinalGulag = (gulags: GulagBlock[][]) => {
   }
 }
 
+// The moment merging starts, expand every gulag (and the main list) to its final
+// merged width: each row keeps its own blocks and gains an empty reserved slot for
+// every block currently below it, placed at its sorted position. Blocks then rise
+// into waiting slots instead of shoving the row on arrival, and the whole stack
+// shows where everything is headed. A value tie keeps the higher gulag's block
+// ahead of a lower one, matching `mergeGulagsSorted`'s bottom-up cascade.
+export const reserveMergeSlots = (gulags: GulagBlock[][]): void => {
+  const original = gulags.map((gulag) => gulag.slice())
+
+  for (let t = original.length - 2; t >= 0; t--) {
+    const reserved: GulagBlock[] = [...original[t]]
+    for (let below = t + 1; below < original.length; below++) {
+      for (const block of original[below]) {
+        reserved.push({
+          value: block.value,
+          id: `${block.id}-slot`,
+          placeholder: true,
+          placeholderFor: block.id,
+        })
+      }
+    }
+    // Stable sort keeps own blocks (listed first) ahead of reservations on ties,
+    // and reservations in top-to-bottom gulag order.
+    reserved.sort((a, b) => a.value - b.value)
+    gulags[t] = reserved
+  }
+}
+
 export const moveBlockBetweenGulags = (gulags: GulagBlock[][], frame: AnimationFrame): void => {
   const fromGulag = gulags[frame.fromGulagIndex]
   const toGulag = gulags[frame.toGulagIndex]
@@ -81,10 +115,22 @@ export const moveBlockBetweenGulags = (gulags: GulagBlock[][], frame: AnimationF
   fromGulag[movedBlockIndex].removed = true
   fromGulag[movedBlockIndex].movingUp = frame.isMerging
 
-  newBlock.movingUp = !frame.isMerging
-  toGulag.push(newBlock)
-
-  if (frame.isMerging) toGulag.sort((a, b) => a.value - b.value)
+  if (frame.isMerging) {
+    // Drop the block into the slot reserved for it — no re-sort, no shifted neighbours.
+    const slotIndex = toGulag.findIndex((b) => b.placeholderFor === frame.moveBlockId)
+    if (slotIndex === -1) {
+      throw new Error(
+        `No reserved slot for block "${frame.moveBlockId}" in gulag index ${frame.toGulagIndex}`
+      )
+    }
+    newBlock.movingUp = false
+    delete newBlock.placeholder
+    delete newBlock.placeholderFor
+    toGulag[slotIndex] = newBlock
+  } else {
+    newBlock.movingUp = true
+    toGulag.push(newBlock)
+  }
 
   gulags[frame.fromGulagIndex] = fromGulag
   gulags[frame.toGulagIndex] = toGulag
@@ -157,6 +203,7 @@ const splitIntoGulags = (gulagList: GulagBlock[][]) => {
 
 const mergeGulags = (gulagList: GulagBlock[][]) => {
   const frames: AnimationFrame[] = []
+  let firstFrame = true
   while (gulagList.length > 1) {
     const lastGulag = gulagList.pop()!
     const secondLast = gulagList.pop()!
@@ -170,7 +217,9 @@ const mergeGulags = (gulagList: GulagBlock[][]) => {
         fromGulagIndex: gulagList.length,
         toGulagIndex: gulagList.length - 1,
         isMerging: true,
+        startsMerge: firstFrame,
       })
+      firstFrame = false
     }
   }
 

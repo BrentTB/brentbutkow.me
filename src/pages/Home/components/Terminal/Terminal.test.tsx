@@ -67,12 +67,26 @@ describe('Terminal — fullscreen and matrix', () => {
     expect(modeOf(container)).toBe('inline')
   })
 
-  it('a click on the rain does not dismiss it — only a key does', () => {
+  it('the first tap selects the rain; a second tap closes it (the mobile path)', () => {
     const { container } = renderTerminal()
     runCmd(container, 'cmatrix')
-    fireEvent.keyUp(document, { key: 'Enter' }) // release arms the exit
-    fireEvent.click(matrixEl(container))
+    const rain = matrixEl(container)
+    fireEvent.click(rain)
+    expect(modeOf(container)).toBe('matrix') // first tap only selects
+    fireEvent.click(rain)
+    expect(modeOf(container)).toBe('inline') // second tap closes
+  })
+
+  it('a tap outside the rain resets the two-tap counter', () => {
+    const { container } = renderTerminal()
+    runCmd(container, 'cmatrix')
+    const rain = matrixEl(container)
+    fireEvent.click(rain) // select
+    fireEvent.pointerDown(document.body) // tap away — resets the counter
+    fireEvent.click(rain) // counts as a first tap again, so it selects, not closes
     expect(modeOf(container)).toBe('matrix')
+    fireEvent.click(rain) // now the second tap closes
+    expect(modeOf(container)).toBe('inline')
   })
 
   it('refocuses the command input when the rain is dismissed', () => {

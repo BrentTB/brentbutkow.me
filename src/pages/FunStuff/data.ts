@@ -23,7 +23,7 @@ export const funStuff: FunItem[] = [
   {
     title: 'Image Encoder',
     description:
-      'Hide a secret message inside a picture by nudging its pixel colors, lock it with a key, and reveal it again. It all runs in your browser',
+      'Hide a secret message inside a picture by changing its pixel colors, lock it with a key, and reveal it again. It all runs in your browser',
     link: funStuffSubRoutes.imageEncoder,
   },
   {
@@ -34,7 +34,7 @@ export const funStuff: FunItem[] = [
   {
     title: 'brentbutkow.me / butkow.com',
     description:
-      'My first website, a personal project built using React and TypeScript (Surprise: you are already here!)',
+      'My first website, a personal project built using React and TypeScript, with a Python backend (Surprise: you are already here!)',
     link: 'https://github.com/BrentTB/brentbutkow.me',
   },
   {
