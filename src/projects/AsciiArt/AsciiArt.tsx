@@ -100,14 +100,27 @@ export function AsciiArt() {
     typeof MediaRecorder !== 'undefined' &&
     typeof HTMLCanvasElement.prototype.captureStream === 'function'
 
+  const vidToAsciiLink = (
+    <SafeLink href="https://github.com/BrentTB/video_to_ascii" className={styles.link}>
+      Python vidToAscii
+    </SafeLink>
+  )
+
   return (
     <PageLayout>
       <PageHeader title="ASCII Art Studio">
-        Turn a photo, video, or your webcam into live ASCII art. A browser port of my{' '}
-        <SafeLink href="https://github.com/BrentTB/video_to_ascii" className={styles.link}>
-          Python vidToAscii
-        </SafeLink>{' '}
-        tool.
+        {isFunMode ? (
+          <>
+            Drop in a photo or video, or aim your webcam at yourself, and watch it dissolve into a
+            wall of characters. Usefull for making ascii art, or just filtering your photos in a
+            cool way. (You can also hide the ascii videos inside a pdf)
+          </>
+        ) : (
+          <>
+            Turn a photo, video, or your webcam into live ASCII art. A browser port of my{' '}
+            {vidToAsciiLink} tool.
+          </>
+        )}
       </PageHeader>
 
       <div className={styles.body}>

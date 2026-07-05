@@ -41,8 +41,8 @@ export function formatBytes(bytes: number): string {
 
 export const copy = {
   tagline:
-    'Hide a secret message or file inside an image by nudging its colors. Drop in a photo, add your text or a file, and download a picture that looks the same but carries it. Everything stays in your browser.',
+    'Hide a secret message or file inside an image by nudging its colors. Drop in a photo, add your text or a file, and download a picture that looks the same but carries the original content. Everything stays in your browser.',
   taglineFun:
-    "Smuggle secrets inside a picture! Tuck a note or a whole file into the pixels, tweak the colors a hair, and nobody's the wiser. All of it runs right here in your browser.",
+    "Stash a message or a whole file inside an image - it shifts the colors just enough that nothing looks off, but it's all still sitting there in the pixels. Everything runs in your browser.",
   privacy: 'Your images, messages, and files never leave your device.',
 }
