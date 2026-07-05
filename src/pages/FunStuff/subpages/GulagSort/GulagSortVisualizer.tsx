@@ -133,6 +133,15 @@ export function GulagSortVisualizer() {
                   </div>
                   <div className={styles.blocksContainer}>
                     {gulag.map((block) => {
+                      if (block.placeholder) {
+                        return (
+                          <div
+                            key={block.id}
+                            className={`${styles.animatedBlock} ${styles.placeholderSlot}`}
+                            aria-hidden="true"
+                          />
+                        )
+                      }
                       const animationClass = getBlockAnimationClass(block)
                       return (
                         <div key={block.id} className={`${styles.animatedBlock} ${animationClass}`}>

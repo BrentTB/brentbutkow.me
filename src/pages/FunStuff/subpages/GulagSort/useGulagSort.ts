@@ -5,6 +5,7 @@ import {
   performGulagSort,
   removeEmptyFinalGulag,
   removeRemovedFromGulags,
+  reserveMergeSlots,
 } from './gulag-sort'
 
 const ANIMATION_FRAME_DURATION_S = 0.7
@@ -54,6 +55,9 @@ export function useGulagSort() {
 
         if (frames[i].toGulagIndex === updatedGulags.length) {
           updatedGulags.push([])
+        }
+        if (frames[i].startsMerge) {
+          reserveMergeSlots(updatedGulags)
         }
         moveBlockBetweenGulags(updatedGulags, frames[i])
 
