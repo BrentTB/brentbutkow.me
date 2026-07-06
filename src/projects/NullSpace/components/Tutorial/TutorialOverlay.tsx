@@ -38,8 +38,8 @@ export function TutorialOverlay({ tutorial, onAck, onSkip }: TutorialOverlayProp
           {Array.from({ length: stepCount }, (_, i) => (
             <span
               key={i}
-              className={`${styles.dot} ${i < stepNumber ? styles.dotDone : ''} ${
-                i === stepNumber - 1 ? styles.dotCurrent : ''
+              className={`${styles.dot} ${
+                i === stepNumber - 1 ? styles.dotCurrent : i < stepNumber - 1 ? styles.dotDone : ''
               }`}
             />
           ))}

@@ -634,11 +634,13 @@ function renderHazeWarp(
 
   if (!hazeSnap) hazeSnap = document.createElement('canvas')
   if (!hazeWarp) hazeWarp = document.createElement('canvas')
-  for (const buf of [hazeSnap, hazeWarp]) {
-    if (buf.width !== sw || buf.height !== sh) {
-      buf.width = sw
-      buf.height = sh
-    }
+  if (hazeSnap.width !== sw || hazeSnap.height !== sh) {
+    hazeSnap.width = sw
+    hazeSnap.height = sh
+  }
+  if (hazeWarp.width !== sw || hazeWarp.height !== sh) {
+    hazeWarp.width = sw
+    hazeWarp.height = sh
   }
   const snap = hazeSnap.getContext('2d')
   const warp = hazeWarp.getContext('2d')
