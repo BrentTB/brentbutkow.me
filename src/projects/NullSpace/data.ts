@@ -613,6 +613,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       ui: [
         'The tutorial got a rework: fewer beats, one lesson at a time, and a dot trail on the card so you can see how far through you are.',
         'Nothing in the tutorial advances on a timer anymore. Every explanation waits for you to press Next, so you can read at your own pace.',
+        'On those read-and-continue steps you can tap anywhere on the card, not just the Next button — an easier target on a phone.',
         'Tutorial prompts are shorter and get to the point.',
       ],
       fixes: [

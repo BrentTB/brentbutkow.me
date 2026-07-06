@@ -27,8 +27,55 @@
   text-align: center;
 }
 
+// On a narration beat the whole card is the advance control.
+.cardTappable {
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.15s ease;
+
+  &:hover {
+    border-color: var(--accent);
+  }
+}
+
+// Full-card tap target, behind the content (which is pointer-events:none, so
+// taps land here). Invisible itself — the card's border-glow is the feedback.
+.advance {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: inherit;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
 // Beat progress — a row of tick dots, filled in the spotlight cyan as beats
 // clear. Answers "how much is left?" without pulling focus from the copy.
+// Content sits above the full-card advance button, but ignores pointer events so
+// taps pass through to it; Skip (a real button) opts back in.
+.progress,
+.copy,
+.footer {
+  position: relative;
+  z-index: 1;
+}
+
+// Everything but Skip lets taps fall through to the advance button; Skip opts in.
+.progress,
+.copy,
+.footer,
+.ackHint {
+  pointer-events: none;
+}
+
 .progress {
   display: flex;
   justify-content: center;
@@ -69,6 +116,7 @@
 }
 
 .skip {
+  pointer-events: auto; // opt back in — the rest of the footer falls through to advance
   margin-right: auto;
   font-family: var(--font-mono);
   font-size: 0.72rem;
