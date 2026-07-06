@@ -876,6 +876,10 @@ export type GameState = {
   asteroids: Asteroid[]
 
   // --- Progress / score ---
+  // True only during the guided demo wave — suppresses the calamity scheduler
+  // (nebulas, shockwaves, wormholes, wandering black holes) so the lesson stays
+  // legible. Set by startTutorialRun, cleared by any real startGame.
+  isTutorial: boolean
   wave: number
   level: number
   score: number

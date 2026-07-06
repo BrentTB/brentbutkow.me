@@ -44,11 +44,7 @@ function makeUiState(phase: GameUIState['phase']): GameUIState {
     boss: null,
     nextBoss: EnemyKind.dreadnought,
     bossWarning: null,
-    tutorialActive: false,
-    tutorialCopy: '',
-    tutorialAwaitingAck: false,
-    tutorialAckLabel: null,
-    tutorialIsFinal: false,
+    tutorial: null,
   }
 }
 

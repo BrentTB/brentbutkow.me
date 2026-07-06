@@ -183,12 +183,9 @@ export function NullSpace() {
                 isFullscreen={isFullscreen}
                 gameSpeed={gameSpeed}
               />
-              {uiState.tutorialActive && (
+              {uiState.tutorial && (
                 <TutorialOverlay
-                  copy={uiState.tutorialCopy}
-                  awaitingAck={uiState.tutorialAwaitingAck}
-                  ackLabel={uiState.tutorialAckLabel}
-                  isFinal={uiState.tutorialIsFinal}
+                  tutorial={uiState.tutorial}
                   onAck={handleTutorialAck}
                   onSkip={handleSkipTutorial}
                 />

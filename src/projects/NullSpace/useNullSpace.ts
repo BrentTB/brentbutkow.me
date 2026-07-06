@@ -158,12 +158,22 @@ export type GameUIState = {
   nextBoss: EnemyKind
   // Cryptic boss warning shown in the pre-boss shop; null in every other shop.
   bossWarning: string | null
-  // Tutorial overlay state (the demo-wave onboarding). Inactive → tutorialActive false.
-  tutorialActive: boolean
-  tutorialCopy: string
-  tutorialAwaitingAck: boolean
-  tutorialAckLabel: string | null
-  tutorialIsFinal: boolean
+  // Tutorial overlay state (the demo-wave onboarding); null while no tutorial runs.
+  tutorial: TutorialUIState | null
+}
+
+// The slice of tutorial state the overlay renders. Deliberately not part of the
+// game save — an interrupted tutorial restarts from the top rather than resuming.
+export type TutorialUIState = {
+  copy: string
+  // True when the only way forward is the Next / Finish button.
+  awaitingAck: boolean
+  ackLabel: string | null
+  // The last beat — the UI hides Skip there (Finish already ends the tutorial).
+  isFinal: boolean
+  // 1-based beat position + total, for the overlay's progress dots.
+  stepNumber: number
+  stepCount: number
 }
 
 // Hotkey number = position in unlock order. The HUD renders only unlocked
@@ -265,11 +275,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     boss: null,
     nextBoss: gameStateRef.current.bossSelection.nextBoss,
     bossWarning: null,
-    tutorialActive: false,
-    tutorialCopy: '',
-    tutorialAwaitingAck: false,
-    tutorialAckLabel: null,
-    tutorialIsFinal: false,
+    tutorial: null,
   }))
 
   // Whether a resumable save exists on disk (drives the menu's Continue button).
@@ -389,11 +395,17 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
         state.phase === GamePhase.upgradeScreen && isBossWave(state.wave)
           ? (getBossDefinition(state.bossSelection.nextBoss)?.warning ?? null)
           : null,
-      tutorialActive,
-      tutorialCopy: tutorialViewRef.current?.copy ?? '',
-      tutorialAwaitingAck: tutorialViewRef.current?.awaitingAck ?? false,
-      tutorialAckLabel: tutorialViewRef.current?.ackLabel ?? null,
-      tutorialIsFinal: tutorialViewRef.current?.isFinalStep ?? false,
+      tutorial:
+        tutorialActive && tutorialViewRef.current
+          ? {
+              copy: tutorialViewRef.current.copy,
+              awaitingAck: tutorialViewRef.current.awaitingAck,
+              ackLabel: tutorialViewRef.current.ackLabel,
+              isFinal: tutorialViewRef.current.isFinalStep,
+              stepNumber: tutorialViewRef.current.stepNumber,
+              stepCount: tutorialViewRef.current.stepCount,
+            }
+          : null,
     })
   }, [])
 
@@ -671,7 +683,6 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
   const handleStartTutorial = useCallback(
     (entry: TutorialEntry) => {
       const view = advanceTutorial(createTutorialState(entry, isTouchRef.current), {
-        realDt: 0,
         clicked: false,
         flung: false,
         powerFraction: 1,
@@ -886,8 +897,8 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     const loop = (time: number) => {
       const tick = tickGameTime(gameTimeRef.current, time)
       gameTimeRef.current = tick.time
-      // Real frame dt drives the tutorial machine's timers; the SIM dt is forced
-      // to 0 on a frozen tutorial beat so the world holds while the prompt shows.
+      // The SIM dt is forced to 0 on a frozen tutorial beat so the world holds
+      // while the prompt shows.
       const dt = tick.dt
       const tut = tutorialRef.current
       const tutStep = tut ? tut.steps[tut.stepIndex] : null
@@ -954,7 +965,6 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       if (tutorialRef.current) {
         const st = gameStateRef.current
         const signals: TutorialSignals = {
-          realDt: dt,
           clicked: clickedThisFrame,
           flung: fling !== null,
           powerFraction: st.maxPower > 0 ? st.power / st.maxPower : 0,

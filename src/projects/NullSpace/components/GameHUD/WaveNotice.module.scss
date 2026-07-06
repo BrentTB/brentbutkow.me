@@ -15,6 +15,17 @@
   pointer-events: none;
 }
 
+// On mobile the top center is taken: the stat bars (SHD/HP/PWR/HEAT) and the
+// wrapped score/info fill both sides with no room for a centered pill, so it
+// overlapped the power bar. Drop it to the bottom center of the play area, which
+// is clear — the ability controls live outside the play area on mobile.
+@media (max-width: 768px) {
+  .pill {
+    top: auto;
+    bottom: calc(18px * var(--hud-scale, 1));
+  }
+}
+
 // Enemies-left tally — calm cyan, no pulse: it's a readout, not an alarm.
 .count {
   color: #bfe9ff; /* calm readout cyan — HUD notice tint, not a currency */

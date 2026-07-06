@@ -48,11 +48,7 @@ function makeUiState(over: Partial<GameUIState> = {}): GameUIState {
     boss: null,
     nextBoss: EnemyKind.dreadnought,
     bossWarning: null,
-    tutorialActive: false,
-    tutorialCopy: '',
-    tutorialAwaitingAck: false,
-    tutorialAckLabel: null,
-    tutorialIsFinal: false,
+    tutorial: null,
     ...over,
   }
 }

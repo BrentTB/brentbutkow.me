@@ -161,6 +161,7 @@ export function createInitialState(): GameState {
     deathAnims: [],
     deathTimer: 0,
     runDurationMs: 0,
+    isTutorial: false,
     wave: 0,
     level: 0,
     score: 0,
@@ -232,6 +233,7 @@ export function startGame(state: GameState, shipKind: ShipKind): GameState {
     deathAnims: [],
     deathTimer: 0,
     runDurationMs: 0,
+    isTutorial: false,
     wave: 0,
     level: 0,
     score: 0,
@@ -1180,8 +1182,9 @@ export function updateGameState(state: GameState, dt: number, input: PlayerInput
 
   // Calamity scheduler: on non-boss waves, periodically erupt one calamity near the
   // ship — a drifting nebula (the most common roll), a wormhole pair, a telegraphed
-  // shock-ring, or a drifting wandering black hole. Boss fights are left undisturbed.
-  if (!isBossWave(state.wave)) {
+  // shock-ring, or a drifting wandering black hole. Boss fights are left undisturbed,
+  // and so is the tutorial — a calamity erupting mid-lesson buries the thing being taught.
+  if (!state.isTutorial && !isBossWave(state.wave)) {
     calamityTimer -= dt
     if (calamityTimer <= 0) {
       const angle = rng.next() * Math.PI * 2

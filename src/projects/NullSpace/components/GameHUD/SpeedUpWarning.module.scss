@@ -39,6 +39,16 @@
   color: #ff5a3c; /* hottest step of the ramp */
 }
 
+// On mobile the top center is taken by the stat bars and wrapped score, so this
+// drops to the bottom center like the enemies-left pill. It sits just above that
+// pill (larger bottom offset) so when both show they keep their top-down order.
+@media (max-width: 768px) {
+  .warning {
+    top: auto;
+    bottom: calc(50px * var(--hud-scale, 1));
+  }
+}
+
 // Visually hidden, still announced — carries one stable sentence so the live
 // region speaks once instead of re-reading the per-second count.
 .srOnly {

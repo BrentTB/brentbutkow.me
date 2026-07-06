@@ -63,7 +63,9 @@ export function UpgradeScreen({
           <span className={styles.bossWarningPrompt}>Last stop to gear up before contact.</span>
         </div>
       ) : (
-        <h2 className={sharedStyles.title}>Sector {uiState.level} Complete</h2>
+        // The shop opens after warping into the next sector, so level already
+        // points at it; the sector just cleared is the one before.
+        <h2 className={sharedStyles.title}>Sector {uiState.level - 1} Complete</h2>
       )}
       <p className={styles.currencyDisplay}>
         {CURRENCY_NAME}: <span className={styles.stardustValue}>✦ {uiState.currency}</span>

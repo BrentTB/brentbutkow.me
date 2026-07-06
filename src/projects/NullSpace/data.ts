@@ -607,6 +607,35 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.17.0',
+    date: '2026-07-06',
+    changes: {
+      ui: [
+        'The tutorial got a rework: fewer beats, one lesson at a time, and a dot trail on the card so you can see how far through you are.',
+        'Nothing in the tutorial advances on a timer anymore. Every explanation waits for you to press Next, so you can read at your own pace.',
+        'On those read-and-continue steps you can tap anywhere on the card, not just the Next button. Bigger target for a phone.',
+        'Tutorial prompts are shorter and get to the point.',
+      ],
+      fixes: [
+        'The post-sector shop header now names the sector you just cleared. It was showing the next one (clear sector 1 and it read "Sector 2 Complete"), because the shop opens once you have already warped ahead.',
+        'Nebulas, shockwaves, wormholes, and wandering black holes no longer erupt mid-tutorial and bury whatever you were being taught.',
+        "The handoff into the tutorial's mine lesson no longer jump-cuts: the practice drones visibly burst instead of vanishing, the mines arrive with a flash, and the ship eases onto its new heading rather than snapping to it.",
+      ],
+      balance: [
+        "Tutorial power regen is slowed well below the meteorite's cost, so the run-the-bar-down lesson takes a few casts instead of a clicking race against the recharge.",
+      ],
+    },
+  },
+  {
+    version: '1.16.3',
+    date: '2026-07-06',
+    changes: {
+      fixes: [
+        'The green haze nebula no longer chews through framerate. Its woozy "drunk" ripple now renders at a lower internal resolution (which you cannot see on an effect that blurry) instead of re-warping the whole screen every frame.',
+      ],
+    },
+  },
+  {
     version: '1.16.2',
     date: '2026-07-03',
     changes: {

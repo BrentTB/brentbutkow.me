@@ -12,6 +12,7 @@ import { createAbilities } from './engine/abilities'
 import { BOSS_KINDS } from './engine/bosses'
 import { AbilityKind, GamePhase, ShipKind } from './engine/types'
 import { TutorialEntry } from './engine/tutorial/tutorial-machine'
+import { TUTORIAL_STEPS } from './engine/tutorial/tutorial-script'
 import { WEAPON_ORDER } from './data'
 import { submitScore } from './leaderboard/score-submission'
 import { clearSave, savePlayerName, saveGame } from './engine/world/persistence'
@@ -542,6 +543,19 @@ describe('useNullSpace — slingshot', () => {
 
       key('w') // old movement key — must do nothing and not crash
       expect(result.current.uiState.selectedAbility).toBe(AbilityKind.meteorite)
+    })
+
+    // The overlay reads uiState.tutorial — null while inactive, and once running
+    // its progress must mirror the machine's 1-based position and script length.
+    it('exposes tutorial ui state (with 1-based progress) once the tutorial starts', () => {
+      const canvasRef = { current: canvas }
+      const { result } = renderHook(() => useNullSpace(canvasRef))
+      expect(result.current.uiState.tutorial).toBeNull()
+
+      act(() => result.current.handleStartTutorial(TutorialEntry.replay))
+      step(0)
+      expect(result.current.uiState.tutorial?.stepNumber).toBe(1)
+      expect(result.current.uiState.tutorial?.stepCount).toBe(TUTORIAL_STEPS.length)
     })
   })
 })

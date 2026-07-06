@@ -43,11 +43,7 @@ function makeUiState(over: Partial<GameUIState> = {}): GameUIState {
     boss: null,
     nextBoss: EnemyKind.dreadnought,
     bossWarning: null,
-    tutorialActive: false,
-    tutorialCopy: '',
-    tutorialAwaitingAck: false,
-    tutorialAckLabel: null,
-    tutorialIsFinal: false,
+    tutorial: null,
     ...over,
   }
 }
@@ -80,9 +76,13 @@ describe('UpgradeScreen pre-boss warning', () => {
     expect(screen.queryByText(/Sector \d+ Complete/)).toBeNull()
   })
 
-  it('shows the normal sector-complete header when no boss is next', () => {
+  // Regression: the shop opens after warping into the NEXT sector, so uiState.level
+  // already points at it. The header must name the sector just cleared (level - 1),
+  // not the one being entered — it read "Sector 2 Complete" right after clearing 1.
+  it('names the sector just cleared, not the one being entered', () => {
     renderShop({ bossWarning: null, level: 2 })
-    expect(screen.getByText('Sector 2 Complete')).toBeTruthy()
+    expect(screen.getByText('Sector 1 Complete')).toBeTruthy()
+    expect(screen.queryByText('Sector 2 Complete')).toBeNull()
     expect(screen.getByText('Continue')).toBeTruthy()
     expect(screen.queryByRole('alert')).toBeNull()
   })

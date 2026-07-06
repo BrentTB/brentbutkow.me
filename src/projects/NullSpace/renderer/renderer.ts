@@ -597,16 +597,24 @@ function renderDeathShockwave(
   ctx.restore()
 }
 
-// Reused scratch canvas for the haze ripple — snapshots the rendered frame so it can
-// be re-drawn warped. Lazily created (never in headless/test paths, which don't render).
-let hazeBuffer: HTMLCanvasElement | null = null
+// Downscale factor for the haze ripple: warp at half resolution (quarter the pixels).
+// The effect is a blurry "drunk" distortion, so the resolution drop is imperceptible
+// while the per-frame fill-rate — the cost that was tanking framerate in a haze — drops ~4x.
+const HAZE_WARP_SCALE = 0.5
+
+// Reused scratch canvases for the haze ripple: `snap` holds a downscaled snapshot of the
+// frame, `warp` holds the warped strips. One upscaled blit composites the result. Lazily
+// created (never in headless/test paths, which don't render).
+let hazeSnap: HTMLCanvasElement | null = null
+let hazeWarp: HTMLCanvasElement | null = null
 
 // Haze: a wavy, underwater "drunk" distortion while the ship sits in a haze zone.
-// Snapshots the rendered world, then re-draws it as horizontal strips each shifted by
-// a travelling sine (two frequencies + a vertical wobble → woozy, not a clean shear),
-// scaled by haze depth. Screen-space pixels only — the camera's click→world mapping is
-// untouched, so the ripple is purely the player's symmetric aim handicap. Reduced
-// motion skips it (the colour wash carries the effect instead).
+// Snapshots the rendered world (downscaled), re-draws it as horizontal strips each
+// shifted by a travelling sine (two frequencies + a vertical wobble → woozy, not a clean
+// shear) scaled by haze depth, then blits the warped buffer back up to full size. Gaps at
+// the edges reveal the un-warped frame beneath (never black). Screen-space pixels only —
+// the camera's click→world mapping is untouched, so the ripple is purely the player's
+// symmetric aim handicap. Reduced motion skips it (the colour wash carries the effect).
 function renderHazeWarp(
   ctx: CanvasRenderingContext2D,
   state: GameState,
@@ -620,37 +628,50 @@ function renderHazeWarp(
   const cw = ctx.canvas.width
   const ch = ctx.canvas.height
   if (cw === 0 || ch === 0) return
-  if (!hazeBuffer) hazeBuffer = document.createElement('canvas')
-  if (hazeBuffer.width !== cw || hazeBuffer.height !== ch) {
-    hazeBuffer.width = cw
-    hazeBuffer.height = ch
+  const s = HAZE_WARP_SCALE
+  const sw = Math.max(1, Math.round(cw * s))
+  const sh = Math.max(1, Math.round(ch * s))
+
+  if (!hazeSnap) hazeSnap = document.createElement('canvas')
+  if (!hazeWarp) hazeWarp = document.createElement('canvas')
+  if (hazeSnap.width !== sw || hazeSnap.height !== sh) {
+    hazeSnap.width = sw
+    hazeSnap.height = sh
   }
-  const bctx = hazeBuffer.getContext('2d')
-  if (!bctx) return
+  if (hazeWarp.width !== sw || hazeWarp.height !== sh) {
+    hazeWarp.width = sw
+    hazeWarp.height = sh
+  }
+  const snap = hazeSnap.getContext('2d')
+  const warp = hazeWarp.getContext('2d')
+  if (!snap || !warp) return
 
-  bctx.setTransform(1, 0, 0, 1, 0, 0)
-  bctx.clearRect(0, 0, cw, ch)
-  bctx.drawImage(ctx.canvas, 0, 0)
+  // Downscaled snapshot of the current frame.
+  snap.clearRect(0, 0, sw, sh)
+  snap.drawImage(ctx.canvas, 0, 0, cw, ch, 0, 0, sw, sh)
 
-  ctx.save()
-  ctx.setTransform(1, 0, 0, 1, 0, 0)
-  ctx.fillStyle = '#06080e'
-  ctx.fillRect(0, 0, cw, ch)
-  const dpr = camera.dpr
+  // Warp the snapshot into `hazeWarp`, all in buffer space (device px * scale).
+  warp.clearRect(0, 0, sw, sh)
+  const dpr = camera.dpr * s
   const amp = NEBULA.hazeWarpAmp * 16 * dpr * intensity
   const t = opts.clock * NEBULA.hazeWarpSpeed
   const stripH = Math.max(2, Math.round(3 * dpr))
   const overlap = Math.ceil(amp * 0.5) + 1
   const vOver = Math.ceil(amp * 0.45) + 1
-  for (let y = 0; y < ch; y += stripH) {
+  for (let y = 0; y < sh; y += stripH) {
     const dx = (Math.sin(y / (38 * dpr) + t) + Math.sin(y / (17 * dpr) + t * 1.7) * 0.5) * amp
     const dy = Math.sin(y / (80 * dpr) + t * 0.6) * amp * 0.45
-    // Overdraw by `amp` horizontally and `vOver` vertically (>= the dy shift), so a
-    // warped strip never exposes the backdrop at any viewport edge.
-    const sy = Math.max(0, y - vOver)
-    const sh = Math.min(ch - sy, y + stripH + overlap + vOver - sy)
-    ctx.drawImage(hazeBuffer, 0, sy, cw, sh, dx - amp, sy + dy, cw + 2 * amp, sh)
+    // Overdraw by `amp` horizontally and `vOver` vertically (>= the dy shift) so a warped
+    // strip never exposes an uncovered seam.
+    const srcY = Math.max(0, y - vOver)
+    const srcH = Math.min(sh - srcY, y + stripH + overlap + vOver - srcY)
+    warp.drawImage(hazeSnap, 0, srcY, sw, srcH, dx - amp, srcY + dy, sw + 2 * amp, srcH)
   }
+
+  // Composite the warped buffer back up to full size over the original frame.
+  ctx.save()
+  ctx.setTransform(1, 0, 0, 1, 0, 0)
+  ctx.drawImage(hazeWarp, 0, 0, sw, sh, 0, 0, cw, ch)
   ctx.restore()
 }
 

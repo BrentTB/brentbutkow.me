@@ -44,6 +44,7 @@ import { getBossRuntime } from './bosses/boss-definition'
 import { WormStage } from './bosses/void-worm'
 import { createNebula } from './calamities/nebula'
 import { createWormhole } from './calamities/wormhole'
+import { startTutorialRun } from './tutorial/demo-wave'
 import { isBossWave, sectorProgress } from './world/waves'
 import { toroidalDistance } from './math/toroid'
 import {
@@ -2243,6 +2244,25 @@ describe('nebula calamity — scheduler gate + no reward', () => {
     while (!isBossWave(bossWave)) bossWave++
     const onBoss = { ...ready, wave: bossWave }
     expect(updateGameState(onBoss, 0.1, input).activeEffects).toHaveLength(0)
+  })
+
+  // Regression: the scheduler only checked isBossWave, so nebulas / shockwaves /
+  // wandering black holes erupted mid-tutorial and buried the lesson. Calamity
+  // effects expire, so check every frame — an end-state check can miss one.
+  it('never erupts a calamity during the tutorial, even with the timer elapsed', () => {
+    let state = { ...startTutorialRun(createInitialState()), calamityTimer: 0.001 }
+    // Run well past every calamity interval — nothing may appear on any frame.
+    for (let i = 0; i < 120; i++) {
+      state = updateGameState(state, 0.25, input)
+      expect(state.activeEffects).toHaveLength(0)
+    }
+  })
+
+  it('isTutorial survives the frame loop and is cleared by a real startGame', () => {
+    let state = startTutorialRun(createInitialState())
+    for (let i = 0; i < 60; i++) state = updateGameState(state, 1 / 60, input)
+    expect(state.isTutorial).toBe(true)
+    expect(startGame(state, ShipKind.fighter).isTutorial).toBe(false)
   })
 
   it('a fog nebula grants no score, currency, or kills (calamities never pay)', () => {

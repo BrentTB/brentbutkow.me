@@ -5,6 +5,8 @@ import {
   TutorialTriggerKind,
 } from './tutorial-script'
 import type { TutorialStep } from './tutorial-script'
+// No beat is time-triggered: narration waits for the Next button, actions wait
+// for the action, so the machine needs no clock at all.
 
 // How the tutorial was entered — decides where finishing/skipping returns to.
 export const TutorialEntry = {
@@ -15,11 +17,8 @@ export const TutorialEntry = {
 } as const
 export type TutorialEntry = (typeof TutorialEntry)[keyof typeof TutorialEntry]
 
-// Per-frame inputs the machine reads. `realDt` is wall-clock seconds — NOT the
-// simulation dt, which is forced to 0 while a beat is frozen. Timers run on real
-// time so they keep ticking during a freeze.
+// Per-frame inputs the machine reads.
 export type TutorialSignals = {
-  realDt: number
   clicked: boolean
   flung: boolean
   powerFraction: number
@@ -40,7 +39,6 @@ export type TutorialState = {
   // Full ordered script; only the copy differs by device.
   steps: TutorialStep[]
   stepIndex: number
-  elapsedInStep: number
   done: boolean
 }
 
@@ -57,22 +55,22 @@ export type TutorialView = {
   ackLabel: string | null
   // The last beat — the UI hides Skip here (Finish already ends the tutorial).
   isFinalStep: boolean
+  // 1-based position + total, for the overlay's progress dots.
+  stepNumber: number
+  stepCount: number
 }
 
 export function createTutorialState(entry: TutorialEntry, isTouch: boolean): TutorialState {
   // isTouch only swaps copy (click ↔ tap); every beat applies on both.
-  return { entry, isTouch, steps: [...TUTORIAL_STEPS], stepIndex: 0, elapsedInStep: 0, done: false }
+  return { entry, isTouch, steps: [...TUTORIAL_STEPS], stepIndex: 0, done: false }
 }
 
 function stepCopy(step: TutorialStep, isTouch: boolean): string {
   return isTouch ? step.copyTouch : step.copyDesktop
 }
 
-function isSatisfied(step: TutorialStep, elapsedInStep: number, signals: TutorialSignals): boolean {
+function isSatisfied(step: TutorialStep, signals: TutorialSignals): boolean {
   switch (step.trigger) {
-    case TutorialTriggerKind.time:
-      // No duration → never auto-advance (don't satisfy on frame 0 with `?? 0`).
-      return elapsedInStep >= (step.durationSeconds ?? Infinity)
     case TutorialTriggerKind.click:
       return signals.clicked
     case TutorialTriggerKind.fling:
@@ -105,6 +103,8 @@ const FINISHED_VIEW = (state: TutorialState): TutorialView => ({
   awaitingAck: false,
   ackLabel: null,
   isFinalStep: false,
+  stepNumber: state.steps.length,
+  stepCount: state.steps.length,
 })
 
 function view(state: TutorialState, step: TutorialStep): TutorialView {
@@ -119,6 +119,8 @@ function view(state: TutorialState, step: TutorialStep): TutorialView {
     awaitingAck,
     ackLabel: awaitingAck ? (isLast ? 'Finish' : 'Next') : null,
     isFinalStep: isLast,
+    stepNumber: state.stepIndex + 1,
+    stepCount: state.steps.length,
   }
 }
 
@@ -131,14 +133,12 @@ export function advanceTutorial(state: TutorialState, signals: TutorialSignals):
   const step = state.steps[state.stepIndex]
   if (!step) return FINISHED_VIEW({ ...state, done: true })
 
-  const elapsedInStep = state.elapsedInStep + signals.realDt
-
-  if (isSatisfied(step, elapsedInStep, signals)) {
+  if (isSatisfied(step, signals)) {
     const nextIndex = state.stepIndex + 1
     if (nextIndex >= state.steps.length) return FINISHED_VIEW({ ...state, done: true })
-    const nextState = { ...state, stepIndex: nextIndex, elapsedInStep: 0 }
+    const nextState = { ...state, stepIndex: nextIndex }
     return view(nextState, state.steps[nextIndex])
   }
 
-  return view({ ...state, elapsedInStep }, step)
+  return view(state, step)
 }
