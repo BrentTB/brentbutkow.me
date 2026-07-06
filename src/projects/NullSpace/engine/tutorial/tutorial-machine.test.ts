@@ -56,13 +56,14 @@ describe('advanceTutorial — triggers', () => {
   it('does not advance a time beat before its duration', () => {
     const view = advanceTutorial(at(0), signals({ realDt: 0.1 }))
     expect(currentId(view.state)).toBe('intro')
-    expect(view.copy).toContain('on its own')
+    expect(view.copy).toContain('flies itself')
   })
 
   it('advances the mine beat once the ship takes damage (flew into the mine)', () => {
-    const stay = advanceTutorial(atId('mineHit'), signals({ shieldFraction: 1 }))
-    expect(currentId(stay.state)).toBe('mineHit')
-    const { state } = advanceTutorial(atId('mineHit'), signals({ shieldFraction: 0.6 }))
+    const stay = advanceTutorial(atId('mineWatch'), signals({ shieldFraction: 1 }))
+    expect(currentId(stay.state)).toBe('mineWatch')
+    expect(stay.frozen).toBe(false)
+    const { state } = advanceTutorial(atId('mineWatch'), signals({ shieldFraction: 0.6 }))
     expect(currentId(state)).toBe('collectMetal')
   })
 
@@ -99,27 +100,18 @@ describe('advanceTutorial — triggers', () => {
     expect(currentId(state)).toBe('useBlackHole')
   })
 
-  it('advances the use-ability beat once the swapped ability is cast', () => {
+  it('advances the use-ability beat straight to the outro once the swapped ability is cast', () => {
     const stay = advanceTutorial(atId('useBlackHole'), signals({ swapAbilityUsed: false }))
     expect(currentId(stay.state)).toBe('useBlackHole')
     const { state } = advanceTutorial(atId('useBlackHole'), signals({ swapAbilityUsed: true }))
-    expect(currentId(state)).toBe('blackHoleResolve')
+    expect(currentId(state)).toBe('outro')
   })
 
-  it('pauses on the black-hole resolve beat so the pull is visible, then shows the mines', () => {
-    const stay = advanceTutorial(atId('blackHoleResolve'), signals({ realDt: 0.5 }))
-    expect(currentId(stay.state)).toBe('blackHoleResolve')
-    const { state } = advanceTutorial(atId('blackHoleResolve'), signals({ realDt: 4 }))
-    expect(currentId(state)).toBe('mineIntro')
-  })
-
-  it('freezes the mine intro until the player presses Next, then lets the ship fly in', () => {
-    const stay = advanceTutorial(atId('mineIntro'), signals({ realDt: 5 }))
-    expect(currentId(stay.state)).toBe('mineIntro')
-    expect(stay.frozen).toBe(true)
-    expect(stay.awaitingAck).toBe(true)
-    const { state } = advanceTutorial(atId('mineIntro'), signals({ acknowledged: true }))
-    expect(currentId(state)).toBe('mineHit')
+  it('leaves the outro unfrozen so the black hole plays out behind the card', () => {
+    const view = advanceTutorial(atId('outro'), signals({ realDt: 5 }))
+    expect(currentId(view.state)).toBe('outro')
+    expect(view.frozen).toBe(false)
+    expect(view.awaitingAck).toBe(true)
   })
 
   it('advances the collect beat once space metal is picked up', () => {
@@ -133,7 +125,7 @@ describe('advanceTutorial — triggers', () => {
     const stay = advanceTutorial(atId('shieldRefresh'), signals({ shieldFraction: 0 }))
     expect(currentId(stay.state)).toBe('shieldRefresh')
     const { state } = advanceTutorial(atId('shieldRefresh'), signals({ shieldFraction: 1 }))
-    expect(currentId(state)).toBe('outro')
+    expect(currentId(state)).toBe('swapAbility')
   })
 })
 
@@ -162,6 +154,15 @@ describe('advanceTutorial — completion + framing', () => {
 
   it('resolves touch copy for the intro', () => {
     const view = advanceTutorial(at(0, true), signals({ realDt: 0.1 }))
-    expect(view.copy).toContain('its guardian')
+    expect(view.copy).toContain('the guardian')
+  })
+
+  it('reports 1-based progress that tracks the step index', () => {
+    const total = createTutorialState(TutorialEntry.firstPlay, false).steps.length
+    const first = advanceTutorial(at(0), signals({ realDt: 0.1 }))
+    expect(first.stepNumber).toBe(1)
+    expect(first.stepCount).toBe(total)
+    const third = advanceTutorial(at(2), signals())
+    expect(third.stepNumber).toBe(3)
   })
 })

@@ -7,10 +7,17 @@ import { toroidalDelta, wrapPosition } from '../math/toroid'
 import { emptySpawnState } from '../world/waves'
 import type { TutorialStep } from './tutorial-script'
 
-// Power pool for the tutorial — far below a real run (100/1000) so a few
-// meteorite casts (8 power each) visibly drain the bar for the "power runs low"
-// beat. Sized to also cover one Black Hole (30) when the use-it beat refills it.
+// Power pool for the tutorial — far below a real run so a handful of meteorite
+// casts (METEORITE_STRIKE.powerCost each) visibly drain the bar for the "power
+// runs low" beat. Sized to also cover one Black Hole (BLACK_HOLE.powerCost)
+// when the use-it beat refills it.
 const TUTORIAL_POWER = 32
+
+// The default regen (6/s) matches the meteorite's cost so casually-paced casts
+// never drain the bar — the drain beat became a spam-clicking stalemate. Slowed
+// here so ~5 relaxed casts empty it, while the "it refills on its own" beat
+// still shows the bar visibly creeping up.
+const TUTORIAL_POWER_REGEN = 1.5
 
 // Target drones placed ahead of the ship. damage 0 so the ship can never die
 // mid-tutorial; speed 0 so they hold position and stay predictable. HP high
@@ -63,10 +70,12 @@ export function startTutorialRun(state: GameState): GameState {
   ]
   return {
     ...base,
+    isTutorial: true,
     enemies,
     spawn: emptySpawnState(),
     power: TUTORIAL_POWER,
     maxPower: TUTORIAL_POWER,
+    powerRegen: TUTORIAL_POWER_REGEN,
   }
 }
 

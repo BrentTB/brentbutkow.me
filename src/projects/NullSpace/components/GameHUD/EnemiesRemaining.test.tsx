@@ -53,6 +53,8 @@ function makeUiState(over: Partial<GameUIState> = {}): GameUIState {
     tutorialAwaitingAck: false,
     tutorialAckLabel: null,
     tutorialIsFinal: false,
+    tutorialStepNumber: 0,
+    tutorialStepCount: 0,
     ...over,
   }
 }

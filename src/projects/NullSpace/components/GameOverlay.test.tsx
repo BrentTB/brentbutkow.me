@@ -49,6 +49,8 @@ function makeUiState(phase: GameUIState['phase']): GameUIState {
     tutorialAwaitingAck: false,
     tutorialAckLabel: null,
     tutorialIsFinal: false,
+    tutorialStepNumber: 0,
+    tutorialStepCount: 0,
   }
 }
 

@@ -164,6 +164,9 @@ export type GameUIState = {
   tutorialAwaitingAck: boolean
   tutorialAckLabel: string | null
   tutorialIsFinal: boolean
+  // 1-based beat position + total, for the overlay's progress dots.
+  tutorialStepNumber: number
+  tutorialStepCount: number
 }
 
 // Hotkey number = position in unlock order. The HUD renders only unlocked
@@ -270,6 +273,8 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     tutorialAwaitingAck: false,
     tutorialAckLabel: null,
     tutorialIsFinal: false,
+    tutorialStepNumber: 0,
+    tutorialStepCount: 0,
   }))
 
   // Whether a resumable save exists on disk (drives the menu's Continue button).
@@ -394,6 +399,8 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       tutorialAwaitingAck: tutorialViewRef.current?.awaitingAck ?? false,
       tutorialAckLabel: tutorialViewRef.current?.ackLabel ?? null,
       tutorialIsFinal: tutorialViewRef.current?.isFinalStep ?? false,
+      tutorialStepNumber: tutorialViewRef.current?.stepNumber ?? 0,
+      tutorialStepCount: tutorialViewRef.current?.stepCount ?? 0,
     })
   }, [])
 

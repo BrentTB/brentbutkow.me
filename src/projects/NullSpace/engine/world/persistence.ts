@@ -214,6 +214,7 @@ export function loadGame(): SavedGame | null {
       | 'warpDelay'
       | 'ship'
       | 'runDurationMs'
+      | 'isTutorial'
     > & {
       kills?: number
       salvageOfferUsed?: boolean
@@ -221,6 +222,7 @@ export function loadGame(): SavedGame | null {
       asteroids?: GameState['asteroids']
       warpDelay?: number
       runDurationMs?: number
+      isTutorial?: boolean
       spawn?: GameState['spawn']
       // Ship sub-fields added after a save was written are optional here too —
       // they're subtracted each frame, so undefined would go NaN.
@@ -258,6 +260,9 @@ export function loadGame(): SavedGame | null {
         asteroids: savedState.asteroids ?? [],
         warpDelay: savedState.warpDelay ?? 0,
         runDurationMs: savedState.runDurationMs ?? 0,
+        // Saves only happen in real runs (auto-save fires at sector clears, which
+        // the tutorial never reaches) — an old save is never a tutorial.
+        isTutorial: savedState.isTutorial ?? false,
         ship: {
           ...savedState.ship,
           wormContactCooldown: savedState.ship.wormContactCooldown ?? 0,

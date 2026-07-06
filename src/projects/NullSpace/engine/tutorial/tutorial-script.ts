@@ -78,17 +78,21 @@ export type TutorialStep = {
   refillsPower?: boolean
 }
 
+// Pacing rules the script follows (the old cut of this tutorial tested badly —
+// too much forced watching): a "watch" beat runs 2.6s or less, every lesson the
+// player can act out is act-triggered rather than narrated, and the world only
+// freezes on beats that wait for a specific input.
 export const TUTORIAL_STEPS: readonly TutorialStep[] = [
   {
     id: 'intro',
     trigger: TutorialTriggerKind.time,
     spotlight: TutorialSpotlightKind.ship,
     freeze: false,
-    durationSeconds: 2.8,
+    durationSeconds: 2.6,
     copyDesktop:
-      "Watch the ship. It flies on its own, you don't pilot it. You're its guardian: keep it alive.",
+      "This is your ship. It flies itself — you don't pilot it. You're the guardian: keep it alive.",
     copyTouch:
-      "Watch the ship. It flies on its own, you don't pilot it. You're its guardian: keep it alive.",
+      "This is your ship. It flies itself — you don't pilot it. You're the guardian: keep it alive.",
   },
   {
     id: 'attackPrompt',
@@ -97,37 +101,17 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
     freeze: true,
     allowCast: true,
     keepEnemyAlive: true,
-    copyDesktop: "Here's your power: click the marked enemy to call down a meteorite.",
-    copyTouch: "Here's your power: tap the marked enemy to call down a meteorite.",
+    copyDesktop: 'Click the marked enemy to call down a meteorite.',
+    copyTouch: 'Tap the marked enemy to call down a meteorite.',
   },
   {
     id: 'attackResolve',
     trigger: TutorialTriggerKind.time,
     spotlight: TutorialSpotlightKind.none,
     freeze: false,
-    durationSeconds: 2.6,
-    copyDesktop: 'Boom. You attack independently of the ship, anywhere, any time.',
-    copyTouch: 'Boom. You attack independently of the ship, anywhere, any time.',
-  },
-  {
-    id: 'flingPrompt',
-    trigger: TutorialTriggerKind.fling,
-    spotlight: TutorialSpotlightKind.ship,
-    freeze: true,
-    allowFling: true,
-    copyDesktop:
-      "You can't steer the ship, but you can fling it. Drag the ship to slingshot it. Be careful: fling too much and it overheats.",
-    copyTouch:
-      "You can't steer the ship, but you can fling it. Drag the ship to slingshot it. Be careful: fling too much and it overheats.",
-  },
-  {
-    id: 'flingResolve',
-    trigger: TutorialTriggerKind.time,
-    spotlight: TutorialSpotlightKind.none,
-    freeze: false,
-    durationSeconds: 2,
-    copyDesktop: 'Slingshot the ship to dodge danger or reposition.',
-    copyTouch: 'Slingshot the ship to dodge danger or reposition.',
+    durationSeconds: 1.8,
+    copyDesktop: 'Direct hit. You can strike anywhere, no matter where the ship is.',
+    copyTouch: 'Direct hit. You can strike anywhere, no matter where the ship is.',
   },
   {
     id: 'powerSpend',
@@ -136,66 +120,50 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
     freeze: false,
     allowCast: true,
     keepEnemyAlive: true,
-    copyDesktop: 'Keep firing: click to launch meteorites until your power bar runs low.',
-    copyTouch: 'Keep firing: tap to launch meteorites until your power bar runs low.',
+    copyDesktop: 'Keep firing. Every cast spends power — run the bar down.',
+    copyTouch: 'Keep firing. Every cast spends power — run the bar down.',
   },
   {
     id: 'powerRecharge',
     trigger: TutorialTriggerKind.time,
     spotlight: TutorialSpotlightKind.none,
     freeze: false,
-    durationSeconds: 3.2,
-    copyDesktop: 'Out of power. The bar refills on its own over time, so spend it wisely.',
-    copyTouch: 'Out of power. The bar refills on its own over time, so spend it wisely.',
+    durationSeconds: 2.6,
+    copyDesktop: "Power's out. It refills on its own — spend it wisely.",
+    copyTouch: "Power's out. It refills on its own — spend it wisely.",
   },
   {
-    id: 'swapAbility',
-    trigger: TutorialTriggerKind.abilitySwap,
-    spotlight: TutorialSpotlightKind.none,
+    id: 'flingPrompt',
+    trigger: TutorialTriggerKind.fling,
+    spotlight: TutorialSpotlightKind.ship,
     freeze: true,
-    allowAbilityKeys: true,
-    copyDesktop: 'You unlock more powers as you advance. Press 2 to switch to Black Hole.',
-    copyTouch: 'You unlock more powers as you advance. Tap Black Hole in your toolbar to switch.',
+    allowFling: true,
+    copyDesktop:
+      "You can't steer the ship, but you can fling it: drag it and let go. Fling too often and it overheats.",
+    copyTouch:
+      "You can't steer the ship, but you can fling it: drag it and let go. Fling too often and it overheats.",
   },
   {
-    id: 'useBlackHole',
-    trigger: TutorialTriggerKind.swapAbilityUsed,
-    spotlight: TutorialSpotlightKind.enemy,
-    freeze: false,
-    allowCast: true,
-    keepEnemyAlive: true,
-    refillsPower: true,
-    copyDesktop: 'Now click beside the enemy to drop your Black Hole. It pulls enemies in.',
-    copyTouch: 'Now tap beside the enemy to drop your Black Hole. It pulls enemies in.',
-  },
-  {
-    id: 'blackHoleResolve',
+    // Also settle time: the mine row on the next beat is laid relative to the
+    // ship, so the fling needs to decay before the row is placed in its path.
+    id: 'flingResolve',
     trigger: TutorialTriggerKind.time,
     spotlight: TutorialSpotlightKind.none,
     freeze: false,
-    durationSeconds: 4,
-    keepEnemyAlive: true,
-    copyDesktop: 'Watch the Black Hole drag everything caught in it toward the centre.',
-    copyTouch: 'Watch the Black Hole drag everything caught in it toward the centre.',
+    durationSeconds: 2.5,
+    copyDesktop: "That's your only steering — use it to yank the ship out of danger.",
+    copyTouch: "That's your only steering — use it to yank the ship out of danger.",
   },
   {
-    id: 'mineIntro',
-    trigger: TutorialTriggerKind.acknowledge,
-    spotlight: TutorialSpotlightKind.mine,
-    freeze: true,
-    spawnsMine: true,
-    copyDesktop:
-      "Those blinking objects are mines, and they damage anything that touches them. The ship flies on its own and won't dodge them.",
-    copyTouch:
-      "Those blinking objects are mines, and they damage anything that touches them. The ship flies on its own and won't dodge them.",
-  },
-  {
-    id: 'mineHit',
+    id: 'mineWatch',
     trigger: TutorialTriggerKind.shipDamaged,
     spotlight: TutorialSpotlightKind.mine,
     freeze: false,
-    copyDesktop: 'Watch: with no input from you, it drifts straight into one.',
-    copyTouch: 'Watch: with no input from you, it drifts straight into one.',
+    spawnsMine: true,
+    copyDesktop:
+      "Mines ahead. They damage anything that touches them, and the ship won't dodge. Watch.",
+    copyTouch:
+      "Mines ahead. They damage anything that touches them, and the ship won't dodge. Watch.",
   },
   {
     id: 'collectMetal',
@@ -210,10 +178,8 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
     // Anchor the ship (orbit a target) so it doesn't drift off and carry the
     // camera away from the static pickup before the player clicks it.
     keepEnemyAlive: true,
-    copyDesktop:
-      'The mine dented your shield. Some enemies drop ⬢ space metal — click it to grab some.',
-    copyTouch:
-      'The mine dented your shield. Some enemies drop ⬢ space metal — tap it to grab some.',
+    copyDesktop: 'That dented your shield. Enemies drop ⬢ space metal — click a piece to grab it.',
+    copyTouch: 'That dented your shield. Enemies drop ⬢ space metal — tap a piece to grab it.',
   },
   {
     id: 'shieldRefresh',
@@ -221,17 +187,38 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
     spotlight: TutorialSpotlightKind.ship,
     freeze: true,
     allowSpaceMetalKeys: true,
-    copyDesktop: 'Now spend that ⬢ space metal to repair your shield: press F.',
-    copyTouch: 'Now spend that ⬢ space metal to repair your shield: tap the Shield button.',
+    copyDesktop: 'Spend that ⬢ space metal to patch the shield: press F.',
+    copyTouch: 'Spend that ⬢ space metal to patch the shield: tap the Shield button.',
   },
   {
+    id: 'swapAbility',
+    trigger: TutorialTriggerKind.abilitySwap,
+    spotlight: TutorialSpotlightKind.none,
+    freeze: true,
+    allowAbilityKeys: true,
+    copyDesktop: 'You unlock more powers as you level up. Press 2 to switch to Black Hole.',
+    copyTouch: 'You unlock more powers as you level up. Tap Black Hole in your toolbar.',
+  },
+  {
+    id: 'useBlackHole',
+    trigger: TutorialTriggerKind.swapAbilityUsed,
+    spotlight: TutorialSpotlightKind.enemy,
+    freeze: false,
+    allowCast: true,
+    keepEnemyAlive: true,
+    refillsPower: true,
+    copyDesktop: 'Click beside the enemy to drop your Black Hole and watch it pull everything in.',
+    copyTouch: 'Tap beside the enemy to drop your Black Hole and watch it pull everything in.',
+  },
+  {
+    // Unfrozen so the Black Hole from the previous beat plays out behind the card.
     id: 'outro',
     trigger: TutorialTriggerKind.acknowledge,
     spotlight: TutorialSpotlightKind.none,
-    freeze: true,
+    freeze: false,
     copyDesktop:
-      "That's the core of it, guardian. Clear each sector, grab upgrades between waves, and survive. Good luck.",
+      "That's the loop, guardian: clear waves, grab upgrades, keep the ship alive. Good luck.",
     copyTouch:
-      "That's the core of it, guardian. Clear each sector, grab upgrades between waves, and survive. Good luck.",
+      "That's the loop, guardian: clear waves, grab upgrades, keep the ship alive. Good luck.",
   },
 ]

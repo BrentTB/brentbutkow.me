@@ -27,6 +27,31 @@
   text-align: center;
 }
 
+// Beat progress — a row of tick dots, filled in the spotlight cyan as beats
+// clear. Answers "how much is left?" without pulling focus from the copy.
+.progress {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(106, 232, 245, 0.18);
+  transition: background 0.25s ease;
+}
+
+.dotDone {
+  background: rgba(106, 232, 245, 0.75);
+}
+
+.dotCurrent {
+  background: rgba(106, 232, 245, 1);
+  box-shadow: 0 0 6px rgba(106, 232, 245, 0.6);
+}
+
 .copy {
   font-family: var(--font-mono);
   font-size: 0.92rem;

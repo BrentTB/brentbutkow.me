@@ -256,6 +256,23 @@ describe('saveGame / loadGame / clearSave', () => {
     expect(loaded?.state.calamityTimer).toBe(CALAMITY.shockwaveIntervalMin)
   })
 
+  // A save written before isTutorial existed is always a real run (auto-save
+  // only fires at sector clears) — it must load as false, never undefined,
+  // or the calamity scheduler's gate would misread it.
+  it('backfills isTutorial=false on a save written before it existed', () => {
+    saveGame(createInitialState(), 1)
+    const raw = JSON.parse(localStorage.getItem('null-space-save')!) as {
+      version: number
+      rngState: number
+      state: Record<string, unknown>
+    }
+    delete raw.state.isTutorial
+    localStorage.setItem('null-space-save', JSON.stringify(raw))
+
+    const loaded = loadGame()
+    expect(loaded?.state.isTutorial).toBe(false)
+  })
+
   it('round-trips kills, salvageOfferUsed, and calamityTimer', () => {
     const state = createInitialState()
     state.kills = 17

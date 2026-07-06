@@ -9,6 +9,7 @@ import {
   startTutorialRun,
 } from './demo-wave'
 import { TUTORIAL_STEPS } from './tutorial-script'
+import { METEORITE_STRIKE } from '../abilities/ability-data'
 
 describe('startTutorialRun', () => {
   const run = () => startTutorialRun(createInitialState())
@@ -38,6 +39,16 @@ describe('startTutorialRun', () => {
     const state = run()
     expect(state.maxPower).toBeLessThan(createInitialState().maxPower)
     expect(state.power).toBe(state.maxPower)
+  })
+
+  it('slows power regen below the meteorite cost so the drain beat can complete', () => {
+    const state = run()
+    expect(state.powerRegen).toBeLessThan(createInitialState().powerRegen)
+    expect(state.powerRegen).toBeLessThan(METEORITE_STRIKE.powerCost)
+  })
+
+  it('flags the run as a tutorial so the calamity scheduler stays off', () => {
+    expect(run().isTutorial).toBe(true)
   })
 
   it('unlocks a second ability so the swap beat has a target', () => {

@@ -189,6 +189,8 @@ export function NullSpace() {
                   awaitingAck={uiState.tutorialAwaitingAck}
                   ackLabel={uiState.tutorialAckLabel}
                   isFinal={uiState.tutorialIsFinal}
+                  stepNumber={uiState.tutorialStepNumber}
+                  stepCount={uiState.tutorialStepCount}
                   onAck={handleTutorialAck}
                   onSkip={handleSkipTutorial}
                 />

@@ -57,6 +57,9 @@ export type TutorialView = {
   ackLabel: string | null
   // The last beat — the UI hides Skip here (Finish already ends the tutorial).
   isFinalStep: boolean
+  // 1-based position + total, for the overlay's progress dots.
+  stepNumber: number
+  stepCount: number
 }
 
 export function createTutorialState(entry: TutorialEntry, isTouch: boolean): TutorialState {
@@ -105,6 +108,8 @@ const FINISHED_VIEW = (state: TutorialState): TutorialView => ({
   awaitingAck: false,
   ackLabel: null,
   isFinalStep: false,
+  stepNumber: state.steps.length,
+  stepCount: state.steps.length,
 })
 
 function view(state: TutorialState, step: TutorialStep): TutorialView {
@@ -119,6 +124,8 @@ function view(state: TutorialState, step: TutorialStep): TutorialView {
     awaitingAck,
     ackLabel: awaitingAck ? (isLast ? 'Finish' : 'Next') : null,
     isFinalStep: isLast,
+    stepNumber: state.stepIndex + 1,
+    stepCount: state.steps.length,
   }
 }
 
