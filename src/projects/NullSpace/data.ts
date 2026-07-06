@@ -613,10 +613,11 @@ export const CHANGELOG: ChangelogEntry[] = [
       ui: [
         'The tutorial got a rework: fewer beats, one lesson at a time, and a dot trail on the card so you can see how far through you are.',
         'Nothing in the tutorial advances on a timer anymore. Every explanation waits for you to press Next, so you can read at your own pace.',
-        'On those read-and-continue steps you can tap anywhere on the card, not just the Next button — an easier target on a phone.',
+        'On those read-and-continue steps you can tap anywhere on the card, not just the Next button. Bigger target for a phone.',
         'Tutorial prompts are shorter and get to the point.',
       ],
       fixes: [
+        'The post-sector shop header now names the sector you just cleared. It was showing the next one (clear sector 1 and it read "Sector 2 Complete"), because the shop opens once you have already warped ahead.',
         'Nebulas, shockwaves, wormholes, and wandering black holes no longer erupt mid-tutorial and bury whatever you were being taught.',
         "The handoff into the tutorial's mine lesson no longer jump-cuts: the practice drones visibly burst instead of vanishing, the mines arrive with a flash, and the ship eases onto its new heading rather than snapping to it.",
       ],
