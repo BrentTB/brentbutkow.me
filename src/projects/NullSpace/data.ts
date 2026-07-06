@@ -607,6 +607,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.16.3',
+    date: '2026-07-06',
+    changes: {
+      fixes: [
+        'The green haze nebula no longer chews through framerate. Its woozy "drunk" ripple now renders at a lower internal resolution (which you cannot see on an effect that blurry) instead of re-warping the whole screen every frame.',
+      ],
+    },
+  },
+  {
     version: '1.16.2',
     date: '2026-07-03',
     changes: {
