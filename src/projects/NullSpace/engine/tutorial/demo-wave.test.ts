@@ -10,6 +10,7 @@ import {
 } from './demo-wave'
 import { TUTORIAL_STEPS } from './tutorial-script'
 import { METEORITE_STRIKE } from '../abilities/ability-data'
+import { SECTOR } from '../../data'
 
 describe('startTutorialRun', () => {
   const run = () => startTutorialRun(createInitialState())
@@ -111,6 +112,20 @@ describe('applyTutorialStepEnter', () => {
     )
     expect(after.hazards.length).toBeGreaterThan(1)
     expect(after.enemies).toHaveLength(0)
+  })
+
+  // Guards the staged handoff into the mine beat: the drones burst into death
+  // anims (not a silent vanish), sparks flag both the bursts and the fresh mines,
+  // and driftMomentum eases the ship's orbit heading into the forward drift.
+  it('stages the mine handoff: drone bursts, spawn sparks, and a heading ease', () => {
+    const before = base()
+    const after = applyTutorialStepEnter(
+      before,
+      stepWhere((s) => !!s.spawnsMine)
+    )
+    expect(after.deathAnims.length).toBe(before.deathAnims.length + before.enemies.length)
+    expect(after.particles.length).toBeGreaterThan(before.particles.length)
+    expect(after.ship.driftMomentum).toBe(SECTOR.momentumWindow)
   })
 
   it('clears leftover mines when the collect beat opens', () => {

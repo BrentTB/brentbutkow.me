@@ -1,11 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { advanceTutorial, createTutorialState, TutorialEntry } from './tutorial-machine'
 import type { TutorialSignals, TutorialState } from './tutorial-machine'
-import { POWER_LOW_FRACTION } from './tutorial-script'
+import { POWER_LOW_FRACTION, TutorialTriggerKind } from './tutorial-script'
 
 function signals(over: Partial<TutorialSignals> = {}): TutorialSignals {
   return {
-    realDt: 0,
     clicked: false,
     flung: false,
     powerFraction: 1,
@@ -48,15 +47,23 @@ describe('createTutorialState', () => {
 })
 
 describe('advanceTutorial — triggers', () => {
-  it('advances a time beat once its duration elapses', () => {
-    const { state } = advanceTutorial(at(0), signals({ realDt: 2.8 }))
+  // No beat auto-advances on a timer — narration waits for the Next button so
+  // slow readers are never rushed past a strip.
+  it('holds a narration beat until the player presses Next', () => {
+    const stay = advanceTutorial(at(0), signals())
+    expect(currentId(stay.state)).toBe('intro')
+    expect(stay.awaitingAck).toBe(true)
+    expect(stay.copy).toContain('flies itself')
+    const { state } = advanceTutorial(at(0), signals({ acknowledged: true }))
     expect(currentId(state)).toBe('attackPrompt')
   })
 
-  it('does not advance a time beat before its duration', () => {
-    const view = advanceTutorial(at(0), signals({ realDt: 0.1 }))
-    expect(currentId(view.state)).toBe('intro')
-    expect(view.copy).toContain('flies itself')
+  // Guards the no-timers rule structurally: 'time' is gone from the trigger set,
+  // so a reintroduced timed beat can't type-check, let alone ship.
+  it('has no time trigger kind and no per-step durations', () => {
+    expect(Object.values(TutorialTriggerKind)).not.toContain('time')
+    const { steps } = createTutorialState(TutorialEntry.firstPlay, false)
+    expect(steps.some((s) => 'durationSeconds' in s)).toBe(false)
   })
 
   it('advances the mine beat once the ship takes damage (flew into the mine)', () => {
@@ -108,7 +115,7 @@ describe('advanceTutorial — triggers', () => {
   })
 
   it('leaves the outro unfrozen so the black hole plays out behind the card', () => {
-    const view = advanceTutorial(atId('outro'), signals({ realDt: 5 }))
+    const view = advanceTutorial(atId('outro'), signals())
     expect(currentId(view.state)).toBe('outro')
     expect(view.frozen).toBe(false)
     expect(view.awaitingAck).toBe(true)
@@ -132,7 +139,7 @@ describe('advanceTutorial — triggers', () => {
 describe('advanceTutorial — completion + framing', () => {
   it('finishes after the last (outro) beat is acknowledged', () => {
     const lastIndex = createTutorialState(TutorialEntry.firstPlay, false).steps.length - 1
-    const stay = advanceTutorial(at(lastIndex), signals({ realDt: 10 }))
+    const stay = advanceTutorial(at(lastIndex), signals())
     expect(stay.finished).toBe(false)
     expect(stay.ackLabel).toBe('Finish')
     const done = advanceTutorial(at(lastIndex), signals({ acknowledged: true }))
@@ -143,23 +150,24 @@ describe('advanceTutorial — completion + framing', () => {
   it('stays finished once done', () => {
     const lastIndex = createTutorialState(TutorialEntry.firstPlay, false).steps.length - 1
     const done = advanceTutorial(at(lastIndex), signals({ acknowledged: true }))
-    const again = advanceTutorial(done.state, signals({ realDt: 5 }))
+    const again = advanceTutorial(done.state, signals({ acknowledged: true }))
     expect(again.finished).toBe(true)
   })
 
-  it('advances at most one step per frame even with a huge dt', () => {
-    const { state } = advanceTutorial(at(0), signals({ realDt: 1000 }))
+  it('advances at most one step per call even when the signals satisfy several beats', () => {
+    // acknowledged satisfies both the intro and (were it reached) later ack beats.
+    const { state } = advanceTutorial(at(0), signals({ acknowledged: true }))
     expect(state.stepIndex).toBe(1)
   })
 
   it('resolves touch copy for the intro', () => {
-    const view = advanceTutorial(at(0, true), signals({ realDt: 0.1 }))
+    const view = advanceTutorial(at(0, true), signals())
     expect(view.copy).toContain('the guardian')
   })
 
   it('reports 1-based progress that tracks the step index', () => {
     const total = createTutorialState(TutorialEntry.firstPlay, false).steps.length
-    const first = advanceTutorial(at(0), signals({ realDt: 0.1 }))
+    const first = advanceTutorial(at(0), signals())
     expect(first.stepNumber).toBe(1)
     expect(first.stepCount).toBe(total)
     const third = advanceTutorial(at(2), signals())

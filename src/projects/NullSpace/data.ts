@@ -611,11 +611,13 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-07-06',
     changes: {
       ui: [
-        'The tutorial got a rework: fewer beats, shorter watch-and-wait moments, one lesson at a time, and a dot trail on the card so you can see how far through you are.',
+        'The tutorial got a rework: fewer beats, one lesson at a time, and a dot trail on the card so you can see how far through you are.',
+        'Nothing in the tutorial advances on a timer anymore. Every explanation waits for you to press Next, so you can read at your own pace.',
         'Tutorial prompts are shorter and get to the point.',
       ],
       fixes: [
         'Nebulas, shockwaves, wormholes, and wandering black holes no longer erupt mid-tutorial and bury whatever you were being taught.',
+        "The handoff into the tutorial's mine lesson no longer jump-cuts: the practice drones visibly burst instead of vanishing, the mines arrive with a flash, and the ship eases onto its new heading rather than snapping to it.",
       ],
       balance: [
         "Tutorial power regen is slowed well below the meteorite's cost, so the run-the-bar-down lesson takes a few casts instead of a clicking race against the recharge.",

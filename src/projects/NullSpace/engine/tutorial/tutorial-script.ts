@@ -5,8 +5,6 @@
 // the ship with a slingshot fling.
 
 export const TutorialTriggerKind = {
-  // Advances once the beat has been shown for `durationSeconds`.
-  time: 'time',
   // Advances when the player clicks/taps to cast.
   click: 'click',
   // Advances when the player flings the ship via the slingshot.
@@ -52,8 +50,6 @@ export type TutorialStep = {
   copyDesktop: string
   // Touch copy — shown on touch devices in place of copyDesktop.
   copyTouch: string
-  // For `time` beats: seconds before advancing.
-  durationSeconds?: number
   // Whether the player's clicks reach the engine (cast abilities) on this beat.
   // Off everywhere except the beats that teach casting, so stray clicks during
   // a "watch"/"freeze" beat don't fire a meteorite. Defaults false.
@@ -79,16 +75,16 @@ export type TutorialStep = {
 }
 
 // Pacing rules the script follows (the old cut of this tutorial tested badly —
-// too much forced watching): a "watch" beat runs 2.6s or less, every lesson the
-// player can act out is act-triggered rather than narrated, and the world only
-// freezes on beats that wait for a specific input.
+// too much forced watching): no beat ever advances on a timer (narration waits
+// for Next, so slow readers are never rushed), every lesson the player can act
+// out is act-triggered rather than narrated, and the world only freezes on
+// beats that wait for a specific game input.
 export const TUTORIAL_STEPS: readonly TutorialStep[] = [
   {
     id: 'intro',
-    trigger: TutorialTriggerKind.time,
+    trigger: TutorialTriggerKind.acknowledge,
     spotlight: TutorialSpotlightKind.ship,
     freeze: false,
-    durationSeconds: 2.6,
     copyDesktop:
       "This is your ship. It flies itself — you don't pilot it. You're the guardian: keep it alive.",
     copyTouch:
@@ -106,10 +102,9 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
   },
   {
     id: 'attackResolve',
-    trigger: TutorialTriggerKind.time,
+    trigger: TutorialTriggerKind.acknowledge,
     spotlight: TutorialSpotlightKind.none,
     freeze: false,
-    durationSeconds: 1.8,
     copyDesktop: 'Direct hit. You can strike anywhere, no matter where the ship is.',
     copyTouch: 'Direct hit. You can strike anywhere, no matter where the ship is.',
   },
@@ -125,10 +120,9 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
   },
   {
     id: 'powerRecharge',
-    trigger: TutorialTriggerKind.time,
+    trigger: TutorialTriggerKind.acknowledge,
     spotlight: TutorialSpotlightKind.none,
     freeze: false,
-    durationSeconds: 2.6,
     copyDesktop: "Power's out. It refills on its own — spend it wisely.",
     copyTouch: "Power's out. It refills on its own — spend it wisely.",
   },
@@ -145,12 +139,12 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
   },
   {
     // Also settle time: the mine row on the next beat is laid relative to the
-    // ship, so the fling needs to decay before the row is placed in its path.
+    // ship, so the fling gets until the player taps Next to decay before the
+    // row is placed in its path.
     id: 'flingResolve',
-    trigger: TutorialTriggerKind.time,
+    trigger: TutorialTriggerKind.acknowledge,
     spotlight: TutorialSpotlightKind.none,
     freeze: false,
-    durationSeconds: 2.5,
     copyDesktop: "That's your only steering — use it to yank the ship out of danger.",
     copyTouch: "That's your only steering — use it to yank the ship out of danger.",
   },

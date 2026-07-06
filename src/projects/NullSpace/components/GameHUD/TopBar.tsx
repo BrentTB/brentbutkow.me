@@ -108,7 +108,7 @@ export function TopBar({ isFullscreen, gameSpeed, onPause, onToggleFullscreen }:
           type="button"
           className={styles.iconBtn}
           onClick={onPause}
-          disabled={uiState.phase !== GamePhase.playing || uiState.tutorialActive}
+          disabled={uiState.phase !== GamePhase.playing || uiState.tutorial !== null}
           aria-label="Pause game"
         >
           <Icon name={IconName.pause} />

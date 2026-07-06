@@ -1,10 +1,16 @@
 import { devUnlockWeapon, startGame } from '../game-loop'
-import { createEnemy, uid } from '../entities/entity-creator'
+import {
+  createDeathAnim,
+  createEnemy,
+  spawnExplosionParticles,
+  uid,
+} from '../entities/entity-creator'
 import { createMine } from '../calamities/hazards'
 import { AbilityKind, CollectibleKind, EnemyKind, MovementBehavior, ShipKind } from '../types'
 import type { Collectible, Enemy, GameState, Vec2 } from '../types'
 import { toroidalDelta, wrapPosition } from '../math/toroid'
 import { emptySpawnState } from '../world/waves'
+import { HAZARD, SECTOR } from '../../data'
 import type { TutorialStep } from './tutorial-script'
 
 // Power pool for the tutorial — far below a real run so a handful of meteorite
@@ -118,9 +124,24 @@ export function applyTutorialStepEnter(state: GameState, step: TutorialStep): Ga
   if (step.spawnsMine && next.hazards.length === 0) {
     // Clear enemies so the ship drifts straight ahead (no flee-orbit), then lay a
     // short row of mines across its weave so it reliably flies into one on its own
-    // — the lesson being that the ship won't dodge hazards for you.
+    // — the lesson being that the ship won't dodge hazards for you. The handoff is
+    // staged, not a cut: the drones burst (death anims + sparks) instead of
+    // vanishing, each mine announces itself with a flash of warning sparks, and
+    // driftMomentum eases the ship's orbit heading into the forward drift the same
+    // way a spent fling does.
     const row = [-72, 0, 72].map((side) => createMine(aheadOfShip(next, 250, side)))
-    next = { ...next, enemies: [], hazards: row }
+    next = {
+      ...next,
+      enemies: [],
+      deathAnims: [...next.deathAnims, ...next.enemies.map(createDeathAnim)],
+      particles: [
+        ...next.particles,
+        ...next.enemies.flatMap((e) => spawnExplosionParticles(e.pos, 8, '#ff4628')),
+        ...row.flatMap((m) => spawnExplosionParticles(m.pos, 6, HAZARD.color)),
+      ],
+      hazards: row,
+      ship: { ...next.ship, driftMomentum: SECTOR.momentumWindow },
+    }
   }
   if (step.refillsPower) {
     next = { ...next, power: next.maxPower }
