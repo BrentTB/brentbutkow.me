@@ -16,6 +16,7 @@ import {
   sourceLabels,
 } from './data'
 import { formatDate } from './chart-format'
+import { euGeographyRows } from './eu-geography'
 import { RelatedRecalls } from './components/RelatedRecalls'
 import { isRecallSource, type Recall, type RecallSource } from './recall.types'
 import { useEvents } from './useEvents'
@@ -140,6 +141,10 @@ function RecallDetailBody({ recall }: { recall: Recall }) {
         <Fact term="Recall number" value={recall.recallNumber} />
         {recall.status && <Fact term="Status" value={recall.status} />}
         {recall.state && <Fact term="State" value={recall.state} />}
+        {/* EU/RASFF geography — empty on every other source. */}
+        {euGeographyRows(recall).map((row) => (
+          <Fact key={row.term} term={row.term} value={row.value} />
+        ))}
         {recall.distributionPattern && (
           <Fact term="Distribution" value={recall.distributionPattern} />
         )}

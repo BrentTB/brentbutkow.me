@@ -1,5 +1,6 @@
 import { categoryLabels, sourceLabels } from '../data'
 import { formatNumber, seriesMax } from '../chart-format'
+import { regionName } from '../region-names'
 import { EntityType, isRecallCategory, isRecallClass, isRecallSource } from '../recall.types'
 import type { RecallFacets, RecallFilterValues } from '../recall.types'
 import styles from './Breakdowns.module.scss'
@@ -117,6 +118,20 @@ export function Breakdowns({ facets, filters, hasCompanies, onSelect }: Breakdow
           activeValue={filters.state}
           onSelect={(value) => onSelect({ state: value })}
           rows={facets.state.map((c) => ({ label: c.label, value: c.label, count: c.count }))}
+        />
+      )}
+      {/* The EU analog of Top states — countries that raised or received recalls (RASFF only, so
+          hidden everywhere else). Feeds the same filter the EU map sets. */}
+      {(facets.affectedCountry?.length ?? 0) > 0 && (
+        <BreakdownList
+          title="Top affected countries"
+          activeValue={filters.affectedCountry}
+          onSelect={(value) => onSelect({ affectedCountry: value })}
+          rows={(facets.affectedCountry ?? []).map((c) => ({
+            label: regionName(c.label),
+            value: c.label,
+            count: c.count,
+          }))}
         />
       )}
       {/* Canada's feed carries no firm name, so there's nothing to rank. */}

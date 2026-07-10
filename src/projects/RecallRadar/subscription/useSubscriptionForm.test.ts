@@ -40,6 +40,7 @@ describe('useSubscriptionForm — pre-population from dashboard filters', () => 
       topic: fc.constant(''),
       event: fc.constant(''),
       state: fc.constant(''),
+      affectedCountry: fc.constant(''),
       company: fc.oneof(fc.string({ maxLength: 50 }), fc.constant('')),
       source: fc.constant(''),
       entity: fc.oneof(fc.string({ minLength: 1, maxLength: 50 }), fc.constant('')),

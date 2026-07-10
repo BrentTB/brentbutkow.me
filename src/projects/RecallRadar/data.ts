@@ -17,14 +17,15 @@ import {
 export const recallRadarCopy = {
   title: 'Recall Radar',
   intro:
-    'A live view of US, Canadian, UK & South African food-safety recalls. Each day this pulls the latest reports from the US (FDA, USDA FSIS), Canada (CFIA), the UK (FSA), and South Africa (NCC), sorts them by likely cause, and tracks the trend over time.',
+    'A live view of US, Canadian, UK, EU & South African food-safety recalls. Each day this pulls the latest reports from the US (FDA, USDA FSIS), Canada (CFIA), the UK (FSA), the EU (RASFF), and South Africa (NCC), sorts them by likely cause, and tracks the trend over time.',
   introFun:
-    'What says "free time" like building a tracker of food recalls throughout US, UK, Canada and South Africa, and then sorting through each one to work out what actually went wrong. But if this helps even one person avoid getting sick, then the time spent is worth it.',
+    'What says "free time" like building a tracker of food recalls throughout the US, UK, EU, Canada and South Africa, and then sorting through each one to work out what actually went wrong. But if this helps even one person avoid getting sick, then the time spent is worth it.',
   methodology:
-    "Sources: US openFDA + USDA FSIS, the Canadian Food Inspection Agency, UK Food Standards Agency alerts, and South Africa's National Consumer Commission notices. Categories are assigned by a TF-IDF + logistic-regression classifier trained on the recall text; the % on each recall is the model confidence.",
+    "Sources: US openFDA + USDA FSIS, the Canadian Food Inspection Agency, UK Food Standards Agency alerts, the EU's Rapid Alert System for Food and Feed (RASFF), and South Africa's National Consumer Commission notices. Categories are assigned by a TF-IDF + logistic-regression classifier trained on the recall text; the % on each recall is the model confidence.",
   about:
-    'A full-stack side project. A Python/FastAPI service ingests food-recall data from the US (FDA openFDA, USDA FSIS), Canada (Canadian Food Inspection Agency), the UK (Food Standards Agency), and South Africa (National Consumer Commission) every day, classifies each recall by likely cause, and stores it in Postgres. This React + TypeScript dashboard reads a documented JSON API to explore it. It is built to production standards: typed end to end, tested, migrated with Alembic, rate-limited, and deployed behind a daily ingest job.',
+    'A full-stack side project. A Python/FastAPI service ingests food-recall data from the US (FDA openFDA, USDA FSIS), Canada (Canadian Food Inspection Agency), the UK (Food Standards Agency), the EU (Rapid Alert System for Food and Feed), and South Africa (National Consumer Commission) every day, classifies each recall by likely cause, and stores it in Postgres. This React + TypeScript dashboard reads a documented JSON API to explore it. It is built to production standards: typed end to end, tested, migrated with Alembic, rate-limited, and deployed behind a daily ingest job.',
   stateMapTitle: 'US recalls by state',
+  euMapTitle: 'EU recalls by country',
 }
 
 export const techStack: { area: string; items: string[] }[] = [
@@ -40,7 +41,7 @@ export const techStack: { area: string; items: string[] }[] = [
     area: 'Data & infra',
     items: [
       'PostgreSQL (Neon)',
-      'openFDA + USDA FSIS + CFIA + UK FSA + NCC (SA)',
+      'openFDA + USDA FSIS + CFIA + UK FSA + EU RASFF + NCC (SA)',
       'GitHub Actions (daily ingest)',
       'Render',
       'Docker',
@@ -49,7 +50,7 @@ export const techStack: { area: string; items: string[] }[] = [
 ]
 
 export const methodologyPoints: string[] = [
-  'Data comes from the US (FDA openFDA + USDA FSIS), Canada (Canadian Food Inspection Agency), the UK (Food Standards Agency), and South Africa (National Consumer Commission, plus a few curated Woolworths/Shoprite/NRCS recalls the NCC feed misses), re-ingested daily via a GitHub Actions cron.',
+  'Data comes from the US (FDA openFDA + USDA FSIS), Canada (Canadian Food Inspection Agency), the UK (Food Standards Agency), the EU (RASFF, the Rapid Alert System for Food and Feed, via the official DG SANTE API), and South Africa (National Consumer Commission, plus a few curated Woolworths/Shoprite/NRCS recalls the NCC feed misses), re-ingested daily via a GitHub Actions cron.',
   "Each recall's cause is predicted by a TF-IDF + logistic-regression classifier trained on its reason text; the % shown is the model's confidence.",
   'The model is weakly supervised by a keyword baseline (no human-labelled gold set), so it generalises that taxonomy rather than beating an independent ground truth.',
   'Allergens, pathogens, and physical hazards are pulled from each reason with a curated gazetteer (the FDA, CFIA, and UK regulated allergen lists and named pathogens) — deterministic and fully explainable.',
@@ -62,7 +63,7 @@ export const methodologyPoints: string[] = [
 // Plain-language version of the above — no ML jargon — shown first under "How it works", with the
 // technical points tucked behind a toggle.
 export const methodologySimple: string[] = [
-  'Every day we pull the latest food recalls from the US (FDA, USDA), Canada (CFIA), the UK (FSA), and South Africa (NCC).',
+  'Every day we pull the latest food recalls from the US (FDA, USDA), Canada (CFIA), the UK (FSA), the EU (RASFF), and South Africa (NCC).',
   'Each recall is sorted automatically by its likely cause: an undeclared allergen, a pathogen, a foreign object, and so on.',
   "We rate how serious each one looks — from low to severe, based on its regulatory class, the hazard named, whether harm was reported, and how far it spread. That's an estimate of risk, not a count of who was harmed. We also group recalls that look related or part of the same outbreak.",
   'We chart the monthly trend, point out unusually busy months, and project the months ahead.',
@@ -87,6 +88,7 @@ export const sourceLabels: Record<RecallSource, string> = {
   [RecallSource.woolworths]: 'Woolworths',
   [RecallSource.shoprite]: 'Shoprite/Checkers',
   [RecallSource.nrcs]: 'NRCS',
+  [RecallSource.rasff]: 'RASFF',
 }
 
 export const countryLabels: Record<RecallCountry, string> = {
@@ -94,6 +96,17 @@ export const countryLabels: Record<RecallCountry, string> = {
   [RecallCountry.ca]: 'Canada',
   [RecallCountry.uk]: 'United Kingdom',
   [RecallCountry.za]: 'South Africa',
+  [RecallCountry.eu]: 'European Union',
+}
+
+// Compact labels for the country tab bar — full names made it overflow at five countries. The
+// subscription checkboxes and prose keep `countryLabels`.
+export const countryTabLabels: Record<RecallCountry, string> = {
+  [RecallCountry.us]: 'US',
+  [RecallCountry.ca]: 'Canada',
+  [RecallCountry.uk]: 'UK',
+  [RecallCountry.za]: 'South Africa',
+  [RecallCountry.eu]: 'EU',
 }
 
 export const entityTypeLabels: Record<EntityType, string> = {
@@ -181,6 +194,7 @@ const SOURCE_COLORS: Record<RecallSource, string> = {
   [RecallSource.woolworths]: '#d98c6a',
   [RecallSource.shoprite]: '#6aa888',
   [RecallSource.nrcs]: '#b08fc7',
+  [RecallSource.rasff]: '#7f96d4',
 }
 
 export function trendColor(group: TrendGroup, key: string): string {
@@ -213,6 +227,8 @@ export const classesByCountry: Record<RecallCountry, RecallClass[]> = {
   ],
   // South Africa's NCC issues no formal classification, so there's nothing to filter by.
   [RecallCountry.za]: [],
+  // RASFF grades risk ("serious"), not Class I/II/III — the model's predictedClass fills in.
+  [RecallCountry.eu]: [],
 }
 
 export const sourcesByCountry: Record<RecallCountry, RecallSource[]> = {
@@ -225,6 +241,7 @@ export const sourcesByCountry: Record<RecallCountry, RecallSource[]> = {
     RecallSource.shoprite,
     RecallSource.nrcs,
   ],
+  [RecallCountry.eu]: [RecallSource.rasff],
 }
 
 export const recallRadarLinks = [
@@ -238,6 +255,10 @@ export const recallRadarLinks = [
     href: 'https://open.canada.ca/data/en/dataset/d38de914-c94c-429b-8ab1-8776c31643e3',
   },
   { label: 'UK FSA food alerts API', href: 'https://data.food.gov.uk/food-alerts/ui/reference' },
+  {
+    label: 'EU RASFF Window',
+    href: 'https://webgate.ec.europa.eu/rasff-window/screen/list',
+  },
   { label: 'South Africa NCC recalls', href: 'https://thencc.org.za/product-recalls/' },
   { label: 'Source on GitHub', href: 'https://github.com/BrentTB/brentbutkow.me-backend' },
 ]

@@ -104,6 +104,39 @@ describe('RecallDetail page', () => {
     )
   })
 
+  it('shows the EU geography facts as country names for a RASFF recall', async () => {
+    const euRecall: Recall = {
+      ...recall,
+      country: 'eu',
+      source: 'rasff',
+      recallNumber: '2026.1234',
+      state: null,
+      topicId: null,
+      eventClusterId: null,
+      notifyingCountry: 'IE',
+      originCountries: ['ES'],
+      distributionCountries: ['IE', 'DE'],
+    }
+    const fetchMock = vi.fn(async (url: string | URL) => {
+      const p = String(url)
+      if (p.includes('/topics')) return mockRes([])
+      if (p.includes('/events')) return mockRes([])
+      if (p.includes('/similar')) return mockRes([])
+      return mockRes(euRecall)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    renderAt('/projects/recall-radar/rasff/2026.1234')
+
+    await waitFor(() => expect(screen.getByText('Sliced deli turkey')).toBeTruthy())
+    expect(screen.getByText('Notified by')).toBeTruthy()
+    expect(screen.getByText('Ireland')).toBeTruthy()
+    expect(screen.getByText('Origin')).toBeTruthy()
+    expect(screen.getByText('Spain')).toBeTruthy()
+    expect(screen.getByText('Distributed to')).toBeTruthy()
+    expect(screen.getByText('Ireland, Germany')).toBeTruthy()
+  })
+
   it('rejects a malformed source param without fetching', () => {
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)

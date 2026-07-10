@@ -1,37 +1,64 @@
 import { formatNumber, seriesMax } from '../chart-format'
 import type { LabelCount } from '../recall.types'
-import { STATE_GRID_COLS, STATE_GRID_ROWS, stateGrid } from '../us-state-grid'
 import styles from './RecallMap.module.scss'
 
-type RecallMapProps = {
-  byState: LabelCount[]
-  activeState: string
-  onSelect: (state: string) => void
+// One tile of a map grid — a region code placed on a CSS grid (row/col are 1-indexed). The US
+// state grid and the EU country grid both conform; the component is grid-agnostic.
+export type MapTile = {
+  code: string
+  name: string
+  row: number
+  col: number
 }
 
-// Lift small counts so low-recall states stay visible; cap alpha for label legibility.
+type RecallMapProps = {
+  tiles: MapTile[]
+  rows: number
+  cols: number
+  ariaLabel: string
+  counts: LabelCount[]
+  activeCode: string
+  onSelect: (code: string) => void
+}
+
+// Lift small counts so low-recall regions stay visible; cap alpha for label legibility.
 function intensity(count: number, max: number): number {
   return count > 0 ? 0.1 + 0.5 * Math.sqrt(count / max) : 0
 }
 
-export function RecallMap({ byState, activeState, onSelect }: RecallMapProps) {
-  const counts = new Map(byState.map((entry) => [entry.label, entry.count]))
-  const max = seriesMax(byState.map((entry) => entry.count))
+// Each cell renders wider than tall so a many-row grid (the EU's 9) doesn't swallow the viewport
+// height; square cells put the 9×9 EU map at the full 600px column width in height.
+const TILE_WIDTH_TO_HEIGHT = 1.4
+
+export function RecallMap({
+  tiles,
+  rows,
+  cols,
+  ariaLabel,
+  counts,
+  activeCode,
+  onSelect,
+}: RecallMapProps) {
+  const countByCode = new Map(counts.map((entry) => [entry.label, entry.count]))
+  const max = seriesMax(counts.map((entry) => entry.count))
 
   return (
     <figure className={styles.figure}>
       <div
         className={styles.grid}
         style={{
-          gridTemplateColumns: `repeat(${STATE_GRID_COLS}, 1fr)`,
-          gridTemplateRows: `repeat(${STATE_GRID_ROWS}, 1fr)`,
+          gridTemplateColumns: `repeat(${cols}, 1fr)`,
+          gridTemplateRows: `repeat(${rows}, 1fr)`,
+          // Derived per grid (a hardcoded ratio fit only the US layout), times the flattening
+          // factor above so the map stays a panel, not a full-viewport wall.
+          aspectRatio: `${(cols / rows) * TILE_WIDTH_TO_HEIGHT}`,
         }}
         role="group"
-        aria-label="US food recalls by state"
+        aria-label={ariaLabel}
       >
-        {stateGrid.map((tile) => {
-          const count = counts.get(tile.code) ?? 0
-          const active = tile.code === activeState
+        {tiles.map((tile) => {
+          const count = countByCode.get(tile.code) ?? 0
+          const active = tile.code === activeCode
           return (
             <button
               key={tile.code}
@@ -48,7 +75,12 @@ export function RecallMap({ byState, activeState, onSelect }: RecallMapProps) {
               onClick={() => onSelect(active ? '' : tile.code)}
               aria-pressed={active}
               aria-label={`${tile.name}: ${formatNumber(count)} recalls`}
-              title={`${tile.name}: ${formatNumber(count)} recalls`}
+              // CSS tooltip (::after reads this), not the native title attribute — browsers delay
+              // a title by ~1s and that can't be configured; this shows instantly on hover/focus.
+              data-tooltip={`${tile.name}: ${formatNumber(count)} recalls`}
+              // Edge columns pin the bubble to the tile's outer edge instead of centering it, so
+              // it grows inward over the map rather than overhanging the page/viewport edge.
+              data-tooltip-align={tile.col === 1 ? 'start' : tile.col === cols ? 'end' : undefined}
             >
               {tile.code}
             </button>

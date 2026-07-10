@@ -6,11 +6,12 @@
   display: grid;
   width: 100%;
   max-width: 600px;
-  aspect-ratio: 11 / 7;
+  // aspect-ratio comes inline from the component, derived from the grid's cols/rows.
   gap: 4px;
 }
 
 .tile {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -38,6 +39,52 @@
   outline: 2px solid var(--accent);
   outline-offset: 2px;
   z-index: 1;
+}
+
+// Instant tooltip — a native `title` waits on the browser's ~1s hover delay, so the name + count
+// render from data-tooltip instead (same surface language as HelpHint's bubble). pointer-events
+// off so the bubble never steals the hover from its own tile.
+.tile:hover::after,
+.tile:focus-visible::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  padding: 5px 9px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  // The elevated surface is barely lighter than the page, so over busy neighbours (the trend
+  // chart's axis numbers, when an edge tile's bubble overhangs the map) the pill can visually
+  // merge with what it covers. The solid page-colored ring cuts a clean moat around it first;
+  // the soft shadow then only has to suggest depth.
+  box-shadow:
+    0 0 0 5px var(--bg),
+    0 8px 24px rgba(0, 0, 0, 0.45);
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 0.74rem;
+  font-weight: 400;
+  letter-spacing: normal;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+// Edge columns (data-tooltip-align from the component): grow the bubble inward over the map
+// instead of centering it, so a first/last-column tile's tooltip never overhangs the viewport.
+.tile[data-tooltip-align='start']:hover::after,
+.tile[data-tooltip-align='start']:focus-visible::after {
+  left: 0;
+  transform: none;
+}
+
+.tile[data-tooltip-align='end']:hover::after,
+.tile[data-tooltip-align='end']:focus-visible::after {
+  left: auto;
+  right: 0;
+  transform: none;
 }
 
 .empty {

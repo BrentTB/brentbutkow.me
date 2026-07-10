@@ -72,6 +72,28 @@ describe('RecallFeed', () => {
     expect(screen.getByText('peanuts')).toBeTruthy() // extracted entity chip
   })
 
+  it('shows EU geography as country names, not ISO codes, in a RASFF drill-down', () => {
+    const euRecall: Recall = {
+      ...recall,
+      country: 'eu',
+      source: 'rasff',
+      recallNumber: '2026.1234',
+      state: null,
+      classification: null,
+      notifyingCountry: 'IE',
+      originCountries: ['ES'],
+      distributionCountries: ['IE', 'DE'],
+    }
+    render(<Feed recalls={[euRecall]} />)
+    expect(screen.getByText('Notified by')).toBeTruthy()
+    expect(screen.getByText('Ireland')).toBeTruthy()
+    expect(screen.getByText('Origin')).toBeTruthy()
+    expect(screen.getByText('Spain')).toBeTruthy()
+    expect(screen.getByText('Distributed to')).toBeTruthy()
+    expect(screen.getByText('Ireland, Germany')).toBeTruthy()
+    expect(screen.queryByText('IE')).toBeNull() // raw codes never reach the UI
+  })
+
   it('toggles the detail panel open when the summary is clicked', () => {
     const { container } = render(<Feed recalls={[recall]} />)
     const details = container.querySelector('details')

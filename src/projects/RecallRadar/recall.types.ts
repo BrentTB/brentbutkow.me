@@ -29,6 +29,7 @@ export const RecallSource = {
   woolworths: 'woolworths',
   shoprite: 'shoprite',
   nrcs: 'nrcs',
+  rasff: 'rasff',
 } as const
 export type RecallSource = (typeof RecallSource)[keyof typeof RecallSource]
 
@@ -37,6 +38,7 @@ export const RecallCountry = {
   ca: 'ca',
   uk: 'uk',
   za: 'za',
+  eu: 'eu',
 } as const
 export type RecallCountry = (typeof RecallCountry)[keyof typeof RecallCountry]
 
@@ -80,8 +82,8 @@ export const RecallSort = {
 } as const
 export type RecallSort = (typeof RecallSort)[keyof typeof RecallSort]
 
-// A model's severity-class guess for countries that assign none (UK, ZA). Null for US/CA, which
-// carry a real classification. Values double as runtime identifiers.
+// A model's severity-class guess for countries that assign none (UK, ZA, EU). Null for US/CA,
+// which carry a real classification. Values double as runtime identifiers.
 export const PredictedClass = {
   classI: 'Class I',
   notClassI: 'not Class I',
@@ -113,6 +115,7 @@ export type RecallFilterValues = {
   topic: string // topic slug (stable theme key); '' = no filter
   event: string // event/outbreak slug (stable cluster key); '' = no filter
   state: string
+  affectedCountry: string // ISO alpha-2 (EU map/filter); '' = no filter
   company: string
   source: RecallSource | ''
   entity: string
@@ -132,6 +135,11 @@ export type Recall = {
   reasonText: string
   companyName: string | null
   state: string | null
+  // EU/RASFF geography (null for every other source): the notifying member state, and the
+  // origin / distribution country ISO lists. distributionCountries is the EU analog of `state`.
+  notifyingCountry?: string | null
+  originCountries?: string[] | null
+  distributionCountries?: string[] | null
   distributionPattern: string | null
   recallInitiationDate: string | null
   reportDate: string | null
@@ -144,7 +152,7 @@ export type Recall = {
   // 0–1, how unlike its nearest neighbours a recall is (higher = more unusual). Null when there
   // weren't enough neighbours to score.
   noveltyScore?: number | null
-  // Model severity-class guess for UK/ZA (no official class); null for US/CA. Confidence is 0–1.
+  // Model severity-class guess for UK/ZA/EU (no official class); null for US/CA. Confidence is 0–1.
   predictedClass?: PredictedClass | null
   predictedClassConfidence?: number | null
   entities: RecallEntity[]
@@ -203,6 +211,9 @@ export type RecallStats = {
   byClassification: LabelCount[]
   bySeverity: LabelCount[]
   byState: LabelCount[]
+  // EU analog of byState — ISO codes of countries a recall affects (notified or received
+  // distribution), once per recall. Optional: absent from stats cached before the field existed.
+  byAffectedCountry?: LabelCount[]
   byCompany: LabelCount[]
   bySource: LabelCount[]
   byEntity: EntityCount[]
@@ -221,6 +232,8 @@ export type RecallFacets = {
   severity: LabelCount[]
   source: LabelCount[]
   state: LabelCount[]
+  // EU analog of state (optional: absent from backends predating it) — feeds the EU country map.
+  affectedCountry?: LabelCount[]
   // Also drives the breakdown cards + state map: top firms (capped) and the entity leaderboards.
   company: LabelCount[]
   entity: EntityCount[]
@@ -238,6 +251,7 @@ export const facetsFromStats = (stats: RecallStats): RecallFacets => ({
   severity: stats.bySeverity,
   source: stats.bySource,
   state: stats.byState,
+  affectedCountry: stats.byAffectedCountry ?? [],
   company: stats.byCompany,
   entity: stats.byEntity,
   // The global stats carry no per-theme/outbreak counts; left empty since the Themes + Outbreaks
@@ -360,6 +374,10 @@ export const isRecall = object<Recall>({
   reasonText: isString,
   companyName: nullable(isString),
   state: nullable(isString),
+  // Tolerant like topicId below: absent (older payloads / fixtures), null (non-EU sources), or set.
+  notifyingCountry: optional(nullable(isString)),
+  originCountries: optional(nullable(arrayOf(isString))),
+  distributionCountries: optional(nullable(arrayOf(isString))),
   distributionPattern: nullable(isString),
   recallInitiationDate: nullable(isString),
   reportDate: nullable(isString),
@@ -415,6 +433,7 @@ export const isRecallStats = object<RecallStats>({
   byClassification: arrayOf(isLabelCount),
   bySeverity: arrayOf(isLabelCount),
   byState: arrayOf(isLabelCount),
+  byAffectedCountry: optional(arrayOf(isLabelCount)),
   byCompany: arrayOf(isLabelCount),
   bySource: arrayOf(isLabelCount),
   byEntity: arrayOf(isEntityCount),
@@ -431,6 +450,7 @@ export const isRecallFacets = object<RecallFacets>({
   severity: arrayOf(isLabelCount),
   source: arrayOf(isLabelCount),
   state: arrayOf(isLabelCount),
+  affectedCountry: optional(arrayOf(isLabelCount)),
   company: arrayOf(isLabelCount),
   entity: arrayOf(isEntityCount),
   topicCounts: recordOf(isNumber),

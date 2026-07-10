@@ -37,6 +37,8 @@ import {
   trendGroupLabels,
 } from './data'
 import { deriveYears, formatNumber, ingestFreshness } from './chart-format'
+import { STATE_GRID_COLS, STATE_GRID_ROWS, stateGrid } from './us-state-grid'
+import { EU_GRID_COLS, EU_GRID_ROWS, euCountryGrid } from './eu-country-grid'
 import { anomalyCallouts, deriveCallouts, forecastCallout } from './trend-callouts'
 import { toChartMonths } from './trend-chart'
 import {
@@ -79,6 +81,7 @@ const EMPTY_FILTERS: RecallFilterValues = {
   topic: '',
   event: '',
   state: '',
+  affectedCountry: '',
   company: '',
   source: '',
   entity: '',
@@ -118,8 +121,10 @@ export function RecallRadar() {
   // retracting navbar or slides up to the top to fill the gap.
   const { collapsed, navHidden } = useStickyHeader()
   // Below this the location tabs plus the alerts button overflow the bar, so fold the scope to a
-  // dropdown early — wider than the ≤600px phone styles, which is where the tabs first stop fitting.
-  const compactScope = useMediaQuery('(max-width: 1030px)')
+  // dropdown early — wider than the ≤600px phone styles, which is where the tabs first stop
+  // fitting. Measured for the compact tab labels: view tabs (~254px) + five location tabs (~355px)
+  // + the alerts button (~120px) + gaps/padding run out just under 800px.
+  const compactScope = useMediaQuery('(max-width: 830px)')
 
   // The alert-signup form drops open from the command strip's "Get alerts" button, so it's reachable
   // from any tab without hunting for a section. Mounting it only while open snapshots the live
@@ -182,6 +187,10 @@ export function RecallRadar() {
     // Event is a slug too (same guard) — set via the Outbreaks cards / per-card badge.
     event: /^[a-z0-9-]+$/.test(values.event) ? values.event : '',
     state: values.state,
+    // ISO alpha-2 (the EU map/filter); guard junk so a bad ?affectedCountry= can't reach the API.
+    affectedCountry: /^[A-Za-z]{2}$/.test(values.affectedCountry)
+      ? values.affectedCountry.toUpperCase()
+      : '',
     company: values.company,
     source: isRecallSource(values.source) ? values.source : '',
     entity: values.entity,
@@ -253,6 +262,7 @@ export function RecallRadar() {
     topic: filters.topic || undefined,
     event: filters.event || undefined,
     state: filters.state || undefined,
+    affectedCountry: filters.affectedCountry || undefined,
     company: filters.company || undefined,
     source: filters.source || undefined,
     entity: filters.entity || undefined,
@@ -364,6 +374,9 @@ export function RecallRadar() {
   const topCategory = stats.data?.byCategory.slice().sort((a, b) => b.count - a.count)[0]
   const topState = stats.data?.byState[0]
   const stateOptions = stats.data?.byState.map((entry) => entry.label) ?? []
+  const affectedCountryOptions = stats.data?.byAffectedCountry?.map((entry) => entry.label) ?? []
+  // The map renders wherever the data carries a tile-grid geography: US states, EU countries.
+  const showMap = country === RecallCountry.us || country === RecallCountry.eu
   // Base (unfiltered) company presence — Canada's feed carries no firm name. Gates the company
   // filter + leaderboard so they hide for company-less sources, but stay put when a filter combo
   // merely happens to leave no companies.
@@ -410,9 +423,9 @@ export function RecallRadar() {
       { id: 'trends', label: 'Trends' },
       ...(stats.data ? [{ id: 'breakdowns', label: 'Breakdowns' }] : []),
       ...(hasThemes ? [{ id: 'themes', label: 'Themes' }] : []),
-      ...(stats.data && country === RecallCountry.us ? [{ id: 'map', label: 'Map' }] : []),
+      ...(stats.data && showMap ? [{ id: 'map', label: 'Map' }] : []),
     ],
-    [stats.data, country, hasOutbreaks, hasThemes]
+    [stats.data, showMap, hasOutbreaks, hasThemes]
   )
   const showRail = view === RecallView.dashboard
 
@@ -476,6 +489,7 @@ export function RecallRadar() {
           filters={filters}
           country={country}
           stateOptions={stateOptions}
+          affectedCountryOptions={affectedCountryOptions}
           hasCompanies={hasCompanies}
           facets={facets.data ?? undefined}
           activeFilters={queryFilters}
@@ -610,8 +624,8 @@ export function RecallRadar() {
               )}
 
               {/* Themes + Map share a row. Themes runs full width (two internal columns) when the
-                  US-only map is absent, and narrows to one column beside the map on US. */}
-              {(hasThemes || (breakdownFacets && country === RecallCountry.us)) && (
+                  map is absent, and narrows to one column beside the map on US/EU. */}
+              {(hasThemes || (breakdownFacets && showMap)) && (
                 <div className={styles.dashRow}>
                   {hasThemes && (
                     <section id="themes" className={styles.section}>
@@ -634,8 +648,8 @@ export function RecallRadar() {
                         activeTopic={filters.topic}
                         onSelect={(slug) => patch({ topic: slug })}
                         counts={topicCounts}
-                        // The US list sits in one narrow column beside the map, so cap it shorter.
-                        maxRows={country === RecallCountry.us ? 10 : 16}
+                        // Beside a map the list sits in one narrow column, so cap it shorter.
+                        maxRows={showMap ? 10 : 16}
                       />
                     </section>
                   )}
@@ -645,9 +659,32 @@ export function RecallRadar() {
                       <h2 className={styles.sectionTitle}>{recallRadarCopy.stateMapTitle}</h2>
                       <p className={styles.hint}>Click a state to filter the recalls below.</p>
                       <RecallMap
-                        byState={breakdownFacets.state}
-                        activeState={filters.state}
+                        tiles={stateGrid}
+                        rows={STATE_GRID_ROWS}
+                        cols={STATE_GRID_COLS}
+                        ariaLabel="US food recalls by state"
+                        counts={breakdownFacets.state}
+                        activeCode={filters.state}
                         onSelect={(state) => patch({ state })}
+                      />
+                    </section>
+                  )}
+
+                  {breakdownFacets && country === RecallCountry.eu && (
+                    <section id="map" className={styles.section}>
+                      <h2 className={styles.sectionTitle}>{recallRadarCopy.euMapTitle}</h2>
+                      <p className={styles.hint}>
+                        Countries that raised or received each recall. Click one to filter the
+                        recalls below.
+                      </p>
+                      <RecallMap
+                        tiles={euCountryGrid}
+                        rows={EU_GRID_ROWS}
+                        cols={EU_GRID_COLS}
+                        ariaLabel="EU food recalls by country"
+                        counts={breakdownFacets.affectedCountry ?? []}
+                        activeCode={filters.affectedCountry}
+                        onSelect={(affectedCountry) => patch({ affectedCountry })}
                       />
                     </section>
                   )}

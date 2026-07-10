@@ -70,12 +70,12 @@ export const routesMeta: Record<string, RouteMeta> = {
   [routePaths.projects]: {
     title: 'Projects — Brent Butkow',
     description:
-      'Software projects built by Brent Butkow, including Recall Radar, a live US, Canada, UK and SA food-recall dashboard.',
+      'Software projects built by Brent Butkow, including Recall Radar, a live US, Canada, UK, EU and SA food-recall dashboard.',
   },
   [routePaths.recallRadar]: {
-    title: 'Food Recall Tracker — US, Canada, UK & SA | Recall Radar — Brent Butkow',
+    title: 'Food Recall Tracker — US, Canada, UK, EU & SA | Recall Radar — Brent Butkow',
     description:
-      'Track the latest food recalls across the US, Canada, UK and South Africa. Updated daily from FDA, USDA, NCC, CFIA and FSA, with free email alerts and severity ratings.',
+      'Track the latest food recalls across the US, Canada, UK, EU and South Africa. Updated daily from FDA, USDA, NCC, CFIA, FSA and RASFF, with free email alerts and severity ratings.',
     ogImage: '/og/recall-radar.png',
     jsonLd: {
       '@context': 'https://schema.org',
@@ -85,7 +85,7 @@ export const routesMeta: Record<string, RouteMeta> = {
       applicationCategory: 'Food safety',
       operatingSystem: 'Web browser',
       description:
-        'A live food-recall dashboard tracking the US, Canada, UK and South Africa. Updated daily from FDA, USDA FSIS, CFIA, FSA and NCC, with ML classification, severity ratings and free email alerts.',
+        'A live food-recall dashboard tracking the US, Canada, UK, EU and South Africa. Updated daily from FDA, USDA FSIS, CFIA, FSA, RASFF and NCC, with ML classification, severity ratings and free email alerts.',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       creator: { '@type': 'Person', name: 'Brent Butkow', url: SITE_URL },
     },

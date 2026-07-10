@@ -1,17 +1,12 @@
+import type { MapTile } from './components/RecallMap'
+
 // US state tile-grid layout (50 states + DC). row/col are 1-indexed so they map
 // straight onto CSS grid-row / grid-column. Adapted from geofacet's
 // us_state_grid1 (https://hafen.github.io/geofacet/).
-export type StateTile = {
-  code: string
-  name: string
-  row: number
-  col: number
-}
-
 export const STATE_GRID_ROWS = 7
 export const STATE_GRID_COLS = 11
 
-export const stateGrid: StateTile[] = [
+export const stateGrid: MapTile[] = [
   { code: 'AK', name: 'Alaska', row: 7, col: 2 },
   { code: 'HI', name: 'Hawaii', row: 7, col: 1 },
   { code: 'WA', name: 'Washington', row: 2, col: 1 },

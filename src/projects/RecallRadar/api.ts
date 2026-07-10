@@ -18,6 +18,7 @@ export type RecallFilters = {
   topic?: string
   event?: string
   state?: string
+  affectedCountry?: string
   company?: string
   source?: RecallSource
   entity?: string
@@ -42,6 +43,7 @@ function appendRecallFilters(params: URLSearchParams, filters: RecallFilters): v
   if (filters.topic) params.set('topic', filters.topic)
   if (filters.event) params.set('event', filters.event)
   if (filters.state) params.set('state', filters.state)
+  if (filters.affectedCountry) params.set('affectedCountry', filters.affectedCountry)
   if (filters.company) params.set('company', filters.company)
   if (filters.source) params.set('source', filters.source)
   if (filters.entity) params.set('entity', filters.entity)

@@ -79,3 +79,35 @@ describe('isRecall — novelty / predicted-class tolerance', () => {
     expect(isRecall({ ...baseRecall, noveltyScore: 'high' })).toBe(false)
   })
 })
+
+describe('isRecall — EU geography tolerance', () => {
+  it('accepts a populated EU recall (notifying + origin + distribution)', () => {
+    expect(
+      isRecall({
+        ...baseRecall,
+        country: RecallCountry.eu,
+        source: RecallSource.rasff,
+        notifyingCountry: 'IE',
+        originCountries: ['ES'],
+        distributionCountries: ['IE', 'DE'],
+      })
+    ).toBe(true)
+  })
+
+  it('accepts the geography fields as null or absent (non-EU sources / older fixtures)', () => {
+    expect(isRecall(baseRecall)).toBe(true)
+    expect(
+      isRecall({
+        ...baseRecall,
+        notifyingCountry: null,
+        originCountries: null,
+        distributionCountries: null,
+      })
+    ).toBe(true)
+  })
+
+  it('rejects a non-string-list distributionCountries', () => {
+    expect(isRecall({ ...baseRecall, distributionCountries: 'IE, DE' })).toBe(false)
+    expect(isRecall({ ...baseRecall, originCountries: [1, 2] })).toBe(false)
+  })
+})

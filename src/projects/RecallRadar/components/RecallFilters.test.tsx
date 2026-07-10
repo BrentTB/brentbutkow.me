@@ -14,6 +14,7 @@ const empty: RecallFilterValues = {
   topic: '',
   event: '',
   state: '',
+  affectedCountry: '',
   company: '',
   source: '',
   entity: '',
@@ -30,6 +31,7 @@ const renderFilters = (props: Partial<Parameters<typeof RecallFilters>[0]> = {})
       filters={empty}
       country="us"
       stateOptions={[]}
+      affectedCountryOptions={[]}
       hasCompanies={true}
       activeFilters={{ country: 'us' }}
       onChange={noop}
@@ -123,6 +125,45 @@ describe('RecallFilters', () => {
     fireEvent.click(screen.getByLabelText('Class'))
     expect(screen.getByText('Allergy Alert')).toBeTruthy() // a UK option
     expect(screen.queryByText('Class I')).toBeNull() // US classes don't bleed in
+  })
+
+  it('gets the EU facet set: no class, no source, no company, an affected-country filter', () => {
+    renderFilters({
+      country: 'eu',
+      hasCompanies: false,
+      stateOptions: [],
+      affectedCountryOptions: ['DE', 'IE'],
+    })
+    // RASFF has no class ladder (classesByCountry.eu is empty) and a single source.
+    expect(screen.queryByLabelText('Class')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /More filters/i }))
+    expect(screen.queryByLabelText('Source')).toBeNull()
+    expect(screen.queryByText('Company')).toBeNull()
+    // The affected-country combobox renders ISO codes as country names.
+    fireEvent.click(screen.getByLabelText('Affected country'))
+    expect(screen.getByText('Germany')).toBeTruthy()
+    expect(screen.getByText('Ireland')).toBeTruthy()
+  })
+
+  it('hides the affected-country filter when there are no affected countries (US)', () => {
+    renderFilters({ affectedCountryOptions: [] })
+    fireEvent.click(screen.getByRole('button', { name: /More filters/i }))
+    expect(screen.queryByLabelText('Affected country')).toBeNull()
+  })
+
+  it('keeps the affected-country chip removable even where the control is hidden', () => {
+    // A shared ?affectedCountry= URL opened on a country without the control (the company-chip
+    // lesson): the chip must still render and clear the filter.
+    const onChange = vi.fn()
+    renderFilters({
+      filters: { ...empty, affectedCountry: 'DE' },
+      affectedCountryOptions: [],
+      onChange,
+    })
+    const chip = screen.getByRole('button', { name: 'Remove the affected country filter' })
+    expect(chip.textContent).toContain('Germany')
+    fireEvent.click(chip)
+    expect(onChange).toHaveBeenCalledWith({ affectedCountry: '' })
   })
 
   it('reports a chosen From date through onChange', () => {
