@@ -121,8 +121,10 @@ export function RecallRadar() {
   // retracting navbar or slides up to the top to fill the gap.
   const { collapsed, navHidden } = useStickyHeader()
   // Below this the location tabs plus the alerts button overflow the bar, so fold the scope to a
-  // dropdown early — wider than the ≤600px phone styles, which is where the tabs first stop fitting.
-  const compactScope = useMediaQuery('(max-width: 1030px)')
+  // dropdown early — wider than the ≤600px phone styles, which is where the tabs first stop
+  // fitting. Measured for the compact tab labels: view tabs (~254px) + five location tabs (~355px)
+  // + the alerts button (~120px) + gaps/padding run out just under 800px.
+  const compactScope = useMediaQuery('(max-width: 830px)')
 
   // The alert-signup form drops open from the command strip's "Get alerts" button, so it's reachable
   // from any tab without hunting for a section. Mounting it only while open snapshots the live
