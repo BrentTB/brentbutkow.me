@@ -38,6 +38,15 @@ describe('RecallMap', () => {
     expect(screen.getByRole('button', { name: 'Wyoming: 0 recalls' })).toBeTruthy()
   })
 
+  it('carries the tooltip as data-tooltip, never the delayed native title', () => {
+    renderUs()
+    const tile = screen.getByRole('button', { name: 'California: 20 recalls' })
+    // The CSS ::after reads data-tooltip for an instant hover tooltip; a native title would sit
+    // behind the browser's fixed ~1s hover delay (and double-announce for screen readers).
+    expect(tile.getAttribute('data-tooltip')).toBe('California: 20 recalls')
+    expect(tile.hasAttribute('title')).toBe(false)
+  })
+
   it('selects a state on click', () => {
     const onSelect = vi.fn()
     renderUs({ onSelect })

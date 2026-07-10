@@ -68,7 +68,9 @@ export function RecallMap({
               onClick={() => onSelect(active ? '' : tile.code)}
               aria-pressed={active}
               aria-label={`${tile.name}: ${formatNumber(count)} recalls`}
-              title={`${tile.name}: ${formatNumber(count)} recalls`}
+              // CSS tooltip (::after reads this), not the native title attribute — browsers delay
+              // a title by ~1s and that can't be configured; this shows instantly on hover/focus.
+              data-tooltip={`${tile.name}: ${formatNumber(count)} recalls`}
             >
               {tile.code}
             </button>
