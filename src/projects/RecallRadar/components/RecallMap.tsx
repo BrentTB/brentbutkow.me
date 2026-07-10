@@ -26,6 +26,10 @@ function intensity(count: number, max: number): number {
   return count > 0 ? 0.1 + 0.5 * Math.sqrt(count / max) : 0
 }
 
+// Each cell renders wider than tall so a many-row grid (the EU's 9) doesn't swallow the viewport
+// height; square cells put the 9×9 EU map at the full 600px column width in height.
+const TILE_WIDTH_TO_HEIGHT = 1.4
+
 export function RecallMap({
   tiles,
   rows,
@@ -45,6 +49,9 @@ export function RecallMap({
         style={{
           gridTemplateColumns: `repeat(${cols}, 1fr)`,
           gridTemplateRows: `repeat(${rows}, 1fr)`,
+          // Derived per grid (a hardcoded ratio fit only the US layout), times the flattening
+          // factor above so the map stays a panel, not a full-viewport wall.
+          aspectRatio: `${(cols / rows) * TILE_WIDTH_TO_HEIGHT}`,
         }}
         role="group"
         aria-label={ariaLabel}

@@ -6,7 +6,7 @@
   display: grid;
   width: 100%;
   max-width: 600px;
-  aspect-ratio: 11 / 7;
+  // aspect-ratio comes inline from the component, derived from the grid's cols/rows.
   gap: 4px;
 }
 
@@ -56,7 +56,13 @@
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
   background: var(--bg-elevated);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  // The elevated surface is barely lighter than the page, so over busy neighbours (the trend
+  // chart's axis numbers, when an edge tile's bubble overhangs the map) the pill can visually
+  // merge with what it covers. The solid page-colored ring cuts a clean moat around it first;
+  // the soft shadow then only has to suggest depth.
+  box-shadow:
+    0 0 0 5px var(--bg),
+    0 8px 24px rgba(0, 0, 0, 0.45);
   color: var(--text-secondary);
   font-family: var(--font-sans);
   font-size: 0.74rem;
