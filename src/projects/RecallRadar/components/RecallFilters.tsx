@@ -19,6 +19,7 @@ import {
   type RecallFilterValues,
 } from '../recall.types'
 import type { TrendFilters } from '../api'
+import { regionName } from '../region-names'
 import { Combobox } from '../../../components/inputs/Combobox'
 import { Select } from '../../../components/inputs/Select'
 import type { SelectOption } from '../../../components/inputs/option.types'
@@ -29,6 +30,8 @@ type RecallFiltersProps = {
   filters: RecallFilterValues
   country: RecallCountry
   stateOptions: string[]
+  // ISO codes with recalls (EU only — empty elsewhere, which hides the control like stateOptions).
+  affectedCountryOptions: string[]
   // Whether the country has any company data — gates the company type-ahead. Derived from the
   // unfiltered base set in RecallRadar (see the comment there).
   hasCompanies: boolean
@@ -68,6 +71,7 @@ export function RecallFilters({
   filters,
   country,
   stateOptions,
+  affectedCountryOptions,
   hasCompanies,
   facets,
   activeFilters,
@@ -136,6 +140,15 @@ export function RecallFilters({
   if (filters.source)
     chips.push({ key: 'source', label: sourceLabels[filters.source], patch: { source: '' } })
   if (filters.state) chips.push({ key: 'state', label: filters.state, patch: { state: '' } })
+  // Like company below: the chip renders even when the control is hidden (a shared
+  // ?affectedCountry= URL on a non-EU country), so the filter always stays removable.
+  if (filters.affectedCountry)
+    chips.push({
+      key: 'affectedCountry',
+      label: regionName(filters.affectedCountry),
+      remove: 'the affected country',
+      patch: { affectedCountry: '' },
+    })
   // Chip survives even on a company-less country (e.g. a shared ?company= URL on Canada) so the
   // filter stays removable, though `hasCompanies` keeps the type-ahead itself hidden.
   if (filters.company)
@@ -170,6 +183,10 @@ export function RecallFilters({
   const baseSeverity = severityOrder.map((value) => ({ value, label: severityLabels[value] }))
   const baseSource = sourceOptions.map((value) => ({ value, label: sourceLabels[value] }))
   const baseState = stateOptions.map((code) => ({ value: code, label: code }))
+  const baseAffectedCountry = affectedCountryOptions.map((code) => ({
+    value: code,
+    label: regionName(code),
+  }))
 
   const categoryOptions: SelectOption[] = [
     ALL,
@@ -195,6 +212,11 @@ export function RecallFilters({
     baseState,
     facets ? countsOf(facets.state) : null,
     filters.state
+  )
+  const affectedCountryFilterOptions = faceted(
+    baseAffectedCountry,
+    facets?.affectedCountry ? countsOf(facets.affectedCountry) : null,
+    filters.affectedCountry
   )
   return (
     <div className={styles.root} data-expanded={showMore ? 'true' : 'false'}>
@@ -288,6 +310,19 @@ export function RecallFilters({
                 options={stateFilterOptions}
                 onChange={(value) => onChange({ state: value })}
                 placeholder="Search states…"
+              />
+            </div>
+          )}
+
+          {affectedCountryOptions.length > 0 && (
+            <div className={styles.field}>
+              <span className={styles.label}>Country</span>
+              <Combobox
+                ariaLabel="Affected country"
+                value={filters.affectedCountry}
+                options={affectedCountryFilterOptions}
+                onChange={(value) => onChange({ affectedCountry: value })}
+                placeholder="Search countries…"
               />
             </div>
           )}

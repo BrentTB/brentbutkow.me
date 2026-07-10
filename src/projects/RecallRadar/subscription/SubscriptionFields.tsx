@@ -22,7 +22,7 @@ const SEVERITY_OPTIONS: SelectOption[] = [
 
 export const SUBSCRIPTION_DISCLAIMER =
   'Recall alerts are best-effort and sent via a free service. Always treat official agency ' +
-  'channels (FDA, FSIS, FSA, NCC) as the source of truth.'
+  'channels (FDA, FSIS, CFIA, FSA, RASFF, NCC) as the source of truth.'
 
 // Append a trimmed value to a chip list, skipping blanks and case-insensitive duplicates. Returns
 // the same list reference when nothing is added, so callers can skip a no-op state update.

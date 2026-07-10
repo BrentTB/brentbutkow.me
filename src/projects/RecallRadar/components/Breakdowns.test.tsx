@@ -10,6 +10,7 @@ const NO_FILTERS: RecallFilterValues = {
   topic: '',
   event: '',
   state: '',
+  affectedCountry: '',
   company: '',
   source: '',
   entity: '',
@@ -95,5 +96,33 @@ describe('Breakdowns', () => {
       />
     )
     expect(screen.getByText('Top companies')).toBeTruthy()
+  })
+
+  it('shows Top affected countries only when the facet has entries (EU), named not coded', () => {
+    const onSelect = vi.fn()
+    const { unmount } = render(
+      <Breakdowns
+        facets={facets({ affectedCountry: [{ label: 'DE', count: 12 }] })}
+        filters={NO_FILTERS}
+        hasCompanies={false}
+        onSelect={onSelect}
+      />
+    )
+    expect(screen.getByText('Top affected countries')).toBeTruthy()
+    // Rows render the country name but filter by the ISO code the backend expects.
+    fireEvent.click(screen.getByRole('button', { name: /Germany/ }))
+    expect(onSelect).toHaveBeenCalledWith({ affectedCountry: 'DE' })
+    unmount()
+
+    // Absent (a backend predating the facet) or empty → the card hides.
+    render(
+      <Breakdowns
+        facets={facets({})}
+        filters={NO_FILTERS}
+        hasCompanies={false}
+        onSelect={onSelect}
+      />
+    )
+    expect(screen.queryByText('Top affected countries')).toBeNull()
   })
 })

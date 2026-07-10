@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { MemoryRouter, useLocation } from 'react-router-dom'
 import { FunModeProvider } from '../../contexts/FunModeProvider'
 import { RecallRadar } from './RecallRadar'
+import { countryTabLabels } from './data'
 import { emptyFacets } from './test-fixtures'
 
 const stats = {
@@ -192,7 +193,7 @@ describe('RecallRadar page', () => {
     )
 
     expect(screen.getByText('Recall Radar')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'United Kingdom' })).toBeTruthy() // location tabs (expanded)
+    expect(screen.getByRole('button', { name: countryTabLabels.uk })).toBeTruthy() // location tabs (expanded)
 
     // Dashboard tab (the default view) — the data-driven analytics after the fetch resolves.
     await waitFor(() => expect(screen.getByText('US recalls by state')).toBeTruthy())
@@ -296,7 +297,7 @@ describe('RecallRadar page', () => {
 
     // Switching country is a fresh scope — those recall numbers belong to the old feed, so the ?open=
     // param must clear rather than trying to reopen rows that don't exist here.
-    fireEvent.click(screen.getByRole('button', { name: 'United Kingdom' }))
+    fireEvent.click(screen.getByRole('button', { name: countryTabLabels.uk }))
     expect(screen.getByTestId('search').textContent).not.toContain('open=')
   })
 
