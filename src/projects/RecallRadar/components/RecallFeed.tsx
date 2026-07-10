@@ -10,7 +10,7 @@ import {
 } from '../data'
 import { formatDate } from '../chart-format'
 import { recallDetailRoute } from '../api'
-import { regionName } from '../region-names'
+import { euGeographyRows } from '../eu-geography'
 import { SafeLink } from '../../../components/utils/SafeLink'
 import { getLinkArrow } from '../../../components/utils/link-arrow'
 import { RelatedRecalls } from './RelatedRecalls'
@@ -51,19 +51,8 @@ function detailRows(recall: Recall): DetailRow[] {
   rows.push({ term: 'Recall number', value: recall.recallNumber })
   if (recall.status) rows.push({ term: 'Status', value: recall.status })
   if (recall.classification) rows.push({ term: 'Classification', value: recall.classification })
-  // EU/RASFF geography — null on every other source, so these rows appear only for EU recalls.
-  if (recall.notifyingCountry) {
-    rows.push({ term: 'Notified by', value: regionName(recall.notifyingCountry) })
-  }
-  if (recall.originCountries?.length) {
-    rows.push({ term: 'Origin', value: recall.originCountries.map(regionName).join(', ') })
-  }
-  if (recall.distributionCountries?.length) {
-    rows.push({
-      term: 'Distributed to',
-      value: recall.distributionCountries.map(regionName).join(', '),
-    })
-  }
+  // EU/RASFF geography — empty on every other source, so these rows appear only for EU recalls.
+  rows.push(...euGeographyRows(recall))
   if (recall.distributionPattern) {
     rows.push({ term: 'Distribution', value: recall.distributionPattern })
   }

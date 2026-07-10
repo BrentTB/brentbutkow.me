@@ -82,8 +82,8 @@ export const RecallSort = {
 } as const
 export type RecallSort = (typeof RecallSort)[keyof typeof RecallSort]
 
-// A model's severity-class guess for countries that assign none (UK, ZA). Null for US/CA, which
-// carry a real classification. Values double as runtime identifiers.
+// A model's severity-class guess for countries that assign none (UK, ZA, EU). Null for US/CA,
+// which carry a real classification. Values double as runtime identifiers.
 export const PredictedClass = {
   classI: 'Class I',
   notClassI: 'not Class I',
@@ -152,7 +152,7 @@ export type Recall = {
   // 0–1, how unlike its nearest neighbours a recall is (higher = more unusual). Null when there
   // weren't enough neighbours to score.
   noveltyScore?: number | null
-  // Model severity-class guess for UK/ZA (no official class); null for US/CA. Confidence is 0–1.
+  // Model severity-class guess for UK/ZA/EU (no official class); null for US/CA. Confidence is 0–1.
   predictedClass?: PredictedClass | null
   predictedClassConfidence?: number | null
   entities: RecallEntity[]

@@ -151,6 +151,10 @@ const facets = {
   ],
   topicCounts: { '0': 9 }, // theme id 0 (the topics fixture) has matches → it stays visible
   eventCounts: { '0': 5 }, // outbreak id 0 (the events fixture) has matches → it stays visible
+  affectedCountry: [
+    { label: 'IE', count: 5 },
+    { label: 'ES', count: 3 },
+  ],
 }
 
 const mockRes = (body: unknown) => ({ ok: true, status: 200, json: async () => body }) as Response
@@ -238,6 +242,32 @@ describe('RecallRadar page', () => {
       expect.stringContaining('/similar'),
       expect.anything()
     )
+  })
+
+  it('renders the EU country map and writes a clicked country to the URL', async () => {
+    stubApi()
+
+    render(
+      <MemoryRouter initialEntries={['/?location=eu']}>
+        <FunModeProvider>
+          <RecallRadar />
+        </FunModeProvider>
+        <SearchProbe />
+      </MemoryRouter>
+    )
+
+    // The EU scope swaps the US state map for the country cartogram.
+    await waitFor(() =>
+      expect(screen.getByRole('group', { name: 'EU food recalls by country' })).toBeTruthy()
+    )
+    expect(screen.queryByRole('group', { name: 'US food recalls by state' })).toBeNull()
+
+    // Tiles label with display names + counts from the affectedCountry facet; a click filters.
+    fireEvent.click(screen.getByRole('button', { name: 'Ireland: 5 recalls' }))
+    expect(screen.getByTestId('search').textContent).toContain('affectedCountry=IE')
+    // Clicking the active tile again clears the filter.
+    fireEvent.click(screen.getByRole('button', { name: 'Ireland: 5 recalls' }))
+    expect(screen.getByTestId('search').textContent).not.toContain('affectedCountry=')
   })
 
   it('persists expanded feed rows in the ?open= param and restores them from it', async () => {
