@@ -72,6 +72,21 @@
   pointer-events: none;
 }
 
+// Edge columns (data-tooltip-align from the component): grow the bubble inward over the map
+// instead of centering it, so a first/last-column tile's tooltip never overhangs the viewport.
+.tile[data-tooltip-align='start']:hover::after,
+.tile[data-tooltip-align='start']:focus-visible::after {
+  left: 0;
+  transform: none;
+}
+
+.tile[data-tooltip-align='end']:hover::after,
+.tile[data-tooltip-align='end']:focus-visible::after {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
 .empty {
   color: var(--muted);
 }

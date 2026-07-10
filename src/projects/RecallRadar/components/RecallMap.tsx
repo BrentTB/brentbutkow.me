@@ -78,6 +78,9 @@ export function RecallMap({
               // CSS tooltip (::after reads this), not the native title attribute — browsers delay
               // a title by ~1s and that can't be configured; this shows instantly on hover/focus.
               data-tooltip={`${tile.name}: ${formatNumber(count)} recalls`}
+              // Edge columns pin the bubble to the tile's outer edge instead of centering it, so
+              // it grows inward over the map rather than overhanging the page/viewport edge.
+              data-tooltip-align={tile.col === 1 ? 'start' : tile.col === cols ? 'end' : undefined}
             >
               {tile.code}
             </button>
