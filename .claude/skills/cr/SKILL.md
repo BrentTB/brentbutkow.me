@@ -2,8 +2,9 @@
 name: cr
 description: >-
   Code review of all staged changes (committed + staged working-tree) between the current
-  branch and dev. Reads surrounding context for every changed region, then reviews for
-  incomplete propagation, security issues, code quality, and refactoring opportunities.
+  branch and dev. Reads surrounding context for every changed region, then hunts for bugs
+  (with concrete failure scenarios), incomplete propagation, missing/weak tests, security
+  issues, code quality, and refactoring opportunities; runs check/test/knip in parallel.
   Use when the user asks for a code review, CR, or wants a second pair of eyes on their
   staged work before committing or pushing.
 model: opus
@@ -39,8 +40,11 @@ The expensive part (full diffs + surrounding context + grep output) must **not**
   - grep **all of `src/`** for every symbol it changed — consumers may live outside its group or
     outside the diff entirely;
   - apply every category in §3;
-  - return findings only, each as: `severity | title | file:line | why | fix`, plus a `changed symbols:`
-    list and any stale consumers found. No prose, no raw diff.
+  - for every suspected bug, actively try to construct a concrete failure: name the input/state that
+    triggers it and the wrong outcome. Can't construct one after honest effort → downgrade to a note
+    or drop it;
+  - return findings only, each as: `severity | title | file:line | why | failure scenario | fix`,
+    plus a `changed symbols:` list and any stale consumers found. No prose, no raw diff.
 
 ## 1. Establish scope (cheap — runs in the main context)
 
@@ -69,6 +73,22 @@ No committed changes and nothing staged → tell the user there's nothing to rev
 file lists + line counts to pick inline vs fan-out and to group files. Full diffs (`git diff <base> --
 <paths>`, `git diff --cached -- <paths>`) are pulled by whoever reviews — you inline, or each subagent.
 
+## 1b. Run the machines (background, parallel with the review)
+
+Kick these off with `run_in_background` **before** starting §2 — they catch deterministic bug classes
+(type errors, failing tests, cross-file dead code) no amount of reading beats, and they cost nothing
+while you review:
+
+```bash
+npm run check     # tsc + eslint
+npm test          # vitest
+npm run knip      # orphaned files/exports/types
+```
+
+Fold failures into findings with the relevant output quoted (a failing test that touches changed files
+is 🚨; knip hits on changed files are 📝 dead code). Caveat in the report if the working tree has
+unstaged edits — the tools see the tree, not just the staged set.
+
 ## 2. Read surrounding context
 
 A diff hunk in isolation lies. For every changed region, read enough to understand it:
@@ -84,7 +104,10 @@ Read and grep liberally. Thoroughness over speed.
 
 ## 3. Review checklist
 
-Work each category. For every finding cite `file:line` and explain **why** it's a problem, not just **what**.
+Work each category. For every finding cite `file:line` and explain **why** it's a problem, not just
+**what**. **Bug findings (🚨) additionally need a concrete failure scenario** — the input or state
+that triggers it and the wrong outcome ("resize to mobile while paused → listener never re-attached →
+controls dead"). If you can't construct one, it's a ⚠️/📝, not a bug.
 
 ### a. Incomplete propagation
 
@@ -98,6 +121,8 @@ Highest-value — changes in one place that should have rippled elsewhere:
 - **Fun-mode duality**: new content for one mode but not the other. Is there a `subtitle` needing a
   `subtitleFun`? Is new CSS animation scoped to `:global(html.fun-mode) &`?
 - **Paired strings**: a label changed but its `aria-label`, mobile counterpart, or fun-mode twin left stale.
+- **Copy propagation**: counts that need pluralizing ("1 states" shipped), placeholders/hints that
+  enumerate options when the options changed ("…or company" shown for a country with no company filter).
 - **Design tokens**: a color/font hard-coded where the system reads a CSS custom property from `index.scss`.
 - **Game changelog**: if changed files belong to a game subsystem (e.g.
   `src/projects/NullSpace/`), check the game's `data.ts` `CHANGELOG` array and version
@@ -105,6 +130,11 @@ Highest-value — changes in one place that should have rippled elsewhere:
 
 Confirm each finding with a grep before reporting — "searched `src/`, found 3 stale references" is a
 finding; "this might be stale" is a guess.
+
+Then invert it — **review what the diff doesn't contain**. From the change's intent, list the
+surfaces that _should_ have moved (test, changelog entry, copy, aria twin, fun-mode variant, sitemap,
+`data.ts`) and confirm each either changed or provably doesn't need to. Absences are the misses
+reading the diff alone can never surface.
 
 ### b. Security
 
@@ -116,22 +146,58 @@ The site stores no user data today, but still flag:
 - Dependencies with known vulnerabilities (if relevant files changed).
 - Raw `<a href>` to external URLs that should go through `SafeLink`.
 
-### c. Code quality
+### c. Bug hunt — correctness
+
+The highest-value reading is **adversarial**: don't check that the code looks right, try to break it.
+For each changed function/component:
+
+- **Trace one real input end-to-end** through the new code path — actual values, not shapes. Most
+  logic bugs surface in the trace, not the skim.
+- **Boundaries**: empty array, zero, one element, first/last iteration, max/overflow, `undefined`
+  optional fields, string with no match. Check each boundary the change touches.
+- **Async & timing**: missing `await`, unhandled rejection, race with unmount, effect that reads a
+  **stale closure**, `useEffect`/`useCallback`/`useMemo` **deps array vs the values actually used**.
+- **State lifecycle**: does the new field survive init → update → persist → restore? Null Space
+  `GameState` fields must round-trip save→load — a `...state` spread silently drops locally-mutated
+  fields. Old persisted data (localStorage saves) hitting new code needs a guard.
+- **Hot loops**: per-frame allocation in canvas render paths (objects, arrays, gradients, closures
+  created inside the frame) — cache outside the frame.
+- **Behavior matches the label**: walk the real interaction path once in your head — button text,
+  disabled logic, filter semantics. A "Download CV" that navigates, a seen-toggle that leaves the row
+  visible under "Unread" — this class ships repeatedly.
+- **Error/empty/loading states**: what renders when the data isn't there yet, or the fetch fails?
+
+### d. The tests themselves
+
+Changed/added tests are code under review too — and missing tests are the #1 historical miss:
+
+- Bug fix without a **regression test that fails without the fix**? Must-fix.
+- New/changed hook (`useX`), engine module, or interactive component branch without a colocated
+  test extension? Must-fix.
+- Tests asserting **hardcoded copies of constants** instead of importing them — churn trap, flag it.
+- Weakened assertions (deleted expect, broadened matcher, `toBeTruthy` where a value was checked),
+  tests that only prove "doesn't throw".
+
+### e. Code quality
 
 Apply the repo's documented bar (CLAUDE.md):
 
-- **Correctness & logic**: off-by-one, wrong/missing conditionals, async/await handling,
-  error/empty/loading states, edge cases the happy path skips.
-- **Type safety**: no `any`, no casting untrusted data — use type guards like `isJokeType`.
+- **Type safety**: no `any`, no casting untrusted data — use type guards like `isJokeType`. New
+  external input (server JSON, localStorage) gets a bound: length cap, shape check, phase check.
 - **No magic-string union types**: flag any new `type Foo = 'a' | 'b'` — require the `const` object + derived type pattern.
 - **Effect hygiene**: every `useEffect`/`requestAnimationFrame`/listener/timeout must clean up on
   unmount. Missing cleanup is a bug, not a nit.
-- **Hook tests**: every custom hook (`useX`) needs a colocated `*.test.ts`. A new/changed hook without one is a must-fix.
+- **One source of truth**: re-declared config/derived data, or an exported helper re-implemented at a
+  call site — import it instead.
 - **Named exports only**: no `default` exports in new files.
 - **Naming & conventions**: file named after its primary export, content in `data.ts` not JSX, folder-per-component layout.
-- **Comments**: lean, present-tense, explain _why_ not _what_. No "previously…"/"no longer…" narration. No comments that restate the code.
+- **Comments**: lean, present-tense, explain _why_ not _what_. Beyond narration words, check
+  **content drift** — re-read every comment/JSDoc adjacent to a change: does it still describe the
+  code as it now is (params, field lists, ordering)?
+- **a11y beyond lint**: focus trap/restore in dialogs, `prefers-reduced-motion` on new animation,
+  Home/End in composite widgets, `aria-pressed`/focus management consistent with sibling components.
 
-### d. Refactoring opportunities
+### f. Refactoring opportunities
 
 Concrete improvements, not hypothetical future-proofing:
 
@@ -161,10 +227,17 @@ When fanning out, collect all subagents' findings, then:
   `routePaths`/`Router`/Navbar, type fields matched in `data.ts`, props threaded through. This is the
   one place a whole-PR view is needed; connector files are small, so do it here in the main context.
   If a connector file is large, delegate it to one more subagent with the `changed symbols` list.
+- **Verify before reporting**: for every 🚨 (and any ⚠️ you're unsure of), re-read the cited lines in
+  the current source and try to **refute** the finding — is the guard actually there two lines up? Is
+  the "stale consumer" inside a deleted file? A finding that survives an honest refutation attempt
+  gets reported; one that doesn't gets dropped or downgraded. False positives torch the review's
+  credibility as surely as misses.
+- **Collect the machine results** (§1b): read the background outputs of `npm run check`, `npm test`,
+  `npm run knip`; fold failures into findings with output quoted.
 - **Group by severity** for the report.
 
 Don't re-read folder diffs here — work from the returned findings (the integration check reads only
-the connector files' current source, not diffs).
+the connector files' current source, not diffs; the verify pass reads only cited regions).
 
 ## 5. Report
 
@@ -176,6 +249,7 @@ Group findings by severity. Keep each tight: what, where (`file:line`), why, and
 ### 🚨 Critical issues
 - **<title>** — `path/file.tsx:42`
   <1-2 sentences: the problem and why it matters.>
+  Breaks when: <concrete input/state → wrong outcome.>
   Fix: <the concrete change.>
 
 ### ⚠️ Warnings
@@ -188,9 +262,10 @@ Group findings by severity. Keep each tight: what, where (`file:line`), why, and
 <Brief note on what's solid — keep it short.>
 ```
 
-- **🚨 Critical issues**: bugs, missing cleanups, broken propagation, security issues, missing hook tests.
-- **⚠️ Warnings**: code quality issues, convention violations, incomplete fun-mode handling.
-- **📝 Notes**: refactoring, simplification, minor style.
+- **🚨 Critical issues**: bugs (with a failure scenario), failing checks/tests, missing cleanups,
+  broken propagation, security issues, bug fix without a regression test, missing hook/engine tests.
+- **⚠️ Warnings**: code quality issues, convention violations, incomplete fun-mode handling, weak tests.
+- **📝 Notes**: refactoring, simplification, dead code, minor style.
 
 Empty category → say so in one line and move on. Don't manufacture findings. A clean diff gets a short review.
 
@@ -198,7 +273,7 @@ Empty category → say so in one line and move on. Don't manufacture findings. A
 
 After the report, offer to apply fixes — don't apply unprompted:
 
-> Want me to apply these? I can do the 🔴 must-fixes (safe, mechanical), or all of them, or just specific ones — your call.
+> Want me to apply these? I can do the 🚨 critical fixes (safe, mechanical), or all of them, or just specific ones — your call.
 
 When fixing:
 
