@@ -14,6 +14,7 @@ import { FILTER_FIELD_MAP, filtersToPayload, parseValidationErrors } from './sub
 export type SubscriptionFormState = {
   email: string
   countries: RecallCountry[]
+  affectedCountries: string[]
   entities: string[]
   companies: string[]
   categories: RecallCategory[]
@@ -52,6 +53,9 @@ export function useSubscriptionForm(
   const [fields, setFields] = useState<SubscriptionFormState>({
     email: '',
     countries: initialCountries,
+    // Prefill from the dashboard's single affectedCountry filter when the user came from an EU
+    // view already scoped to a country — so "subscribe" carries their current focus over.
+    affectedCountries: initialFilters?.affectedCountry ? [initialFilters.affectedCountry] : [],
     entities: initialFilters?.entity ? [initialFilters.entity] : [],
     companies: initialFilters?.company ? [initialFilters.company] : [],
     categories: initialFilters?.category ? [initialFilters.category as RecallCategory] : [],

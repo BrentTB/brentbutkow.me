@@ -13,6 +13,7 @@ import { SubscriptionAdminOut } from './admin.types'
 export function toFilterFields(subscription: SubscriptionAdminOut): FilterFieldsValue {
   return {
     countries: subscription.countries.filter(isRecallCountry),
+    affectedCountries: subscription.affectedCountries ?? [],
     entities: subscription.entities,
     companies: subscription.companies,
     categories: subscription.categories.filter(isRecallCategory),

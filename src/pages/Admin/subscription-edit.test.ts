@@ -6,7 +6,8 @@ const base: SubscriptionAdminOut = {
   id: '1',
   email: 'a@b.com',
   status: SubscriptionAdminStatus.active,
-  countries: ['us', 'uk'],
+  countries: ['us', 'uk', 'eu'],
+  affectedCountries: ['DE'],
   entities: ['peanut'],
   companies: ['Acme'],
   categories: ['allergen'],
@@ -20,7 +21,8 @@ const base: SubscriptionAdminOut = {
 describe('toFilterFields', () => {
   it('passes through valid values', () => {
     expect(toFilterFields(base)).toEqual({
-      countries: ['us', 'uk'],
+      countries: ['us', 'uk', 'eu'],
+      affectedCountries: ['DE'],
       entities: ['peanut'],
       companies: ['Acme'],
       categories: ['allergen'],

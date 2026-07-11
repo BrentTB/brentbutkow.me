@@ -32,6 +32,7 @@ type SaveState = (typeof SaveState)[keyof typeof SaveState]
 
 const EMPTY: FilterFieldsValue = {
   countries: [],
+  affectedCountries: [],
   entities: [],
   companies: [],
   categories: [],
@@ -48,6 +49,7 @@ function toFields(body: Record<string, unknown>): FilterFieldsValue {
     Array.isArray(v) ? v.filter((item): item is string => typeof item === 'string') : []
   return {
     countries: strings(body.countries).filter(isRecallCountry),
+    affectedCountries: strings(body.affectedCountries),
     entities: strings(body.entities),
     companies: strings(body.companies),
     categories: strings(body.categories).filter(isRecallCategory),

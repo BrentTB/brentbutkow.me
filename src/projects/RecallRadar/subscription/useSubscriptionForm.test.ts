@@ -154,6 +154,33 @@ describe('useSubscriptionForm — validation', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(result.current.status).toBe('success')
   })
+
+  it('sends the chosen EU member-state narrowing in the payload', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(mockRes(null))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { result } = renderHook(() => useSubscriptionForm())
+    act(() => {
+      result.current.setField('email', 'test@example.com')
+      result.current.setField('countries', [RecallCountry.eu])
+      result.current.setField('affectedCountries', ['DE', 'AT'])
+    })
+    await act(async () => {
+      await result.current.submit()
+    })
+
+    const init = fetchMock.mock.calls[0][1] as RequestInit
+    const body = JSON.parse(String(init.body))
+    expect(body.affectedCountries).toEqual(['DE', 'AT'])
+  })
+
+  it('pre-fills the EU narrowing from the dashboard affectedCountry filter', () => {
+    // The hook reads only a handful of optional keys off the dashboard filters; a partial cast
+    // mirrors what a real caller passes without spelling out every RecallFilterValues field.
+    const initial = { affectedCountry: 'DE' } as RecallFilterValues
+    const { result } = renderHook(() => useSubscriptionForm(initial, [RecallCountry.eu]))
+    expect(result.current.fields.affectedCountries).toEqual(['DE'])
+  })
 })
 
 describe('useSubscriptionForm — HTTP response mapping', () => {
