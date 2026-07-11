@@ -613,7 +613,7 @@ export function RecallRadar() {
               {breakdownFacets && (
                 <section id="breakdowns" className={styles.section}>
                   <h2 className={styles.sectionTitle}>Breakdowns</h2>
-                  <p className={styles.hint}>Click any row to filter the recalls below.</p>
+                  <p className={styles.hint}>Click any row to filter the recalls.</p>
                   <Breakdowns
                     facets={breakdownFacets}
                     filters={filters}
@@ -640,8 +640,7 @@ export function RecallRadar() {
                         </HelpHint>
                       </h2>
                       <p className={styles.hint}>
-                        Auto-discovered topics across recall text. Click one to filter the recalls
-                        below.
+                        Auto-discovered topics across recall text. Click one to filter the recalls.
                       </p>
                       <Themes
                         topics={visibleTopics}
@@ -657,7 +656,7 @@ export function RecallRadar() {
                   {breakdownFacets && country === RecallCountry.us && (
                     <section id="map" className={styles.section}>
                       <h2 className={styles.sectionTitle}>{recallRadarCopy.stateMapTitle}</h2>
-                      <p className={styles.hint}>Click a state to filter the recalls below.</p>
+                      <p className={styles.hint}>Click a state to filter the recalls.</p>
                       <RecallMap
                         tiles={stateGrid}
                         rows={STATE_GRID_ROWS}
@@ -675,7 +674,7 @@ export function RecallRadar() {
                       <h2 className={styles.sectionTitle}>{recallRadarCopy.euMapTitle}</h2>
                       <p className={styles.hint}>
                         Countries that raised or received each recall. Click one to filter the
-                        recalls below.
+                        recalls.
                       </p>
                       <RecallMap
                         tiles={euCountryGrid}
