@@ -9,6 +9,7 @@ import {
   isSubscriptionPage,
 } from '../admin.types'
 import { formatDateTime, joinList } from '../admin-format'
+import { subscriptionDetailFields } from '../subscription-detail'
 import { StatusAction, statusActions } from '../subscription-actions'
 import { useAdminContext } from '../useAdminContext'
 import { useAdminResource } from '../useAdminResource'
@@ -86,13 +87,7 @@ function SubscriptionDetail({
     )
   }
 
-  const fields: { label: string; value: string }[] = [
-    { label: 'Entities', value: joinList(subscription.entities) },
-    { label: 'Companies', value: joinList(subscription.companies) },
-    { label: 'Confirmed', value: formatDateTime(subscription.confirmedAt) },
-    { label: 'Updated', value: formatDateTime(subscription.updatedAt) },
-    { label: 'Last digest', value: formatDateTime(subscription.lastDigestAt) },
-  ]
+  const fields = subscriptionDetailFields(subscription)
   const actions = statusActions(subscription.status)
   return (
     <div className={styles.detailBlock}>

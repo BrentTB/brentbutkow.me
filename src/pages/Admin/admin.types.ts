@@ -108,6 +108,7 @@ export type SubscriptionAdminOut = {
   email: string
   status: SubscriptionAdminStatus
   countries: string[]
+  affectedCountries: string[]
   entities: string[]
   companies: string[]
   categories: string[]

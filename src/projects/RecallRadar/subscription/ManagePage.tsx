@@ -4,6 +4,7 @@ import { PageLayout } from '../../../components/PageFormatting/PageLayout'
 import { apiRoutes, apiUrl } from '../../../api/api'
 import { routePaths } from '../../../routes/routes.paths'
 import { isRecallCategory, isRecallCountry, isSeverityLabel } from '../recall.types'
+import { isAffectedCountryCode } from '../eu-country-grid'
 import {
   SUBSCRIPTION_DISCLAIMER,
   SubscriptionFields,
@@ -32,6 +33,7 @@ type SaveState = (typeof SaveState)[keyof typeof SaveState]
 
 const EMPTY: FilterFieldsValue = {
   countries: [],
+  affectedCountries: [],
   entities: [],
   companies: [],
   categories: [],
@@ -48,6 +50,7 @@ function toFields(body: Record<string, unknown>): FilterFieldsValue {
     Array.isArray(v) ? v.filter((item): item is string => typeof item === 'string') : []
   return {
     countries: strings(body.countries).filter(isRecallCountry),
+    affectedCountries: strings(body.affectedCountries).filter(isAffectedCountryCode),
     entities: strings(body.entities),
     companies: strings(body.companies),
     categories: strings(body.categories).filter(isRecallCategory),

@@ -10,6 +10,7 @@ export const SUBSCRIPTION_TOKEN_HEADER = 'X-Subscription-Token'
 // shape is the wire payload shared by the subscribe (POST) and manage (PATCH) endpoints.
 export type FilterPayload = {
   countries: RecallCountry[]
+  affectedCountries: string[]
   entities: string[]
   companies: string[]
   categories: RecallCategory[]
@@ -19,6 +20,8 @@ export type FilterPayload = {
 export function filtersToPayload(value: FilterFieldsValue): FilterPayload {
   return {
     countries: value.countries,
+    // EU-only narrowing; harmless to send when EU isn't selected (the backend ignores it there).
+    affectedCountries: value.affectedCountries,
     entities: value.entities,
     companies: value.companies,
     categories: value.categories,
@@ -30,6 +33,7 @@ export function filtersToPayload(value: FilterFieldsValue): FilterPayload {
 // subscribe form extends this with its own `email` key.
 export const FILTER_FIELD_MAP: Record<string, keyof FilterFieldsValue> = {
   countries: 'countries',
+  affectedCountries: 'affectedCountries',
   entities: 'entities',
   companies: 'companies',
   categories: 'categories',

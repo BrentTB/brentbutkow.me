@@ -4,11 +4,20 @@ import type { SelectOption } from '../../../components/inputs/option.types'
 import { categoryLabels, countryLabels, severityLabels, severityOrder } from '../data'
 import { RecallCategory, RecallCountry, type SeverityLabel } from '../recall.types'
 import type { TrendFilters } from '../api'
+import { euCountryGrid } from '../eu-country-grid'
+import { regionName } from '../region-names'
 import { CompanyFilter } from '../components/CompanyFilter'
 import styles from './subscription.module.scss'
 
 const ALL_COUNTRIES = Object.values(RecallCountry)
 const ALL_CATEGORIES = Object.values(RecallCategory)
+
+// Countries a subscription can narrow the EU feed to, name-sorted — the same tile set the map uses,
+// so the two surfaces never diverge on which countries exist. Follows RASFF, so it's broader than the
+// EU-27: EFTA, the UK, microstates, and the Balkans/east all appear.
+const EU_MEMBER_OPTIONS: SelectOption[] = euCountryGrid
+  .map((tile) => ({ value: tile.code, label: tile.name }))
+  .sort((a, b) => a.label.localeCompare(b.label))
 
 // "Any severity" ('') means no threshold — the matcher treats it the same as the lowest band, so it
 // reads clearer than a literal "Low" default. Levels run low → critical (ascending threshold).
@@ -24,6 +33,11 @@ export const SUBSCRIPTION_DISCLAIMER =
   'Recall alerts are best-effort and sent via a free service. Always treat official agency ' +
   'channels (FDA, FSIS, CFIA, FSA, RASFF, NCC) as the source of truth.'
 
+// Copy for the affected-country narrowing, shared with the admin detail view so the two never drift.
+// "European" not "EU": the options follow RASFF and reach beyond the EU-27 (EFTA, the UK, the Balkans).
+export const AFFECTED_COUNTRIES_LABEL = 'European countries'
+export const AFFECTED_COUNTRIES_ALL = 'All European countries'
+
 // Append a trimmed value to a chip list, skipping blanks and case-insensitive duplicates. Returns
 // the same list reference when nothing is added, so callers can skip a no-op state update.
 const addUnique = (list: string[], raw: string): string[] => {
@@ -36,6 +50,9 @@ const addUnique = (list: string[], raw: string): string[] => {
 // subscribe form, so it is intentionally absent here.
 export type FilterFieldsValue = {
   countries: RecallCountry[]
+  // EU member-state narrowing (ISO alpha-2). Empty = every EU recall. Only meaningful when `eu` is
+  // among `countries`; the backend ignores it otherwise.
+  affectedCountries: string[]
   entities: string[]
   companies: string[]
   categories: RecallCategory[]
@@ -65,13 +82,33 @@ export function SubscriptionFields({
 
   const toggleCountry = (country: RecallCountry) => {
     onCountriesUserChange?.()
-    setField(
-      'countries',
-      value.countries.includes(country)
-        ? value.countries.filter((c) => c !== country)
-        : [...value.countries, country]
-    )
+    const next = value.countries.includes(country)
+      ? value.countries.filter((c) => c !== country)
+      : [...value.countries, country]
+    setField('countries', next)
+    // Dropping EU makes any member-state narrowing meaningless — clear it so a later re-subscribe
+    // to EU starts from "all", and no stale codes linger in the saved criteria.
+    if (country === RecallCountry.eu && !next.includes(RecallCountry.eu)) {
+      setField('affectedCountries', [])
+    }
   }
+
+  const addAffectedCountry = (code: string) => {
+    if (code && !value.affectedCountries.includes(code)) {
+      setField('affectedCountries', [...value.affectedCountries, code])
+    }
+  }
+
+  const removeAffectedCountry = (code: string) =>
+    setField(
+      'affectedCountries',
+      value.affectedCountries.filter((c) => c !== code)
+    )
+
+  // Member states not yet chosen — the Combobox only offers additions.
+  const affectedCountryOptions = EU_MEMBER_OPTIONS.filter(
+    (option) => !value.affectedCountries.includes(option.value)
+  )
 
   const toggleCategory = (category: RecallCategory) => {
     setField(
@@ -128,6 +165,45 @@ export function SubscriptionFields({
         {errors.countries && <span className={styles.fieldError}>{errors.countries}</span>}
       </fieldset>
 
+      {/* The EU feed (RASFF) spans ~40 countries, so let a subscriber narrow to the ones they care
+          about. Only shown once EU is chosen; empty means every EU recall (progressive disclosure
+          keeps the default form simple). */}
+      {value.countries.includes(RecallCountry.eu) && (
+        <div className={styles.field}>
+          <span className={styles.label}>{AFFECTED_COUNTRIES_LABEL}</span>
+          <p className={styles.hint}>
+            Optional. Leave empty for every EU recall, or pick countries to be emailed only recalls
+            that name them — as the notifying country or a destination. Some recalls are attributed
+            to a country only after follow-up.
+          </p>
+          {value.affectedCountries.length > 0 && (
+            <div className={styles.chipRow}>
+              {value.affectedCountries.map((code) => (
+                <span key={code} className={styles.tag}>
+                  {regionName(code)}
+                  <button
+                    type="button"
+                    className={styles.tagRemove}
+                    onClick={() => removeAffectedCountry(code)}
+                    aria-label={`Remove ${regionName(code)}`}
+                  >
+                    ✕
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          <Combobox
+            value=""
+            options={affectedCountryOptions}
+            onChange={addAffectedCountry}
+            ariaLabel="Add a European country"
+            placeholder={value.affectedCountries.length ? 'Add another…' : AFFECTED_COUNTRIES_ALL}
+            widthCh={36}
+          />
+        </div>
+      )}
+
       <div className={styles.field}>
         <span className={styles.label}>Allergens, pathogens & hazards</span>
         {value.entities.length > 0 && (
@@ -141,7 +217,7 @@ export function SubscriptionFields({
                   onClick={() => removeEntity(entity)}
                   aria-label={`Remove ${entity}`}
                 >
-                  ×
+                  ✕
                 </button>
               </span>
             ))}
@@ -176,7 +252,7 @@ export function SubscriptionFields({
                   onClick={() => removeCompany(company)}
                   aria-label={`Remove ${company}`}
                 >
-                  ×
+                  ✕
                 </button>
               </span>
             ))}

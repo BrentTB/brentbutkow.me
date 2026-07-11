@@ -28,6 +28,27 @@ describe('Combobox', () => {
     expect(onChange).toHaveBeenCalledWith('TX')
   })
 
+  it('clears the typed draft after picking, in add-to-a-list mode (value stays "")', () => {
+    // The EU-country picker holds value="" and turns each pick into a chip elsewhere. The input
+    // must reset so the next entry starts clean — not keep the half-typed "n" behind.
+    const input = () => screen.getByRole('combobox', { name: 'State' }) as HTMLInputElement
+
+    // (a) click a suggestion
+    const { rerender } = render(
+      <Combobox value="" options={opts} onChange={vi.fn()} ariaLabel="State" />
+    )
+    fireEvent.change(input(), { target: { value: 'n' } })
+    fireEvent.mouseDown(screen.getByRole('option', { name: 'NY' }))
+    expect(input().value).toBe('')
+
+    // (b) Enter on the highlighted suggestion
+    rerender(<Combobox value="" options={opts} onChange={vi.fn()} ariaLabel="State" />)
+    fireEvent.change(input(), { target: { value: 't' } })
+    fireEvent.keyDown(input(), { key: 'ArrowDown' })
+    fireEvent.keyDown(input(), { key: 'Enter' })
+    expect(input().value).toBe('')
+  })
+
   it('emits the typed query for async loaders and leaves the options to the parent', () => {
     const onInputChange = vi.fn()
     render(
@@ -147,21 +168,53 @@ describe('Combobox', () => {
       return { input, onChange, onBackspaceEmpty }
     }
 
-    it('commits the trimmed draft on Enter and clears the input', () => {
+    it('commits the raw draft on Enter when nothing matches (a new value)', () => {
       const { input, onChange } = chipInput()
       fireEvent.click(input)
-      fireEvent.change(input, { target: { value: '  peanut ' } })
+      fireEvent.change(input, { target: { value: '  peanut ' } }) // no CA/NY/TX match
       fireEvent.keyDown(input, { key: 'Enter' })
       expect(onChange).toHaveBeenCalledWith('peanut')
       expect(input.value).toBe('')
     })
 
-    it('commits the draft on comma', () => {
+    it('snaps to the first matching option on Enter, without arrowing', () => {
+      // Typing and pressing Enter commits the real option instead of the partial draft ("n" → "NY"),
+      // since the options are a known set worth snapping to. No arrow needed.
       const { input, onChange } = chipInput()
       fireEvent.click(input)
-      fireEvent.change(input, { target: { value: 'listeria' } })
+      fireEvent.change(input, { target: { value: 'n' } }) // matches NY
+      fireEvent.keyDown(input, { key: 'Enter' })
+      expect(onChange).toHaveBeenCalledWith('NY')
+      expect(input.value).toBe('')
+    })
+
+    it('Enter matches a substring, not just a prefix, and commits the option value', () => {
+      // Matching is `label.includes(draft)`, so a draft appearing mid-label still snaps to the option
+      // (its value, not the label). Comma is the escape hatch for the literal substring as its own chip.
+      const onChange = vi.fn()
+      render(
+        <Combobox
+          freeText
+          value=""
+          options={[{ value: 'undeclared-milk', label: 'Undeclared milk' }]}
+          onChange={onChange}
+          ariaLabel="Allergen"
+        />
+      )
+      const input = screen.getByRole('combobox', { name: 'Allergen' }) as HTMLInputElement
+      fireEvent.click(input)
+      fireEvent.change(input, { target: { value: 'milk' } })
+      fireEvent.keyDown(input, { key: 'Enter' })
+      expect(onChange).toHaveBeenCalledWith('undeclared-milk')
+      expect(input.value).toBe('')
+    })
+
+    it('comma commits the literal draft even when a suggestion matches (escape hatch)', () => {
+      const { input, onChange } = chipInput()
+      fireEvent.click(input)
+      fireEvent.change(input, { target: { value: 'n' } }) // NY is a suggestion…
       fireEvent.keyDown(input, { key: ',' })
-      expect(onChange).toHaveBeenCalledWith('listeria')
+      expect(onChange).toHaveBeenCalledWith('n') // …but comma keeps the literal
       expect(input.value).toBe('')
     })
 

@@ -31,6 +31,10 @@ const stats = {
     { label: 'CA', count: 18 },
     { label: 'TX', count: 9 },
   ],
+  byAffectedCountry: [
+    { label: 'IE', count: 5 },
+    { label: 'ES', count: 3 },
+  ],
   byCompany: [{ label: 'Globex Foods', count: 14 }],
   bySource: [
     { label: 'fda', count: 30 },
@@ -261,6 +265,9 @@ describe('RecallRadar page', () => {
       expect(screen.getByRole('group', { name: 'EU food recalls by country' })).toBeTruthy()
     )
     expect(screen.queryByRole('group', { name: 'US food recalls by state' })).toBeNull()
+
+    // The status strip resolves the top affected-country code to a name (IE → Ireland), not a code.
+    expect(screen.getByText(/most in/).textContent).toContain('Ireland')
 
     // Tiles label with display names + counts from the affectedCountry facet; a click filters.
     fireEvent.click(screen.getByRole('button', { name: 'Ireland: 5 recalls' }))

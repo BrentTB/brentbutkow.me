@@ -28,6 +28,15 @@
   color: var(--muted);
 }
 
+// A one-line explainer under a label (e.g. the optional EU-country narrowing). Sentence case, not
+// the mono/uppercase label treatment, so it reads as guidance rather than a field name.
+.hint {
+  margin: 0 0 2px;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
 .input {
   background: var(--surface-strong);
   color: var(--text);

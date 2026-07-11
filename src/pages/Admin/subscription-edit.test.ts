@@ -6,7 +6,8 @@ const base: SubscriptionAdminOut = {
   id: '1',
   email: 'a@b.com',
   status: SubscriptionAdminStatus.active,
-  countries: ['us', 'uk'],
+  countries: ['us', 'uk', 'eu'],
+  affectedCountries: ['DE'],
   entities: ['peanut'],
   companies: ['Acme'],
   categories: ['allergen'],
@@ -20,7 +21,8 @@ const base: SubscriptionAdminOut = {
 describe('toFilterFields', () => {
   it('passes through valid values', () => {
     expect(toFilterFields(base)).toEqual({
-      countries: ['us', 'uk'],
+      countries: ['us', 'uk', 'eu'],
+      affectedCountries: ['DE'],
       entities: ['peanut'],
       companies: ['Acme'],
       categories: ['allergen'],
@@ -41,5 +43,16 @@ describe('toFilterFields', () => {
   it('falls back to "any severity" when the stored value is null or unrecognised', () => {
     expect(toFilterFields({ ...base, minSeverity: null }).minSeverity).toBe('')
     expect(toFilterFields({ ...base, minSeverity: 'bogus' }).minSeverity).toBe('')
+  })
+
+  it('drops affected-country codes with no matching tile', () => {
+    const result = toFilterFields({ ...base, affectedCountries: ['DE', 'ZZ', 'russia'] })
+    expect(result.affectedCountries).toEqual(['DE'])
+  })
+
+  it('defaults affectedCountries to [] for a row from before the column existed', () => {
+    const legacy = { ...base } as SubscriptionAdminOut
+    delete (legacy as { affectedCountries?: string[] }).affectedCountries
+    expect(toFilterFields(legacy).affectedCountries).toEqual([])
   })
 })
