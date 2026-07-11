@@ -159,17 +159,25 @@ export function Combobox({
       setOpen(false)
       resetToSelection()
     } else if (freeText && event.key === 'Enter') {
-      // Prefer the highlighted suggestion when you've typed something and the menu shows a match, so
-      // a prefix + Enter autocompletes to a real option ("peanu" → "peanuts") instead of saving the
-      // partial draft — the options are a known set worth snapping to. Falls back to the raw draft
-      // when nothing matches (a genuinely new value). Comma below stays a literal commit, the escape
-      // hatch for adding a value that happens to be a prefix of an existing option.
+      // Prefer a real option when you've typed a matching prefix, so Enter autocompletes ("peanu" →
+      // "peanuts") instead of saving the partial draft — the options are a known set worth snapping
+      // to. Read the live input value and match against the `options` prop directly, not the
+      // `query`/`filtered`/`open` React state: a fast type-then-Enter can fire before that state
+      // commits, which used to drop the first suggestion until you arrowed (which forced a re-render).
+      // An arrowed pick wins; otherwise take the first option containing the draft; else the raw
+      // draft. Comma below stays a literal commit — the escape hatch for a value that's a prefix of
+      // an existing option.
       event.preventDefault()
-      if (query.trim() && open && filtered[activeIndex]) {
-        choose(filtered[activeIndex])
-      } else {
-        commitDraft()
-      }
+      const draft = (inputRef.current?.value ?? '').trim()
+      if (!draft) return
+      const arrowed = navigatedRef.current && filtered[activeIndex] ? filtered[activeIndex] : null
+      const suggestion =
+        arrowed ??
+        options.find((o) => !o.disabled && o.label.toLowerCase().includes(draft.toLowerCase()))
+      onChange(suggestion ? suggestion.value : draft)
+      setQuery('')
+      navigatedRef.current = false
+      setOpen(false)
     } else if (freeText && event.key === ',') {
       event.preventDefault()
       commitDraft()

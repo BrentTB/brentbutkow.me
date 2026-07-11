@@ -181,7 +181,7 @@ export function SubscriptionFields({
                     onClick={() => removeAffectedCountry(code)}
                     aria-label={`Remove ${regionName(code)}`}
                   >
-                    ×
+                    ✕
                   </button>
                 </span>
               ))}
@@ -211,7 +211,7 @@ export function SubscriptionFields({
                   onClick={() => removeEntity(entity)}
                   aria-label={`Remove ${entity}`}
                 >
-                  ×
+                  ✕
                 </button>
               </span>
             ))}
@@ -246,7 +246,7 @@ export function SubscriptionFields({
                   onClick={() => removeCompany(company)}
                   aria-label={`Remove ${company}`}
                 >
-                  ×
+                  ✕
                 </button>
               </span>
             ))}
