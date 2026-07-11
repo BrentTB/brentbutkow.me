@@ -158,15 +158,21 @@ export function Combobox({
     if (event.key === 'Escape') {
       setOpen(false)
       resetToSelection()
-    } else if (freeText && (event.key === 'Enter' || event.key === ',')) {
-      // The draft is the value in chip mode — Enter/comma commit it, unless the user explicitly
-      // arrowed onto a suggestion (then Enter picks that).
+    } else if (freeText && event.key === 'Enter') {
+      // Prefer the highlighted suggestion when you've typed something and the menu shows a match, so
+      // a prefix + Enter autocompletes to a real option ("peanu" → "peanuts") instead of saving the
+      // partial draft — the options are a known set worth snapping to. Falls back to the raw draft
+      // when nothing matches (a genuinely new value). Comma below stays a literal commit, the escape
+      // hatch for adding a value that happens to be a prefix of an existing option.
       event.preventDefault()
-      if (event.key === 'Enter' && navigatedRef.current && open && filtered[activeIndex]) {
+      if (query.trim() && open && filtered[activeIndex]) {
         choose(filtered[activeIndex])
       } else {
         commitDraft()
       }
+    } else if (freeText && event.key === ',') {
+      event.preventDefault()
+      commitDraft()
     } else if (freeText && event.key === 'Backspace' && query === '') {
       onBackspaceEmpty?.()
     } else if (!open && (event.key === 'ArrowDown' || event.key === 'Enter')) {

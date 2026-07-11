@@ -39,6 +39,7 @@ import {
 import { deriveYears, formatNumber, ingestFreshness } from './chart-format'
 import { STATE_GRID_COLS, STATE_GRID_ROWS, stateGrid } from './us-state-grid'
 import { EU_GRID_COLS, EU_GRID_ROWS, euCountryGrid } from './eu-country-grid'
+import { regionName } from './region-names'
 import { anomalyCallouts, deriveCallouts, forecastCallout } from './trend-callouts'
 import { toChartMonths } from './trend-chart'
 import {
@@ -372,9 +373,14 @@ export function RecallRadar() {
   const freshness = stats.data ? ingestFreshness(stats.data.lastIngestAt, new Date()) : null
 
   const topCategory = stats.data?.byCategory.slice().sort((a, b) => b.count - a.count)[0]
-  const topState = stats.data?.byState[0]
   const stateOptions = stats.data?.byState.map((entry) => entry.label) ?? []
   const affectedCountryOptions = stats.data?.byAffectedCountry?.map((entry) => entry.label) ?? []
+  // The region with the most recalls, for the status strip: US shows the state code (CA), EU the
+  // country name (Germany reads clearer than "DE"). Other countries have no geography breakdown.
+  const topRegion =
+    country === RecallCountry.eu
+      ? stats.data?.byAffectedCountry?.[0] && regionName(stats.data.byAffectedCountry[0].label)
+      : stats.data?.byState[0]?.label
   // The map renders wherever the data carries a tile-grid geography: US states, EU countries.
   const showMap = country === RecallCountry.us || country === RecallCountry.eu
   // Base (unfiltered) company presence — Canada's feed carries no firm name. Gates the company
@@ -538,7 +544,7 @@ export function RecallRadar() {
                           ? Math.round((topCategory.count / stats.data.total) * 100)
                           : undefined
                       }
-                      topState={topState?.label}
+                      topRegion={topRegion || undefined}
                       freshness={freshness}
                     />
                     <SeverityBar data={stats.data.bySeverity} />

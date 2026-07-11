@@ -5,18 +5,20 @@ type StatusStripProps = {
   total: number
   topCategoryLabel?: string
   topCategoryPct?: number
-  topState?: string
+  // The region with the most recalls in scope — a US state ("CA") or, for EU, a country
+  // ("Germany"). Already resolved to its display string by the caller.
+  topRegion?: string
   freshness?: { label: string; stale: boolean } | null
 }
 
 // A live-console status line: the running recall count plus the headline facts (leading-cause share,
-// hottest state, sync freshness). Replaces the old four-card grid — same information, a fraction of
-// the vertical weight, and it reads like instrumentation rather than a dashboard of tiles.
+// the region with the most recalls, sync freshness). Replaces the old four-card grid — same
+// information, a fraction of the vertical weight, and it reads like instrumentation, not a dashboard.
 export function StatusStrip({
   total,
   topCategoryLabel,
   topCategoryPct,
-  topState,
+  topRegion,
   freshness,
 }: StatusStripProps) {
   return (
@@ -38,13 +40,13 @@ export function StatusStrip({
           </span>
         </>
       )}
-      {topState && (
+      {topRegion && (
         <>
           <span className={styles.sep} aria-hidden="true">
             /
           </span>
           <span className={styles.item}>
-            hottest <b>{topState}</b>
+            most in <b>{topRegion}</b>
           </span>
         </>
       )}

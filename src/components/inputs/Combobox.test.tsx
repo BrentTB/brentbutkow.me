@@ -168,21 +168,32 @@ describe('Combobox', () => {
       return { input, onChange, onBackspaceEmpty }
     }
 
-    it('commits the trimmed draft on Enter and clears the input', () => {
+    it('commits the raw draft on Enter when nothing matches (a new value)', () => {
       const { input, onChange } = chipInput()
       fireEvent.click(input)
-      fireEvent.change(input, { target: { value: '  peanut ' } })
+      fireEvent.change(input, { target: { value: '  peanut ' } }) // no CA/NY/TX match
       fireEvent.keyDown(input, { key: 'Enter' })
       expect(onChange).toHaveBeenCalledWith('peanut')
       expect(input.value).toBe('')
     })
 
-    it('commits the draft on comma', () => {
+    it('autocompletes to the highlighted suggestion on Enter, without arrowing', () => {
+      // The reported fix: typing a prefix and pressing Enter snaps to the real option instead of
+      // saving the partial ("peanu" → "peanuts"), since the options are a known set.
       const { input, onChange } = chipInput()
       fireEvent.click(input)
-      fireEvent.change(input, { target: { value: 'listeria' } })
+      fireEvent.change(input, { target: { value: 'n' } }) // filters to NY
+      fireEvent.keyDown(input, { key: 'Enter' })
+      expect(onChange).toHaveBeenCalledWith('NY')
+      expect(input.value).toBe('')
+    })
+
+    it('comma commits the literal draft even when a suggestion matches (escape hatch)', () => {
+      const { input, onChange } = chipInput()
+      fireEvent.click(input)
+      fireEvent.change(input, { target: { value: 'n' } }) // NY is a suggestion…
       fireEvent.keyDown(input, { key: ',' })
-      expect(onChange).toHaveBeenCalledWith('listeria')
+      expect(onChange).toHaveBeenCalledWith('n') // …but comma keeps the literal
       expect(input.value).toBe('')
     })
 
