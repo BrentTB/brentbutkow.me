@@ -25,7 +25,7 @@ export const recallRadarCopy = {
   about:
     'A full-stack side project. A Python/FastAPI service ingests food-recall data from the US (FDA openFDA, USDA FSIS), Canada (Canadian Food Inspection Agency), the UK (Food Standards Agency), the EU (Rapid Alert System for Food and Feed), and South Africa (National Consumer Commission) every day, classifies each recall by likely cause, and stores it in Postgres. This React + TypeScript dashboard reads a documented JSON API to explore it. It is built to production standards: typed end to end, tested, migrated with Alembic, rate-limited, and deployed behind a daily ingest job.',
   stateMapTitle: 'US recalls by state',
-  euMapTitle: 'EU recalls by country',
+  euMapTitle: 'European recalls by country',
 }
 
 export const techStack: { area: string; items: string[] }[] = [
@@ -96,7 +96,11 @@ export const countryLabels: Record<RecallCountry, string> = {
   [RecallCountry.ca]: 'Canada',
   [RecallCountry.uk]: 'United Kingdom',
   [RecallCountry.za]: 'South Africa',
-  [RecallCountry.eu]: 'European Union',
+  // The RASFF feed spans more than the EU-27 (UK, EFTA, microstates, Balkans/east), so the region
+  // label is "Europe", not "European Union". The country *code* stays `eu` — renaming it would break
+  // the wire contract (stored subscriptions, ?location=eu). "EU" survives only where it's factual:
+  // RASFF is the EU's system.
+  [RecallCountry.eu]: 'Europe',
 }
 
 // Compact labels for the country tab bar — full names made it overflow at five countries. The
@@ -106,7 +110,7 @@ export const countryTabLabels: Record<RecallCountry, string> = {
   [RecallCountry.ca]: 'Canada',
   [RecallCountry.uk]: 'UK',
   [RecallCountry.za]: 'South Africa',
-  [RecallCountry.eu]: 'EU',
+  [RecallCountry.eu]: 'Europe',
 }
 
 export const entityTypeLabels: Record<EntityType, string> = {

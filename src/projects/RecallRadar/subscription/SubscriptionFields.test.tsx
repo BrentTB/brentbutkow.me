@@ -80,7 +80,7 @@ describe('SubscriptionFields — affected-country narrowing', () => {
       affectedCountries: ['DE'],
     })
     // The checkbox carries the full country name from the config, not the code.
-    fireEvent.click(screen.getByRole('checkbox', { name: /European Union/ }))
+    fireEvent.click(screen.getByRole('checkbox', { name: /Europe/ }))
     // Two setField calls fire; the narrowing one resets affectedCountries to [].
     expect(setField).toHaveBeenCalledWith('affectedCountries', [])
   })

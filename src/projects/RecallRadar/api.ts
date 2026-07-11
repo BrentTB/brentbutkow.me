@@ -1,5 +1,6 @@
 import { apiRoutes } from '../../api/api'
 import { routePaths } from '../../routes/routes.paths'
+import { RecallView } from './recall.types'
 import type {
   RecallCategory,
   RecallClass,
@@ -100,14 +101,19 @@ export function recallDetailRoute(source: RecallSource, recallNumber: string): s
   return `${routePaths.recallRadar}/${encodeURIComponent(source)}/${encodeURIComponent(recallNumber)}`
 }
 
-// In-app route to the dashboard with a single filter preset — the detail page's theme/outbreak
-// chips link here. Includes the country, since themes and events are per-country and the slug only
-// resolves under the right one.
+// In-app route to a single filter preset — the detail page's theme/outbreak chips link here.
+// Lands on the Recalls list (not the dashboard) so you see the members of that theme/outbreak right
+// away rather than the aggregate overview. Includes the country, since themes and events are
+// per-country and the slug only resolves under the right one.
 export function recallRadarFilterRoute(
   country: RecallCountry,
   param: 'topic' | 'event',
   slug: string
 ): string {
-  const query = new URLSearchParams({ location: country, [param]: slug })
+  const query = new URLSearchParams({
+    location: country,
+    view: RecallView.recalls,
+    [param]: slug,
+  })
   return `${routePaths.recallRadar}?${query.toString()}`
 }

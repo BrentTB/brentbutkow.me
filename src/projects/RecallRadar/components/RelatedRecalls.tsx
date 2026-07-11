@@ -42,13 +42,17 @@ export function RelatedRecalls({ source, recallNumber }: RelatedRecallsProps) {
             >
               {recall.productDescription}
             </Link>
-            <span className={styles.sim} title="Text similarity">
-              {Math.round(similarity * 100)}%
+            {/* Grouped so it can drop to its own line under the name on mobile; transparent
+                (display: contents) on desktop, where it lays out inline as before. */}
+            <span className={styles.meta}>
+              <span className={styles.sim} title="Text similarity">
+                {Math.round(similarity * 100)}%
+              </span>
+              <span className={styles.cause}>
+                {`${categoryLabels[recall.category]} - ${severityLabels[recall.severityLabel]}`}
+              </span>
+              <span className={styles.date}>{formatDate(recall.reportDate)}</span>
             </span>
-            <span className={styles.cause}>
-              {`${categoryLabels[recall.category]} - ${severityLabels[recall.severityLabel]}`}
-            </span>
-            <span className={styles.date}>{formatDate(recall.reportDate)}</span>
           </li>
         ))}
       </ul>

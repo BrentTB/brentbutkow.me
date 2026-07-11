@@ -58,6 +58,11 @@ a.product:hover {
   text-decoration: underline;
 }
 
+// Transparent on desktop: the score/cause/date lay out inline in .item exactly as before.
+.meta {
+  display: contents;
+}
+
 .sim {
   flex: 0 0 auto;
   font-family: var(--font-mono);
@@ -91,4 +96,28 @@ a.product:hover {
   border-top: 1px dashed var(--border);
   color: var(--muted);
   font-size: 0.82rem;
+}
+
+// Mobile: one line can't hold the name plus all four metadata fields, so the name shrank to a few
+// characters. Stack instead — severity dot + name on line one, the score/cause/date group on line
+// two, indented to sit under the name. The name keeps its single-line ellipsis (recall titles run
+// long — full UPC lists etc.), it just gets the whole first line to itself now.
+@media (max-width: 600px) {
+  .item {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+
+  .meta {
+    display: flex;
+    flex-basis: 100%;
+    align-items: center;
+    gap: 10px;
+    // Align under the name, clearing the 9px dot + 10px gap on line one.
+    padding-left: 19px;
+  }
+
+  .cause {
+    max-width: none;
+  }
 }

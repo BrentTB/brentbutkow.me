@@ -5,6 +5,7 @@ import {
   buildRecallsPath,
   buildSimilarPath,
   buildTrendPath,
+  recallRadarFilterRoute,
 } from './api'
 import {
   RecallCategory,
@@ -117,6 +118,18 @@ describe('buildSimilarPath', () => {
   it('encodes recall numbers with special characters and defaults the limit', () => {
     expect(buildSimilarPath(RecallSource.usda, '007/2026')).toBe(
       '/recalls/usda/007%2F2026/similar?limit=6'
+    )
+  })
+})
+
+describe('recallRadarFilterRoute', () => {
+  // Theme/outbreak chips land on the Recalls list, not the dashboard, so members show immediately.
+  it('targets the recalls view with the country and filter slug', () => {
+    expect(recallRadarFilterRoute('us', 'event', 'listeria-2026')).toBe(
+      '/projects/recall-radar?location=us&view=recalls&event=listeria-2026'
+    )
+    expect(recallRadarFilterRoute('uk', 'topic', 'allergens')).toBe(
+      '/projects/recall-radar?location=uk&view=recalls&topic=allergens'
     )
   })
 })

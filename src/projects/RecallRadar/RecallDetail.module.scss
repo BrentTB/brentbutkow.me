@@ -16,18 +16,30 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 12px;
+  column-gap: 24px;
+  row-gap: 6px;
   font-family: var(--font-mono);
   font-size: 0.72rem;
   color: var(--muted);
+  // Clips the leading divider of each wrapped row (see below). The row's own content never
+  // overflows, so hidden is safe here.
+  overflow: hidden;
 }
 
-// A faint divider before every meta item except the first (order: category · severity · source ·
-// country · class · date) so they read as distinct fields rather than one run-on line. Its own
-// colour overrides the severity span's tint.
-.metaRow > *:not(:first-child)::before {
+.metaRow > * {
+  position: relative;
+}
+
+// A faint divider centred in the column gap before every meta item (order: category · severity ·
+// source · country · class · date) so they read as distinct fields rather than one run-on line.
+// It's absolutely positioned to the left of each item; the first item of every visual row sits
+// flush at the row's left edge (CSS gap adds no leading space on a wrapped line), so its divider
+// lands at a negative offset and is clipped by the row's overflow — no line ever starts with a
+// bare "|". Its own colour overrides the severity span's tint.
+.metaRow > *::before {
   content: '|';
-  margin-right: 12px;
+  position: absolute;
+  left: -12px;
   color: var(--border-strong);
 }
 

@@ -92,15 +92,16 @@ describe('RecallDetail page', () => {
     expect(screen.getByText('Severe')).toBeTruthy() // severity band
     expect(screen.getByText('Listeria')).toBeTruthy() // entity chip
 
-    // The theme + outbreak the recall belongs to resolve from the per-country lists and link back
-    // to the dashboard with that filter applied (carrying the country, since both are per-country).
+    // The theme + outbreak the recall belongs to resolve from the per-country lists and link to the
+    // Recalls list filtered by that theme/outbreak (carrying the country, since both are per-country)
+    // so members show immediately rather than the dashboard overview.
     const themeChip = await screen.findByText(/Theme · /)
     expect(themeChip.closest('a')?.getAttribute('href')).toBe(
-      '/projects/recall-radar?location=us&topic=listeria-deli'
+      '/projects/recall-radar?location=us&view=recalls&topic=listeria-deli'
     )
     const outbreakChip = await screen.findByText(/Outbreak · /)
     expect(outbreakChip.closest('a')?.getAttribute('href')).toBe(
-      '/projects/recall-radar?location=us&event=listeria-2026-06'
+      '/projects/recall-radar?location=us&view=recalls&event=listeria-2026-06'
     )
   })
 

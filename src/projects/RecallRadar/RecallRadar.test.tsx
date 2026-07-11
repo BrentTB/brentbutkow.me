@@ -262,7 +262,7 @@ describe('RecallRadar page', () => {
 
     // The EU scope swaps the US state map for the country cartogram.
     await waitFor(() =>
-      expect(screen.getByRole('group', { name: 'EU food recalls by country' })).toBeTruthy()
+      expect(screen.getByRole('group', { name: 'European food recalls by country' })).toBeTruthy()
     )
     expect(screen.queryByRole('group', { name: 'US food recalls by state' })).toBeNull()
 
