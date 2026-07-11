@@ -28,6 +28,27 @@ describe('Combobox', () => {
     expect(onChange).toHaveBeenCalledWith('TX')
   })
 
+  it('clears the typed draft after picking, in add-to-a-list mode (value stays "")', () => {
+    // The EU-country picker holds value="" and turns each pick into a chip elsewhere. The input
+    // must reset so the next entry starts clean — not keep the half-typed "n" behind.
+    const input = () => screen.getByRole('combobox', { name: 'State' }) as HTMLInputElement
+
+    // (a) click a suggestion
+    const { rerender } = render(
+      <Combobox value="" options={opts} onChange={vi.fn()} ariaLabel="State" />
+    )
+    fireEvent.change(input(), { target: { value: 'n' } })
+    fireEvent.mouseDown(screen.getByRole('option', { name: 'NY' }))
+    expect(input().value).toBe('')
+
+    // (b) Enter on the highlighted suggestion
+    rerender(<Combobox value="" options={opts} onChange={vi.fn()} ariaLabel="State" />)
+    fireEvent.change(input(), { target: { value: 't' } })
+    fireEvent.keyDown(input(), { key: 'ArrowDown' })
+    fireEvent.keyDown(input(), { key: 'Enter' })
+    expect(input().value).toBe('')
+  })
+
   it('emits the typed query for async loaders and leaves the options to the parent', () => {
     const onInputChange = vi.fn()
     render(

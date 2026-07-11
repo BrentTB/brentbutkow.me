@@ -136,7 +136,12 @@ export function Combobox({
   const choose = (option: SelectOption) => {
     if (option.disabled) return
     onChange(option.value)
-    if (freeText) setQuery('')
+    // Clear the typed draft when the pick isn't a persistent selection: freeText chip mode, or an
+    // "add to a list" combobox whose parent holds `value=""` (each pick becomes a chip elsewhere).
+    // For a normal single-select the `setQuery(selectedLabel)` effect restores the label once
+    // `value` changes; without this, a list-add combobox (value stays "") would keep "Ger" in the
+    // box because selectedLabel never changes.
+    if (freeText || value === '') setQuery('')
     navigatedRef.current = false
     setOpen(false)
   }
