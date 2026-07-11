@@ -177,14 +177,35 @@ describe('Combobox', () => {
       expect(input.value).toBe('')
     })
 
-    it('autocompletes to the highlighted suggestion on Enter, without arrowing', () => {
-      // The reported fix: typing a prefix and pressing Enter snaps to the real option instead of
-      // saving the partial ("peanu" → "peanuts"), since the options are a known set.
+    it('snaps to the first matching option on Enter, without arrowing', () => {
+      // Typing and pressing Enter commits the real option instead of the partial draft ("n" → "NY"),
+      // since the options are a known set worth snapping to. No arrow needed.
       const { input, onChange } = chipInput()
       fireEvent.click(input)
-      fireEvent.change(input, { target: { value: 'n' } }) // filters to NY
+      fireEvent.change(input, { target: { value: 'n' } }) // matches NY
       fireEvent.keyDown(input, { key: 'Enter' })
       expect(onChange).toHaveBeenCalledWith('NY')
+      expect(input.value).toBe('')
+    })
+
+    it('Enter matches a substring, not just a prefix, and commits the option value', () => {
+      // Matching is `label.includes(draft)`, so a draft appearing mid-label still snaps to the option
+      // (its value, not the label). Comma is the escape hatch for the literal substring as its own chip.
+      const onChange = vi.fn()
+      render(
+        <Combobox
+          freeText
+          value=""
+          options={[{ value: 'undeclared-milk', label: 'Undeclared milk' }]}
+          onChange={onChange}
+          ariaLabel="Allergen"
+        />
+      )
+      const input = screen.getByRole('combobox', { name: 'Allergen' }) as HTMLInputElement
+      fireEvent.click(input)
+      fireEvent.change(input, { target: { value: 'milk' } })
+      fireEvent.keyDown(input, { key: 'Enter' })
+      expect(onChange).toHaveBeenCalledWith('undeclared-milk')
       expect(input.value).toBe('')
     })
 

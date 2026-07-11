@@ -12,8 +12,9 @@ import styles from './subscription.module.scss'
 const ALL_COUNTRIES = Object.values(RecallCountry)
 const ALL_CATEGORIES = Object.values(RecallCategory)
 
-// EU member states a subscription can narrow to, name-sorted — the same tile set the EU map uses,
-// so the two surfaces never diverge on which countries exist.
+// Countries a subscription can narrow the EU feed to, name-sorted — the same tile set the map uses,
+// so the two surfaces never diverge on which countries exist. Follows RASFF, so it's broader than the
+// EU-27: EFTA, the UK, microstates, and the Balkans/east all appear.
 const EU_MEMBER_OPTIONS: SelectOption[] = euCountryGrid
   .map((tile) => ({ value: tile.code, label: tile.name }))
   .sort((a, b) => a.label.localeCompare(b.label))
@@ -31,6 +32,11 @@ const SEVERITY_OPTIONS: SelectOption[] = [
 export const SUBSCRIPTION_DISCLAIMER =
   'Recall alerts are best-effort and sent via a free service. Always treat official agency ' +
   'channels (FDA, FSIS, CFIA, FSA, RASFF, NCC) as the source of truth.'
+
+// Copy for the affected-country narrowing, shared with the admin detail view so the two never drift.
+// "European" not "EU": the options follow RASFF and reach beyond the EU-27 (EFTA, the UK, the Balkans).
+export const AFFECTED_COUNTRIES_LABEL = 'European countries'
+export const AFFECTED_COUNTRIES_ALL = 'All European countries'
 
 // Append a trimmed value to a chip list, skipping blanks and case-insensitive duplicates. Returns
 // the same list reference when nothing is added, so callers can skip a no-op state update.
@@ -159,12 +165,12 @@ export function SubscriptionFields({
         {errors.countries && <span className={styles.fieldError}>{errors.countries}</span>}
       </fieldset>
 
-      {/* EU covers ~40 member states in one feed, so let a subscriber narrow to the ones they care
+      {/* The EU feed (RASFF) spans ~40 countries, so let a subscriber narrow to the ones they care
           about. Only shown once EU is chosen; empty means every EU recall (progressive disclosure
           keeps the default form simple). */}
       {value.countries.includes(RecallCountry.eu) && (
         <div className={styles.field}>
-          <span className={styles.label}>EU countries</span>
+          <span className={styles.label}>{AFFECTED_COUNTRIES_LABEL}</span>
           <p className={styles.hint}>
             Optional. Leave empty for every EU recall, or pick countries to be emailed only recalls
             that name them — as the notifying country or a destination. Some recalls are attributed
@@ -191,8 +197,8 @@ export function SubscriptionFields({
             value=""
             options={affectedCountryOptions}
             onChange={addAffectedCountry}
-            ariaLabel="Add an EU country"
-            placeholder={value.affectedCountries.length ? 'Add another…' : 'All EU countries'}
+            ariaLabel="Add a European country"
+            placeholder={value.affectedCountries.length ? 'Add another…' : AFFECTED_COUNTRIES_ALL}
             widthCh={36}
           />
         </div>

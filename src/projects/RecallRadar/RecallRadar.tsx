@@ -376,7 +376,8 @@ export function RecallRadar() {
   const stateOptions = stats.data?.byState.map((entry) => entry.label) ?? []
   const affectedCountryOptions = stats.data?.byAffectedCountry?.map((entry) => entry.label) ?? []
   // The region with the most recalls, for the status strip: US shows the state code (CA), EU the
-  // country name (Germany reads clearer than "DE"). Other countries have no geography breakdown.
+  // country name (Germany reads clearer than "DE"). Non-EU feeds fall back to the state breakdown if
+  // the feed carries one, else nothing.
   const topRegion =
     country === RecallCountry.eu
       ? stats.data?.byAffectedCountry?.[0] && regionName(stats.data.byAffectedCountry[0].label)

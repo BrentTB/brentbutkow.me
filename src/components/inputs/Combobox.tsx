@@ -83,11 +83,14 @@ export function Combobox({
   // Arrow keys signal intent to pick from the list; typing reclaims Enter for the raw draft.
   const navigatedRef = useRef(false)
 
-  // Chip mode: hand the trimmed draft to the parent and clear for the next entry.
+  // Chip mode: hand the trimmed draft to the parent and clear for the next entry. Read the live input
+  // value, not `query` state — a fast type-then-commit (comma/Enter/blur) can fire before that state
+  // commits, which would drop the last character. Closes the menu so all commit paths behave alike.
   const commitDraft = () => {
-    const draft = query.trim()
+    const draft = (inputRef.current?.value ?? '').trim()
     setQuery('')
     navigatedRef.current = false
+    setOpen(false)
     if (draft) onChange(draft)
   }
 
@@ -159,14 +162,12 @@ export function Combobox({
       setOpen(false)
       resetToSelection()
     } else if (freeText && event.key === 'Enter') {
-      // Prefer a real option when you've typed a matching prefix, so Enter autocompletes ("peanu" →
-      // "peanuts") instead of saving the partial draft — the options are a known set worth snapping
-      // to. Read the live input value and match against the `options` prop directly, not the
-      // `query`/`filtered`/`open` React state: a fast type-then-Enter can fire before that state
-      // commits, which used to drop the first suggestion until you arrowed (which forced a re-render).
-      // An arrowed pick wins; otherwise take the first option containing the draft; else the raw
-      // draft. Comma below stays a literal commit — the escape hatch for a value that's a prefix of
-      // an existing option.
+      // Prefer a real option, so Enter autocompletes ("peanu" → "peanuts") instead of saving the
+      // partial draft — the options are a known set worth snapping to. Match against the `options`
+      // prop directly, not the `filtered`/`query` state, which a fast type-then-Enter can outrun. An
+      // arrowed pick wins; otherwise the first option containing the draft; else the raw draft.
+      // `choose` commits the pick and `commitDraft` the raw draft, so Enter/comma/blur stay in sync.
+      // Comma stays a literal commit — the escape hatch for a value that's a substring of an option.
       event.preventDefault()
       const draft = (inputRef.current?.value ?? '').trim()
       if (!draft) return
@@ -174,10 +175,8 @@ export function Combobox({
       const suggestion =
         arrowed ??
         options.find((o) => !o.disabled && o.label.toLowerCase().includes(draft.toLowerCase()))
-      onChange(suggestion ? suggestion.value : draft)
-      setQuery('')
-      navigatedRef.current = false
-      setOpen(false)
+      if (suggestion) choose(suggestion)
+      else commitDraft()
     } else if (freeText && event.key === ',') {
       event.preventDefault()
       commitDraft()
@@ -226,14 +225,7 @@ export function Combobox({
         onClick={() => setOpen(!open)}
         // Chip mode: tabbing/tapping away commits the draft. Picking an option never blurs
         // mid-click — the menu preventDefaults its own mousedown.
-        onBlur={
-          freeText
-            ? () => {
-                commitDraft()
-                setOpen(false)
-              }
-            : undefined
-        }
+        onBlur={freeText ? commitDraft : undefined}
         onKeyDown={onKeyDown}
       />
       {value && (

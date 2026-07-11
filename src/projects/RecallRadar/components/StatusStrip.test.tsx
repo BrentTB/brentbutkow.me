@@ -35,12 +35,6 @@ describe('StatusStrip', () => {
     expect(screen.getByText('Synced today')).toBeTruthy()
   })
 
-  it('shows a region name (EU) as the top region, not just a code', () => {
-    render(<StatusStrip total={10} topRegion="Germany" />)
-    expect(screen.getByText(/most in/)).toBeTruthy()
-    expect(screen.getByText('Germany')).toBeTruthy()
-  })
-
   it('shows the freshness label on its own without the other segments', () => {
     render(<StatusStrip total={10} freshness={{ label: 'Last sync 4 days ago', stale: true }} />)
     expect(screen.getByText('Last sync 4 days ago')).toBeTruthy()

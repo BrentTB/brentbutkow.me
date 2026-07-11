@@ -1,5 +1,9 @@
 import { regionName } from '../../projects/RecallRadar/region-names'
 import { RecallCountry } from '../../projects/RecallRadar/recall.types'
+import {
+  AFFECTED_COUNTRIES_ALL,
+  AFFECTED_COUNTRIES_LABEL,
+} from '../../projects/RecallRadar/subscription/SubscriptionFields'
 import { SubscriptionAdminOut } from './admin.types'
 import { formatDateTime, joinList } from './admin-format'
 
@@ -16,10 +20,10 @@ export function subscriptionDetailFields(subscription: SubscriptionAdminOut): De
     ...(subscription.countries.includes(RecallCountry.eu)
       ? [
           {
-            label: 'EU countries',
+            label: AFFECTED_COUNTRIES_LABEL,
             value: affectedCountries.length
               ? affectedCountries.map(regionName).join(', ')
-              : 'All EU countries',
+              : AFFECTED_COUNTRIES_ALL,
           },
         ]
       : []),

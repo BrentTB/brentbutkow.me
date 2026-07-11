@@ -28,6 +28,12 @@ const tile = (code: string, row: number, col: number): MapTile => ({
   col,
 })
 
+// Country codes a subscription may narrow to — exactly the codes with a tile, so the filter, the map,
+// and any stored value share one source. Rejects a stale or foreign code loaded from the API.
+export function isAffectedCountryCode(code: string): boolean {
+  return affectedCountryCodes.has(code)
+}
+
 export const euCountryGrid: MapTile[] = [
   tile('IS', 1, 1),
   tile('NO', 1, 5),
@@ -74,3 +80,5 @@ export const euCountryGrid: MapTile[] = [
   tile('AL', 9, 6),
   tile('GR', 9, 7),
 ]
+
+const affectedCountryCodes = new Set(euCountryGrid.map((t) => t.code))

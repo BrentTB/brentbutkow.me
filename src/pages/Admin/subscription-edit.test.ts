@@ -44,4 +44,15 @@ describe('toFilterFields', () => {
     expect(toFilterFields({ ...base, minSeverity: null }).minSeverity).toBe('')
     expect(toFilterFields({ ...base, minSeverity: 'bogus' }).minSeverity).toBe('')
   })
+
+  it('drops affected-country codes with no matching tile', () => {
+    const result = toFilterFields({ ...base, affectedCountries: ['DE', 'ZZ', 'russia'] })
+    expect(result.affectedCountries).toEqual(['DE'])
+  })
+
+  it('defaults affectedCountries to [] for a row from before the column existed', () => {
+    const legacy = { ...base } as SubscriptionAdminOut
+    delete (legacy as { affectedCountries?: string[] }).affectedCountries
+    expect(toFilterFields(legacy).affectedCountries).toEqual([])
+  })
 })
