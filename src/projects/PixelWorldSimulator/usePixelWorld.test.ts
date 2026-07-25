@@ -445,6 +445,21 @@ describe('usePixelWorld', () => {
     ).toBeGreaterThan(100)
   })
 
+  it('builds a different world each time the same preset is loaded', () => {
+    const { result, image } = mountSim()
+
+    act(() => result.current.load(Preset.aquarium))
+    frame(0)
+    const first = [...image.data]
+
+    act(() => result.current.load(Preset.aquarium))
+    frame(0)
+
+    // The hook hands the loop's own rng to the builder. Handing over a fresh one, or none, would make every
+    // load land identically, which reads as a stamp rather than a place.
+    expect([...image.data]).not.toEqual(first)
+  })
+
   it('stops the loop on unmount', () => {
     const { unmount } = mountSim()
     frame(MS_PER_TICK)

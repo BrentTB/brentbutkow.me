@@ -128,9 +128,12 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
     clearGrid(gridRef.current)
   }, [])
 
-  const load = useCallback((preset: Preset) => {
-    loadPreset(gridRef.current, preset)
-  }, [])
+  const load = useCallback(
+    (preset: Preset) => {
+      loadPreset(gridRef.current, preset, rng)
+    },
+    [rng]
+  )
 
   const paintStroke = useCallback(
     (from: CellPoint, to: CellPoint, material: MaterialId, radius: number) => {

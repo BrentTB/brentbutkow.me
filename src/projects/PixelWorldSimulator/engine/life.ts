@@ -19,9 +19,33 @@ const CROWDED = 1
 /** What a producer spends to put out a new cell. Its own energy came from light, so it is a cost, not a half. */
 const SPLIT_COST = 12
 
+/**
+ * How often a hunter looks around, and how coarsely. Sight is by far the most expensive thing in the pass:
+ * a bird with a range of 18 reads thirteen hundred cells, and a flock of a thousand of them costs more per
+ * tick than everything else in the sim put together. Looking every fourth tick, at every second cell, is
+ * sixteen times cheaper and still finds anything bigger than a single cell within a few ticks.
+ */
+const SCAN_CHANCE = 0.25
+const SCAN_STEP = 2
+/** Close enough to stop looking: it is already next to something worth chasing. */
+const CLOSE_ENOUGH = 9
+
 // Which ids are alive, and their config, as flat lookups: the pass asks this of every cell it visits.
 const LIFE = MATERIALS.map((material) => material.life)
 const IS_ALIVE = new Uint8Array(MATERIALS.map((material) => (material.life === undefined ? 0 : 1)))
+/**
+ * Who eats what, as a flat table indexed `species * count + material`. The diet was an array, and
+ * `includes` on it ran once per neighbour and once per cell of every hunter's sight.
+ */
+const EATS = new Uint8Array(MATERIALS.length * MATERIALS.length)
+for (const material of MATERIALS) {
+  for (const food of material.life?.diet ?? []) EATS[material.id * MATERIALS.length + food] = 1
+}
+
+/** Whether this species eats that material. */
+function eats(species: number, material: number): boolean {
+  return EATS[species * MATERIALS.length + material] === 1
+}
 
 /**
  * Creatures are single cells: the species is the `MaterialId` and the energy is the cell's `data` byte.
@@ -191,14 +215,9 @@ function eat(grid: Grid, rng: Rng, x: number, y: number, index: number, life: Li
   if (grid.data[index] >= life.breedAt) return false
   if (!rng.chance(life.feedChance)) return false
 
+  const species = grid.material[index]
   const start = Math.floor(rng.next() * NEIGHBOURS.length)
-  const meal = pickNeighbour(
-    grid,
-    x,
-    y,
-    (material) => life.diet.includes(material as MaterialId),
-    start
-  )
+  const meal = pickNeighbour(grid, x, y, (material) => eats(species, material), start)
   if (meal < 0) return false
 
   // A bite, not a swallow. Living food loses energy and dies only when there is nothing left in it, so a
@@ -270,8 +289,10 @@ function breed(grid: Grid, rng: Rng, x: number, y: number, index: number, life: 
 function roam(grid: Grid, rng: Rng, x: number, y: number, index: number, life: Life): void {
   // Only look for food while there is room for a meal. A full creature scanning its whole range every tick
   // is the most expensive thing in the pass and buys nothing.
+  // Looking around is rationed: see SCAN_CHANCE.
   const hungry = grid.data[index] < life.breedAt
-  const toward = life.hunts === undefined || !hungry ? null : sightOf(grid, x, y, life)
+  const looks = life.hunts !== undefined && hungry && rng.chance(SCAN_CHANCE)
+  const toward = looks ? sightOf(grid, x, y, index, life) : null
 
   if (toward !== null) {
     const stepped = tryStep(grid, index, x, y, toward.dx, toward.dy, life)
@@ -325,28 +346,44 @@ function ownNeighbours(grid: Grid, x: number, y: number): number {
 }
 
 /** The direction of the nearest thing on the menu, or null when nothing is in range. */
-function sightOf(grid: Grid, x: number, y: number, life: Life): { dx: number; dy: number } | null {
+function sightOf(
+  grid: Grid,
+  x: number,
+  y: number,
+  index: number,
+  life: Life
+): { dx: number; dy: number } | null {
   const reach = life.hunts ?? 0
+  const species = grid.material[index]
+  const top = Math.max(0, y - reach)
+  const bottom = Math.min(grid.height - 1, y + reach)
+  const leftmost = Math.max(0, x - reach)
+  const rightmost = Math.min(grid.width - 1, x + reach)
+
   let best = -1
-  let toward: { dx: number; dy: number } | null = null
+  let towardX = 0
+  let towardY = 0
 
-  for (let dy = -reach; dy <= reach; dy++) {
-    for (let dx = -reach; dx <= reach; dx++) {
-      const nx = x + dx
-      const ny = y + dy
-      if (nx < 0 || nx >= grid.width || ny < 0 || ny >= grid.height) continue
+  // Rows and columns are walked in strides, and the bounds are clamped once rather than tested per cell.
+  for (let ny = top; ny <= bottom; ny += SCAN_STEP) {
+    const row = ny * grid.width
+    for (let nx = leftmost; nx <= rightmost; nx += SCAN_STEP) {
+      if (!eats(species, grid.material[row + nx])) continue
 
-      const material = grid.material[cellIndex(grid, nx, ny)]
-      if (!life.diet.includes(material as MaterialId)) continue
-
+      const dx = nx - x
+      const dy = ny - y
       const distance = dx * dx + dy * dy
       if (best >= 0 && distance >= best) continue
+
       best = distance
-      toward = { dx: Math.sign(dx), dy: Math.sign(dy) }
+      towardX = Math.sign(dx)
+      towardY = Math.sign(dy)
+      // Something this close is worth chasing without reading the rest of the range.
+      if (distance <= CLOSE_ENOUGH) return { dx: towardX, dy: towardY }
     }
   }
 
-  return toward
+  return best < 0 ? null : { dx: towardX, dy: towardY }
 }
 
 /**

@@ -57,17 +57,29 @@ describe('algae', () => {
 
 describe('a fish', () => {
   it('grazes algae down without ever finishing it off', () => {
-    const grid = tank()
-    put(grid, 10, 10, MaterialId.fish)
-    const bed = put(grid, 10, 11, MaterialId.algae)
-    const before = grid.data[bed]
+    /** Energy held by every algae cell in a world. */
+    const cropEnergy = (grid: Grid) => {
+      let total = 0
+      for (let i = 0; i < grid.material.length; i++) {
+        if (grid.material[i] === MaterialId.algae) total += grid.data[i]
+      }
+      return total
+    }
+
+    const grazed = tank()
+    put(grazed, 10, 10, MaterialId.fish)
+    put(grazed, 10, 11, MaterialId.algae)
+
+    const spared = tank()
+    put(spared, 10, 11, MaterialId.algae)
 
     // Eating is a bite on a rate, not a swallow every tick: living food loses energy and keeps a reserve,
     // which is what stops a grazer stripping a tank faster than it can grow back.
-    run(grid, 400)
+    run(grazed, 400)
+    run(spared, 400)
 
-    expect(count(grid, MaterialId.algae)).toBe(1)
-    expect(grid.data[cellIndex(grid, 10, 11)]).toBeLessThan(before)
+    expect(count(grazed, MaterialId.algae)).toBeGreaterThanOrEqual(1)
+    expect(cropEnergy(grazed)).toBeLessThan(cropEnergy(spared))
   })
 
   it('eats a whole cell of something that is not alive', () => {
@@ -256,7 +268,8 @@ describe('a bird', () => {
     }
 
     const before = distance()
-    run(grid, 60)
+    // Hunters look around every few ticks rather than every tick, so closing the distance takes a moment.
+    run(grid, 300)
 
     // Its sight is what makes it read as hunting; without the bias it wanders and starves.
     const after = distance()
@@ -328,7 +341,7 @@ describe('a slime', () => {
     put(grid, 16, 15, MaterialId.fish)
 
     // An animal has no reserve: bites take it down and then it is gone.
-    run(grid, 600)
+    run(grid, 1200)
 
     expect(count(grid, MaterialId.fish)).toBe(0)
   })

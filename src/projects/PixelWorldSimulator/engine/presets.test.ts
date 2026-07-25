@@ -12,22 +12,22 @@ function count(grid: Grid, material: MaterialId): number {
   return total
 }
 
-function built(): Grid {
+function built(seed = 1): Grid {
   const grid = createGrid(GRID_WIDTH, GRID_HEIGHT)
-  loadPreset(grid, Preset.aquarium)
+  loadPreset(grid, Preset.aquarium, createRng(seed))
   return grid
 }
 
-function builtWild(): Grid {
+function builtWild(seed = 1): Grid {
   const grid = createGrid(GRID_WIDTH, GRID_HEIGHT)
-  loadPreset(grid, Preset.wild)
+  loadPreset(grid, Preset.wild, createRng(seed))
   return grid
 }
 
 /** The same tank at a size a test can afford to run for thousands of ticks. */
 function smallTank(): Grid {
   const grid = createGrid(100, 64)
-  loadPreset(grid, Preset.aquarium)
+  loadPreset(grid, Preset.aquarium, createRng(1))
   return grid
 }
 
@@ -71,14 +71,22 @@ describe('the aquarium preset', () => {
     const grid = createGrid(GRID_WIDTH, GRID_HEIGHT)
     placeMaterial(grid, cellIndex(grid, 2, 2), MaterialId.lava)
 
-    loadPreset(grid, Preset.aquarium)
+    loadPreset(grid, Preset.aquarium, createRng(1))
 
     expect(count(grid, MaterialId.lava)).toBe(0)
   })
 
+  it('comes out different every time it is loaded', () => {
+    const first = built(1)
+    const second = built(2)
+
+    // A preset that lands identically every time reads as a stamp rather than a place.
+    expect([...second.material]).not.toEqual([...first.material])
+  })
+
   it('fits inside whatever size of world it is given', () => {
     const small = createGrid(60, 40)
-    loadPreset(small, Preset.aquarium)
+    loadPreset(small, Preset.aquarium, createRng(1))
 
     expect(count(small, MaterialId.water)).toBeGreaterThan(50)
     expect(count(small, MaterialId.fish)).toBe(5)
@@ -122,7 +130,7 @@ describe('the wild preset', () => {
 
   it('has water that stays in its pond', () => {
     const grid = createGrid(120, 80)
-    loadPreset(grid, Preset.wild)
+    loadPreset(grid, Preset.wild, createRng(1))
     const before = count(grid, MaterialId.water)
 
     soak(grid, 400)
@@ -133,7 +141,7 @@ describe('the wild preset', () => {
 
   it('still has a world going a while later', { timeout: 20_000 }, () => {
     const grid = createGrid(120, 80)
-    loadPreset(grid, Preset.wild)
+    loadPreset(grid, Preset.wild, createRng(1))
 
     soak(grid, 2000)
 
@@ -142,5 +150,23 @@ describe('the wild preset', () => {
     expect(count(grid, MaterialId.plant)).toBeGreaterThan(0)
     expect(count(grid, MaterialId.worm)).toBeGreaterThan(0)
     expect(count(grid, MaterialId.water)).toBeGreaterThan(50)
+  })
+
+  it('builds a landscape rather than a set of boxes', () => {
+    const grid = builtWild()
+
+    // The ground line has to actually vary, and there should be wood in the world: a flat horizon with
+    // nothing standing on it was the complaint that produced all of this.
+    const surface = new Set<number>()
+    for (let x = 0; x < grid.width; x += 4) {
+      for (let y = 0; y < grid.height; y++) {
+        if (grid.material[cellIndex(grid, x, y)] === MaterialId.empty) continue
+        surface.add(y)
+        break
+      }
+    }
+
+    expect(surface.size).toBeGreaterThan(3)
+    expect(count(grid, MaterialId.wood)).toBeGreaterThan(10)
   })
 })

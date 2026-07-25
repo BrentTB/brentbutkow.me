@@ -1,5 +1,6 @@
 import { Grid, MaterialId } from '../pixel-world.types'
 import { cellIndex, clearGrid, placeMaterial } from './grid'
+import { Rng } from './rng'
 
 export const Preset = {
   aquarium: 'aquarium',
@@ -23,11 +24,69 @@ function fill(
   }
 }
 
+function put(grid: Grid, x: number, y: number, material: MaterialId): void {
+  if (x < 0 || x >= grid.width || y < 0 || y >= grid.height) return
+  placeMaterial(grid, cellIndex(grid, x, y), material)
+}
+
 /**
- * A stone tank of water with a bed of algae and a few fish: the food chain running on its own, without
- * anyone having to draw a tank first. Sized as a share of the grid so it fits whatever the world is.
+ * A run of surface heights: two slow waves plus a little jitter. Dead straight lines are what make a built
+ * world look built, and a couple of sines is the cheapest way to stop that.
  */
-function aquarium(grid: Grid): void {
+function surfaceLine(width: number, base: number, swell: number, rng: Rng): number[] {
+  const phase = rng.next() * Math.PI * 2
+  const second = rng.next() * Math.PI * 2
+
+  return Array.from({ length: width }, (_, x) => {
+    const slow = Math.sin(phase + (x / width) * Math.PI * 3) * swell
+    const fast = Math.sin(second + (x / width) * Math.PI * 11) * (swell * 0.35)
+    const grain = rng.next() < 0.25 ? 1 : 0
+    return Math.round(base + slow + fast + grain)
+  })
+}
+
+/** A rough blob, wider than it is tall, for rocks and boulders. */
+function boulder(
+  grid: Grid,
+  cx: number,
+  cy: number,
+  radius: number,
+  rng: Rng,
+  material: MaterialId
+): void {
+  for (let dy = -radius; dy <= radius; dy++) {
+    for (let dx = -radius - 1; dx <= radius + 1; dx++) {
+      const reach = (dx * dx) / ((radius + 1) * (radius + 1)) + (dy * dy) / (radius * radius)
+      if (reach > 1 + (rng.next() - 0.5) * 0.4) continue
+      put(grid, cx + dx, cy + dy, material)
+    }
+  }
+}
+
+/** A trunk of wood with a ragged canopy of plant over it. */
+function tree(grid: Grid, x: number, groundY: number, height: number, rng: Rng): void {
+  for (let i = 0; i < height; i++) {
+    put(grid, x, groundY - i, MaterialId.wood)
+    // A slight lean near the top, so no two trees look stamped from the same mould.
+    if (i > height * 0.6 && rng.next() < 0.4) put(grid, x + 1, groundY - i, MaterialId.wood)
+  }
+
+  const crown = groundY - height
+  const spread = Math.max(2, Math.round(height * 0.45))
+  for (let dy = -spread; dy <= spread; dy++) {
+    for (let dx = -spread - 1; dx <= spread + 1; dx++) {
+      const reach = (dx * dx) / ((spread + 1) * (spread + 1)) + (dy * dy) / (spread * spread)
+      if (reach > 1 - rng.next() * 0.35) continue
+      put(grid, x + dx, crown + dy, MaterialId.plant)
+    }
+  }
+}
+
+/**
+ * A tank of water with a bed of algae and a few fish: the food chain running on its own, without anyone
+ * having to draw a tank first. Sized as a share of the grid so it fits whatever the world is.
+ */
+function aquarium(grid: Grid, rng: Rng): void {
   const { width, height } = grid
   const left = Math.floor(width * 0.1)
   const right = width - left
@@ -40,98 +99,152 @@ function aquarium(grid: Grid): void {
   fill(grid, right - wall, surface, right, floor, MaterialId.stone)
   fill(grid, left + wall + 1, surface + 2, right - wall - 1, floor - 1, MaterialId.water)
 
-  // Sand and a few rocks, so the tank has a bottom rather than a line.
-  fill(grid, left + wall + 1, floor - 3, right - wall - 1, floor - 1, MaterialId.sand)
-  for (let i = 1; i <= 3; i++) {
-    const rock = left + Math.floor(((right - left) * i) / 4)
-    fill(grid, rock - 3, floor - 6, rock + 3, floor - 4, MaterialId.stone)
+  // A sand bed that rises and falls, with gravel showing through here and there.
+  const bed = surfaceLine(width, floor - 3, Math.max(2, height * 0.02), rng)
+  for (let x = left + wall + 1; x < right - wall; x++) {
+    fill(grid, x, bed[x], x, floor - 1, MaterialId.sand)
+    if (rng.next() < 0.12) put(grid, x, bed[x], MaterialId.gravel)
   }
 
-  // A bed along the bottom, spaced out: algae only divides where it has room, so a solid row would sit
-  // there doing nothing.
-  for (let x = left + wall + 3; x < right - wall - 3; x += 4) {
-    placeMaterial(grid, cellIndex(grid, x, floor - 4), MaterialId.algae)
+  // Boulders of a few sizes, sunk into the sand rather than sitting on top of it in a row.
+  const rocks = 3 + Math.floor(rng.next() * 3)
+  for (let i = 0; i < rocks; i++) {
+    const x = left + wall + 4 + Math.floor(rng.next() * Math.max(1, right - left - wall * 2 - 8))
+    boulder(grid, x, bed[x] + 1, 2 + Math.floor(rng.next() * 3), rng, MaterialId.stone)
   }
 
-  // Fish start near the bed, not adrift in open water: they have to be able to find their first meal.
+  // Weed in clumps: algae only divides where it has room, so a solid row would sit there doing nothing.
+  for (let x = left + wall + 3; x < right - wall - 3; x += 3 + Math.floor(rng.next() * 4)) {
+    const clump = 1 + Math.floor(rng.next() * 3)
+    for (let i = 0; i < clump; i++) put(grid, x, bed[x] - 1 - i * 2, MaterialId.algae)
+  }
+
   const shoal = Math.floor((right - left) / 6)
   for (let i = 1; i <= 5; i++) {
-    placeMaterial(grid, cellIndex(grid, left + shoal * i, floor - 8), MaterialId.fish)
+    put(grid, left + shoal * i, floor - 8 - Math.floor(rng.next() * 6), MaterialId.fish)
   }
 }
 
 /**
- * Open country with a pond sunk into it: soil to burrow through, plants to graze, bugs on the ground, worms
- * under it and birds over the top, with fish and algae in the water. The two halves share the same world on
+ * Open country with a pond dug into it: soil to burrow through, grass to graze, bugs on the ground, worms
+ * under it and birds over the top, with fish and algae in the water. The two halves share one world on
  * purpose — the sky is wasted space in a tank, and the pond gives the birds something to dive at.
  */
-function wild(grid: Grid): void {
+function wild(grid: Grid, rng: Rng): void {
   const { width, height } = grid
-  const ground = Math.floor(height * 0.62)
+  const base = Math.floor(height * 0.62)
   const bedrock = height - Math.floor(height * 0.08)
   const pond = { left: Math.floor(width * 0.55), right: Math.floor(width * 0.88) }
-  const pondFloor = bedrock - 3
+  const depth = Math.floor((bedrock - base) * 0.7)
+
+  const ground = surfaceLine(width, base, Math.max(2, height * 0.045), rng)
 
   fill(grid, 0, bedrock, width - 1, height - 1, MaterialId.stone)
-  fill(grid, 0, ground, width - 1, bedrock - 1, MaterialId.dirt)
-  // A sandy stretch on the left, which is where the worms show up best against the dirt.
-  fill(grid, 0, ground, Math.floor(width * 0.22), ground + 4, MaterialId.sand)
-  // Grass: a band of plant across the land, which is the only food a bug can reach. Shoots along the pond
-  // edge grow into the water instead, where something that walks on surfaces cannot follow. Mud is not an
-  // option here either, because mud is a liquid: a damp field flowed over the bugs and suffocated them.
-  fill(grid, Math.floor(width * 0.24), ground - 1, pond.left - 2, ground + 1, MaterialId.plant)
+  for (let x = 0; x < width; x++) fill(grid, x, ground[x], x, bedrock - 1, MaterialId.dirt)
 
-  // The pond: a dip in the ground, lined with stone. Bare dirt drinks a pond dry — every cell it touches
-  // turns to mud and takes the water with it — so a rocky pool is the only kind that lasts.
-  fill(grid, pond.left, ground, pond.right, pondFloor + 2, MaterialId.stone)
-  fill(grid, pond.left + 2, ground, pond.right - 2, pondFloor, MaterialId.empty)
-  fill(grid, pond.left + 2, ground + 2, pond.right - 2, pondFloor, MaterialId.water)
+  // A sandy stretch on the left, following the surface rather than cutting across it.
+  const sandTo = Math.floor(width * 0.22)
+  for (let x = 0; x < sandTo; x++) fill(grid, x, ground[x], x, ground[x] + 3, MaterialId.sand)
 
-  // Plants along the water's edge, where they can actually spread: a plant only grows against water, so a
-  // row of them out on dry ground is a fixed number of meals and then a field of starved bugs.
-  for (let y = ground + 1; y < pondFloor - 1; y += 3) {
-    placeMaterial(grid, cellIndex(grid, pond.left - 1, y), MaterialId.plant)
-    placeMaterial(grid, cellIndex(grid, pond.right + 1, y), MaterialId.plant)
+  // The pond, dug as a bowl and lined with stone. Bare dirt drinks a pond dry, since every cell it touches
+  // turns to mud and takes the water with it, so a rocky pool is the only kind that lasts.
+  const middle = (pond.left + pond.right) / 2
+  const halfWidth = (pond.right - pond.left) / 2
+  const bowl: number[] = []
+  for (let x = pond.left; x <= pond.right; x++) {
+    const across = (x - middle) / halfWidth
+    const dip = Math.round(depth * Math.sqrt(Math.max(0, 1 - across * across)))
+    bowl[x] = ground[x] + dip
+    if (dip <= 1) continue
+
+    fill(grid, x, ground[x], x, bowl[x] + 2, MaterialId.stone)
+    fill(grid, x, ground[x], x, bowl[x] - 1, MaterialId.empty)
+    fill(grid, x, ground[x] + 2, x, bowl[x] - 1, MaterialId.water)
   }
-  // A spring buried under the field, with a drop of water beside it to teach it what to make. A source
-  // produces forever, so the field stays damp: wet soil is the only thing grass can grow into, and without
-  // it the lawn is a fixed number of meals and the bugs starve on bare dirt within a minute.
-  const spring = cellIndex(grid, Math.floor(width * 0.38), ground + 3)
-  placeMaterial(grid, spring, MaterialId.source)
-  placeMaterial(grid, spring + 1, MaterialId.water)
 
-  for (let x = pond.left + 4; x < pond.right - 4; x += 5) {
-    placeMaterial(grid, cellIndex(grid, x, pondFloor - 1), MaterialId.algae)
+  // Seal the basin: any soil left touching the water is a leak, because dirt turns to mud and takes the
+  // water with it. The bowl's shallow ends are where that shows up, so it is done by inspection rather than
+  // by trusting the shape.
+  for (let x = pond.left - 1; x <= pond.right + 1; x++) {
+    for (let y = ground[Math.max(0, Math.min(width - 1, x))] - 1; y <= bedrock; y++) {
+      if (x < 0 || x >= width || y < 0 || y >= height) continue
+      if (grid.material[cellIndex(grid, x, y)] !== MaterialId.water) continue
+
+      for (const [dx, dy] of [
+        [-1, 0],
+        [1, 0],
+        [0, -1],
+        [0, 1],
+      ]) {
+        const nx = x + dx
+        const ny = y + dy
+        if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue
+        const beside = grid.material[cellIndex(grid, nx, ny)]
+        if (beside === MaterialId.dirt || beside === MaterialId.sand) {
+          put(grid, nx, ny, MaterialId.stone)
+        }
+      }
+    }
+  }
+
+  // Grass on the land: a ragged band, which is the only food a bug can reach. Shoots along the pond edge
+  // grow into the water instead, where something that walks on surfaces cannot follow.
+  for (let x = Math.floor(width * 0.24); x < pond.left - 2; x++) {
+    const tufts = 1 + (rng.next() < 0.5 ? 1 : 0) + (rng.next() < 0.2 ? 1 : 0)
+    for (let i = 0; i < tufts; i++) put(grid, x, ground[x] - i, MaterialId.plant)
+  }
+
+  // A spring buried under the field, with a drop of water beside it to teach it what to make. A source
+  // produces forever, so the field stays damp: wet soil is the only thing grass can grow into, and a lawn
+  // with nothing under it is a fixed number of meals.
+  const springAt = Math.floor(width * 0.38)
+  put(grid, springAt, ground[springAt] + 4, MaterialId.source)
+  put(grid, springAt + 1, ground[springAt] + 4, MaterialId.water)
+
+  // Trees on the dry side, with boulders scattered between them.
+  const trees = 2 + Math.floor(rng.next() * 2)
+  for (let i = 0; i < trees; i++) {
+    const x = Math.floor(width * (0.26 + rng.next() * 0.24))
+    tree(grid, x, ground[x] - 1, Math.max(6, Math.floor(height * (0.1 + rng.next() * 0.07))), rng)
+  }
+  for (let i = 0; i < 4; i++) {
+    const x = 4 + Math.floor(rng.next() * Math.max(1, pond.left - 10))
+    boulder(grid, x, ground[x] + 1, 1 + Math.floor(rng.next() * 3), rng, MaterialId.stone)
+  }
+
+  for (let x = pond.left + 6; x < pond.right - 6; x += 4 + Math.floor(rng.next() * 4)) {
+    if (bowl[x] !== undefined) put(grid, x, bowl[x] - 1, MaterialId.algae)
   }
   // A few more fish than feels necessary: the ones that wander to the surface get picked off by the birds,
   // and a pond that empties in the first minute is not much of a pond.
   for (let i = 1; i <= 6; i++) {
     const x = pond.left + Math.floor(((pond.right - pond.left) * i) / 7)
-    placeMaterial(grid, cellIndex(grid, x, pondFloor - 3), MaterialId.fish)
+    if (bowl[x] !== undefined) put(grid, x, bowl[x] - 2, MaterialId.fish)
   }
 
-  // Worms inside the soil, bugs on top of it, birds above everything.
+  // Worms inside the soil, bugs along the grass, birds low enough to see the ground: seeded anywhere else
+  // they starve a few cells from a meal.
   for (let i = 1; i <= 5; i++) {
-    placeMaterial(grid, cellIndex(grid, Math.floor((width * i) / 12), ground + 6), MaterialId.worm)
+    const x = Math.floor((width * i) / 12)
+    put(grid, x, ground[x] + 5 + Math.floor(rng.next() * 4), MaterialId.worm)
   }
-  // Bugs go along the damp field where the plants are, birds start low enough to see the ground: both
-  // starve otherwise, a few cells from a meal.
   for (let x = Math.floor(width * 0.27); x < pond.left - 4; x += 6) {
-    placeMaterial(grid, cellIndex(grid, x, ground - 1), MaterialId.bug)
+    put(grid, x, ground[x] - 3, MaterialId.bug)
   }
   // Two, not a flock: three cleared the bugs and the pond inside a minute.
   for (let i = 1; i <= 2; i++) {
-    placeMaterial(grid, cellIndex(grid, Math.floor((width * i) / 3), ground - 10), MaterialId.bird)
+    const x = Math.floor((width * i) / 3)
+    put(grid, x, ground[x] - 10 - Math.floor(rng.next() * 8), MaterialId.bird)
   }
 }
 
-const BUILDERS: Record<Preset, (grid: Grid) => void> = {
+const BUILDERS: Record<Preset, (grid: Grid, rng: Rng) => void> = {
   [Preset.aquarium]: aquarium,
   [Preset.wild]: wild,
 }
 
-/** Wipes the world and builds a preset into it. */
-export function loadPreset(grid: Grid, preset: Preset): void {
+/** Wipes the world and builds a preset into it. The rng is what keeps two loads from being identical. */
+export function loadPreset(grid: Grid, preset: Preset, rng: Rng): void {
   clearGrid(grid)
-  BUILDERS[preset](grid)
+  BUILDERS[preset](grid, rng)
 }
