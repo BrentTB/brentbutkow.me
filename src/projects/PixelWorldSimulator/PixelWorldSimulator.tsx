@@ -34,6 +34,12 @@ export function PixelWorldSimulator() {
   )
   const brushHandlers = usePointerBrush(canvasRef, onStroke)
 
+  // Choosing something to paint with means you are done identifying.
+  const pickMaterial = useCallback((picked: MaterialId) => {
+    setMaterial(picked)
+    setTool(Tool.paint)
+  }, [])
+
   const inspecting = tool === Tool.inspect
 
   return (
@@ -56,7 +62,7 @@ export function PixelWorldSimulator() {
           />
         </div>
 
-        <Palette selected={material} onSelect={setMaterial} />
+        <Palette selected={material} onSelect={pickMaterial} />
 
         <SimControls
           isPaused={sim.isPaused}

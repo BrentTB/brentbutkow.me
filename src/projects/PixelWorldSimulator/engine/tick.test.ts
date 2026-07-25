@@ -298,13 +298,31 @@ describe('liquid nitrogen', () => {
     expect(count(grid, MaterialId.ice)).toBeGreaterThan(0)
   })
 
-  it('evaporates on its own clock, so a spill does not last', () => {
-    const grid = withVessel(9, 9)
-    put(grid, 4, 4, MaterialId.nitrogen)
+  it('boils away from the surface, so a spill does not last but a puddle outlives a splash', () => {
+    const lifespan = (cells: number) => {
+      const grid = withVessel(20, 20)
+      // A compact blob, so the middle of the bigger one is shielded by its own nitrogen.
+      const side = Math.round(Math.sqrt(cells))
+      for (let x = 0; x < side; x++) {
+        for (let y = 0; y < side; y++) put(grid, 8 + x, 17 - y, MaterialId.nitrogen)
+      }
 
-    run(grid, 2000)
+      const rng = createRng(11)
+      for (let tick = 0; tick < 6000; tick++) {
+        tickWorld(grid, rng, tick)
+        if (count(grid, MaterialId.nitrogen) === 0) return tick
+      }
+      return Infinity
+    }
 
-    expect(count(grid, MaterialId.nitrogen)).toBe(0)
+    const splash = lifespan(1)
+    const puddle = lifespan(36)
+
+    expect(splash).toBeLessThan(Infinity)
+    expect(puddle).toBeLessThan(Infinity)
+    // Evaporation is a surface effect, so the sheltered middle of a puddle lasts far longer than a
+    // lone drop. A lifetime clock made every cell vanish on the same tick however deep the spill was.
+    expect(puddle).toBeGreaterThan(splash * 2)
   })
 })
 

@@ -72,3 +72,32 @@
   background: transparent;
   border: 1px dashed var(--border-strong);
 }
+
+// Sits with the group tabs rather than above them: finding a material is another way of choosing one.
+.search {
+  width: 150px;
+  padding: 7px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text);
+  background: var(--surface-strong);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+
+  &::placeholder {
+    color: var(--muted);
+  }
+
+  &:focus-visible {
+    border-color: var(--accent);
+    outline: none;
+  }
+}
+
+.noMatch {
+  margin: 0;
+  align-self: center;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}

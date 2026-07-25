@@ -104,4 +104,6 @@ export const simCopy = {
   taglineFun: 'Draw materials, mix them, and see what happens to the little world you just made.',
   hint: 'Pick a material and draw on the canvas.',
   identifyHint: 'Click anything to see what it is.',
+  searchPlaceholder: 'Find a material',
+  noMatch: 'Nothing by that name.',
 }

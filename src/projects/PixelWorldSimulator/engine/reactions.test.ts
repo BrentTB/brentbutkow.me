@@ -290,6 +290,31 @@ describe('vines', () => {
   })
 })
 
+describe('chlorine', () => {
+  it('bleaches out plants and vines', () => {
+    const grid = createGrid(9, 9)
+    put(grid, 4, 4, MaterialId.chlorine)
+    const plant = put(grid, 4, 5, MaterialId.plant)
+    const vine = put(grid, 3, 4, MaterialId.vine)
+
+    react(grid, 2000)
+
+    expect(grid.material[plant]).toBe(MaterialId.ash)
+    expect(grid.material[vine]).toBe(MaterialId.ash)
+  })
+
+  it('dissolves into water, leaving brine', () => {
+    const grid = createGrid(9, 9)
+    put(grid, 4, 4, MaterialId.chlorine)
+    put(grid, 4, 5, MaterialId.water)
+
+    react(grid, 2000)
+
+    expect(count(grid, MaterialId.chlorine)).toBe(0)
+    expect(count(grid, MaterialId.saltWater)).toBe(1)
+  })
+})
+
 describe('plants', () => {
   it('grows into adjacent water', () => {
     const grid = createGrid(7, 7)
@@ -516,6 +541,39 @@ describe('sponge', () => {
     expect(count(grid, MaterialId.water)).toBe(3)
   })
 
+  it('wicks water into the dry middle of a block', () => {
+    const capacity = MATERIALS[MaterialId.sponge].absorbs ?? 0
+    const grid = createGrid(20, 20)
+    // A tank, so the water stays put instead of draining to the floor, with a solid 5x5 block in it.
+    for (let x = 0; x < 20; x++) put(grid, x, 19, MaterialId.stone)
+    for (let y = 0; y < 20; y++) {
+      put(grid, 0, y, MaterialId.stone)
+      put(grid, 19, y, MaterialId.stone)
+    }
+    for (let x = 1; x < 19; x++) {
+      for (let y = 8; y < 19; y++) put(grid, x, y, MaterialId.water)
+    }
+    for (let x = 5; x < 10; x++) {
+      for (let y = 10; y < 15; y++) put(grid, x, y, MaterialId.sponge)
+    }
+
+    const rng = createRng(5)
+    for (let tick = 0; tick < 6000; tick++) tickWorld(grid, rng, tick)
+
+    let held = 0
+    let wetCells = 0
+    for (let index = 0; index < grid.material.length; index++) {
+      if (grid.material[index] !== MaterialId.sponge || grid.data[index] === 0) continue
+      held += grid.data[index]
+      wetCells++
+    }
+
+    // Without wicking, only the column touching the pool ever gets wet, so a thick block holds no more
+    // than a thin one. The middle has to draw from the wet edge.
+    expect(wetCells).toBeGreaterThan(5)
+    expect(held).toBeGreaterThan(capacity * 5)
+  })
+
   it('holds no more than its capacity', () => {
     const capacity = MATERIALS[MaterialId.sponge].absorbs ?? 0
     const grid = createGrid(11, 11)
@@ -644,6 +702,22 @@ describe('spark', () => {
     react(grid, 40)
 
     expect(grid.material[cellIndex(grid, 4, 2)]).toBe(MaterialId.metal)
+  })
+
+  it('leaves the wire hot behind it, hot enough to light what the wire touches', () => {
+    const grid = createGrid(24, 6)
+    for (let x = 1; x < 23; x++) put(grid, x, 2, MaterialId.metal)
+    for (let x = 1; x < 23; x++) put(grid, x, 3, MaterialId.wood)
+    put(grid, 2, 2, MaterialId.spark)
+
+    // The full tick, because it is the heat pass that carries the wire's warmth into the plank.
+    const rng = createRng(9)
+    for (let tick = 0; tick < 400; tick++) tickWorld(grid, rng, tick)
+
+    // Resistive heating: without it a spark only warmed whatever it happened to be beside, so running
+    // one down a bar never lit anything.
+    const lit = grid.burn.some((ticks) => ticks > 0)
+    expect(lit || count(grid, MaterialId.ash) > 0).toBe(true)
   })
 
   it('sets off a pocket of methane', () => {

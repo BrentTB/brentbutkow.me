@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { SegmentedToggle } from '../../../../components/inputs/SegmentedToggle'
 import { MaterialId } from '../../pixel-world.types'
-import { MATERIAL_GROUPS, MaterialGroup } from '../../data'
+import { MATERIAL_GROUPS, MaterialGroup, simCopy } from '../../data'
 import { MATERIALS } from '../../engine/materials'
 import { materialCss } from '../../engine/palette'
 import styles from './Palette.module.scss'
@@ -12,10 +12,24 @@ type PaletteProps = {
 }
 
 const GROUP_OPTIONS = MATERIAL_GROUPS.map(({ group, label }) => ({ value: group, label }))
+const EVERY_MATERIAL = MATERIAL_GROUPS.flatMap(({ materials }) => materials)
 
 export function Palette({ selected, onSelect }: PaletteProps) {
   const [openGroup, setOpenGroup] = useState<MaterialGroup>(MATERIAL_GROUPS[0].group)
-  const shown = MATERIAL_GROUPS.find(({ group }) => group === openGroup) ?? MATERIAL_GROUPS[0]
+  const [query, setQuery] = useState('')
+
+  const searching = query.trim().length > 0
+  const shown = useMemo(() => {
+    // A search looks across every group, since the point of it is not knowing which one holds the thing.
+    if (searching) {
+      const needle = query.trim().toLowerCase()
+      return EVERY_MATERIAL.filter((material) =>
+        MATERIALS[material].label.toLowerCase().includes(needle)
+      )
+    }
+    const group = MATERIAL_GROUPS.find(({ group }) => group === openGroup) ?? MATERIAL_GROUPS[0]
+    return group.materials
+  }, [searching, query, openGroup])
 
   return (
     <div className={styles.palette}>
@@ -23,17 +37,31 @@ export function Palette({ selected, onSelect }: PaletteProps) {
         <SegmentedToggle
           options={GROUP_OPTIONS}
           value={openGroup}
-          onChange={setOpenGroup}
+          onChange={(group) => {
+            setQuery('')
+            setOpenGroup(group)
+          }}
           ariaLabel="Material group"
         />
+
+        <input
+          type="search"
+          className={styles.search}
+          value={query}
+          placeholder={simCopy.searchPlaceholder}
+          aria-label="Search materials"
+          onChange={(event) => setQuery(event.target.value)}
+        />
+
         {/* Erase stays out here: it is a tool, and it should never be a tab away. */}
         <Swatch material={MaterialId.empty} selected={selected} onSelect={onSelect} />
       </div>
 
       <div className={styles.swatches}>
-        {shown.materials.map((material) => (
+        {shown.map((material) => (
           <Swatch key={material} material={material} selected={selected} onSelect={onSelect} />
         ))}
+        {searching && shown.length === 0 && <p className={styles.noMatch}>{simCopy.noMatch}</p>}
       </div>
     </div>
   )

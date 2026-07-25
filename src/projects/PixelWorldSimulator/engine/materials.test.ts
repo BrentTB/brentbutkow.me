@@ -130,6 +130,24 @@ describe('MATERIALS', () => {
     }
   })
 
+  it('gives liquid nitrogen no clock, so a spill cannot vanish all at once', () => {
+    const nitrogen = MATERIALS[MaterialId.nitrogen]
+
+    // Evaporation is a surface effect in reactions.ts. A lifetime is handed out at paint time, so every
+    // cell of a spill counted down together and the whole puddle disappeared on one tick.
+    expect(nitrogen.lifetime).toBeUndefined()
+    expect(nitrogen.selfHeat).toBeLessThan(0)
+  })
+
+  it('runs a spark hotter than wood needs to catch', () => {
+    const spark = MATERIALS[MaterialId.spark].selfHeat ?? 0
+    const woodCatches = MATERIALS[MaterialId.wood].ignite?.at ?? 0
+
+    // A spark leaves the wire it travels hot behind it. Cooler than this and an electrified bar cannot
+    // light a plank lying against it, which is the first thing anyone tries with metal.
+    expect(spark).toBeGreaterThan(woodCatches)
+  })
+
   it('keeps every per-cell counter inside the byte that holds it', () => {
     for (const material of MATERIALS) {
       if (material.lifetime !== undefined) expect(material.lifetime).toBeLessThanOrEqual(255)

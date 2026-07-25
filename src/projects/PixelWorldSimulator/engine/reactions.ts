@@ -35,7 +35,20 @@ const EMIT_CHANCE = 0.25
 /** Chance per tick that a void eats one of its neighbours. */
 const CONSUME_CHANCE = 0.5
 /** Chance per tick that a spark jumps to the next conductive cell. */
-const CONDUCT_CHANCE = 0.6
+const CONDUCT_CHANCE = 0.8
+/**
+ * How hot a spark leaves the wire behind it. Resistive heating is what makes a circuit useful: without
+ * it a spark warmed only whatever it happened to be beside at the time, so running one down a metal bar
+ * never lit the wood at the far end.
+ */
+const HOT_WIRE = 520
+/**
+ * Chance per tick that an exposed cell of liquid nitrogen boils away, scaled by how much air is around
+ * it. A puddle evaporates from its surface inward, and the middle keeps itself cold for a while.
+ */
+const BOIL_OFF_CHANCE = 0.006
+/** Chance per tick that a full sponge cell passes water on to a drier one beside it. */
+const WICK_CHANCE = 0.4
 
 /** Neighbour offsets. */
 const NEIGHBOURS: readonly (readonly [number, number])[] = [
@@ -117,6 +130,26 @@ const CONTACT_RULES: readonly ContactRule[] = [
     neighbourBecomes: MaterialId.ash,
     chance: 0.05,
   },
+  // Chlorine is bleach: it kills what grows and dissolves into brine.
+  {
+    material: MaterialId.chlorine,
+    neighbour: MaterialId.plant,
+    neighbourBecomes: MaterialId.ash,
+    chance: 0.08,
+  },
+  {
+    material: MaterialId.chlorine,
+    neighbour: MaterialId.vine,
+    neighbourBecomes: MaterialId.ash,
+    chance: 0.08,
+  },
+  {
+    material: MaterialId.chlorine,
+    neighbour: MaterialId.water,
+    becomes: MaterialId.empty,
+    neighbourBecomes: MaterialId.saltWater,
+    chance: 0.05,
+  },
   // A spark in a gas pocket sets it off. Phase 4 gives that a shove as well as a flame.
   {
     material: MaterialId.spark,
@@ -158,6 +191,7 @@ export function applyReactions(grid: Grid, rng: Rng): void {
       else if (id === MaterialId.source) emit(grid, rng, x, y, index)
       else if (id === MaterialId.void) consume(grid, rng, x, y)
       else if (id === MaterialId.spark) conduct(grid, rng, x, y, index)
+      else if (id === MaterialId.nitrogen) boilOff(grid, rng, x, y, index)
     }
   }
 }
@@ -221,7 +255,27 @@ function soak(grid: Grid, rng: Rng, x: number, y: number, index: number): void {
     return
   }
 
-  if (held >= capacity || !rng.chance(SOAK_CHANCE)) return
+  // A full cell passes water inward, so the dry middle of a block keeps drawing from the wet edge.
+  // Without it only the outer layer ever gets wet and a thick sponge holds no more than a thin one.
+  if (held >= capacity) {
+    if (!rng.chance(WICK_CHANCE)) return
+
+    const drier = pickNeighbour(
+      grid,
+      x,
+      y,
+      (found) => found === MaterialId.sponge,
+      Math.floor(rng.next() * NEIGHBOURS.length),
+      (candidate) => grid.data[candidate] < capacity
+    )
+    if (drier < 0) return
+
+    grid.data[drier] += 1
+    grid.data[index] = held - 1
+    return
+  }
+
+  if (!rng.chance(SOAK_CHANCE)) return
 
   const drop = pickNeighbour(
     grid,
@@ -303,7 +357,10 @@ function conduct(grid: Grid, rng: Rng, x: number, y: number, index: number): voi
   grid.material[wire] = MaterialId.spark
   grid.data[wire] = charge
   grid.temperature[wire] = heat
+
+  // The wire it just left stays hot behind it, so a current can set light to what it touches.
   transformCell(grid, index, conductor)
+  grid.temperature[index] = Math.max(grid.temperature[index], HOT_WIRE)
 }
 
 function dissolve(grid: Grid, rng: Rng, x: number, y: number, index: number): void {
@@ -470,13 +527,37 @@ function restTicks(rng: Rng): number {
   return FROST_REST_MIN + Math.floor(rng.next() * FROST_REST_SPREAD)
 }
 
+/**
+ * Liquid nitrogen boils away from its surface. Exposure is how much of the ring around a cell is not
+ * more nitrogen, so the top of a puddle goes first and cells buried in the middle keep themselves cold
+ * until the surface has worked its way down to them.
+ */
+function boilOff(grid: Grid, rng: Rng, x: number, y: number, index: number): void {
+  let shielded = 0
+  for (const [dx, dy] of AROUND) {
+    const nx = x + dx
+    const ny = y + dy
+    if (nx < 0 || nx >= grid.width || ny < 0 || ny >= grid.height) {
+      shielded++
+      continue
+    }
+    if (grid.material[cellIndex(grid, nx, ny)] === MaterialId.nitrogen) shielded++
+  }
+
+  const exposure = (AROUND.length - shielded) / AROUND.length
+  if (exposure > 0 && rng.chance(BOIL_OFF_CHANCE * exposure)) {
+    transformCell(grid, index, MaterialId.empty)
+  }
+}
+
 /** First neighbour matching `accepts`, scanning NEIGHBOURS from `startAt`, or -1. */
 function pickNeighbour(
   grid: Grid,
   x: number,
   y: number,
   accepts: (material: number) => boolean,
-  startAt = 0
+  startAt = 0,
+  alsoAccepts: (index: number) => boolean = () => true
 ): number {
   for (let step = 0; step < NEIGHBOURS.length; step++) {
     const [dx, dy] = NEIGHBOURS[(startAt + step) % NEIGHBOURS.length]
@@ -485,7 +566,7 @@ function pickNeighbour(
     if (nx < 0 || nx >= grid.width || ny < 0 || ny >= grid.height) continue
 
     const index = cellIndex(grid, nx, ny)
-    if (accepts(grid.material[index])) return index
+    if (accepts(grid.material[index]) && alsoAccepts(index)) return index
   }
   return -1
 }

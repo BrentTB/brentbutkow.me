@@ -376,10 +376,8 @@ export const MATERIALS: readonly Material[] = [
     conductivity: 0.45,
     startTemperature: -190,
     selfHeat: -190,
-    // Evaporates on a clock rather than a temperature. A boil threshold can never fire on something
-    // that also holds its own temperature: the self-hold pins it below the threshold forever.
-    lifetime: 200,
-    expiresInto: MaterialId.empty,
+    // Evaporation is a surface effect in reactions.ts, not a clock. A lifetime made a whole puddle
+    // vanish in one instant, because every cell was painted on the same tick and so expired together.
   },
   {
     id: MaterialId.sponge,
@@ -430,9 +428,9 @@ export const MATERIALS: readonly Material[] = [
     dispersion: 0,
     drag: 0,
     conductivity: 0.5,
-    startTemperature: 420,
-    selfHeat: 420,
-    lifetime: 26,
+    startTemperature: 620,
+    selfHeat: 620,
+    lifetime: 60,
     expiresInto: MaterialId.empty,
     emissive: true,
   },
