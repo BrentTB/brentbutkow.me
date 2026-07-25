@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { MaterialBehavior, MaterialId } from '../pixel-world.types'
-import { MATERIALS } from './materials'
+import { MATERIALS, canPaintOver, isBurning } from './materials'
+
+const FLUIDS: readonly MaterialBehavior[] = [MaterialBehavior.liquid, MaterialBehavior.gas]
 
 describe('MATERIALS', () => {
   it('is indexed by MaterialId', () => {
@@ -8,14 +10,16 @@ describe('MATERIALS', () => {
     expect(MATERIALS).toHaveLength(Object.keys(MaterialId).length)
   })
 
-  it('orders densities so sand sinks through water', () => {
+  it('orders densities so sand sinks, oil floats, and gases rise through both', () => {
     expect(MATERIALS[MaterialId.sand].density).toBeGreaterThan(MATERIALS[MaterialId.water].density)
-    expect(MATERIALS[MaterialId.water].density).toBeGreaterThan(MATERIALS[MaterialId.empty].density)
+    expect(MATERIALS[MaterialId.water].density).toBeGreaterThan(MATERIALS[MaterialId.oil].density)
+    expect(MATERIALS[MaterialId.oil].density).toBeGreaterThan(MATERIALS[MaterialId.steam].density)
+    expect(MATERIALS[MaterialId.lava].density).toBeGreaterThan(MATERIALS[MaterialId.water].density)
   })
 
-  it('gives every liquid room to spread and every non-liquid none', () => {
+  it('gives every fluid room to spread and every solid none', () => {
     for (const material of MATERIALS) {
-      if (material.behavior === MaterialBehavior.liquid) {
+      if (FLUIDS.includes(material.behavior)) {
         expect(material.dispersion).toBeGreaterThan(0)
       } else {
         expect(material.dispersion).toBe(0)
@@ -23,12 +27,90 @@ describe('MATERIALS', () => {
     }
   })
 
-  it('keeps colours inside the byte range once jitter is applied', () => {
+  it('keeps jitter from darkening a colour below black', () => {
     for (const material of MATERIALS) {
       for (const channel of material.color) {
         expect(channel - material.jitter).toBeGreaterThanOrEqual(0)
+      }
+    }
+  })
+
+  it('only lets emissive materials clip the top of the byte range', () => {
+    for (const material of MATERIALS) {
+      if (material.emissive) continue
+      for (const channel of material.color) {
         expect(channel + material.jitter).toBeLessThanOrEqual(255)
       }
     }
+  })
+
+  it('gives every material a sane share of the heat gradient', () => {
+    for (const material of MATERIALS) {
+      expect(material.conductivity).toBeGreaterThan(0)
+      expect(material.conductivity).toBeLessThanOrEqual(1)
+    }
+  })
+
+  it('orders every pair of temperature thresholds', () => {
+    for (const material of MATERIALS) {
+      if (material.hot && material.cold) expect(material.cold.at).toBeLessThan(material.hot.at)
+      // Freezing into something that melts straight back would flicker forever.
+      if (material.cold) {
+        const frozen = MATERIALS[material.cold.into]
+        if (frozen.hot) expect(frozen.hot.at).toBeGreaterThan(material.cold.at)
+      }
+    }
+  })
+
+  it('gives every gas somewhere to go when its lifetime runs out', () => {
+    for (const material of MATERIALS) {
+      if (material.lifetime === undefined) continue
+      expect(material.lifetime).toBeGreaterThan(0)
+      expect(material.expiresInto).toBeDefined()
+    }
+  })
+
+  it('gives every fuel a burn time, a flame hotter than its ignition point, and a residue', () => {
+    for (const material of MATERIALS) {
+      if (material.ignite === undefined) continue
+      expect(material.ignite.ticks).toBeGreaterThan(0)
+      expect(material.ignite.heat).toBeGreaterThan(material.ignite.at)
+      expect(MATERIALS[material.ignite.into]).toBeDefined()
+    }
+  })
+
+  it('keeps every per-cell counter inside the byte that holds it', () => {
+    for (const material of MATERIALS) {
+      if (material.lifetime !== undefined) expect(material.lifetime).toBeLessThanOrEqual(255)
+      if (material.uses !== undefined) expect(material.uses).toBeLessThanOrEqual(255)
+      if (material.ignite !== undefined) expect(material.ignite.ticks).toBeLessThanOrEqual(255)
+    }
+  })
+})
+
+describe('canPaintOver', () => {
+  it('paints solids over fluids and never the reverse', () => {
+    expect(canPaintOver(MaterialId.stone, MaterialId.water)).toBe(true)
+    expect(canPaintOver(MaterialId.sand, MaterialId.water)).toBe(true)
+    expect(canPaintOver(MaterialId.water, MaterialId.stone)).toBe(false)
+    expect(canPaintOver(MaterialId.water, MaterialId.sand)).toBe(false)
+  })
+
+  it('treats gases as the loosest thing above air', () => {
+    expect(canPaintOver(MaterialId.water, MaterialId.steam)).toBe(true)
+    expect(canPaintOver(MaterialId.steam, MaterialId.water)).toBe(false)
+    expect(canPaintOver(MaterialId.steam, MaterialId.empty)).toBe(true)
+  })
+
+  it('erases anything', () => {
+    expect(canPaintOver(MaterialId.empty, MaterialId.stone)).toBe(true)
+    expect(canPaintOver(MaterialId.empty, MaterialId.lava)).toBe(true)
+  })
+})
+
+describe('isBurning', () => {
+  it('is true only while a burn timer is running', () => {
+    expect(isBurning(0)).toBe(false)
+    expect(isBurning(1)).toBe(true)
   })
 })

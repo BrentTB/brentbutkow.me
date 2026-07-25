@@ -4,7 +4,7 @@ import { GRID_HEIGHT, GRID_WIDTH, MAX_TICKS_PER_FRAME, TICK_RATE } from './data'
 import { stampLine } from './engine/brush'
 import { clearGrid, createGrid } from './engine/grid'
 import { Rng, createRng } from './engine/rng'
-import { step } from './engine/step'
+import { tickWorld } from './engine/tick'
 import { createRenderer } from './render'
 
 export type PixelWorldSim = {
@@ -53,7 +53,7 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
         while (accumulator >= msPerTick && ticks < MAX_TICKS_PER_FRAME) {
           accumulator -= msPerTick
           ticks++
-          step(gridRef.current, rng, tickRef.current++)
+          tickWorld(gridRef.current, rng, tickRef.current++)
         }
         // Whatever the frame budget couldn't cover is dropped, not owed — a backgrounded tab
         // shouldn't come back and fast-forward the world.
@@ -72,7 +72,7 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
   }, [])
 
   const stepOnce = useCallback(() => {
-    step(gridRef.current, rng, tickRef.current++)
+    tickWorld(gridRef.current, rng, tickRef.current++)
   }, [rng])
 
   const clear = useCallback(() => {

@@ -1,6 +1,6 @@
 import { Grid, MaterialId } from '../pixel-world.types'
-import { cellIndex, inBounds } from './grid'
-import { canPaintOver } from './materials'
+import { cellIndex, inBounds, markHotRow, placeMaterial } from './grid'
+import { MATERIALS, canPaintOver } from './materials'
 
 /** Paints a filled circle of `material`, clipped to the grid and to the paint hierarchy. */
 export function stampCircle(
@@ -21,9 +21,26 @@ export function stampCircle(
       if (!inBounds(grid, x, y)) continue
 
       const cell = cellIndex(grid, x, y)
-      if (canPaintOver(material, grid.material[cell])) grid.material[cell] = material
+      if (light(grid, cell, material)) continue
+      if (canPaintOver(material, grid.material[cell])) placeMaterial(grid, cell, material)
     }
   }
+}
+
+/**
+ * The fire brush is a match, not a material: dragging it across a plank sets the plank alight
+ * instead of bouncing off the paint hierarchy, which would leave flames unable to touch anything
+ * solid enough to burn.
+ */
+function light(grid: Grid, cell: number, brush: MaterialId): boolean {
+  if (brush !== MaterialId.fire) return false
+
+  const fuel = MATERIALS[grid.material[cell]].ignite
+  if (fuel === undefined) return false
+
+  grid.burn[cell] = fuel.ticks
+  markHotRow(grid, cell)
+  return true
 }
 
 /**

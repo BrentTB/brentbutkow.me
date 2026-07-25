@@ -1,13 +1,35 @@
 import { describe, it, expect } from 'vitest'
 import { MaterialId } from '../pixel-world.types'
-import { cellIndex, clearGrid, createGrid, inBounds } from './grid'
+import { AMBIENT_TEMPERATURE } from '../data'
+import {
+  cellIndex,
+  clearGrid,
+  createGrid,
+  inBounds,
+  markHotRow,
+  placeMaterial,
+  transformCell,
+} from './grid'
+import { MATERIALS } from './materials'
 
 describe('grid', () => {
   it('allocates one cell per position', () => {
     const grid = createGrid(7, 4)
     expect(grid.material).toHaveLength(28)
     expect(grid.moved).toHaveLength(28)
+    expect(grid.data).toHaveLength(28)
+    expect(grid.burn).toHaveLength(28)
+    expect(grid.temperature).toHaveLength(28)
+    expect(grid.temperatureNext).toHaveLength(28)
     expect(grid.material.every((cell) => cell === MaterialId.empty)).toBe(true)
+  })
+
+  it('starts every cell at room temperature with nothing awake', () => {
+    const grid = createGrid(7, 4)
+    expect(grid.temperature.every((heat) => heat === AMBIENT_TEMPERATURE)).toBe(true)
+    expect(grid.temperatureNext.every((heat) => heat === AMBIENT_TEMPERATURE)).toBe(true)
+    expect(grid.hotRows).toHaveLength(4)
+    expect(grid.hotRows.every((row) => row === 0)).toBe(true)
   })
 
   it('indexes row-major', () => {
@@ -27,14 +49,111 @@ describe('grid', () => {
     expect(inBounds(grid, 0, 3)).toBe(false)
   })
 
-  it('clears materials and move flags together', () => {
+  it('clears every layer together', () => {
     const grid = createGrid(4, 4)
     grid.material.fill(MaterialId.sand)
     grid.moved.fill(1)
+    grid.data.fill(9)
+    grid.burn.fill(3)
+    grid.temperature.fill(800)
+    grid.hotRows.fill(1)
 
     clearGrid(grid)
 
     expect(grid.material.every((cell) => cell === MaterialId.empty)).toBe(true)
     expect(grid.moved.every((flag) => flag === 0)).toBe(true)
+    expect(grid.data.every((value) => value === 0)).toBe(true)
+    expect(grid.burn.every((value) => value === 0)).toBe(true)
+    expect(grid.temperature.every((heat) => heat === AMBIENT_TEMPERATURE)).toBe(true)
+    expect(grid.hotRows.every((row) => row === 0)).toBe(true)
+  })
+})
+
+describe('placeMaterial', () => {
+  it('gives a fresh cell its own starting temperature', () => {
+    const grid = createGrid(5, 5)
+    const cell = cellIndex(grid, 2, 2)
+
+    placeMaterial(grid, cell, MaterialId.lava)
+
+    expect(grid.temperature[cell]).toBe(MATERIALS[MaterialId.lava].startTemperature)
+  })
+
+  it('starts a gas with its full lifetime and acid with its full charges', () => {
+    const grid = createGrid(5, 5)
+    const gas = cellIndex(grid, 1, 1)
+    const drop = cellIndex(grid, 3, 3)
+
+    placeMaterial(grid, gas, MaterialId.smoke)
+    placeMaterial(grid, drop, MaterialId.acid)
+
+    expect(grid.data[gas]).toBe(MATERIALS[MaterialId.smoke].lifetime)
+    expect(grid.data[drop]).toBe(MATERIALS[MaterialId.acid].uses)
+  })
+
+  it('puts a plain material at room temperature with no counter', () => {
+    const grid = createGrid(5, 5)
+    const cell = cellIndex(grid, 2, 2)
+
+    placeMaterial(grid, cell, MaterialId.stone)
+
+    expect(grid.temperature[cell]).toBe(AMBIENT_TEMPERATURE)
+    expect(grid.data[cell]).toBe(0)
+  })
+
+  it('puts out a cell it paints over', () => {
+    const grid = createGrid(5, 5)
+    const cell = cellIndex(grid, 2, 2)
+    grid.burn[cell] = 50
+
+    placeMaterial(grid, cell, MaterialId.stone)
+
+    expect(grid.burn[cell]).toBe(0)
+  })
+
+  it('wakes the row it painted and the rows either side', () => {
+    const grid = createGrid(5, 5)
+
+    placeMaterial(grid, cellIndex(grid, 2, 2), MaterialId.lava)
+
+    expect(Array.from(grid.hotRows)).toEqual([0, 1, 1, 1, 0])
+  })
+})
+
+describe('transformCell', () => {
+  it('keeps the heat that caused the change', () => {
+    const grid = createGrid(5, 5)
+    const cell = cellIndex(grid, 2, 2)
+    placeMaterial(grid, cell, MaterialId.water)
+    grid.temperature[cell] = 400
+
+    transformCell(grid, cell, MaterialId.steam)
+
+    expect(grid.material[cell]).toBe(MaterialId.steam)
+    expect(grid.temperature[cell]).toBe(400)
+  })
+
+  it('resets the counters to the new material', () => {
+    const grid = createGrid(5, 5)
+    const cell = cellIndex(grid, 2, 2)
+    grid.burn[cell] = 40
+
+    transformCell(grid, cell, MaterialId.steam)
+
+    expect(grid.data[cell]).toBe(MATERIALS[MaterialId.steam].lifetime)
+    expect(grid.burn[cell]).toBe(0)
+  })
+})
+
+describe('markHotRow', () => {
+  it('clamps at the top and bottom rows', () => {
+    const grid = createGrid(4, 3)
+
+    markHotRow(grid, cellIndex(grid, 1, 0))
+    expect(Array.from(grid.hotRows)).toEqual([1, 1, 0])
+
+    grid.hotRows.fill(0)
+    markHotRow(grid, cellIndex(grid, 1, 2))
+    expect(Array.from(grid.hotRows)).toEqual([0, 1, 1])
   })
 })

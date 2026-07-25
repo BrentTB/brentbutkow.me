@@ -1,11 +1,12 @@
 import { describe, it, expect } from 'vitest'
 import { Grid, MaterialId } from '../pixel-world.types'
-import { cellIndex, createGrid } from './grid'
+import { AMBIENT_TEMPERATURE } from '../data'
+import { cellIndex, createGrid, placeMaterial } from './grid'
 import { createRng } from './rng'
 import { step } from './step'
 
 function set(grid: Grid, x: number, y: number, material: MaterialId): void {
-  grid.material[cellIndex(grid, x, y)] = material
+  placeMaterial(grid, cellIndex(grid, x, y), material)
 }
 
 function at(grid: Grid, x: number, y: number): number {
@@ -173,6 +174,96 @@ describe('step', () => {
     // Water's drag is 0.65, so sinking should take roughly 1/(1-0.65) as long. Assert the direction
     // and a conservative factor rather than an exact count.
     expect(throughWater).toBeGreaterThan(throughAir * 2)
+  })
+
+  it('lifts a gas to the ceiling', () => {
+    const grid = withVessel(12, 20)
+    set(grid, 6, 17, MaterialId.methane)
+
+    run(grid, 60)
+
+    expect(at(grid, 6, 17)).toBe(MaterialId.empty)
+    expect(surfaceHeights(grid, MaterialId.methane).some((row) => row === 0)).toBe(true)
+  })
+
+  it('floats a bubble up through water', () => {
+    const grid = withVessel(12, 20)
+    for (let x = 1; x < 11; x++) {
+      for (let y = 4; y < 19; y++) set(grid, x, y, MaterialId.water)
+    }
+    set(grid, 6, 17, MaterialId.methane)
+
+    run(grid, 60)
+
+    const bubble = surfaceHeights(grid, MaterialId.methane).find((row) => row !== null)
+    expect(bubble).toBeLessThan(5)
+  })
+
+  it('never lets a gas sink', () => {
+    const grid = withVessel(9, 12)
+    set(grid, 4, 2, MaterialId.smoke)
+
+    run(grid, 100)
+
+    for (let y = 3; y < 12; y++) expect(at(grid, 4, y)).not.toBe(MaterialId.smoke)
+  })
+
+  it('keeps a flame on its fuel instead of drifting off it', () => {
+    const grid = withVessel(9, 12)
+    set(grid, 4, 9, MaterialId.wood)
+    set(grid, 4, 8, MaterialId.fire)
+
+    run(grid, 60)
+
+    expect(at(grid, 4, 8)).toBe(MaterialId.fire)
+  })
+
+  it('lets a flame rise once its fuel is gone', () => {
+    const grid = withVessel(9, 12)
+    set(grid, 4, 8, MaterialId.fire)
+
+    run(grid, 60)
+
+    expect(at(grid, 4, 8)).toBe(MaterialId.empty)
+  })
+
+  it('carries a cell temperature and burn timer along with the material', () => {
+    const grid = withVessel(9, 12)
+    const start = cellIndex(grid, 4, 2)
+    set(grid, 4, 2, MaterialId.sand)
+    grid.temperature[start] = 640
+    grid.burn[start] = 25
+
+    run(grid, 40)
+
+    const landed = cellIndex(grid, 4, 10)
+    expect(at(grid, 4, 10)).toBe(MaterialId.sand)
+    expect(grid.temperature[landed]).toBe(640)
+    expect(grid.burn[landed]).toBe(25)
+    expect(grid.temperature[start]).toBe(AMBIENT_TEMPERATURE)
+  })
+
+  it('wakes the rows a hot cell moves between', () => {
+    const grid = withVessel(9, 12)
+    const start = cellIndex(grid, 4, 4)
+    set(grid, 4, 4, MaterialId.sand)
+    grid.temperature[start] = 900
+    grid.hotRows.fill(0)
+
+    run(grid, 1)
+
+    expect(grid.hotRows[4]).toBe(1)
+    expect(grid.hotRows[5]).toBe(1)
+  })
+
+  it('leaves the rows asleep when a cold cell moves', () => {
+    const grid = withVessel(9, 12)
+    set(grid, 4, 4, MaterialId.sand)
+    grid.hotRows.fill(0)
+
+    run(grid, 1)
+
+    expect(grid.hotRows.every((row) => row === 0)).toBe(true)
   })
 
   it('never displaces static material', () => {

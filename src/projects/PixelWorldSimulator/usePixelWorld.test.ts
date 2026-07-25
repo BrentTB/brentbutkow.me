@@ -7,24 +7,38 @@ import { usePixelWorld } from './usePixelWorld'
 
 const MS_PER_TICK = 1000 / TICK_RATE
 
-/**
- * jsdom has no 2D context. The fake hands back one ImageData that the renderer keeps rewriting, so
- * reading it back is how a test observes the grid — no test-only accessor on the hook.
- */
-function mockCanvasContext() {
-  const image = {
+function blankImage() {
+  return {
     data: new Uint8ClampedArray(GRID_WIDTH * GRID_HEIGHT * 4),
     width: GRID_WIDTH,
     height: GRID_HEIGHT,
   }
+}
+
+/**
+ * jsdom has no 2D context. The fake hands back ImageData the renderer keeps rewriting, so reading it
+ * back is how a test observes the grid — no test-only accessor on the hook. The renderer asks for two
+ * buffers (the world, then the glow layer) and they have to be separate, or the glow pass would punch
+ * holes in what the test reads.
+ */
+function mockCanvasContext() {
+  const world = blankImage()
+  const glow = blankImage()
+  let served = 0
+
   const context = {
-    createImageData: () => image,
+    createImageData: () => (served++ === 0 ? world : glow),
     putImageData: vi.fn(),
+    drawImage: vi.fn(),
+    save: vi.fn(),
+    restore: vi.fn(),
+    filter: 'none',
+    globalCompositeOperation: 'source-over',
   }
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(
     context as unknown as CanvasRenderingContext2D
   )
-  return image
+  return world
 }
 
 /** Classifies a drawn pixel back to its material by nearest palette colour. */
@@ -44,6 +58,17 @@ function materialAt(image: { data: Uint8ClampedArray }, x: number, y: number): M
     }
   }
   return best
+}
+
+/** How many cells of a material the drawn world holds. */
+function countMaterial(image: { data: Uint8ClampedArray }, material: MaterialId): number {
+  let total = 0
+  for (let y = 0; y < GRID_HEIGHT; y++) {
+    for (let x = 0; x < GRID_WIDTH; x++) {
+      if (materialAt(image, x, y) === material) total++
+    }
+  }
+  return total
 }
 
 /** Row of the single sand grain in a column, or null when the column holds none. */
@@ -105,6 +130,48 @@ describe('usePixelWorld', () => {
 
     for (let i = 0; i < 5; i++) frame(MS_PER_TICK)
     expect(sandRow(image, 10)).toBe(15)
+  })
+
+  it('runs the heat pass too, not just movement', () => {
+    const { result, image } = mountSim()
+    // Lava sitting on an ice slab: only the temperature pass can melt any of this.
+    act(() => {
+      result.current.paintStroke(
+        { x: 100, y: GRID_HEIGHT - 4 },
+        { x: 200, y: GRID_HEIGHT - 4 },
+        MaterialId.ice,
+        3
+      )
+      result.current.paintStroke(
+        { x: 150, y: GRID_HEIGHT - 12 },
+        { x: 150, y: GRID_HEIGHT - 12 },
+        MaterialId.lava,
+        3
+      )
+    })
+    frame(0)
+    const iceBefore = countMaterial(image, MaterialId.ice)
+
+    for (let i = 0; i < 300; i++) frame(MS_PER_TICK)
+
+    expect(iceBefore).toBeGreaterThan(0)
+    expect(countMaterial(image, MaterialId.ice)).toBeLessThan(iceBefore)
+  })
+
+  it('runs the reaction pass too', () => {
+    const { result, image } = mountSim()
+    act(() => {
+      result.current.paintStroke({ x: 120, y: 150 }, { x: 120, y: 150 }, MaterialId.sand, 8)
+      result.current.paintStroke({ x: 120, y: 138 }, { x: 120, y: 138 }, MaterialId.acid, 2)
+    })
+    frame(0)
+    const sandBefore = countMaterial(image, MaterialId.sand)
+
+    for (let i = 0; i < 400; i++) frame(MS_PER_TICK)
+
+    // Nothing but the acid reaction removes sand — movement and heat leave it alone.
+    expect(sandBefore).toBeGreaterThan(0)
+    expect(countMaterial(image, MaterialId.sand)).toBeLessThan(sandBefore)
   })
 
   it('holds the world still while paused, and paints into it anyway', () => {

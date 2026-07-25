@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { MaterialId } from '../pixel-world.types'
 import { stampCircle, stampLine } from './brush'
 import { cellIndex, createGrid } from './grid'
+import { MATERIALS } from './materials'
 
 describe('stampCircle', () => {
   it('paints a single cell at radius 0', () => {
@@ -53,6 +54,32 @@ describe('stampCircle', () => {
     stampCircle(grid, 4, 4, 2, MaterialId.sand)
 
     expect(grid.material.every((cell) => cell === MaterialId.stone)).toBe(true)
+  })
+
+  it('sets fuel alight instead of failing to paint over it', () => {
+    const grid = createGrid(9, 9)
+    grid.material.fill(MaterialId.wood)
+    stampCircle(grid, 4, 4, 1, MaterialId.fire)
+
+    expect(grid.material[cellIndex(grid, 4, 4)]).toBe(MaterialId.wood)
+    expect(grid.burn[cellIndex(grid, 4, 4)]).toBe(MATERIALS[MaterialId.wood].ignite?.ticks)
+    expect(grid.burn[cellIndex(grid, 0, 0)]).toBe(0)
+  })
+
+  it('paints flame into open air as a material', () => {
+    const grid = createGrid(9, 9)
+    stampCircle(grid, 4, 4, 0, MaterialId.fire)
+
+    expect(grid.material[cellIndex(grid, 4, 4)]).toBe(MaterialId.fire)
+  })
+
+  it('leaves material that cannot burn to the paint hierarchy', () => {
+    const grid = createGrid(9, 9)
+    grid.material.fill(MaterialId.stone)
+    stampCircle(grid, 4, 4, 1, MaterialId.fire)
+
+    expect(grid.material.every((cell) => cell === MaterialId.stone)).toBe(true)
+    expect(grid.burn.every((cell) => cell === 0)).toBe(true)
   })
 
   it('erases by painting air', () => {
