@@ -1,33 +1,27 @@
-import { Tool } from '../../pixel-world.types'
 import { BRUSH_RADIUS, SIM_SPEEDS } from '../../data'
 import styles from './SimControls.module.scss'
 
 type SimControlsProps = {
   isPaused: boolean
   speed: number
-  tool: Tool
   radius: number
   onTogglePause(): void
   onSpeed(rate: number): void
   onStep(): void
   onClear(): void
-  onTool(tool: Tool): void
   onRadius(radius: number): void
 }
 
 export function SimControls({
   isPaused,
   speed,
-  tool,
   radius,
   onTogglePause,
   onSpeed,
   onStep,
   onClear,
-  onTool,
   onRadius,
 }: SimControlsProps) {
-  const inspecting = tool === Tool.inspect
   const brushCells = radius * 2 + 1
 
   return (
@@ -69,15 +63,6 @@ export function SimControls({
 
       <button type="button" className={styles.button} onClick={onClear}>
         Clear
-      </button>
-
-      <button
-        type="button"
-        className={styles.button}
-        aria-pressed={inspecting}
-        onClick={() => onTool(inspecting ? Tool.paint : Tool.inspect)}
-      >
-        Identify
       </button>
 
       <label className={styles.slider}>

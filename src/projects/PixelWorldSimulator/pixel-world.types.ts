@@ -141,19 +141,14 @@ export type Grid = {
   hotRowsNext: Uint8Array
 }
 
-export const Tool = {
-  paint: 'paint',
-  /** Read what is already in a cell instead of painting over it. */
-  inspect: 'inspect',
-} as const
-export type Tool = (typeof Tool)[keyof typeof Tool]
-
-/** What the inspect tool found in one cell. */
+/** What is in the cell under the pointer. */
 export type CellReading = {
   material: MaterialId
   /** °C. */
   temperature: number
   burning: boolean
+  /** For a source: the material it has been fed and now produces, if any. */
+  producing?: MaterialId
 }
 
 export type CellPoint = {

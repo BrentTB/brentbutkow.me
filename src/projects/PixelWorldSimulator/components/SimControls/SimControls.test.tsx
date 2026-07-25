@@ -1,6 +1,5 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
-import { Tool } from '../../pixel-world.types'
 import { BRUSH_RADIUS, DEFAULT_SPEED, SIM_SPEEDS } from '../../data'
 import { SimControls } from './SimControls'
 
@@ -8,13 +7,11 @@ function renderControls(overrides: Partial<Parameters<typeof SimControls>[0]> = 
   const props = {
     isPaused: false,
     speed: DEFAULT_SPEED,
-    tool: Tool.paint,
     radius: BRUSH_RADIUS.default,
     onTogglePause: vi.fn(),
     onSpeed: vi.fn(),
     onStep: vi.fn(),
     onClear: vi.fn(),
-    onTool: vi.fn(),
     onRadius: vi.fn(),
     ...overrides,
   }
@@ -65,30 +62,5 @@ describe('SimControls', () => {
     screen.getByRole('button', { name: SIM_SPEEDS[2].label }).click()
 
     expect(props.onSpeed).toHaveBeenCalledWith(SIM_SPEEDS[2].rate)
-  })
-
-  it('turns identify on from the paint tool', () => {
-    const props = renderControls()
-
-    screen.getByRole('button', { name: 'Identify' }).click()
-
-    expect(props.onTool).toHaveBeenCalledWith(Tool.inspect)
-  })
-
-  it('turns identify back off, rather than needing another button', () => {
-    const props = renderControls({ tool: Tool.inspect })
-    const identify = screen.getByRole('button', { name: 'Identify' })
-
-    expect(identify.getAttribute('aria-pressed')).toBe('true')
-    identify.click()
-
-    expect(props.onTool).toHaveBeenCalledWith(Tool.paint)
-  })
-
-  it('leaves the brush usable while identifying', () => {
-    // Identify follows the pointer instead of taking its clicks, so painting carries on underneath it.
-    renderControls({ tool: Tool.inspect })
-
-    expect(screen.getByRole('slider').hasAttribute('disabled')).toBe(false)
   })
 })

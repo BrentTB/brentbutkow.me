@@ -124,8 +124,9 @@ export const DEFAULT_MATERIAL: MaterialId = MaterialId.sand
 export const simCopy = {
   tagline: 'Draw materials into a pixel world and watch them react.',
   taglineFun: 'Draw materials, mix them, and see what happens to the little world you just made.',
-  hint: 'Pick a material and draw on the canvas.',
-  identifyHint: 'Point at anything to see what it is.',
+  hint: 'Pick a material and draw. Point at anything to see what it is.',
+  /** A source that has not been fed yet has nothing to copy. */
+  sourceEmpty: 'nothing yet',
   searchPlaceholder: 'Find a material',
   noMatch: 'Nothing by that name.',
 }

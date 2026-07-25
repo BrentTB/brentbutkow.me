@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { PageLayout } from '../../components/PageFormatting/PageLayout'
 import { PageHeader } from '../../components/PageFormatting/PageHeader'
 import { useFunMode } from '../../contexts/useFunMode'
-import { CellPoint, CellReading, MaterialId, Tool } from './pixel-world.types'
+import { CellPoint, CellReading, MaterialId } from './pixel-world.types'
 import { BRUSH_RADIUS, DEFAULT_MATERIAL, simCopy } from './data'
 import { MATERIALS } from './engine/materials'
 import { usePixelWorld } from './usePixelWorld'
@@ -17,29 +17,17 @@ export function PixelWorldSimulator() {
 
   const [material, setMaterial] = useState<MaterialId>(DEFAULT_MATERIAL)
   const [radius, setRadius] = useState(BRUSH_RADIUS.default)
-  const [tool, setTool] = useState<Tool>(Tool.paint)
 
   const sim = usePixelWorld(canvasRef)
-  const identifying = tool === Tool.inspect
 
   const onStroke = useCallback(
     (from: CellPoint, to: CellPoint) => sim.paintStroke(from, to, material, radius),
     [sim, material, radius]
   )
 
-  // Identify follows the pointer rather than taking its clicks, so the brush keeps working while a
-  // reading sits there updating itself.
-  const onHover = useCallback(
-    (cell: CellPoint | null) => {
-      if (identifying) sim.watch(cell)
-    },
-    [identifying, sim]
-  )
+  // The readout always follows the pointer: no mode to turn on, and painting is never interrupted.
+  const onHover = useCallback((cell: CellPoint | null) => sim.watch(cell), [sim])
   const brushHandlers = usePointerBrush(canvasRef, onStroke, onHover)
-
-  useEffect(() => {
-    if (!identifying) sim.watch(null)
-  }, [identifying, sim])
 
   return (
     <PageLayout>
@@ -62,30 +50,46 @@ export function PixelWorldSimulator() {
         <SimControls
           isPaused={sim.isPaused}
           speed={sim.speed}
-          tool={tool}
           radius={radius}
           onTogglePause={sim.togglePause}
           onSpeed={sim.setSpeed}
           onStep={sim.stepOnce}
           onClear={sim.clear}
-          onTool={setTool}
           onRadius={setRadius}
         />
 
         <p className={styles.hint} aria-live="polite">
-          {identifying ? describe(sim.reading) : simCopy.hint}
+          {sim.reading === null ? simCopy.hint : <Reading reading={sim.reading} />}
         </p>
       </div>
     </PageLayout>
   )
 }
 
-function describe(reading: CellReading | null): string {
-  if (reading === null) return simCopy.identifyHint
-
+/**
+ * Temperature first, in a slot wide enough for the coldest and hottest readings the sim can produce. With
+ * the material name first the number slid left and right as the pointer moved between a long name and a
+ * short one, which made it unreadable while it was changing.
+ */
+function Reading({ reading }: { reading: CellReading }) {
   const { label } = MATERIALS[reading.material]
   // Air, not "empty": it holds a temperature and conducts, which is exactly what the readout shows.
   const name = reading.material === MaterialId.empty ? 'Air' : label
-  const state = reading.burning ? ' · on fire' : ''
-  return `${name} · ${reading.temperature}°C${state}`
+
+  const notes = [name]
+  if (reading.material === MaterialId.source) {
+    const producing =
+      reading.producing === undefined ? simCopy.sourceEmpty : MATERIALS[reading.producing].label
+    notes.push(`making ${producing}`)
+  }
+  if (reading.burning) notes.push('on fire')
+
+  return (
+    <>
+      <span className={styles.temperature}>{reading.temperature}°C</span>
+      {/* The gap is CSS, but the text needs a separator of its own or a screen reader runs the
+          temperature straight into the material name. */}
+      {` ${notes.join(' · ')}`}
+    </>
+  )
 }

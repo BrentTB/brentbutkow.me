@@ -154,9 +154,18 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
 
 function readCell(grid: Grid, cell: CellPoint): CellReading {
   const index = cellIndex(grid, cell.x, cell.y)
+  const material = asMaterial(grid.material[index])
+
+  // A source keeps the id of whatever it was first fed in its `data` byte, and that is the one thing
+  // about it you cannot see by looking.
+  const fed = grid.data[index]
+  const producing =
+    material === MaterialId.source && fed !== MaterialId.empty ? asMaterial(fed) : undefined
+
   return {
-    material: asMaterial(grid.material[index]),
+    material,
     temperature: grid.temperature[index],
     burning: grid.burn[index] > 0,
+    producing,
   }
 }

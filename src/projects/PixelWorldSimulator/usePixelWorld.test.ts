@@ -297,6 +297,29 @@ describe('usePixelWorld', () => {
     expect(result.current.reading?.material).not.toBe(MaterialId.lava)
   })
 
+  it('says what a source has been fed', () => {
+    const { result } = mountSim()
+    act(() => result.current.paintStroke({ x: 30, y: 20 }, { x: 30, y: 20 }, MaterialId.source, 0))
+
+    const unfed = result.current.read({ x: 30, y: 20 })
+    expect(unfed.material).toBe(MaterialId.source)
+    // The one thing about a source you cannot see by looking at it.
+    expect(unfed.producing).toBeUndefined()
+
+    act(() => result.current.paintStroke({ x: 30, y: 21 }, { x: 30, y: 21 }, MaterialId.lava, 0))
+    for (let i = 0; i < 10; i++) frame(MS_PER_TICK)
+
+    expect(result.current.read({ x: 30, y: 20 }).producing).toBe(MaterialId.lava)
+  })
+
+  it('leaves `producing` off anything that is not a source', () => {
+    const { result } = mountSim()
+    act(() => result.current.paintStroke({ x: 44, y: 6 }, { x: 44, y: 6 }, MaterialId.acid, 0))
+
+    // Acid keeps its charge count in the same byte, which must not read as a product.
+    expect(result.current.read({ x: 44, y: 6 }).producing).toBeUndefined()
+  })
+
   it('stops following when asked', () => {
     const { result } = mountSim()
     act(() => result.current.watch({ x: 10, y: 10 }))

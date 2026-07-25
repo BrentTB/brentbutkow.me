@@ -30,14 +30,17 @@ const PACK_CHANCE = 0.004
 /** Chance per tick that a sponge pulls in a touching drop, and the temperature that wrings it out. */
 const SOAK_CHANCE = 0.25
 const WRING_TEMPERATURE = 90
-/** Chance per tick that a source produces a cell of what it remembers. */
-const EMIT_CHANCE = 0.25
+/**
+ * Chance per tick that one cell of source produces. Low, because output scales with a block's area: at a
+ * quarter, a modest 8x8 block poured out roughly eighteen cells a tick, which drowns a world.
+ */
+const EMIT_CHANCE = 0.06
 /**
  * How far a source will push its output to find space. A source that could only fill the cell next to it
  * stalled as soon as its own product surrounded it, so a big block produced no more than its outline.
  * Pushing through what it has already made turns it into a pump.
  */
-const EMIT_REACH = 6
+const EMIT_REACH = 20
 /** Chance per tick that a void eats one of its neighbours. */
 const CONSUME_CHANCE = 0.5
 /** Chance per tick that a spark jumps to the next conductive cell. */
@@ -333,14 +336,33 @@ function emit(grid: Grid, rng: Rng, x: number, y: number, index: number): void {
   const remembered = grid.data[index]
 
   if (remembered === MaterialId.empty) {
+    const start = Math.floor(rng.next() * NEIGHBOURS.length)
+
+    // Learn from whatever is fed in, or from a neighbouring source that already knows. Without the
+    // second half, the inside of a block can never learn anything — every one of its neighbours is
+    // another source — so only the outline of a big block ever produced, and output grew with its
+    // perimeter rather than its area.
     const fed = pickNeighbour(
       grid,
       x,
       y,
       (found) => found !== MaterialId.empty && found !== MaterialId.source,
-      Math.floor(rng.next() * NEIGHBOURS.length)
+      start
     )
-    if (fed >= 0) grid.data[index] = grid.material[fed]
+    if (fed >= 0) {
+      grid.data[index] = grid.material[fed]
+      return
+    }
+
+    const knowing = pickNeighbour(
+      grid,
+      x,
+      y,
+      (found) => found === MaterialId.source,
+      start,
+      (candidate) => grid.data[candidate] !== MaterialId.empty
+    )
+    if (knowing >= 0) grid.data[index] = grid.data[knowing]
     return
   }
 

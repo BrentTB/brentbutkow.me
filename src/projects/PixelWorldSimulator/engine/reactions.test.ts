@@ -625,18 +625,48 @@ describe('source', () => {
     expect(count(grid, MaterialId.water)).toBeGreaterThan(before)
   })
 
-  it('gives a block of sources more output than a single cell', () => {
+  it('teaches the whole block from one fed cell', () => {
+    const grid = createGrid(30, 30)
+    for (let x = 0; x < 5; x++) {
+      for (let y = 0; y < 5; y++) put(grid, 10 + x, 10 + y, MaterialId.source)
+    }
+    // Fed at one corner only. The middle of the block touches nothing but more source.
+    put(grid, 10, 9, MaterialId.water)
+
+    react(grid, 200)
+
+    expect(grid.data[cellIndex(grid, 12, 12)]).toBe(MaterialId.water)
+  })
+
+  it('scales output with the area of a block, not its perimeter', () => {
     const produced = (side: number) => {
-      const grid = createGrid(60, 60)
+      const grid = createGrid(80, 80)
+      const left = 40 - (side >> 1)
       for (let x = 0; x < side; x++) {
-        for (let y = 0; y < side; y++) put(grid, 25 + x, 25 + y, MaterialId.source)
+        for (let y = 0; y < side; y++) put(grid, left + x, 40 + y, MaterialId.source)
       }
-      put(grid, 25, 24, MaterialId.water)
-      react(grid, 600)
-      return count(grid, MaterialId.water)
+      put(grid, left, 39, MaterialId.water)
+
+      const rng = createRng(5)
+      for (let tick = 0; tick < 30; tick++) applyReactions(grid, rng)
+
+      // Sweep the output away every tick, so space is never what limits the count.
+      let total = 0
+      for (let tick = 0; tick < 200; tick++) {
+        applyReactions(grid, rng)
+        for (let index = 0; index < grid.material.length; index++) {
+          if (grid.material[index] !== MaterialId.water) continue
+          grid.material[index] = MaterialId.empty
+          total++
+        }
+      }
+      return total
     }
 
-    expect(produced(4)).toBeGreaterThan(produced(1))
+    // Doubling the side should roughly quadruple the output. It used to peak at 2x2 and then fall away,
+    // because only cells that could learn what to make — the outline — ever produced anything.
+    expect(produced(4)).toBeGreaterThan(produced(2) * 3)
+    expect(produced(8)).toBeGreaterThan(produced(4) * 3)
   })
 
   it('will not shove its output through a wall', () => {
