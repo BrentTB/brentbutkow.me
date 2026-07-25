@@ -4,13 +4,28 @@
   gap: 16px;
 }
 
+// Canvas and tools share a row: the tools used to sit directly above the material-group tabs, where
+// reaching for a group hit a tool instead.
+.world {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+}
+
 .stage {
   display: flex;
+  flex: 1;
   justify-content: center;
   padding: 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--bg-elevated);
+}
+
+@media (max-width: 640px) {
+  .world {
+    flex-direction: column;
+  }
 }
 
 .canvas {

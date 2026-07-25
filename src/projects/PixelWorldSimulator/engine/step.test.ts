@@ -4,6 +4,7 @@ import { AMBIENT_TEMPERATURE } from '../data'
 import { cellIndex, createGrid, placeMaterial } from './grid'
 import { createRng } from './rng'
 import { step } from './step'
+import { push } from './kinetic'
 
 function set(grid: Grid, x: number, y: number, material: MaterialId): void {
   placeMaterial(grid, cellIndex(grid, x, y), material)
@@ -336,6 +337,29 @@ function footprint(grid: Grid, material: MaterialId, row: number): number {
   }
   return rightmost < 0 ? 0 : rightmost - leftmost + 1
 }
+
+describe('cells in flight', () => {
+  it('are left to the kinetic pass', () => {
+    const grid = createGrid(9, 9)
+    const cell = cellIndex(grid, 4, 4)
+    set(grid, 4, 4, MaterialId.sand)
+    push(grid, cell, 0, -3)
+
+    step(grid, createRng(1), 0)
+
+    // Gravity is part of kinetic motion, so a cell moved by both passes falls twice as fast as it flew.
+    expect(grid.material[cell]).toBe(MaterialId.sand)
+  })
+
+  it('fall as usual once they are back out of the map', () => {
+    const grid = createGrid(9, 9)
+    set(grid, 4, 4, MaterialId.sand)
+
+    step(grid, createRng(1), 0)
+
+    expect(at(grid, 4, 5)).toBe(MaterialId.sand)
+  })
+})
 
 describe('heaps', () => {
   it('piles gravel steeper than sand', () => {

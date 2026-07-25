@@ -4,6 +4,7 @@ import { step } from './step'
 import { simulateHeat } from './heat'
 import { advanceTimers } from './timers'
 import { applyReactions } from './reactions'
+import { moveKinetic } from './kinetic'
 
 /**
  * One world tick: chemistry acts on the world as it stands, then things move, then heat spreads and
@@ -16,10 +17,15 @@ import { applyReactions } from './reactions'
  *
  * Heat stays after movement so a cell's temperature travels with it, and the timers stay after heat so
  * a cell lit this tick starts burning down from its full count.
+ *
+ * Cells in flight move after the ordinary pass, and `step` leaves them alone while they are: gravity is
+ * already part of a kinetic cell's own motion, so letting both passes have a go at one sent debris down
+ * twice as fast as it flew up.
  */
 export function tickWorld(grid: Grid, rng: Rng, tick: number): void {
   applyReactions(grid, rng)
   step(grid, rng, tick)
+  moveKinetic(grid)
   simulateHeat(grid)
   advanceTimers(grid, rng)
 }

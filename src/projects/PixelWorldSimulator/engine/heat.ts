@@ -1,7 +1,8 @@
-import { Grid, MaterialId } from '../pixel-world.types'
+import { Grid, MaterialBehavior, MaterialId } from '../pixel-world.types'
 import { AMBIENT_TEMPERATURE } from '../data'
 import { MATERIALS, isBurning } from './materials'
 import { transformCell } from './grid'
+import { detonate, flashOver } from './forces'
 
 /**
  * How hard a self-heating or burning cell holds its own temperature against its surroundings. The
@@ -43,7 +44,10 @@ const SELF_HEAT = new Int16Array(MATERIALS.map((material) => material.selfHeat ?
 const BURN_HEAT = new Int16Array(MATERIALS.map((material) => material.ignite?.heat ?? 0))
 const REACTS_TO_HEAT = new Uint8Array(
   MATERIALS.map((material) =>
-    material.hot !== undefined || material.cold !== undefined || material.ignite !== undefined
+    material.hot !== undefined ||
+    material.cold !== undefined ||
+    material.ignite !== undefined ||
+    material.explodes !== undefined
       ? 1
       : 0
   )
@@ -235,9 +239,16 @@ function applyThresholds(grid: Grid): void {
         temperature[index] = cell.cold.at
         continue
       }
+      // A charge goes off rather than burning: the pulse it writes is what sets the next one off.
+      if (cell.explodes !== undefined && heat >= cell.explodes.at) {
+        detonate(grid, index, x, y)
+        continue
+      }
       // Fuel catches once and burns on its own timer, so re-ignition can't reset the countdown.
       if (cell.ignite !== undefined && burn[index] === 0 && heat >= cell.ignite.at) {
         burn[index] = cell.ignite.ticks
+        // A pocket of gas catching is a detonation, not a candle.
+        if (cell.behavior === MaterialBehavior.gas) flashOver(grid, x, y)
       }
     }
   }

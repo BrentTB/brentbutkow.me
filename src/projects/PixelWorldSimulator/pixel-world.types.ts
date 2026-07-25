@@ -33,6 +33,9 @@ export const MaterialId = {
   void: 31,
   source: 32,
   chlorine: 33,
+  tnt: 34,
+  gunpowder: 35,
+  shard: 36,
 } as const
 export type MaterialId = (typeof MaterialId)[keyof typeof MaterialId]
 
@@ -115,7 +118,46 @@ export type Material = {
   clingsToFuel?: boolean
   /** Gets the glow pass in the renderer. */
   emissive?: boolean
+  /**
+   * Share of its speed a thrown cell keeps when it bounces, 0–1. Most things thud and stay put; rubber
+   * is the one material with a real bounce in it.
+   */
+  restitution?: number
+  /** Detonates at `at` °C: an outward impulse over `radius` cells, a heat pulse, and `into` left behind. */
+  explodes?: {
+    at: number
+    radius: number
+    /** Speed in cells per tick handed to a cell at the centre; it falls off to nothing at the rim. */
+    impulse: number
+    /** °C written across the blast, which is what chains one charge into the next. */
+    heat: number
+    into: MaterialId
+  }
+  /** Breaks into this when something fast enough hits it. */
+  shatters?: MaterialId
 }
+
+/**
+ * A cell in flight, in cells per tick. `ox`/`oy` carry the sub-cell remainder between ticks, so a cell
+ * drifting at a third of a cell per tick still moves every third tick instead of rounding to nothing.
+ */
+export type Velocity = {
+  vx: number
+  vy: number
+  ox: number
+  oy: number
+}
+
+/** What the pointer does to the world. Paint is the material brush; the rest write forces or heat. */
+export const Tool = {
+  paint: 'paint',
+  attract: 'attract',
+  blast: 'blast',
+  wind: 'wind',
+  heat: 'heat',
+  chill: 'chill',
+} as const
+export type Tool = (typeof Tool)[keyof typeof Tool]
 
 /** Cells live in flat typed arrays indexed `y * width + x`. */
 export type Grid = {
@@ -139,6 +181,11 @@ export type Grid = {
    */
   hotRows: Uint8Array
   hotRowsNext: Uint8Array
+  /**
+   * Cells currently in flight, keyed by index. Sparse because almost nothing is flying almost all of the
+   * time: an explosion fills it for a second and it empties itself as the debris settles.
+   */
+  velocity: Map<number, Velocity>
 }
 
 /** What is in the cell under the pointer. */

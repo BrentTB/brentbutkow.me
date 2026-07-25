@@ -1,4 +1,4 @@
-import { MaterialId } from './pixel-world.types'
+import { MaterialId, Tool } from './pixel-world.types'
 
 export const GRID_WIDTH = 300
 export const GRID_HEIGHT = 200
@@ -66,11 +66,11 @@ export const MATERIAL_GROUPS: readonly {
       MaterialId.wood,
       MaterialId.glass,
       MaterialId.metal,
-      MaterialId.rubber,
       MaterialId.ice,
       MaterialId.plant,
       MaterialId.vine,
       MaterialId.sponge,
+      MaterialId.tnt,
     ],
   },
   {
@@ -80,10 +80,13 @@ export const MATERIAL_GROUPS: readonly {
       MaterialId.sand,
       MaterialId.dirt,
       MaterialId.gravel,
+      MaterialId.rubber,
       MaterialId.ash,
       MaterialId.snow,
       MaterialId.salt,
       MaterialId.seed,
+      MaterialId.gunpowder,
+      MaterialId.shard,
     ],
   },
   {
@@ -118,6 +121,19 @@ export const MATERIAL_GROUPS: readonly {
   },
 ]
 
+/**
+ * The tools, in the order they sit above the palette. Paint leads because it is what the page opens on;
+ * the forces follow, and heat/chill come last as the pair that changes a cell without replacing it.
+ */
+export const TOOLS: readonly { tool: Tool; label: string; title: string }[] = [
+  { tool: Tool.paint, label: 'Paint', title: 'Draw the selected material' },
+  { tool: Tool.attract, label: 'Attract', title: 'Pull loose material toward you' },
+  { tool: Tool.blast, label: 'Blast', title: 'Throw everything outward and heat it' },
+  { tool: Tool.wind, label: 'Wind', title: 'Blow material whichever way you drag' },
+  { tool: Tool.heat, label: 'Heat', title: 'Warm whatever is under the brush' },
+  { tool: Tool.chill, label: 'Chill', title: 'Cool whatever is under the brush' },
+]
+
 /** The material a fresh page starts on. */
 export const DEFAULT_MATERIAL: MaterialId = MaterialId.sand
 
@@ -125,6 +141,14 @@ export const simCopy = {
   tagline: 'Draw materials into a pixel world and watch them react.',
   taglineFun: 'Draw materials, mix them, and see what happens to the little world you just made.',
   hint: 'Pick a material and draw. Point at anything to see what it is.',
+  /** Shown in place of the paint hint while a force tool is selected. */
+  toolHints: {
+    [Tool.attract]: 'Drag to pull loose material toward you.',
+    [Tool.blast]: 'Click to throw everything outward. Hold it down for a fountain.',
+    [Tool.wind]: 'Material blows whichever way you drag.',
+    [Tool.heat]: 'Hold to warm things up. Ice melts, wood catches fire.',
+    [Tool.chill]: 'Hold to cool things down. Water freezes, lava sets.',
+  },
   /** A source that has not been fed yet has nothing to copy. */
   sourceEmpty: 'nothing yet',
   searchPlaceholder: 'Find a material',

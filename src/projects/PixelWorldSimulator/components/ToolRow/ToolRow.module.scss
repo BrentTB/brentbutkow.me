@@ -1,0 +1,66 @@
+// One shell with dividers, the same instrument the transport is built from: these six are a mode
+// selector, and a row of separate outlined buttons reads as six unrelated actions. Stacked beside the
+// canvas rather than above the palette, so picking a tool and picking a material are different reaches.
+.tools {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  align-self: flex-start;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface-strong);
+  overflow: hidden;
+
+  > * + * {
+    border-top: 1px solid var(--border);
+  }
+}
+
+.tool {
+  padding: 9px 16px;
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transition:
+    color 0.18s ease,
+    background 0.18s ease;
+
+  &:hover {
+    color: var(--text);
+    background: rgba(var(--accent-rgb), 0.1);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+
+  &[aria-pressed='true'] {
+    color: var(--text);
+    background: rgba(var(--accent-rgb), 0.18);
+  }
+}
+
+// Narrow enough that the canvas needs the full width: the column lies back down into a row.
+@media (max-width: 640px) {
+  .tools {
+    flex-direction: row;
+    align-self: stretch;
+
+    > * + * {
+      border-top: 0;
+      border-left: 1px solid var(--border);
+    }
+  }
+
+  .tool {
+    flex: 1;
+    padding: 8px 6px;
+    text-align: center;
+  }
+}

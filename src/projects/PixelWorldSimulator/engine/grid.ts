@@ -15,6 +15,7 @@ export function createGrid(width: number, height: number): Grid {
     temperatureNext: new Int16Array(cells).fill(AMBIENT_TEMPERATURE),
     hotRows: new Uint8Array(height),
     hotRowsNext: new Uint8Array(height),
+    velocity: new Map(),
   }
 }
 
@@ -35,6 +36,7 @@ export function clearGrid(grid: Grid): void {
   grid.temperatureNext.fill(AMBIENT_TEMPERATURE)
   grid.hotRows.fill(0)
   grid.hotRowsNext.fill(0)
+  grid.velocity.clear()
 }
 
 /**
@@ -59,6 +61,35 @@ function startingData(material: MaterialId): number {
  */
 export function refreshCell(grid: Grid, index: number, material: MaterialId): void {
   grid.data[index] = startingData(material)
+}
+
+/** A cell's counters and its heat travel with its material — lava carries its own temperature. */
+export function swapCells(grid: Grid, a: number, b: number): void {
+  const material = grid.material[b]
+  const data = grid.data[b]
+  const burn = grid.burn[b]
+  const temperature = grid.temperature[b]
+
+  // Heat that moves between rows has to wake them, or the heat pass would skip the row it landed in.
+  if (
+    temperature !== AMBIENT_TEMPERATURE ||
+    grid.temperature[a] !== AMBIENT_TEMPERATURE ||
+    burn > 0 ||
+    grid.burn[a] > 0
+  ) {
+    markHotRow(grid, a)
+    markHotRow(grid, b)
+  }
+
+  grid.material[b] = grid.material[a]
+  grid.data[b] = grid.data[a]
+  grid.burn[b] = grid.burn[a]
+  grid.temperature[b] = grid.temperature[a]
+
+  grid.material[a] = material
+  grid.data[a] = data
+  grid.burn[a] = burn
+  grid.temperature[a] = temperature
 }
 
 /** Wakes a row and its neighbours for the heat pass. */

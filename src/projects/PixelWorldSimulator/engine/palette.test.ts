@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { MaterialId } from '../pixel-world.types'
+import { AMBIENT_TEMPERATURE } from '../data'
 import { MATERIALS } from './materials'
-import { isEmissive, materialCss, writeCellRgb } from './palette'
+import { isEmissive, materialCss, writeCellRgb, writeHeatTint } from './palette'
 
 describe('writeCellRgb', () => {
   it('writes an opaque colour within jitter range of the material', () => {
@@ -93,5 +94,43 @@ describe('materialCss', () => {
   it('reads the same table the canvas paints from', () => {
     const [r, g, b] = MATERIALS[MaterialId.water].color
     expect(materialCss(MaterialId.water)).toBe(`rgb(${r} ${g} ${b})`)
+  })
+})
+
+describe('writeHeatTint', () => {
+  /** A one-cell overlay buffer. */
+  function tintFor(temperature: number) {
+    const pixels = new Uint8ClampedArray(4)
+    const tinted = writeHeatTint(pixels, 0, temperature)
+    return { tinted, r: pixels[0], g: pixels[1], b: pixels[2], alpha: pixels[3] }
+  }
+
+  it('writes nothing at room temperature', () => {
+    const { tinted, alpha } = tintFor(AMBIENT_TEMPERATURE)
+
+    expect(tinted).toBe(false)
+    expect(alpha).toBe(0)
+  })
+
+  it('tints warm cells warmer the hotter they get', () => {
+    const warm = tintFor(300)
+    const hot = tintFor(1100)
+
+    // What makes heating something visible before it crosses a threshold.
+    expect(warm.tinted).toBe(true)
+    expect(warm.r).toBeGreaterThan(warm.b)
+    expect(hot.alpha).toBeGreaterThan(warm.alpha)
+  })
+
+  it('tints cold cells blue', () => {
+    const cold = tintFor(-150)
+
+    expect(cold.tinted).toBe(true)
+    expect(cold.b).toBeGreaterThan(cold.r)
+  })
+
+  it('stops getting stronger past the ends of its range', () => {
+    expect(tintFor(1200).alpha).toBe(tintFor(4000).alpha)
+    expect(tintFor(-190).alpha).toBe(tintFor(-400).alpha)
   })
 })

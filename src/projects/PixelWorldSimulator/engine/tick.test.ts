@@ -5,6 +5,8 @@ import { stampCircle } from './brush'
 import { cellIndex, createGrid, placeMaterial } from './grid'
 import { createRng } from './rng'
 import { tickWorld } from './tick'
+import { MATERIALS } from './materials'
+import { push } from './kinetic'
 
 function put(grid: Grid, x: number, y: number, material: MaterialId): number {
   const index = cellIndex(grid, x, y)
@@ -369,6 +371,73 @@ describe('rubber', () => {
 
     expect(count(grid, MaterialId.rubber)).toBe(0)
     expect(count(grid, MaterialId.oil)).toBe(1)
+  })
+})
+
+describe('explosives', () => {
+  it('go off during a tick and throw what is around them', () => {
+    const grid = withVessel(41, 41)
+    const charge = put(grid, 20, 30, MaterialId.tnt)
+    put(grid, 25, 30, MaterialId.sand)
+    const { explodes } = MATERIALS[MaterialId.tnt]
+    grid.temperature[charge] = (explodes?.at ?? 0) + 20
+
+    run(grid, 2)
+
+    expect(grid.material[charge]).not.toBe(MaterialId.tnt)
+    expect(grid.velocity.size).toBeGreaterThan(0)
+  })
+
+  it('leave a crater in a pile they were buried under', () => {
+    const grid = withVessel(41, 41)
+    for (let y = 30; y < 39; y++) {
+      for (let x = 14; x < 27; x++) put(grid, x, y, MaterialId.sand)
+    }
+    const charge = put(grid, 20, 38, MaterialId.tnt)
+    const { explodes } = MATERIALS[MaterialId.tnt]
+    grid.temperature[charge] = (explodes?.at ?? 0) + 20
+    const buried = count(grid, MaterialId.sand)
+
+    run(grid, 30)
+
+    // Sand thrown clear of the pile has to end up somewhere other than the twelve columns it started in.
+    let inPlace = 0
+    for (let y = 0; y < 41; y++) {
+      for (let x = 14; x < 27; x++) {
+        if (grid.material[cellIndex(grid, x, y)] === MaterialId.sand) inPlace++
+      }
+    }
+    expect(inPlace).toBeLessThan(buried)
+  })
+})
+
+describe('the fire brush on a charge', () => {
+  it('sets it off, not just glowing', () => {
+    const grid = withVessel(41, 41)
+    for (let x = 14; x < 27; x++) put(grid, x, 20, MaterialId.tnt)
+
+    stampCircle(grid, 15, 20, 1, MaterialId.fire)
+    run(grid, 6)
+
+    // Lighting it exactly at its threshold let diffusion cool it back under before the pass tested it.
+    expect(count(grid, MaterialId.tnt)).toBe(0)
+  })
+})
+
+describe('cells in flight', () => {
+  it('travel during a tick, and only the kinetic pass moves them', () => {
+    const grid = withVessel(21, 21)
+    const start = put(grid, 10, 10, MaterialId.sand)
+    push(grid, start, 0, -3)
+
+    run(grid, 1)
+
+    // Both passes moving one cell doubled its gravity, so a throw fell as fast as it rose.
+    let landed = -1
+    for (let i = 0; i < grid.material.length; i++) {
+      if (grid.material[i] === MaterialId.sand) landed = i
+    }
+    expect(Math.floor(landed / grid.width)).toBeLessThan(10)
   })
 })
 

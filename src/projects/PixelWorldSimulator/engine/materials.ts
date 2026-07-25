@@ -22,6 +22,22 @@ export function canPaintOver(brush: MaterialId, existing: number): boolean {
   return PAINT_RANK[MATERIALS[brush].behavior] > PAINT_RANK[MATERIALS[existing].behavior]
 }
 
+/** Air yields to anything; static materials yield to nothing; otherwise the denser cell wins. */
+export function canDisplace(source: number, target: number): boolean {
+  if (target === MaterialId.empty) return true
+  const blocker = MATERIALS[target]
+  if (blocker.behavior === MaterialBehavior.static) return false
+  return blocker.density < MATERIALS[source].density
+}
+
+/** Buoyancy runs the comparison the other way, so a bubble climbs through water. */
+export function canFloatThrough(source: number, target: number): boolean {
+  if (target === MaterialId.empty) return true
+  const blocker = MATERIALS[target]
+  if (blocker.behavior === MaterialBehavior.static) return false
+  return blocker.density > MATERIALS[source].density
+}
+
 /** True while a cell is alight — it renders as flame and radiates until its timer runs out. */
 export function isBurning(burn: number): boolean {
   return burn > 0
@@ -144,6 +160,7 @@ export const MATERIALS: readonly Material[] = [
     drag: 0,
     conductivity: 0.18,
     acidProof: true,
+    shatters: MaterialId.shard,
   },
   {
     id: MaterialId.oil,
@@ -409,14 +426,18 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.rubber,
     label: 'Rubber',
-    behavior: MaterialBehavior.static,
-    density: 1000,
+    // Loose, not structural. As a static material a thrown clump of it hung wherever it stopped —
+    // static cells have no falling of their own, and a clump holds itself up.
+    behavior: MaterialBehavior.powder,
+    density: 120,
     color: [58, 56, 62],
     jitter: 10,
     dispersion: 0,
-    drag: 0,
+    drag: 0.5,
     conductivity: 0.06,
     hot: { at: 220, into: MaterialId.oil },
+    // The one material with a real bounce: thrown, it visibly rebounds before it settles.
+    restitution: 0.75,
   },
   {
     id: MaterialId.spark,
@@ -488,5 +509,47 @@ export const MATERIALS: readonly Material[] = [
     conductivity: 0.1,
     // Heavier than air: it pours downward and pools in the low ground instead of rising.
     sinks: true,
+  },
+  {
+    id: MaterialId.tnt,
+    label: 'TNT',
+    behavior: MaterialBehavior.static,
+    density: 1000,
+    color: [178, 62, 58],
+    jitter: 8,
+    dispersion: 0,
+    drag: 0,
+    conductivity: 0.12,
+    // Goes off well below wood's ignition point, so a fire reaching a charge is always the charge's story.
+    // Tuned against the demo it exists for: at a third less impulse a buried charge only slumped the
+    // sand hill above it, because thirty cells of powder soak up most of the throw.
+    explodes: { at: 160, radius: 24, impulse: 5.4, heat: 700, into: MaterialId.fire },
+  },
+  {
+    id: MaterialId.gunpowder,
+    label: 'Gunpowder',
+    behavior: MaterialBehavior.powder,
+    density: 90,
+    color: [72, 70, 76],
+    jitter: 12,
+    dispersion: 0,
+    drag: 0.6,
+    conductivity: 0.14,
+    // A grain of it is a spark, not a bomb: small radius, and the heat is what runs a trail of it.
+    explodes: { at: 120, radius: 5, impulse: 1.6, heat: 420, into: MaterialId.fire },
+  },
+  {
+    id: MaterialId.shard,
+    label: 'Shards',
+    behavior: MaterialBehavior.powder,
+    density: 130,
+    color: [150, 190, 196],
+    jitter: 14,
+    dispersion: 0,
+    drag: 0.7,
+    conductivity: 0.18,
+    acidProof: true,
+    // Melts back to molten sand at the same heat glass came from, so shards can be recycled.
+    hot: { at: 1700, into: MaterialId.lava },
   },
 ]

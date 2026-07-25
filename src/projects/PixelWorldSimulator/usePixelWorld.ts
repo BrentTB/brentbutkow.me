@@ -1,5 +1,5 @@
 import { RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { CellPoint, CellReading, Grid, MaterialId } from './pixel-world.types'
+import { CellPoint, CellReading, Grid, MaterialId, Tool } from './pixel-world.types'
 import {
   DEFAULT_SPEED,
   GRID_HEIGHT,
@@ -9,6 +9,7 @@ import {
   TICK_RATE,
 } from './data'
 import { stampLine } from './engine/brush'
+import { attract, blast, temper, wind } from './engine/forces'
 import { asMaterial, cellIndex, clearGrid, createGrid } from './engine/grid'
 import { Rng, createRng } from './engine/rng'
 import { tickWorld } from './engine/tick'
@@ -24,6 +25,11 @@ export type PixelWorldSim = {
   stepOnce(): void
   clear(): void
   paintStroke(from: CellPoint, to: CellPoint, material: MaterialId, radius: number): void
+  /**
+   * Runs a force tool over the world. Takes both ends of the drag because wind blows the way you
+   * dragged; everything else only cares where the pointer ended up.
+   */
+  applyForce(tool: Tool, from: CellPoint, to: CellPoint, radius: number): void
   /**
    * Follow a cell: `reading` then refreshes on its own while the world runs, so a temperature can be
    * watched changing without clicking. Pass null to stop.
@@ -126,6 +132,18 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
     []
   )
 
+  const applyForce = useCallback((tool: Tool, from: CellPoint, to: CellPoint, radius: number) => {
+    const grid = gridRef.current
+    // A force needs somewhere to reach even at the smallest brush, where the paint radius is 0.
+    const reach = Math.max(4, radius)
+
+    if (tool === Tool.attract) attract(grid, to.x, to.y, reach)
+    else if (tool === Tool.blast) blast(grid, to.x, to.y, reach)
+    else if (tool === Tool.wind) wind(grid, to.x, to.y, reach, to.x - from.x, to.y - from.y)
+    else if (tool === Tool.heat) temper(grid, to.x, to.y, reach, true)
+    else if (tool === Tool.chill) temper(grid, to.x, to.y, reach, false)
+  }, [])
+
   const watch = useCallback((cell: CellPoint | null) => {
     const wasWatching = watchedRef.current !== null
     watchedRef.current = cell
@@ -144,10 +162,22 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
       stepOnce,
       clear,
       paintStroke,
+      applyForce,
       watch,
       reading,
     }),
-    [isPaused, togglePause, speed, setSpeed, stepOnce, clear, paintStroke, watch, reading]
+    [
+      isPaused,
+      togglePause,
+      speed,
+      setSpeed,
+      stepOnce,
+      clear,
+      paintStroke,
+      applyForce,
+      watch,
+      reading,
+    ]
   )
 }
 

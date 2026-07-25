@@ -31,20 +31,35 @@ export function stampCircle(
 }
 
 /**
+ * Degrees above its own threshold a charge is lit to. Landing exactly on the threshold is not enough:
+ * diffusion runs before the threshold is tested, so it shaves a few degrees off first and the charge
+ * sits there glowing instead of going off.
+ */
+const LIT_OVERSHOOT = 30
+
+/**
  * The fire brush is a match, not a material: dragging it across a plank sets the plank alight
  * instead of bouncing off the paint hierarchy, which would leave flames unable to touch anything
- * solid enough to burn.
+ * solid enough to burn. A charge is touched off the same way, by heating it to the point it goes off:
+ * a match you cannot light dynamite with is a strange match.
  */
 function light(grid: Grid, cell: number, brush: MaterialId): boolean {
   if (brush !== MaterialId.fire) return false
 
-  const fuel = MATERIALS[grid.material[cell]].ignite
-  if (fuel === undefined) return false
+  const { ignite, explodes } = MATERIALS[grid.material[cell]]
+
+  if (explodes !== undefined) {
+    grid.temperature[cell] = explodes.at + LIT_OVERSHOOT
+    markHotRow(grid, cell)
+    return true
+  }
+
+  if (ignite === undefined) return false
 
   // Already alight stays alight on its own clock, the same rule the heat pass uses. Restamping was
   // refreshing the countdown, so wood under a held brush never burned down to ash.
   if (grid.burn[cell] === 0) {
-    grid.burn[cell] = fuel.ticks
+    grid.burn[cell] = ignite.ticks
     markHotRow(grid, cell)
   }
   return true

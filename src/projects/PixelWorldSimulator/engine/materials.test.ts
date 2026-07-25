@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { MaterialBehavior, MaterialId } from '../pixel-world.types'
-import { MATERIALS, canPaintOver, isBurning } from './materials'
+import { MATERIALS, canDisplace, canFloatThrough, canPaintOver, isBurning } from './materials'
 
 const FLUIDS: readonly MaterialBehavior[] = [MaterialBehavior.liquid, MaterialBehavior.gas]
 
@@ -191,5 +191,64 @@ describe('isBurning', () => {
   it('is true only while a burn timer is running', () => {
     expect(isBurning(0)).toBe(false)
     expect(isBurning(1)).toBe(true)
+  })
+})
+
+describe('canDisplace', () => {
+  it('lets anything into open air', () => {
+    expect(canDisplace(MaterialId.smoke, MaterialId.empty)).toBe(true)
+  })
+
+  it('sinks the denser cell through the lighter one, and not the other way', () => {
+    expect(canDisplace(MaterialId.sand, MaterialId.water)).toBe(true)
+    expect(canDisplace(MaterialId.water, MaterialId.sand)).toBe(false)
+  })
+
+  it('stops at anything static, however heavy the cell falling on it', () => {
+    // The world's scaffolding: a wall holds up whatever lands on it.
+    expect(canDisplace(MaterialId.lava, MaterialId.stone)).toBe(false)
+    expect(canDisplace(MaterialId.lava, MaterialId.glass)).toBe(false)
+  })
+
+  it('will not swap two cells of the same material, which would be motion for free', () => {
+    expect(canDisplace(MaterialId.water, MaterialId.water)).toBe(false)
+  })
+})
+
+describe('canFloatThrough', () => {
+  it('runs the density comparison the other way, so a bubble climbs', () => {
+    expect(canFloatThrough(MaterialId.steam, MaterialId.water)).toBe(true)
+    expect(canFloatThrough(MaterialId.water, MaterialId.steam)).toBe(false)
+  })
+
+  it('cannot rise through something static either', () => {
+    expect(canFloatThrough(MaterialId.steam, MaterialId.stone)).toBe(false)
+  })
+})
+
+describe('explosives and breakables', () => {
+  it('leave behind a real material when they go off', () => {
+    for (const material of MATERIALS) {
+      if (material.explodes === undefined) continue
+      expect(MATERIALS[material.explodes.into]).toBeDefined()
+      expect(material.explodes.radius).toBeGreaterThan(0)
+      expect(material.explodes.impulse).toBeGreaterThan(0)
+    }
+  })
+
+  it('break into a material that can actually fall away', () => {
+    for (const material of MATERIALS) {
+      if (material.shatters === undefined) continue
+      // Fragments that were static would hang in the hole they were knocked out of.
+      expect(MATERIALS[material.shatters].behavior).not.toBe(MaterialBehavior.static)
+    }
+  })
+
+  it('give a bounce only to something loose enough to be thrown', () => {
+    for (const material of MATERIALS) {
+      if (material.restitution === undefined) continue
+      expect(material.restitution).toBeGreaterThan(0)
+      expect(material.behavior).not.toBe(MaterialBehavior.static)
+    }
   })
 })

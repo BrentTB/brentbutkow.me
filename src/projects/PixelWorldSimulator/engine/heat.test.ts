@@ -190,3 +190,43 @@ describe('simulateHeat', () => {
     expect(grid.material[wood]).toBe(MaterialId.wood)
   })
 })
+
+describe('explosives in the heat pass', () => {
+  it('sets a charge off instead of letting it burn', () => {
+    const grid = createGrid(41, 41)
+    const charge = put(grid, 20, 20, MaterialId.tnt)
+    const neighbour = put(grid, 24, 20, MaterialId.sand)
+    const { explodes } = MATERIALS[MaterialId.tnt]
+    grid.temperature[charge] = (explodes?.at ?? 0) + 10
+
+    simulateHeat(grid)
+
+    expect(grid.material[charge]).toBe(explodes?.into)
+    expect(grid.velocity.get(neighbour)).toBeDefined()
+  })
+
+  it('runs a trail of gunpowder along itself', () => {
+    const grid = createGrid(41, 41)
+    const trail = [22, 23, 24, 25, 26].map((x) => put(grid, x, 20, MaterialId.gunpowder))
+    const { explodes } = MATERIALS[MaterialId.gunpowder]
+    grid.temperature[trail[0]] = (explodes?.at ?? 0) + 10
+
+    heatFor(grid, 12)
+
+    // Each grain's own pulse is what lights the next one, so the whole trail goes.
+    expect(trail.every((cell) => grid.material[cell] !== MaterialId.gunpowder)).toBe(true)
+  })
+
+  it('lets a pocket of gas go off with a bang, not a candle', () => {
+    const grid = createGrid(41, 41)
+    for (let x = 18; x <= 22; x++) put(grid, x, 20, MaterialId.methane)
+    const bystander = put(grid, 26, 20, MaterialId.sand)
+    const { ignite } = MATERIALS[MaterialId.methane]
+    grid.temperature[cellIndex(grid, 20, 20)] = (ignite?.at ?? 0) + 20
+
+    heatFor(grid, 4)
+
+    expect(grid.velocity.size).toBeGreaterThan(0)
+    expect(grid.velocity.get(bystander)?.vx ?? 0).toBeGreaterThanOrEqual(0)
+  })
+})

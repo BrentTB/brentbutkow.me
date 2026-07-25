@@ -89,6 +89,19 @@ describe('stampCircle', () => {
     expect(grid.material[cellIndex(grid, 4, 4)]).toBe(MaterialId.fire)
   })
 
+  it('sets a charge off with the fire brush, the same as lighting a plank', () => {
+    const grid = createGrid(9, 9)
+    grid.material.fill(MaterialId.tnt)
+
+    stampCircle(grid, 4, 4, 1, MaterialId.fire)
+
+    // A match you cannot touch off dynamite with is a strange match. Strictly above the threshold, not
+    // level with it: diffusion takes a few degrees before the threshold is tested.
+    const { explodes } = MATERIALS[MaterialId.tnt]
+    expect(grid.temperature[cellIndex(grid, 4, 4)]).toBeGreaterThan(explodes?.at ?? Infinity)
+    expect(grid.material[cellIndex(grid, 4, 4)]).toBe(MaterialId.tnt)
+  })
+
   it('leaves material that cannot burn to the paint hierarchy', () => {
     const grid = createGrid(9, 9)
     grid.material.fill(MaterialId.stone)
