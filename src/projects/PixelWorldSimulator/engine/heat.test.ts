@@ -68,42 +68,92 @@ describe('simulateHeat', () => {
     expect(grid.temperature[lava]).toBeGreaterThan(MATERIALS[MaterialId.lava].cold?.at ?? 0)
   })
 
-  it('melts ice that gets warm and freezes water that gets cold', () => {
+  it('melts ice that gets warm', () => {
     const grid = createGrid(5, 5)
     const ice = put(grid, 1, 1, MaterialId.ice)
-    const water = put(grid, 3, 3, MaterialId.water)
     grid.temperature[ice] = 40
-    grid.temperature[water] = -40
 
     simulateHeat(grid)
 
     expect(grid.material[ice]).toBe(MaterialId.water)
-    expect(grid.material[water]).toBe(MaterialId.ice)
   })
 
-  it('boils water into steam and condenses steam back into water', () => {
+  it('boils water into steam', () => {
     const grid = createGrid(5, 5)
     const water = put(grid, 1, 1, MaterialId.water)
-    const steam = put(grid, 3, 3, MaterialId.steam)
     grid.temperature[water] = 400
-    grid.temperature[steam] = 10
 
     simulateHeat(grid)
 
     expect(grid.material[water]).toBe(MaterialId.steam)
-    expect(grid.material[steam]).toBe(MaterialId.water)
   })
 
-  it('does not flicker steam and water against each other at the boiling point', () => {
+  it('leaves steam as steam however cold it gets, so it drifts instead of collapsing in place', () => {
     const grid = createGrid(5, 5)
-    const cell = put(grid, 2, 2, MaterialId.water)
-    grid.temperature[cell] = 101
+    const steam = put(grid, 3, 3, MaterialId.steam)
+    grid.temperature[steam] = 10
 
     heatFor(grid, 400)
 
-    // It boils, then the steam cools past its condensation point and settles as water again.
-    expect(grid.material[cell]).toBe(MaterialId.water)
-    expect(grid.temperature[cell]).toBeLessThan(MATERIALS[MaterialId.steam].cold?.at ?? 0)
+    // Condensation is the lifetime clock's job. Doing it by temperature made water on lava flicker
+    // between the two states in the same cell forever.
+    expect(grid.material[steam]).toBe(MaterialId.steam)
+  })
+
+  it('keeps ice frozen at room temperature', () => {
+    const grid = createGrid(9, 9)
+    const ice = put(grid, 4, 4, MaterialId.ice)
+
+    heatFor(grid, 600)
+
+    expect(grid.material[ice]).toBe(MaterialId.ice)
+    expect(grid.temperature[ice]).toBeLessThan(MATERIALS[MaterialId.ice].hot?.at ?? 0)
+  })
+
+  it('freezes water only when something cryogenic gets hold of it', () => {
+    const grid = createGrid(9, 9)
+    const water = put(grid, 4, 5, MaterialId.water)
+    grid.temperature[water] = -80
+
+    simulateHeat(grid)
+
+    expect(grid.material[water]).toBe(MaterialId.ice)
+  })
+
+  it('leaves water beside ice for the frost rule to convert, not the heat pass', () => {
+    const grid = createGrid(9, 9)
+    put(grid, 4, 4, MaterialId.ice)
+    const water = put(grid, 4, 5, MaterialId.water)
+
+    heatFor(grid, 600)
+
+    // The heat pass chills it, but a growing ice mass crashing the pool's temperature snap-froze the
+    // whole thing in a second, so conversion belongs to the contact rule in reactions.ts.
+    expect(grid.material[water]).toBe(MaterialId.water)
+    expect(grid.temperature[water]).toBeLessThan(AMBIENT_TEMPERATURE)
+  })
+
+  it('melts ice against a flame', () => {
+    const grid = createGrid(9, 9)
+    const ice = put(grid, 4, 4, MaterialId.ice)
+    put(grid, 4, 3, MaterialId.fire)
+
+    heatFor(grid, 200)
+
+    expect(grid.material[ice]).not.toBe(MaterialId.ice)
+  })
+
+  it('bills the hottest neighbour for the heat a boil consumed', () => {
+    const grid = createGrid(5, 5)
+    const lava = put(grid, 2, 3, MaterialId.lava)
+    const water = put(grid, 2, 2, MaterialId.water)
+    grid.temperature[water] = 400
+    const lavaBefore = grid.temperature[lava]
+
+    simulateHeat(grid)
+
+    expect(grid.material[water]).toBe(MaterialId.steam)
+    expect(grid.temperature[lava]).toBeLessThan(lavaBefore)
   })
 
   it('melts sand into glass under lava heat', () => {

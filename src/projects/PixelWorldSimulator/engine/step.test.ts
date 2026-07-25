@@ -176,6 +176,31 @@ describe('step', () => {
     expect(throughWater).toBeGreaterThan(throughAir * 2)
   })
 
+  it('seeps a liquid into a heap of ash instead of plunging through it', () => {
+    const settleTime = (bed: MaterialId) => {
+      const grid = withVessel(9, 24)
+      for (let x = 1; x < 8; x++) {
+        for (let y = 14; y < 23; y++) set(grid, x, y, bed)
+      }
+      set(grid, 4, 12, MaterialId.water)
+
+      const rng = createRng(808)
+      for (let tick = 0; tick < 4000; tick++) {
+        step(grid, rng, tick)
+        if (at(grid, 4, 22) === MaterialId.water) return tick
+      }
+      return Infinity
+    }
+
+    const throughAir = settleTime(MaterialId.empty)
+    const throughAsh = settleTime(MaterialId.ash)
+
+    expect(throughAir).toBeLessThan(Infinity)
+    expect(throughAsh).toBeLessThan(Infinity)
+    // Ash has drag, so the drop soaks down through the heap rather than swapping straight past it.
+    expect(throughAsh).toBeGreaterThan(throughAir * 2)
+  })
+
   it('lifts a gas to the ceiling', () => {
     const grid = withVessel(12, 20)
     set(grid, 6, 17, MaterialId.methane)

@@ -3,19 +3,36 @@ import { AMBIENT_TEMPERATURE } from '../data'
 import { MATERIALS, isBurning } from './materials'
 import { transformCell } from './grid'
 
-/** How fast a self-heating or burning cell drives itself back toward its own temperature. */
-const HEAT_PULL = 0.08
+/**
+ * How hard a self-heating or burning cell holds its own temperature against its surroundings. The
+ * per-tick caps below are what bound the rate; this only has to be strong enough that a cube of ice
+ * dropped in a pool actually sits near its own temperature instead of settling a few degrees below
+ * the water around it.
+ */
+const HEAT_PULL = 0.3
 /**
  * Degrees per tick a hot cell can regain. Without the cap, lava is an infinite battery: it reheats
  * faster than a pool can drain it, so it never crusts and the water all boils away.
  */
-const SELF_HEAT_MAX = 80
+const SELF_HEAT_MAX = 55
+/** Cold holds on more gently than heat, so a block of ice creeps across a pool instead of snapping it. */
+const SELF_CHILL_MAX = 22
 /**
  * How hard a flame pushes heat straight into the cells around it, and the most it can give in one
  * tick. Diffusion alone is too slow to light a plank, since a flame only touches its fuel briefly.
  */
 const RADIATE = 0.3
 const RADIATE_MAX = 45
+/**
+ * Frost is slow on purpose. At the same rate as radiated heat, a single ice cube froze a whole pool
+ * in a second or two, which read as a bug rather than as ice.
+ */
+const CHILL_MAX = 3
+/**
+ * Degrees a boiling cell takes out of its hottest neighbour. Turning water to steam costs energy, and
+ * that energy comes from whatever was heating it — which is what lets a splash of water crust lava.
+ */
+const LATENT_HEAT = 260
 /** How fast every cell leaks toward room temperature, so a world eventually cools down. */
 const AMBIENT_PULL = 0.01
 
@@ -48,7 +65,11 @@ function isSleeping(grid: Grid, row: number): boolean {
   return grid.hotRows[row] === 0
 }
 
-/** Flames and lava heat their four neighbours directly. Radiation only ever warms, never cools. */
+/**
+ * Cells that hold a temperature of their own push it into their four neighbours: flames and lava
+ * warm what they touch, ice chills it. Diffusion alone can't do this job — a flame rises a cell per
+ * tick, so it only ever touches its fuel for a moment.
+ */
 function radiate(grid: Grid): void {
   const { width, height, material, temperature, burn } = grid
 
@@ -60,18 +81,23 @@ function radiate(grid: Grid): void {
       const source = isBurning(burn[index]) ? BURN_HEAT[id] : SELF_HEAT[id]
       if (source === 0) continue
 
-      if (y > 0) warm(temperature, index - width, source)
-      if (y < height - 1) warm(temperature, index + width, source)
-      if (x > 0) warm(temperature, index - 1, source)
-      if (x < width - 1) warm(temperature, index + 1, source)
+      if (y > 0) pull(temperature, index - width, source)
+      if (y < height - 1) pull(temperature, index + width, source)
+      if (x > 0) pull(temperature, index - 1, source)
+      if (x < width - 1) pull(temperature, index + 1, source)
     }
   }
 }
 
-function warm(temperature: Int16Array, index: number, source: number): void {
+function pull(temperature: Int16Array, index: number, source: number): void {
   const current = temperature[index]
-  if (current >= source) return
-  temperature[index] = Math.round(current + Math.min((source - current) * RADIATE, RADIATE_MAX))
+  if (current === source) return
+
+  const step =
+    current < source
+      ? Math.min((source - current) * RADIATE, RADIATE_MAX)
+      : -Math.min((current - source) * RADIATE, CHILL_MAX)
+  temperature[index] = Math.round(current + step)
 }
 
 function diffuse(grid: Grid): void {
@@ -118,8 +144,11 @@ function diffuse(grid: Grid): void {
 
       let next = current + flow / 4
 
-      if (source !== 0 && next < source) {
-        next += Math.min((source - next) * HEAT_PULL, SELF_HEAT_MAX)
+      if (source !== 0 && next !== source) {
+        next +=
+          next < source
+            ? Math.min((source - next) * HEAT_PULL, SELF_HEAT_MAX)
+            : -Math.min((next - source) * HEAT_PULL, SELF_CHILL_MAX)
       }
 
       // Round-tripping through an integer stalls a slow drift forever (a 0.5° step rounds back to
@@ -146,6 +175,27 @@ function wake(rows: Uint8Array, row: number, height: number): void {
   if (row < height - 1) rows[row + 1] = 1
 }
 
+/** Takes the latent heat of the change out of whichever neighbour was hottest. */
+function billHottestNeighbour(grid: Grid, index: number, x: number, y: number): void {
+  const { width, height, temperature } = grid
+
+  let hottest = -1
+  let peak = -Infinity
+  const consider = (neighbour: number) => {
+    if (temperature[neighbour] > peak) {
+      peak = temperature[neighbour]
+      hottest = neighbour
+    }
+  }
+
+  if (y > 0) consider(index - width)
+  if (y < height - 1) consider(index + width)
+  if (x > 0) consider(index - 1)
+  if (x < width - 1) consider(index + 1)
+
+  if (hottest >= 0 && peak > temperature[index]) temperature[hottest] = peak - LATENT_HEAT
+}
+
 /** Heat crossing one interface, in degrees, positive when the neighbour is hotter. */
 function transferred(conductivity: number, neighbourMaterial: number, gap: number): number {
   return Math.min(conductivity, CONDUCTIVITY[neighbourMaterial]) * gap
@@ -164,11 +214,13 @@ function applyThresholds(grid: Grid): void {
       const cell = MATERIALS[id]
       const heat = temperature[index]
 
-      // A phase change eats the heat that drove it: the new cell starts at the threshold it crossed,
-      // so boiling a pool drains the lava underneath instead of the pool boiling for free.
+      // A phase change eats the heat that drove it. The cell drops to the threshold it crossed, and
+      // boiling also bills its hottest neighbour, so a splash of water genuinely cools the lava it
+      // lands on rather than steaming off it for free.
       if (cell.hot !== undefined && heat >= cell.hot.at) {
         transformCell(grid, index, cell.hot.into)
         temperature[index] = cell.hot.at
+        billHottestNeighbour(grid, index, x, y)
         continue
       }
       if (cell.cold !== undefined && heat <= cell.cold.at) {

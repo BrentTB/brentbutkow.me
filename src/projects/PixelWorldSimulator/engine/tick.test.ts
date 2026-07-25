@@ -64,6 +64,60 @@ describe('tickWorld', () => {
     expect(count(grid, MaterialId.steam) + count(grid, MaterialId.water)).toBeGreaterThan(0)
   })
 
+  it('turns a splash of lava into stone when it lands in a pool', () => {
+    const grid = withVessel(30, 24)
+    for (let x = 1; x < 29; x++) {
+      for (let y = 10; y < 23; y++) put(grid, x, y, MaterialId.water)
+    }
+    const stoneBefore = count(grid, MaterialId.stone)
+    for (let x = 14; x < 17; x++) put(grid, x, 2, MaterialId.lava)
+
+    run(grid, 500)
+
+    expect(count(grid, MaterialId.lava)).toBe(0)
+    expect(count(grid, MaterialId.stone)).toBeGreaterThan(stoneBefore)
+  })
+
+  it('lets steam drift away from where it boiled instead of flickering in place', () => {
+    const grid = withVessel(24, 30)
+    for (let x = 1; x < 23; x++) {
+      for (let y = 20; y < 29; y++) put(grid, x, y, MaterialId.water)
+    }
+    for (let x = 10; x < 14; x++) put(grid, x, 28, MaterialId.lava)
+
+    run(grid, 200)
+
+    const steamTop = highestRow(grid, MaterialId.steam)
+    expect(steamTop).not.toBeNull()
+    // Steam that condensed the instant it cooled never left the cell it boiled from.
+    expect(steamTop ?? 30).toBeLessThan(19)
+  })
+
+  it('keeps an ice block through a long run at room temperature', () => {
+    const grid = withVessel(20, 20)
+    for (let x = 6; x < 14; x++) {
+      for (let y = 14; y < 19; y++) put(grid, x, y, MaterialId.ice)
+    }
+    const iceBefore = count(grid, MaterialId.ice)
+
+    run(grid, 1200)
+
+    expect(count(grid, MaterialId.ice)).toBe(iceBefore)
+  })
+
+  it('dissolves the powder acid is poured onto without waiting to get underneath it', () => {
+    const grid = withVessel(20, 24)
+    for (let x = 1; x < 19; x++) {
+      for (let y = 16; y < 23; y++) put(grid, x, y, MaterialId.ash)
+    }
+    const ashBefore = count(grid, MaterialId.ash)
+    put(grid, 10, 15, MaterialId.acid)
+
+    run(grid, 60)
+
+    expect(count(grid, MaterialId.ash)).toBeLessThan(ashBefore)
+  })
+
   it('runs fire along a row of wood and leaves ash behind', () => {
     const grid = withVessel(30, 12)
     for (let x = 2; x < 28; x++) put(grid, x, 10, MaterialId.wood)

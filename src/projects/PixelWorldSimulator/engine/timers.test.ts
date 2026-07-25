@@ -33,6 +33,39 @@ describe('advanceTimers', () => {
     expect(grid.burn[wood]).toBe(0)
   })
 
+  it('throws flames off a burning cell, so it reads as alight', () => {
+    const grid = createGrid(9, 9)
+    const wood = put(grid, 4, 6, MaterialId.wood)
+    grid.burn[wood] = woodBurn
+
+    runTimers(grid, 40)
+
+    const flames = grid.material.reduce(
+      (total, cell) => (cell === MaterialId.fire ? total + 1 : total),
+      0
+    )
+    expect(flames).toBeGreaterThan(0)
+  })
+
+  it('vents into air only, never over something solid', () => {
+    const grid = createGrid(5, 5)
+    const wood = put(grid, 2, 2, MaterialId.wood)
+    for (const [x, y] of [
+      [2, 1],
+      [1, 1],
+      [3, 1],
+      [1, 2],
+      [3, 2],
+    ]) {
+      put(grid, x, y, MaterialId.stone)
+    }
+    grid.burn[wood] = woodBurn
+
+    runTimers(grid, 200)
+
+    expect(grid.material.some((cell) => cell === MaterialId.fire)).toBe(false)
+  })
+
   it('puffs smoke into the air above a fire', () => {
     const grid = createGrid(5, 5)
     const wood = put(grid, 2, 3, MaterialId.wood)

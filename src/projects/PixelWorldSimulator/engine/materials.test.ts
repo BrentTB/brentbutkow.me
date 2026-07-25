@@ -79,6 +79,16 @@ describe('MATERIALS', () => {
     }
   })
 
+  it('burns plant faster and easier than wood, and oil faster than either', () => {
+    const plant = MATERIALS[MaterialId.plant].ignite
+    const wood = MATERIALS[MaterialId.wood].ignite
+    const oil = MATERIALS[MaterialId.oil].ignite
+
+    expect(plant?.at).toBeLessThan(wood?.at ?? 0)
+    expect(plant?.ticks).toBeLessThan((wood?.ticks ?? 0) / 2)
+    expect(oil?.at).toBeLessThan(wood?.at ?? 0)
+  })
+
   it('keeps every per-cell counter inside the byte that holds it', () => {
     for (const material of MATERIALS) {
       if (material.lifetime !== undefined) expect(material.lifetime).toBeLessThanOrEqual(255)
@@ -100,6 +110,13 @@ describe('canPaintOver', () => {
     expect(canPaintOver(MaterialId.water, MaterialId.steam)).toBe(true)
     expect(canPaintOver(MaterialId.steam, MaterialId.water)).toBe(false)
     expect(canPaintOver(MaterialId.steam, MaterialId.empty)).toBe(true)
+  })
+
+  it('paints through a gas with anything, including another gas', () => {
+    // Otherwise a cell's own smoke smothers the fire brush and holding a flame there does nothing.
+    expect(canPaintOver(MaterialId.fire, MaterialId.smoke)).toBe(true)
+    expect(canPaintOver(MaterialId.smoke, MaterialId.steam)).toBe(true)
+    expect(canPaintOver(MaterialId.stone, MaterialId.smoke)).toBe(true)
   })
 
   it('erases anything', () => {

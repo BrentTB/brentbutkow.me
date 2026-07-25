@@ -49,14 +49,18 @@ export type Material = {
   dispersion: number
   /**
    * Chance in [0, 1) that this material stalls something trying to sink through it for a tick, so
-   * sand drifts down through water instead of dropping at its dry speed. Only fluids need it.
+   * sand drifts down through water instead of dropping at its dry speed, and water seeps into a heap
+   * of ash instead of plunging straight through it.
    */
   drag: number
   /** Share of the neighbour temperature gradient this material passes on each tick, 0–1. */
   conductivity: number
   /** Temperature a freshly placed cell starts at. Ambient when omitted. */
   startTemperature?: number
-  /** Cells drive their own temperature toward this, so lava stays molten and fire stays hot. */
+  /**
+   * Cells hold their own temperature here, warming or cooling toward it: lava stays molten, fire
+   * stays hot, and ice stays frozen at room temperature instead of melting the moment you place it.
+   */
   selfHeat?: number
   /** Becomes `into` above `at` °C. */
   hot?: MaterialTransition
@@ -74,8 +78,10 @@ export type Material = {
   expiresInto?: MaterialId
   /** Generic per-cell budget held in `data`: acid dissolves left, plant growth steps left. */
   uses?: number
-  /** Acid leaves this material alone. */
+  /** Acid leaves this material alone — the container you build to hold acid. */
   acidProof?: boolean
+  /** Multiplier on how readily acid eats this, 0–1. Stone is slow; most things are 1 (omitted). */
+  acidResistance?: number
   /** Flames stay on their fuel instead of drifting up off it while anything nearby can still burn. */
   clingsToFuel?: boolean
   /** Gets the glow pass in the renderer. */

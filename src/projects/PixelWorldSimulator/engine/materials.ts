@@ -16,6 +16,9 @@ const PAINT_RANK: Record<MaterialBehavior, number> = {
 export function canPaintOver(brush: MaterialId, existing: number): boolean {
   // Erase clears anything, and anything can be drawn into open air.
   if (brush === MaterialId.empty || existing === MaterialId.empty) return true
+  // Gases are wisps: anything paints through them, including another gas. Otherwise a puff of smoke
+  // would block the fire brush, and holding a flame in one spot would smother itself.
+  if (MATERIALS[existing].behavior === MaterialBehavior.gas) return true
   return PAINT_RANK[MATERIALS[brush].behavior] > PAINT_RANK[MATERIALS[existing].behavior]
 }
 
@@ -51,7 +54,8 @@ export const MATERIALS: readonly Material[] = [
     dispersion: 0,
     drag: 0,
     conductivity: 0.2,
-    acidProof: true,
+    // Acid does eat stone, just slowly — glass is the container you build to hold it.
+    acidResistance: 0.15,
   },
   {
     id: MaterialId.sand,
@@ -61,7 +65,7 @@ export const MATERIALS: readonly Material[] = [
     color: [214, 172, 96],
     jitter: 18,
     dispersion: 0,
-    drag: 0,
+    drag: 0.7,
     conductivity: 0.15,
     hot: { at: 1200, into: MaterialId.glass },
   },
@@ -73,7 +77,7 @@ export const MATERIALS: readonly Material[] = [
     color: [110, 78, 52],
     jitter: 12,
     dispersion: 0,
-    drag: 0,
+    drag: 0.75,
     conductivity: 0.12,
   },
   {
@@ -84,7 +88,7 @@ export const MATERIALS: readonly Material[] = [
     color: [92, 88, 86],
     jitter: 14,
     dispersion: 0,
-    drag: 0,
+    drag: 0.6,
     conductivity: 0.1,
   },
   {
@@ -109,8 +113,10 @@ export const MATERIALS: readonly Material[] = [
     dispersion: 0,
     drag: 0,
     conductivity: 0.1,
-    ignite: { at: 160, ticks: 45, heat: 480, into: MaterialId.ash },
-    uses: 5,
+    // Dry leaves: catches at the lowest temperature of anything and flashes over in a moment.
+    ignite: { at: 110, ticks: 14, heat: 540, into: MaterialId.ash },
+    // Growth budget. Generous, because a vine that stops after five cells reads as broken.
+    uses: 40,
   },
   {
     id: MaterialId.ice,
@@ -123,7 +129,9 @@ export const MATERIALS: readonly Material[] = [
     drag: 0,
     conductivity: 0.3,
     startTemperature: -25,
-    hot: { at: 2, into: MaterialId.water },
+    // Ice keeps itself frozen, so a block survives room temperature and only melts against real heat.
+    selfHeat: -32,
+    hot: { at: 4, into: MaterialId.water },
   },
   {
     id: MaterialId.glass,
@@ -171,9 +179,9 @@ export const MATERIALS: readonly Material[] = [
     dispersion: 1,
     drag: 0.8,
     conductivity: 0.25,
-    startTemperature: 1400,
-    selfHeat: 1400,
-    cold: { at: 700, into: MaterialId.stone },
+    startTemperature: 1250,
+    selfHeat: 1250,
+    cold: { at: 850, into: MaterialId.stone },
     emissive: true,
   },
   {
@@ -187,7 +195,9 @@ export const MATERIALS: readonly Material[] = [
     drag: 0.65,
     conductivity: 0.35,
     hot: { at: 100, into: MaterialId.steam },
-    cold: { at: -4, into: MaterialId.ice },
+    // Deep-freeze only: ice spreading is the contact rule in reactions.ts. Leaving this near 0
+    // let a growing ice mass crash the pool's temperature and snap-freeze the lot in a second.
+    cold: { at: -40, into: MaterialId.ice },
   },
   {
     id: MaterialId.steam,
@@ -200,8 +210,8 @@ export const MATERIALS: readonly Material[] = [
     drag: 0,
     conductivity: 0.2,
     startTemperature: 140,
-    // Hysteresis: condensing at 100 would ping-pong against water boiling at 100.
-    cold: { at: 55, into: MaterialId.water },
+    // Condensation runs off the lifetime clock, not temperature. A cold threshold made steam collapse
+    // back to water in the cell it boiled from, so water on lava just flickered in place forever.
     lifetime: 220,
     expiresInto: MaterialId.water,
   },
