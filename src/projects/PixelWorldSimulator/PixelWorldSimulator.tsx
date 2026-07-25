@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { PageLayout } from '../../components/PageFormatting/PageLayout'
 import { PageHeader } from '../../components/PageFormatting/PageHeader'
 import { useFunMode } from '../../contexts/useFunMode'
@@ -18,29 +18,28 @@ export function PixelWorldSimulator() {
   const [material, setMaterial] = useState<MaterialId>(DEFAULT_MATERIAL)
   const [radius, setRadius] = useState(BRUSH_RADIUS.default)
   const [tool, setTool] = useState<Tool>(Tool.paint)
-  const [reading, setReading] = useState<CellReading | null>(null)
 
   const sim = usePixelWorld(canvasRef)
+  const identifying = tool === Tool.inspect
 
   const onStroke = useCallback(
-    (from: CellPoint, to: CellPoint) => {
-      if (tool === Tool.inspect) {
-        setReading(sim.read(to))
-        return
-      }
-      sim.paintStroke(from, to, material, radius)
-    },
-    [sim, tool, material, radius]
+    (from: CellPoint, to: CellPoint) => sim.paintStroke(from, to, material, radius),
+    [sim, material, radius]
   )
-  const brushHandlers = usePointerBrush(canvasRef, onStroke)
 
-  // Choosing something to paint with means you are done identifying.
-  const pickMaterial = useCallback((picked: MaterialId) => {
-    setMaterial(picked)
-    setTool(Tool.paint)
-  }, [])
+  // Identify follows the pointer rather than taking its clicks, so the brush keeps working while a
+  // reading sits there updating itself.
+  const onHover = useCallback(
+    (cell: CellPoint | null) => {
+      if (identifying) sim.watch(cell)
+    },
+    [identifying, sim]
+  )
+  const brushHandlers = usePointerBrush(canvasRef, onStroke, onHover)
 
-  const inspecting = tool === Tool.inspect
+  useEffect(() => {
+    if (!identifying) sim.watch(null)
+  }, [identifying, sim])
 
   return (
     <PageLayout>
@@ -52,23 +51,21 @@ export function PixelWorldSimulator() {
         <div className={styles.stage}>
           <canvas
             ref={canvasRef}
-            className={`${styles.canvas} ${inspecting ? styles.identifying : ''}`}
-            aria-label={
-              inspecting
-                ? 'Pixel world. Click a cell to see what it is.'
-                : 'Pixel world. Draw materials with the pointer.'
-            }
+            className={styles.canvas}
+            aria-label="Pixel world. Draw materials with the pointer."
             {...brushHandlers}
           />
         </div>
 
-        <Palette selected={material} onSelect={pickMaterial} />
+        <Palette selected={material} onSelect={setMaterial} />
 
         <SimControls
           isPaused={sim.isPaused}
+          speed={sim.speed}
           tool={tool}
           radius={radius}
           onTogglePause={sim.togglePause}
+          onSpeed={sim.setSpeed}
           onStep={sim.stepOnce}
           onClear={sim.clear}
           onTool={setTool}
@@ -76,7 +73,7 @@ export function PixelWorldSimulator() {
         />
 
         <p className={styles.hint} aria-live="polite">
-          {inspecting ? describe(reading) : simCopy.hint}
+          {identifying ? describe(sim.reading) : simCopy.hint}
         </p>
       </div>
     </PageLayout>

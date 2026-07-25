@@ -1,6 +1,13 @@
 import { RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CellPoint, CellReading, Grid, MaterialId } from './pixel-world.types'
-import { GRID_HEIGHT, GRID_WIDTH, MAX_TICKS_PER_FRAME, TICK_RATE } from './data'
+import {
+  DEFAULT_SPEED,
+  GRID_HEIGHT,
+  GRID_WIDTH,
+  MAX_TICKS_PER_FRAME,
+  READING_INTERVAL,
+  TICK_RATE,
+} from './data'
 import { stampLine } from './engine/brush'
 import { asMaterial, cellIndex, clearGrid, createGrid } from './engine/grid'
 import { Rng, createRng } from './engine/rng'
@@ -10,12 +17,21 @@ import { createRenderer } from './render'
 export type PixelWorldSim = {
   isPaused: boolean
   togglePause(): void
+  /** Multiplier on how fast the world runs. 1 is real time. */
+  speed: number
+  setSpeed(rate: number): void
   /** Advances exactly one tick — the whole automaton becomes legible when you can watch it crawl. */
   stepOnce(): void
   clear(): void
   paintStroke(from: CellPoint, to: CellPoint, material: MaterialId, radius: number): void
-  /** What is in a cell right now, for the inspect tool. */
+  /** What is in a cell right now. */
   read(cell: CellPoint): CellReading
+  /**
+   * Follow a cell: `reading` then refreshes on its own while the world runs, so a temperature can be
+   * watched changing without clicking. Pass null to stop.
+   */
+  watch(cell: CellPoint | null): void
+  reading: CellReading | null
 }
 
 /**
@@ -32,6 +48,12 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
   const tickRef = useRef(0)
   const pausedRef = useRef(false)
   const [isPaused, setIsPaused] = useState(false)
+  // The loop reads the rate from a ref so changing speed doesn't tear down the animation frame.
+  const speedRef = useRef(DEFAULT_SPEED)
+  const [speed, setSpeedState] = useState(DEFAULT_SPEED)
+
+  const watchedRef = useRef<CellPoint | null>(null)
+  const [reading, setReading] = useState<CellReading | null>(null)
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -42,6 +64,7 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
     let frame = requestAnimationFrame(loop)
     let previous: number | null = null
     let accumulator = 0
+    let lastReading = 0
 
     function loop(time: number) {
       frame = requestAnimationFrame(loop)
@@ -50,19 +73,31 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
       previous = time
 
       if (!pausedRef.current) {
+        const rate = speedRef.current
+        // Speed shortens the tick, so slow motion runs fewer ticks per second and fast runs more, and
+        // the catch-up cap scales with it — otherwise a faster speed is clamped back to real time.
+        const step = msPerTick / rate
+        const budget = Math.ceil(MAX_TICKS_PER_FRAME * rate)
+
         accumulator += elapsed
         let ticks = 0
-        while (accumulator >= msPerTick && ticks < MAX_TICKS_PER_FRAME) {
-          accumulator -= msPerTick
+        while (accumulator >= step && ticks < budget) {
+          accumulator -= step
           ticks++
           tickWorld(gridRef.current, rng, tickRef.current++)
         }
         // Whatever the frame budget couldn't cover is dropped, not owed — a backgrounded tab
         // shouldn't come back and fast-forward the world.
-        if (accumulator > msPerTick) accumulator = 0
+        if (accumulator > step) accumulator = 0
       }
 
       renderer.draw(gridRef.current)
+
+      const watched = watchedRef.current
+      if (watched !== null && time - lastReading >= READING_INTERVAL) {
+        lastReading = time
+        setReading(readCell(gridRef.current, watched))
+      }
     }
 
     return () => cancelAnimationFrame(frame)
@@ -71,6 +106,11 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
   const togglePause = useCallback(() => {
     pausedRef.current = !pausedRef.current
     setIsPaused(pausedRef.current)
+  }, [])
+
+  const setSpeed = useCallback((rate: number) => {
+    speedRef.current = rate
+    setSpeedState(rate)
   }, [])
 
   const stepOnce = useCallback(() => {
@@ -88,18 +128,35 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
     []
   )
 
-  const read = useCallback((cell: CellPoint): CellReading => {
-    const grid = gridRef.current
-    const index = cellIndex(grid, cell.x, cell.y)
-    return {
-      material: asMaterial(grid.material[index]),
-      temperature: grid.temperature[index],
-      burning: grid.burn[index] > 0,
-    }
+  const read = useCallback((cell: CellPoint): CellReading => readCell(gridRef.current, cell), [])
+
+  const watch = useCallback((cell: CellPoint | null) => {
+    watchedRef.current = cell
+    setReading(cell === null ? null : readCell(gridRef.current, cell))
   }, [])
 
   return useMemo(
-    () => ({ isPaused, togglePause, stepOnce, clear, paintStroke, read }),
-    [isPaused, togglePause, stepOnce, clear, paintStroke, read]
+    () => ({
+      isPaused,
+      togglePause,
+      speed,
+      setSpeed,
+      stepOnce,
+      clear,
+      paintStroke,
+      read,
+      watch,
+      reading,
+    }),
+    [isPaused, togglePause, speed, setSpeed, stepOnce, clear, paintStroke, read, watch, reading]
   )
+}
+
+function readCell(grid: Grid, cell: CellPoint): CellReading {
+  const index = cellIndex(grid, cell.x, cell.y)
+  return {
+    material: asMaterial(grid.material[index]),
+    temperature: grid.temperature[index],
+    burning: grid.burn[index] > 0,
+  }
 }

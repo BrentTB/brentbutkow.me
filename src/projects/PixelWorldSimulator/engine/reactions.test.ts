@@ -606,6 +606,60 @@ describe('source', () => {
     expect(count(grid, MaterialId.water)).toBeGreaterThan(3)
   })
 
+  it('keeps producing once its own output has hemmed it in', () => {
+    const grid = createGrid(30, 30)
+    put(grid, 15, 15, MaterialId.source)
+    // Ringed by the very thing it makes, which used to stall it: every neighbour was taken.
+    for (const [x, y] of [
+      [15, 14],
+      [14, 15],
+      [16, 15],
+      [15, 16],
+    ]) {
+      put(grid, x, y, MaterialId.water)
+    }
+    const before = count(grid, MaterialId.water)
+
+    react(grid, 400)
+
+    expect(count(grid, MaterialId.water)).toBeGreaterThan(before)
+  })
+
+  it('gives a block of sources more output than a single cell', () => {
+    const produced = (side: number) => {
+      const grid = createGrid(60, 60)
+      for (let x = 0; x < side; x++) {
+        for (let y = 0; y < side; y++) put(grid, 25 + x, 25 + y, MaterialId.source)
+      }
+      put(grid, 25, 24, MaterialId.water)
+      react(grid, 600)
+      return count(grid, MaterialId.water)
+    }
+
+    expect(produced(4)).toBeGreaterThan(produced(1))
+  })
+
+  it('will not shove its output through a wall', () => {
+    const grid = createGrid(20, 20)
+    const tap = put(grid, 10, 10, MaterialId.source)
+    put(grid, 10, 9, MaterialId.water)
+    react(grid, 1)
+    expect(grid.data[tap]).toBe(MaterialId.water)
+
+    // Boxed in by stone on every side, with the water it was fed cleared away.
+    for (const [x, y] of [
+      [10, 9],
+      [9, 10],
+      [11, 10],
+      [10, 11],
+    ]) {
+      put(grid, x, y, MaterialId.stone)
+    }
+    react(grid, 400)
+
+    expect(count(grid, MaterialId.water)).toBe(0)
+  })
+
   it('produces nothing until something is fed to it', () => {
     const grid = createGrid(12, 12)
     const tap = put(grid, 6, 3, MaterialId.source)

@@ -32,6 +32,12 @@ const SOAK_CHANCE = 0.25
 const WRING_TEMPERATURE = 90
 /** Chance per tick that a source produces a cell of what it remembers. */
 const EMIT_CHANCE = 0.25
+/**
+ * How far a source will push its output to find space. A source that could only fill the cell next to it
+ * stalled as soon as its own product surrounded it, so a big block produced no more than its outline.
+ * Pushing through what it has already made turns it into a pump.
+ */
+const EMIT_REACH = 6
 /** Chance per tick that a void eats one of its neighbours. */
 const CONSUME_CHANCE = 0.5
 /** Chance per tick that a spark jumps to the next conductive cell. */
@@ -46,7 +52,7 @@ const HOT_WIRE = 520
  * Chance per tick that an exposed cell of liquid nitrogen boils away, scaled by how much air is around
  * it. A puddle evaporates from its surface inward, and the middle keeps itself cold for a while.
  */
-const BOIL_OFF_CHANCE = 0.006
+const BOIL_OFF_CHANCE = 0.045
 /** Chance per tick that a full sponge cell passes water on to a drier one beside it. */
 const WICK_CHANCE = 0.4
 
@@ -150,6 +156,22 @@ const CONTACT_RULES: readonly ContactRule[] = [
     neighbourBecomes: MaterialId.saltWater,
     chance: 0.05,
   },
+  // Nitrogen freezes what it touches and boils away doing it: one cell of coolant per cell of ice.
+  // A temperature race can't do this now that it evaporates quickly — the same reason frost is a rule.
+  {
+    material: MaterialId.nitrogen,
+    neighbour: MaterialId.water,
+    becomes: MaterialId.empty,
+    neighbourBecomes: MaterialId.ice,
+    chance: 0.5,
+  },
+  {
+    material: MaterialId.nitrogen,
+    neighbour: MaterialId.saltWater,
+    becomes: MaterialId.empty,
+    neighbourBecomes: MaterialId.ice,
+    chance: 0.4,
+  },
   // A spark in a gas pocket sets it off. Phase 4 gives that a shove as well as a flame.
   {
     material: MaterialId.spark,
@@ -214,12 +236,25 @@ function applyContactRules(
     )
     if (target < 0 || !rng.chance(rule.chance)) continue
 
-    if (rule.neighbourBecomes !== undefined) transformCell(grid, target, rule.neighbourBecomes)
+    if (rule.neighbourBecomes !== undefined) becomeCell(grid, target, rule.neighbourBecomes)
     if (rule.becomes !== undefined) {
-      transformCell(grid, index, rule.becomes)
+      becomeCell(grid, index, rule.becomes)
       return
     }
   }
+}
+
+/**
+ * A product that carries its own starting temperature gets it; anything else inherits the heat that was
+ * already in the cell. Ice made from room-temperature water would otherwise sit above its own melting
+ * point and turn straight back into water.
+ */
+function becomeCell(grid: Grid, index: number, material: MaterialId): void {
+  if (MATERIALS[material].startTemperature !== undefined) {
+    placeMaterial(grid, index, material)
+    return
+  }
+  transformCell(grid, index, material)
 }
 
 /** Snow buried under more snow compacts into ice, so a deep drift turns solid from the bottom up. */
@@ -310,14 +345,41 @@ function emit(grid: Grid, rng: Rng, x: number, y: number, index: number): void {
   }
 
   if (!rng.chance(EMIT_CHANCE)) return
-  const air = pickNeighbour(
-    grid,
-    x,
-    y,
-    (found) => found === MaterialId.empty,
-    Math.floor(rng.next() * NEIGHBOURS.length)
-  )
-  if (air >= 0) placeMaterial(grid, air, asMaterial(remembered))
+
+  const start = Math.floor(rng.next() * NEIGHBOURS.length)
+  for (let step = 0; step < NEIGHBOURS.length; step++) {
+    const [dx, dy] = NEIGHBOURS[(start + step) % NEIGHBOURS.length]
+    const space = spaceAlong(grid, x, y, dx, dy, remembered)
+    if (space >= 0) {
+      placeMaterial(grid, space, asMaterial(remembered))
+      return
+    }
+  }
+}
+
+/**
+ * The first empty cell along one direction, pushing through the source's own output on the way. Anything
+ * else — a wall, another material — stops the search, so a source can't shove its way through terrain.
+ */
+function spaceAlong(
+  grid: Grid,
+  x: number,
+  y: number,
+  dx: number,
+  dy: number,
+  product: number
+): number {
+  for (let distance = 1; distance <= EMIT_REACH; distance++) {
+    const nx = x + dx * distance
+    const ny = y + dy * distance
+    if (nx < 0 || nx >= grid.width || ny < 0 || ny >= grid.height) return -1
+
+    const index = cellIndex(grid, nx, ny)
+    const found = grid.material[index]
+    if (found === MaterialId.empty) return index
+    if (found !== product && found !== MaterialId.source) return -1
+  }
+  return -1
 }
 
 /** A void eats whatever touches it, which is how you drain a world you have filled. */

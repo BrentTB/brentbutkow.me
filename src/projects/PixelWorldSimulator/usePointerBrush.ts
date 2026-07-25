@@ -14,6 +14,7 @@ export type PointerBrushHandlers = {
   onPointerMove(event: ReactPointerEvent<HTMLCanvasElement>): void
   onPointerUp(event: ReactPointerEvent<HTMLCanvasElement>): void
   onPointerCancel(event: ReactPointerEvent<HTMLCanvasElement>): void
+  onPointerLeave(event: ReactPointerEvent<HTMLCanvasElement>): void
 }
 
 function clamp(value: number, max: number): number {
@@ -27,13 +28,16 @@ function clamp(value: number, max: number): number {
  */
 export function usePointerBrush(
   canvasRef: RefObject<HTMLCanvasElement | null>,
-  onStroke: (from: CellPoint, to: CellPoint) => void
+  onStroke: (from: CellPoint, to: CellPoint) => void,
+  onHover: (cell: CellPoint | null) => void = () => {}
 ): PointerBrushHandlers {
   const lastRef = useRef<CellPoint | null>(null)
 
-  // Read through a ref so changing material or brush size mid-stroke doesn't restart the loop.
+  // Read through refs so changing material or brush size mid-stroke doesn't restart the loop.
   const strokeRef = useRef(onStroke)
   strokeRef.current = onStroke
+  const hoverRef = useRef(onHover)
+  hoverRef.current = onHover
 
   useEffect(() => {
     let frame = requestAnimationFrame(pour)
@@ -69,6 +73,7 @@ export function usePointerBrush(
       if (!cell) return
 
       event.currentTarget.setPointerCapture?.(event.pointerId)
+      hoverRef.current(cell)
       lastRef.current = cell
       onStroke(cell, cell)
     },
@@ -77,11 +82,15 @@ export function usePointerBrush(
 
   const onPointerMove = useCallback(
     (event: ReactPointerEvent<HTMLCanvasElement>) => {
-      const from = lastRef.current
-      if (!from) return
-
       const to = toCell(event.clientX, event.clientY)
       if (!to) return
+
+      // Hover is reported whether or not a button is down, so a readout can follow the pointer while
+      // the brush stays free to paint.
+      hoverRef.current(to)
+
+      const from = lastRef.current
+      if (!from) return
 
       lastRef.current = to
       onStroke(from, to)
@@ -96,13 +105,22 @@ export function usePointerBrush(
     if (canvas.hasPointerCapture?.(event.pointerId)) canvas.releasePointerCapture(event.pointerId)
   }, [])
 
+  const onPointerLeave = useCallback(
+    (event: ReactPointerEvent<HTMLCanvasElement>) => {
+      hoverRef.current(null)
+      endStroke(event)
+    },
+    [endStroke]
+  )
+
   return useMemo(
     () => ({
       onPointerDown,
       onPointerMove,
       onPointerUp: endStroke,
       onPointerCancel: endStroke,
+      onPointerLeave,
     }),
-    [onPointerDown, onPointerMove, endStroke]
+    [onPointerDown, onPointerMove, endStroke, onPointerLeave]
   )
 }

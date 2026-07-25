@@ -6,6 +6,7 @@ import {
   GRID_HEIGHT,
   GRID_WIDTH,
   MAX_TICKS_PER_FRAME,
+  READING_INTERVAL,
   TICK_RATE,
 } from './data'
 import { MATERIALS } from './engine/materials'
@@ -206,6 +207,28 @@ describe('usePixelWorld', () => {
     expect(sandRow(image, 30)).toBe(8)
   })
 
+  it('runs fewer ticks per second in slow motion and more at speed', () => {
+    const fallenAfterASecond = (rate: number) => {
+      const { result, image } = mountSim()
+      act(() => result.current.setSpeed(rate))
+      act(() => result.current.paintStroke({ x: 60, y: 2 }, { x: 60, y: 2 }, MaterialId.sand, 0))
+
+      frame(0)
+      // A second of frames at 60 Hz.
+      for (let i = 0; i < 60; i++) frame(MS_PER_TICK)
+      const row = sandRow(image, 60)
+      cleanup()
+      return row ?? 0
+    }
+
+    const slow = fallenAfterASecond(0.25)
+    const normal = fallenAfterASecond(1)
+    const fast = fallenAfterASecond(4)
+
+    expect(slow).toBeLessThan(normal)
+    expect(fast).toBeGreaterThan(normal)
+  })
+
   it('caps catch-up work after a long stall', () => {
     const { result, image } = mountSim()
     act(() => result.current.paintStroke({ x: 40, y: 2 }, { x: 40, y: 2 }, MaterialId.sand, 0))
@@ -258,6 +281,30 @@ describe('usePixelWorld', () => {
     // The fire brush lights fuel rather than replacing it, so this stays wood — and says so.
     expect(reading.material).toBe(MaterialId.wood)
     expect(reading.burning).toBe(true)
+  })
+
+  it('follows a watched cell as the world changes, with no further clicks', () => {
+    const { result } = mountSim()
+    act(() => result.current.paintStroke({ x: 40, y: 4 }, { x: 40, y: 4 }, MaterialId.lava, 0))
+    act(() => result.current.watch({ x: 40, y: 4 }))
+
+    expect(result.current.reading?.material).toBe(MaterialId.lava)
+
+    // The lava falls away on its own; the reading follows the cell, not the material.
+    for (let i = 0; i < 40; i++) frame(MS_PER_TICK)
+    act(() => frame(READING_INTERVAL + MS_PER_TICK))
+
+    expect(result.current.reading?.material).not.toBe(MaterialId.lava)
+  })
+
+  it('stops following when asked', () => {
+    const { result } = mountSim()
+    act(() => result.current.watch({ x: 10, y: 10 }))
+    expect(result.current.reading).not.toBeNull()
+
+    act(() => result.current.watch(null))
+
+    expect(result.current.reading).toBeNull()
   })
 
   it('stops the loop on unmount', () => {

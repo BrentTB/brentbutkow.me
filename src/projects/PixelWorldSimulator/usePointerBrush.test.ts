@@ -26,10 +26,15 @@ function pointerEvent(canvas: HTMLCanvasElement, clientX: number, clientY: numbe
 
 function mountBrush(canvas: HTMLCanvasElement) {
   const strokes: [CellPoint, CellPoint][] = []
+  const hovers: (CellPoint | null)[] = []
   const rendered = renderHook(() =>
-    usePointerBrush({ current: canvas }, (from, to) => strokes.push([from, to]))
+    usePointerBrush(
+      { current: canvas },
+      (from, to) => strokes.push([from, to]),
+      (cell) => hovers.push(cell)
+    )
   )
-  return { ...rendered, strokes }
+  return { ...rendered, strokes, hovers }
 }
 
 let nextFrame: FrameRequestCallback | null = null
@@ -139,6 +144,40 @@ describe('usePointerBrush', () => {
     result.current.onPointerMove(pointerEvent(canvas, 100, 100))
 
     expect(strokes).toEqual([])
+  })
+
+  it('reports where the pointer is even with no button held', () => {
+    const canvas = mockCanvas()
+    const { result, hovers } = mountBrush(canvas)
+
+    // What the identify readout follows: it has to work without taking the click that paints.
+    result.current.onPointerMove(pointerEvent(canvas, 120, 60))
+
+    expect(hovers).toEqual([{ x: 50, y: 20 }])
+  })
+
+  it('reports hover and paints from the same drag', () => {
+    const canvas = mockCanvas()
+    const { result, strokes, hovers } = mountBrush(canvas)
+
+    result.current.onPointerDown(pointerEvent(canvas, 20, 20))
+    result.current.onPointerMove(pointerEvent(canvas, 60, 40))
+
+    expect(strokes).toHaveLength(2)
+    expect(hovers).toEqual([
+      { x: 0, y: 0 },
+      { x: 20, y: 10 },
+    ])
+  })
+
+  it('clears the hover when the pointer leaves', () => {
+    const canvas = mockCanvas()
+    const { result, hovers } = mountBrush(canvas)
+
+    result.current.onPointerMove(pointerEvent(canvas, 120, 60))
+    result.current.onPointerLeave(pointerEvent(canvas, 120, 60))
+
+    expect(hovers.at(-1)).toBeNull()
   })
 
   it('stops painting after the press ends', () => {

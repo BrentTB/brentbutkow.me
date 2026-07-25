@@ -8,8 +8,30 @@ export const TICK_RATE = 60
 /** Room temperature in °C — where fresh cells start and where every cell slowly drifts back to. */
 export const AMBIENT_TEMPERATURE = 20
 
-/** Cap on catch-up work per frame — a backgrounded tab shouldn't return and simulate a whole second. */
-export const MAX_TICKS_PER_FRAME = 4
+/**
+ * Ticks a single frame may run at 1× speed. It caps catch-up so a backgrounded tab can't come back and
+ * simulate a whole second at once, and it stays small because a late frame that fires a burst of ticks
+ * reads as a stutter. Speed multiplies it.
+ */
+export const MAX_TICKS_PER_FRAME = 2
+
+/**
+ * How fast the world runs. Slow motion is how you actually watch a reaction happen.
+ *
+ * The top speed is 2×, not 4×: drawing is capped at the display's refresh rate, so every extra tick per
+ * frame is movement you never see happening. At 4× a flame jumped four cells between frames, which reads
+ * as stutter rather than speed.
+ */
+export const SIM_SPEEDS: readonly { label: string; rate: number }[] = [
+  { label: '0.25×', rate: 0.25 },
+  { label: '0.5×', rate: 0.5 },
+  { label: '1×', rate: 1 },
+  { label: '2×', rate: 2 },
+]
+export const DEFAULT_SPEED = 1
+
+/** How often the hovered cell's reading refreshes, in ms. Fast enough to watch a temperature move. */
+export const READING_INTERVAL = 100
 
 export const BRUSH_RADIUS = {
   min: 0,
@@ -103,7 +125,7 @@ export const simCopy = {
   tagline: 'Draw materials into a pixel world and watch them react.',
   taglineFun: 'Draw materials, mix them, and see what happens to the little world you just made.',
   hint: 'Pick a material and draw on the canvas.',
-  identifyHint: 'Click anything to see what it is.',
+  identifyHint: 'Point at anything to see what it is.',
   searchPlaceholder: 'Find a material',
   noMatch: 'Nothing by that name.',
 }
