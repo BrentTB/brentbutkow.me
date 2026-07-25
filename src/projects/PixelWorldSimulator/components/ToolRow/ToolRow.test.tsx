@@ -4,11 +4,24 @@ import { Tool } from '../../pixel-world.types'
 import { TOOLS } from '../../data'
 import { ToolRow } from './ToolRow'
 
+function renderTools(overrides: Partial<Parameters<typeof ToolRow>[0]> = {}) {
+  const props = {
+    selected: Tool.paint,
+    onSelect: vi.fn(),
+    isFullscreen: false,
+    canFullscreen: true,
+    onToggleFullscreen: vi.fn(),
+    ...overrides,
+  }
+  render(<ToolRow {...props} />)
+  return props
+}
+
 afterEach(cleanup)
 
 describe('ToolRow', () => {
   it('offers every tool', () => {
-    render(<ToolRow selected={Tool.paint} onSelect={vi.fn()} />)
+    renderTools()
 
     for (const { label } of TOOLS) {
       expect(screen.getByRole('button', { name: label })).toBeTruthy()
@@ -16,7 +29,7 @@ describe('ToolRow', () => {
   })
 
   it('marks the tool in use and only that one', () => {
-    render(<ToolRow selected={Tool.blast} onSelect={vi.fn()} />)
+    renderTools({ selected: Tool.blast })
 
     const pressed = TOOLS.filter(
       ({ label }) =>
@@ -28,12 +41,42 @@ describe('ToolRow', () => {
   })
 
   it('reports the tool that was picked', () => {
-    const onSelect = vi.fn()
-    render(<ToolRow selected={Tool.paint} onSelect={onSelect} />)
+    const props = renderTools()
 
     const wind = TOOLS.find(({ tool }) => tool === Tool.wind)
     screen.getByRole('button', { name: wind?.label ?? '' }).click()
 
-    expect(onSelect).toHaveBeenCalledWith(Tool.wind)
+    expect(props.onSelect).toHaveBeenCalledWith(Tool.wind)
+  })
+
+  it('offers full screen as its own control, not a seventh tool', () => {
+    renderTools()
+
+    // It acts on the window rather than on the pointer, so it stays out of the tool group.
+    const group = screen.getByRole('group', { name: 'Tool' })
+    const control = screen.getByRole('button', { name: 'Full screen' })
+    expect(group.contains(control)).toBe(false)
+  })
+
+  it('swaps the icon for the way out once it is full screen', () => {
+    renderTools({ isFullscreen: true })
+
+    // The glyph is a drawing, so the accessible name carries the state on its own.
+    expect(screen.getByRole('button', { name: 'Exit full screen' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Full screen' })).toBeNull()
+  })
+
+  it('hides the control where the browser cannot do it', () => {
+    renderTools({ canFullscreen: false })
+
+    expect(screen.queryByRole('button', { name: 'Full screen' })).toBeNull()
+  })
+
+  it('reports a request to change it', () => {
+    const props = renderTools()
+
+    screen.getByRole('button', { name: 'Full screen' }).click()
+
+    expect(props.onToggleFullscreen).toHaveBeenCalled()
   })
 })

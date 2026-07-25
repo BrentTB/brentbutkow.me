@@ -338,6 +338,42 @@ function footprint(grid: Grid, material: MaterialId, row: number): number {
   return rightmost < 0 ? 0 : rightmost - leftmost + 1
 }
 
+describe('a springy powder', () => {
+  it('hands itself to the kinetic pass while nothing is under it', () => {
+    const grid = createGrid(9, 9)
+    const cell = cellIndex(grid, 4, 4)
+    set(grid, 4, 4, MaterialId.rubber)
+
+    step(grid, createRng(1), 0)
+
+    // Falling a grain at a time reaches the floor with no speed to rebound from, so a dropped ball of
+    // rubber just sat there instead of bouncing.
+    expect(grid.velocity.has(cell)).toBe(true)
+    expect(grid.material[cell]).toBe(MaterialId.rubber)
+  })
+
+  it('is left alone once it has landed', () => {
+    const grid = createGrid(9, 9)
+    for (let x = 0; x < 9; x++) set(grid, x, 8, MaterialId.stone)
+    const cell = cellIndex(grid, 4, 7)
+    set(grid, 4, 7, MaterialId.rubber)
+
+    step(grid, createRng(1), 0)
+
+    expect(grid.velocity.has(cell)).toBe(false)
+  })
+
+  it('leaves an ordinary powder to fall as a grain', () => {
+    const grid = createGrid(9, 9)
+    set(grid, 4, 4, MaterialId.sand)
+
+    step(grid, createRng(1), 0)
+
+    expect(grid.velocity.size).toBe(0)
+    expect(at(grid, 4, 5)).toBe(MaterialId.sand)
+  })
+})
+
 describe('cells in flight', () => {
   it('are left to the kinetic pass', () => {
     const grid = createGrid(9, 9)

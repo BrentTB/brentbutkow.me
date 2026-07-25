@@ -4,6 +4,7 @@ import { PageHeader } from '../../components/PageFormatting/PageHeader'
 import { useFunMode } from '../../contexts/useFunMode'
 import { CellPoint, MaterialId, Tool } from './pixel-world.types'
 import { BRUSH_RADIUS, DEFAULT_MATERIAL, simCopy } from './data'
+import { useFullscreen } from './useFullscreen'
 import { usePixelWorld } from './usePixelWorld'
 import { usePointerBrush } from './usePointerBrush'
 import { Palette } from './components/Palette/Palette'
@@ -20,6 +21,9 @@ function hintFor(tool: Tool): string {
 export function PixelWorldSimulator() {
   const { isFunMode } = useFunMode()
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  // The whole working area goes full screen, not just the canvas: the tools and palette have to come too.
+  const bodyRef = useRef<HTMLDivElement>(null)
+  const fullscreen = useFullscreen(bodyRef)
 
   const [material, setMaterial] = useState<MaterialId>(DEFAULT_MATERIAL)
   const [tool, setTool] = useState<Tool>(Tool.paint)
@@ -47,7 +51,10 @@ export function PixelWorldSimulator() {
         {isFunMode ? simCopy.taglineFun : simCopy.tagline}
       </PageHeader>
 
-      <div className={styles.body}>
+      <div
+        ref={bodyRef}
+        className={`${styles.body} ${fullscreen.isFullscreen ? styles.filling : ''}`}
+      >
         <div className={styles.world}>
           <div className={styles.stage}>
             <canvas
@@ -58,7 +65,13 @@ export function PixelWorldSimulator() {
             />
           </div>
 
-          <ToolRow selected={tool} onSelect={setTool} />
+          <ToolRow
+            selected={tool}
+            onSelect={setTool}
+            isFullscreen={fullscreen.isFullscreen}
+            canFullscreen={fullscreen.supported}
+            onToggleFullscreen={fullscreen.toggle}
+          />
         </div>
 
         {/* Picking a material means you want to draw it, so it takes the brush back off a force tool. */}

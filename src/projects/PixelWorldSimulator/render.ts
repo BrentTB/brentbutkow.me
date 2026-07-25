@@ -59,7 +59,8 @@ export function createRenderer(canvas: HTMLCanvasElement, width: number, height:
 
           writeCellRgb(pixels, offset, material, burn, x, y)
 
-          if (heatPixels && writeHeatTint(heatPixels, offset, grid.temperature[cell])) tintedCells++
+          if (heatPixels && writeHeatTint(heatPixels, offset, material, grid.temperature[cell]))
+            tintedCells++
 
           if (!glowPixels) continue
           if (isEmissive(material, burn)) {

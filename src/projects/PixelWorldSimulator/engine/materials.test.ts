@@ -244,6 +244,16 @@ describe('explosives and breakables', () => {
     }
   })
 
+  it('break into fragments light enough to be thrown about', () => {
+    for (const material of MATERIALS) {
+      if (material.shatters === undefined) continue
+      // Splinters, not rubble: a heavy fragment barely moves when a charge goes off under it.
+      expect(MATERIALS[material.shatters].density).toBeLessThan(
+        MATERIALS[MaterialId.gravel].density
+      )
+    }
+  })
+
   it('give a bounce only to something loose enough to be thrown', () => {
     for (const material of MATERIALS) {
       if (material.restitution === undefined) continue

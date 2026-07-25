@@ -75,7 +75,7 @@ export function moveKinetic(grid: Grid): void {
 }
 
 /** Whether there is something under this cell that it cannot push through — the floor of its fall. */
-function isSupported(grid: Grid, index: number): boolean {
+export function isSupported(grid: Grid, index: number): boolean {
   const below = index + grid.width
   if (below >= grid.material.length) return true
   return !canDisplace(grid.material[index], grid.material[below])

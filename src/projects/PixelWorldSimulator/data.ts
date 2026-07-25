@@ -1,7 +1,9 @@
 import { MaterialId, Tool } from './pixel-world.types'
 
-export const GRID_WIDTH = 300
-export const GRID_HEIGHT = 200
+// Widescreen, and half again as many cells as the 300x200 it started at: the world reads as a place with
+// room to build rather than a strip. 16:9 so a fullscreen world fills a typical display exactly.
+export const GRID_WIDTH = 400
+export const GRID_HEIGHT = 225
 
 export const TICK_RATE = 60
 

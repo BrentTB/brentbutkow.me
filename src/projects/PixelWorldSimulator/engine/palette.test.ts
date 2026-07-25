@@ -98,10 +98,10 @@ describe('materialCss', () => {
 })
 
 describe('writeHeatTint', () => {
-  /** A one-cell overlay buffer. */
-  function tintFor(temperature: number) {
+  /** A one-cell overlay buffer, for a cell of stone unless something else is asked for. */
+  function tintFor(temperature: number, material: MaterialId = MaterialId.stone) {
     const pixels = new Uint8ClampedArray(4)
-    const tinted = writeHeatTint(pixels, 0, temperature)
+    const tinted = writeHeatTint(pixels, 0, material, temperature)
     return { tinted, r: pixels[0], g: pixels[1], b: pixels[2], alpha: pixels[3] }
   }
 
@@ -127,6 +127,30 @@ describe('writeHeatTint', () => {
 
     expect(cold.tinted).toBe(true)
     expect(cold.b).toBeGreaterThan(cold.r)
+  })
+
+  it('leaves air alone, however hot it gets', () => {
+    const { tinted, alpha } = tintFor(900, MaterialId.empty)
+
+    // Hot air drawn as a glowing cloud made the world look full of stuff that was not there.
+    expect(tinted).toBe(false)
+    expect(alpha).toBe(0)
+  })
+
+  it('leaves alone anything that already looks its temperature', () => {
+    // Liquid nitrogen is pale blue by definition; tinting it blue washed it to white.
+    expect(tintFor(-190, MaterialId.nitrogen).tinted).toBe(false)
+    expect(tintFor(1250, MaterialId.lava).tinted).toBe(false)
+    expect(tintFor(-25, MaterialId.ice).tinted).toBe(false)
+  })
+
+  it('keeps the cold end quieter than the warm one', () => {
+    // Additive blue on a pale material washes it to white: liquid nitrogen came out pure white.
+    expect(tintFor(-190).alpha).toBeLessThan(tintFor(1200).alpha)
+  })
+
+  it('stays an indicator rather than a coat of paint', () => {
+    expect(tintFor(1200).alpha).toBeLessThan(128)
   })
 
   it('stops getting stronger past the ends of its range', () => {

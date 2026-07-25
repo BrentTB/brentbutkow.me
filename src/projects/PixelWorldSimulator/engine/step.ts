@@ -1,6 +1,7 @@
 import { Grid, MaterialBehavior, MaterialId } from '../pixel-world.types'
 import { cellIndex, swapCells } from './grid'
 import { MATERIALS, canDisplace, canFloatThrough } from './materials'
+import { isSupported, push } from './kinetic'
 import { Rng } from './rng'
 
 /** The four neighbour offsets, held still: built inline they were a fresh array per cell per tick. */
@@ -55,6 +56,12 @@ function stepCell(grid: Grid, rng: Rng, x: number, y: number): void {
   }
 
   if (material.behavior === MaterialBehavior.powder) {
+    // Anything springy falls as a thrown cell rather than a grain, which is the only way it arrives at
+    // the floor with a speed to bounce off it. Dropping one cell per tick has nothing to rebound with.
+    if (material.restitution !== undefined && !isSupported(grid, from)) {
+      push(grid, from, 0, 0)
+      return
+    }
     if (sinkingStalled(grid, rng, x, y, material.density)) return
     fall(grid, rng, x, y, from, material.steep === true)
     return

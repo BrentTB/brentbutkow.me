@@ -542,11 +542,12 @@ export const MATERIALS: readonly Material[] = [
     id: MaterialId.shard,
     label: 'Shards',
     behavior: MaterialBehavior.powder,
-    density: 130,
+    // Splinters, so they are light enough to be thrown a long way and still sink in water.
+    density: 55,
     color: [150, 190, 196],
     jitter: 14,
     dispersion: 0,
-    drag: 0.7,
+    drag: 0.4,
     conductivity: 0.18,
     acidProof: true,
     // Melts back to molten sand at the same heat glass came from, so shards can be recycled.

@@ -40,6 +40,23 @@ const TEMPERATURE_FLOOR = -220
 const TEMPERATURE_CEILING = 1800
 
 /**
+ * The density a force is calibrated against: sand takes the strength as written, anything lighter goes
+ * further and anything heavier goes less far. Without this every material flew identically, which made
+ * splinters of glass behave like wet gravel.
+ */
+const REFERENCE_DENSITY = 60
+/** Bounds on that, so nothing is either immovable or launched into orbit. */
+const LIGHTEST = 2.2
+const HEAVIEST = 0.45
+
+/** How far a given material is thrown by the same impulse. Lighter cells fly. */
+function massFactor(id: number): number {
+  const { density } = MATERIALS[id]
+  if (density <= 0) return 1
+  return Math.max(HEAVIEST, Math.min(LIGHTEST, REFERENCE_DENSITY / density))
+}
+
+/**
  * Whether a force can pick this cell up at all. Static materials are the world's scaffolding: a wall you
  * built should not drift toward the pointer or blow away in the wind.
  */
@@ -86,7 +103,7 @@ export function attract(grid: Grid, cx: number, cy: number, radius: number): voi
 
     // Direction only: dividing the strength by the distance as well made anything more than a few cells
     // out barely twitch, which is the opposite of a black hole.
-    const speed = PULL_STRENGTH * falloff
+    const speed = PULL_STRENGTH * falloff * massFactor(grid.material[index])
     push(grid, index, (-dx / distance) * speed, (-dy / distance) * speed)
   })
 }
@@ -113,7 +130,8 @@ export function wind(
 
   overDisc(grid, cx, cy, radius, (index, _dx, _dy, falloff) => {
     if (!isMovable(grid.material[index])) return
-    push(grid, index, ux * WIND_STRENGTH * falloff, uy * WIND_STRENGTH * falloff)
+    const speed = WIND_STRENGTH * falloff * massFactor(grid.material[index])
+    push(grid, index, ux * speed, uy * speed)
   })
 }
 
@@ -152,14 +170,15 @@ function impulse(
 
     if (!isMovable(grid.material[index])) return
 
+    const thrown = strength * massFactor(grid.material[index])
     const distance = Math.sqrt(dx * dx + dy * dy)
     // The cell at the centre has no direction to go, so it takes the shove straight up.
     if (distance === 0) {
-      push(grid, index, 0, -strength)
+      push(grid, index, 0, -thrown)
       return
     }
 
-    const speed = strength * falloff
+    const speed = thrown * falloff
     push(grid, index, (dx / distance) * speed, (dy / distance) * speed)
   })
 }

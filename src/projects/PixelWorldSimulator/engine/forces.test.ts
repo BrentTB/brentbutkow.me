@@ -98,6 +98,29 @@ describe('blast', () => {
   })
 })
 
+describe('the same impulse on different materials', () => {
+  function thrownSpeed(material: MaterialId): number {
+    const grid = createGrid(41, 41)
+    const cell = cellIndex(grid, 20, 26)
+    placeMaterial(grid, cell, material)
+
+    blast(grid, 20, 30, 8)
+
+    const motion = grid.velocity.get(cell)
+    return Math.abs(motion?.vx ?? 0) + Math.abs(motion?.vy ?? 0)
+  }
+
+  it('throws a light material further than a heavy one', () => {
+    // Every material flying identically is what made glass splinters behave like wet gravel.
+    expect(thrownSpeed(MaterialId.shard)).toBeGreaterThan(thrownSpeed(MaterialId.gravel))
+    expect(thrownSpeed(MaterialId.ash)).toBeGreaterThan(thrownSpeed(MaterialId.sand))
+  })
+
+  it('still moves the heaviest thing a force can pick up', () => {
+    expect(thrownSpeed(MaterialId.lava)).toBeGreaterThan(0)
+  })
+})
+
 describe('wind', () => {
   it('blows the way the pointer was dragged', () => {
     const grid = createGrid(21, 21)

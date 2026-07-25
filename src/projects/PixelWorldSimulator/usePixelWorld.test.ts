@@ -71,11 +71,24 @@ function materialAt(image: { data: Uint8ClampedArray }, x: number, y: number): M
   return MaterialId.empty
 }
 
-/** How many cells of a material the drawn world holds. */
-function countMaterial(image: { data: Uint8ClampedArray }, material: MaterialId): number {
+/**
+ * How many cells of a material the drawn world holds, within a box. Classifying a pixel means reproducing
+ * every material's palette write for that cell, so scanning all ninety thousand of them for each count is
+ * slow enough to time a test out; every caller knows roughly where it painted.
+ */
+function countMaterial(
+  image: { data: Uint8ClampedArray },
+  material: MaterialId,
+  box: { x: number; y: number; width: number; height: number } = {
+    x: 0,
+    y: 0,
+    width: GRID_WIDTH,
+    height: GRID_HEIGHT,
+  }
+): number {
   let total = 0
-  for (let y = 0; y < GRID_HEIGHT; y++) {
-    for (let x = 0; x < GRID_WIDTH; x++) {
+  for (let y = box.y; y < Math.min(GRID_HEIGHT, box.y + box.height); y++) {
+    for (let x = box.x; x < Math.min(GRID_WIDTH, box.x + box.width); x++) {
       if (materialAt(image, x, y) === material) total++
     }
   }
@@ -172,12 +185,18 @@ describe('usePixelWorld', () => {
       )
     })
     frame(0)
-    const iceBefore = countMaterial(image, MaterialId.ice)
+    const slab = { x: 140, y: GRID_HEIGHT - 20, width: 80, height: 20 }
+    const iceBefore = countMaterial(image, MaterialId.ice, slab)
 
-    for (let i = 0; i < 300; i++) frame(MS_PER_TICK)
+    // Soaked with Step rather than 300 animation frames: same tick, without redrawing the whole world
+    // each time. That the loop ticks at all is what 'steps the world while running' is for.
+    act(() => {
+      for (let i = 0; i < 300; i++) result.current.stepOnce()
+    })
+    frame(MS_PER_TICK)
 
     expect(iceBefore).toBeGreaterThan(0)
-    expect(countMaterial(image, MaterialId.ice)).toBeLessThan(iceBefore)
+    expect(countMaterial(image, MaterialId.ice, slab)).toBeLessThan(iceBefore)
   })
 
   it('runs the reaction pass too', () => {
@@ -187,13 +206,17 @@ describe('usePixelWorld', () => {
       result.current.paintStroke({ x: 120, y: 138 }, { x: 120, y: 138 }, MaterialId.acid, 2)
     })
     frame(0)
-    const sandBefore = countMaterial(image, MaterialId.sand)
+    const heap = { x: 100, y: 130, width: 45, height: 40 }
+    const sandBefore = countMaterial(image, MaterialId.sand, heap)
 
-    for (let i = 0; i < 400; i++) frame(MS_PER_TICK)
+    act(() => {
+      for (let i = 0; i < 400; i++) result.current.stepOnce()
+    })
+    frame(MS_PER_TICK)
 
     // Nothing but the acid reaction removes sand — movement and heat leave it alone.
     expect(sandBefore).toBeGreaterThan(0)
-    expect(countMaterial(image, MaterialId.sand)).toBeLessThan(sandBefore)
+    expect(countMaterial(image, MaterialId.sand, heap)).toBeLessThan(sandBefore)
   })
 
   it('holds the world still while paused, and paints into it anyway', () => {
@@ -401,7 +424,9 @@ describe('usePixelWorld', () => {
     for (let i = 0; i < 6; i++) frame(MS_PER_TICK)
 
     expect(sandRow(image, start.x)).toBeNull()
-    expect(countMaterial(image, MaterialId.sand)).toBe(1)
+    expect(
+      countMaterial(image, MaterialId.sand, { x: start.x, y: 60, width: 60, height: 80 })
+    ).toBe(1)
   })
 
   it('stops the loop on unmount', () => {

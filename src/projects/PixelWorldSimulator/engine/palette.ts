@@ -62,8 +62,13 @@ const WARM_FROM = 60
 const WARM_FULL = 1200
 const COOL_FROM = 0
 const COOL_FULL = -190
-/** How strong the tint gets at full heat, as an alpha byte. Enough to read, not enough to recolour. */
-const TINT_MAX = 170
+/**
+ * How strong each tint gets at its extreme, as an alpha byte. This is an indicator, not a paint job, so
+ * both are deliberately quiet. Cold is quieter still: the tint composites additively, and pale blue-ish
+ * materials are already most of the way to white, so liquid nitrogen washed out completely.
+ */
+const WARM_MAX = 85
+const COOL_MAX = 42
 /**
  * Bends the ramp so the first couple of hundred degrees are already visible. Straight linear, a cell at
  * 110 °C came out around 4% opacity: technically tinted, indistinguishable from cold sand, and useless
@@ -71,9 +76,12 @@ const TINT_MAX = 170
  */
 const TINT_CURVE = 0.45
 
-/** The warm and cold ends of the tint. Written additively, so both only ever brighten a cell. */
-const WARM_TINT: readonly [number, number, number] = [255, 96, 20]
-const COOL_TINT: readonly [number, number, number] = [40, 120, 255]
+/**
+ * The warm and cold ends of the tint. Written additively, so both only ever brighten a cell — which is
+ * why the cold end is a deep blue with almost no green in it rather than a bright one.
+ */
+const WARM_TINT: readonly [number, number, number] = [255, 110, 30]
+const COOL_TINT: readonly [number, number, number] = [30, 70, 200]
 
 function ramp(fraction: number): number {
   return Math.min(1, fraction) ** TINT_CURVE
@@ -91,8 +99,20 @@ function ramp(fraction: number): number {
 export function writeHeatTint(
   pixels: Uint8ClampedArray,
   offset: number,
+  material: number,
   temperature: number
 ): boolean {
+  // Air is not a thing you can see the temperature of. Hot air reading as a glowing cloud made the
+  // world look like it was full of stuff; what air should show one day is currents, not warmth.
+  //
+  // Materials that hold their own temperature are skipped too: lava, ice, liquid nitrogen and flame are
+  // already coloured for being hot or cold, so tinting them only washes the colour out — nitrogen came
+  // out white. The tint is for materials that do not otherwise advertise their heat.
+  if (material === MaterialId.empty || MATERIALS[material].selfHeat !== undefined) {
+    pixels[offset + 3] = 0
+    return false
+  }
+
   const strength =
     temperature >= WARM_FROM
       ? ramp((temperature - WARM_FROM) / (WARM_FULL - WARM_FROM))
@@ -105,12 +125,12 @@ export function writeHeatTint(
     return false
   }
 
-  const [r, g, b] = strength > 0 ? WARM_TINT : COOL_TINT
-  const alpha = Math.abs(strength)
+  const warm = strength > 0
+  const [r, g, b] = warm ? WARM_TINT : COOL_TINT
   pixels[offset] = r
   pixels[offset + 1] = g
   pixels[offset + 2] = b
-  pixels[offset + 3] = alpha * TINT_MAX
+  pixels[offset + 3] = Math.abs(strength) * (warm ? WARM_MAX : COOL_MAX)
   return true
 }
 

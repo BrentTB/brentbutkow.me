@@ -362,6 +362,38 @@ describe('metal', () => {
 })
 
 describe('rubber', () => {
+  it('bounces off the floor it was dropped on', () => {
+    const grid = withVessel(15, 41)
+    put(grid, 7, 6, MaterialId.rubber)
+
+    // Dropped, not thrown: falling a cell per tick as a powder arrives at the floor with nothing to
+    // rebound with, so a ball of it just sat there.
+    let peak = 41
+    let landed = 0
+    for (let tick = 0; tick < 400; tick++) {
+      run(grid, 1)
+      let row = null
+      for (let y = 0; y < grid.height; y++) {
+        if (grid.material[cellIndex(grid, 7, y)] === MaterialId.rubber) row = y
+      }
+      if (row === null) break
+      if (row >= grid.height - 2) landed = tick
+      if (landed > 0 && tick > landed) peak = Math.min(peak, row)
+    }
+
+    expect(landed).toBeGreaterThan(0)
+    expect(peak).toBeLessThan(grid.height - 2)
+  })
+
+  it('settles instead of bouncing forever', () => {
+    const grid = withVessel(15, 41)
+    put(grid, 7, 6, MaterialId.rubber)
+
+    run(grid, 1200)
+
+    expect(grid.velocity.size).toBe(0)
+  })
+
   it('melts to oil rather than burning away', () => {
     const grid = withVessel(9, 9)
     const block = put(grid, 4, 4, MaterialId.rubber)
