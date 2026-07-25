@@ -509,6 +509,33 @@ describe('a bouncing world', () => {
   })
 })
 
+describe('a crowd of creatures', () => {
+  it('holds its ground over a full tick, not just the life pass', () => {
+    const grid = withVessel(81, 61)
+    for (let y = 20; y < 34; y++) {
+      for (let x = 30; x < 50; x++) put(grid, x, y, MaterialId.bird)
+    }
+
+    const centre = () => {
+      let total = 0
+      let seen = 0
+      for (let i = 0; i < grid.material.length; i++) {
+        if (grid.material[i] !== MaterialId.bird) continue
+        total += i % grid.width
+        seen++
+      }
+      return seen === 0 ? -1 : total / seen
+    }
+
+    const before = centre()
+    run(grid, 500)
+
+    // The scan direction alternates on the tick number, so the tick has to reach the life pass. Handed a
+    // constant, a blob drifts steadily to one side.
+    expect(Math.abs(centre() - before)).toBeLessThan(4)
+  })
+})
+
 describe('cells in flight', () => {
   it('travel during a tick, and only the kinetic pass moves them', () => {
     const grid = withVessel(21, 21)

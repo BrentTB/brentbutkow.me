@@ -764,8 +764,9 @@ export const MATERIALS: readonly Material[] = [
       startEnergy: 150,
       nutrition: 55,
       feedChance: 0.12,
-      // Hungry: it has to run down when the hunting stops, or it is grey goo rather than a monster.
-      burnRate: 0.18,
+      // Hungry, but not frantic: it still runs down when the hunting stops, which is what keeps it a monster
+      // rather than grey goo, and at a fifth it starved before it had crossed the room.
+      burnRate: 0.08,
       moveChance: 0.14,
       breedAt: 210,
       breedChance: 0.002,

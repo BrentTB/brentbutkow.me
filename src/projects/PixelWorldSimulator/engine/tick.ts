@@ -28,7 +28,7 @@ import { simulateLife } from './life'
  */
 export function tickWorld(grid: Grid, rng: Rng, tick: number): void {
   applyReactions(grid, rng)
-  simulateLife(grid, rng)
+  simulateLife(grid, rng, tick)
   step(grid, rng, tick)
   moveKinetic(grid, rng)
   simulateHeat(grid)

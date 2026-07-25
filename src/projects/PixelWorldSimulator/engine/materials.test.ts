@@ -253,6 +253,20 @@ describe('every creature', () => {
     }
   })
 
+  it('burns energy at a rate that is neither immortal nor hopeless', () => {
+    for (const creature of creatures) {
+      const life = creature.life
+      if (life === undefined || life.diet.length === 0) continue
+
+      // Below about a fiftieth nothing ever runs out: a bird on 0.03 could hang over an empty world for a
+      // minute and a half. Above a third it starves between one meal and the next.
+      expect(life.burnRate).toBeGreaterThanOrEqual(0.02)
+      expect(life.burnRate).toBeLessThanOrEqual(0.35)
+      // Long enough to cross a room looking for food, on a full tank.
+      expect(life.startEnergy / life.burnRate).toBeGreaterThan(600)
+    }
+  })
+
   it('can be painted over, because living things are soft', () => {
     for (const creature of creatures) {
       expect(canPaintOver(MaterialId.stone, creature.id)).toBe(true)

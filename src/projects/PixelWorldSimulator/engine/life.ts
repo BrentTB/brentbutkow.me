@@ -55,15 +55,19 @@ function eats(species: number, material: number): boolean {
  * A food chain falls out of that rather than being written down anywhere: algae lives on light, fish eat
  * algae, birds eat fish, everything dies into meat, and bugs eat the meat.
  */
-export function simulateLife(grid: Grid, rng: Rng): void {
-  const { width, height, material } = grid
+export function simulateLife(grid: Grid, rng: Rng, tick: number): void {
+  const { width, height, material, moved } = grid
+  // The x direction alternates with tick parity, and anything that moves is marked. Without both, a
+  // creature that steps into a cell the scan has not reached yet gets a second turn in the same tick, and
+  // a crowd of them drifts: a blob of birds slid steadily left across an empty world.
+  const leftToRight = tick % 2 === 0
 
-  // Bottom-up, like the material pass, so a creature that moves down isn't visited again on its way.
   for (let y = height - 1; y >= 0; y--) {
-    for (let x = 0; x < width; x++) {
+    for (let i = 0; i < width; i++) {
+      const x = leftToRight ? i : width - 1 - i
       const index = y * width + x
       const id = material[index]
-      if (IS_ALIVE[id] === 0) continue
+      if (IS_ALIVE[id] === 0 || moved[index]) continue
 
       const life = LIFE[id]
       if (life === undefined) continue
@@ -123,7 +127,8 @@ function inMedium(grid: Grid, index: number, life: Life): boolean {
   if (medium === Medium.surface) {
     // Its own food counts as breathable: a bug that eats its way into a bank of grass buries itself, when
     // what should happen is that it tunnels through, grazing as it goes.
-    const athome = (m: number) => isAir(m) || neighbourly(m) || life.diet.includes(m as MaterialId)
+    const species = grid.material[index]
+    const athome = (m: number) => isAir(m) || neighbourly(m) || eats(species, m)
     return standingOnSomething(grid, index) && touches(grid, index, athome)
   }
 
@@ -277,10 +282,21 @@ function breed(grid: Grid, rng: Rng, x: number, y: number, index: number, life: 
   const kept = produces ? energy - SPLIT_COST : energy - child
 
   placeMaterial(grid, room, grid.material[index] as MaterialId)
+  // A newborn waits for the next tick, like everything else that has already been dealt with.
+  grid.moved[room] = 1
   grid.data[room] = child
   grid.data[index] = Math.max(1, kept)
   return true
 }
+
+/** Where a burrower prefers to go: upward, so it works the topsoil rather than sinking out of sight. */
+const SURFACING: readonly (readonly [number, number])[] = [
+  [0, -1],
+  [0, -1],
+  [-1, 0],
+  [1, 0],
+  [0, 1],
+]
 
 /**
  * A step through its own medium, biased toward whatever it eats when it can see some. The bias is the
@@ -299,9 +315,12 @@ function roam(grid: Grid, rng: Rng, x: number, y: number, index: number, life: L
     if (stepped) return
   }
 
-  const start = Math.floor(rng.next() * NEIGHBOURS.length)
-  for (let step = 0; step < NEIGHBOURS.length; step++) {
-    const [dx, dy] = NEIGHBOURS[(start + step) % NEIGHBOURS.length]
+  // A burrower drifts upward on purpose. Left to a plain random walk a worm sinks away from the surface,
+  // out of reach of anything that eats worms, and a bank of them starves the birds standing over it.
+  const directions = life.medium === Medium.soil ? SURFACING : NEIGHBOURS
+  const start = Math.floor(rng.next() * directions.length)
+  for (let step = 0; step < directions.length; step++) {
+    const [dx, dy] = directions[(start + step) % directions.length]
     if (tryStep(grid, index, x, y, dx, dy, life)) return
   }
 }
@@ -328,6 +347,8 @@ function tryStep(
   if (life.medium === Medium.surface && !standingOnSomething(grid, target)) return false
 
   swapCells(grid, index, target)
+  grid.moved[index] = 1
+  grid.moved[target] = 1
   return true
 }
 
@@ -396,6 +417,8 @@ function strand(grid: Grid, rng: Rng, x: number, y: number, index: number): void
     const below = cellIndex(grid, x, y + 1)
     if (loose(grid.material[below])) {
       swapCells(grid, index, below)
+      grid.moved[index] = 1
+      grid.moved[below] = 1
       return
     }
   }
@@ -414,6 +437,8 @@ function strand(grid: Grid, rng: Rng, x: number, y: number, index: number): void
     const target = cellIndex(grid, nx, ny)
     if (!loose(grid.material[target])) continue
     swapCells(grid, index, target)
+    grid.moved[index] = 1
+    grid.moved[target] = 1
     return
   }
 }
@@ -429,6 +454,8 @@ function sink(grid: Grid, index: number, x: number, y: number, life: Life): bool
   if (grid.material[below] !== MaterialId.empty) return false
 
   swapCells(grid, index, below)
+  grid.moved[index] = 1
+  grid.moved[below] = 1
   return true
 }
 

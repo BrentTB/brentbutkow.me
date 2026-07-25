@@ -5,6 +5,7 @@ import { Rng } from './rng'
 export const Preset = {
   aquarium: 'aquarium',
   wild: 'wild',
+  volcano: 'volcano',
 } as const
 export type Preset = (typeof Preset)[keyof typeof Preset]
 
@@ -119,9 +120,41 @@ function aquarium(grid: Grid, rng: Rng): void {
     for (let i = 0; i < clump; i++) put(grid, x, bed[x] - 1 - i * 2, MaterialId.algae)
   }
 
-  const shoal = Math.floor((right - left) / 6)
-  for (let i = 1; i <= 5; i++) {
-    put(grid, left + shoal * i, floor - 8 - Math.floor(rng.next() * 6), MaterialId.fish)
+  // Terraces climbing out of the bed: a tank whose whole top half is plain water has nothing to look at,
+  // and weed growing on the ledges gives the fish a reason to be up there.
+  const span = right - wall - (left + wall)
+  const ledges = 3
+  for (let i = 1; i <= ledges; i++) {
+    const cx = left + wall + Math.round((span * i) / (ledges + 1))
+    // Broad and low. Tall and narrow gave three stone needles standing in a tank, which looks like a mistake
+    // rather than a reef.
+    const lift = Math.round((floor - surface) * (0.12 + rng.next() * 0.2))
+    const reach = Math.max(8, Math.round(span * (0.06 + rng.next() * 0.06)))
+
+    for (let dx = -reach; dx <= reach; dx++) {
+      const x = cx + dx
+      if (x <= left + wall || x >= right - wall) continue
+
+      const across = dx / reach
+      const shoulder = Math.round(lift * (1 - across * across) + (rng.next() < 0.25 ? 1 : 0))
+      if (shoulder <= 0) continue
+
+      const crest = bed[x] - shoulder
+      fill(grid, x, crest, x, bed[x], MaterialId.stone)
+      if (rng.next() < 0.4) put(grid, x, crest - 1, MaterialId.algae)
+      if (rng.next() < 0.15) put(grid, x, crest, MaterialId.gravel)
+    }
+  }
+
+  // Fish spread through the depth rather than hugging the floor, now that there is food up there.
+  const shoal = Math.floor((right - left) / 7)
+  for (let i = 1; i <= 6; i++) {
+    put(
+      grid,
+      left + shoal * i,
+      surface + 6 + Math.floor(rng.next() * (floor - surface - 12)),
+      MaterialId.fish
+    )
   }
 }
 
@@ -139,8 +172,15 @@ function wild(grid: Grid, rng: Rng): void {
 
   const ground = surfaceLine(width, base, Math.max(2, height * 0.045), rng)
 
-  fill(grid, 0, bedrock, width - 1, height - 1, MaterialId.stone)
-  for (let x = 0; x < width; x++) fill(grid, x, ground[x], x, bedrock - 1, MaterialId.dirt)
+  // Bedrock has its own line, deeper than the surface and out of phase with it, with gravel seams where the
+  // two come close. A dead straight band of stone under the soil was the last thing that looked drawn.
+  const rock = surfaceLine(width, bedrock, Math.max(2, height * 0.03), rng)
+  for (let x = 0; x < width; x++) {
+    fill(grid, x, rock[x], x, height - 1, MaterialId.stone)
+    fill(grid, x, ground[x], x, rock[x] - 1, MaterialId.dirt)
+    if (rng.next() < 0.3) put(grid, x, rock[x] - 1, MaterialId.gravel)
+    if (rng.next() < 0.15) put(grid, x, rock[x] - 2, MaterialId.gravel)
+  }
 
   // A sandy stretch on the left, following the surface rather than cutting across it.
   const sandTo = Math.floor(width * 0.22)
@@ -166,7 +206,11 @@ function wild(grid: Grid, rng: Rng): void {
   // water with it. The bowl's shallow ends are where that shows up, so it is done by inspection rather than
   // by trusting the shape.
   for (let x = pond.left - 1; x <= pond.right + 1; x++) {
-    for (let y = ground[Math.max(0, Math.min(width - 1, x))] - 1; y <= bedrock; y++) {
+    for (
+      let y = ground[Math.max(0, Math.min(width - 1, x))] - 1;
+      y <= rock[Math.max(0, Math.min(width - 1, x))];
+      y++
+    ) {
       if (x < 0 || x >= width || y < 0 || y >= height) continue
       if (grid.material[cellIndex(grid, x, y)] !== MaterialId.water) continue
 
@@ -222,6 +266,12 @@ function wild(grid: Grid, rng: Rng): void {
     if (bowl[x] !== undefined) put(grid, x, bowl[x] - 2, MaterialId.fish)
   }
 
+  // Seeds lying about on the bare ground: they sprout wherever the soil is wet enough, which is what makes
+  // the field feel like it is going somewhere rather than sitting still.
+  for (let x = 4; x < pond.left - 4; x += 5 + Math.floor(rng.next() * 9)) {
+    put(grid, x, ground[x] - 1, MaterialId.seed)
+  }
+
   // Worms inside the soil, bugs along the grass, birds low enough to see the ground: seeded anywhere else
   // they starve a few cells from a meal.
   for (let i = 1; i <= 5; i++) {
@@ -238,9 +288,127 @@ function wild(grid: Grid, rng: Rng): void {
   }
 }
 
+/**
+ * A mountain with a lava source in its throat, a pool at its foot, powder magazines in the rock and slimes
+ * living in the caves. Everything here is a thing the sim already does, wired together so it does it without
+ * being asked: the source keeps erupting, lava lights whatever it reaches, water answers with steam, the
+ * charges go off when the heat gets to them, and the slimes come out of the dark looking for meat.
+ */
+function volcano(grid: Grid, rng: Rng): void {
+  const { width, height } = grid
+  const floor = height - Math.floor(height * 0.06)
+  const peak = Math.floor(height * 0.2)
+  const middle = Math.floor(width * 0.46)
+  const spread = Math.floor(width * 0.28)
+
+  fill(grid, 0, floor, width - 1, height - 1, MaterialId.stone)
+
+  // The cone. A parabola on its own is a drawn shape, so the slope wanders by a few cells as it climbs and
+  // gravel shows through where the rock breaks.
+  const skin = surfaceLine(width, 0, Math.max(2, height * 0.035), rng)
+  const slope: number[] = []
+  for (let dx = -spread; dx <= spread; dx++) {
+    const across = Math.abs(dx) / spread
+    const x = middle + dx
+    const top = Math.round(
+      peak + (floor - peak) * across * across * 0.9 + skin[Math.abs(x) % width]
+    )
+    slope[x] = top
+    fill(grid, x, top, x, floor - 1, MaterialId.stone)
+    if (rng.next() < 0.3) put(grid, x, top, MaterialId.gravel)
+    if (rng.next() < 0.1) put(grid, x, top + 1, MaterialId.gravel)
+  }
+
+  // The throat: wider at the bottom than the top, wandering rather than plumb, opening into a crater bowl.
+  const crater = slope[middle] + 3
+  for (let y = crater; y < floor - 4; y++) {
+    const bore = 1 + Math.round(((y - crater) / (floor - crater)) * 3)
+    const lean = Math.round(Math.sin(y / 9) * 2)
+    fill(grid, middle + lean - bore, y, middle + lean + bore, y, MaterialId.empty)
+  }
+  fill(grid, middle - 5, crater, middle + 5, crater + 2, MaterialId.empty)
+  // A breach in the rim on one side. A closed crater just fills and sits there, because the source cannot
+  // push past its own lava, and a volcano that never spills is a warm rock.
+  const breach = rng.next() < 0.5 ? -1 : 1
+  for (let i = 1; i <= 7; i++) {
+    const x = middle + breach * (4 + i)
+    fill(grid, x, crater, x, crater + 1 + Math.floor(i / 3), MaterialId.empty)
+  }
+
+  // The source sits in the crater itself, with a drop of lava beside it to teach it what to make. A source
+  // can only push its output about twenty cells to find space, so buried at the bottom of a throat full of
+  // lava it has nowhere to put anything and the mountain goes quiet. Up here the crater and the breach are
+  // right next to it, so it keeps pouring.
+  put(grid, middle, crater + 2, MaterialId.source)
+  put(grid, middle + 1, crater + 2, MaterialId.lava)
+
+  // A chamber down in the roots, for the glow through the rock rather than for the flow.
+  fill(grid, middle - 5, floor - 12, middle + 5, floor - 4, MaterialId.lava)
+
+  // Caves out near the feet of the mountain, well away from the vent: slimes sitting over the chamber simply
+  // cooked. Each gets a carcass to start on, and they can walk out through the mouth of the cave.
+  for (let side = -1; side <= 1; side += 2) {
+    const cx = middle + side * Math.floor(spread * 0.82)
+    const cy = floor - 6
+    boulder(grid, cx, cy, 4 + Math.floor(rng.next() * 3), rng, MaterialId.empty)
+    put(grid, cx, cy + 2, MaterialId.meat)
+    put(grid, cx - side, cy + 1, MaterialId.meat)
+    put(grid, cx, cy, MaterialId.slime)
+    put(grid, cx + side, cy, MaterialId.slime)
+  }
+
+  // Magazines out in the flanks, a long way from the vent: buried next to the chamber they all went off in
+  // the first few seconds, which spends the surprise before anyone is watching. Out here the flow has to
+  // reach them.
+  for (let i = 0; i < 3; i++) {
+    const side = rng.next() < 0.5 ? -1 : 1
+    const x = middle + side * Math.round(spread * (0.55 + rng.next() * 0.35))
+    const y = slope[Math.max(0, Math.min(width - 1, x))] + 4 + Math.floor(rng.next() * 8)
+    boulder(grid, x, y, 2 + Math.floor(rng.next() * 2), rng, MaterialId.gunpowder)
+  }
+  for (let i = 0; i < 2; i++) {
+    const side = rng.next() < 0.5 ? -1 : 1
+    const x = middle + side * Math.round(spread * (0.4 + rng.next() * 0.3))
+    const y = slope[Math.max(0, Math.min(width - 1, x))] + 6 + Math.floor(rng.next() * 6)
+    boulder(grid, x, y, 2, rng, MaterialId.tnt)
+  }
+
+  // A lake on the low ground to the side, lined so it holds: lava reaching it is the show.
+  const lake = { left: Math.floor(width * 0.04), right: Math.floor(width * 0.14) }
+  fill(grid, lake.left - 1, floor - 12, lake.right + 1, floor - 1, MaterialId.stone)
+  fill(grid, lake.left, floor - 11, lake.right, floor - 1, MaterialId.water)
+  for (let x = lake.left; x <= lake.right; x += 3) put(grid, x, floor - 12, MaterialId.algae)
+
+  // A living corner in the foothills, far enough from the vent to last: something for the slimes to hunt,
+  // since a predator with nothing to eat is a corpse on a timer.
+  const meadow = { left: Math.floor(width * 0.78), right: Math.floor(width * 0.96) }
+  fill(grid, meadow.left, floor - 2, meadow.right, floor - 1, MaterialId.dirt)
+  for (let x = meadow.left; x < meadow.right; x += 2) put(grid, x, floor - 3, MaterialId.plant)
+  for (let x = meadow.left + 3; x < meadow.right; x += 7) put(grid, x, floor - 4, MaterialId.bug)
+  for (let x = meadow.left + 2; x < meadow.right; x += 6) put(grid, x, floor - 2, MaterialId.worm)
+
+  // Woods on the far side, which is what the first lava flow finds.
+  for (let i = 0; i < 3; i++) {
+    const x = Math.floor(width * (0.82 + rng.next() * 0.14))
+    tree(grid, x, floor - 1, Math.max(6, Math.floor(height * (0.09 + rng.next() * 0.06))), rng)
+  }
+
+  // A pocket of methane in the rock, because a volcano should have something to burp.
+  const gasAt = middle - Math.floor(spread * 0.45)
+  boulder(
+    grid,
+    gasAt,
+    slope[Math.max(0, Math.min(width - 1, gasAt))] + 6,
+    3,
+    rng,
+    MaterialId.methane
+  )
+}
+
 const BUILDERS: Record<Preset, (grid: Grid, rng: Rng) => void> = {
   [Preset.aquarium]: aquarium,
   [Preset.wild]: wild,
+  [Preset.volcano]: volcano,
 }
 
 /** Wipes the world and builds a preset into it. The rng is what keeps two loads from being identical. */

@@ -42,7 +42,7 @@ describe('the aquarium preset', () => {
 
     expect(count(grid, MaterialId.water)).toBeGreaterThan(1000)
     expect(count(grid, MaterialId.algae)).toBeGreaterThan(5)
-    expect(count(grid, MaterialId.fish)).toBe(5)
+    expect(count(grid, MaterialId.fish)).toBeGreaterThanOrEqual(5)
     expect(count(grid, MaterialId.stone)).toBeGreaterThan(100)
   })
 
@@ -89,7 +89,7 @@ describe('the aquarium preset', () => {
     loadPreset(small, Preset.aquarium, createRng(1))
 
     expect(count(small, MaterialId.water)).toBeGreaterThan(50)
-    expect(count(small, MaterialId.fish)).toBe(5)
+    expect(count(small, MaterialId.fish)).toBeGreaterThanOrEqual(4)
   })
 })
 
@@ -168,5 +168,46 @@ describe('the wild preset', () => {
 
     expect(surface.size).toBeGreaterThan(3)
     expect(count(grid, MaterialId.wood)).toBeGreaterThan(10)
+  })
+})
+
+describe('the volcano preset', () => {
+  function builtVolcano(seed = 3): Grid {
+    const grid = createGrid(GRID_WIDTH, GRID_HEIGHT)
+    loadPreset(grid, Preset.volcano, createRng(seed))
+    return grid
+  }
+
+  it('arrives with a mountain, a vent, charges and slimes', () => {
+    const grid = builtVolcano()
+
+    expect(count(grid, MaterialId.stone)).toBeGreaterThan(1000)
+    expect(count(grid, MaterialId.lava)).toBeGreaterThan(20)
+    expect(count(grid, MaterialId.source)).toBe(1)
+    expect(count(grid, MaterialId.slime)).toBeGreaterThan(1)
+    expect(count(grid, MaterialId.tnt) + count(grid, MaterialId.gunpowder)).toBeGreaterThan(10)
+    expect(count(grid, MaterialId.water)).toBeGreaterThan(50)
+  })
+
+  it('keeps erupting rather than filling up and going quiet', { timeout: 20_000 }, () => {
+    const grid = createGrid(200, 120)
+    loadPreset(grid, Preset.volcano, createRng(3))
+    const before = count(grid, MaterialId.lava)
+
+    soak(grid, 1500)
+
+    // A source can only push its output about twenty cells to find space. Buried at the bottom of a throat
+    // full of lava it has nowhere to put anything, and the mountain goes quiet on load.
+    expect(count(grid, MaterialId.lava)).toBeGreaterThan(before)
+  })
+
+  it('does not cook its own slimes on the way in', () => {
+    const grid = createGrid(200, 120)
+    loadPreset(grid, Preset.volcano, createRng(3))
+
+    soak(grid, 600)
+
+    // They live in caves out at the feet of the mountain. Over the chamber they simply cooked.
+    expect(count(grid, MaterialId.slime)).toBeGreaterThan(0)
   })
 })

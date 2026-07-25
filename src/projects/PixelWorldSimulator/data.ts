@@ -163,6 +163,11 @@ export const PRESETS: readonly { preset: Preset; label: string; title: string }[
     label: 'Wild',
     title: 'Open country and a pond: grass, worms, bugs, birds and fish',
   },
+  {
+    preset: Preset.volcano,
+    label: 'Volcano',
+    title: 'An erupting mountain, with slimes in the caves at its feet',
+  },
 ]
 
 /** The material a fresh page starts on. */

@@ -30,7 +30,11 @@ function count(grid: Grid, material: MaterialId): number {
 
 function run(grid: Grid, ticks: number, seed = 4): void {
   const rng = createRng(seed)
-  for (let tick = 0; tick < ticks; tick++) simulateLife(grid, rng)
+  for (let tick = 0; tick < ticks; tick++) {
+    // The material pass clears this between ticks; on its own, the life pass has to do it itself.
+    grid.moved.fill(0)
+    simulateLife(grid, rng, tick)
+  }
 }
 
 describe('algae', () => {
@@ -276,6 +280,21 @@ describe('a bird', () => {
     expect(after === -1 || after < before).toBe(true)
   })
 
+  it('finds a bank of worms and lives off it', () => {
+    const grid = createGrid(160, 100)
+    for (let y = 70; y < 100; y++) {
+      for (let x = 0; x < 160; x++) placeMaterial(grid, cellIndex(grid, x, y), MaterialId.dirt)
+    }
+    for (let i = 0; i < 20; i++) put(grid, 20 + i * 6, 72, MaterialId.worm)
+    for (let i = 0; i < 6; i++) put(grid, 30 + i * 20, 60, MaterialId.bird)
+
+    run(grid, 1800)
+
+    // A bird's whole diet on land is worms, and it starves in about 1700 ticks without one: still being here
+    // means the hunt works, sight and all.
+    expect(count(grid, MaterialId.bird)).toBeGreaterThanOrEqual(6)
+  })
+
   it('takes worms out of the topsoil', () => {
     const grid = createGrid(31, 21)
     // One row of soil, so the worms cannot burrow below the reach of something in the air. Deeper soil is
@@ -296,8 +315,9 @@ describe('a bird', () => {
     for (let x = 0; x < 31; x++) placeMaterial(grid, cellIndex(grid, x, 30), MaterialId.stone)
     put(grid, 15, 10, MaterialId.bird)
 
-    // Flying is expensive. On its old metabolism a bird could hang over an empty world indefinitely.
-    run(grid, 1500)
+    // Flying is expensive: about 1700 ticks of it on a full tank, so give it time to run out. On its old
+    // metabolism a bird could hang over an empty world indefinitely.
+    run(grid, 2200)
 
     expect(count(grid, MaterialId.bird)).toBe(0)
   })
@@ -376,6 +396,35 @@ describe('a slime', () => {
 
     expect(count(wet, MaterialId.slime)).toBeGreaterThanOrEqual(1)
     expect(count(dry, MaterialId.slime)).toBeGreaterThanOrEqual(1)
+  })
+})
+
+describe('a crowd', () => {
+  it('stays where it was put instead of sliding across the world', () => {
+    const grid = createGrid(120, 80)
+    for (let x = 0; x < 120; x++) placeMaterial(grid, cellIndex(grid, x, 79), MaterialId.stone)
+    // A solid blob, the way a big brush puts them down.
+    for (let y = 30; y < 45; y++) {
+      for (let x = 50; x < 70; x++) put(grid, x, y, MaterialId.bird)
+    }
+
+    const centre = () => {
+      let total = 0
+      let seen = 0
+      for (let i = 0; i < grid.material.length; i++) {
+        if (grid.material[i] !== MaterialId.bird) continue
+        total += i % grid.width
+        seen++
+      }
+      return seen === 0 ? -1 : total / seen
+    }
+
+    const before = centre()
+    run(grid, 600)
+
+    // Crowded creatures used to drift: one stepping into a cell the scan had not reached yet took a second
+    // turn in the same tick, and a blob of birds slid steadily left across an empty world.
+    expect(Math.abs(centre() - before)).toBeLessThan(4)
   })
 })
 
