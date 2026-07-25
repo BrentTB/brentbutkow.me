@@ -194,6 +194,23 @@ describe('isBurning', () => {
   })
 })
 
+describe('every material', () => {
+  it('says in one line what it is or what it does', () => {
+    for (const material of MATERIALS) {
+      expect(material.blurb.length).toBeGreaterThan(0)
+      // A tooltip, not a manual: one behaviour, and it has to fit on a line.
+      expect(material.blurb.length).toBeLessThanOrEqual(70)
+      expect(material.blurb.endsWith('.')).toBe(true)
+    }
+  })
+
+  it('does not just repeat its own name back', () => {
+    for (const material of MATERIALS) {
+      expect(material.blurb.toLowerCase()).not.toBe(material.label.toLowerCase())
+    }
+  })
+})
+
 describe('canDisplace', () => {
   it('lets anything into open air', () => {
     expect(canDisplace(MaterialId.smoke, MaterialId.empty)).toBe(true)

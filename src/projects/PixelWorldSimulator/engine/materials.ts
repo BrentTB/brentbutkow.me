@@ -52,6 +52,7 @@ export const MATERIALS: readonly Material[] = [
     id: MaterialId.empty,
     // Air is what the brush leaves behind, so the palette calls it what it does.
     label: 'Erase',
+    blurb: 'Clears anything back to open air.',
     behavior: MaterialBehavior.empty,
     density: 0,
     color: [11, 12, 15],
@@ -63,6 +64,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.stone,
     label: 'Stone',
+    blurb: 'Building material. Acid eats it slowly.',
     behavior: MaterialBehavior.static,
     density: 1000,
     color: [122, 124, 130],
@@ -76,6 +78,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.sand,
     label: 'Sand',
+    blurb: 'Piles into slopes. Melts to glass.',
     behavior: MaterialBehavior.powder,
     density: 60,
     color: [214, 172, 96],
@@ -88,6 +91,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.dirt,
     label: 'Dirt',
+    blurb: 'Plants grow in it. Wets into mud.',
     behavior: MaterialBehavior.powder,
     density: 65,
     color: [110, 78, 52],
@@ -99,6 +103,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.ash,
     label: 'Ash',
+    blurb: 'What most things burn into. Turns to mud in water.',
     behavior: MaterialBehavior.powder,
     density: 40,
     color: [92, 88, 86],
@@ -110,6 +115,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.wood,
     label: 'Wood',
+    blurb: 'Burns slowly, leaving ash and smoke.',
     behavior: MaterialBehavior.static,
     density: 1000,
     color: [124, 84, 48],
@@ -122,6 +128,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.plant,
     label: 'Plant',
+    blurb: 'Spreads through water. Catches fire in an instant.',
     behavior: MaterialBehavior.static,
     density: 1000,
     color: [78, 148, 66],
@@ -137,6 +144,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.ice,
     label: 'Ice',
+    blurb: 'Cold enough to keep itself solid, and it frosts the water it touches.',
     behavior: MaterialBehavior.static,
     density: 1000,
     color: [176, 214, 232],
@@ -152,6 +160,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.glass,
     label: 'Glass',
+    blurb: 'Acid-proof, and shatters when something hits it hard enough.',
     behavior: MaterialBehavior.static,
     density: 1000,
     color: [150, 190, 196],
@@ -165,6 +174,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.oil,
     label: 'Oil',
+    blurb: 'Floats on water and catches fire easily.',
     behavior: MaterialBehavior.liquid,
     density: 40,
     color: [86, 62, 40],
@@ -177,6 +187,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.acid,
     label: 'Acid',
+    blurb: 'Eats most things, and wears itself out doing it.',
     behavior: MaterialBehavior.liquid,
     density: 45,
     color: [150, 214, 62],
@@ -189,6 +200,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.lava,
     label: 'Lava',
+    blurb: 'Sets fire to what it touches. Crusts to stone in water.',
     behavior: MaterialBehavior.liquid,
     density: 80,
     color: [226, 104, 38],
@@ -204,6 +216,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.water,
     label: 'Water',
+    blurb: 'Boils into steam, freezes into ice, and grows plants.',
     behavior: MaterialBehavior.liquid,
     density: 50,
     color: [62, 122, 186],
@@ -220,6 +233,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.steam,
     label: 'Steam',
+    blurb: 'Drifts upward and rains back down as water.',
     behavior: MaterialBehavior.gas,
     density: 3,
     color: [206, 214, 222],
@@ -236,6 +250,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.smoke,
     label: 'Smoke',
+    blurb: 'Fades away as it climbs.',
     behavior: MaterialBehavior.gas,
     density: 5,
     color: [70, 68, 72],
@@ -250,6 +265,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.methane,
     label: 'Methane',
+    blurb: 'Pools under ceilings and goes off with a bang.',
     behavior: MaterialBehavior.gas,
     density: 2,
     color: [128, 176, 108],
@@ -262,6 +278,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.fire,
     label: 'Fire',
+    blurb: 'Brush it over anything that burns.',
     behavior: MaterialBehavior.gas,
     density: 1,
     color: [244, 148, 40],
@@ -279,6 +296,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.vine,
     label: 'Vine',
+    blurb: 'Creeps through water and never stops.',
     behavior: MaterialBehavior.static,
     density: 1000,
     color: [54, 112, 84],
@@ -291,6 +309,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.salt,
     label: 'Salt',
+    blurb: 'Dissolves into brine, which kills plants.',
     behavior: MaterialBehavior.powder,
     density: 62,
     color: [226, 226, 232],
@@ -302,6 +321,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.saltWater,
     label: 'Salt water',
+    blurb: 'Brine. Freezes colder than water and kills plants.',
     behavior: MaterialBehavior.liquid,
     density: 52,
     color: [72, 132, 158],
@@ -317,6 +337,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.snow,
     label: 'Snow',
+    blurb: 'Melts above freezing. Packs into ice under weight.',
     behavior: MaterialBehavior.powder,
     density: 30,
     color: [230, 238, 244],
@@ -333,6 +354,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.gravel,
     label: 'Gravel',
+    blurb: 'Piles steeper than sand and shrugs off acid.',
     behavior: MaterialBehavior.powder,
     density: 90,
     color: [140, 136, 128],
@@ -346,6 +368,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.seed,
     label: 'Seed',
+    blurb: 'Sprouts into a plant in wet dirt.',
     behavior: MaterialBehavior.powder,
     density: 58,
     color: [186, 152, 84],
@@ -358,6 +381,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.honey,
     label: 'Honey',
+    blurb: 'Creeps rather than flows.',
     behavior: MaterialBehavior.liquid,
     density: 70,
     color: [214, 154, 44],
@@ -371,6 +395,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.mud,
     label: 'Mud',
+    blurb: 'Dirt plus water. Dries back out in heat.',
     behavior: MaterialBehavior.liquid,
     density: 78,
     color: [92, 68, 44],
@@ -384,6 +409,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.nitrogen,
     label: 'Nitrogen',
+    blurb: 'Freezes what it touches, then boils away.',
     behavior: MaterialBehavior.liquid,
     density: 35,
     color: [178, 216, 236],
@@ -399,6 +425,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.sponge,
     label: 'Sponge',
+    blurb: 'Soaks up liquid and gives it back when heated.',
     behavior: MaterialBehavior.static,
     density: 1000,
     color: [216, 196, 108],
@@ -412,6 +439,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.metal,
     label: 'Metal',
+    blurb: 'Carries heat and sparks fast. Melts to lava.',
     behavior: MaterialBehavior.static,
     density: 1000,
     color: [168, 176, 188],
@@ -426,6 +454,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.rubber,
     label: 'Rubber',
+    blurb: 'Bounces when something throws it. Melts to oil.',
     // Loose, not structural. As a static material a thrown clump of it hung wherever it stopped —
     // static cells have no falling of their own, and a clump holds itself up.
     behavior: MaterialBehavior.powder,
@@ -442,6 +471,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.spark,
     label: 'Spark',
+    blurb: 'Runs along metal and water, and sets off gas.',
     behavior: MaterialBehavior.static,
     density: 1000,
     color: [252, 240, 160],
@@ -458,6 +488,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.ember,
     label: 'Ember',
+    blurb: 'Cooling fire that relights the fuel it lands on.',
     behavior: MaterialBehavior.gas,
     density: 4,
     color: [220, 96, 40],
@@ -476,6 +507,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.void,
     label: 'Void',
+    blurb: 'Deletes whatever touches it.',
     behavior: MaterialBehavior.static,
     density: 1000,
     color: [26, 14, 32],
@@ -488,6 +520,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.source,
     label: 'Source',
+    blurb: 'Copies the first material you feed it, forever.',
     behavior: MaterialBehavior.static,
     density: 1000,
     color: [126, 100, 204],
@@ -500,6 +533,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.chlorine,
     label: 'Chlorine',
+    blurb: 'Sinks and creeps along the ground. Bleaches plants.',
     behavior: MaterialBehavior.gas,
     density: 8,
     color: [190, 214, 96],
@@ -513,6 +547,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.tnt,
     label: 'TNT',
+    blurb: 'Goes off when it gets hot, and takes its neighbours with it.',
     behavior: MaterialBehavior.static,
     density: 1000,
     color: [178, 62, 58],
@@ -528,6 +563,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.gunpowder,
     label: 'Gunpowder',
+    blurb: 'A fuse: each grain pops and lights the next.',
     behavior: MaterialBehavior.powder,
     density: 90,
     color: [72, 70, 76],
@@ -541,6 +577,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.shard,
     label: 'Shards',
+    blurb: 'Broken glass, light enough to be thrown about.',
     behavior: MaterialBehavior.powder,
     // Splinters, so they are light enough to be thrown a long way and still sink in water.
     density: 55,

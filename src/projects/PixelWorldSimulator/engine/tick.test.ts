@@ -456,6 +456,34 @@ describe('the fire brush on a charge', () => {
   })
 })
 
+describe('a bouncing world', () => {
+  /** Drops a lump of rubber onto a slope and runs it, which exercises the scatter in every bounce. */
+  function bounceRun(seed: number) {
+    const grid = withVessel(41, 41)
+    for (let x = 8; x < 34; x++) {
+      const surface = 20 + Math.floor((x - 8) * 0.5)
+      for (let y = surface; y < 39; y++) put(grid, x, y, MaterialId.stone)
+    }
+    for (let y = 8; y < 11; y++) {
+      for (let x = 10; x < 13; x++) put(grid, x, y, MaterialId.rubber)
+    }
+
+    const rng = createRng(seed)
+    for (let tick = 0; tick < 150; tick++) tickWorld(grid, rng, tick)
+    return [...grid.material]
+  }
+
+  it('replays identically from the same seed', () => {
+    // A bounce now takes a random nudge sideways, so the kinetic pass draws from the seeded rng. Anything
+    // unseeded in there would make a replay drift from the world it is replaying.
+    expect(bounceRun(11)).toEqual(bounceRun(11))
+  })
+
+  it('lands somewhere else on a different seed', () => {
+    expect(bounceRun(11)).not.toEqual(bounceRun(12))
+  })
+})
+
 describe('cells in flight', () => {
   it('travel during a tick, and only the kinetic pass moves them', () => {
     const grid = withVessel(21, 21)

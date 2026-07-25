@@ -158,6 +158,11 @@
   color: var(--text-secondary);
 }
 
+// Kept at arm's length from everything else, so reaching for a speed or the brush cannot wipe the world.
+.clear {
+  margin-left: 20px;
+}
+
 @media (max-width: 560px) {
   .slider {
     margin-left: 0;
@@ -166,5 +171,9 @@
     input[type='range'] {
       flex: 1;
     }
+  }
+
+  .clear {
+    margin-left: auto;
   }
 }

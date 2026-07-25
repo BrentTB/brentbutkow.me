@@ -61,10 +61,6 @@ export function SimControls({
         </div>
       </div>
 
-      <button type="button" className={styles.button} onClick={onClear}>
-        Clear
-      </button>
-
       <label className={styles.slider}>
         Brush
         <input
@@ -78,6 +74,12 @@ export function SimControls({
           {brushCells} {brushCells === 1 ? 'cell' : 'cells'}
         </span>
       </label>
+
+      {/* Off on its own at the far end: it throws the world away, and against the transport a miss while
+          reaching for a speed costs you everything you had drawn. */}
+      <button type="button" className={`${styles.button} ${styles.clear}`} onClick={onClear}>
+        Clear
+      </button>
     </div>
   )
 }

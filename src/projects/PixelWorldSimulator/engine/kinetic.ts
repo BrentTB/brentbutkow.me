@@ -1,6 +1,7 @@
 import { Grid, MaterialBehavior, MaterialId, Velocity } from '../pixel-world.types'
 import { cellIndex, markHotRow, swapCells, transformCell } from './grid'
 import { MATERIALS, canDisplace } from './materials'
+import { Rng } from './rng'
 
 /**
  * Cells per tick a flying cell picks up downward. Set by how long a throw hangs: a cell shoved upward
@@ -23,6 +24,14 @@ const DEFAULT_RESTITUTION = 0.12
 const SHATTER_SPEED = 2.5
 /** Share of the impact speed that carries into the fragments it just made. */
 const SHATTER_SPREAD = 0.4
+/**
+ * Share of a bounce that becomes sideways travel when the ground under the cell is sloped. Without it a
+ * ball landing on a hillside reflects straight back up and bounces on that one spot forever.
+ */
+const SLOPE_DEFLECT = 0.6
+/** A little sideways wander on every bounce, so a ball does not repeat one line up and down. */
+const BOUNCE_SCATTER = 0.12
+
 /**
  * Cap on cells in flight. A blast big enough to exceed it should degrade into ordinary falling debris
  * rather than stall the tick, so the slowest entries are the ones dropped.
@@ -51,7 +60,7 @@ export function push(grid: Grid, index: number, vx: number, vy: number): void {
  * Runs in sorted index order rather than map order, so a replayed seed produces an identical world —
  * insertion order depends on which blast happened to touch a cell first.
  */
-export function moveKinetic(grid: Grid): void {
+export function moveKinetic(grid: Grid, rng: Rng): void {
   if (grid.velocity.size === 0) return
 
   const flying = [...grid.velocity.entries()].sort(([a], [b]) => a - b)
@@ -64,7 +73,7 @@ export function moveKinetic(grid: Grid): void {
     // The cell it was tracking may have been eaten, burnt, or swapped away underneath it.
     if (id === MaterialId.empty || MATERIALS[id].behavior === MaterialBehavior.empty) continue
 
-    const landed = travel(grid, index, motion)
+    const landed = travel(grid, index, motion, rng)
     const speed = Math.abs(motion.vx) + Math.abs(motion.vy)
     // Slow cells go back to their own class, but only once something is under them: a cell released
     // mid-air stops where it is, which turns the back half of every arc into a freeze frame.
@@ -78,6 +87,9 @@ export function moveKinetic(grid: Grid): void {
 export function isSupported(grid: Grid, index: number): boolean {
   const below = index + grid.width
   if (below >= grid.material.length) return true
+  // Ground that is itself falling is not ground. Without this a painted lump of rubber came apart one
+  // row per tick, dribbling downward, instead of leaving as a mass and bouncing like a ball.
+  if (grid.velocity.has(below)) return false
   return !canDisplace(grid.material[index], grid.material[below])
 }
 
@@ -105,7 +117,7 @@ function trim(grid: Grid): void {
 }
 
 /** Walks a cell along its path for one tick and returns where it ended up. */
-function travel(grid: Grid, index: number, motion: Velocity): number {
+function travel(grid: Grid, index: number, motion: Velocity, rng: Rng): number {
   motion.vy += GRAVITY
   motion.vx = clampSpeed(motion.vx * AIR_DRAG)
   motion.vy = clampSpeed(motion.vy * AIR_DRAG)
@@ -122,7 +134,7 @@ function travel(grid: Grid, index: number, motion: Velocity): number {
     const dy = stepOf(motion.oy)
     if (dx === 0 && dy === 0) break
 
-    const moved = advance(grid, at, dx, dy, motion)
+    const moved = advance(grid, at, dx, dy, motion, rng)
     if (moved === at) break
     at = moved
   }
@@ -146,24 +158,31 @@ function stepOf(remainder: number): number {
  * cell that cannot go anywhere loses its remainder so it doesn't spend the rest of the tick grinding
  * against a wall.
  */
-function advance(grid: Grid, at: number, dx: number, dy: number, motion: Velocity): number {
+function advance(
+  grid: Grid,
+  at: number,
+  dx: number,
+  dy: number,
+  motion: Velocity,
+  rng: Rng
+): number {
   const moved = slideTo(grid, at, dx, dy, motion)
   if (moved !== at) return moved
 
   if (dx !== 0 && dy !== 0) {
     const alongX = slideTo(grid, at, dx, 0, motion)
     if (alongX !== at) {
-      bounce(grid, at, motion, false, true)
+      bounce(grid, at, motion, false, true, rng)
       return alongX
     }
     const alongY = slideTo(grid, at, 0, dy, motion)
     if (alongY !== at) {
-      bounce(grid, at, motion, true, false)
+      bounce(grid, at, motion, true, false, rng)
       return alongY
     }
   }
 
-  bounce(grid, at, motion, dx !== 0, dy !== 0)
+  bounce(grid, at, motion, dx !== 0, dy !== 0, rng)
   return at
 }
 
@@ -188,13 +207,14 @@ function slideTo(grid: Grid, at: number, dx: number, dy: number, motion: Velocit
   return to
 }
 
-/** Reflects the blocked axes and takes the material's restitution out of the speed. */
+/** Reflects the blocked axes, takes the material's restitution out of the speed, and rolls off a slope. */
 function bounce(
   grid: Grid,
   at: number,
   motion: Velocity,
   blockedX: boolean,
-  blockedY: boolean
+  blockedY: boolean,
+  rng: Rng
 ): void {
   const restitution = MATERIALS[grid.material[at]].restitution ?? DEFAULT_RESTITUTION
 
@@ -202,10 +222,38 @@ function bounce(
     motion.vx = -motion.vx * restitution
     motion.ox = 0
   }
-  if (blockedY) {
-    motion.vy = -motion.vy * restitution
-    motion.oy = 0
+  if (!blockedY) return
+
+  const impact = Math.abs(motion.vy) * restitution
+  motion.vy = -motion.vy * restitution
+  motion.oy = 0
+  if (impact > 0) deflect(grid, at, motion, impact, rng)
+}
+
+/**
+ * Sends a bouncing cell off to the side, downhill where there is a downhill to take. A ball landing on a
+ * hillside otherwise reflects straight back up and hops on that one spot until it runs out of speed.
+ */
+function deflect(grid: Grid, at: number, motion: Velocity, impact: number, rng: Rng): void {
+  const x = at % grid.width
+  const y = Math.floor(at / grid.width)
+  const downhillLeft = openBelow(grid, at, x - 1, y + 1)
+  const downhillRight = openBelow(grid, at, x + 1, y + 1)
+
+  if (downhillLeft !== downhillRight) {
+    motion.vx += (downhillRight ? 1 : -1) * impact * SLOPE_DEFLECT
+    return
   }
+
+  // Flat ground, or a pit with walls both sides: a nudge either way, so a ball still wanders instead of
+  // tracing the same line up and down.
+  motion.vx += (rng.chance(0.5) ? 1 : -1) * impact * BOUNCE_SCATTER
+}
+
+/** Whether the cell down and to one side is somewhere this cell could actually go. */
+function openBelow(grid: Grid, at: number, x: number, y: number): boolean {
+  if (x < 0 || x >= grid.width || y < 0 || y >= grid.height) return false
+  return canDisplace(grid.material[at], grid.material[cellIndex(grid, x, y)])
 }
 
 /** Breaks what a fast enough impact lands on, and hands the fragments some of the impact. */

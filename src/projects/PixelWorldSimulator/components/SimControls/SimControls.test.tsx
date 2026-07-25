@@ -63,4 +63,16 @@ describe('SimControls', () => {
 
     expect(props.onSpeed).toHaveBeenCalledWith(SIM_SPEEDS[2].rate)
   })
+
+  it('keeps Clear away from the transport, past the brush control', () => {
+    renderControls()
+
+    const clear = screen.getByRole('button', { name: 'Clear' })
+    const brush = screen.getByRole('slider')
+    const pause = screen.getByRole('button', { name: 'Pause' })
+
+    // It throws the whole world away; a miss while reaching for a speed should not cost you that.
+    expect(clear.compareDocumentPosition(brush) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy()
+    expect(pause.compareDocumentPosition(clear) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
 })

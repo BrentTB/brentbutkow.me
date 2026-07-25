@@ -59,6 +59,8 @@ export type Material = {
   id: MaterialId
   /** Shown on the palette swatch. */
   label: string
+  /** One line on the swatch's tooltip: what this is, or the one behaviour worth knowing about it. */
+  blurb: string
   behavior: MaterialBehavior
   /** Denser materials displace lighter ones; static materials are never displaced. */
   density: number

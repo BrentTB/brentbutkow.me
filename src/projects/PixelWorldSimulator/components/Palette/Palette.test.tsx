@@ -105,4 +105,12 @@ describe('Palette', () => {
     )
     expect(screen.getByRole('button', { name: 'Steam' }).getAttribute('aria-pressed')).toBe('false')
   })
+
+  it('explains each material on its swatch', () => {
+    render(<Palette selected={MaterialId.sand} onSelect={vi.fn()} />)
+
+    // Source and void are the two nobody can guess by looking, but the same line helps everywhere.
+    const sand = screen.getByRole('button', { name: /Sand/ })
+    expect(sand.getAttribute('title')).toBe(MATERIALS[MaterialId.sand].blurb)
+  })
 })

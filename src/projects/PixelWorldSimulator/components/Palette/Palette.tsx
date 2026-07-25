@@ -88,6 +88,7 @@ function Swatch({ material, selected, onSelect }: SwatchProps) {
     <button
       type="button"
       className={`${styles.swatch} ${isErase ? styles.erase : ''}`}
+      title={MATERIALS[material].blurb}
       aria-pressed={material === selected}
       onClick={() => onSelect(material)}
     >

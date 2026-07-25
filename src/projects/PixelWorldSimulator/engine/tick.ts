@@ -25,7 +25,7 @@ import { moveKinetic } from './kinetic'
 export function tickWorld(grid: Grid, rng: Rng, tick: number): void {
   applyReactions(grid, rng)
   step(grid, rng, tick)
-  moveKinetic(grid)
+  moveKinetic(grid, rng)
   simulateHeat(grid)
   advanceTimers(grid, rng)
 }

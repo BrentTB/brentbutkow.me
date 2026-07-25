@@ -352,6 +352,20 @@ describe('a springy powder', () => {
     expect(grid.material[cell]).toBe(MaterialId.rubber)
   })
 
+  it('takes a whole lump into the air, not a cell at a time', () => {
+    const grid = createGrid(15, 15)
+    for (let x = 0; x < 15; x++) set(grid, x, 14, MaterialId.stone)
+    for (let y = 5; y < 9; y++) {
+      for (let x = 6; x < 9; x++) set(grid, x, y, MaterialId.rubber)
+    }
+
+    step(grid, createRng(1), 0)
+
+    // Cells in a lump hold each other up, so only its bottom edge is unsupported. Taking one row per
+    // tick made a painted ball dribble downward instead of dropping and bouncing.
+    expect(grid.velocity.size).toBe(12)
+  })
+
   it('is left alone once it has landed', () => {
     const grid = createGrid(9, 9)
     for (let x = 0; x < 9; x++) set(grid, x, 8, MaterialId.stone)
