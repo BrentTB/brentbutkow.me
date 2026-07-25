@@ -35,6 +35,11 @@ const NullSpace = lazy(() =>
     default: module.NullSpace,
   }))
 )
+const PixelWorldSimulator = lazy(() =>
+  import('../projects/PixelWorldSimulator/PixelWorldSimulator').then((module) => ({
+    default: module.PixelWorldSimulator,
+  }))
+)
 const AsciiArt = lazy(() =>
   import('../projects/AsciiArt/AsciiArt').then((module) => ({
     default: module.AsciiArt,
@@ -104,6 +109,12 @@ const funStuffRoutes: AppRoute[] = [
     element: <NullSpace />,
     dontShowInNavbar: true,
     ...metaFor(`${gamesPath}${gamesSubRoutes.nullSpace}`),
+  },
+  {
+    path: `${gamesPath}${gamesSubRoutes.pixelWorldSimulator}`,
+    element: <PixelWorldSimulator />,
+    dontShowInNavbar: true,
+    ...metaFor(`${gamesPath}${gamesSubRoutes.pixelWorldSimulator}`),
   },
   {
     path: `${routePaths.funStuff}${funStuffSubRoutes.asciiArt}`,

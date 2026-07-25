@@ -1,0 +1,47 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.stage {
+  display: flex;
+  justify-content: center;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elevated);
+}
+
+.canvas {
+  display: block;
+  width: 100%;
+  // Matches the 300x200 grid, so cells stay square at every width. The height cap keeps the
+  // palette and controls on screen beside the canvas rather than below the fold.
+  aspect-ratio: 3 / 2;
+  max-width: calc(58vh * 1.5);
+  border-radius: var(--radius);
+  background: var(--bg);
+  // The grid is 300 cells wide and drawn 1:1 into the backing store — the browser scales it up, and
+  // the cells have to stay cells.
+  image-rendering: pixelated;
+  cursor: crosshair;
+  touch-action: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  :global(html.fun-mode) & {
+    box-shadow: 0 0 28px -6px rgba(var(--accent-rgb), 0.4);
+  }
+}
+
+.hint {
+  margin: 0;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+}

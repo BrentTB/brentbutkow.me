@@ -27,6 +27,7 @@ export type RouteMeta = {
 
 const gamesPath = `${routePaths.funStuff}${funStuffSubRoutes.games}`
 const nullSpacePath = `${gamesPath}${gamesSubRoutes.nullSpace}`
+const pixelWorldPath = `${gamesPath}${gamesSubRoutes.pixelWorldSimulator}`
 
 /** Looks up meta for a path, failing loudly at module-init if a route forgot its entry. */
 export function metaFor(path: string): RouteMeta {
@@ -136,6 +137,24 @@ export const routesMeta: Record<string, RouteMeta> = {
       playMode: 'SinglePlayer',
       description:
         'A browser space-defense game where you bend space itself: launch meteors, open black holes, and warp reality to protect your ship.',
+      author: { '@type': 'Person', name: 'Brent Butkow', url: SITE_URL },
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    },
+  },
+  [pixelWorldPath]: {
+    title: 'Pixel World Simulator — Brent Butkow',
+    description:
+      'Pixel World Simulator — a browser sandbox where you draw materials and watch them fall, flow, and react to each other.',
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'VideoGame',
+      name: 'Pixel World Simulator',
+      url: `${SITE_URL}${pixelWorldPath}`,
+      genre: 'Sandbox',
+      gamePlatform: 'Web browser',
+      playMode: 'SinglePlayer',
+      description:
+        'A browser sandbox where you draw materials and watch them fall, flow, and react to each other.',
       author: { '@type': 'Person', name: 'Brent Butkow', url: SITE_URL },
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     },

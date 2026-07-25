@@ -1,0 +1,88 @@
+import { describe, it, expect } from 'vitest'
+import { MaterialId } from '../pixel-world.types'
+import { stampCircle, stampLine } from './brush'
+import { cellIndex, createGrid } from './grid'
+
+describe('stampCircle', () => {
+  it('paints a single cell at radius 0', () => {
+    const grid = createGrid(9, 9)
+    stampCircle(grid, 4, 4, 0, MaterialId.sand)
+
+    expect(grid.material[cellIndex(grid, 4, 4)]).toBe(MaterialId.sand)
+    expect(grid.material.reduce((total, cell) => total + cell, 0)).toBe(MaterialId.sand)
+  })
+
+  it('paints a round blob, not a square', () => {
+    const grid = createGrid(11, 11)
+    stampCircle(grid, 5, 5, 3, MaterialId.stone)
+
+    expect(grid.material[cellIndex(grid, 5, 2)]).toBe(MaterialId.stone)
+    expect(grid.material[cellIndex(grid, 2, 5)]).toBe(MaterialId.stone)
+    expect(grid.material[cellIndex(grid, 2, 2)]).toBe(MaterialId.empty)
+  })
+
+  it('clips at the edges instead of wrapping', () => {
+    const grid = createGrid(8, 8)
+    stampCircle(grid, 0, 0, 3, MaterialId.water)
+
+    expect(grid.material[cellIndex(grid, 0, 0)]).toBe(MaterialId.water)
+    for (let y = 0; y < 8; y++) expect(grid.material[cellIndex(grid, 7, y)]).toBe(MaterialId.empty)
+  })
+
+  it('flows around what it cannot paint over', () => {
+    const grid = createGrid(9, 9)
+    grid.material.fill(MaterialId.stone)
+    stampCircle(grid, 4, 4, 2, MaterialId.water)
+
+    expect(grid.material.every((cell) => cell === MaterialId.stone)).toBe(true)
+  })
+
+  it('paints something more solid over something looser', () => {
+    const grid = createGrid(9, 9)
+    grid.material.fill(MaterialId.water)
+    stampCircle(grid, 4, 4, 1, MaterialId.sand)
+    stampCircle(grid, 0, 0, 0, MaterialId.stone)
+
+    expect(grid.material[cellIndex(grid, 4, 4)]).toBe(MaterialId.sand)
+    expect(grid.material[cellIndex(grid, 0, 0)]).toBe(MaterialId.stone)
+  })
+
+  it('will not bury solid material under a powder', () => {
+    const grid = createGrid(9, 9)
+    grid.material.fill(MaterialId.stone)
+    stampCircle(grid, 4, 4, 2, MaterialId.sand)
+
+    expect(grid.material.every((cell) => cell === MaterialId.stone)).toBe(true)
+  })
+
+  it('erases by painting air', () => {
+    const grid = createGrid(9, 9)
+    grid.material.fill(MaterialId.sand)
+    stampCircle(grid, 4, 4, 1, MaterialId.empty)
+
+    expect(grid.material[cellIndex(grid, 4, 4)]).toBe(MaterialId.empty)
+    expect(grid.material[cellIndex(grid, 0, 0)]).toBe(MaterialId.sand)
+  })
+})
+
+describe('stampLine', () => {
+  it('leaves no gaps along a fast diagonal drag', () => {
+    const grid = createGrid(40, 40)
+    stampLine(grid, 2, 2, 30, 20, 0, MaterialId.sand)
+
+    // Every painted row between the endpoints has at least one cell — a dotted line fails here.
+    for (let y = 2; y <= 20; y++) {
+      const row = Array.from({ length: grid.width }, (_, x) => grid.material[cellIndex(grid, x, y)])
+      expect(row.some((cell) => cell === MaterialId.sand)).toBe(true)
+    }
+  })
+
+  it('matches a single circle when both samples land on the same cell', () => {
+    const line = createGrid(15, 15)
+    const circle = createGrid(15, 15)
+    stampLine(line, 7, 7, 7, 7, 2, MaterialId.water)
+    stampCircle(circle, 7, 7, 2, MaterialId.water)
+
+    expect(Array.from(line.material)).toEqual(Array.from(circle.material))
+  })
+})
