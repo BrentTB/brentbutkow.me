@@ -9,6 +9,7 @@ import {
   TICK_RATE,
 } from './data'
 import { stampLine } from './engine/brush'
+import { Preset, loadPreset } from './engine/presets'
 import { attract, blast, temper, wind } from './engine/forces'
 import { asMaterial, cellIndex, clearGrid, createGrid } from './engine/grid'
 import { Rng, createRng } from './engine/rng'
@@ -24,6 +25,8 @@ export type PixelWorldSim = {
   /** Advances exactly one tick — the whole automaton becomes legible when you can watch it crawl. */
   stepOnce(): void
   clear(): void
+  /** Wipes the world and builds a ready-made one, for trying something without drawing it first. */
+  load(preset: Preset): void
   paintStroke(from: CellPoint, to: CellPoint, material: MaterialId, radius: number): void
   /**
    * Runs a force tool over the world. Takes both ends of the drag because wind blows the way you
@@ -125,6 +128,10 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
     clearGrid(gridRef.current)
   }, [])
 
+  const load = useCallback((preset: Preset) => {
+    loadPreset(gridRef.current, preset)
+  }, [])
+
   const paintStroke = useCallback(
     (from: CellPoint, to: CellPoint, material: MaterialId, radius: number) => {
       stampLine(gridRef.current, from.x, from.y, to.x, to.y, radius, material)
@@ -161,6 +168,7 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
       setSpeed,
       stepOnce,
       clear,
+      load,
       paintStroke,
       applyForce,
       watch,
@@ -173,6 +181,7 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
       setSpeed,
       stepOnce,
       clear,
+      load,
       paintStroke,
       applyForce,
       watch,

@@ -406,6 +406,31 @@ describe('rubber', () => {
   })
 })
 
+describe('life in the tick', () => {
+  it('runs the life pass, so a fish out of water drowns on its own', () => {
+    const grid = withVessel(15, 15)
+    const fish = put(grid, 7, 13, MaterialId.fish)
+
+    run(grid, 200)
+
+    // Nothing but the life pass can do this: the material pass leaves creatures alone entirely.
+    expect(grid.material[fish]).not.toBe(MaterialId.fish)
+    expect(count(grid, MaterialId.meat)).toBe(1)
+  })
+
+  it('leaves a creature in its own medium alone', () => {
+    const grid = withVessel(15, 15)
+    for (let y = 6; y < 14; y++) {
+      for (let x = 1; x < 14; x++) put(grid, x, y, MaterialId.water)
+    }
+    put(grid, 7, 10, MaterialId.fish)
+
+    run(grid, 200)
+
+    expect(count(grid, MaterialId.fish)).toBe(1)
+  })
+})
+
 describe('explosives', () => {
   it('go off during a tick and throw what is around them', () => {
     const grid = withVessel(41, 41)

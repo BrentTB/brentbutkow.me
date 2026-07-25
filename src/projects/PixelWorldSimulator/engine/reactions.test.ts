@@ -892,3 +892,22 @@ describe('spark', () => {
     expect(grid.material[gas]).toBe(MaterialId.fire)
   })
 })
+
+describe('plants on land', () => {
+  it('shoot into wet soil, not only into water', () => {
+    const grid = createGrid(15, 15)
+    for (let x = 0; x < 15; x++) {
+      for (let y = 10; y < 15; y++) placeMaterial(grid, cellIndex(grid, x, y), MaterialId.mud)
+    }
+    placeMaterial(grid, cellIndex(grid, 7, 9), MaterialId.plant)
+
+    const rng = createRng(3)
+    for (let tick = 0; tick < 200; tick++) applyReactions(grid, rng)
+
+    // Growing only into water meant every plant lived in a pond and dry land had no vegetation at all, so
+    // anything that grazes starved on the bank.
+    let plants = 0
+    for (const cell of grid.material) if (cell === MaterialId.plant) plants++
+    expect(plants).toBeGreaterThan(1)
+  })
+})

@@ -5,10 +5,14 @@ import { simulateHeat } from './heat'
 import { advanceTimers } from './timers'
 import { applyReactions } from './reactions'
 import { moveKinetic } from './kinetic'
+import { simulateLife } from './life'
 
 /**
  * One world tick: chemistry acts on the world as it stands, then things move, then heat spreads and
  * transforms what it touches, then clocks run down.
+ *
+ * Creatures act in the same window as chemistry, before anything moves: they decide from the world as it
+ * was painted, and they move themselves, so the material pass has nothing to say about them.
  *
  * **Chemistry goes before movement, and that ordering is load-bearing.** The brush paints between
  * ticks, so a drop poured under a plant or an ice cube is adjacent to it only until the next movement
@@ -24,6 +28,7 @@ import { moveKinetic } from './kinetic'
  */
 export function tickWorld(grid: Grid, rng: Rng, tick: number): void {
   applyReactions(grid, rng)
+  simulateLife(grid, rng)
   step(grid, rng, tick)
   moveKinetic(grid, rng)
   simulateHeat(grid)

@@ -92,6 +92,7 @@ export function PixelWorldSimulator() {
           onStep={sim.stepOnce}
           onClear={sim.clear}
           onRadius={setRadius}
+          onLoad={sim.load}
         />
 
         {/* No live region: the readout refreshes ten times a second while the pointer moves, which a

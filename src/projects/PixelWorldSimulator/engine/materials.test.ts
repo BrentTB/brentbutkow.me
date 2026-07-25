@@ -211,6 +211,55 @@ describe('every material', () => {
   })
 })
 
+describe('every creature', () => {
+  const creatures = MATERIALS.filter((material) => material.life !== undefined)
+
+  it('exists', () => {
+    expect(creatures.length).toBeGreaterThan(0)
+  })
+
+  it('eats things that exist, and never itself', () => {
+    for (const creature of creatures) {
+      for (const food of creature.life?.diet ?? []) {
+        expect(MATERIALS[food]).toBeDefined()
+        expect(food).not.toBe(creature.id)
+      }
+    }
+  })
+
+  it('leaves room above its breeding line for a full cell to sit', () => {
+    for (const creature of creatures) {
+      // The `data` byte stops at 255. A threshold at the ceiling means a fed cell drops back under the
+      // line before its breeding roll ever lands.
+      expect(creature.life?.breedAt).toBeLessThan(240)
+      expect(creature.life?.breedChance).toBeGreaterThan(0)
+    }
+  })
+
+  it('either eats or lives on light, and pays for what it does', () => {
+    for (const creature of creatures) {
+      const life = creature.life
+      if (life === undefined) continue
+
+      if (life.diet.length === 0) {
+        // A producer earns from light and spends nothing; a grazer is the other way round.
+        expect(life.light ?? 0).toBeGreaterThan(0)
+        expect(life.burnRate).toBe(0)
+      } else {
+        expect(life.feedChance).toBeGreaterThan(0)
+        expect(life.nutrition).toBeGreaterThan(0)
+        expect(life.burnRate).toBeGreaterThan(0)
+      }
+    }
+  })
+
+  it('can be painted over, because living things are soft', () => {
+    for (const creature of creatures) {
+      expect(canPaintOver(MaterialId.stone, creature.id)).toBe(true)
+    }
+  })
+})
+
 describe('canDisplace', () => {
   it('lets anything into open air', () => {
     expect(canDisplace(MaterialId.smoke, MaterialId.empty)).toBe(true)

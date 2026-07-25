@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
-import { BRUSH_RADIUS, DEFAULT_SPEED, SIM_SPEEDS } from '../../data'
+import { BRUSH_RADIUS, DEFAULT_SPEED, PRESETS, SIM_SPEEDS } from '../../data'
 import { SimControls } from './SimControls'
 
 function renderControls(overrides: Partial<Parameters<typeof SimControls>[0]> = {}) {
@@ -13,6 +13,7 @@ function renderControls(overrides: Partial<Parameters<typeof SimControls>[0]> = 
     onStep: vi.fn(),
     onClear: vi.fn(),
     onRadius: vi.fn(),
+    onLoad: vi.fn(),
     ...overrides,
   }
   render(<SimControls {...props} />)
@@ -74,5 +75,13 @@ describe('SimControls', () => {
     // It throws the whole world away; a miss while reaching for a speed should not cost you that.
     expect(clear.compareDocumentPosition(brush) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy()
     expect(pause.compareDocumentPosition(clear) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('offers a ready-made world to drop in', () => {
+    const props = renderControls()
+
+    screen.getByRole('button', { name: PRESETS[0].label }).click()
+
+    expect(props.onLoad).toHaveBeenCalledWith(PRESETS[0].preset)
   })
 })

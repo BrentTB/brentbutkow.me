@@ -2,6 +2,7 @@ import { Grid, MaterialId } from '../pixel-world.types'
 import { MATERIALS } from './materials'
 import { asMaterial, cellIndex, placeMaterial, transformCell } from './grid'
 import { Rng } from './rng'
+import { NEIGHBOURS, pickNeighbour } from './neighbours'
 
 /** Chance per tick that a drop of acid eats one of its neighbours. */
 const DISSOLVE_CHANCE = 0.14
@@ -58,14 +59,12 @@ const HOT_WIRE = 520
 const BOIL_OFF_CHANCE = 0.045
 /** Chance per tick that a full sponge cell passes water on to a drier one beside it. */
 const WICK_CHANCE = 0.4
-
-/** Neighbour offsets. */
-const NEIGHBOURS: readonly (readonly [number, number])[] = [
-  [0, -1],
-  [-1, 0],
-  [1, 0],
-  [0, 1],
-]
+/**
+ * Chance per tick that a carcass nothing has eaten rots away. A rate rather than a countdown, because the
+ * per-cell counter is a single byte and a rot time worth having does not fit in one: a bad season used to
+ * leave the ground paved with meat forever.
+ */
+const ROT_CHANCE = 0.0006
 
 /**
  * Where a shoot goes, as repeated entries for weighting: upward most often, but every direction is
@@ -239,6 +238,9 @@ export function applyReactions(grid: Grid, rng: Rng): void {
       else if (id === MaterialId.void) consume(grid, rng, x, y)
       else if (id === MaterialId.spark) conduct(grid, rng, x, y, index)
       else if (id === MaterialId.nitrogen) boilOff(grid, rng, x, y, index)
+      else if (id === MaterialId.meat && rng.chance(ROT_CHANCE)) {
+        transformCell(grid, index, MaterialId.empty)
+      }
     }
   }
 }
@@ -556,7 +558,11 @@ function crowded(grid: Grid, x: number, y: number, ignore: number): boolean {
   return false
 }
 
-/** A weighted-random direction into water, or -1 when the cell has none to grow into. */
+/**
+ * A weighted-random direction into somewhere a shoot can go, or -1 when the cell has nowhere. Wet soil
+ * counts as well as open water: growing only into water meant every plant lived in a pond, so dry land had
+ * no vegetation and anything that grazes starved on the bank.
+ */
 function pickShoot(grid: Grid, rng: Rng, x: number, y: number): number {
   const start = Math.floor(rng.next() * SHOOT_BIAS.length)
 
@@ -567,7 +573,8 @@ function pickShoot(grid: Grid, rng: Rng, x: number, y: number): number {
     if (nx < 0 || nx >= grid.width || ny < 0 || ny >= grid.height) continue
 
     const index = cellIndex(grid, nx, ny)
-    if (grid.material[index] === MaterialId.water) return index
+    const into = grid.material[index]
+    if (into === MaterialId.water || into === MaterialId.mud) return index
   }
   return -1
 }
@@ -621,22 +628,3 @@ function boilOff(grid: Grid, rng: Rng, x: number, y: number, index: number): voi
 }
 
 /** First neighbour matching `accepts`, scanning NEIGHBOURS from `startAt`, or -1. */
-function pickNeighbour(
-  grid: Grid,
-  x: number,
-  y: number,
-  accepts: (material: number) => boolean,
-  startAt = 0,
-  alsoAccepts: (index: number) => boolean = () => true
-): number {
-  for (let step = 0; step < NEIGHBOURS.length; step++) {
-    const [dx, dy] = NEIGHBOURS[(startAt + step) % NEIGHBOURS.length]
-    const nx = x + dx
-    const ny = y + dy
-    if (nx < 0 || nx >= grid.width || ny < 0 || ny >= grid.height) continue
-
-    const index = cellIndex(grid, nx, ny)
-    if (accepts(grid.material[index]) && alsoAccepts(index)) return index
-  }
-  return -1
-}

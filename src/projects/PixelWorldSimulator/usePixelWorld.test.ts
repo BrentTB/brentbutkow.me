@@ -10,6 +10,7 @@ import {
   TICK_RATE,
 } from './data'
 import { MATERIALS } from './engine/materials'
+import { Preset } from './engine/presets'
 import { writeCellRgb } from './engine/palette'
 import { PixelWorldSim, usePixelWorld } from './usePixelWorld'
 
@@ -427,6 +428,21 @@ describe('usePixelWorld', () => {
     expect(
       countMaterial(image, MaterialId.sand, { x: start.x, y: 60, width: 60, height: 80 })
     ).toBe(1)
+  })
+
+  it('drops a whole world in on request', () => {
+    const { result, image } = mountSim()
+    act(() => result.current.paintStroke({ x: 5, y: 5 }, { x: 5, y: 5 }, MaterialId.lava, 0))
+    frame(0)
+
+    act(() => result.current.load(Preset.aquarium))
+    frame(0)
+
+    const tank = { x: 0, y: 0, width: GRID_WIDTH, height: 40 }
+    expect(countMaterial(image, MaterialId.lava, tank)).toBe(0)
+    expect(
+      countMaterial(image, MaterialId.water, { x: 0, y: 60, width: 120, height: 60 })
+    ).toBeGreaterThan(100)
   })
 
   it('stops the loop on unmount', () => {

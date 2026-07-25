@@ -1,4 +1,5 @@
 import { MaterialId, Tool } from './pixel-world.types'
+import { Preset } from './engine/presets'
 
 // Widescreen, and half again as many cells as the 300x200 it started at: the world reads as a place with
 // room to build rather than a strip. 16:9 so a fullscreen world fills a typical display exactly.
@@ -47,6 +48,7 @@ export const MaterialGroup = {
   liquids: 'liquids',
   gases: 'gases',
   energy: 'energy',
+  life: 'life',
 } as const
 export type MaterialGroup = (typeof MaterialGroup)[keyof typeof MaterialGroup]
 
@@ -121,6 +123,19 @@ export const MATERIAL_GROUPS: readonly {
     label: 'Energy',
     materials: [MaterialId.fire, MaterialId.spark, MaterialId.void, MaterialId.source],
   },
+  {
+    group: MaterialGroup.life,
+    label: 'Life',
+    materials: [
+      MaterialId.algae,
+      MaterialId.fish,
+      MaterialId.bug,
+      MaterialId.worm,
+      MaterialId.bird,
+      MaterialId.slime,
+      MaterialId.meat,
+    ],
+  },
 ]
 
 /**
@@ -134,6 +149,20 @@ export const TOOLS: readonly { tool: Tool; label: string; title: string }[] = [
   { tool: Tool.wind, label: 'Wind', title: 'Blow material whichever way you drag' },
   { tool: Tool.heat, label: 'Heat', title: 'Warm whatever is under the brush' },
   { tool: Tool.chill, label: 'Chill', title: 'Cool whatever is under the brush' },
+]
+
+/** Worlds you can drop in whole, so a food chain is one click away rather than a drawing exercise. */
+export const PRESETS: readonly { preset: Preset; label: string; title: string }[] = [
+  {
+    preset: Preset.aquarium,
+    label: 'Aquarium',
+    title: 'A tank of water with algae and fish in it',
+  },
+  {
+    preset: Preset.wild,
+    label: 'Wild',
+    title: 'Open country and a pond: grass, worms, bugs, birds and fish',
+  },
 ]
 
 /** The material a fresh page starts on. */

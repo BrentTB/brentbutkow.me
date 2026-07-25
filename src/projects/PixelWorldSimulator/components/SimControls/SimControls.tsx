@@ -1,4 +1,5 @@
-import { BRUSH_RADIUS, SIM_SPEEDS } from '../../data'
+import { Preset } from '../../engine/presets'
+import { BRUSH_RADIUS, PRESETS, SIM_SPEEDS } from '../../data'
 import styles from './SimControls.module.scss'
 
 type SimControlsProps = {
@@ -10,6 +11,7 @@ type SimControlsProps = {
   onStep(): void
   onClear(): void
   onRadius(radius: number): void
+  onLoad(preset: Preset): void
 }
 
 export function SimControls({
@@ -21,6 +23,7 @@ export function SimControls({
   onStep,
   onClear,
   onRadius,
+  onLoad,
 }: SimControlsProps) {
   const brushCells = radius * 2 + 1
 
@@ -60,6 +63,18 @@ export function SimControls({
           ))}
         </div>
       </div>
+
+      {PRESETS.map(({ preset, label, title }) => (
+        <button
+          key={preset}
+          type="button"
+          className={styles.button}
+          title={title}
+          onClick={() => onLoad(preset)}
+        >
+          {label}
+        </button>
+      ))}
 
       <label className={styles.slider}>
         Brush

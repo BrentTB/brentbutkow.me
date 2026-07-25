@@ -94,6 +94,17 @@ describe('placeMaterial', () => {
     expect(grid.data[drop]).toBe(MATERIALS[MaterialId.acid].uses)
   })
 
+  it('gives a fresh creature its starting energy', () => {
+    const grid = createGrid(5, 5)
+    const cell = cellIndex(grid, 2, 2)
+
+    placeMaterial(grid, cell, MaterialId.fish)
+
+    // Energy shares the `data` byte with gas lifetimes and acid charges: a creature placed with zero in
+    // there is a creature that dies on the tick it was painted.
+    expect(grid.data[cell]).toBe(MATERIALS[MaterialId.fish].life?.startEnergy)
+  })
+
   it('puts a plain material at room temperature with no counter', () => {
     const grid = createGrid(5, 5)
     const cell = cellIndex(grid, 2, 2)

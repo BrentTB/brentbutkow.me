@@ -1,4 +1,4 @@
-import { Material, MaterialBehavior, MaterialId } from '../pixel-world.types'
+import { Material, MaterialBehavior, MaterialId, Medium } from '../pixel-world.types'
 
 /**
  * How solid a material reads to the brush. You can paint something more solid over something looser
@@ -19,6 +19,8 @@ export function canPaintOver(brush: MaterialId, existing: number): boolean {
   // Gases are wisps: anything paints through them, including another gas. Otherwise a puff of smoke
   // would block the fire brush, and holding a flame in one spot would smother itself.
   if (MATERIALS[existing].behavior === MaterialBehavior.gas) return true
+  // Living things are soft. Dropping a boulder on a fish should land on the fish, not bounce off it.
+  if (MATERIALS[existing].life !== undefined) return true
   return PAINT_RANK[MATERIALS[brush].behavior] > PAINT_RANK[MATERIALS[existing].behavior]
 }
 
@@ -589,5 +591,199 @@ export const MATERIALS: readonly Material[] = [
     acidProof: true,
     // Melts back to molten sand at the same heat glass came from, so shards can be recycled.
     hot: { at: 1700, into: MaterialId.lava },
+  },
+  {
+    id: MaterialId.algae,
+    label: 'Algae',
+    blurb: 'Lives on light and spreads through water. Fish food.',
+    behavior: MaterialBehavior.static,
+    density: 1000,
+    color: [86, 150, 92],
+    jitter: 14,
+    dispersion: 0,
+    drag: 0,
+    conductivity: 0.2,
+    // A weed leaves nothing behind when it dies: boiling a pond should not fill it with meat.
+    hot: { at: 70, into: MaterialId.empty },
+    cold: { at: -6, into: MaterialId.empty },
+    life: {
+      medium: Medium.water,
+      // Nothing to eat: it earns its energy by existing, which is what makes it the base of the chain.
+      diet: [],
+      startEnergy: 70,
+      nutrition: 0,
+      feedChance: 0,
+      // It gains rather than spends: the energy comes from light, not from eating.
+      burnRate: 0,
+      light: 0.2,
+      moveChance: 0,
+      breedAt: 100,
+      breedChance: 0.05,
+      corpse: MaterialId.empty,
+    },
+  },
+  {
+    id: MaterialId.fish,
+    label: 'Fish',
+    blurb: 'Grazes on algae, and drowns in the air.',
+    behavior: MaterialBehavior.static,
+    density: 1000,
+    color: [92, 164, 214],
+    jitter: 12,
+    dispersion: 0,
+    drag: 0,
+    conductivity: 0.25,
+    hot: { at: 60, into: MaterialId.meat },
+    cold: { at: -2, into: MaterialId.meat },
+    life: {
+      medium: Medium.water,
+      diet: [MaterialId.algae],
+      startEnergy: 140,
+      nutrition: 20,
+      // Grazing has to beat its own metabolism when there is food about: at a fiftieth it starved in a
+      // tank full of algae, because it only ever got a bite in when it happened to linger.
+      feedChance: 0.1,
+      burnRate: 0.12,
+      moveChance: 0.5,
+      // Comfortably under the byte ceiling: at 250 a fish dropped back below the line within a few ticks
+      // of filling up, so the breeding roll almost never landed.
+      breedAt: 200,
+      breedChance: 0.004,
+      // Far enough to find a bed of algae across open water. Any shorter and a fish in a big tank wanders
+      // until it starves with a garden ten cells below it.
+      hunts: 18,
+      corpse: MaterialId.meat,
+    },
+  },
+  {
+    id: MaterialId.bug,
+    label: 'Bug',
+    blurb: 'Walks on solid ground eating plants, and avoids water.',
+    behavior: MaterialBehavior.static,
+    density: 1000,
+    color: [176, 140, 62],
+    jitter: 14,
+    dispersion: 0,
+    drag: 0,
+    conductivity: 0.15,
+    hot: { at: 70, into: MaterialId.meat },
+    cold: { at: -8, into: MaterialId.meat },
+    life: {
+      medium: Medium.surface,
+      diet: [MaterialId.plant, MaterialId.vine, MaterialId.meat],
+      startEnergy: 120,
+      nutrition: 30,
+      feedChance: 0.1,
+      // Frugal. Grass only regrows into wet soil, so a lawn is close to a fixed number of meals: on a
+      // metabolism like a bird's, a crowd of bugs strips it and starves inside a minute.
+      burnRate: 0.03,
+      moveChance: 0.35,
+      breedAt: 190,
+      breedChance: 0.002,
+      // Far enough to spot a plant along a bank. At four it starved a few cells from lunch.
+      hunts: 12,
+      corpse: MaterialId.meat,
+    },
+  },
+  {
+    id: MaterialId.worm,
+    label: 'Worm',
+    blurb: 'Burrows through dirt and eats its way along.',
+    behavior: MaterialBehavior.static,
+    density: 1000,
+    color: [198, 126, 132],
+    jitter: 12,
+    dispersion: 0,
+    drag: 0,
+    conductivity: 0.15,
+    hot: { at: 60, into: MaterialId.meat },
+    cold: { at: -6, into: MaterialId.meat },
+    life: {
+      medium: Medium.soil,
+      diet: [MaterialId.dirt, MaterialId.mud],
+      startEnergy: 130,
+      // Dirt is unlimited, so nothing outside the worm bounds its numbers: a mouthful is worth little and
+      // births are rare, or a bank of soil turns into four hundred worms and then a field of corpses.
+      nutrition: 12,
+      feedChance: 0.05,
+      burnRate: 0.14,
+      moveChance: 0.25,
+      breedAt: 190,
+      breedChance: 0.0015,
+      corpse: MaterialId.meat,
+    },
+  },
+  {
+    id: MaterialId.bird,
+    label: 'Bird',
+    blurb: 'Flies, and dives at bugs and fish from a distance.',
+    behavior: MaterialBehavior.static,
+    density: 1000,
+    color: [214, 210, 220],
+    jitter: 10,
+    dispersion: 0,
+    drag: 0,
+    conductivity: 0.15,
+    hot: { at: 75, into: MaterialId.meat },
+    cold: { at: -12, into: MaterialId.meat },
+    life: {
+      medium: Medium.air,
+      diet: [MaterialId.bug, MaterialId.worm, MaterialId.fish, MaterialId.meat],
+      startEnergy: 170,
+      nutrition: 60,
+      feedChance: 0.14,
+      // Flying is expensive, but not so expensive that it has to eat every two seconds: at a thirtieth a
+      // bird never ran out at all, and at a third it starved between one bug and the next.
+      burnRate: 0.1,
+      moveChance: 0.7,
+      breedAt: 205,
+      breedChance: 0.003,
+      hunts: 18,
+      corpse: MaterialId.meat,
+    },
+  },
+  {
+    id: MaterialId.slime,
+    label: 'Slime',
+    blurb: 'Slow, at home anywhere, and eats anything alive.',
+    behavior: MaterialBehavior.static,
+    density: 1000,
+    color: [148, 92, 190],
+    jitter: 16,
+    dispersion: 0,
+    drag: 0,
+    conductivity: 0.18,
+    hot: { at: 110, into: MaterialId.meat },
+    cold: { at: -30, into: MaterialId.meat },
+    emissive: true,
+    life: {
+      medium: Medium.any,
+      // Creatures only. With algae on the menu it could live off the garden, and one slime turned a whole
+      // tank into a hundred slimes that then sat there forever.
+      diet: [MaterialId.fish, MaterialId.bug, MaterialId.worm, MaterialId.bird, MaterialId.meat],
+      startEnergy: 150,
+      nutrition: 55,
+      feedChance: 0.12,
+      // Hungry: it has to run down when the hunting stops, or it is grey goo rather than a monster.
+      burnRate: 0.18,
+      moveChance: 0.14,
+      breedAt: 210,
+      breedChance: 0.002,
+      hunts: 14,
+      corpse: MaterialId.meat,
+    },
+  },
+  {
+    id: MaterialId.meat,
+    label: 'Meat',
+    blurb: 'What everything dies into. Bugs and birds pick at it, and it rots.',
+    behavior: MaterialBehavior.powder,
+    density: 70,
+    color: [162, 74, 78],
+    jitter: 14,
+    dispersion: 0,
+    drag: 0.6,
+    conductivity: 0.15,
+    ignite: { at: 220, ticks: 90, heat: 420, into: MaterialId.ash },
   },
 ]

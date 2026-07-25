@@ -1,0 +1,146 @@
+import { describe, it, expect } from 'vitest'
+import { Grid, MaterialId } from '../pixel-world.types'
+import { GRID_HEIGHT, GRID_WIDTH } from '../data'
+import { cellIndex, createGrid, placeMaterial } from './grid'
+import { Preset, loadPreset } from './presets'
+import { tickWorld } from './tick'
+import { createRng } from './rng'
+
+function count(grid: Grid, material: MaterialId): number {
+  let total = 0
+  for (const cell of grid.material) if (cell === material) total++
+  return total
+}
+
+function built(): Grid {
+  const grid = createGrid(GRID_WIDTH, GRID_HEIGHT)
+  loadPreset(grid, Preset.aquarium)
+  return grid
+}
+
+function builtWild(): Grid {
+  const grid = createGrid(GRID_WIDTH, GRID_HEIGHT)
+  loadPreset(grid, Preset.wild)
+  return grid
+}
+
+/** The same tank at a size a test can afford to run for thousands of ticks. */
+function smallTank(): Grid {
+  const grid = createGrid(100, 64)
+  loadPreset(grid, Preset.aquarium)
+  return grid
+}
+
+function soak(grid: Grid, ticks: number): void {
+  const rng = createRng(2)
+  for (let tick = 0; tick < ticks; tick++) tickWorld(grid, rng, tick)
+}
+
+describe('the aquarium preset', () => {
+  it('arrives holding water, algae and fish', () => {
+    const grid = built()
+
+    expect(count(grid, MaterialId.water)).toBeGreaterThan(1000)
+    expect(count(grid, MaterialId.algae)).toBeGreaterThan(5)
+    expect(count(grid, MaterialId.fish)).toBe(5)
+    expect(count(grid, MaterialId.stone)).toBeGreaterThan(100)
+  })
+
+  it('holds its water in, rather than pouring it across the floor', () => {
+    const grid = smallTank()
+    const before = count(grid, MaterialId.water)
+
+    soak(grid, 400)
+
+    // A tank that leaks is not a tank: the walls have to reach above the waterline.
+    expect(count(grid, MaterialId.water)).toBeGreaterThan(before * 0.95)
+  })
+
+  it('still has a food chain running long after it was dropped in', { timeout: 20_000 }, () => {
+    const grid = smallTank()
+
+    soak(grid, 2000)
+
+    // The whole point of the preset: it runs itself. Fish placed adrift in open water starved before they
+    // found the bed, and a bed of algae with nothing grazing it is not a food chain.
+    expect(count(grid, MaterialId.algae)).toBeGreaterThan(0)
+    expect(count(grid, MaterialId.fish)).toBeGreaterThan(0)
+  })
+
+  it('wipes whatever was there before', () => {
+    const grid = createGrid(GRID_WIDTH, GRID_HEIGHT)
+    placeMaterial(grid, cellIndex(grid, 2, 2), MaterialId.lava)
+
+    loadPreset(grid, Preset.aquarium)
+
+    expect(count(grid, MaterialId.lava)).toBe(0)
+  })
+
+  it('fits inside whatever size of world it is given', () => {
+    const small = createGrid(60, 40)
+    loadPreset(small, Preset.aquarium)
+
+    expect(count(small, MaterialId.water)).toBeGreaterThan(50)
+    expect(count(small, MaterialId.fish)).toBe(5)
+  })
+})
+
+describe('the wild preset', () => {
+  it('arrives with the whole cast in it', () => {
+    const grid = builtWild()
+
+    for (const material of [
+      MaterialId.bug,
+      MaterialId.worm,
+      MaterialId.bird,
+      MaterialId.fish,
+      MaterialId.algae,
+      MaterialId.plant,
+    ]) {
+      expect(count(grid, material)).toBeGreaterThan(0)
+    }
+  })
+
+  it('puts each creature somewhere it can live', () => {
+    const grid = builtWild()
+
+    // Worms underground, bugs on top of it, birds in open air: seeded in the wrong medium they are simply
+    // corpses with extra steps.
+    const under = (material: MaterialId) => {
+      for (let y = 0; y < grid.height - 1; y++) {
+        for (let x = 0; x < grid.width; x++) {
+          if (grid.material[cellIndex(grid, x, y)] !== material) continue
+          return grid.material[cellIndex(grid, x, y + 1)]
+        }
+      }
+      return MaterialId.empty
+    }
+
+    expect([MaterialId.dirt, MaterialId.sand]).toContain(under(MaterialId.worm))
+    expect(under(MaterialId.bird)).toBe(MaterialId.empty)
+  })
+
+  it('has water that stays in its pond', () => {
+    const grid = createGrid(120, 80)
+    loadPreset(grid, Preset.wild)
+    const before = count(grid, MaterialId.water)
+
+    soak(grid, 400)
+
+    // Some soaks into the bank as mud, which is the point of a bank, but it should not drain away.
+    expect(count(grid, MaterialId.water)).toBeGreaterThan(before * 0.6)
+  })
+
+  it('still has a world going a while later', { timeout: 20_000 }, () => {
+    const grid = createGrid(120, 80)
+    loadPreset(grid, Preset.wild)
+
+    soak(grid, 2000)
+
+    // Plants and worms are the load-bearing pair: whether the birds are still around at this size is up to
+    // the run, since a small world cannot feed many predators.
+    expect(count(grid, MaterialId.plant)).toBeGreaterThan(0)
+    expect(count(grid, MaterialId.worm)).toBeGreaterThan(0)
+    expect(count(grid, MaterialId.water)).toBeGreaterThan(50)
+  })
+})

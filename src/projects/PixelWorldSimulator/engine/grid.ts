@@ -48,10 +48,10 @@ export function asMaterial(value: number): MaterialId {
   return value as MaterialId
 }
 
-/** The counter a fresh cell starts with: gas lifetime, acid charges, plant growth steps. */
+/** The counter a fresh cell starts with: gas lifetime, acid charges, plant growth steps, or life energy. */
 function startingData(material: MaterialId): number {
-  const { lifetime, uses } = MATERIALS[material]
-  return lifetime ?? uses ?? 0
+  const { lifetime, uses, life } = MATERIALS[material]
+  return lifetime ?? uses ?? life?.startEnergy ?? 0
 }
 
 /**

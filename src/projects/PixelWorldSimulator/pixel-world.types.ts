@@ -36,6 +36,13 @@ export const MaterialId = {
   tnt: 34,
   gunpowder: 35,
   shard: 36,
+  algae: 37,
+  fish: 38,
+  bug: 39,
+  worm: 40,
+  bird: 41,
+  slime: 42,
+  meat: 43,
 } as const
 export type MaterialId = (typeof MaterialId)[keyof typeof MaterialId]
 
@@ -137,6 +144,62 @@ export type Material = {
   }
   /** Breaks into this when something fast enough hits it. */
   shatters?: MaterialId
+  /** Present on creatures. Absent on everything else, which is what "alive" means to the engine. */
+  life?: Life
+}
+
+/** Where a creature can live. Outside its own medium it starts losing energy fast. */
+export const Medium = {
+  water: 'water',
+  air: 'air',
+  soil: 'soil',
+  /** Walks on top of solid ground: air to stand in, something firm underfoot. */
+  surface: 'surface',
+  /** At home anywhere it can fit, which is what makes the slime relentless. */
+  any: 'any',
+} as const
+export type Medium = (typeof Medium)[keyof typeof Medium]
+
+/**
+ * What makes a cell alive. Species is the `MaterialId` and energy lives in the cell's `data` byte, so a
+ * creature costs the same as any other cell: no entity list, no ids, nothing to keep in sync.
+ */
+export type Life = {
+  medium: Medium
+  /** Materials it turns into energy by touching them. Empty for algae, which lives on light. */
+  diet: readonly MaterialId[]
+  /** Energy a newly placed or newly born cell starts with, out of 255. */
+  startEnergy: number
+  /** Energy one meal is worth. */
+  nutrition: number
+  /**
+   * Chance per tick of taking a bite when there is something to bite. Without a rate here a creature next
+   * to a bed of food eats a cell every single tick, which is a vacuum cleaner rather than a grazer, and no
+   * amount of tuning elsewhere lets the food keep up.
+   */
+  feedChance: number
+  /** Chance per tick of spending a point of energy. Everything alive is on a clock. */
+  burnRate: number
+  /**
+   * Producers only: chance per tick of gaining a point from light instead of spending one. It has to be
+   * generous, because a patch can only grow around its edge — the cells inside it have no room to divide
+   * into, so a thick bed grows at its perimeter while grazers eat it by area.
+   */
+  light?: number
+  /** Chance per tick of trying to move. */
+  moveChance: number
+  /** Splits in two above this much energy, half each. */
+  breedAt: number
+  /**
+   * Chance per tick of actually splitting once it has the energy for it. A threshold on its own makes
+   * population growth as fast as the food is rich, so a stocked tank goes from four fish to a hundred
+   * before the pasture can answer, and then everything starves. The rate is what lets the two settle.
+   */
+  breedChance: number
+  /** How far it looks for something to eat. Zero for anything that only eats what it bumps into. */
+  hunts?: number
+  /** What it leaves when it dies. */
+  corpse: MaterialId
 }
 
 /**

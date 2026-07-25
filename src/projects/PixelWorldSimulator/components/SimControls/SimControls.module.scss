@@ -159,8 +159,10 @@
 }
 
 // Kept at arm's length from everything else, so reaching for a speed or the brush cannot wipe the world.
+// Pushed to the end of whatever row it lands on: when the controls wrap, it should still be the far corner
+// rather than the first thing under the transport.
 .clear {
-  margin-left: 20px;
+  margin-left: auto;
 }
 
 @media (max-width: 560px) {

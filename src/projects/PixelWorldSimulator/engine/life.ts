@@ -1,0 +1,403 @@
+import { Grid, Life, MaterialBehavior, MaterialId, Medium } from '../pixel-world.types'
+import { cellIndex, placeMaterial, swapCells, transformCell } from './grid'
+import { MATERIALS } from './materials'
+import { NEIGHBOURS, pickNeighbour } from './neighbours'
+import { Rng } from './rng'
+
+/** Energy per tick a creature loses outside its own medium. A fish in the air is on a short clock. */
+const STRANDED_DRAIN = 3
+/** Chance per tick that a stranded creature is dragged downward, so a fish out of water falls back in. */
+const STRANDED_FALL = 0.5
+/** Chance per tick a stranded creature thrashes sideways. It is dying, not set in concrete. */
+const STRUGGLE = 0.35
+/** The most energy a cell's `data` byte can hold. */
+const MAX_ENERGY = 255
+/** Energy a plant keeps however hard it is grazed, so a pasture always has something to grow back from. */
+const GRAZE_FLOOR = 24
+/** How many neighbours of its own kind a producer tolerates before it stops dividing. */
+const CROWDED = 1
+/** What a producer spends to put out a new cell. Its own energy came from light, so it is a cost, not a half. */
+const SPLIT_COST = 12
+
+// Which ids are alive, and their config, as flat lookups: the pass asks this of every cell it visits.
+const LIFE = MATERIALS.map((material) => material.life)
+const IS_ALIVE = new Uint8Array(MATERIALS.map((material) => (material.life === undefined ? 0 : 1)))
+
+/**
+ * Creatures are single cells: the species is the `MaterialId` and the energy is the cell's `data` byte.
+ * Everything below is the same four rules for every species, with the numbers coming from the material
+ * table — move inside your medium, eat what is next to you, split when you are full, die at zero.
+ *
+ * A food chain falls out of that rather than being written down anywhere: algae lives on light, fish eat
+ * algae, birds eat fish, everything dies into meat, and bugs eat the meat.
+ */
+export function simulateLife(grid: Grid, rng: Rng): void {
+  const { width, height, material } = grid
+
+  // Bottom-up, like the material pass, so a creature that moves down isn't visited again on its way.
+  for (let y = height - 1; y >= 0; y--) {
+    for (let x = 0; x < width; x++) {
+      const index = y * width + x
+      const id = material[index]
+      if (IS_ALIVE[id] === 0) continue
+
+      const life = LIFE[id]
+      if (life === undefined) continue
+
+      if (!spendEnergy(grid, index, life, rng)) continue
+      if (eat(grid, rng, x, y, index, life)) continue
+      if (breed(grid, rng, x, y, index, life)) continue
+
+      if (!inMedium(grid, index, life)) {
+        strand(grid, rng, x, y, index)
+        continue
+      }
+      if (sink(grid, index, x, y, life)) continue
+      // Death is handled where the energy is spent. Checking it here read the cell the creature had
+      // just moved out of, so every step turned the water behind it into a corpse.
+      if (rng.chance(life.moveChance)) roam(grid, rng, x, y, index, life)
+    }
+  }
+}
+
+/**
+ * Runs the cell's metabolism. Algae gains from light instead of spending; everything else spends, and
+ * spends much faster somewhere it cannot survive. False when the cell died doing it.
+ */
+function spendEnergy(grid: Grid, index: number, life: Life, rng: Rng): boolean {
+  const stranded = !inMedium(grid, index, life)
+  const energy = grid.data[index]
+
+  if (stranded) {
+    grid.data[index] = Math.max(0, energy - STRANDED_DRAIN)
+  } else if (life.diet.length === 0) {
+    if (rng.chance(life.light ?? 0)) grid.data[index] = Math.min(MAX_ENERGY, energy + 1)
+  } else if (rng.chance(life.burnRate)) {
+    grid.data[index] = energy - 1
+  }
+
+  if (grid.data[index] > 0) return true
+  transformCell(grid, index, life.corpse)
+  return false
+}
+
+/**
+ * Whether this cell is somewhere its species can live, judged by what is *around* it. A creature stands in
+ * the cell it occupies, so the water a fish is swimming in is in its neighbours, never underneath it.
+ * Reading the cell's own material instead meant every creature counted as at home and nothing ever
+ * drowned.
+ */
+function inMedium(grid: Grid, index: number, life: Life): boolean {
+  const medium = life.medium
+  if (medium === Medium.any) return true
+
+  // Anything that lives in the same medium counts as that medium. A fish in the middle of a shoal, or
+  // swimming into a patch of algae, is not stranded: it is surrounded by things that are themselves in
+  // water. Counting only the bare medium suffocated packed patches from the inside, all at once.
+  const neighbourly = (material: number) => LIFE[material]?.medium === medium
+
+  if (medium === Medium.surface) {
+    // Its own food counts as breathable: a bug that eats its way into a bank of grass buries itself, when
+    // what should happen is that it tunnels through, grazing as it goes.
+    const athome = (m: number) => isAir(m) || neighbourly(m) || life.diet.includes(m as MaterialId)
+    return standingOnSomething(grid, index) && touches(grid, index, athome)
+  }
+
+  const wants = medium === Medium.water ? isWater : medium === Medium.soil ? isSoil : isAir
+  return touches(grid, index, (material) => wants(material) || neighbourly(material))
+}
+
+/** Whether any of the four neighbours satisfies `accepts`. */
+function touches(grid: Grid, index: number, accepts: (material: number) => boolean): boolean {
+  const x = index % grid.width
+  const y = Math.floor(index / grid.width)
+
+  for (const [dx, dy] of NEIGHBOURS) {
+    const nx = x + dx
+    const ny = y + dy
+    if (nx < 0 || nx >= grid.width || ny < 0 || ny >= grid.height) continue
+    if (accepts(grid.material[cellIndex(grid, nx, ny)])) return true
+  }
+  return false
+}
+
+function isCreature(material: number): boolean {
+  return IS_ALIVE[material] === 1
+}
+
+function isWater(material: number): boolean {
+  return material === MaterialId.water || material === MaterialId.saltWater
+}
+
+function isAir(material: number): boolean {
+  return material === MaterialId.empty
+}
+
+function isSoil(material: number): boolean {
+  return (
+    material === MaterialId.dirt ||
+    material === MaterialId.sand ||
+    material === MaterialId.mud ||
+    material === MaterialId.gravel
+  )
+}
+
+/** Something firm under the cell below: what makes a bug a walker rather than a floater. */
+function standingOnSomething(grid: Grid, index: number): boolean {
+  const below = index + grid.width
+  if (below >= grid.material.length) return true
+
+  const under = grid.material[below]
+  if (under === MaterialId.empty || isCreature(under)) return false
+  return MATERIALS[under].behavior !== MaterialBehavior.gas
+}
+
+/** Whether a creature of this species can move into a cell. */
+function passable(grid: Grid, index: number, life: Life): boolean {
+  const target = grid.material[index]
+  if (isCreature(target)) return false
+
+  switch (life.medium) {
+    case Medium.water:
+      return target === MaterialId.water || target === MaterialId.saltWater
+    case Medium.air:
+      return target === MaterialId.empty
+    case Medium.soil:
+      return isSoil(target)
+    case Medium.surface:
+      return target === MaterialId.empty
+    case Medium.any:
+      return loose(target) || MATERIALS[target].life !== undefined
+  }
+}
+
+/**
+ * Whether a step is allowed to go upward. Only things that live in the air may climb through it: a slime is
+ * at home anywhere it can fit, which is not the same as being able to fly, and watching one stroll up
+ * through empty space looked absurd.
+ */
+function canClimb(grid: Grid, target: number, life: Life): boolean {
+  if (life.medium === Medium.air) return true
+  return grid.material[target] !== MaterialId.empty
+}
+
+/**
+ * Eats a neighbour if one is on the menu, leaving the eater's own medium behind. Water, for a fish, or a
+ * hole in the pool appears every time something has lunch.
+ */
+function eat(grid: Grid, rng: Rng, x: number, y: number, index: number, life: Life): boolean {
+  if (life.diet.length === 0) return false
+  // Full creatures leave the rest for later, and nothing eats faster than its own appetite.
+  if (grid.data[index] >= life.breedAt) return false
+  if (!rng.chance(life.feedChance)) return false
+
+  const start = Math.floor(rng.next() * NEIGHBOURS.length)
+  const meal = pickNeighbour(
+    grid,
+    x,
+    y,
+    (material) => life.diet.includes(material as MaterialId),
+    start
+  )
+  if (meal < 0) return false
+
+  // A bite, not a swallow. Living food loses energy and dies only when there is nothing left in it, so a
+  // patch of algae is a pasture that grows back rather than a cell that vanishes whole. Eating cells
+  // outright turned every grazer into a strip miner: the crop went to zero and then everything starved.
+  const prey = LIFE[grid.material[meal]]
+  // Living food keeps a reserve: grazing cannot take the last of a plant, which is what stops a pasture
+  // being eaten out of existence. Without a floor the crop reaches zero and then everything starves,
+  // however carefully the rest is tuned — prey needs somewhere to survive a bad season.
+  // The reserve is a plant's, not an animal's: applied to everything, a predator could only nibble prey
+  // down to the floor and never finish it, so nothing ever actually killed anything.
+  const isPlant = prey !== undefined && prey.diet.length === 0
+  const available =
+    prey === undefined ? life.nutrition : grid.data[meal] - (isPlant ? GRAZE_FLOOR : 0)
+  if (available <= 0) return false
+
+  const taken = Math.min(available, life.nutrition)
+
+  if (prey === undefined) {
+    transformCell(grid, meal, life.medium === Medium.water ? MaterialId.water : MaterialId.empty)
+  } else {
+    grid.data[meal] -= taken
+    if (grid.data[meal] === 0) {
+      transformCell(grid, meal, life.medium === Medium.water ? MaterialId.water : MaterialId.empty)
+    }
+  }
+
+  grid.data[index] = Math.min(MAX_ENERGY, grid.data[index] + taken)
+  return true
+}
+
+/** Splits a full cell in two, half the energy each, into any neighbouring cell it could live in. */
+function breed(grid: Grid, rng: Rng, x: number, y: number, index: number, life: Life): boolean {
+  const energy = grid.data[index]
+  if (energy < life.breedAt) return false
+  if (!rng.chance(life.breedChance)) return false
+
+  const start = Math.floor(rng.next() * NEIGHBOURS.length)
+  const room = pickNeighbour(
+    grid,
+    x,
+    y,
+    () => true,
+    start,
+    (candidate) => passable(grid, candidate, life)
+  )
+  if (room < 0) return false
+
+  // An animal halves what it has, because that energy came from food it ate. A producer pays a fixed cost
+  // and keeps the rest, because its energy comes from light: halving it made every split take twice as
+  // long as the last, so a patch of algae could never keep pace with anything grazing on it.
+  const produces = life.diet.length === 0
+  // A producer keeps its patch lacy rather than paving the water: past a couple of neighbours of its own,
+  // it stops dividing. A rate alone gives a solid mat, the same way vines needed a crowding rule.
+  if (produces && ownNeighbours(grid, x, y) > CROWDED) return false
+  const child = produces ? life.startEnergy : Math.floor(energy / 2)
+  const kept = produces ? energy - SPLIT_COST : energy - child
+
+  placeMaterial(grid, room, grid.material[index] as MaterialId)
+  grid.data[room] = child
+  grid.data[index] = Math.max(1, kept)
+  return true
+}
+
+/**
+ * A step through its own medium, biased toward whatever it eats when it can see some. The bias is the
+ * whole reason a bird reads as hunting rather than as drifting.
+ */
+function roam(grid: Grid, rng: Rng, x: number, y: number, index: number, life: Life): void {
+  // Only look for food while there is room for a meal. A full creature scanning its whole range every tick
+  // is the most expensive thing in the pass and buys nothing.
+  const hungry = grid.data[index] < life.breedAt
+  const toward = life.hunts === undefined || !hungry ? null : sightOf(grid, x, y, life)
+
+  if (toward !== null) {
+    const stepped = tryStep(grid, index, x, y, toward.dx, toward.dy, life)
+    if (stepped) return
+  }
+
+  const start = Math.floor(rng.next() * NEIGHBOURS.length)
+  for (let step = 0; step < NEIGHBOURS.length; step++) {
+    const [dx, dy] = NEIGHBOURS[(start + step) % NEIGHBOURS.length]
+    if (tryStep(grid, index, x, y, dx, dy, life)) return
+  }
+}
+
+/** One cell of movement, if the target is somewhere this species can be. */
+function tryStep(
+  grid: Grid,
+  index: number,
+  x: number,
+  y: number,
+  dx: number,
+  dy: number,
+  life: Life
+): boolean {
+  const nx = x + dx
+  const ny = y + dy
+  if (nx < 0 || nx >= grid.width || ny < 0 || ny >= grid.height) return false
+
+  const target = cellIndex(grid, nx, ny)
+  if (!passable(grid, target, life)) return false
+  if (dy < 0 && !canClimb(grid, target, life)) return false
+
+  // A surface walker has to keep something underfoot, or it walks off the edge of its own world.
+  if (life.medium === Medium.surface && !standingOnSomething(grid, target)) return false
+
+  swapCells(grid, index, target)
+  return true
+}
+
+/** How many of the four neighbours are the same species as this cell. */
+function ownNeighbours(grid: Grid, x: number, y: number): number {
+  const species = grid.material[cellIndex(grid, x, y)]
+  let total = 0
+
+  for (const [dx, dy] of NEIGHBOURS) {
+    const nx = x + dx
+    const ny = y + dy
+    if (nx < 0 || nx >= grid.width || ny < 0 || ny >= grid.height) continue
+    if (grid.material[cellIndex(grid, nx, ny)] === species) total++
+  }
+  return total
+}
+
+/** The direction of the nearest thing on the menu, or null when nothing is in range. */
+function sightOf(grid: Grid, x: number, y: number, life: Life): { dx: number; dy: number } | null {
+  const reach = life.hunts ?? 0
+  let best = -1
+  let toward: { dx: number; dy: number } | null = null
+
+  for (let dy = -reach; dy <= reach; dy++) {
+    for (let dx = -reach; dx <= reach; dx++) {
+      const nx = x + dx
+      const ny = y + dy
+      if (nx < 0 || nx >= grid.width || ny < 0 || ny >= grid.height) continue
+
+      const material = grid.material[cellIndex(grid, nx, ny)]
+      if (!life.diet.includes(material as MaterialId)) continue
+
+      const distance = dx * dx + dy * dy
+      if (best >= 0 && distance >= best) continue
+      best = distance
+      toward = { dx: Math.sign(dx), dy: Math.sign(dy) }
+    }
+  }
+
+  return toward
+}
+
+/**
+ * Out of its medium a creature falls and thrashes: a fish flapping on dry land drops back toward the water
+ * and flops about while it does. Standing perfectly still made a stranded creature read as a solid block
+ * rather than as something in trouble.
+ */
+function strand(grid: Grid, rng: Rng, x: number, y: number, index: number): void {
+  if (y + 1 < grid.height && rng.chance(STRANDED_FALL)) {
+    const below = cellIndex(grid, x, y + 1)
+    if (loose(grid.material[below])) {
+      swapCells(grid, index, below)
+      return
+    }
+  }
+
+  if (!rng.chance(STRUGGLE)) return
+
+  // Sideways through anything loose, not just its own medium: it is trying to get out of where it is.
+  const start = Math.floor(rng.next() * NEIGHBOURS.length)
+  for (let step = 0; step < NEIGHBOURS.length; step++) {
+    const [dx, dy] = NEIGHBOURS[(start + step) % NEIGHBOURS.length]
+    if (dy < 0) continue
+    const nx = x + dx
+    const ny = y + dy
+    if (nx < 0 || nx >= grid.width || ny < 0 || ny >= grid.height) continue
+
+    const target = cellIndex(grid, nx, ny)
+    if (!loose(grid.material[target])) continue
+    swapCells(grid, index, target)
+    return
+  }
+}
+
+/**
+ * Pulls anything that cannot fly down through open air. A slime crossing a cave should fall into it, and
+ * only a bird gets to hold its height.
+ */
+function sink(grid: Grid, index: number, x: number, y: number, life: Life): boolean {
+  if (life.medium === Medium.air || y + 1 >= grid.height) return false
+
+  const below = cellIndex(grid, x, y + 1)
+  if (grid.material[below] !== MaterialId.empty) return false
+
+  swapCells(grid, index, below)
+  return true
+}
+
+/** Anything a struggling creature can shove itself through: air, gas, liquid, or loose grains. */
+function loose(material: number): boolean {
+  if (material === MaterialId.empty) return true
+  const behavior = MATERIALS[material].behavior
+  return behavior !== MaterialBehavior.static
+}
