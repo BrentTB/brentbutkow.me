@@ -324,3 +324,108 @@ describe('step', () => {
     expect(Math.abs(weighted / grains - 20)).toBeLessThan(1)
   })
 })
+
+/** How wide the material's footprint is along one row — a heap's angle, measured. */
+function footprint(grid: Grid, material: MaterialId, row: number): number {
+  let leftmost = grid.width
+  let rightmost = -1
+  for (let x = 0; x < grid.width; x++) {
+    if (at(grid, x, row) !== material) continue
+    leftmost = Math.min(leftmost, x)
+    rightmost = Math.max(rightmost, x)
+  }
+  return rightmost < 0 ? 0 : rightmost - leftmost + 1
+}
+
+describe('heaps', () => {
+  it('piles gravel steeper than sand', () => {
+    const heapWidth = (material: MaterialId) => {
+      const grid = withVessel(61, 40)
+      const rng = createRng(808)
+      // Pour a fixed number of grains onto one spot and let the heap settle. Pouring until the vessel
+      // fills just measures the width of the vessel.
+      let poured = 0
+      for (let tick = 0; tick < 4000; tick++) {
+        if (poured < 220 && tick % 4 === 0 && at(grid, 30, 2) === MaterialId.empty) {
+          set(grid, 30, 2, material)
+          poured++
+        }
+        step(grid, rng, tick)
+      }
+      return footprint(grid, material, 38)
+    }
+
+    const sand = heapWidth(MaterialId.sand)
+    const gravel = heapWidth(MaterialId.gravel)
+
+    expect(gravel).toBeGreaterThan(0)
+    expect(gravel).toBeLessThan(sand)
+  })
+
+  it('creeps honey instead of letting it flow out flat', () => {
+    const puddleWidth = (material: MaterialId) => {
+      const grid = withVessel(41, 20)
+      for (let y = 10; y < 18; y++) set(grid, 20, y, material)
+
+      run(grid, 60)
+      return footprint(grid, material, 18)
+    }
+
+    expect(puddleWidth(MaterialId.honey)).toBeLessThan(puddleWidth(MaterialId.water))
+  })
+})
+
+describe('heavy gas', () => {
+  it('pours chlorine downward instead of letting it rise', () => {
+    const grid = withVessel(12, 20)
+    set(grid, 6, 3, MaterialId.chlorine)
+
+    run(grid, 120)
+
+    let lowest = -1
+    for (let y = 0; y < grid.height; y++) {
+      for (let x = 0; x < grid.width; x++) {
+        if (at(grid, x, y) === MaterialId.chlorine) lowest = Math.max(lowest, y)
+      }
+    }
+    expect(lowest).toBeGreaterThan(3)
+  })
+
+  it('leaves a ragged cloud rather than a level puddle', () => {
+    const surfaceSpread = (material: MaterialId) => {
+      const grid = withVessel(41, 24)
+      for (let x = 12; x < 29; x++) {
+        for (let y = 4; y < 10; y++) set(grid, x, y, material)
+      }
+
+      run(grid, 600)
+
+      const tops = surfaceHeights(grid, material).filter((row): row is number => row !== null)
+      return Math.max(...tops) - Math.min(...tops)
+    }
+
+    // Water levels: its surface is flat to within a cell. A gas has no surface tension to speak of, so
+    // its top edge stays uneven — falling every tick and then levelling made chlorine read as a liquid.
+    expect(surfaceSpread(MaterialId.water)).toBeLessThanOrEqual(1)
+    expect(surfaceSpread(MaterialId.chlorine)).toBeGreaterThan(3)
+  })
+
+  it('still floats chlorine on top of water', () => {
+    const grid = withVessel(12, 20)
+    for (let x = 1; x < 11; x++) {
+      for (let y = 12; y < 19; y++) set(grid, x, y, MaterialId.water)
+    }
+    set(grid, 6, 3, MaterialId.chlorine)
+
+    run(grid, 200)
+
+    expect(count(grid, MaterialId.chlorine)).toBe(1)
+    for (let x = 0; x < grid.width; x++) {
+      for (let y = 1; y < grid.height; y++) {
+        if (at(grid, x, y) !== MaterialId.chlorine) continue
+        // Denser than air so it sank this far, lighter than water so it rides on top rather than under.
+        expect(at(grid, x, y - 1)).not.toBe(MaterialId.water)
+      }
+    }
+  })
+})

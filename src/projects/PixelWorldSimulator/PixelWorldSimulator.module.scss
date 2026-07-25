@@ -33,6 +33,11 @@
     outline-offset: 2px;
   }
 
+  // Identifying reads rather than writes, so the cursor stops promising a brush.
+  &.identifying {
+    cursor: help;
+  }
+
   :global(html.fun-mode) & {
     box-shadow: 0 0 28px -6px rgba(var(--accent-rgb), 0.4);
   }

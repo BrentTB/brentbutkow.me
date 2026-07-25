@@ -422,3 +422,237 @@ describe('plants', () => {
     expect(grid.material[cellIndex(grid, 5, 5)]).toBe(MaterialId.water)
   })
 })
+
+describe('salt', () => {
+  it('dissolves into brine', () => {
+    const grid = createGrid(9, 9)
+    put(grid, 4, 4, MaterialId.salt)
+    put(grid, 4, 5, MaterialId.water)
+
+    react(grid, 200)
+
+    expect(count(grid, MaterialId.salt)).toBe(0)
+    expect(count(grid, MaterialId.saltWater)).toBe(1)
+  })
+
+  it('kills what fresh water grows', () => {
+    const grid = createGrid(9, 9)
+    put(grid, 4, 4, MaterialId.saltWater)
+    const plant = put(grid, 4, 5, MaterialId.plant)
+    const vine = put(grid, 3, 4, MaterialId.vine)
+
+    react(grid, 2000)
+
+    expect(grid.material[plant]).toBe(MaterialId.ash)
+    expect(grid.material[vine]).toBe(MaterialId.ash)
+  })
+})
+
+describe('wet ground', () => {
+  it('turns loose ground into mud', () => {
+    const grid = createGrid(9, 9)
+    const dirt = put(grid, 4, 4, MaterialId.dirt)
+    put(grid, 4, 5, MaterialId.water)
+
+    react(grid, 200)
+
+    expect(grid.material[dirt]).toBe(MaterialId.mud)
+  })
+
+  it('sprouts a seed', () => {
+    const grid = createGrid(9, 9)
+    const seed = put(grid, 4, 4, MaterialId.seed)
+    put(grid, 4, 5, MaterialId.mud)
+
+    react(grid, 500)
+
+    expect(grid.material[seed]).toBe(MaterialId.plant)
+  })
+})
+
+describe('snow', () => {
+  it('packs into ice under a deep enough drift', () => {
+    const grid = createGrid(9, 20)
+    for (let y = 6; y < 19; y++) put(grid, 4, y, MaterialId.snow)
+
+    react(grid, 4000)
+
+    expect(count(grid, MaterialId.ice)).toBeGreaterThan(0)
+  })
+
+  it('leaves a shallow dusting alone', () => {
+    const grid = createGrid(9, 9)
+    put(grid, 4, 7, MaterialId.snow)
+
+    react(grid, 4000)
+
+    expect(count(grid, MaterialId.ice)).toBe(0)
+  })
+})
+
+describe('sponge', () => {
+  it('soaks up touching water', () => {
+    const grid = createGrid(9, 9)
+    const sponge = put(grid, 4, 4, MaterialId.sponge)
+    put(grid, 4, 5, MaterialId.water)
+    put(grid, 3, 4, MaterialId.water)
+
+    react(grid, 200)
+
+    expect(count(grid, MaterialId.water)).toBe(0)
+    expect(grid.data[sponge]).toBe(2)
+  })
+
+  it('gives the water back when heated, and then stays empty', () => {
+    const grid = createGrid(9, 9)
+    const sponge = put(grid, 4, 4, MaterialId.sponge)
+    grid.data[sponge] = 3
+    grid.temperature[sponge] = 200
+
+    react(grid, 200)
+
+    // A hot sponge that also drinks oscillates: empties, drinks a drop back, wrings it out again.
+    expect(grid.data[sponge]).toBe(0)
+    expect(count(grid, MaterialId.water)).toBe(3)
+  })
+
+  it('holds no more than its capacity', () => {
+    const capacity = MATERIALS[MaterialId.sponge].absorbs ?? 0
+    const grid = createGrid(11, 11)
+    const sponge = put(grid, 5, 5, MaterialId.sponge)
+    for (let x = 0; x < 11; x++) {
+      for (let y = 0; y < 11; y++) {
+        if (grid.material[cellIndex(grid, x, y)] === MaterialId.empty) {
+          put(grid, x, y, MaterialId.water)
+        }
+      }
+    }
+
+    // The full tick, so fresh water keeps flowing in against the sponge as it drinks.
+    const rng = createRng(5)
+    for (let tick = 0; tick < 4000; tick++) tickWorld(grid, rng, tick)
+
+    expect(grid.data[sponge]).toBe(capacity)
+  })
+})
+
+describe('source', () => {
+  it('remembers the first material fed to it and keeps producing it', () => {
+    const grid = createGrid(12, 12)
+    const tap = put(grid, 6, 3, MaterialId.source)
+    put(grid, 6, 4, MaterialId.water)
+
+    react(grid, 400)
+
+    expect(grid.data[tap]).toBe(MaterialId.water)
+    expect(count(grid, MaterialId.water)).toBeGreaterThan(3)
+  })
+
+  it('produces nothing until something is fed to it', () => {
+    const grid = createGrid(12, 12)
+    const tap = put(grid, 6, 3, MaterialId.source)
+
+    react(grid, 600)
+
+    expect(grid.data[tap]).toBe(MaterialId.empty)
+    expect(count(grid, MaterialId.source)).toBe(1)
+  })
+
+  it('keeps producing what it was fed even after that material is gone', () => {
+    const grid = createGrid(12, 12)
+    const tap = put(grid, 6, 3, MaterialId.source)
+    put(grid, 6, 4, MaterialId.lava)
+    react(grid, 1)
+    expect(grid.data[tap]).toBe(MaterialId.lava)
+
+    for (let index = 0; index < grid.material.length; index++) {
+      if (grid.material[index] !== MaterialId.source) placeMaterial(grid, index, MaterialId.empty)
+    }
+    react(grid, 200)
+
+    expect(count(grid, MaterialId.lava)).toBeGreaterThan(0)
+  })
+})
+
+describe('void', () => {
+  it('eats whatever touches it', () => {
+    const grid = createGrid(9, 9)
+    put(grid, 4, 4, MaterialId.void)
+    put(grid, 4, 5, MaterialId.stone)
+    put(grid, 3, 4, MaterialId.water)
+
+    react(grid, 200)
+
+    expect(count(grid, MaterialId.stone)).toBe(0)
+    expect(count(grid, MaterialId.water)).toBe(0)
+    expect(count(grid, MaterialId.void)).toBe(1)
+  })
+
+  it('will not eat another void', () => {
+    const grid = createGrid(9, 9)
+    put(grid, 4, 4, MaterialId.void)
+    put(grid, 4, 5, MaterialId.void)
+
+    react(grid, 500)
+
+    expect(count(grid, MaterialId.void)).toBe(2)
+  })
+})
+
+describe('spark', () => {
+  it('runs along a wire without eating it', () => {
+    const grid = createGrid(20, 5)
+    for (let x = 1; x < 19; x++) put(grid, x, 2, MaterialId.metal)
+    const wireBefore = count(grid, MaterialId.metal)
+    const start = put(grid, 1, 2, MaterialId.spark)
+
+    react(grid, 12)
+
+    // The spark swaps along the wire rather than converting it, so the wire survives whole apart from
+    // the one cell the spark is standing in. Where it has wandered to is up to the rng.
+    expect(count(grid, MaterialId.spark)).toBe(1)
+    expect(count(grid, MaterialId.metal)).toBe(wireBefore - 1)
+    expect(
+      grid.material[start] === MaterialId.metal || grid.material[start] === MaterialId.spark
+    ).toBe(true)
+  })
+
+  it('runs through water as readily as metal', () => {
+    const grid = createGrid(11, 5)
+    for (let x = 1; x < 10; x++) put(grid, x, 2, MaterialId.water)
+    put(grid, 1, 2, MaterialId.spark)
+
+    // Watched tick by tick, because the spark wanders and may be back where it started by the end.
+    const rng = createRng(7)
+    let travelled = false
+    for (let tick = 0; tick < 20; tick++) {
+      applyReactions(grid, rng)
+      if (grid.material[cellIndex(grid, 1, 2)] !== MaterialId.spark) travelled = true
+    }
+
+    // A live wire in a puddle is the accident the spec asks for; water conducts.
+    expect(travelled).toBe(true)
+    expect(count(grid, MaterialId.spark)).toBe(1)
+  })
+
+  it('will not cross something that does not conduct', () => {
+    const grid = createGrid(11, 5)
+    put(grid, 2, 2, MaterialId.spark)
+    put(grid, 3, 2, MaterialId.rubber)
+    put(grid, 4, 2, MaterialId.metal)
+
+    react(grid, 40)
+
+    expect(grid.material[cellIndex(grid, 4, 2)]).toBe(MaterialId.metal)
+  })
+
+  it('sets off a pocket of methane', () => {
+    const grid = createGrid(9, 9)
+    put(grid, 4, 4, MaterialId.spark)
+    const gas = put(grid, 4, 5, MaterialId.methane)
+
+    react(grid, 2)
+
+    expect(grid.material[gas]).toBe(MaterialId.fire)
+  })
+})

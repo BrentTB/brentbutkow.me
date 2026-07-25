@@ -35,6 +35,13 @@
     border-color: var(--border);
     cursor: not-allowed;
   }
+
+  // A held mode, not a press: the accent border reads the same way an active palette swatch does.
+  &[aria-pressed='true'] {
+    color: var(--text);
+    border-color: var(--accent);
+    background: rgba(var(--accent-rgb), 0.16);
+  }
 }
 
 .slider {

@@ -105,6 +105,31 @@ describe('MATERIALS', () => {
     expect(vine?.into).toBe(plant?.into)
   })
 
+  it('only puts a repose angle on powders and buoyancy on gases', () => {
+    for (const material of MATERIALS) {
+      if (material.steep === true) expect(material.behavior).toBe(MaterialBehavior.powder)
+      if (material.sinks === true) expect(material.behavior).toBe(MaterialBehavior.gas)
+    }
+  })
+
+  it('gives a spark somewhere to run', () => {
+    const conductors = MATERIALS.filter((material) => material.conductive === true)
+
+    expect(conductors.length).toBeGreaterThan(1)
+    // Metal is the wire; water and brine are the accident waiting to happen.
+    expect(conductors.map((material) => material.id)).toContain(MaterialId.metal)
+    expect(conductors.map((material) => material.id)).toContain(MaterialId.water)
+  })
+
+  it('only lets a solid soak up liquid', () => {
+    for (const material of MATERIALS) {
+      if (material.absorbs === undefined) continue
+      expect(material.behavior).toBe(MaterialBehavior.static)
+      expect(material.absorbs).toBeGreaterThan(0)
+      expect(material.absorbs).toBeLessThanOrEqual(255)
+    }
+  })
+
   it('keeps every per-cell counter inside the byte that holds it', () => {
     for (const material of MATERIALS) {
       if (material.lifetime !== undefined) expect(material.lifetime).toBeLessThanOrEqual(255)

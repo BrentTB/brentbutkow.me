@@ -1,8 +1,8 @@
 import { RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { CellPoint, Grid, MaterialId } from './pixel-world.types'
+import { CellPoint, CellReading, Grid, MaterialId } from './pixel-world.types'
 import { GRID_HEIGHT, GRID_WIDTH, MAX_TICKS_PER_FRAME, TICK_RATE } from './data'
 import { stampLine } from './engine/brush'
-import { clearGrid, createGrid } from './engine/grid'
+import { asMaterial, cellIndex, clearGrid, createGrid } from './engine/grid'
 import { Rng, createRng } from './engine/rng'
 import { tickWorld } from './engine/tick'
 import { createRenderer } from './render'
@@ -14,6 +14,8 @@ export type PixelWorldSim = {
   stepOnce(): void
   clear(): void
   paintStroke(from: CellPoint, to: CellPoint, material: MaterialId, radius: number): void
+  /** What is in a cell right now, for the inspect tool. */
+  read(cell: CellPoint): CellReading
 }
 
 /**
@@ -86,8 +88,18 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
     []
   )
 
+  const read = useCallback((cell: CellPoint): CellReading => {
+    const grid = gridRef.current
+    const index = cellIndex(grid, cell.x, cell.y)
+    return {
+      material: asMaterial(grid.material[index]),
+      temperature: grid.temperature[index],
+      burning: grid.burn[index] > 0,
+    }
+  }, [])
+
   return useMemo(
-    () => ({ isPaused, togglePause, stepOnce, clear, paintStroke }),
-    [isPaused, togglePause, stepOnce, clear, paintStroke]
+    () => ({ isPaused, togglePause, stepOnce, clear, paintStroke, read }),
+    [isPaused, togglePause, stepOnce, clear, paintStroke, read]
   )
 }

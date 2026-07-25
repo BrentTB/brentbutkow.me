@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { MaterialId } from '../pixel-world.types'
 import { AMBIENT_TEMPERATURE } from '../data'
 import {
+  asMaterial,
   cellIndex,
   clearGrid,
   createGrid,
@@ -155,5 +156,15 @@ describe('markHotRow', () => {
     grid.hotRows.fill(0)
     markHotRow(grid, cellIndex(grid, 1, 2))
     expect(Array.from(grid.hotRows)).toEqual([0, 1, 1])
+  })
+})
+
+describe('asMaterial', () => {
+  it('hands back every id unchanged', () => {
+    // The single spot where the sim admits its typed arrays hold MaterialId bytes. If this ever starts
+    // mapping or clamping, every read in the engine quietly changes meaning.
+    for (const material of MATERIALS) {
+      expect(asMaterial(material.id)).toBe(material.id)
+    }
   })
 })

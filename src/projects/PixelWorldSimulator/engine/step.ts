@@ -34,6 +34,12 @@ function stepCell(grid: Grid, rng: Rng, x: number, y: number): void {
   if (material.behavior === MaterialBehavior.gas) {
     // A flame that drifts off its fuel never lights it: it only touches the plank for one tick.
     if (material.clingsToFuel === true && touchesFuel(grid, x, y)) return
+
+    if (material.sinks === true) {
+      sinkAndDrift(grid, rng, x, y, from, material.dispersion)
+      return
+    }
+
     if (rise(grid, rng, x, y, from)) return
     spread(grid, rng, x, y, from, material.dispersion, true)
     return
@@ -41,7 +47,7 @@ function stepCell(grid: Grid, rng: Rng, x: number, y: number): void {
 
   if (material.behavior === MaterialBehavior.powder) {
     if (sinkingStalled(grid, rng, x, y, material.density)) return
-    fall(grid, rng, x, y, from)
+    fall(grid, rng, x, y, from, material.steep === true)
     return
   }
 
@@ -50,6 +56,36 @@ function stepCell(grid: Grid, rng: Rng, x: number, y: number): void {
     if (fall(grid, rng, x, y, from)) return
     spread(grid, rng, x, y, from, material.dispersion, false)
   }
+}
+
+/** How a heavy gas splits its tick: mostly downward, often sideways, sometimes back up. */
+const HEAVY_GAS_SINK = 0.55
+const HEAVY_GAS_DRIFT = 0.85
+
+/**
+ * A gas heavier than air hangs low, but it is still a gas. Falling every tick and then levelling made
+ * chlorine read as a dense liquid with a flat surface: it has to keep drifting sideways and wandering
+ * back upward, so the cloud has a ragged top and seeps along the ground instead of pooling.
+ */
+function sinkAndDrift(
+  grid: Grid,
+  rng: Rng,
+  x: number,
+  y: number,
+  from: number,
+  dispersion: number
+): void {
+  const roll = rng.next()
+
+  if (roll < HEAVY_GAS_SINK) {
+    if (fall(grid, rng, x, y, from)) return
+  } else if (roll < HEAVY_GAS_DRIFT) {
+    if (spread(grid, rng, x, y, from, dispersion, false)) return
+  } else if (rise(grid, rng, x, y, from)) {
+    return
+  }
+
+  spread(grid, rng, x, y, from, dispersion, false)
 }
 
 /**
@@ -63,11 +99,31 @@ function sinkingStalled(grid: Grid, rng: Rng, x: number, y: number, density: num
   return below.drag > 0 && below.density < density && rng.chance(below.drag)
 }
 
-/** Straight down, then the two diagonals in a random order — the pile-forming rule. */
-function fall(grid: Grid, rng: Rng, x: number, y: number, from: number): boolean {
+/**
+ * Straight down, then the two diagonals in a random order — the pile-forming rule.
+ *
+ * A `steep` powder takes a diagonal only where the cell below that diagonal is open too, so it rolls
+ * off a genuine drop but not down the shoulder of its own heap. That is what gives gravel a steeper
+ * angle of repose than sand, and it has to be structural: a per-tick slide chance just delays the
+ * spreading, because a grain on a slope gets a fresh roll every tick until it wins one.
+ */
+function fall(grid: Grid, rng: Rng, x: number, y: number, from: number, steep = false): boolean {
   if (tryMove(grid, from, x, y + 1, false)) return true
+
   const dir = rng.chance(0.5) ? 1 : -1
-  return tryMove(grid, from, x + dir, y + 1, false) || tryMove(grid, from, x - dir, y + 1, false)
+  return rollOff(grid, from, x, y, dir, steep) || rollOff(grid, from, x, y, -dir, steep)
+}
+
+function rollOff(
+  grid: Grid,
+  from: number,
+  x: number,
+  y: number,
+  dir: number,
+  steep: boolean
+): boolean {
+  if (steep && !canMoveTo(grid, from, x + dir, y + 2, false)) return false
+  return tryMove(grid, from, x + dir, y + 1, false)
 }
 
 /** True when any of the four neighbours is something that can catch fire. */

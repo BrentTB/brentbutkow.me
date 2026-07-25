@@ -37,6 +37,15 @@ export function clearGrid(grid: Grid): void {
   grid.hotRowsNext.fill(0)
 }
 
+/**
+ * The one place the sim admits that its typed arrays hold `MaterialId` bytes. Every write goes through
+ * `placeMaterial` or `transformCell`, so a read is always a real id; this keeps that assertion in a
+ * single named spot instead of scattering casts through the engine.
+ */
+export function asMaterial(value: number): MaterialId {
+  return value as MaterialId
+}
+
 /** The counter a fresh cell starts with: gas lifetime, acid charges, plant growth steps. */
 function startingData(material: MaterialId): number {
   const { lifetime, uses } = MATERIALS[material]

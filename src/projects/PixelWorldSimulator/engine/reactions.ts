@@ -1,6 +1,6 @@
 import { Grid, MaterialId } from '../pixel-world.types'
 import { MATERIALS } from './materials'
-import { cellIndex, placeMaterial, transformCell } from './grid'
+import { asMaterial, cellIndex, placeMaterial, transformCell } from './grid'
 import { Rng } from './rng'
 
 /** Chance per tick that a drop of acid eats one of its neighbours. */
@@ -25,6 +25,17 @@ const FROST_ON_CONTACT = 0.8
  */
 const FROST_REST_MIN = 25
 const FROST_REST_SPREAD = 70
+/** Chance per tick that buried snow compacts into ice. */
+const PACK_CHANCE = 0.004
+/** Chance per tick that a sponge pulls in a touching drop, and the temperature that wrings it out. */
+const SOAK_CHANCE = 0.25
+const WRING_TEMPERATURE = 90
+/** Chance per tick that a source produces a cell of what it remembers. */
+const EMIT_CHANCE = 0.25
+/** Chance per tick that a void eats one of its neighbours. */
+const CONSUME_CHANCE = 0.5
+/** Chance per tick that a spark jumps to the next conductive cell. */
+const CONDUCT_CHANCE = 0.6
 
 /** Neighbour offsets. */
 const NEIGHBOURS: readonly (readonly [number, number])[] = [
@@ -52,8 +63,79 @@ const SHOOT_BIAS: readonly (readonly [number, number])[] = [
 ]
 
 /**
- * The chemistry the heat field can't express: acid eating what it touches, and plants creeping into
- * water. Everything temperature-driven lives in heat.ts instead.
+ * A pair that transforms on contact. Most of the sim's chemistry is this shape, so it lives as data:
+ * anything needing memory, a budget, or a search of its own gets a function below instead.
+ */
+type ContactRule = {
+  /** The acting cell. */
+  material: MaterialId
+  /** What it has to be touching. */
+  neighbour: MaterialId
+  /** What the acting cell leaves behind. Omitted means it stays as it is. */
+  becomes?: MaterialId
+  /** What the neighbour turns into. Omitted means the neighbour survives. */
+  neighbourBecomes?: MaterialId
+  chance: number
+}
+
+const CONTACT_RULES: readonly ContactRule[] = [
+  // Salt dissolves away and takes the water with it, leaving brine.
+  {
+    material: MaterialId.salt,
+    neighbour: MaterialId.water,
+    becomes: MaterialId.empty,
+    neighbourBecomes: MaterialId.saltWater,
+    chance: 0.4,
+  },
+  // Loose ground soaks up a drop and turns to mud.
+  {
+    material: MaterialId.dirt,
+    neighbour: MaterialId.water,
+    becomes: MaterialId.mud,
+    neighbourBecomes: MaterialId.empty,
+    chance: 0.3,
+  },
+  {
+    material: MaterialId.ash,
+    neighbour: MaterialId.water,
+    becomes: MaterialId.mud,
+    neighbourBecomes: MaterialId.empty,
+    chance: 0.2,
+  },
+  // Wet ground is what a seed needs.
+  { material: MaterialId.seed, neighbour: MaterialId.mud, becomes: MaterialId.plant, chance: 0.06 },
+  // Brine kills what fresh water grows.
+  {
+    material: MaterialId.saltWater,
+    neighbour: MaterialId.plant,
+    neighbourBecomes: MaterialId.ash,
+    chance: 0.05,
+  },
+  {
+    material: MaterialId.saltWater,
+    neighbour: MaterialId.vine,
+    neighbourBecomes: MaterialId.ash,
+    chance: 0.05,
+  },
+  // A spark in a gas pocket sets it off. Phase 4 gives that a shove as well as a flame.
+  {
+    material: MaterialId.spark,
+    neighbour: MaterialId.methane,
+    neighbourBecomes: MaterialId.fire,
+    chance: 1,
+  },
+]
+
+/** Rules indexed by the acting material, so the hot loop looks up instead of scanning the table. */
+const RULES_BY_MATERIAL: readonly (readonly ContactRule[])[] = MATERIALS.map((material) =>
+  CONTACT_RULES.filter((rule) => rule.material === material.id)
+)
+
+/**
+ * The chemistry the heat field can't express: pairs that transform on contact, plus the handful of
+ * behaviours that need more than a lookup — acid spending charges, plants and vines creeping, frost,
+ * sponges soaking, sources emitting, voids eating, and sparks running down a wire. Everything
+ * temperature-driven lives in heat.ts instead.
  */
 export function applyReactions(grid: Grid, rng: Rng): void {
   const { width, height, material } = grid
@@ -62,13 +144,166 @@ export function applyReactions(grid: Grid, rng: Rng): void {
     for (let x = 0; x < width; x++) {
       const index = y * width + x
       const id = material[index]
+      if (id === MaterialId.empty) continue
+
+      if (RULES_BY_MATERIAL[id].length > 0)
+        applyContactRules(grid, rng, x, y, index, asMaterial(id))
 
       if (id === MaterialId.acid) dissolve(grid, rng, x, y, index)
       else if (id === MaterialId.plant) grow(grid, rng, x, y, index)
       else if (id === MaterialId.vine) creep(grid, rng, x, y)
       else if (id === MaterialId.ice) frost(grid, rng, x, y, index)
+      else if (id === MaterialId.snow) pack(grid, rng, x, y, index)
+      else if (id === MaterialId.sponge) soak(grid, rng, x, y, index)
+      else if (id === MaterialId.source) emit(grid, rng, x, y, index)
+      else if (id === MaterialId.void) consume(grid, rng, x, y)
+      else if (id === MaterialId.spark) conduct(grid, rng, x, y, index)
     }
   }
+}
+
+function applyContactRules(
+  grid: Grid,
+  rng: Rng,
+  x: number,
+  y: number,
+  index: number,
+  id: MaterialId
+): void {
+  for (const rule of RULES_BY_MATERIAL[id]) {
+    const target = pickNeighbour(
+      grid,
+      x,
+      y,
+      (found) => found === rule.neighbour,
+      Math.floor(rng.next() * NEIGHBOURS.length)
+    )
+    if (target < 0 || !rng.chance(rule.chance)) continue
+
+    if (rule.neighbourBecomes !== undefined) transformCell(grid, target, rule.neighbourBecomes)
+    if (rule.becomes !== undefined) {
+      transformCell(grid, index, rule.becomes)
+      return
+    }
+  }
+}
+
+/** Snow buried under more snow compacts into ice, so a deep drift turns solid from the bottom up. */
+function pack(grid: Grid, rng: Rng, x: number, y: number, index: number): void {
+  if (y < 2 || !rng.chance(PACK_CHANCE)) return
+
+  const above = grid.material[cellIndex(grid, x, y - 1)]
+  const higher = grid.material[cellIndex(grid, x, y - 2)]
+  const buried =
+    (above === MaterialId.snow || above === MaterialId.ice) &&
+    (higher === MaterialId.snow || higher === MaterialId.ice)
+
+  if (buried) placeMaterial(grid, index, MaterialId.ice)
+}
+
+/**
+ * A sponge pulls in touching water until it is full, and gives it back when something heats it. The
+ * count of soaked cells lives in `data`.
+ */
+function soak(grid: Grid, rng: Rng, x: number, y: number, index: number): void {
+  const capacity = MATERIALS[MaterialId.sponge].absorbs ?? 0
+  const held = grid.data[index]
+
+  // A hot sponge only ever gives water up. Letting it drink as well made an empty hot sponge drink on
+  // one tick and wring out on the next, forever, ending on whichever side of the loop time ran out.
+  if (grid.temperature[index] > WRING_TEMPERATURE) {
+    if (held === 0) return
+
+    const air = pickNeighbour(grid, x, y, (found) => found === MaterialId.empty)
+    if (air < 0) return
+    placeMaterial(grid, air, MaterialId.water)
+    grid.data[index] = held - 1
+    return
+  }
+
+  if (held >= capacity || !rng.chance(SOAK_CHANCE)) return
+
+  const drop = pickNeighbour(
+    grid,
+    x,
+    y,
+    (found) => found === MaterialId.water,
+    Math.floor(rng.next() * NEIGHBOURS.length)
+  )
+  if (drop < 0) return
+
+  transformCell(grid, drop, MaterialId.empty)
+  grid.data[index] = held + 1
+}
+
+/**
+ * A source remembers the first material fed to it — the id sits in `data` — and then produces it
+ * forever. That is what makes an endless waterfall or a lava vent possible without a brush held down.
+ */
+function emit(grid: Grid, rng: Rng, x: number, y: number, index: number): void {
+  const remembered = grid.data[index]
+
+  if (remembered === MaterialId.empty) {
+    const fed = pickNeighbour(
+      grid,
+      x,
+      y,
+      (found) => found !== MaterialId.empty && found !== MaterialId.source,
+      Math.floor(rng.next() * NEIGHBOURS.length)
+    )
+    if (fed >= 0) grid.data[index] = grid.material[fed]
+    return
+  }
+
+  if (!rng.chance(EMIT_CHANCE)) return
+  const air = pickNeighbour(
+    grid,
+    x,
+    y,
+    (found) => found === MaterialId.empty,
+    Math.floor(rng.next() * NEIGHBOURS.length)
+  )
+  if (air >= 0) placeMaterial(grid, air, asMaterial(remembered))
+}
+
+/** A void eats whatever touches it, which is how you drain a world you have filled. */
+function consume(grid: Grid, rng: Rng, x: number, y: number): void {
+  if (!rng.chance(CONSUME_CHANCE)) return
+
+  const target = pickNeighbour(
+    grid,
+    x,
+    y,
+    (found) => found !== MaterialId.empty && found !== MaterialId.void,
+    Math.floor(rng.next() * NEIGHBOURS.length)
+  )
+  if (target >= 0) transformCell(grid, target, MaterialId.empty)
+}
+
+/**
+ * A spark runs along anything conductive by swapping places with it, so the wire it travels down
+ * survives. Converting the conductor instead would eat the wire behind it.
+ */
+function conduct(grid: Grid, rng: Rng, x: number, y: number, index: number): void {
+  if (!rng.chance(CONDUCT_CHANCE)) return
+
+  const wire = pickNeighbour(
+    grid,
+    x,
+    y,
+    (found) => MATERIALS[found].conductive === true,
+    Math.floor(rng.next() * NEIGHBOURS.length)
+  )
+  if (wire < 0) return
+
+  const conductor = asMaterial(grid.material[wire])
+  const charge = grid.data[index]
+  const heat = grid.temperature[index]
+
+  grid.material[wire] = MaterialId.spark
+  grid.data[wire] = charge
+  grid.temperature[wire] = heat
+  transformCell(grid, index, conductor)
 }
 
 function dissolve(grid: Grid, rng: Rng, x: number, y: number, index: number): void {

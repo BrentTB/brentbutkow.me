@@ -1,7 +1,25 @@
 .palette {
   display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+// The group tabs and Erase share a line: Erase is a tool, so it sits apart from the material rows and
+// stays reachable whichever group is open.
+.groups {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.swatches {
+  display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  // Holds the row height steady as groups of different sizes swap in, so the controls below don't jump.
+  min-height: 66px;
+  align-content: flex-start;
 }
 
 // The swatch shows the material's own colour, read from the same table the canvas paints from —

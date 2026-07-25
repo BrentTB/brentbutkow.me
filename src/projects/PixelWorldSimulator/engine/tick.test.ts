@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { Grid, MaterialId } from '../pixel-world.types'
+import { AMBIENT_TEMPERATURE } from '../data'
 import { stampCircle } from './brush'
 import { cellIndex, createGrid, placeMaterial } from './grid'
 import { createRng } from './rng'
@@ -270,3 +271,118 @@ function lowestRow(grid: Grid, material: MaterialId): number {
   }
   return -1
 }
+
+describe('snow', () => {
+  it('melts at room temperature, where ice does not', () => {
+    const grid = withVessel(9, 9)
+    const snow = put(grid, 4, 4, MaterialId.snow)
+    const ice = put(grid, 6, 6, MaterialId.ice)
+
+    run(grid, 600)
+
+    expect(grid.material[snow]).not.toBe(MaterialId.snow)
+    expect(grid.material[ice]).toBe(MaterialId.ice)
+  })
+})
+
+describe('liquid nitrogen', () => {
+  it('freezes water it lands in', () => {
+    const grid = withVessel(12, 14)
+    for (let x = 1; x < 11; x++) {
+      for (let y = 8; y < 13; y++) put(grid, x, y, MaterialId.water)
+    }
+    for (let x = 4; x < 8; x++) put(grid, x, 2, MaterialId.nitrogen)
+
+    run(grid, 150)
+
+    expect(count(grid, MaterialId.ice)).toBeGreaterThan(0)
+  })
+
+  it('evaporates on its own clock, so a spill does not last', () => {
+    const grid = withVessel(9, 9)
+    put(grid, 4, 4, MaterialId.nitrogen)
+
+    run(grid, 2000)
+
+    expect(count(grid, MaterialId.nitrogen)).toBe(0)
+  })
+})
+
+describe('metal', () => {
+  it('carries heat far better than stone', () => {
+    const reach = (material: MaterialId) => {
+      const grid = createGrid(20, 5)
+      for (let x = 0; x < 20; x++) put(grid, x, 2, material)
+
+      // A blowtorch on one end, held below metal's melting point so the bar stays a bar. Compared
+      // against stone rather than wood: at this temperature wood catches fire and the flame front
+      // carries the heat along the bar, which is combustion, not conduction.
+      const rng = createRng(3)
+      for (let tick = 0; tick < 200; tick++) {
+        grid.temperature[cellIndex(grid, 19, 2)] = 600
+        grid.hotRows.fill(1)
+        tickWorld(grid, rng, tick)
+      }
+      return grid.temperature[cellIndex(grid, 10, 2)]
+    }
+
+    expect(reach(MaterialId.metal)).toBeGreaterThan(reach(MaterialId.stone))
+  })
+
+  it('melts into lava when hot enough', () => {
+    const grid = withVessel(9, 9)
+    const bar = put(grid, 4, 4, MaterialId.metal)
+    grid.temperature[bar] = 1600
+
+    run(grid, 4)
+
+    expect(count(grid, MaterialId.metal)).toBe(0)
+    expect(count(grid, MaterialId.lava)).toBe(1)
+  })
+})
+
+describe('rubber', () => {
+  it('melts to oil rather than burning away', () => {
+    const grid = withVessel(9, 9)
+    const block = put(grid, 4, 4, MaterialId.rubber)
+    grid.temperature[block] = 400
+
+    run(grid, 4)
+
+    expect(count(grid, MaterialId.rubber)).toBe(0)
+    expect(count(grid, MaterialId.oil)).toBe(1)
+  })
+})
+
+describe('embers', () => {
+  it('relight fuel they drift against', () => {
+    const grid = withVessel(9, 12)
+    const plank = put(grid, 4, 10, MaterialId.wood)
+    put(grid, 4, 9, MaterialId.ember)
+
+    run(grid, 200)
+
+    const caught = grid.burn[plank] > 0 || grid.material[plank] !== MaterialId.wood
+    expect(caught).toBe(true)
+  })
+
+  it('cool into ash rather than vanishing', () => {
+    const grid = withVessel(9, 12)
+    put(grid, 4, 5, MaterialId.ember)
+
+    run(grid, 400)
+
+    expect(count(grid, MaterialId.ember)).toBe(0)
+    expect(count(grid, MaterialId.ash)).toBeGreaterThan(0)
+  })
+})
+
+describe('an untouched world', () => {
+  it('stays at room temperature', () => {
+    const grid = withVessel(20, 20)
+
+    run(grid, 200)
+
+    expect(grid.temperature.every((heat) => heat === AMBIENT_TEMPERATURE)).toBe(true)
+  })
+})

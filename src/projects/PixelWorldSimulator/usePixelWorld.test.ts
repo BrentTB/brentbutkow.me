@@ -1,8 +1,15 @@
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest'
 import { renderHook, act, cleanup } from '@testing-library/react'
 import { MaterialId } from './pixel-world.types'
-import { GRID_HEIGHT, GRID_WIDTH, MAX_TICKS_PER_FRAME, TICK_RATE } from './data'
+import {
+  AMBIENT_TEMPERATURE,
+  GRID_HEIGHT,
+  GRID_WIDTH,
+  MAX_TICKS_PER_FRAME,
+  TICK_RATE,
+} from './data'
 import { MATERIALS } from './engine/materials'
+import { writeCellRgb } from './engine/palette'
 import { usePixelWorld } from './usePixelWorld'
 
 const MS_PER_TICK = 1000 / TICK_RATE
@@ -41,23 +48,26 @@ function mockCanvasContext() {
   return world
 }
 
-/** Classifies a drawn pixel back to its material by nearest palette colour. */
+/**
+ * Classifies a drawn pixel back to its material by reproducing what the palette would have written for
+ * that cell. Jitter is a function of the coordinates, so the match is exact — nearest-colour guessing
+ * stopped working once the roster grew and sand and seed ended up neighbours in colour space.
+ */
 function materialAt(image: { data: Uint8ClampedArray }, x: number, y: number): MaterialId {
   const offset = (y * GRID_WIDTH + x) * 4
-  let best: MaterialId = MaterialId.empty
-  let bestDistance = Infinity
+  const probe = new Uint8ClampedArray(4)
 
   for (const material of MATERIALS) {
-    const distance = material.color.reduce(
-      (total, channel, i) => total + Math.abs(channel - image.data[offset + i]),
-      0
-    )
-    if (distance < bestDistance) {
-      bestDistance = distance
-      best = material.id
+    writeCellRgb(probe, 0, material.id, 0, x, y)
+    if (
+      probe[0] === image.data[offset] &&
+      probe[1] === image.data[offset + 1] &&
+      probe[2] === image.data[offset + 2]
+    ) {
+      return material.id
     }
   }
-  return best
+  return MaterialId.empty
 }
 
 /** How many cells of a material the drawn world holds. */
@@ -216,6 +226,38 @@ describe('usePixelWorld', () => {
     frame(MS_PER_TICK)
 
     expect(materialAt(image, 55, 5)).toBe(MaterialId.empty)
+  })
+
+  it('reads back what is in a cell', () => {
+    const { result } = mountSim()
+    act(() => result.current.paintStroke({ x: 12, y: 8 }, { x: 12, y: 8 }, MaterialId.lava, 0))
+
+    const reading = result.current.read({ x: 12, y: 8 })
+
+    expect(reading.material).toBe(MaterialId.lava)
+    expect(reading.temperature).toBe(MATERIALS[MaterialId.lava].startTemperature)
+    expect(reading.burning).toBe(false)
+  })
+
+  it('reads empty space as empty, at room temperature', () => {
+    const { result } = mountSim()
+
+    const reading = result.current.read({ x: 3, y: 3 })
+
+    expect(reading.material).toBe(MaterialId.empty)
+    expect(reading.temperature).toBe(AMBIENT_TEMPERATURE)
+  })
+
+  it('reads a cell that is alight as burning', () => {
+    const { result } = mountSim()
+    act(() => result.current.paintStroke({ x: 20, y: 9 }, { x: 20, y: 9 }, MaterialId.wood, 0))
+    act(() => result.current.paintStroke({ x: 20, y: 9 }, { x: 20, y: 9 }, MaterialId.fire, 0))
+
+    const reading = result.current.read({ x: 20, y: 9 })
+
+    // The fire brush lights fuel rather than replacing it, so this stays wood — and says so.
+    expect(reading.material).toBe(MaterialId.wood)
+    expect(reading.burning).toBe(true)
   })
 
   it('stops the loop on unmount', () => {

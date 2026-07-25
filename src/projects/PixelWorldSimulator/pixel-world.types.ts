@@ -17,6 +17,22 @@ export const MaterialId = {
   methane: 15,
   fire: 16,
   vine: 17,
+  salt: 18,
+  saltWater: 19,
+  snow: 20,
+  gravel: 21,
+  seed: 22,
+  honey: 23,
+  mud: 24,
+  nitrogen: 25,
+  sponge: 26,
+  metal: 27,
+  rubber: 28,
+  spark: 29,
+  ember: 30,
+  void: 31,
+  source: 32,
+  chlorine: 33,
 } as const
 export type MaterialId = (typeof MaterialId)[keyof typeof MaterialId]
 
@@ -48,6 +64,14 @@ export type Material = {
   jitter: number
   /** Liquids and gases: how many cells one tick can spread sideways when blocked. Viscosity, inverted. */
   dispersion: number
+  /**
+   * Powders: this grain only rolls off a real drop, not down the shoulder of its own heap, which holds a
+   * steep cone instead of spreading flat like sand. A per-tick slide chance can't do this job — a grain
+   * sitting on a slope gets a fresh roll every tick, so it always slides eventually.
+   */
+  steep?: boolean
+  /** Gases heavier than air, which sink and pool instead of rising. */
+  sinks?: boolean
   /**
    * Chance in [0, 1) that this material stalls something trying to sink through it for a tick, so
    * sand drifts down through water instead of dropping at its dry speed, and water seeps into a heap
@@ -83,6 +107,10 @@ export type Material = {
   acidProof?: boolean
   /** Multiplier on how readily acid eats this, 0–1. Stone is slow; most things are 1 (omitted). */
   acidResistance?: number
+  /** A spark travels through this. */
+  conductive?: boolean
+  /** Cells of liquid this can soak up before it is full. */
+  absorbs?: number
   /** Flames stay on their fuel instead of drifting up off it while anything nearby can still burn. */
   clingsToFuel?: boolean
   /** Gets the glow pass in the renderer. */
@@ -111,6 +139,21 @@ export type Grid = {
    */
   hotRows: Uint8Array
   hotRowsNext: Uint8Array
+}
+
+export const Tool = {
+  paint: 'paint',
+  /** Read what is already in a cell instead of painting over it. */
+  inspect: 'inspect',
+} as const
+export type Tool = (typeof Tool)[keyof typeof Tool]
+
+/** What the inspect tool found in one cell. */
+export type CellReading = {
+  material: MaterialId
+  /** °C. */
+  temperature: number
+  burning: boolean
 }
 
 export type CellPoint = {
