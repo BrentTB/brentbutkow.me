@@ -14,8 +14,16 @@ type PaletteProps = {
 const GROUP_OPTIONS = MATERIAL_GROUPS.map(({ group, label }) => ({ value: group, label }))
 const EVERY_MATERIAL = MATERIAL_GROUPS.flatMap(({ materials }) => materials)
 
+/** The group holding a material, or nothing for Erase, which lives outside them all. */
+function groupHolding(material: MaterialId): MaterialGroup | undefined {
+  return MATERIAL_GROUPS.find(({ materials }) => materials.includes(material))?.group
+}
+
 export function Palette({ selected, onSelect }: PaletteProps) {
-  const [openGroup, setOpenGroup] = useState<MaterialGroup>(MATERIAL_GROUPS[0].group)
+  // Opens on the group holding the current brush, so the selected swatch is on screen from the start.
+  const [openGroup, setOpenGroup] = useState<MaterialGroup>(
+    () => groupHolding(selected) ?? MATERIAL_GROUPS[0].group
+  )
   const [query, setQuery] = useState('')
 
   const searching = query.trim().length > 0

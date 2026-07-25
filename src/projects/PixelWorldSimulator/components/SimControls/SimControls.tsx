@@ -74,7 +74,9 @@ export function SimControls({
           value={radius}
           onChange={(event) => onRadius(Number(event.target.value))}
         />
-        <span className={styles.readout}>{brushCells} cells</span>
+        <span className={styles.readout}>
+          {brushCells} {brushCells === 1 ? 'cell' : 'cells'}
+        </span>
       </label>
     </div>
   )

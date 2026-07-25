@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import { MaterialId } from '../../pixel-world.types'
-import { MATERIAL_GROUPS } from '../../data'
+import { MATERIAL_GROUPS, MaterialGroup } from '../../data'
 import { MATERIALS } from '../../engine/materials'
 import { Palette } from './Palette'
 
@@ -18,11 +18,23 @@ function search(text: string) {
 afterEach(cleanup)
 
 describe('Palette', () => {
-  it('shows the first group and its materials', () => {
-    renderPalette()
-    const [first] = MATERIAL_GROUPS
+  it('opens on the group holding the current brush, so the selection is on screen', () => {
+    // Sand is a powder, and Powders is not the first group — opening on the first one left the
+    // selected swatch hidden behind a tab on first load.
+    renderPalette(MaterialId.sand)
+    const powders = MATERIAL_GROUPS.find(({ group }) => group === MaterialGroup.powders)
 
-    for (const material of first.materials) {
+    for (const material of powders?.materials ?? []) {
+      expect(screen.getByRole('button', { name: MATERIALS[material].label })).toBeTruthy()
+    }
+    expect(screen.getByRole('button', { name: 'Sand' }).getAttribute('aria-pressed')).toBe('true')
+    expect(screen.queryByRole('button', { name: 'Stone' })).toBeNull()
+  })
+
+  it('falls back to the first group for Erase, which lives outside them all', () => {
+    renderPalette(MaterialId.empty)
+
+    for (const material of MATERIAL_GROUPS[0].materials) {
       expect(screen.getByRole('button', { name: MATERIALS[material].label })).toBeTruthy()
     }
   })
@@ -37,19 +49,19 @@ describe('Palette', () => {
 
   it('swaps the swatches when a different group is opened', () => {
     renderPalette()
-    fireEvent.click(screen.getByRole('button', { name: 'Gases' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Solids' }))
 
-    expect(screen.getByRole('button', { name: 'Chlorine' })).toBeTruthy()
-    expect(screen.queryByRole('button', { name: 'Stone' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Stone' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Gravel' })).toBeNull()
   })
 
   it('searches across every group, not just the open one', () => {
     renderPalette()
-    // Chlorine is a gas and Solids is the group on screen.
+    // Chlorine is a gas and Powders is the group on screen.
     search('chlor')
 
     expect(screen.getByRole('button', { name: 'Chlorine' })).toBeTruthy()
-    expect(screen.queryByRole('button', { name: 'Stone' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Gravel' })).toBeNull()
   })
 
   it('matches partway through a name, and ignores case', () => {
@@ -79,9 +91,9 @@ describe('Palette', () => {
   it('reports the material that was picked', () => {
     const onSelect = renderPalette()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Wood' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Gravel' }))
 
-    expect(onSelect).toHaveBeenCalledWith(MaterialId.wood)
+    expect(onSelect).toHaveBeenCalledWith(MaterialId.gravel)
   })
 
   it('marks the selected material, wherever it lives', () => {

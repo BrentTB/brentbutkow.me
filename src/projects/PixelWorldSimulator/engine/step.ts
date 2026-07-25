@@ -4,6 +4,14 @@ import { cellIndex, markHotRow } from './grid'
 import { MATERIALS } from './materials'
 import { Rng } from './rng'
 
+/** The four neighbour offsets, held still: built inline they were a fresh array per cell per tick. */
+const SIDES: readonly (readonly [number, number])[] = [
+  [0, -1],
+  [0, 1],
+  [-1, 0],
+  [1, 0],
+]
+
 /**
  * Advances the world one tick, in place.
  *
@@ -128,12 +136,7 @@ function rollOff(
 
 /** True when any of the four neighbours is something that can catch fire. */
 function touchesFuel(grid: Grid, x: number, y: number): boolean {
-  for (const [dx, dy] of [
-    [0, -1],
-    [0, 1],
-    [-1, 0],
-    [1, 0],
-  ]) {
+  for (const [dx, dy] of SIDES) {
     const nx = x + dx
     const ny = y + dy
     if (nx < 0 || nx >= grid.width || ny < 0 || ny >= grid.height) continue

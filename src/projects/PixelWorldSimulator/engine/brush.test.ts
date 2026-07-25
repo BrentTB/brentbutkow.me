@@ -10,7 +10,8 @@ describe('stampCircle', () => {
     stampCircle(grid, 4, 4, 0, MaterialId.sand)
 
     expect(grid.material[cellIndex(grid, 4, 4)]).toBe(MaterialId.sand)
-    expect(grid.material.reduce((total, cell) => total + cell, 0)).toBe(MaterialId.sand)
+    expect(grid.material.filter((cell) => cell === MaterialId.sand).length).toBe(1)
+    expect(grid.material.filter((cell) => cell !== MaterialId.empty).length).toBe(1)
   })
 
   it('paints a round blob, not a square', () => {
@@ -66,6 +67,21 @@ describe('stampCircle', () => {
     expect(grid.burn[cellIndex(grid, 0, 0)]).toBe(0)
   })
 
+  it('leaves an already-burning cell on the clock it started with', () => {
+    const grid = createGrid(9, 9)
+    grid.material.fill(MaterialId.wood)
+    const plank = cellIndex(grid, 4, 4)
+
+    stampCircle(grid, 4, 4, 0, MaterialId.fire)
+    // Part-burned, as it would be a moment later.
+    grid.burn[plank] = 5
+    stampCircle(grid, 4, 4, 0, MaterialId.fire)
+
+    // A held brush restamps the same cell every frame, and refreshing the countdown each time left
+    // wood under it burning forever instead of turning to ash.
+    expect(grid.burn[plank]).toBe(5)
+  })
+
   it('paints flame into open air as a material', () => {
     const grid = createGrid(9, 9)
     stampCircle(grid, 4, 4, 0, MaterialId.fire)
@@ -80,6 +96,31 @@ describe('stampCircle', () => {
 
     expect(grid.material.every((cell) => cell === MaterialId.stone)).toBe(true)
     expect(grid.burn.every((cell) => cell === 0)).toBe(true)
+  })
+
+  it('restarts the clock of a cell drawn over twice', () => {
+    // A second loop of spark across its own trail has to leave the whole trail expiring together;
+    // the hierarchy blocks spark-over-spark, so without a refresh the older pass dies first and
+    // punches a hole in the line.
+    const grid = createGrid(9, 9)
+    const { lifetime } = MATERIALS[MaterialId.spark]
+    stampCircle(grid, 4, 4, 0, MaterialId.spark)
+    grid.data[cellIndex(grid, 4, 4)] = 3
+
+    stampCircle(grid, 4, 4, 0, MaterialId.spark)
+
+    expect(grid.data[cellIndex(grid, 4, 4)]).toBe(lifetime)
+  })
+
+  it('leaves the heat of a cell drawn over twice alone', () => {
+    // Refreshing a clock is not repainting: a puddle you draw water over again stays as hot as it was.
+    const grid = createGrid(9, 9)
+    stampCircle(grid, 4, 4, 0, MaterialId.water)
+    grid.temperature[cellIndex(grid, 4, 4)] = 80
+
+    stampCircle(grid, 4, 4, 0, MaterialId.water)
+
+    expect(grid.temperature[cellIndex(grid, 4, 4)]).toBe(80)
   })
 
   it('erases by painting air', () => {

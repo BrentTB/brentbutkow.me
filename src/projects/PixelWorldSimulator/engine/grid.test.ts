@@ -9,6 +9,7 @@ import {
   inBounds,
   markHotRow,
   placeMaterial,
+  refreshCell,
   transformCell,
 } from './grid'
 import { MATERIALS } from './materials'
@@ -143,6 +144,32 @@ describe('transformCell', () => {
 
     expect(grid.data[cell]).toBe(MATERIALS[MaterialId.steam].lifetime)
     expect(grid.burn[cell]).toBe(0)
+  })
+})
+
+describe('refreshCell', () => {
+  it('winds the counter back up to full', () => {
+    const grid = createGrid(5, 5)
+    const cell = cellIndex(grid, 2, 2)
+    placeMaterial(grid, cell, MaterialId.spark)
+    grid.data[cell] = 2
+
+    refreshCell(grid, cell, MaterialId.spark)
+
+    expect(grid.data[cell]).toBe(MATERIALS[MaterialId.spark].lifetime)
+  })
+
+  it('leaves heat and fire where they were', () => {
+    const grid = createGrid(5, 5)
+    const cell = cellIndex(grid, 2, 2)
+    placeMaterial(grid, cell, MaterialId.wood)
+    grid.temperature[cell] = 300
+    grid.burn[cell] = 9
+
+    refreshCell(grid, cell, MaterialId.wood)
+
+    expect(grid.temperature[cell]).toBe(300)
+    expect(grid.burn[cell]).toBe(9)
   })
 })
 

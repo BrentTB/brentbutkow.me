@@ -184,10 +184,28 @@ const CONTACT_RULES: readonly ContactRule[] = [
   },
 ]
 
+/** A rule with its neighbour test built, so matching costs a call rather than a closure. */
+type CompiledRule = ContactRule & { matches: (found: number) => boolean }
+
 /** Rules indexed by the acting material, so the hot loop looks up instead of scanning the table. */
-const RULES_BY_MATERIAL: readonly (readonly ContactRule[])[] = MATERIALS.map((material) =>
-  CONTACT_RULES.filter((rule) => rule.material === material.id)
+const RULES_BY_MATERIAL: readonly (readonly CompiledRule[])[] = MATERIALS.map((material) =>
+  CONTACT_RULES.filter((rule) => rule.material === material.id).map((rule) => ({
+    ...rule,
+    matches: (found: number) => found === rule.neighbour,
+  }))
 )
+
+// Neighbour tests the reactions reuse every tick, built once. Written inline they were a fresh
+// closure per rule per reactive cell, which is thousands of throwaway objects a tick in a busy world.
+const isEmpty = (found: number) => found === MaterialId.empty
+const isWater = (found: number) => found === MaterialId.water
+const isSponge = (found: number) => found === MaterialId.sponge
+const isSource = (found: number) => found === MaterialId.source
+const isFeed = (found: number) => found !== MaterialId.empty && found !== MaterialId.source
+const isConductive = (found: number) => MATERIALS[found].conductive === true
+const isEdible = (found: number) => found !== MaterialId.empty && found !== MaterialId.void
+const isCorrodible = (found: number) =>
+  found !== MaterialId.empty && found !== MaterialId.acid && MATERIALS[found].acidProof !== true
 
 /**
  * The chemistry the heat field can't express: pairs that transform on contact, plus the handful of
@@ -197,6 +215,10 @@ const RULES_BY_MATERIAL: readonly (readonly ContactRule[])[] = MATERIALS.map((ma
  */
 export function applyReactions(grid: Grid, rng: Rng): void {
   const { width, height, material } = grid
+  // A spark travels by writing itself into a neighbour, so the scan can meet the same spark again
+  // further along and move it a second time. `moved` marks where one has already gone; `step` clears
+  // the array again before it does its own pass, so the two never read each other's flags.
+  grid.moved.fill(0)
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
@@ -234,7 +256,7 @@ function applyContactRules(
       grid,
       x,
       y,
-      (found) => found === rule.neighbour,
+      rule.matches,
       Math.floor(rng.next() * NEIGHBOURS.length)
     )
     if (target < 0 || !rng.chance(rule.chance)) continue
@@ -286,7 +308,7 @@ function soak(grid: Grid, rng: Rng, x: number, y: number, index: number): void {
   if (grid.temperature[index] > WRING_TEMPERATURE) {
     if (held === 0) return
 
-    const air = pickNeighbour(grid, x, y, (found) => found === MaterialId.empty)
+    const air = pickNeighbour(grid, x, y, isEmpty)
     if (air < 0) return
     placeMaterial(grid, air, MaterialId.water)
     grid.data[index] = held - 1
@@ -302,7 +324,7 @@ function soak(grid: Grid, rng: Rng, x: number, y: number, index: number): void {
       grid,
       x,
       y,
-      (found) => found === MaterialId.sponge,
+      isSponge,
       Math.floor(rng.next() * NEIGHBOURS.length),
       (candidate) => grid.data[candidate] < capacity
     )
@@ -315,13 +337,7 @@ function soak(grid: Grid, rng: Rng, x: number, y: number, index: number): void {
 
   if (!rng.chance(SOAK_CHANCE)) return
 
-  const drop = pickNeighbour(
-    grid,
-    x,
-    y,
-    (found) => found === MaterialId.water,
-    Math.floor(rng.next() * NEIGHBOURS.length)
-  )
+  const drop = pickNeighbour(grid, x, y, isWater, Math.floor(rng.next() * NEIGHBOURS.length))
   if (drop < 0) return
 
   transformCell(grid, drop, MaterialId.empty)
@@ -342,13 +358,7 @@ function emit(grid: Grid, rng: Rng, x: number, y: number, index: number): void {
     // second half, the inside of a block can never learn anything — every one of its neighbours is
     // another source — so only the outline of a big block ever produced, and output grew with its
     // perimeter rather than its area.
-    const fed = pickNeighbour(
-      grid,
-      x,
-      y,
-      (found) => found !== MaterialId.empty && found !== MaterialId.source,
-      start
-    )
+    const fed = pickNeighbour(grid, x, y, isFeed, start)
     if (fed >= 0) {
       grid.data[index] = grid.material[fed]
       return
@@ -358,7 +368,7 @@ function emit(grid: Grid, rng: Rng, x: number, y: number, index: number): void {
       grid,
       x,
       y,
-      (found) => found === MaterialId.source,
+      isSource,
       start,
       (candidate) => grid.data[candidate] !== MaterialId.empty
     )
@@ -408,30 +418,20 @@ function spaceAlong(
 function consume(grid: Grid, rng: Rng, x: number, y: number): void {
   if (!rng.chance(CONSUME_CHANCE)) return
 
-  const target = pickNeighbour(
-    grid,
-    x,
-    y,
-    (found) => found !== MaterialId.empty && found !== MaterialId.void,
-    Math.floor(rng.next() * NEIGHBOURS.length)
-  )
+  const target = pickNeighbour(grid, x, y, isEdible, Math.floor(rng.next() * NEIGHBOURS.length))
   if (target >= 0) transformCell(grid, target, MaterialId.empty)
 }
 
 /**
  * A spark runs along anything conductive by swapping places with it, so the wire it travels down
- * survives. Converting the conductor instead would eat the wire behind it.
+ * survives. Converting the conductor instead would eat the wire behind it. One hop per tick whichever
+ * way it goes: without the `moved` guard a spark travelling with the scan was carried along the wire
+ * again and again in a single tick, so it ran far faster rightward than leftward.
  */
 function conduct(grid: Grid, rng: Rng, x: number, y: number, index: number): void {
-  if (!rng.chance(CONDUCT_CHANCE)) return
+  if (grid.moved[index] === 1 || !rng.chance(CONDUCT_CHANCE)) return
 
-  const wire = pickNeighbour(
-    grid,
-    x,
-    y,
-    (found) => MATERIALS[found].conductive === true,
-    Math.floor(rng.next() * NEIGHBOURS.length)
-  )
+  const wire = pickNeighbour(grid, x, y, isConductive, Math.floor(rng.next() * NEIGHBOURS.length))
   if (wire < 0) return
 
   const conductor = asMaterial(grid.material[wire])
@@ -441,6 +441,7 @@ function conduct(grid: Grid, rng: Rng, x: number, y: number, index: number): voi
   grid.material[wire] = MaterialId.spark
   grid.data[wire] = charge
   grid.temperature[wire] = heat
+  grid.moved[wire] = 1
 
   // The wire it just left stays hot behind it, so a current can set light to what it touches.
   transformCell(grid, index, conductor)
@@ -449,16 +450,7 @@ function conduct(grid: Grid, rng: Rng, x: number, y: number, index: number): voi
 
 function dissolve(grid: Grid, rng: Rng, x: number, y: number, index: number): void {
   // Rotate where the scan starts, or acid would always eat upward first.
-  const target = pickNeighbour(
-    grid,
-    x,
-    y,
-    (id) => {
-      if (id === MaterialId.empty || id === MaterialId.acid) return false
-      return MATERIALS[id].acidProof !== true
-    },
-    Math.floor(rng.next() * NEIGHBOURS.length)
-  )
+  const target = pickNeighbour(grid, x, y, isCorrodible, Math.floor(rng.next() * NEIGHBOURS.length))
   if (target < 0) return
 
   // Tougher material soaks up more acid before it gives, so stone corrodes slowly and sand melts away.
@@ -591,13 +583,7 @@ function frost(grid: Grid, rng: Rng, x: number, y: number, index: number): void 
   }
   if (!rng.chance(FROST_ON_CONTACT)) return
 
-  const target = pickNeighbour(
-    grid,
-    x,
-    y,
-    (id) => id === MaterialId.water,
-    Math.floor(rng.next() * NEIGHBOURS.length)
-  )
+  const target = pickNeighbour(grid, x, y, isWater, Math.floor(rng.next() * NEIGHBOURS.length))
   if (target < 0) return
 
   // Placed rather than transformed, so the new ice starts at ice temperature. Inheriting the water's

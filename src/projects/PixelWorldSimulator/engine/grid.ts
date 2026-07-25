@@ -52,6 +52,15 @@ function startingData(material: MaterialId): number {
   return lifetime ?? uses ?? 0
 }
 
+/**
+ * Restarts a cell's own counter while leaving its heat and its fire alone. Drawing a material back over
+ * itself tops the counter up, so a spark trail crossed twice expires as one trail instead of dropping
+ * holes where the first pass was older.
+ */
+export function refreshCell(grid: Grid, index: number, material: MaterialId): void {
+  grid.data[index] = startingData(material)
+}
+
 /** Wakes a row and its neighbours for the heat pass. */
 export function markHotRow(grid: Grid, index: number): void {
   const row = Math.floor(index / grid.width)

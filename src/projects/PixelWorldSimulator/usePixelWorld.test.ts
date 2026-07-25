@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest'
 import { renderHook, act, cleanup } from '@testing-library/react'
-import { MaterialId } from './pixel-world.types'
+import { CellPoint, CellReading, MaterialId } from './pixel-world.types'
 import {
   AMBIENT_TEMPERATURE,
   GRID_HEIGHT,
@@ -11,7 +11,7 @@ import {
 } from './data'
 import { MATERIALS } from './engine/materials'
 import { writeCellRgb } from './engine/palette'
-import { usePixelWorld } from './usePixelWorld'
+import { PixelWorldSim, usePixelWorld } from './usePixelWorld'
 
 const MS_PER_TICK = 1000 / TICK_RATE
 
@@ -122,6 +122,17 @@ afterEach(() => {
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
 })
+
+/** Watches a cell and hands back the reading the hook publishes for it. */
+function readingFor(result: { current: PixelWorldSim }, cell: CellPoint): CellReading {
+  // Watching afresh reads straight away; the interval only takes over once a cell is already followed.
+  act(() => result.current.watch(null))
+  act(() => result.current.watch(cell))
+
+  const reading = result.current.reading
+  if (reading === null) throw new Error(`no reading for ${cell.x},${cell.y}`)
+  return reading
+}
 
 function mountSim() {
   const image = mockCanvasContext()
@@ -255,7 +266,7 @@ describe('usePixelWorld', () => {
     const { result } = mountSim()
     act(() => result.current.paintStroke({ x: 12, y: 8 }, { x: 12, y: 8 }, MaterialId.lava, 0))
 
-    const reading = result.current.read({ x: 12, y: 8 })
+    const reading = readingFor(result, { x: 12, y: 8 })
 
     expect(reading.material).toBe(MaterialId.lava)
     expect(reading.temperature).toBe(MATERIALS[MaterialId.lava].startTemperature)
@@ -265,7 +276,7 @@ describe('usePixelWorld', () => {
   it('reads empty space as empty, at room temperature', () => {
     const { result } = mountSim()
 
-    const reading = result.current.read({ x: 3, y: 3 })
+    const reading = readingFor(result, { x: 3, y: 3 })
 
     expect(reading.material).toBe(MaterialId.empty)
     expect(reading.temperature).toBe(AMBIENT_TEMPERATURE)
@@ -276,7 +287,7 @@ describe('usePixelWorld', () => {
     act(() => result.current.paintStroke({ x: 20, y: 9 }, { x: 20, y: 9 }, MaterialId.wood, 0))
     act(() => result.current.paintStroke({ x: 20, y: 9 }, { x: 20, y: 9 }, MaterialId.fire, 0))
 
-    const reading = result.current.read({ x: 20, y: 9 })
+    const reading = readingFor(result, { x: 20, y: 9 })
 
     // The fire brush lights fuel rather than replacing it, so this stays wood — and says so.
     expect(reading.material).toBe(MaterialId.wood)
@@ -301,7 +312,7 @@ describe('usePixelWorld', () => {
     const { result } = mountSim()
     act(() => result.current.paintStroke({ x: 30, y: 20 }, { x: 30, y: 20 }, MaterialId.source, 0))
 
-    const unfed = result.current.read({ x: 30, y: 20 })
+    const unfed = readingFor(result, { x: 30, y: 20 })
     expect(unfed.material).toBe(MaterialId.source)
     // The one thing about a source you cannot see by looking at it.
     expect(unfed.producing).toBeUndefined()
@@ -309,7 +320,7 @@ describe('usePixelWorld', () => {
     act(() => result.current.paintStroke({ x: 30, y: 21 }, { x: 30, y: 21 }, MaterialId.lava, 0))
     for (let i = 0; i < 10; i++) frame(MS_PER_TICK)
 
-    expect(result.current.read({ x: 30, y: 20 }).producing).toBe(MaterialId.lava)
+    expect(readingFor(result, { x: 30, y: 20 }).producing).toBe(MaterialId.lava)
   })
 
   it('leaves `producing` off anything that is not a source', () => {
@@ -317,7 +328,22 @@ describe('usePixelWorld', () => {
     act(() => result.current.paintStroke({ x: 44, y: 6 }, { x: 44, y: 6 }, MaterialId.acid, 0))
 
     // Acid keeps its charge count in the same byte, which must not read as a product.
-    expect(result.current.read({ x: 44, y: 6 }).producing).toBeUndefined()
+    expect(readingFor(result, { x: 44, y: 6 }).producing).toBeUndefined()
+  })
+
+  it('leaves a moving pointer to the refresh interval instead of reading on every cell', () => {
+    const { result } = mountSim()
+    act(() => result.current.paintStroke({ x: 12, y: 30 }, { x: 12, y: 30 }, MaterialId.stone, 0))
+    act(() => result.current.watch({ x: 70, y: 30 }))
+    expect(result.current.reading?.material).toBe(MaterialId.empty)
+
+    // Sweeping onto the stone mid-drag must not itself set state: reading on every pointer event
+    // re-rendered the page a hundred times a second.
+    act(() => result.current.watch({ x: 12, y: 30 }))
+    expect(result.current.reading?.material).toBe(MaterialId.empty)
+
+    act(() => frame(READING_INTERVAL + MS_PER_TICK))
+    expect(result.current.reading?.material).toBe(MaterialId.stone)
   })
 
   it('stops following when asked', () => {

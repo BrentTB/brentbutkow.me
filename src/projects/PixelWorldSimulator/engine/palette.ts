@@ -11,6 +11,8 @@ function jitterAt(x: number, y: number): number {
   return ((hash ^ (hash >>> 16)) & 255) / 128 - 1
 }
 
+// The drawing functions below take a plain `number`, not a `MaterialId`: they read straight from the
+// grid's `Uint8Array` once per cell per frame, and narrowing there would put a check in the hot loop.
 /** A cell that is alight draws as flame, whatever it is made of. */
 function paletteEntry(material: number, burn: number) {
   return MATERIALS[isBurning(burn) ? MaterialId.fire : material]
@@ -53,7 +55,7 @@ export function writeCellRgb(
 }
 
 /** CSS colour for a material, for palette swatches — same table the canvas paints from. */
-export function materialCss(material: number): string {
+export function materialCss(material: MaterialId): string {
   const [r, g, b] = MATERIALS[material].color
   return `rgb(${r} ${g} ${b})`
 }

@@ -45,14 +45,3 @@
   font-size: 0.78rem;
   letter-spacing: 0.02em;
 }
-
-// A fixed slot for the reading's temperature: -190 through 1500 plus the unit, right-aligned so the
-// digits line up and the number stays put as the pointer moves between materials.
-.temperature {
-  display: inline-block;
-  min-width: 7ch;
-  margin-right: 12px;
-  text-align: right;
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-}

@@ -741,7 +741,85 @@ describe('void', () => {
   })
 })
 
+describe('nitrogen', () => {
+  it('freezes the water it touches and boils away doing it', () => {
+    const grid = createGrid(5, 5)
+    const coolant = put(grid, 2, 2, MaterialId.nitrogen)
+    const drop = put(grid, 2, 3, MaterialId.water)
+
+    react(grid, 40)
+
+    expect(grid.material[drop]).toBe(MaterialId.ice)
+    expect(grid.material[coolant]).toBe(MaterialId.empty)
+  })
+
+  it('gives the new ice its own temperature, not the water it came from', () => {
+    const grid = createGrid(5, 5)
+    put(grid, 2, 2, MaterialId.nitrogen)
+    const drop = put(grid, 2, 3, MaterialId.water)
+
+    react(grid, 40)
+
+    // Inheriting the water's warmth would put the ice straight back over its own melting point.
+    expect(grid.temperature[drop]).toBe(MATERIALS[MaterialId.ice].startTemperature)
+  })
+
+  it('freezes brine as well as fresh water', () => {
+    const grid = createGrid(5, 5)
+    put(grid, 2, 2, MaterialId.nitrogen)
+    const brine = put(grid, 2, 3, MaterialId.saltWater)
+
+    react(grid, 80)
+
+    expect(grid.material[brine]).toBe(MaterialId.ice)
+  })
+
+  it('boils off its surface, so a buried cell outlasts a lone drop', () => {
+    const ticksToVanish = (build: (grid: Grid) => number) => {
+      const grid = createGrid(9, 9)
+      const watched = build(grid)
+      const rng = createRng(11)
+
+      for (let tick = 1; tick <= 4000; tick++) {
+        applyReactions(grid, rng)
+        if (grid.material[watched] === MaterialId.empty) return tick
+      }
+      return Infinity
+    }
+
+    const lone = ticksToVanish((grid) => put(grid, 4, 4, MaterialId.nitrogen))
+    const buried = ticksToVanish((grid) => {
+      for (let y = 2; y <= 6; y++) {
+        for (let x = 2; x <= 6; x++) put(grid, x, y, MaterialId.nitrogen)
+      }
+      return cellIndex(grid, 4, 4)
+    })
+
+    expect(lone).toBeLessThan(Infinity)
+    // Exposure scales the chance, so the middle of a puddle keeps itself cold until the surface has
+    // worked its way down to it.
+    expect(buried).toBeGreaterThan(lone)
+  })
+})
+
 describe('spark', () => {
+  it('travels one cell a tick whichever way it goes', () => {
+    // A spark writes itself into a neighbour, so the scan can meet it again further along and carry it
+    // a second time — a hop with the scan direction covered two cells in one tick. Enough seeds to
+    // catch it: the double hop needs the spark to go with the scan and then win a second roll.
+    for (let seed = 1; seed <= 200; seed++) {
+      const grid = createGrid(20, 5)
+      for (let x = 0; x < 20; x++) put(grid, x, 2, MaterialId.metal)
+      put(grid, 9, 2, MaterialId.spark)
+
+      react(grid, 1, seed)
+
+      const at = grid.material.indexOf(MaterialId.spark)
+      const steps = Math.abs((at % grid.width) - 9) + Math.abs(Math.floor(at / grid.width) - 2)
+      expect(steps).toBeLessThanOrEqual(1)
+    }
+  })
+
   it('runs along a wire without eating it', () => {
     const grid = createGrid(20, 5)
     for (let x = 1; x < 19; x++) put(grid, x, 2, MaterialId.metal)

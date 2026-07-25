@@ -79,14 +79,17 @@ describe('MATERIALS', () => {
     }
   })
 
-  it('burns plant faster and easier than wood, and oil faster than either', () => {
+  it('catches easiest as plant, then oil, then wood, and burns out in that order too', () => {
     const plant = MATERIALS[MaterialId.plant].ignite
     const wood = MATERIALS[MaterialId.wood].ignite
     const oil = MATERIALS[MaterialId.oil].ignite
 
-    expect(plant?.at).toBeLessThan(wood?.at ?? 0)
-    expect(plant?.ticks).toBeLessThan((wood?.ticks ?? 0) / 2)
+    expect(plant?.at).toBeLessThan(oil?.at ?? 0)
     expect(oil?.at).toBeLessThan(wood?.at ?? 0)
+
+    expect(plant?.ticks).toBeLessThan((wood?.ticks ?? 0) / 2)
+    expect(plant?.ticks).toBeLessThan(oil?.ticks ?? 0)
+    expect(oil?.ticks).toBeLessThan(wood?.ticks ?? 0)
   })
 
   it('gives plant a growth budget and vine none', () => {

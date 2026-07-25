@@ -179,19 +179,26 @@ function wake(rows: Uint8Array, row: number, height: number): void {
 function billHottestNeighbour(grid: Grid, index: number, x: number, y: number): void {
   const { width, height, temperature } = grid
 
+  // Unrolled rather than a helper closure: this runs on every boiling cell, every tick.
   let hottest = -1
   let peak = -Infinity
-  const consider = (neighbour: number) => {
-    if (temperature[neighbour] > peak) {
-      peak = temperature[neighbour]
-      hottest = neighbour
-    }
-  }
 
-  if (y > 0) consider(index - width)
-  if (y < height - 1) consider(index + width)
-  if (x > 0) consider(index - 1)
-  if (x < width - 1) consider(index + 1)
+  if (y > 0 && temperature[index - width] > peak) {
+    peak = temperature[index - width]
+    hottest = index - width
+  }
+  if (y < height - 1 && temperature[index + width] > peak) {
+    peak = temperature[index + width]
+    hottest = index + width
+  }
+  if (x > 0 && temperature[index - 1] > peak) {
+    peak = temperature[index - 1]
+    hottest = index - 1
+  }
+  if (x < width - 1 && temperature[index + 1] > peak) {
+    peak = temperature[index + 1]
+    hottest = index + 1
+  }
 
   if (hottest >= 0 && peak > temperature[index]) temperature[hottest] = peak - LATENT_HEAT
 }

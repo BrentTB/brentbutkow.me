@@ -1,5 +1,5 @@
 import { Grid, MaterialId } from '../pixel-world.types'
-import { cellIndex, inBounds, markHotRow, placeMaterial } from './grid'
+import { cellIndex, inBounds, markHotRow, placeMaterial, refreshCell } from './grid'
 import { MATERIALS, canPaintOver } from './materials'
 
 /** Paints a filled circle of `material`, clipped to the grid and to the paint hierarchy. */
@@ -22,7 +22,10 @@ export function stampCircle(
 
       const cell = cellIndex(grid, x, y)
       if (light(grid, cell, material)) continue
-      if (canPaintOver(material, grid.material[cell])) placeMaterial(grid, cell, material)
+      // Drawing over your own trail restarts its clock instead of doing nothing, which is what a
+      // second loop of spark needs: the hierarchy blocks a material from painting over itself.
+      if (grid.material[cell] === material) refreshCell(grid, cell, material)
+      else if (canPaintOver(material, grid.material[cell])) placeMaterial(grid, cell, material)
     }
   }
 }
@@ -38,8 +41,12 @@ function light(grid: Grid, cell: number, brush: MaterialId): boolean {
   const fuel = MATERIALS[grid.material[cell]].ignite
   if (fuel === undefined) return false
 
-  grid.burn[cell] = fuel.ticks
-  markHotRow(grid, cell)
+  // Already alight stays alight on its own clock, the same rule the heat pass uses. Restamping was
+  // refreshing the countdown, so wood under a held brush never burned down to ash.
+  if (grid.burn[cell] === 0) {
+    grid.burn[cell] = fuel.ticks
+    markHotRow(grid, cell)
+  }
   return true
 }
 

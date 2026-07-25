@@ -24,8 +24,6 @@ export type PixelWorldSim = {
   stepOnce(): void
   clear(): void
   paintStroke(from: CellPoint, to: CellPoint, material: MaterialId, radius: number): void
-  /** What is in a cell right now. */
-  read(cell: CellPoint): CellReading
   /**
    * Follow a cell: `reading` then refreshes on its own while the world runs, so a temperature can be
    * watched changing without clicking. Pass null to stop.
@@ -128,11 +126,13 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
     []
   )
 
-  const read = useCallback((cell: CellPoint): CellReading => readCell(gridRef.current, cell), [])
-
   const watch = useCallback((cell: CellPoint | null) => {
+    const wasWatching = watchedRef.current !== null
     watchedRef.current = cell
-    setReading(cell === null ? null : readCell(gridRef.current, cell))
+    // The loop refreshes a watched cell on its own interval, so only the first cell reads straight
+    // away. Reading on every move instead re-rendered the page once per pointer event.
+    if (cell === null) setReading(null)
+    else if (!wasWatching) setReading(readCell(gridRef.current, cell))
   }, [])
 
   return useMemo(
@@ -144,11 +144,10 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
       stepOnce,
       clear,
       paintStroke,
-      read,
       watch,
       reading,
     }),
-    [isPaused, togglePause, speed, setSpeed, stepOnce, clear, paintStroke, read, watch, reading]
+    [isPaused, togglePause, speed, setSpeed, stepOnce, clear, paintStroke, watch, reading]
   )
 }
 
