@@ -144,6 +144,37 @@ describe('step', () => {
     }
   })
 
+  it('sinks sand through water more slowly than it drops through air', () => {
+    const depth = 20
+
+    // A sealed tank, so the medium can't drain sideways and leave the grain falling through air.
+    const ticksToFall = (medium: MaterialId) => {
+      const height = depth + 4
+      const grid = withVessel(9, height)
+      for (let x = 1; x < 8; x++) {
+        for (let y = 3; y < height - 1; y++) set(grid, x, y, medium)
+      }
+      set(grid, 4, 2, MaterialId.sand)
+
+      const bottom = height - 2
+      const rng = createRng(4242)
+      for (let tick = 0; tick < 2000; tick++) {
+        step(grid, rng, tick)
+        for (let x = 1; x < 8; x++) if (at(grid, x, bottom) === MaterialId.sand) return tick
+      }
+      return Infinity
+    }
+
+    const throughAir = ticksToFall(MaterialId.empty)
+    const throughWater = ticksToFall(MaterialId.water)
+
+    expect(throughAir).toBeLessThan(Infinity)
+    expect(throughWater).toBeLessThan(Infinity)
+    // Water's drag is 0.65, so sinking should take roughly 1/(1-0.65) as long. Assert the direction
+    // and a conservative factor rather than an exact count.
+    expect(throughWater).toBeGreaterThan(throughAir * 2)
+  })
+
   it('never displaces static material', () => {
     const grid = createGrid(10, 10)
     for (let x = 0; x < 10; x++) set(grid, x, 5, MaterialId.stone)

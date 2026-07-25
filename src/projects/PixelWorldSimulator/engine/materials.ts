@@ -32,6 +32,7 @@ export const MATERIALS: readonly Material[] = [
     color: [11, 12, 15],
     jitter: 0,
     dispersion: 0,
+    drag: 0,
   },
   {
     id: MaterialId.stone,
@@ -41,6 +42,7 @@ export const MATERIALS: readonly Material[] = [
     color: [122, 124, 130],
     jitter: 10,
     dispersion: 0,
+    drag: 0,
   },
   {
     id: MaterialId.sand,
@@ -50,6 +52,7 @@ export const MATERIALS: readonly Material[] = [
     color: [214, 172, 96],
     jitter: 18,
     dispersion: 0,
+    drag: 0,
   },
   {
     id: MaterialId.water,
@@ -59,5 +62,6 @@ export const MATERIALS: readonly Material[] = [
     color: [62, 122, 186],
     jitter: 12,
     dispersion: 5,
+    drag: 0.65,
   },
 ]

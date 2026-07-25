@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach, vi } from 'vitest'
+import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest'
 import { PointerEvent as ReactPointerEvent } from 'react'
 import { renderHook, cleanup } from '@testing-library/react'
 import { CellPoint } from './pixel-world.types'
@@ -32,9 +32,70 @@ function mountBrush(canvas: HTMLCanvasElement) {
   return { ...rendered, strokes }
 }
 
-afterEach(cleanup)
+let nextFrame: FrameRequestCallback | null = null
+
+/** Runs the hook's own pour loop one frame forward. */
+function frame() {
+  const callback = nextFrame
+  nextFrame = null
+  callback?.(0)
+}
+
+beforeEach(() => {
+  nextFrame = null
+  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+    nextFrame = callback
+    return 1
+  })
+  vi.stubGlobal('cancelAnimationFrame', () => {
+    nextFrame = null
+  })
+})
+
+afterEach(() => {
+  cleanup()
+  vi.unstubAllGlobals()
+})
 
 describe('usePointerBrush', () => {
+  it('keeps painting the same cell while the pointer is held still', () => {
+    const canvas = mockCanvas()
+    const { result, strokes } = mountBrush(canvas)
+
+    result.current.onPointerDown(pointerEvent(canvas, 120, 60))
+    frame()
+    frame()
+
+    expect(strokes).toHaveLength(3)
+    expect(strokes.at(-1)).toEqual([
+      { x: 50, y: 20 },
+      { x: 50, y: 20 },
+    ])
+  })
+
+  it('stops pouring once the pointer is released', () => {
+    const canvas = mockCanvas()
+    const { result, strokes } = mountBrush(canvas)
+
+    result.current.onPointerDown(pointerEvent(canvas, 120, 60))
+    result.current.onPointerUp(pointerEvent(canvas, 120, 60))
+    frame()
+    frame()
+
+    expect(strokes).toHaveLength(1)
+  })
+
+  it('stops the pour loop on unmount', () => {
+    const canvas = mockCanvas()
+    const { result, strokes, unmount } = mountBrush(canvas)
+
+    result.current.onPointerDown(pointerEvent(canvas, 120, 60))
+    unmount()
+    frame()
+
+    expect(strokes).toHaveLength(1)
+  })
+
   it('maps a press to the cell under the pointer', () => {
     const canvas = mockCanvas()
     const { result, strokes } = mountBrush(canvas)

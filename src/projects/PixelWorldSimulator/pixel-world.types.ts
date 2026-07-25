@@ -26,6 +26,11 @@ export type Material = {
   jitter: number
   /** Liquids: how many cells one tick can spread sideways when blocked below. Viscosity, inverted. */
   dispersion: number
+  /**
+   * Chance in [0, 1) that this material stalls something trying to sink through it for a tick, so
+   * sand drifts down through water instead of dropping at its dry speed. Only fluids need it.
+   */
+  drag: number
 }
 
 /** Cells live in flat typed arrays indexed `y * width + x`. */

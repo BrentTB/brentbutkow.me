@@ -1,4 +1,11 @@
-import { PointerEvent as ReactPointerEvent, RefObject, useCallback, useMemo, useRef } from 'react'
+import {
+  PointerEvent as ReactPointerEvent,
+  RefObject,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+} from 'react'
 import { CellPoint } from './pixel-world.types'
 import { GRID_HEIGHT, GRID_WIDTH } from './data'
 
@@ -15,13 +22,30 @@ function clamp(value: number, max: number): number {
 
 /**
  * Turns pointer positions into grid cells and reports each drag segment. One path covers mouse,
- * touch and pen; pointer capture keeps a drag alive after it leaves the canvas.
+ * touch and pen; pointer capture keeps a drag alive after it leaves the canvas. Holding still keeps
+ * painting: the last cell is restamped every frame, so a held pointer pours a stream.
  */
 export function usePointerBrush(
   canvasRef: RefObject<HTMLCanvasElement | null>,
   onStroke: (from: CellPoint, to: CellPoint) => void
 ): PointerBrushHandlers {
   const lastRef = useRef<CellPoint | null>(null)
+
+  // Read through a ref so changing material or brush size mid-stroke doesn't restart the loop.
+  const strokeRef = useRef(onStroke)
+  strokeRef.current = onStroke
+
+  useEffect(() => {
+    let frame = requestAnimationFrame(pour)
+
+    function pour() {
+      frame = requestAnimationFrame(pour)
+      const held = lastRef.current
+      if (held) strokeRef.current(held, held)
+    }
+
+    return () => cancelAnimationFrame(frame)
+  }, [])
 
   const toCell = useCallback(
     (clientX: number, clientY: number): CellPoint | null => {

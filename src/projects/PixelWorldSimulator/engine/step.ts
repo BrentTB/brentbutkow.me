@@ -30,15 +30,28 @@ function stepCell(grid: Grid, rng: Rng, x: number, y: number): void {
 
   const material = MATERIALS[id]
   if (material.behavior === MaterialBehavior.powder) {
+    if (sinkingStalled(grid, rng, x, y, material.density)) return
     fall(grid, rng, x, y, from)
     return
   }
   if (material.behavior === MaterialBehavior.liquid) {
+    if (sinkingStalled(grid, rng, x, y, material.density)) return
     if (fall(grid, rng, x, y, from)) return
     const dir = rng.chance(0.5) ? 1 : -1
     if (flow(grid, x, y, from, dir, material.dispersion)) return
     flow(grid, x, y, from, -dir, material.dispersion)
   }
+}
+
+/**
+ * Sinking through a fluid is slower than falling through air: a cell above something lighter than
+ * itself loses this tick with that fluid's `drag` chance. Equal-density neighbours are the same
+ * fluid, which shouldn't slow its own levelling.
+ */
+function sinkingStalled(grid: Grid, rng: Rng, x: number, y: number, density: number): boolean {
+  if (y + 1 >= grid.height) return false
+  const below = MATERIALS[grid.material[cellIndex(grid, x, y + 1)]]
+  return below.drag > 0 && below.density < density && rng.chance(below.drag)
 }
 
 /** Straight down, then the two diagonals in a random order — the pile-forming rule. */
