@@ -115,8 +115,8 @@ export const MATERIALS: readonly Material[] = [
     conductivity: 0.1,
     // Dry leaves: catches at the lowest temperature of anything and flashes over in a moment.
     ignite: { at: 110, ticks: 14, heat: 540, into: MaterialId.ash },
-    // Growth budget. Generous, because a vine that stops after five cells reads as broken.
-    uses: 40,
+    // Growth budget: a plant fills out a patch and stops. Vine is the endless one.
+    uses: 20,
   },
   {
     id: MaterialId.ice,
@@ -257,5 +257,17 @@ export const MATERIALS: readonly Material[] = [
     expiresInto: MaterialId.smoke,
     clingsToFuel: true,
     emissive: true,
+  },
+  {
+    id: MaterialId.vine,
+    label: 'Vine',
+    behavior: MaterialBehavior.static,
+    density: 1000,
+    color: [54, 112, 84],
+    jitter: 18,
+    dispersion: 0,
+    drag: 0,
+    conductivity: 0.1,
+    ignite: { at: 120, ticks: 20, heat: 520, into: MaterialId.ash },
   },
 ]

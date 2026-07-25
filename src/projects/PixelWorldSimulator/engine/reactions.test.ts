@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { Grid, MaterialId } from '../pixel-world.types'
+import { stampCircle } from './brush'
 import { cellIndex, createGrid, placeMaterial } from './grid'
 import { MATERIALS } from './materials'
 import { createRng } from './rng'
@@ -161,6 +162,27 @@ describe('frost', () => {
     expect(grid.data[ice]).toBeGreaterThan(0)
   })
 
+  it('gives each cell its own rest length, so the sheet cannot freeze in lockstep', () => {
+    // Several cubes freeze in the same pass, so every rest here was handed out on the same tick. A
+    // shared cooldown makes them identical, and identical cooldowns wake the sheet together — which is
+    // what advanced the ice in pulses instead of a creep.
+    const grid = createGrid(40, 8)
+    for (let x = 2; x < 38; x += 3) {
+      put(grid, x, 3, MaterialId.ice)
+      put(grid, x, 4, MaterialId.water)
+    }
+
+    applyReactions(grid, createRng(17))
+
+    const rests = new Set<number>()
+    for (let index = 0; index < grid.material.length; index++) {
+      if (grid.material[index] === MaterialId.ice && grid.data[index] > 0)
+        rests.add(grid.data[index])
+    }
+
+    expect(rests.size).toBeGreaterThan(2)
+  })
+
   it('leaves ice alone with nothing to freeze', () => {
     const grid = createGrid(9, 9)
     const ice = put(grid, 4, 4, MaterialId.ice)
@@ -169,6 +191,102 @@ describe('frost', () => {
 
     expect(count(grid, MaterialId.ice)).toBe(1)
     expect(grid.material[ice]).toBe(MaterialId.ice)
+  })
+})
+
+describe('vines', () => {
+  const floodedPool = (size: number, seed: MaterialId) => {
+    const grid = createGrid(size, size)
+    for (let x = 0; x < size; x++) {
+      for (let y = 0; y < size; y++) put(grid, x, y, MaterialId.water)
+    }
+    put(grid, size >> 1, size >> 1, seed)
+    return grid
+  }
+
+  it('keeps growing long past the point a plant runs out', () => {
+    const budget = MATERIALS[MaterialId.plant].uses ?? 0
+    const vines = floodedPool(30, MaterialId.vine)
+    const plants = floodedPool(30, MaterialId.plant)
+
+    react(vines, 6000)
+    react(plants, 6000)
+
+    expect(count(plants, MaterialId.plant)).toBeLessThanOrEqual(budget + 1)
+    expect(count(vines, MaterialId.vine)).toBeGreaterThan((budget + 1) * 4)
+  })
+
+  it('grows from a painted blob, not just from a lone seed', () => {
+    const grid = createGrid(40, 40)
+    for (let x = 0; x < 40; x++) {
+      for (let y = 0; y < 40; y++) put(grid, x, y, MaterialId.water)
+    }
+    // What a brush stroke actually leaves: a disc whose cells are all surrounded by their own kind.
+    stampCircle(grid, 20, 20, 5, MaterialId.vine)
+    const painted = count(grid, MaterialId.vine)
+
+    react(grid, 4000, 13)
+
+    // Testing crowding on the grower as well as the target made painted vine completely inert.
+    expect(count(grid, MaterialId.vine)).toBeGreaterThan(painted * 3)
+  })
+
+  it('leaves water in the gaps instead of filling solid', () => {
+    const grid = floodedPool(30, MaterialId.vine)
+
+    react(grid, 12000)
+
+    // Growth has run itself out by now, and it should still be a tangle rather than a green block.
+    const filled = count(grid, MaterialId.vine) / (30 * 30)
+    expect(filled).toBeGreaterThan(0.2)
+    expect(filled).toBeLessThan(0.75)
+    expect(count(grid, MaterialId.water)).toBeGreaterThan(0)
+  })
+
+  it('never thickens into a solid mass', () => {
+    const grid = floodedPool(30, MaterialId.vine)
+
+    react(grid, 12000)
+
+    // Growth from a single seed can wander anywhere, but it can never close up: a filled 3x3 means the
+    // middle cell took eight vine neighbours, which the crowding rule exists to refuse.
+    const isVine = (x: number, y: number) =>
+      grid.material[cellIndex(grid, x, y)] === MaterialId.vine
+    let solidBlocks = 0
+    for (let x = 1; x < 29; x++) {
+      for (let y = 1; y < 29; y++) {
+        let filled = 0
+        for (let dx = -1; dx <= 1; dx++) {
+          for (let dy = -1; dy <= 1; dy++) if (isVine(x + dx, y + dy)) filled++
+        }
+        if (filled === 9) solidBlocks++
+      }
+    }
+
+    expect(solidBlocks).toBe(0)
+  })
+
+  it('needs water and will not creep through air', () => {
+    const grid = createGrid(9, 9)
+    put(grid, 4, 4, MaterialId.vine)
+
+    react(grid, 2000)
+
+    expect(count(grid, MaterialId.vine)).toBe(1)
+  })
+
+  it('carries on once fresh water arrives', () => {
+    const grid = createGrid(20, 12)
+    put(grid, 10, 6, MaterialId.vine)
+    react(grid, 500)
+    expect(count(grid, MaterialId.vine)).toBe(1)
+
+    for (let x = 8; x < 13; x++) {
+      for (let y = 3; y < 6; y++) put(grid, x, y, MaterialId.water)
+    }
+    react(grid, 2000)
+
+    expect(count(grid, MaterialId.vine)).toBeGreaterThan(1)
   })
 })
 
@@ -181,6 +299,26 @@ describe('plants', () => {
     react(grid, 500)
 
     expect(count(grid, MaterialId.plant)).toBeGreaterThan(1)
+  })
+
+  it('usually takes a drop that is only touching for a single tick', () => {
+    // One tick of contact is one roll of the growth chance, so this is a claim about the rate: across
+    // independent attempts a decent share have to land. At the old 0.09 chance fewer than two of
+    // twenty would, which is why the gap under a plant felt like a wall no matter how long you poured.
+    const attempts = 20
+    let caught = 0
+
+    for (let seed = 1; seed <= attempts; seed++) {
+      const grid = createGrid(9, 12)
+      put(grid, 4, 4, MaterialId.plant)
+      const drop = cellIndex(grid, 4, 5)
+      placeMaterial(grid, drop, MaterialId.water)
+
+      applyReactions(grid, createRng(seed))
+      if (grid.material[drop] === MaterialId.plant) caught++
+    }
+
+    expect(caught).toBeGreaterThan(attempts / 3)
   })
 
   it('spreads a visible vine through a pool, not a couple of cells', () => {
@@ -221,28 +359,33 @@ describe('plants', () => {
   })
 
   it('reaches into every direction rather than only up', () => {
-    const grid = createGrid(21, 21)
-    for (let x = 0; x < 21; x++) {
-      for (let y = 0; y < 21; y++) put(grid, x, y, MaterialId.water)
-    }
-    put(grid, 10, 10, MaterialId.plant)
+    // Across seeds, because one vine's worth of budget is short enough that a single run can happen to
+    // wander only upward. A strict up-first scan grew flat-bottomed blobs every time.
+    const seeds = 6
+    let grewDownward = 0
+    let grewUpward = 0
 
-    react(grid, 4000)
-
-    const rowsWithPlant = new Set<number>()
-    const colsWithPlant = new Set<number>()
-    for (let x = 0; x < 21; x++) {
-      for (let y = 0; y < 21; y++) {
-        if (grid.material[cellIndex(grid, x, y)] !== MaterialId.plant) continue
-        rowsWithPlant.add(y)
-        colsWithPlant.add(x)
+    for (let seed = 1; seed <= seeds; seed++) {
+      const grid = createGrid(21, 21)
+      for (let x = 0; x < 21; x++) {
+        for (let y = 0; y < 21; y++) put(grid, x, y, MaterialId.water)
       }
+      put(grid, 10, 10, MaterialId.plant)
+
+      react(grid, 4000, seed)
+
+      const rows = new Set<number>()
+      for (let x = 0; x < 21; x++) {
+        for (let y = 0; y < 21; y++) {
+          if (grid.material[cellIndex(grid, x, y)] === MaterialId.plant) rows.add(y)
+        }
+      }
+      if (Math.max(...rows) > 10) grewDownward++
+      if (Math.min(...rows) < 10) grewUpward++
     }
 
-    // A strict up-first scan grew a flat-bottomed blob that never left its own row downward.
-    expect(Math.max(...rowsWithPlant)).toBeGreaterThan(10)
-    expect(Math.min(...rowsWithPlant)).toBeLessThan(10)
-    expect(colsWithPlant.size).toBeGreaterThan(2)
+    expect(grewDownward).toBeGreaterThan(seeds / 2)
+    expect(grewUpward).toBeGreaterThan(seeds / 2)
   })
 
   it('leaves a ragged edge rather than a smooth disc', () => {

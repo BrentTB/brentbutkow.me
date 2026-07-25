@@ -16,6 +16,7 @@ export const MaterialId = {
   smoke: 14,
   methane: 15,
   fire: 16,
+  vine: 17,
 } as const
 export type MaterialId = (typeof MaterialId)[keyof typeof MaterialId]
 

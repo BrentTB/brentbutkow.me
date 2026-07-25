@@ -28,6 +28,7 @@ export const PAINTABLE_MATERIALS: readonly MaterialId[] = [
   MaterialId.dirt,
   MaterialId.wood,
   MaterialId.plant,
+  MaterialId.vine,
   MaterialId.ice,
   MaterialId.glass,
   MaterialId.oil,

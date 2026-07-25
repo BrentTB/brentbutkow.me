@@ -89,6 +89,22 @@ describe('MATERIALS', () => {
     expect(oil?.at).toBeLessThan(wood?.at ?? 0)
   })
 
+  it('gives plant a growth budget and vine none', () => {
+    // The whole distinction between the two: a plant fills a patch and stops, a vine never does. Give
+    // vine a budget and it becomes a second plant; take plant's away and it becomes a second vine.
+    expect(MATERIALS[MaterialId.plant].uses).toBeGreaterThan(0)
+    expect(MATERIALS[MaterialId.vine].uses).toBeUndefined()
+  })
+
+  it('makes vine as flammable as plant', () => {
+    const plant = MATERIALS[MaterialId.plant].ignite
+    const vine = MATERIALS[MaterialId.vine].ignite
+
+    expect(vine).toBeDefined()
+    expect(vine?.at).toBeLessThan(MATERIALS[MaterialId.wood].ignite?.at ?? 0)
+    expect(vine?.into).toBe(plant?.into)
+  })
+
   it('keeps every per-cell counter inside the byte that holds it', () => {
     for (const material of MATERIALS) {
       if (material.lifetime !== undefined) expect(material.lifetime).toBeLessThanOrEqual(255)

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { Grid, MaterialId } from '../pixel-world.types'
+import { stampCircle } from './brush'
 import { cellIndex, createGrid, placeMaterial } from './grid'
 import { createRng } from './rng'
 import { tickWorld } from './tick'
@@ -62,6 +63,69 @@ describe('tickWorld', () => {
     expect(count(grid, MaterialId.lava)).toBe(0)
     expect(count(grid, MaterialId.stone)).toBeGreaterThan(24 + 2 * 20 - 4)
     expect(count(grid, MaterialId.steam) + count(grid, MaterialId.water)).toBeGreaterThan(0)
+  })
+
+  it('lets a plant catch water held against the gap under it', () => {
+    const grid = withVessel(20, 20)
+    for (let x = 8; x < 12; x++) {
+      for (let y = 10; y < 13; y++) put(grid, x, y, MaterialId.plant)
+    }
+    const plantBefore = count(grid, MaterialId.plant)
+
+    // Holding the water brush against its underside, through the brush so the paint hierarchy applies.
+    // Gravity clears the drop on every movement pass, so the plant only ever sees it in the window
+    // before the world moves.
+    const rng = createRng(2024)
+    for (let tick = 0; tick < 20; tick++) {
+      stampCircle(grid, 9, 13, 1, MaterialId.water)
+      tickWorld(grid, rng, tick)
+    }
+
+    // Stepping before the reactions left the drop a row lower than the plant every single tick, so no
+    // amount of pouring could ever close the gap.
+    expect(count(grid, MaterialId.plant)).toBeGreaterThan(plantBefore)
+  })
+
+  it('lets ice catch water held against the gap under it', () => {
+    const grid = withVessel(20, 20)
+    for (let x = 8; x < 12; x++) {
+      for (let y = 10; y < 13; y++) put(grid, x, y, MaterialId.ice)
+    }
+    const iceBefore = count(grid, MaterialId.ice)
+
+    const rng = createRng(2024)
+    for (let tick = 0; tick < 20; tick++) {
+      stampCircle(grid, 9, 13, 1, MaterialId.water)
+      tickWorld(grid, rng, tick)
+    }
+
+    expect(count(grid, MaterialId.ice)).toBeGreaterThan(iceBefore)
+  })
+
+  it('spreads frost at a steady creep rather than in pulses', () => {
+    const grid = withVessel(40, 30)
+    for (let x = 1; x < 39; x++) {
+      for (let y = 20; y < 29; y++) put(grid, x, y, MaterialId.water)
+    }
+    put(grid, 20, 24, MaterialId.ice)
+
+    // Frozen cells per half second. One shared cooldown phase-locks the sheet: batches freeze together,
+    // rest together, and wake together, which reads as a pulse rather than as ice creeping.
+    const perWindow: number[] = []
+    let previous = 1
+    const rng = createRng(5)
+    for (let tick = 1; tick <= 900; tick++) {
+      tickWorld(grid, rng, tick)
+      if (tick % 30 !== 0) continue
+      const ice = count(grid, MaterialId.ice)
+      perWindow.push(ice - previous)
+      previous = ice
+    }
+
+    const busiest = Math.max(...perWindow)
+    const quietWindows = perWindow.filter((frozen) => frozen === 0).length
+    expect(busiest).toBeLessThan(20)
+    expect(quietWindows).toBeLessThan(4)
   })
 
   it('turns a splash of lava into stone when it lands in a pool', () => {

@@ -6,13 +6,20 @@ import { advanceTimers } from './timers'
 import { applyReactions } from './reactions'
 
 /**
- * One world tick, in order: things move, heat spreads and transforms what it touches, clocks run
- * down, then chemistry happens. Movement goes first so a falling drop of water meets the lava this
- * tick rather than next one.
+ * One world tick: chemistry acts on the world as it stands, then things move, then heat spreads and
+ * transforms what it touches, then clocks run down.
+ *
+ * **Chemistry goes before movement, and that ordering is load-bearing.** The brush paints between
+ * ticks, so a drop poured under a plant or an ice cube is adjacent to it only until the next movement
+ * pass — with movement first, that drop was always a row lower by the time contact reactions looked,
+ * leaving a permanent one-cell gap under any solid that no amount of pouring could close.
+ *
+ * Heat stays after movement so a cell's temperature travels with it, and the timers stay after heat so
+ * a cell lit this tick starts burning down from its full count.
  */
 export function tickWorld(grid: Grid, rng: Rng, tick: number): void {
+  applyReactions(grid, rng)
   step(grid, rng, tick)
   simulateHeat(grid)
   advanceTimers(grid, rng)
-  applyReactions(grid, rng)
 }
