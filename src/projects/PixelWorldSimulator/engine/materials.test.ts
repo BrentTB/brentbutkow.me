@@ -1,0 +1,195 @@
+import { describe, it, expect } from 'vitest'
+import { MaterialBehavior, MaterialId } from '../pixel-world.types'
+import { MATERIALS, canPaintOver, isBurning } from './materials'
+
+const FLUIDS: readonly MaterialBehavior[] = [MaterialBehavior.liquid, MaterialBehavior.gas]
+
+describe('MATERIALS', () => {
+  it('is indexed by MaterialId', () => {
+    MATERIALS.forEach((material, index) => expect(material.id).toBe(index))
+    expect(MATERIALS).toHaveLength(Object.keys(MaterialId).length)
+  })
+
+  it('orders densities so sand sinks, oil floats, and gases rise through both', () => {
+    expect(MATERIALS[MaterialId.sand].density).toBeGreaterThan(MATERIALS[MaterialId.water].density)
+    expect(MATERIALS[MaterialId.water].density).toBeGreaterThan(MATERIALS[MaterialId.oil].density)
+    expect(MATERIALS[MaterialId.oil].density).toBeGreaterThan(MATERIALS[MaterialId.steam].density)
+    expect(MATERIALS[MaterialId.lava].density).toBeGreaterThan(MATERIALS[MaterialId.water].density)
+  })
+
+  it('gives every fluid room to spread and every solid none', () => {
+    for (const material of MATERIALS) {
+      if (FLUIDS.includes(material.behavior)) {
+        expect(material.dispersion).toBeGreaterThan(0)
+      } else {
+        expect(material.dispersion).toBe(0)
+      }
+    }
+  })
+
+  it('keeps jitter from darkening a colour below black', () => {
+    for (const material of MATERIALS) {
+      for (const channel of material.color) {
+        expect(channel - material.jitter).toBeGreaterThanOrEqual(0)
+      }
+    }
+  })
+
+  it('only lets emissive materials clip the top of the byte range', () => {
+    for (const material of MATERIALS) {
+      if (material.emissive) continue
+      for (const channel of material.color) {
+        expect(channel + material.jitter).toBeLessThanOrEqual(255)
+      }
+    }
+  })
+
+  it('gives every material a sane share of the heat gradient', () => {
+    for (const material of MATERIALS) {
+      expect(material.conductivity).toBeGreaterThan(0)
+      expect(material.conductivity).toBeLessThanOrEqual(1)
+    }
+  })
+
+  it('orders every pair of temperature thresholds', () => {
+    for (const material of MATERIALS) {
+      if (material.hot && material.cold) expect(material.cold.at).toBeLessThan(material.hot.at)
+      // Freezing into something that melts straight back would flicker forever.
+      if (material.cold) {
+        const frozen = MATERIALS[material.cold.into]
+        if (frozen.hot) expect(frozen.hot.at).toBeGreaterThan(material.cold.at)
+      }
+    }
+  })
+
+  it('gives every gas somewhere to go when its lifetime runs out', () => {
+    for (const material of MATERIALS) {
+      if (material.lifetime === undefined) continue
+      expect(material.lifetime).toBeGreaterThan(0)
+      expect(material.expiresInto).toBeDefined()
+    }
+  })
+
+  it('gives every fuel a burn time, a flame hotter than its ignition point, and a residue', () => {
+    for (const material of MATERIALS) {
+      if (material.ignite === undefined) continue
+      expect(material.ignite.ticks).toBeGreaterThan(0)
+      expect(material.ignite.heat).toBeGreaterThan(material.ignite.at)
+      expect(MATERIALS[material.ignite.into]).toBeDefined()
+    }
+  })
+
+  it('catches easiest as plant, then oil, then wood, and burns out in that order too', () => {
+    const plant = MATERIALS[MaterialId.plant].ignite
+    const wood = MATERIALS[MaterialId.wood].ignite
+    const oil = MATERIALS[MaterialId.oil].ignite
+
+    expect(plant?.at).toBeLessThan(oil?.at ?? 0)
+    expect(oil?.at).toBeLessThan(wood?.at ?? 0)
+
+    expect(plant?.ticks).toBeLessThan((wood?.ticks ?? 0) / 2)
+    expect(plant?.ticks).toBeLessThan(oil?.ticks ?? 0)
+    expect(oil?.ticks).toBeLessThan(wood?.ticks ?? 0)
+  })
+
+  it('gives plant a growth budget and vine none', () => {
+    // The whole distinction between the two: a plant fills a patch and stops, a vine never does. Give
+    // vine a budget and it becomes a second plant; take plant's away and it becomes a second vine.
+    expect(MATERIALS[MaterialId.plant].uses).toBeGreaterThan(0)
+    expect(MATERIALS[MaterialId.vine].uses).toBeUndefined()
+  })
+
+  it('makes vine as flammable as plant', () => {
+    const plant = MATERIALS[MaterialId.plant].ignite
+    const vine = MATERIALS[MaterialId.vine].ignite
+
+    expect(vine).toBeDefined()
+    expect(vine?.at).toBeLessThan(MATERIALS[MaterialId.wood].ignite?.at ?? 0)
+    expect(vine?.into).toBe(plant?.into)
+  })
+
+  it('only puts a repose angle on powders and buoyancy on gases', () => {
+    for (const material of MATERIALS) {
+      if (material.steep === true) expect(material.behavior).toBe(MaterialBehavior.powder)
+      if (material.sinks === true) expect(material.behavior).toBe(MaterialBehavior.gas)
+    }
+  })
+
+  it('gives a spark somewhere to run', () => {
+    const conductors = MATERIALS.filter((material) => material.conductive === true)
+
+    expect(conductors.length).toBeGreaterThan(1)
+    // Metal is the wire; water and brine are the accident waiting to happen.
+    expect(conductors.map((material) => material.id)).toContain(MaterialId.metal)
+    expect(conductors.map((material) => material.id)).toContain(MaterialId.water)
+  })
+
+  it('only lets a solid soak up liquid', () => {
+    for (const material of MATERIALS) {
+      if (material.absorbs === undefined) continue
+      expect(material.behavior).toBe(MaterialBehavior.static)
+      expect(material.absorbs).toBeGreaterThan(0)
+      expect(material.absorbs).toBeLessThanOrEqual(255)
+    }
+  })
+
+  it('gives liquid nitrogen no clock, so a spill cannot vanish all at once', () => {
+    const nitrogen = MATERIALS[MaterialId.nitrogen]
+
+    // Evaporation is a surface effect in reactions.ts. A lifetime is handed out at paint time, so every
+    // cell of a spill counted down together and the whole puddle disappeared on one tick.
+    expect(nitrogen.lifetime).toBeUndefined()
+    expect(nitrogen.selfHeat).toBeLessThan(0)
+  })
+
+  it('runs a spark hotter than wood needs to catch', () => {
+    const spark = MATERIALS[MaterialId.spark].selfHeat ?? 0
+    const woodCatches = MATERIALS[MaterialId.wood].ignite?.at ?? 0
+
+    // A spark leaves the wire it travels hot behind it. Cooler than this and an electrified bar cannot
+    // light a plank lying against it, which is the first thing anyone tries with metal.
+    expect(spark).toBeGreaterThan(woodCatches)
+  })
+
+  it('keeps every per-cell counter inside the byte that holds it', () => {
+    for (const material of MATERIALS) {
+      if (material.lifetime !== undefined) expect(material.lifetime).toBeLessThanOrEqual(255)
+      if (material.uses !== undefined) expect(material.uses).toBeLessThanOrEqual(255)
+      if (material.ignite !== undefined) expect(material.ignite.ticks).toBeLessThanOrEqual(255)
+    }
+  })
+})
+
+describe('canPaintOver', () => {
+  it('paints solids over fluids and never the reverse', () => {
+    expect(canPaintOver(MaterialId.stone, MaterialId.water)).toBe(true)
+    expect(canPaintOver(MaterialId.sand, MaterialId.water)).toBe(true)
+    expect(canPaintOver(MaterialId.water, MaterialId.stone)).toBe(false)
+    expect(canPaintOver(MaterialId.water, MaterialId.sand)).toBe(false)
+  })
+
+  it('treats gases as the loosest thing above air', () => {
+    expect(canPaintOver(MaterialId.water, MaterialId.steam)).toBe(true)
+    expect(canPaintOver(MaterialId.steam, MaterialId.water)).toBe(false)
+    expect(canPaintOver(MaterialId.steam, MaterialId.empty)).toBe(true)
+  })
+
+  it('paints through a gas with anything, including another gas', () => {
+    // Otherwise a cell's own smoke smothers the fire brush and holding a flame there does nothing.
+    expect(canPaintOver(MaterialId.fire, MaterialId.smoke)).toBe(true)
+    expect(canPaintOver(MaterialId.smoke, MaterialId.steam)).toBe(true)
+    expect(canPaintOver(MaterialId.stone, MaterialId.smoke)).toBe(true)
+  })
+
+  it('erases anything', () => {
+    expect(canPaintOver(MaterialId.empty, MaterialId.stone)).toBe(true)
+    expect(canPaintOver(MaterialId.empty, MaterialId.lava)).toBe(true)
+  })
+})
+
+describe('isBurning', () => {
+  it('is true only while a burn timer is running', () => {
+    expect(isBurning(0)).toBe(false)
+    expect(isBurning(1)).toBe(true)
+  })
+})

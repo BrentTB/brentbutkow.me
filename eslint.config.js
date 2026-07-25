@@ -67,9 +67,13 @@ export default tseslint.config(
     },
   },
   {
-    // Game engine must stay deterministic: no wall-clock / unseeded randomness. Use the seeded rng
-    // and thread time through state (the engine contract is pure (state, dt) -> state).
-    files: ['**/projects/NullSpace/engine/**/*.{ts,tsx}'],
+    // Game engines must stay deterministic: no wall-clock / unseeded randomness. Use the seeded rng
+    // and thread time through state (the engine contract is pure (state, dt) -> state). Grain's
+    // engine is seeded from the page layer, so its rng module needs no exemption.
+    files: [
+      '**/projects/NullSpace/engine/**/*.{ts,tsx}',
+      '**/projects/PixelWorldSimulator/engine/**/*.{ts,tsx}',
+    ],
     rules: {
       'no-restricted-properties': [
         'error',

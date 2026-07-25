@@ -1,0 +1,103 @@
+.palette {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+// The group tabs and Erase share a line: Erase is a tool, so it sits apart from the material rows and
+// stays reachable whichever group is open.
+.groups {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  // Holds the row height steady as groups of different sizes swap in, so the controls below don't jump.
+  min-height: 66px;
+  align-content: flex-start;
+}
+
+// The swatch shows the material's own colour, read from the same table the canvas paints from —
+// the palette is the material list, not a copy of it.
+.swatch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px 7px 9px;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    color 0.18s ease;
+
+  &:hover {
+    border-color: var(--border-strong);
+    color: var(--text);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  &[aria-pressed='true'] {
+    color: var(--text);
+    background: var(--surface-strong);
+    border-color: var(--accent);
+  }
+}
+
+.chip {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+}
+
+// Erase has no colour of its own, so its chip reads as a gap: an empty dashed outline that picks up
+// whatever the swatch sits on, in either mode.
+.erase .chip {
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+}
+
+// Sits with the group tabs rather than above them: finding a material is another way of choosing one.
+.search {
+  width: 150px;
+  padding: 7px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text);
+  background: var(--surface-strong);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+
+  &::placeholder {
+    color: var(--muted);
+  }
+
+  &:focus-visible {
+    border-color: var(--accent);
+    outline: none;
+  }
+}
+
+.noMatch {
+  margin: 0;
+  align-self: center;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}

@@ -30,6 +30,12 @@ first tool calls of your first turn. Stop only if told to.
 - **After** all edits in a turn that add or change **user-facing copy** (rendered strings, content,
   `data.ts` copy), invoke the **humanizer** skill on that copy to strip AI-writing tells — skip comments,
   code, and identifiers. A Stop hook reminds you at end of turn. If no human-facing text changed, skip it.
+- **Internal requirements are not user-facing copy.** A design constraint that exists to keep the team
+  honest ("no score, nothing to unlock", "deterministic so it's testable", "60k cells at 60 Hz",
+  "phase 1 ships four materials") belongs in the spec, the changelog, or a code comment — not in a
+  tagline. Visitors did not read the brief and do not care what the thing is deliberately _not_.
+  Write copy that says what the page does and what's fun about it; keep implementation numbers,
+  scope boundaries, and internal contrasts out of it unless they're genuinely the selling point.
 
 ### Runbook skills (execution-verified)
 

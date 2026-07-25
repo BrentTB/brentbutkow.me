@@ -1,0 +1,431 @@
+import { describe, it, expect } from 'vitest'
+import { Grid, MaterialId } from '../pixel-world.types'
+import { AMBIENT_TEMPERATURE } from '../data'
+import { cellIndex, createGrid, placeMaterial } from './grid'
+import { createRng } from './rng'
+import { step } from './step'
+
+function set(grid: Grid, x: number, y: number, material: MaterialId): void {
+  placeMaterial(grid, cellIndex(grid, x, y), material)
+}
+
+function at(grid: Grid, x: number, y: number): number {
+  return grid.material[cellIndex(grid, x, y)]
+}
+
+function count(grid: Grid, material: MaterialId): number {
+  return grid.material.reduce((total, cell) => (cell === material ? total + 1 : total), 0)
+}
+
+function run(grid: Grid, ticks: number, seed = 1234): void {
+  const rng = createRng(seed)
+  for (let tick = 0; tick < ticks; tick++) step(grid, rng, tick)
+}
+
+/** Stone floor along the bottom row and stone walls down both sides. */
+function withVessel(width: number, height: number): Grid {
+  const grid = createGrid(width, height)
+  for (let x = 0; x < width; x++) set(grid, x, height - 1, MaterialId.stone)
+  for (let y = 0; y < height; y++) {
+    set(grid, 0, y, MaterialId.stone)
+    set(grid, width - 1, y, MaterialId.stone)
+  }
+  return grid
+}
+
+/** Topmost row holding `material` per column, or null for a column without any. */
+function surfaceHeights(grid: Grid, material: MaterialId): (number | null)[] {
+  return Array.from({ length: grid.width }, (_, x) => {
+    for (let y = 0; y < grid.height; y++) if (at(grid, x, y) === material) return y
+    return null
+  })
+}
+
+describe('step', () => {
+  it('reproduces a run exactly from the same seed', () => {
+    const build = () => {
+      const grid = withVessel(40, 30)
+      for (let x = 5; x < 35; x++) {
+        for (let y = 2; y < 8; y++)
+          set(grid, x, y, x % 3 === 0 ? MaterialId.water : MaterialId.sand)
+      }
+      return grid
+    }
+
+    const first = build()
+    const second = build()
+    run(first, 200, 77)
+    run(second, 200, 77)
+
+    expect(Array.from(first.material)).toEqual(Array.from(second.material))
+  })
+
+  it('conserves every material — cells move, they are never created or destroyed', () => {
+    const grid = withVessel(40, 30)
+    for (let x = 4; x < 36; x++) {
+      for (let y = 1; y < 12; y++) set(grid, x, y, y % 2 === 0 ? MaterialId.sand : MaterialId.water)
+    }
+    const before = {
+      sand: count(grid, MaterialId.sand),
+      water: count(grid, MaterialId.water),
+      stone: count(grid, MaterialId.stone),
+    }
+
+    run(grid, 300)
+
+    expect(count(grid, MaterialId.sand)).toBe(before.sand)
+    expect(count(grid, MaterialId.water)).toBe(before.water)
+    expect(count(grid, MaterialId.stone)).toBe(before.stone)
+  })
+
+  it('settles sand with nothing hanging in the air', () => {
+    const grid = withVessel(30, 40)
+    for (let y = 2; y < 20; y++) set(grid, 15, y, MaterialId.sand)
+
+    run(grid, 400)
+
+    for (let y = 0; y < grid.height; y++) {
+      for (let x = 0; x < grid.width; x++) {
+        if (at(grid, x, y) !== MaterialId.sand) continue
+        const below = at(grid, x, y + 1)
+        expect(below === MaterialId.sand || below === MaterialId.stone).toBe(true)
+      }
+    }
+  })
+
+  it('levels water across a vessel', () => {
+    const grid = withVessel(40, 30)
+    for (let x = 2; x < 8; x++) {
+      for (let y = 4; y < 28; y++) set(grid, x, y, MaterialId.water)
+    }
+
+    run(grid, 1500)
+
+    const surfaces = surfaceHeights(grid, MaterialId.water).filter(
+      (height): height is number => height !== null
+    )
+    expect(Math.max(...surfaces) - Math.min(...surfaces)).toBeLessThanOrEqual(1)
+  })
+
+  it('packs a poured liquid solid, leaving no air trapped under water', () => {
+    const grid = withVessel(40, 30)
+    for (let x = 2; x < 8; x++) {
+      for (let y = 4; y < 28; y++) set(grid, x, y, MaterialId.water)
+    }
+
+    run(grid, 1500)
+
+    for (let y = 0; y < grid.height - 1; y++) {
+      for (let x = 0; x < grid.width; x++) {
+        if (at(grid, x, y) !== MaterialId.water) continue
+        expect(at(grid, x, y + 1)).not.toBe(MaterialId.empty)
+      }
+    }
+  })
+
+  it('sinks sand through water', () => {
+    const grid = withVessel(20, 30)
+    for (let x = 1; x < 19; x++) {
+      for (let y = 10; y < 29; y++) set(grid, x, y, MaterialId.water)
+    }
+    for (let x = 8; x < 12; x++) set(grid, x, 2, MaterialId.sand)
+
+    run(grid, 600)
+
+    // Every grain ends below the water surface in its own column.
+    const waterRows = surfaceHeights(grid, MaterialId.water)
+    expect(count(grid, MaterialId.sand)).toBe(4)
+    expect(waterRows.filter((row) => row !== null).length).toBeGreaterThan(10)
+    for (let x = 0; x < grid.width; x++) {
+      for (let y = 0; y < grid.height; y++) {
+        if (at(grid, x, y) !== MaterialId.sand) continue
+        const waterTop = waterRows[x]
+        if (waterTop !== null) expect(y).toBeGreaterThan(waterTop)
+      }
+    }
+  })
+
+  it('sinks sand through water more slowly than it drops through air', () => {
+    const depth = 20
+
+    // A sealed tank, so the medium can't drain sideways and leave the grain falling through air.
+    const ticksToFall = (medium: MaterialId) => {
+      const height = depth + 4
+      const grid = withVessel(9, height)
+      for (let x = 1; x < 8; x++) {
+        for (let y = 3; y < height - 1; y++) set(grid, x, y, medium)
+      }
+      set(grid, 4, 2, MaterialId.sand)
+
+      const bottom = height - 2
+      const rng = createRng(4242)
+      for (let tick = 0; tick < 2000; tick++) {
+        step(grid, rng, tick)
+        for (let x = 1; x < 8; x++) if (at(grid, x, bottom) === MaterialId.sand) return tick
+      }
+      return Infinity
+    }
+
+    const throughAir = ticksToFall(MaterialId.empty)
+    const throughWater = ticksToFall(MaterialId.water)
+
+    expect(throughAir).toBeLessThan(Infinity)
+    expect(throughWater).toBeLessThan(Infinity)
+    // Water's drag is 0.65, so sinking should take roughly 1/(1-0.65) as long. Assert the direction
+    // and a conservative factor rather than an exact count.
+    expect(throughWater).toBeGreaterThan(throughAir * 2)
+  })
+
+  it('seeps a liquid into a heap of ash instead of plunging through it', () => {
+    const settleTime = (bed: MaterialId) => {
+      const grid = withVessel(9, 24)
+      for (let x = 1; x < 8; x++) {
+        for (let y = 14; y < 23; y++) set(grid, x, y, bed)
+      }
+      set(grid, 4, 12, MaterialId.water)
+
+      const rng = createRng(808)
+      for (let tick = 0; tick < 4000; tick++) {
+        step(grid, rng, tick)
+        if (at(grid, 4, 22) === MaterialId.water) return tick
+      }
+      return Infinity
+    }
+
+    const throughAir = settleTime(MaterialId.empty)
+    const throughAsh = settleTime(MaterialId.ash)
+
+    expect(throughAir).toBeLessThan(Infinity)
+    expect(throughAsh).toBeLessThan(Infinity)
+    // Ash has drag, so the drop soaks down through the heap rather than swapping straight past it.
+    expect(throughAsh).toBeGreaterThan(throughAir * 2)
+  })
+
+  it('lifts a gas to the ceiling', () => {
+    const grid = withVessel(12, 20)
+    set(grid, 6, 17, MaterialId.methane)
+
+    run(grid, 60)
+
+    expect(at(grid, 6, 17)).toBe(MaterialId.empty)
+    expect(surfaceHeights(grid, MaterialId.methane).some((row) => row === 0)).toBe(true)
+  })
+
+  it('floats a bubble up through water', () => {
+    const grid = withVessel(12, 20)
+    for (let x = 1; x < 11; x++) {
+      for (let y = 4; y < 19; y++) set(grid, x, y, MaterialId.water)
+    }
+    set(grid, 6, 17, MaterialId.methane)
+
+    run(grid, 60)
+
+    const bubble = surfaceHeights(grid, MaterialId.methane).find((row) => row !== null)
+    expect(bubble).toBeLessThan(5)
+  })
+
+  it('never lets a gas sink', () => {
+    const grid = withVessel(9, 12)
+    set(grid, 4, 2, MaterialId.smoke)
+
+    run(grid, 100)
+
+    for (let y = 3; y < 12; y++) expect(at(grid, 4, y)).not.toBe(MaterialId.smoke)
+  })
+
+  it('keeps a flame on its fuel instead of drifting off it', () => {
+    const grid = withVessel(9, 12)
+    set(grid, 4, 9, MaterialId.wood)
+    set(grid, 4, 8, MaterialId.fire)
+
+    run(grid, 60)
+
+    expect(at(grid, 4, 8)).toBe(MaterialId.fire)
+  })
+
+  it('lets a flame rise once its fuel is gone', () => {
+    const grid = withVessel(9, 12)
+    set(grid, 4, 8, MaterialId.fire)
+
+    run(grid, 60)
+
+    expect(at(grid, 4, 8)).toBe(MaterialId.empty)
+  })
+
+  it('carries a cell temperature and burn timer along with the material', () => {
+    const grid = withVessel(9, 12)
+    const start = cellIndex(grid, 4, 2)
+    set(grid, 4, 2, MaterialId.sand)
+    grid.temperature[start] = 640
+    grid.burn[start] = 25
+
+    run(grid, 40)
+
+    const landed = cellIndex(grid, 4, 10)
+    expect(at(grid, 4, 10)).toBe(MaterialId.sand)
+    expect(grid.temperature[landed]).toBe(640)
+    expect(grid.burn[landed]).toBe(25)
+    expect(grid.temperature[start]).toBe(AMBIENT_TEMPERATURE)
+  })
+
+  it('wakes the rows a hot cell moves between', () => {
+    const grid = withVessel(9, 12)
+    const start = cellIndex(grid, 4, 4)
+    set(grid, 4, 4, MaterialId.sand)
+    grid.temperature[start] = 900
+    grid.hotRows.fill(0)
+
+    run(grid, 1)
+
+    expect(grid.hotRows[4]).toBe(1)
+    expect(grid.hotRows[5]).toBe(1)
+  })
+
+  it('leaves the rows asleep when a cold cell moves', () => {
+    const grid = withVessel(9, 12)
+    set(grid, 4, 4, MaterialId.sand)
+    grid.hotRows.fill(0)
+
+    run(grid, 1)
+
+    expect(grid.hotRows.every((row) => row === 0)).toBe(true)
+  })
+
+  it('never displaces static material', () => {
+    const grid = createGrid(10, 10)
+    for (let x = 0; x < 10; x++) set(grid, x, 5, MaterialId.stone)
+    set(grid, 4, 1, MaterialId.sand)
+    set(grid, 6, 1, MaterialId.water)
+
+    run(grid, 200)
+
+    for (let x = 0; x < 10; x++) expect(at(grid, x, 5)).toBe(MaterialId.stone)
+    expect(count(grid, MaterialId.stone)).toBe(10)
+    for (let y = 6; y < 10; y++) {
+      for (let x = 0; x < 10; x++) expect(at(grid, x, y)).toBe(MaterialId.empty)
+    }
+  })
+
+  it('builds a pile centred on where it fell, without drifting sideways', () => {
+    const grid = withVessel(41, 30)
+    for (let y = 1; y < 20; y++) set(grid, 20, y, MaterialId.sand)
+
+    run(grid, 600)
+
+    let weighted = 0
+    let grains = 0
+    for (let y = 0; y < grid.height; y++) {
+      for (let x = 0; x < grid.width; x++) {
+        if (at(grid, x, y) !== MaterialId.sand) continue
+        weighted += x
+        grains++
+      }
+    }
+    expect(Math.abs(weighted / grains - 20)).toBeLessThan(1)
+  })
+})
+
+/** How wide the material's footprint is along one row — a heap's angle, measured. */
+function footprint(grid: Grid, material: MaterialId, row: number): number {
+  let leftmost = grid.width
+  let rightmost = -1
+  for (let x = 0; x < grid.width; x++) {
+    if (at(grid, x, row) !== material) continue
+    leftmost = Math.min(leftmost, x)
+    rightmost = Math.max(rightmost, x)
+  }
+  return rightmost < 0 ? 0 : rightmost - leftmost + 1
+}
+
+describe('heaps', () => {
+  it('piles gravel steeper than sand', () => {
+    const heapWidth = (material: MaterialId) => {
+      const grid = withVessel(61, 40)
+      const rng = createRng(808)
+      // Pour a fixed number of grains onto one spot and let the heap settle. Pouring until the vessel
+      // fills just measures the width of the vessel.
+      let poured = 0
+      for (let tick = 0; tick < 4000; tick++) {
+        if (poured < 220 && tick % 4 === 0 && at(grid, 30, 2) === MaterialId.empty) {
+          set(grid, 30, 2, material)
+          poured++
+        }
+        step(grid, rng, tick)
+      }
+      return footprint(grid, material, 38)
+    }
+
+    const sand = heapWidth(MaterialId.sand)
+    const gravel = heapWidth(MaterialId.gravel)
+
+    expect(gravel).toBeGreaterThan(0)
+    expect(gravel).toBeLessThan(sand)
+  })
+
+  it('creeps honey instead of letting it flow out flat', () => {
+    const puddleWidth = (material: MaterialId) => {
+      const grid = withVessel(41, 20)
+      for (let y = 10; y < 18; y++) set(grid, 20, y, material)
+
+      run(grid, 60)
+      return footprint(grid, material, 18)
+    }
+
+    expect(puddleWidth(MaterialId.honey)).toBeLessThan(puddleWidth(MaterialId.water))
+  })
+})
+
+describe('heavy gas', () => {
+  it('pours chlorine downward instead of letting it rise', () => {
+    const grid = withVessel(12, 20)
+    set(grid, 6, 3, MaterialId.chlorine)
+
+    run(grid, 120)
+
+    let lowest = -1
+    for (let y = 0; y < grid.height; y++) {
+      for (let x = 0; x < grid.width; x++) {
+        if (at(grid, x, y) === MaterialId.chlorine) lowest = Math.max(lowest, y)
+      }
+    }
+    expect(lowest).toBeGreaterThan(3)
+  })
+
+  it('leaves a ragged cloud rather than a level puddle', () => {
+    const surfaceSpread = (material: MaterialId) => {
+      const grid = withVessel(41, 24)
+      for (let x = 12; x < 29; x++) {
+        for (let y = 4; y < 10; y++) set(grid, x, y, material)
+      }
+
+      run(grid, 600)
+
+      const tops = surfaceHeights(grid, material).filter((row): row is number => row !== null)
+      return Math.max(...tops) - Math.min(...tops)
+    }
+
+    // Water levels: its surface is flat to within a cell. A gas has no surface tension to speak of, so
+    // its top edge stays uneven — falling every tick and then levelling made chlorine read as a liquid.
+    expect(surfaceSpread(MaterialId.water)).toBeLessThanOrEqual(1)
+    expect(surfaceSpread(MaterialId.chlorine)).toBeGreaterThan(3)
+  })
+
+  it('still floats chlorine on top of water', () => {
+    const grid = withVessel(12, 20)
+    for (let x = 1; x < 11; x++) {
+      for (let y = 12; y < 19; y++) set(grid, x, y, MaterialId.water)
+    }
+    set(grid, 6, 3, MaterialId.chlorine)
+
+    run(grid, 200)
+
+    expect(count(grid, MaterialId.chlorine)).toBe(1)
+    for (let x = 0; x < grid.width; x++) {
+      for (let y = 1; y < grid.height; y++) {
+        if (at(grid, x, y) !== MaterialId.chlorine) continue
+        // Denser than air so it sank this far, lighter than water so it rides on top rather than under.
+        expect(at(grid, x, y - 1)).not.toBe(MaterialId.water)
+      }
+    }
+  })
+})
