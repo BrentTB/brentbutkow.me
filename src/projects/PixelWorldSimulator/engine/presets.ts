@@ -413,19 +413,15 @@ function volcano(grid: Grid, rng: Rng): void {
   const crater = rim + 1
   const shaftFoot = floor - 4
 
-  // The crater is two sealed pockets split by a central stub, each with its own source told outright to make
-  // lava (its `data` set to it) so it pours from the start. Each pocket spills over its own lip down one face.
-  // Because each lip has its own supply and the bowl is floored off from the shaft below, lava crests both
-  // sides every time, instead of one pool draining down whichever lip happens to break first. Two sources, not
-  // one: a lone trickle crusts to stone at the rim and plugs the vent, where a pair keeps both lips pouring.
+  // A row of sources across the crater floor, left dormant rather than fed. They only start making lava once
+  // the column below rises far enough to touch them, so the crater fills and spills after the eruption has
+  // climbed rather than pouring from the first tick. A row of them, not one: a lone trickle crusts to stone at
+  // the rim and plugs the vent, while a full row keeps the crater brimming so it spills over both lips.
   fill(grid, middle - 3, rim, middle + 3, crater, MaterialId.empty)
   fill(grid, middle - 3, crater + 1, middle + 3, crater + 1, MaterialId.empty)
   fill(grid, middle - 4, rim, middle - 4, floor - 1, MaterialId.stone)
   fill(grid, middle + 4, rim, middle + 4, floor - 1, MaterialId.stone)
-  for (const s of [-2, 0, 2]) {
-    put(grid, middle + s, crater, MaterialId.source)
-    grid.data[cellIndex(grid, middle + s, crater)] = MaterialId.lava
-  }
+  fill(grid, middle - 1, crater - 1, middle + 1, crater, MaterialId.source)
 
   // The shaft below the crater is the mountain's molten interior, sealed off from the vent so it is glow, not
   // supply. It is webbed with tributaries — cracks that branch and sprawl through the rock like roots — so the
