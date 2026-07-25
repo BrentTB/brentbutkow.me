@@ -1,6 +1,17 @@
 import { Preset } from '../../engine/presets'
 import { BRUSH_RADIUS, PRESETS, SIM_SPEEDS } from '../../data'
+import { Select } from '../../../../components/inputs/Select'
+import type { SelectOption } from '../../../../components/inputs/option.types'
 import styles from './SimControls.module.scss'
+
+// The trigger sits on its placeholder rather than any one world, so picking a preset always reads as an
+// action ("load this") instead of a setting, and reloading the same one stays a click away. New presets
+// drop into this list without fighting the other controls for a button's worth of width.
+const PRESET_PROMPT = ''
+const presetOptions: SelectOption[] = [
+  { value: PRESET_PROMPT, label: 'Load a preset…', disabled: true },
+  ...PRESETS.map(({ preset, label }) => ({ value: preset, label })),
+]
 
 type SimControlsProps = {
   isPaused: boolean
@@ -64,17 +75,16 @@ export function SimControls({
         </div>
       </div>
 
-      {PRESETS.map(({ preset, label, title }) => (
-        <button
-          key={preset}
-          type="button"
-          className={styles.button}
-          title={title}
-          onClick={() => onLoad(preset)}
-        >
-          {label}
-        </button>
-      ))}
+      <Select
+        value={PRESET_PROMPT}
+        options={presetOptions}
+        ariaLabel="Load a preset"
+        triggerClassName={styles.presetTrigger}
+        onChange={(value) => {
+          const chosen = PRESETS.find(({ preset }) => preset === value)
+          if (chosen) onLoad(chosen.preset)
+        }}
+      />
 
       <label className={styles.slider}>
         Brush

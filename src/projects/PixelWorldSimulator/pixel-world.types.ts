@@ -43,6 +43,7 @@ export const MaterialId = {
   bird: 41,
   slime: 42,
   meat: 43,
+  ant: 44,
 } as const
 export type MaterialId = (typeof MaterialId)[keyof typeof MaterialId]
 
@@ -213,6 +214,18 @@ export type Velocity = {
   oy: number
 }
 
+/**
+ * The direction an ant is digging along, keyed by cell index. Sparse — only ants carry one. A single
+ * cell has no room to remember a direction: material, energy, burn and heat fill its bytes, so the
+ * heading lives in a side map, the same sparse shape as phase 4's velocity map. It is a heading store,
+ * not a physics one: the kinetic pass never reads it, so an ant keeps its bearing without being flung by
+ * gravity. Each axis is -1, 0 or 1, and both can be non-zero, so a heading can run on the diagonal.
+ */
+export type AntHeading = {
+  hx: number
+  hy: number
+}
+
 /** What the pointer does to the world. Paint is the material brush; the rest write forces or heat. */
 export const Tool = {
   paint: 'paint',
@@ -251,6 +264,11 @@ export type Grid = {
    * time: an explosion fills it for a second and it empties itself as the debris settles.
    */
   velocity: Map<number, Velocity>
+  /**
+   * The heading each ant is digging along, keyed by cell index. Sparse, like `velocity`, and moved by
+   * hand as an ant steps: the life pass is the only thing that reads or writes it.
+   */
+  heading: Map<number, AntHeading>
 }
 
 /** What is in the cell under the pointer. */

@@ -185,6 +185,15 @@ describe('canPaintOver', () => {
     expect(canPaintOver(MaterialId.empty, MaterialId.stone)).toBe(true)
     expect(canPaintOver(MaterialId.empty, MaterialId.lava)).toBe(true)
   })
+
+  it('lets an ant be drawn into the wood it nests in, but not into stone', () => {
+    // A colony starts as ants painted inside a log. Every other solid-on-solid brush is refused, so
+    // without this an ant could only be sprinkled on top and left to fall.
+    expect(canPaintOver(MaterialId.ant, MaterialId.wood)).toBe(true)
+    expect(canPaintOver(MaterialId.ant, MaterialId.plant)).toBe(true)
+    expect(canPaintOver(MaterialId.ant, MaterialId.stone)).toBe(false)
+    expect(canPaintOver(MaterialId.stone, MaterialId.wood)).toBe(false)
+  })
 })
 
 describe('isBurning', () => {

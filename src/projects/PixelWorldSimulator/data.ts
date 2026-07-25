@@ -133,6 +133,7 @@ export const MATERIAL_GROUPS: readonly {
       MaterialId.worm,
       MaterialId.bird,
       MaterialId.slime,
+      MaterialId.ant,
       MaterialId.meat,
     ],
   },
@@ -167,6 +168,11 @@ export const PRESETS: readonly { preset: Preset; label: string; title: string }[
     preset: Preset.volcano,
     label: 'Volcano',
     title: 'An erupting mountain, with slimes in the caves at its feet',
+  },
+  {
+    preset: Preset.antColony,
+    label: 'Ant colony',
+    title: 'Leafy wooden trunks with ants tunnelling galleries through them',
   },
 ]
 

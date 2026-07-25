@@ -44,6 +44,13 @@
   }
 }
 
+// Match the shared dropdown to the mono control row it sits in, rather than the site's body font.
+.presetTrigger {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+}
+
 // Play, step and speed read as one instrument: a single hairline shell, dividers between the parts.
 .transport {
   display: flex;

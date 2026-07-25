@@ -1,6 +1,6 @@
-import { Grid, Life, MaterialBehavior, MaterialId, Medium } from '../pixel-world.types'
-import { cellIndex, placeMaterial, swapCells, transformCell } from './grid'
-import { MATERIALS } from './materials'
+import { AntHeading, Grid, Life, MaterialBehavior, MaterialId, Medium } from '../pixel-world.types'
+import { cellIndex, markHotRow, placeMaterial, swapCells, transformCell } from './grid'
+import { ANT_TUNNELS, MATERIALS } from './materials'
 import { NEIGHBOURS, pickNeighbour } from './neighbours'
 import { Rng } from './rng'
 
@@ -57,6 +57,7 @@ function eats(species: number, material: number): boolean {
  */
 export function simulateLife(grid: Grid, rng: Rng, tick: number): void {
   const { width, height, material, moved } = grid
+  if (grid.heading.size > 0) pruneAntHeadings(grid)
   // The x direction alternates with tick parity, and anything that moves is marked. Without both, a
   // creature that steps into a cell the scan has not reached yet gets a second turn in the same tick, and
   // a crowd of them drifts: a blob of birds slid steadily left across an empty world.
@@ -71,6 +72,13 @@ export function simulateLife(grid: Grid, rng: Rng, tick: number): void {
 
       const life = LIFE[id]
       if (life === undefined) continue
+
+      // Ants run their own rules: they dig and steer instead of drifting, so they never touch the
+      // grazer path below.
+      if (id === MaterialId.ant) {
+        stepAnt(grid, rng, x, y, index, life)
+        continue
+      }
 
       if (!spendEnergy(grid, index, life, rng)) continue
       if (eat(grid, rng, x, y, index, life)) continue
@@ -464,4 +472,241 @@ function loose(material: number): boolean {
   if (material === MaterialId.empty) return true
   const behavior = MATERIALS[material].behavior
   return behavior !== MaterialBehavior.static
+}
+
+// --- Ants -----------------------------------------------------------------------------------------
+// An ant is the one creature that steers. Where a fish drifts and a bird chases, an ant holds a
+// heading and digs along it, pushing wood aside as spoil rather than eating it, so a wall becomes a
+// run of galleries. The heading lives in `grid.heading`; energy and everything else stays a creature's.
+
+/** What an ant tunnels through, shouldering it aside instead of eating it, as a flat lookup. */
+const DIGGABLE = new Uint8Array(MATERIALS.length)
+for (const id of ANT_TUNNELS) DIGGABLE[id] = 1
+
+/** Energy a dug cell costs on top of metabolism, so how far a colony reaches is paid for, not free. */
+const DIG_COST = 1
+/** Chance per move that an ant turns, which is what forks a straight run into a branching gallery. */
+const ANT_BRANCH_CHANCE = 0.08
+
+/** The eight steps an ant can take, cardinals and diagonals alike. */
+const ANT_STEPS: readonly (readonly [number, number])[] = [
+  [1, 0],
+  [1, 1],
+  [0, 1],
+  [-1, 1],
+  [-1, 0],
+  [-1, -1],
+  [0, -1],
+  [1, -1],
+]
+
+/**
+ * The bearings a turning ant may pick, weighted by how often they come up: the four diagonals dominate
+ * and the down-slanting pair most of all, with the straight cardinals a minority, so galleries mostly
+ * run on the slant rather than in boxy right angles.
+ */
+const ANT_TURNS: readonly (readonly [number, number])[] = [
+  [1, 1],
+  [1, 1],
+  [-1, 1],
+  [-1, 1],
+  [1, -1],
+  [-1, -1],
+  [1, 0],
+  [-1, 0],
+  [0, 1],
+]
+/**
+ * Chance a dug cell of wood leaves a grain of spoil behind. Kept low on purpose: most of the wood is
+ * carried off out of sight, so a gallery reads as a hollow corridor with a little rubble at its mouth
+ * rather than a cavity packed solid with debris.
+ */
+const SPOIL_CHANCE = 0.02
+
+/**
+ * One ant's turn: burn a little energy, grab any leaf within reach, and then either fall, dig, or walk
+ * one cell along its heading. It never touches the grazer rules — digging and steering are its whole
+ * character.
+ */
+function stepAnt(grid: Grid, rng: Rng, x: number, y: number, index: number, life: Life): void {
+  if (rng.chance(life.burnRate) && grid.data[index] > 0) grid.data[index] -= 1
+  if (grid.data[index] === 0) {
+    grid.heading.delete(index)
+    transformCell(grid, index, life.corpse)
+    return
+  }
+
+  // Fuel up on a touching leaf, then, rarely, put out another worker where there is room for one.
+  if (eat(grid, rng, x, y, index, life)) return
+  if (breed(grid, rng, x, y, index, life)) return
+
+  // Gravity, but an ant grips walls: it drops only when it is in open air with nothing solid to hold,
+  // so one painted in the sky lands while one climbing a gallery keeps its place instead of falling
+  // straight back into the cell it just dug up into.
+  if (
+    !standingOnSomething(grid, index) &&
+    !clingsToWall(grid, x, y) &&
+    y + 1 < grid.height &&
+    grid.material[cellIndex(grid, x, y + 1)] === MaterialId.empty
+  ) {
+    const below = cellIndex(grid, x, y + 1)
+    swapCells(grid, index, below)
+    grid.moved[index] = 1
+    grid.moved[below] = 1
+    moveHeading(grid, index, below)
+    return
+  }
+
+  if (!rng.chance(life.moveChance)) return
+
+  let heading = grid.heading.get(index)
+  if (heading === undefined) {
+    heading = { hx: rng.chance(0.5) ? 1 : -1, hy: rng.chance(0.75) ? 1 : -1 }
+    grid.heading.set(index, heading)
+  }
+
+  if (rng.chance(ANT_BRANCH_CHANCE)) turn(heading, rng)
+
+  // Drive the heading: dig the cell ahead when it is wood, walk through it when it is already open
+  // tunnel, and only peel onto a near direction when the way ahead is blocked. Following the heading
+  // rather than digging whatever is nearest is what pushes a tunnel outward instead of chewing the wall
+  // it is standing in into a widening blob.
+  for (const [cdx, cdy] of antCandidates(heading.hx, heading.hy, rng)) {
+    const moved = antAdvance(grid, rng, x, y, index, cdx, cdy)
+    if (moved < 0) continue
+    heading.hx = cdx
+    heading.hy = cdy
+    moveHeading(grid, index, moved)
+    return
+  }
+}
+
+/** Whether any neighbour is a solid wall an ant can grip, so it holds instead of dropping. */
+function clingsToWall(grid: Grid, x: number, y: number): boolean {
+  for (const [dx, dy] of NEIGHBOURS) {
+    const nx = x + dx
+    const ny = y + dy
+    if (nx < 0 || nx >= grid.width || ny < 0 || ny >= grid.height) continue
+    if (MATERIALS[grid.material[cellIndex(grid, nx, ny)]].behavior === MaterialBehavior.static) {
+      return true
+    }
+  }
+  return false
+}
+
+/** Moves an ant's heading with it, if it has one. */
+function moveHeading(grid: Grid, from: number, to: number): void {
+  const heading = grid.heading.get(from)
+  if (heading === undefined) return
+  grid.heading.delete(from)
+  grid.heading.set(to, heading)
+}
+
+/**
+ * Picks a new bearing. Diagonals are favoured over the straight cardinals and downward over up, so a
+ * colony fans out into slanting galleries. Never an exact about-face, which would just undig the tunnel
+ * it came in on.
+ */
+function turn(heading: AntHeading, rng: Rng): void {
+  const [hx, hy] = ANT_TURNS[Math.floor(rng.next() * ANT_TURNS.length)]
+  if (hx === -heading.hx && hy === -heading.hy) return
+  heading.hx = hx
+  heading.hy = hy
+}
+
+/**
+ * The eight steps ordered by how closely each matches the heading, nearest first, so an ant keeps going
+ * the way it was pointed and only peels onto a turn when the way ahead is blocked. A little rng jitter
+ * settles ties — the cardinal and the diagonal either side of it score the same — without swamping the
+ * ordering, which is also why a cardinal heading drifts onto a diagonal about as often as it holds.
+ */
+function antCandidates(dx: number, dy: number, rng: Rng): (readonly [number, number])[] {
+  return ANT_STEPS.map((step) => ({ step, score: step[0] * dx + step[1] * dy + rng.next() * 0.5 }))
+    .sort((a, b) => b.score - a.score)
+    .map((scored) => scored.step)
+}
+
+/**
+ * Moves an ant one cell in a direction, returning where it ended up or -1 if that way is blocked. It
+ * walks into open ground, digs through anything on the diggable list, and treats stone, metal and other
+ * creatures as a wall.
+ */
+function antAdvance(
+  grid: Grid,
+  rng: Rng,
+  x: number,
+  y: number,
+  index: number,
+  dx: number,
+  dy: number
+): number {
+  const nx = x + dx
+  const ny = y + dy
+  if (nx < 0 || nx >= grid.width || ny < 0 || ny >= grid.height) return -1
+
+  const target = cellIndex(grid, nx, ny)
+  const there = grid.material[target]
+
+  if (there === MaterialId.empty || loose(there)) {
+    // Walk or swim through it. An ant left standing in open air is pulled down by the gravity step
+    // before it ever reaches here, so there is no need to forbid a sideways step across a gap.
+    swapCells(grid, index, target)
+    grid.moved[index] = 1
+    grid.moved[target] = 1
+    return target
+  }
+
+  if (DIGGABLE[there] === 1) {
+    dig(grid, rng, index, target, there)
+    return target
+  }
+
+  return -1
+}
+
+/** Takes a diggable cell: charges the dig, heaps wood spoil where there is room, and steps in. */
+function dig(grid: Grid, rng: Rng, index: number, target: number, material: number): void {
+  grid.data[index] = Math.max(0, grid.data[index] - DIG_COST)
+
+  // Wood occasionally leaves a grain of spoil; leaves are light enough to leave nothing.
+  if (material === MaterialId.wood && rng.chance(SPOIL_CHANCE)) {
+    const spot = spoilSpot(grid, rng, index)
+    if (spot >= 0) {
+      placeMaterial(grid, spot, MaterialId.gravel)
+      grid.moved[spot] = 1
+    }
+  }
+
+  carryAnt(grid, index, target)
+}
+
+/** An empty neighbour to drop spoil into, or -1 when the ant is boxed in and the dig just compacts. */
+function spoilSpot(grid: Grid, rng: Rng, index: number): number {
+  const x = index % grid.width
+  const y = Math.floor(index / grid.width)
+  const start = Math.floor(rng.next() * NEIGHBOURS.length)
+  return pickNeighbour(grid, x, y, isAir, start)
+}
+
+/** Moves an ant cell to a new index with its energy and heat, leaving open tunnel behind. */
+function carryAnt(grid: Grid, from: number, to: number): void {
+  grid.material[to] = MaterialId.ant
+  grid.data[to] = grid.data[from]
+  grid.burn[to] = grid.burn[from]
+  grid.temperature[to] = grid.temperature[from]
+
+  grid.material[from] = MaterialId.empty
+  grid.data[from] = 0
+  grid.burn[from] = 0
+
+  markHotRow(grid, from)
+  markHotRow(grid, to)
+  grid.moved[to] = 1
+}
+
+/** Drops heading entries whose cell has stopped being an ant, so a burnt or overpainted one leaks none. */
+function pruneAntHeadings(grid: Grid): void {
+  for (const index of grid.heading.keys()) {
+    if (grid.material[index] !== MaterialId.ant) grid.heading.delete(index)
+  }
 }

@@ -174,6 +174,21 @@ describe('velocity layer', () => {
   })
 })
 
+describe('ant heading layer', () => {
+  it('starts empty and is emptied by a clear', () => {
+    const grid = createGrid(5, 5)
+    const cell = cellIndex(grid, 2, 2)
+    expect(grid.heading.size).toBe(0)
+
+    placeMaterial(grid, cell, MaterialId.ant)
+    grid.heading.set(cell, { hx: 1, hy: 0 })
+    clearGrid(grid)
+
+    // A heading left pointing at a wiped cell would steer a ghost ant on the next world.
+    expect(grid.heading.size).toBe(0)
+  })
+})
+
 describe('swapCells', () => {
   it('carries counters and heat with the material', () => {
     const grid = createGrid(5, 5)

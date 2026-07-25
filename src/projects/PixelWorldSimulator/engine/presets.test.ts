@@ -305,3 +305,65 @@ describe('the volcano preset', () => {
     expect(count(grid, MaterialId.slime)).toBeGreaterThan(0)
   })
 })
+
+describe('the ant colony preset', () => {
+  function builtColony(seed = 1): Grid {
+    const grid = createGrid(GRID_WIDTH, GRID_HEIGHT)
+    loadPreset(grid, Preset.antColony, createRng(seed))
+    return grid
+  }
+
+  it('arrives as trunks of wood, leaves and a nest of ants', () => {
+    const grid = builtColony()
+
+    // Wood to tunnel, leaves to graze, and ants to do the tunnelling.
+    expect(count(grid, MaterialId.wood)).toBeGreaterThan(200)
+    expect(count(grid, MaterialId.plant)).toBeGreaterThan(20)
+    expect(count(grid, MaterialId.ant)).toBeGreaterThan(10)
+  })
+
+  it('seeds its ants inside the wood, ready to dig out', () => {
+    const grid = builtColony()
+
+    // An ant is meant to start embedded in the trunk, not sprinkled in the open air above it, or it just
+    // falls to the floor instead of tunnelling.
+    let embedded = 0
+    for (let y = 0; y < grid.height; y++) {
+      for (let x = 0; x < grid.width; x++) {
+        if (grid.material[cellIndex(grid, x, y)] !== MaterialId.ant) continue
+        for (const [dx, dy] of [
+          [-1, 0],
+          [1, 0],
+          [0, -1],
+          [0, 1],
+        ]) {
+          const nx = x + dx
+          const ny = y + dy
+          if (nx < 0 || nx >= grid.width || ny < 0 || ny >= grid.height) continue
+          if (grid.material[cellIndex(grid, nx, ny)] === MaterialId.wood) {
+            embedded++
+            break
+          }
+        }
+      }
+    }
+    expect(embedded).toBeGreaterThan(10)
+  })
+
+  it('is still tunnelling a while after it is dropped in', { timeout: 20_000 }, () => {
+    const grid = createGrid(140, 90)
+    loadPreset(grid, Preset.antColony, createRng(2))
+    const woodStart = count(grid, MaterialId.wood)
+
+    soak(grid, 1200)
+
+    // The colony grazes the leaves for fuel, so it should still be alive and have opened real galleries,
+    // rather than starving out or standing still.
+    expect(count(grid, MaterialId.ant)).toBeGreaterThan(0)
+    expect(count(grid, MaterialId.wood)).toBeLessThan(woodStart)
+  })
+
+  it('comes out different every time it is loaded', () => {
+    expect([...builtColony(2).material]).not.toEqual([...builtColony(1).material])
+  })
+})

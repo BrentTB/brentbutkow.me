@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
-import { render, screen, cleanup } from '@testing-library/react'
+import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import { BRUSH_RADIUS, DEFAULT_SPEED, PRESETS, SIM_SPEEDS } from '../../data'
 import { SimControls } from './SimControls'
 
@@ -77,11 +77,23 @@ describe('SimControls', () => {
     expect(pause.compareDocumentPosition(clear) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
-  it('offers a ready-made world to drop in', () => {
+  it('loads a ready-made world when one is picked from the menu', () => {
     const props = renderControls()
 
-    screen.getByRole('button', { name: PRESETS[0].label }).click()
+    // The prompt holds the trigger, so the menu has to be opened before any world can be chosen.
+    fireEvent.click(screen.getByRole('combobox', { name: 'Load a preset' }))
+    fireEvent.click(screen.getByRole('option', { name: PRESETS[0].label }))
 
     expect(props.onLoad).toHaveBeenCalledWith(PRESETS[0].preset)
+  })
+
+  it('does not treat the prompt itself as a world to load', () => {
+    const props = renderControls()
+
+    fireEvent.click(screen.getByRole('combobox', { name: 'Load a preset' }))
+    // The "Load a preset…" row is disabled, so clicking it selects nothing.
+    fireEvent.click(screen.getByRole('option', { name: 'Load a preset…' }))
+
+    expect(props.onLoad).not.toHaveBeenCalled()
   })
 })

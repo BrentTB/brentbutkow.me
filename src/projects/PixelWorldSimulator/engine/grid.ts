@@ -16,6 +16,7 @@ export function createGrid(width: number, height: number): Grid {
     hotRows: new Uint8Array(height),
     hotRowsNext: new Uint8Array(height),
     velocity: new Map(),
+    heading: new Map(),
   }
 }
 
@@ -37,6 +38,7 @@ export function clearGrid(grid: Grid): void {
   grid.hotRows.fill(0)
   grid.hotRowsNext.fill(0)
   grid.velocity.clear()
+  grid.heading.clear()
 }
 
 /**
