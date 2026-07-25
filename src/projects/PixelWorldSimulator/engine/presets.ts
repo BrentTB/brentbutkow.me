@@ -84,6 +84,50 @@ function tree(grid: Grid, x: number, groundY: number, height: number, rng: Rng):
 }
 
 /**
+ * Carves a thin wandering channel of air, drifting roughly in one direction. Lava tributaries off the vent
+ * and the tunnels that let slimes out of their caves are both this: a crack for something to seep along.
+ * `stopAbove` ends the channel when it climbs above a surface row, so a cave tunnel breaks out to daylight
+ * without carving open sky.
+ */
+function vein(
+  grid: Grid,
+  x: number,
+  y: number,
+  dx: number,
+  dy: number,
+  length: number,
+  rng: Rng,
+  options: { stopAbove?: (col: number) => number; branch?: number; depth?: number } = {}
+): void {
+  const { stopAbove, branch = 0, depth = 0 } = options
+  let cx = x
+  let cy = y
+  for (let i = 0; i < length; i++) {
+    if (cx < 0 || cx >= grid.width || cy < 0 || cy >= grid.height) return
+    if (stopAbove !== undefined && cy < stopAbove(cx)) return
+
+    put(grid, cx, cy, MaterialId.empty)
+    if (rng.next() < 0.35) put(grid, cx, cy + 1, MaterialId.empty)
+
+    // A tributary throws off side branches as it runs, so the network tangles and sprawls through the rock
+    // instead of drawing one clean line. Depth is capped so it stays a tree of cracks, not an explosion.
+    if (depth < 2 && i > 2 && rng.next() < branch) {
+      const turn = rng.next() < 0.5 ? -1 : 1
+      vein(grid, cx, cy, turn, rng.next() < 0.5 ? 1 : dy, Math.round(length * 0.6), rng, {
+        stopAbove,
+        branch: branch * 0.6,
+        depth: depth + 1,
+      })
+    }
+
+    cx += dx
+    cy += dy
+    if (rng.next() < 0.4) cx += rng.next() < 0.5 ? 1 : -1
+    if (rng.next() < 0.3) cy += rng.next() < 0.5 ? 1 : -1
+  }
+}
+
+/**
  * A tank of water with a bed of algae and a few fish: the food chain running on its own, without anyone
  * having to draw a tank first. Sized as a share of the grid so it fits whatever the world is.
  */
@@ -92,13 +136,41 @@ function aquarium(grid: Grid, rng: Rng): void {
   const left = Math.floor(width * 0.1)
   const right = width - left
   const floor = height - Math.floor(height * 0.06)
-  const surface = Math.floor(height * 0.22)
   const wall = Math.max(2, Math.floor(width * 0.01))
+  const inLeft = left + wall + 1
+  const inRight = right - wall - 1
+
+  // Two chambers, one above the other. The lower one is the tank proper; the upper one is a shallow pool open
+  // to the air, split off by an uneven stone shelf rather than a ruled line. `surface` is the lower tank's
+  // waterline, which the reefs and fish below are all placed against.
+  const topSurface = Math.floor(height * 0.12)
+  const shelf = surfaceLine(width, Math.floor(height * 0.42), Math.max(2, height * 0.03), rng)
+  const surface = Math.floor(height * 0.42) + 4
 
   fill(grid, left, floor, right, height - 1, MaterialId.stone)
-  fill(grid, left, surface, left + wall, floor, MaterialId.stone)
-  fill(grid, right - wall, surface, right, floor, MaterialId.stone)
-  fill(grid, left + wall + 1, surface + 2, right - wall - 1, floor - 1, MaterialId.water)
+  fill(grid, left, topSurface, left + wall, floor, MaterialId.stone)
+  fill(grid, right - wall, topSurface, right, floor, MaterialId.stone)
+
+  // The shelf: a stone divider that rises and falls across the tank, sealing the lower chamber. Each column
+  // reaches at least as deep as its neighbours' tops, so a steep step in the line never leaves a diagonal gap
+  // for the two pools to leak through.
+  for (let x = inLeft; x <= inRight; x++) {
+    const deepest = Math.max(shelf[x - 1] ?? shelf[x], shelf[x], shelf[x + 1] ?? shelf[x]) + 1
+    fill(grid, x, shelf[x], x, deepest, MaterialId.stone)
+  }
+
+  // Water in both chambers. The top pool sits below its own surface, air above it; the bottom fills from just
+  // under the shelf down to the sand.
+  for (let x = inLeft; x <= inRight; x++) {
+    // The top pool sits a few rows below the wall lip, so the vine creeping through it and the water finding
+    // its level have somewhere to go without slopping over the top of the wall.
+    fill(grid, x, topSurface + 5, x, shelf[x] - 1, MaterialId.water)
+    fill(grid, x, shelf[x] + 2, x, floor - 1, MaterialId.water)
+  }
+
+  // A single vine in the top pool, anchored to a wall. Left to itself it creeps through the still water and
+  // slowly fills the upper chamber, which is the whole point of leaving one up there.
+  put(grid, inLeft + 1, topSurface + 5, MaterialId.vine)
 
   // A sand bed that rises and falls, with gravel showing through here and there.
   const bed = surfaceLine(width, floor - 3, Math.max(2, height * 0.02), rng)
@@ -123,13 +195,25 @@ function aquarium(grid: Grid, rng: Rng): void {
   // Terraces climbing out of the bed: a tank whose whole top half is plain water has nothing to look at,
   // and weed growing on the ledges gives the fish a reason to be up there.
   const span = right - wall - (left + wall)
-  const ledges = 3
-  for (let i = 1; i <= ledges; i++) {
-    const cx = left + wall + Math.round((span * i) / (ledges + 1))
-    // Broad and low. Tall and narrow gave three stone needles standing in a tank, which looks like a mistake
-    // rather than a reef.
-    const lift = Math.round((floor - surface) * (0.12 + rng.next() * 0.2))
-    const reach = Math.max(8, Math.round(span * (0.06 + rng.next() * 0.06)))
+  // Three to five ledges, each either a broad low reef or a taller, narrower one. At least one of each
+  // kind shows up so the tank never reads as all the same shape.
+  const count = 3 + Math.floor(rng.next() * 3)
+  const tall = Array.from({ length: count }, () => rng.next() < 0.5)
+  tall[0] = true
+  tall[1] = false
+  const slots = count + 1
+  // The crest of each mound, so fish can start over the food rather than at even spacing across the tank.
+  const crests: { x: number; y: number }[] = []
+  tall.forEach((isTall, i) => {
+    const jitter = Math.round((span / slots) * (rng.next() - 0.5) * 0.6)
+    const cx = left + wall + Math.round((span * (i + 1)) / slots) + jitter
+
+    const lift = isTall
+      ? Math.round((floor - surface) * (0.2 + rng.next() * 0.26))
+      : Math.round((floor - surface) * (0.12 + rng.next() * 0.2))
+    const reach = isTall
+      ? Math.max(7, Math.round(span * (0.045 + rng.next() * 0.05)))
+      : Math.max(8, Math.round(span * (0.06 + rng.next() * 0.06)))
 
     for (let dx = -reach; dx <= reach; dx++) {
       const x = cx + dx
@@ -144,17 +228,17 @@ function aquarium(grid: Grid, rng: Rng): void {
       if (rng.next() < 0.4) put(grid, x, crest - 1, MaterialId.algae)
       if (rng.next() < 0.15) put(grid, x, crest, MaterialId.gravel)
     }
-  }
 
-  // Fish spread through the depth rather than hugging the floor, now that there is food up there.
-  const shoal = Math.floor((right - left) / 7)
-  for (let i = 1; i <= 6; i++) {
-    put(
-      grid,
-      left + shoal * i,
-      surface + 6 + Math.floor(rng.next() * (floor - surface - 12)),
-      MaterialId.fish
-    )
+    crests.push({ x: cx, y: bed[cx] - lift })
+  })
+
+  // Fish start over the reefs, spread up the water above each crest, not at even spacing: dropped in open
+  // water they wandered until they starved with a garden nowhere near them. Every fish gets a mound.
+  for (let i = 0; i < 6; i++) {
+    const crest = crests[i % crests.length]
+    const fx = crest.x + Math.round((rng.next() - 0.5) * 8)
+    const fy = surface + 4 + Math.floor(rng.next() * Math.max(1, crest.y - surface - 2))
+    put(grid, fx, fy, MaterialId.fish)
   }
 }
 
@@ -310,51 +394,82 @@ function volcano(grid: Grid, rng: Rng): void {
   for (let dx = -spread; dx <= spread; dx++) {
     const across = Math.abs(dx) / spread
     const x = middle + dx
-    const top = Math.round(
-      peak + (floor - peak) * across * across * 0.9 + skin[Math.abs(x) % width]
-    )
+    // Jitter only ever lowers the surface, never raises it (hence the `max(0, ...)`), and the summit stays
+    // clean. A bump standing proud of the smooth cone dams the overflow on that side, so lava pours down one
+    // face; keeping every column at or below the parabola leaves a downhill path off both sides of the rim.
+    const rough = Math.abs(dx) <= 6 ? 0 : Math.max(0, skin[Math.abs(x) % width])
+    const top = Math.round(peak + (floor - peak) * across * across * 0.9 + rough)
     slope[x] = top
     fill(grid, x, top, x, floor - 1, MaterialId.stone)
-    if (rng.next() < 0.3) put(grid, x, top, MaterialId.gravel)
-    if (rng.next() < 0.1) put(grid, x, top + 1, MaterialId.gravel)
+    // Gravel only on the outer faces, well clear of the vent: loose grains over the mouth roll down the
+    // shaft and bury the sources.
+    if (Math.abs(dx) > 6) {
+      if (rng.next() < 0.3) put(grid, x, top, MaterialId.gravel)
+      if (rng.next() < 0.1) put(grid, x, top + 1, MaterialId.gravel)
+    }
   }
 
-  // The throat: wider at the bottom than the top, wandering rather than plumb, opening into a crater bowl.
-  const crater = slope[middle] + 3
-  for (let y = crater; y < floor - 4; y++) {
-    const bore = 1 + Math.round(((y - crater) / (floor - crater)) * 3)
-    const lean = Math.round(Math.sin(y / 9) * 2)
-    fill(grid, middle + lean - bore, y, middle + lean + bore, y, MaterialId.empty)
+  const rim = slope[middle]
+  const crater = rim + 1
+  const shaftFoot = floor - 4
+
+  // The crater is two sealed pockets split by a central stub, each with its own source told outright to make
+  // lava (its `data` set to it) so it pours from the start. Each pocket spills over its own lip down one face.
+  // Because each lip has its own supply and the bowl is floored off from the shaft below, lava crests both
+  // sides every time, instead of one pool draining down whichever lip happens to break first. Two sources, not
+  // one: a lone trickle crusts to stone at the rim and plugs the vent, where a pair keeps both lips pouring.
+  fill(grid, middle - 3, rim, middle + 3, crater, MaterialId.empty)
+  fill(grid, middle - 3, crater + 1, middle + 3, crater + 1, MaterialId.empty)
+  fill(grid, middle - 4, rim, middle - 4, floor - 1, MaterialId.stone)
+  fill(grid, middle + 4, rim, middle + 4, floor - 1, MaterialId.stone)
+  for (const s of [-2, 0, 2]) {
+    put(grid, middle + s, crater, MaterialId.source)
+    grid.data[cellIndex(grid, middle + s, crater)] = MaterialId.lava
   }
-  fill(grid, middle - 5, crater, middle + 5, crater + 2, MaterialId.empty)
-  // A breach in the rim on one side. A closed crater just fills and sits there, because the source cannot
-  // push past its own lava, and a volcano that never spills is a warm rock.
-  const breach = rng.next() < 0.5 ? -1 : 1
-  for (let i = 1; i <= 7; i++) {
-    const x = middle + breach * (4 + i)
-    fill(grid, x, crater, x, crater + 1 + Math.floor(i / 3), MaterialId.empty)
+
+  // The shaft below the crater is the mountain's molten interior, sealed off from the vent so it is glow, not
+  // supply. It is webbed with tributaries — cracks that branch and sprawl through the rock like roots — so the
+  // light tangles through the whole mountain rather than standing in one straight column. `stopAbove` keeps a
+  // vein a good five cells inside the outer face, so it fills with lava and glows rather than draining it out.
+  fill(grid, middle - 1, crater + 2, middle + 1, shaftFoot, MaterialId.empty)
+  const inside = (col: number) => slope[Math.max(0, Math.min(width - 1, col))] + 5
+  const veins = 6 + Math.floor(rng.next() * 4)
+  for (let i = 0; i < veins; i++) {
+    const side = rng.next() < 0.5 ? -1 : 1
+    const fromY = crater + 6 + Math.floor(rng.next() * (shaftFoot - crater - 8))
+    const down = rng.next() < 0.6 ? 1 : 0
+    vein(grid, middle + side * 2, fromY, side, down, 18 + Math.floor(rng.next() * 20), rng, {
+      stopAbove: inside,
+      branch: 0.28,
+    })
   }
 
-  // The source sits in the crater itself, with a drop of lava beside it to teach it what to make. A source
-  // can only push its output about twenty cells to find space, so buried at the bottom of a throat full of
-  // lava it has nowhere to put anything and the mountain goes quiet. Up here the crater and the breach are
-  // right next to it, so it keeps pouring.
-  put(grid, middle, crater + 2, MaterialId.source)
-  put(grid, middle + 1, crater + 2, MaterialId.lava)
+  // Fill the shaft, and stud it with pre-fed sources that keep pushing lava out into the tributary network so
+  // the whole web stays molten instead of the upward branches sitting dark.
+  fill(grid, middle - 1, crater + 4, middle + 1, shaftFoot, MaterialId.lava)
+  for (let y = crater + 6; y < shaftFoot; y += 7) {
+    put(grid, middle, y, MaterialId.source)
+    grid.data[cellIndex(grid, middle, y)] = MaterialId.lava
+  }
 
-  // A chamber down in the roots, for the glow through the rock rather than for the flow.
-  fill(grid, middle - 5, floor - 12, middle + 5, floor - 4, MaterialId.lava)
-
-  // Caves out near the feet of the mountain, well away from the vent: slimes sitting over the chamber simply
-  // cooked. Each gets a carcass to start on, and they can walk out through the mouth of the cave.
+  // Dens at the feet of the mountain, each stocked with prey the slimes can reach on the spot. A slime walled
+  // into a sealed pocket moves through anything loose but not through solid stone, so the den is dug wide and
+  // a tunnel breaks it out to daylight — but the point is not that they escape, it is that they hunt, so the
+  // worms and bugs live in the den with them.
   for (let side = -1; side <= 1; side += 2) {
     const cx = middle + side * Math.floor(spread * 0.82)
-    const cy = floor - 6
-    boulder(grid, cx, cy, 4 + Math.floor(rng.next() * 3), rng, MaterialId.empty)
-    put(grid, cx, cy + 2, MaterialId.meat)
-    put(grid, cx - side, cy + 1, MaterialId.meat)
+    const cy = floor - 7
+    boulder(grid, cx, cy, 6 + Math.floor(rng.next() * 3), rng, MaterialId.empty)
+    // A dirt floor for the worms to burrow, with worms and bugs on it, then the slimes above.
+    fill(grid, cx - 5, cy + 4, cx + 5, floor - 1, MaterialId.dirt)
+    for (let dx = -4; dx <= 4; dx += 2) put(grid, cx + dx, cy + 4, MaterialId.worm)
+    for (let dx = -3; dx <= 3; dx += 3) put(grid, cx + dx, cy + 3, MaterialId.bug)
+    vein(grid, cx, cy - 2, side, -1, 30, rng, {
+      stopAbove: (col) => slope[Math.max(0, Math.min(width - 1, col))],
+    })
+    put(grid, cx - 1, cy + 1, MaterialId.slime)
+    put(grid, cx + 1, cy + 1, MaterialId.slime)
     put(grid, cx, cy, MaterialId.slime)
-    put(grid, cx + side, cy, MaterialId.slime)
   }
 
   // Magazines out in the flanks, a long way from the vent: buried next to the chamber they all went off in
@@ -393,16 +508,11 @@ function volcano(grid: Grid, rng: Rng): void {
     tree(grid, x, floor - 1, Math.max(6, Math.floor(height * (0.09 + rng.next() * 0.06))), rng)
   }
 
-  // A pocket of methane in the rock, because a volcano should have something to burp.
-  const gasAt = middle - Math.floor(spread * 0.45)
-  boulder(
-    grid,
-    gasAt,
-    slope[Math.max(0, Math.min(width - 1, gasAt))] + 6,
-    3,
-    rng,
-    MaterialId.methane
-  )
+  // A pocket of oil sealed deep in the rock, well below the surface. Methane would seep straight up out of
+  // the mountain and be gone; oil sits in its pocket and waits for a lava flow to find it and catch.
+  const oilAt = middle - Math.floor(spread * 0.5)
+  const oilX = Math.max(0, Math.min(width - 1, oilAt))
+  boulder(grid, oilX, Math.round((slope[oilX] + floor) / 2), 3, rng, MaterialId.oil)
 }
 
 const BUILDERS: Record<Preset, (grid: Grid, rng: Rng) => void> = {
