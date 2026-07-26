@@ -1,10 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { SHARE_HASH_KEY, SHARE_NOTE_LINGER, SNAPSHOT_MAX_CHARS, simCopy } from './data'
+import {
+  SHARE_HASH_KEY,
+  SHARE_NOTE_LINGER,
+  SHARE_PAUSED_KEY,
+  SNAPSHOT_MAX_CHARS,
+  simCopy,
+} from './data'
 import { Snapshot, SnapshotRefusal, SnapshotResult, snapshotsSupported } from './engine/snapshot'
 
 type SnapshotPorts = {
   snapshot(): Promise<Snapshot>
   loadSnapshot(code: string): Promise<SnapshotResult>
+  /** Called with a world that arrived paused, so the sim can stop before the visitor sees it move. */
+  onArrivePaused(): void
 }
 
 /**
@@ -28,6 +36,13 @@ export type ShareLink = {
   /** What just happened with the link. Clears itself, so it never becomes part of the furniture. */
   note: string | null
   outcome: ShareOutcome
+  /**
+   * True from the moment a paused world arrives until the visitor starts it. A still world with no explanation
+   * reads as broken, so the page puts a play control over it for exactly this long.
+   */
+  arrivedPaused: boolean
+  /** The visitor has started it: drop the overlay for the rest of the visit. */
+  acknowledgePaused(): void
   share(): void
 }
 
@@ -35,6 +50,11 @@ export type ShareLink = {
 function codeInHash(hash: string): string | null {
   const code = new URLSearchParams(hash.replace(/^#/, '')).get(SHARE_HASH_KEY)
   return code === null || code.length === 0 ? null : code
+}
+
+/** Whether the link asks for the world to arrive paused. Anything but the flag reads as "run it". */
+function pausedInHash(hash: string): boolean {
+  return new URLSearchParams(hash.replace(/^#/, '')).get(SHARE_PAUSED_KEY) === '1'
 }
 
 function refusalNote(refusal: SnapshotRefusal): string {
@@ -50,9 +70,14 @@ function refusalNote(refusal: SnapshotRefusal): string {
  * clipboard is also the fallback: where a browser refuses clipboard access, the link the visitor wanted is
  * still sitting in the address bar.
  */
-export function useShareLink({ snapshot, loadSnapshot }: SnapshotPorts): ShareLink {
+export function useShareLink({ snapshot, loadSnapshot, onArrivePaused }: SnapshotPorts): ShareLink {
   const [note, setNote] = useState<string | null>(null)
   const [outcome, setOutcome] = useState<ShareOutcome>(ShareOutcome.idle)
+  const [arrivedPaused, setArrivedPaused] = useState(false)
+  // Read through a ref for the same reason `onClose` is elsewhere: the page hands it down afresh about ten
+  // times a second, and the arrival effect must run once per visit rather than on every one of those renders.
+  const arrivePausedRef = useRef(onArrivePaused)
+  arrivePausedRef.current = onArrivePaused
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const mountedRef = useRef(true)
 
@@ -88,12 +113,20 @@ export function useShareLink({ snapshot, loadSnapshot }: SnapshotPorts): ShareLi
     const code = codeInHash(window.location.hash)
     if (code === null) return
 
+    const paused = pausedInHash(window.location.hash)
+
     loadSnapshot(code).then((result) => {
       if (!mountedRef.current) return
-      say(
-        result.ok ? simCopy.share.loaded : refusalNote(result.refusal),
-        result.ok ? ShareOutcome.loaded : ShareOutcome.refused
-      )
+      if (!result.ok) {
+        say(refusalNote(result.refusal), ShareOutcome.refused)
+        return
+      }
+      // Stop the world before the visitor sees it move, then hand them something to press.
+      if (paused) {
+        arrivePausedRef.current()
+        setArrivedPaused(true)
+      }
+      say(paused ? simCopy.share.loadedPaused : simCopy.share.loaded, ShareOutcome.loaded)
     })
   }, [loadSnapshot, say])
 
@@ -109,7 +142,12 @@ export function useShareLink({ snapshot, loadSnapshot }: SnapshotPorts): ShareLi
         return
       }
 
-      const link = `${window.location.origin}${window.location.pathname}#${SHARE_HASH_KEY}=${code}`
+      // Every link arrives paused, whatever the world was doing when it was sent. Whoever opens it gets a
+      // moment to look at what was built before it starts falling apart, and the sender does not have to
+      // remember to pause first to give them that.
+      const link =
+        `${window.location.origin}${window.location.pathname}` +
+        `#${SHARE_HASH_KEY}=${code}&${SHARE_PAUSED_KEY}=1`
       // `replaceState` rather than a navigation: the world is already on screen, and pushing history would
       // make the back button walk through every world the visitor has shared.
       window.history.replaceState(null, '', link)
@@ -128,5 +166,14 @@ export function useShareLink({ snapshot, loadSnapshot }: SnapshotPorts): ShareLi
     })
   }, [snapshot, say])
 
-  return { supported: snapshotsSupported(), note, outcome, share }
+  const acknowledgePaused = useCallback(() => setArrivedPaused(false), [])
+
+  return {
+    supported: snapshotsSupported(),
+    note,
+    outcome,
+    arrivedPaused,
+    acknowledgePaused,
+    share,
+  }
 }

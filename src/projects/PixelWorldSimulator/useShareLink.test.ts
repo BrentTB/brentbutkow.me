@@ -1,7 +1,13 @@
 import { StrictMode } from 'react'
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest'
 import { act, renderHook, waitFor } from '@testing-library/react'
-import { SHARE_HASH_KEY, SHARE_NOTE_LINGER, SNAPSHOT_MAX_CHARS, simCopy } from './data'
+import {
+  SHARE_HASH_KEY,
+  SHARE_NOTE_LINGER,
+  SHARE_PAUSED_KEY,
+  SNAPSHOT_MAX_CHARS,
+  simCopy,
+} from './data'
 import { SnapshotRefusal, SnapshotResult } from './engine/snapshot'
 import { ShareOutcome, useShareLink } from './useShareLink'
 
@@ -12,6 +18,7 @@ function ports(overrides: Partial<Parameters<typeof useShareLink>[0]> = {}) {
   return {
     snapshot: vi.fn(() => Promise.resolve({ code: CODE, heatDropped: false })),
     loadSnapshot: vi.fn((): Promise<SnapshotResult> => Promise.resolve({ ok: true })),
+    onArrivePaused: vi.fn(),
     ...overrides,
   }
 }
@@ -43,7 +50,7 @@ describe('useShareLink — sending a world', () => {
     act(() => result.current.share())
 
     await waitFor(() => expect(result.current.note).toBe(simCopy.share.copied))
-    expect(window.location.hash).toBe(`#${SHARE_HASH_KEY}=${CODE}`)
+    expect(window.location.hash).toBe(`#${SHARE_HASH_KEY}=${CODE}&${SHARE_PAUSED_KEY}=1`)
     expect(write).toHaveBeenCalledWith(expect.stringContaining(`#${SHARE_HASH_KEY}=${CODE}`))
   })
 
@@ -119,7 +126,7 @@ describe('useShareLink — sending a world', () => {
 
     await waitFor(() => expect(result.current.note).toBe(simCopy.share.inBar))
     // The link the visitor asked for is still there to copy by hand.
-    expect(window.location.hash).toBe(`#${SHARE_HASH_KEY}=${CODE}`)
+    expect(window.location.hash).toBe(`#${SHARE_HASH_KEY}=${CODE}&${SHARE_PAUSED_KEY}=1`)
   })
 
   it('refuses a world too detailed to fit, without touching the URL', async () => {
@@ -276,5 +283,76 @@ describe('useShareLink — arriving on a world', () => {
     rerender()
 
     expect(doors.loadSnapshot).toHaveBeenCalledTimes(1)
+  })
+
+  it('sends every link paused, whatever the world was doing', async () => {
+    // Whoever opens it gets a moment to look at what was built before it starts moving, and the sender does
+    // not have to remember to pause first to give them that.
+    const write = writeText()
+    const { result } = renderHook(() => useShareLink(ports()))
+
+    act(() => result.current.share())
+
+    await waitFor(() => expect(result.current.note).toBe(simCopy.share.copied))
+    expect(window.location.hash).toBe(`#${SHARE_HASH_KEY}=${CODE}&${SHARE_PAUSED_KEY}=1`)
+    expect(write).toHaveBeenCalledWith(expect.stringContaining(`${SHARE_PAUSED_KEY}=1`))
+  })
+
+  it('stops the world a paused link arrives on, and offers something to press', async () => {
+    window.history.replaceState(null, '', `#${SHARE_HASH_KEY}=${CODE}&${SHARE_PAUSED_KEY}=1`)
+    const doors = ports()
+
+    const { result } = renderHook(() => useShareLink(doors))
+
+    await waitFor(() => expect(result.current.arrivedPaused).toBe(true))
+    expect(doors.onArrivePaused).toHaveBeenCalled()
+    // A still world with nothing to press reads as a broken page, so the note says it too.
+    expect(result.current.note).toBe(simCopy.share.loadedPaused)
+  })
+
+  it('runs a link from before links carried the flag', async () => {
+    window.history.replaceState(null, '', `#${SHARE_HASH_KEY}=${CODE}`)
+    const doors = ports()
+
+    const { result } = renderHook(() => useShareLink(doors))
+
+    await waitFor(() => expect(result.current.note).toBe(simCopy.share.loaded))
+    expect(doors.onArrivePaused).not.toHaveBeenCalled()
+    expect(result.current.arrivedPaused).toBe(false)
+  })
+
+  it('does not stop a world for a link it could not read', async () => {
+    window.history.replaceState(null, '', `#${SHARE_HASH_KEY}=${CODE}&${SHARE_PAUSED_KEY}=1`)
+    const doors = ports({
+      loadSnapshot: () => Promise.resolve({ ok: false, refusal: SnapshotRefusal.malformed }),
+    })
+
+    const { result } = renderHook(() => useShareLink(doors))
+
+    await waitFor(() => expect(result.current.outcome).toBe(ShareOutcome.refused))
+    // Nothing was loaded, so there is nothing to be paused about — the world it did not replace runs on.
+    expect(doors.onArrivePaused).not.toHaveBeenCalled()
+    expect(result.current.arrivedPaused).toBe(false)
+  })
+
+  it('drops the overlay once the visitor starts it, and never brings it back', async () => {
+    window.history.replaceState(null, '', `#${SHARE_HASH_KEY}=${CODE}&${SHARE_PAUSED_KEY}=1`)
+    const { result, rerender } = renderHook(() => useShareLink(ports()))
+    await waitFor(() => expect(result.current.arrivedPaused).toBe(true))
+
+    act(() => result.current.acknowledgePaused())
+    rerender()
+
+    expect(result.current.arrivedPaused).toBe(false)
+  })
+
+  it('ignores a paused flag that is not the flag', async () => {
+    window.history.replaceState(null, '', `#${SHARE_HASH_KEY}=${CODE}&${SHARE_PAUSED_KEY}=maybe`)
+    const doors = ports()
+
+    renderHook(() => useShareLink(doors))
+
+    await waitFor(() => expect(doors.loadSnapshot).toHaveBeenCalled())
+    expect(doors.onArrivePaused).not.toHaveBeenCalled()
   })
 })

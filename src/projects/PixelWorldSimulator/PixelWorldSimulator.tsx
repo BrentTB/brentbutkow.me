@@ -17,6 +17,7 @@ import { Census } from './components/Census/Census'
 import { Reading } from './components/Reading/Reading'
 import { SimControls } from './components/SimControls/SimControls'
 import { SettingsDialog } from './components/SettingsDialog/SettingsDialog'
+import { PausedOverlay } from './components/PausedOverlay/PausedOverlay'
 import styles from './PixelWorldSimulator.module.scss'
 
 /** What to say when the pointer is off the canvas and there is no reading to show. */
@@ -57,8 +58,8 @@ export function PixelWorldSimulator() {
   const { applySettings } = sim
   useEffect(() => applySettings(settings), [applySettings, settings])
 
-  const { snapshot, loadSnapshot } = sim
-  const link = useShareLink({ snapshot, loadSnapshot })
+  const { snapshot, loadSnapshot, pause, togglePause } = sim
+  const link = useShareLink({ snapshot, loadSnapshot, onArrivePaused: pause })
 
   // Depend on the two callbacks rather than on `sim`, whose identity changes every time the readout
   // refreshes — otherwise the canvas re-registers all five pointer listeners ten times a second.
@@ -98,6 +99,17 @@ export function PixelWorldSimulator() {
               aria-label="Pixel world. Draw materials with the pointer."
               {...brushHandlers}
             />
+
+            {/* Only for a world that arrived from a link already stopped: a still picture with nothing to
+                press reads as a page that has failed. */}
+            {link.arrivedPaused && (
+              <PausedOverlay
+                onStart={() => {
+                  togglePause()
+                  link.acknowledgePaused()
+                }}
+              />
+            )}
           </div>
 
           <div className={styles.sidebar}>

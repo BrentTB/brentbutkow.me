@@ -272,6 +272,14 @@ export const simCopy = {
   },
   searchPlaceholder: 'Find a material',
   noMatch: 'Nothing by that name.',
+  /**
+   * On the world itself when a shared link arrives paused. A still world with a play button over it is the
+   * one arrangement nobody needs told about; the line underneath says it in words as well.
+   */
+  paused: {
+    title: 'Paused',
+    hint: 'Press to start this world',
+  },
   /** The sheet a phone chooses a material in, in place of the grid there is no room for. */
   picker: {
     title: 'Materials',
@@ -298,7 +306,7 @@ export const simCopy = {
   share: {
     button: 'Share',
     title: 'Copy a link to this world',
-    copied: 'Link copied. Anyone who opens it gets this world.',
+    copied: 'Link copied. Anyone who opens it gets this world, paused.',
     /** Heat is the layer that gets dropped when a world will not fit; better a link than a refusal. */
     copiedWithoutHeat: 'Link copied. The heat would not fit, so this world arrives cold.',
     /** The clipboard is off limits in some browsers, so the address bar is the fallback that always works. */
@@ -306,6 +314,8 @@ export const simCopy = {
     tooBig:
       'This world is too detailed to fit in a link, even without its heat. Clear some of it and try again.',
     loaded: 'This world came from the link you opened.',
+    loadedPaused:
+      'This world came from the link you opened, and it is paused. Press play to start it.',
     refused: {
       malformed: 'That link is damaged, so nothing loaded.',
       version: 'That link came from a newer version of this page.',
@@ -321,6 +331,13 @@ export const SHARE_NOTE_LINGER = 6000
 
 /** The part of the URL a world travels in. Kept in the hash, so no world is ever sent to a server. */
 export const SHARE_HASH_KEY = 'w'
+
+/**
+ * Whether the world in the link should arrive paused. A separate parameter rather than a bit in the payload:
+ * this is how the world is being *shown*, not what is in it, and the snapshot's validating parser is the last
+ * thing worth extending for a boolean.
+ */
+export const SHARE_PAUSED_KEY = 'p'
 
 /**
  * The picture settings, and what each one does in plain terms. Rendered straight from here, so the dialog

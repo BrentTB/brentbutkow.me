@@ -24,6 +24,8 @@ import { createRenderer } from './render'
 export type PixelWorldSim = {
   isPaused: boolean
   togglePause(): void
+  /** Stops the world whatever it was doing. A world arriving paused from a link cannot flip a coin about it. */
+  pause(): void
   /** Multiplier on how fast the world runs. 1 is real time. */
   speed: number
   setSpeed(rate: number): void
@@ -149,6 +151,11 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
     setIsPaused(pausedRef.current)
   }, [])
 
+  const pause = useCallback(() => {
+    pausedRef.current = true
+    setIsPaused(true)
+  }, [])
+
   const setSpeed = useCallback((rate: number) => {
     speedRef.current = rate
     setSpeedState(rate)
@@ -217,6 +224,7 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
     () => ({
       isPaused,
       togglePause,
+      pause,
       speed,
       setSpeed,
       stepOnce,
@@ -235,6 +243,7 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
     [
       isPaused,
       togglePause,
+      pause,
       speed,
       setSpeed,
       stepOnce,

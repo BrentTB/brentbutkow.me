@@ -589,6 +589,30 @@ describe('usePixelWorld', () => {
     })
   })
 
+  it('stops the world on pause, whatever it was doing', () => {
+    // A world arriving paused from a link cannot toggle: it has to stop, whether it was running or already
+    // stopped by the visitor a moment earlier.
+    const { result } = mountSim()
+
+    act(() => result.current.pause())
+    expect(result.current.isPaused).toBe(true)
+
+    act(() => result.current.pause())
+    expect(result.current.isPaused).toBe(true)
+  })
+
+  it('keeps a paused world still', () => {
+    const { result, image } = mountSim()
+    act(() => result.current.paintStroke({ x: 70, y: 2 }, { x: 70, y: 2 }, MaterialId.sand, 0))
+    act(() => result.current.pause())
+    frame(0)
+    const resting = sandRow(image, 70)
+
+    for (let i = 0; i < 10; i++) frame(MS_PER_TICK)
+
+    expect(sandRow(image, 70)).toBe(resting)
+  })
+
   it('fast-forwards by running more of the same ticks, not by changing them', () => {
     // Speed is not a physics setting. The loop keeps a fixed 60 Hz tick and speed only decides how many of
     // those ticks it runs between one drawn frame and the next, so fast-forward is safe to leave a world

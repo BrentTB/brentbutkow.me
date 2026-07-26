@@ -16,6 +16,8 @@
 }
 
 .stage {
+  // Positioned so the paused overlay lands on the world and nothing else.
+  position: relative;
   display: flex;
   flex: 1;
   justify-content: center;
