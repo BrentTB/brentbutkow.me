@@ -1,4 +1,4 @@
-import { Grid } from './pixel-world.types'
+import { Grid, SimSettings } from './pixel-world.types'
 import { isEmissive, writeCellRgb, writeHeatTint } from './engine/palette'
 
 /** Blur radius of the glow pass, in grid cells. */
@@ -19,8 +19,16 @@ export type Renderer = {
  * Temperature gets a third pass: a warm or cold tint over cells away from room temperature, so heating
  * something is visible before it crosses a threshold. Both extra passes are skipped entirely when there
  * is nothing hot, cold or alight to draw.
+ *
+ * Settings arrive as a getter rather than a value: the viewer can turn the temperature tint on and off
+ * while the world runs, and re-reading it per frame means that never restarts the loop.
  */
-export function createRenderer(canvas: HTMLCanvasElement, width: number, height: number): Renderer {
+export function createRenderer(
+  canvas: HTMLCanvasElement,
+  width: number,
+  height: number,
+  readSettings: () => SimSettings
+): Renderer {
   canvas.width = width
   canvas.height = height
 
@@ -43,9 +51,12 @@ export function createRenderer(canvas: HTMLCanvasElement, width: number, height:
     draw(grid) {
       if (!context || !image) return
 
+      const settings = readSettings()
       const pixels = image.data
       const glowPixels = glowImage?.data
-      const heatPixels = heatImage?.data
+      // With both tints off there is nothing for the pass to write, so it doesn't run at all.
+      const heatPixels =
+        settings.tintBlocks || settings.tintAir ? (heatImage?.data ?? undefined) : undefined
       let emissiveCells = 0
       let tintedCells = 0
 
@@ -59,7 +70,10 @@ export function createRenderer(canvas: HTMLCanvasElement, width: number, height:
 
           writeCellRgb(pixels, offset, material, burn, x, y)
 
-          if (heatPixels && writeHeatTint(heatPixels, offset, material, grid.temperature[cell]))
+          if (
+            heatPixels &&
+            writeHeatTint(heatPixels, offset, material, grid.temperature[cell], settings)
+          )
             tintedCells++
 
           if (!glowPixels) continue

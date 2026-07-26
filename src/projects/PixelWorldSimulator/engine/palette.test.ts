@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { MaterialId } from '../pixel-world.types'
-import { AMBIENT_TEMPERATURE } from '../data'
+import { MaterialId, SimSettings } from '../pixel-world.types'
+import { AMBIENT_TEMPERATURE, DEFAULT_SETTINGS } from '../data'
 import { MATERIALS } from './materials'
 import { isEmissive, materialCss, writeCellRgb, writeHeatTint } from './palette'
 
@@ -98,10 +98,17 @@ describe('materialCss', () => {
 })
 
 describe('writeHeatTint', () => {
+  /** Everything tinted, which is what the settings default to for materials. */
+  const BOTH: SimSettings = { tintBlocks: true, tintAir: true }
+
   /** A one-cell overlay buffer, for a cell of stone unless something else is asked for. */
-  function tintFor(temperature: number, material: MaterialId = MaterialId.stone) {
+  function tintFor(
+    temperature: number,
+    material: MaterialId = MaterialId.stone,
+    settings: SimSettings = DEFAULT_SETTINGS
+  ) {
     const pixels = new Uint8ClampedArray(4)
-    const tinted = writeHeatTint(pixels, 0, material, temperature)
+    const tinted = writeHeatTint(pixels, 0, material, temperature, settings)
     return { tinted, r: pixels[0], g: pixels[1], b: pixels[2], alpha: pixels[3] }
   }
 
@@ -129,12 +136,36 @@ describe('writeHeatTint', () => {
     expect(cold.b).toBeGreaterThan(cold.r)
   })
 
-  it('leaves air alone, however hot it gets', () => {
+  it('leaves air alone by default, however hot it gets', () => {
     const { tinted, alpha } = tintFor(900, MaterialId.empty)
 
-    // Hot air drawn as a glowing cloud made the world look full of stuff that was not there.
+    // Hot air drawn as a glowing cloud makes the world look full of stuff that is not there, so the
+    // setting that draws it starts off.
+    expect(DEFAULT_SETTINGS.tintAir).toBe(false)
     expect(tinted).toBe(false)
     expect(alpha).toBe(0)
+  })
+
+  it('tints air once the viewer asks for it', () => {
+    const { tinted, r, b } = tintFor(900, MaterialId.empty, BOTH)
+
+    expect(tinted).toBe(true)
+    expect(r).toBeGreaterThan(b)
+  })
+
+  it('leaves materials alone when the material tint is switched off', () => {
+    const off: SimSettings = { tintBlocks: false, tintAir: true }
+    const { tinted, alpha } = tintFor(900, MaterialId.stone, off)
+
+    expect(tinted).toBe(false)
+    expect(alpha).toBe(0)
+  })
+
+  it('keeps the two tints independent, so air can be lit while materials are not', () => {
+    const airOnly: SimSettings = { tintBlocks: false, tintAir: true }
+
+    expect(tintFor(900, MaterialId.empty, airOnly).tinted).toBe(true)
+    expect(tintFor(900, MaterialId.stone, airOnly).tinted).toBe(false)
   })
 
   it('leaves alone anything that already looks its temperature', () => {

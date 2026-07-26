@@ -204,7 +204,12 @@ function billHottestNeighbour(grid: Grid, index: number, x: number, y: number): 
     hottest = index + 1
   }
 
-  if (hottest >= 0 && peak > temperature[index]) temperature[hottest] = peak - LATENT_HEAT
+  // Never past the boiling cell's own temperature: heat does not flow from cold to hot, and without the
+  // floor a neighbour sitting just over boiling gets billed the full 260° and lands below freezing. That
+  // is what turned the heat tool held in a pool into a ring of ice.
+  if (hottest >= 0 && peak > temperature[index]) {
+    temperature[hottest] = Math.max(temperature[index], peak - LATENT_HEAT)
+  }
 }
 
 /** Heat crossing one interface, in degrees, positive when the neighbour is hotter. */

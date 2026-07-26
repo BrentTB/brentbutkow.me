@@ -25,19 +25,26 @@ function blankImage() {
   }
 }
 
+/** The temperature overlay from the most recent mounted renderer, for reading the tint back. */
+let heatLayer = blankImage()
+/** The most recent fake context, for asking which extra passes were composited over the world. */
+let lastContext: { drawImage: ReturnType<typeof vi.fn> } | null = null
+
 /**
  * jsdom has no 2D context. The fake hands back ImageData the renderer keeps rewriting, so reading it
- * back is how a test observes the grid — no test-only accessor on the hook. The renderer asks for two
- * buffers (the world, then the glow layer) and they have to be separate, or the glow pass would punch
- * holes in what the test reads.
+ * back is how a test observes the grid — no test-only accessor on the hook. The renderer asks for three
+ * buffers (the world, the glow layer, then the temperature overlay) and they have to be separate, or the
+ * later passes would punch holes in what the test reads.
  */
 function mockCanvasContext() {
   const world = blankImage()
   const glow = blankImage()
+  heatLayer = blankImage()
+  const buffers = [world, glow, heatLayer]
   let served = 0
 
   const context = {
-    createImageData: () => (served++ === 0 ? world : glow),
+    createImageData: () => buffers[Math.min(served++, buffers.length - 1)],
     putImageData: vi.fn(),
     drawImage: vi.fn(),
     save: vi.fn(),
@@ -45,6 +52,7 @@ function mockCanvasContext() {
     filter: 'none',
     globalCompositeOperation: 'source-over',
   }
+  lastContext = context
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(
     context as unknown as CanvasRenderingContext2D
   )
@@ -468,6 +476,73 @@ describe('usePixelWorld', () => {
     unmount()
 
     expect(cancelledHandles).toContain(lastHandle)
+  })
+
+  describe('picture settings', () => {
+    /** Alpha written into the temperature overlay for one cell, which is the tint the viewer sees. */
+    function tintAt(x: number, y: number): number {
+      return heatLayer.data[(y * GRID_WIDTH + x) * 4 + 3]
+    }
+
+    function heatedWorld() {
+      const mounted = mountSim()
+      act(() =>
+        mounted.result.current.paintStroke({ x: 40, y: 40 }, { x: 40, y: 40 }, MaterialId.stone, 3)
+      )
+      act(() => mounted.result.current.applyForce(Tool.heat, { x: 40, y: 40 }, { x: 40, y: 40 }, 3))
+      return mounted
+    }
+
+    it('tints a warmed material', () => {
+      heatedWorld()
+
+      frame(MS_PER_TICK)
+
+      expect(tintAt(40, 40)).toBeGreaterThan(0)
+    })
+
+    it('composites nothing over the world once both tints are off', () => {
+      // Nothing here is emissive, so the only pass that draws over the world is the temperature one.
+      const { result } = heatedWorld()
+      frame(MS_PER_TICK)
+      expect(lastContext?.drawImage).toHaveBeenCalled()
+
+      act(() => result.current.applySettings({ tintBlocks: false, tintAir: false }))
+      lastContext?.drawImage.mockClear()
+      frame(MS_PER_TICK)
+
+      expect(lastContext?.drawImage).not.toHaveBeenCalled()
+    })
+
+    it("tints air only when asked, so a warm sky is the viewer's choice", () => {
+      const { result } = mountSim()
+      // The heat tool warms whatever is under it, open air included.
+      act(() => {
+        for (let press = 0; press < 6; press++)
+          result.current.applyForce(Tool.heat, { x: 90, y: 90 }, { x: 90, y: 90 }, 3)
+      })
+
+      frame(MS_PER_TICK)
+      expect(tintAt(90, 90)).toBe(0)
+
+      act(() => result.current.applySettings({ tintBlocks: false, tintAir: true }))
+      frame(MS_PER_TICK)
+
+      expect(tintAt(90, 90)).toBeGreaterThan(0)
+    })
+
+    it('leaves the loop running when a setting changes', () => {
+      // Settings live in a ref for exactly this reason: rebuilding the renderer would drop the
+      // accumulator and restart the animation frame every time a switch is flipped.
+      const { result } = mountSim()
+      frame(MS_PER_TICK)
+      cancelledHandles = []
+
+      act(() => result.current.applySettings({ tintBlocks: false, tintAir: true }))
+      frame(MS_PER_TICK)
+
+      expect(cancelledHandles).toEqual([])
+    })
   })
 
   it('fast-forwards by running more of the same ticks, not by changing them', () => {

@@ -1,4 +1,4 @@
-import { MaterialId } from '../pixel-world.types'
+import { MaterialId, SimSettings } from '../pixel-world.types'
 import { MATERIALS, isBurning } from './materials'
 
 /**
@@ -95,20 +95,22 @@ function ramp(fraction: number): number {
  *
  * This is a separate buffer composited over the world rather than a change to the cell's own colour, so
  * a material still draws as exactly its palette entry.
+ *
+ * Both halves are the viewer's call, and air is off by default: a warm sky covers most of the world in a
+ * haze that reads as weather rather than temperature.
  */
 export function writeHeatTint(
   pixels: Uint8ClampedArray,
   offset: number,
   material: number,
-  temperature: number
+  temperature: number,
+  settings: SimSettings
 ): boolean {
-  // Air is not a thing you can see the temperature of. Hot air reading as a glowing cloud made the
-  // world look like it was full of stuff; what air should show one day is currents, not warmth.
-  //
-  // Materials that hold their own temperature are skipped too: lava, ice, liquid nitrogen and flame are
+  const wanted = material === MaterialId.empty ? settings.tintAir : settings.tintBlocks
+  // Materials that hold their own temperature are never tinted: lava, ice, liquid nitrogen and flame are
   // already coloured for being hot or cold, so tinting them only washes the colour out — nitrogen came
   // out white. The tint is for materials that do not otherwise advertise their heat.
-  if (material === MaterialId.empty || MATERIALS[material].selfHeat !== undefined) {
+  if (!wanted || (material !== MaterialId.empty && MATERIALS[material].selfHeat !== undefined)) {
     pixels[offset + 3] = 0
     return false
   }

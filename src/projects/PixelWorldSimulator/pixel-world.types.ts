@@ -243,6 +243,15 @@ export const Tool = {
 } as const
 export type Tool = (typeof Tool)[keyof typeof Tool]
 
+/** What the viewer can turn on and off. Kept out of the world: settings change the picture, not the sim. */
+export const SimSetting = {
+  tintBlocks: 'tintBlocks',
+  tintAir: 'tintAir',
+} as const
+export type SimSetting = (typeof SimSetting)[keyof typeof SimSetting]
+
+export type SimSettings = Record<SimSetting, boolean>
+
 /** Cells live in flat typed arrays indexed `y * width + x`. */
 export type Grid = {
   width: number

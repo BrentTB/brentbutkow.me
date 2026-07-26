@@ -1,5 +1,5 @@
 import { Tool } from '../../pixel-world.types'
-import { TOOLS } from '../../data'
+import { TOOLS, simCopy } from '../../data'
 import styles from './ToolRow.module.scss'
 
 type ToolRowProps = {
@@ -9,6 +9,8 @@ type ToolRowProps = {
   /** Hidden where the browser has no Fullscreen API, rather than shown and broken. */
   canFullscreen: boolean
   onToggleFullscreen(): void
+  isSettingsOpen: boolean
+  onOpenSettings(): void
 }
 
 /** What the pointer does to the world: paint a material, or push, pull and temper what is already there. */
@@ -18,19 +20,35 @@ export function ToolRow({
   isFullscreen,
   canFullscreen,
   onToggleFullscreen,
+  isSettingsOpen,
+  onOpenSettings,
 }: ToolRowProps) {
   return (
     <div className={styles.column}>
-      {canFullscreen && (
+      {/* Two controls for the view rather than the world, so they share a row above the tools. */}
+      <div className={styles.view}>
+        {canFullscreen && (
+          <button
+            type="button"
+            className={styles.expand}
+            aria-label={isFullscreen ? 'Exit full screen' : 'Full screen'}
+            onClick={onToggleFullscreen}
+          >
+            {isFullscreen ? <CollapseIcon /> : <ExpandIcon />}
+          </button>
+        )}
+
         <button
           type="button"
-          className={styles.expand}
-          aria-label={isFullscreen ? 'Exit full screen' : 'Full screen'}
-          onClick={onToggleFullscreen}
+          className={styles.gear}
+          aria-label={simCopy.settings.open}
+          aria-haspopup="dialog"
+          aria-expanded={isSettingsOpen}
+          onClick={onOpenSettings}
         >
-          {isFullscreen ? <CollapseIcon /> : <ExpandIcon />}
+          <GearIcon />
         </button>
-      )}
+      </div>
 
       <div className={styles.tools} role="group" aria-label="Tool">
         {TOOLS.map(({ tool, label, title }) => (
@@ -47,6 +65,25 @@ export function ToolRow({
         ))}
       </div>
     </div>
+  )
+}
+
+/**
+ * A rim with six stubby teeth. Teeth any longer or thinner and it reads as a sun at this size, which is
+ * the wrong idea entirely.
+ */
+function GearIcon() {
+  return (
+    <svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true" focusable="false">
+      <path
+        d="M11 7h2M1 7h2M9 10.46l1 1.74M4 1.8l1 1.74M5 10.46l-1 1.74M10 1.8l-1 1.74"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.2"
+      />
+      <circle cx="7" cy="7" r="4" fill="none" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="7" cy="7" r="1.3" fill="currentColor" />
+    </svg>
   )
 }
 

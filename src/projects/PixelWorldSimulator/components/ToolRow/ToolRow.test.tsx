@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
 import { Tool } from '../../pixel-world.types'
-import { TOOLS } from '../../data'
+import { TOOLS, simCopy } from '../../data'
 import { ToolRow } from './ToolRow'
 
 function renderTools(overrides: Partial<Parameters<typeof ToolRow>[0]> = {}) {
@@ -11,6 +11,8 @@ function renderTools(overrides: Partial<Parameters<typeof ToolRow>[0]> = {}) {
     isFullscreen: false,
     canFullscreen: true,
     onToggleFullscreen: vi.fn(),
+    isSettingsOpen: false,
+    onOpenSettings: vi.fn(),
     ...overrides,
   }
   render(<ToolRow {...props} />)
@@ -78,5 +80,40 @@ describe('ToolRow', () => {
     screen.getByRole('button', { name: 'Full screen' }).click()
 
     expect(props.onToggleFullscreen).toHaveBeenCalled()
+  })
+
+  it('offers the settings beside full screen, outside the tool group', () => {
+    renderTools()
+
+    const gear = screen.getByRole('button', { name: simCopy.settings.open })
+    expect(gear.getAttribute('aria-haspopup')).toBe('dialog')
+    expect(screen.getByRole('group', { name: 'Tool' }).contains(gear)).toBe(false)
+  })
+
+  it('asks for the settings when the gear is pressed', () => {
+    const props = renderTools()
+
+    screen.getByRole('button', { name: simCopy.settings.open }).click()
+
+    expect(props.onOpenSettings).toHaveBeenCalled()
+  })
+
+  it('keeps the gear where the browser cannot go full screen', () => {
+    renderTools({ canFullscreen: false })
+
+    expect(screen.getByRole('button', { name: simCopy.settings.open })).toBeTruthy()
+  })
+
+  it('shows on the gear whether the dialog is open', () => {
+    renderTools()
+    const closed = screen.getByRole('button', { name: simCopy.settings.open })
+    expect(closed.getAttribute('aria-expanded')).toBe('false')
+
+    cleanup()
+    renderTools({ isSettingsOpen: true })
+
+    expect(
+      screen.getByRole('button', { name: simCopy.settings.open }).getAttribute('aria-expanded')
+    ).toBe('true')
   })
 })

@@ -7,7 +7,16 @@
   gap: 8px;
 }
 
-.expand {
+// Full screen takes the width it can and the gear stays square beside it, so the pair reads as one bar the
+// same width as the tools below rather than two buttons of unrelated size.
+.view {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.expand,
+.gear {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -29,6 +38,21 @@
   &:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
+  }
+}
+
+.expand {
+  flex: 1 1 auto;
+}
+
+.gear {
+  flex: 0 0 auto;
+
+  // Open: lit like a pressed tool, so it is clear which control the dialog belongs to.
+  &[aria-expanded='true'] {
+    color: var(--text);
+    border-color: var(--accent);
+    background: rgba(var(--accent-rgb), 0.16);
   }
 }
 
@@ -85,6 +109,11 @@
     align-self: stretch;
     flex-direction: row-reverse;
     align-items: stretch;
+  }
+
+  // Laid out as a row, the two view controls stack instead: side by side they eat width the tools need.
+  .view {
+    flex-direction: column;
   }
 
   .tools {

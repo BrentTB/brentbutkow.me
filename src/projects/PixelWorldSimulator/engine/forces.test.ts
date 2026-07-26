@@ -4,6 +4,8 @@ import { AMBIENT_TEMPERATURE } from '../data'
 import { cellIndex, createGrid, placeMaterial } from './grid'
 import { attract, blast, detonate, flashOver, temper, wind } from './forces'
 import { MATERIALS } from './materials'
+import { simulateHeat } from './heat'
+import { countMaterials } from './census'
 
 describe('attract', () => {
   it('pulls loose cells toward the pointer from both sides', () => {
@@ -167,6 +169,36 @@ describe('temper', () => {
     temper(grid, 10, 10, 4, true)
 
     expect(grid.hotRows[10]).toBe(1)
+  })
+
+  it('sets a lava pool held under the chill tool, not only its edges', () => {
+    // Lava is defended twice over: its own furnace reheats it and the pool around it conducts heat back
+    // in. A flat step lost that fight — a pool held under the brush settled 55° above its freezing point
+    // and never set, so only the rim, with fewer hot neighbours, ever turned to stone.
+    const grid = createGrid(60, 40)
+    for (let y = 0; y < 40; y++) {
+      for (let x = 0; x < 60; x++) placeMaterial(grid, cellIndex(grid, x, y), MaterialId.lava)
+    }
+
+    for (let held = 0; held < 30; held++) {
+      temper(grid, 30, 20, 6, false)
+      simulateHeat(grid)
+    }
+
+    expect(grid.material[cellIndex(grid, 30, 20)]).toBe(MaterialId.stone)
+    expect(countMaterials(grid)[MaterialId.stone]).toBeGreaterThan(100)
+  })
+
+  it('keeps its gentle step on material already at room temperature', () => {
+    // The extra grip scales with how far a cell sits from room temperature, so ordinary material feels
+    // exactly as it did. Scaling by the distance to the tool's limit instead put one tap of heat on cold
+    // water at 375°, which boiled a pool on a single click.
+    const grid = createGrid(21, 21)
+    placeMaterial(grid, cellIndex(grid, 10, 10), MaterialId.water)
+
+    temper(grid, 10, 10, 4, true)
+
+    expect(grid.temperature[cellIndex(grid, 10, 10)]).toBeLessThan(AMBIENT_TEMPERATURE + 120)
   })
 
   it('cannot be held down into a runaway temperature', () => {

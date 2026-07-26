@@ -1,4 +1,4 @@
-import { MaterialId, Tool } from './pixel-world.types'
+import { MaterialId, SimSetting, SimSettings, Tool } from './pixel-world.types'
 import { Preset } from './engine/presets'
 
 // Widescreen, and half again as many cells as the 300x200 it started at: the world reads as a place with
@@ -254,7 +254,41 @@ export const simCopy = {
     setHint: 'Press to choose what this slot holds',
     useHint: 'Draw with this. Press twice to change it',
   },
+  settings: {
+    open: 'Settings',
+    title: 'Settings',
+    close: 'Done',
+  },
 }
+
+/**
+ * The picture settings, and what each one does in plain terms. Rendered straight from here, so the dialog
+ * has no list of its own to fall out of step with.
+ */
+export const SETTING_ROWS: readonly { setting: SimSetting; label: string; hint: string }[] = [
+  {
+    setting: SimSetting.tintBlocks,
+    label: 'Tint materials by temperature',
+    hint: 'Warm cells glow orange, cold ones go blue. Turn it off to see materials in their own colours.',
+  },
+  {
+    setting: SimSetting.tintAir,
+    label: 'Tint air by temperature',
+    hint: 'Shows warmth in the air itself, so you can watch heat rise off a fire. Gets busy once things burn.',
+  },
+]
+
+/**
+ * Materials are tinted by default and air is not: warmth in a solid is otherwise invisible until it crosses
+ * a threshold, while hot air covers half the world in a haze that reads as fog rather than temperature.
+ */
+export const DEFAULT_SETTINGS: SimSettings = {
+  [SimSetting.tintBlocks]: true,
+  [SimSetting.tintAir]: false,
+}
+
+/** Where the settings live between visits. */
+export const SETTINGS_KEY = 'pixel-world-settings'
 
 /**
  * How many materials the quick slots hold. Three: enough for the handful you keep swapping between while

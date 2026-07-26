@@ -62,6 +62,22 @@ describe('MATERIALS', () => {
     }
   })
 
+  it('never melts a material into something hot enough to melt its neighbours', () => {
+    // The pair-of-materials version of a chain reaction: if stone melted at or below lava's own 1250 °C,
+    // one lava cell would melt the stone beside it, and that new lava the next, until the world was
+    // molten. `radiate` pulls a neighbour toward a source's temperature and never past it, so a melt
+    // point above the source is unreachable by contact alone — only a real heat source gets there.
+    for (const material of MATERIALS) {
+      const molten = material.hot
+      if (molten === undefined) continue
+
+      const heldBy = MATERIALS[molten.into].selfHeat
+      if (heldBy === undefined) continue
+
+      expect(molten.at).toBeGreaterThan(heldBy)
+    }
+  })
+
   it('gives every gas somewhere to go when its lifetime runs out', () => {
     for (const material of MATERIALS) {
       if (material.lifetime === undefined) continue

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { PageLayout } from '../../components/PageFormatting/PageLayout'
 import { PageHeader } from '../../components/PageFormatting/PageHeader'
 import { useFunMode } from '../../contexts/useFunMode'
@@ -7,12 +7,14 @@ import { BRUSH_RADIUS, DEFAULT_MATERIAL, SIDEBAR_GAP, simCopy } from './data'
 import { useElementHeight } from './useElementHeight'
 import { useFullscreen } from './useFullscreen'
 import { usePixelWorld } from './usePixelWorld'
+import { useSimSettings } from './useSimSettings'
 import { usePointerBrush } from './usePointerBrush'
 import { Palette } from './components/Palette/Palette'
 import { ToolRow } from './components/ToolRow/ToolRow'
 import { Census } from './components/Census/Census'
 import { Reading } from './components/Reading/Reading'
 import { SimControls } from './components/SimControls/SimControls'
+import { SettingsDialog } from './components/SettingsDialog/SettingsDialog'
 import styles from './PixelWorldSimulator.module.scss'
 
 /** What to say when the pointer is off the canvas and there is no reading to show. */
@@ -30,6 +32,8 @@ export function PixelWorldSimulator() {
   const [material, setMaterial] = useState<MaterialId>(DEFAULT_MATERIAL)
   const [tool, setTool] = useState<Tool>(Tool.paint)
   const [radius, setRadius] = useState(BRUSH_RADIUS.default)
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const { settings, toggle: toggleSetting } = useSimSettings()
 
   // How much room is left beside the canvas once the tools have had theirs. The canvas takes its height from
   // its own aspect ratio, so this can only be measured — and without it the tally runs on past the bottom of
@@ -41,6 +45,10 @@ export function PixelWorldSimulator() {
   const censusRoom = stageHeight === 0 ? 0 : Math.max(0, stageHeight - toolsHeight - SIDEBAR_GAP)
 
   const sim = usePixelWorld(canvasRef)
+
+  // The renderer holds the settings in a ref, so the saved ones have to be handed over once on mount.
+  const { applySettings } = sim
+  useEffect(() => applySettings(settings), [applySettings, settings])
 
   // Depend on the two callbacks rather than on `sim`, whose identity changes every time the readout
   // refreshes — otherwise the canvas re-registers all five pointer listeners ten times a second.
@@ -84,6 +92,8 @@ export function PixelWorldSimulator() {
                 isFullscreen={fullscreen.isFullscreen}
                 canFullscreen={fullscreen.supported}
                 onToggleFullscreen={fullscreen.toggle}
+                isSettingsOpen={isSettingsOpen}
+                onOpenSettings={() => setIsSettingsOpen(true)}
               />
             </div>
 
@@ -117,6 +127,15 @@ export function PixelWorldSimulator() {
         <p className={styles.hint}>
           {sim.reading === null ? hintFor(tool) : <Reading reading={sim.reading} />}
         </p>
+
+        {/* Inside the element that goes full screen, so the dialog is still there in full screen. */}
+        {isSettingsOpen && (
+          <SettingsDialog
+            settings={settings}
+            onToggle={toggleSetting}
+            onClose={() => setIsSettingsOpen(false)}
+          />
+        )}
       </div>
     </PageLayout>
   )

@@ -4,6 +4,8 @@ import { AMBIENT_TEMPERATURE } from '../data'
 import { cellIndex, createGrid, placeMaterial } from './grid'
 import { MATERIALS } from './materials'
 import { simulateHeat } from './heat'
+import { countMaterials } from './census'
+import { temper } from './forces'
 
 function put(grid: Grid, x: number, y: number, material: MaterialId): number {
   const index = cellIndex(grid, x, y)
@@ -154,6 +156,82 @@ describe('simulateHeat', () => {
 
     expect(grid.material[water]).toBe(MaterialId.steam)
     expect(grid.temperature[lava]).toBeLessThan(lavaBefore)
+  })
+
+  it('never bills a boil so hard that a warm neighbour freezes', () => {
+    // Boiling takes its latent heat out of the hottest neighbour, which is what lets a splash of water
+    // crust lava. Unfloored, a neighbour sitting just over boiling was billed the full 260° and landed
+    // below zero: holding the heat tool in a pool grew a ring of ice around the warm patch.
+    const grid = slab(40, 30, MaterialId.water)
+    for (let press = 0; press < 60; press++) {
+      temper(grid, 20, 15, 6, true)
+      simulateHeat(grid)
+    }
+
+    expect(countMaterials(grid)[MaterialId.ice]).toBe(0)
+    let coldest = AMBIENT_TEMPERATURE
+    for (const reading of grid.temperature) coldest = Math.min(coldest, reading)
+    expect(coldest).toBeGreaterThanOrEqual(0)
+    // And it is genuinely boiling, so the test is not passing because nothing happened.
+    expect(countMaterials(grid)[MaterialId.steam]).toBeGreaterThan(0)
+  })
+
+  it('still lets a splash of water crust lava, which is what the billing is for', () => {
+    const grid = createGrid(5, 5)
+    const lava = put(grid, 2, 3, MaterialId.lava)
+    const water = put(grid, 2, 2, MaterialId.water)
+    grid.temperature[water] = 400
+    const lavaBefore = grid.temperature[lava]
+
+    simulateHeat(grid)
+
+    expect(grid.material[water]).toBe(MaterialId.steam)
+    expect(grid.temperature[lava]).toBeLessThan(lavaBefore - 100)
+  })
+
+  it('melts stone into lava once it is hot enough', () => {
+    // A whole slab at temperature, rather than one hot cell: a lone cell sheds enough into the air
+    // around it during the same tick's diffusion to land back under the threshold.
+    const grid = slab(5, 5, MaterialId.stone)
+    const melting = MATERIALS[MaterialId.stone].hot?.at ?? 0
+    grid.temperature.fill(melting + 100)
+
+    simulateHeat(grid)
+
+    expect(grid.material[cellIndex(grid, 2, 2)]).toBe(MaterialId.lava)
+  })
+
+  it('will not let lava melt the stone it touches, so a pool cannot expand', () => {
+    // Stone melts above lava's own temperature on purpose: `radiate` pulls a neighbour toward a
+    // source and never past it. Drop stone's threshold to lava's 1250 and this is a chain reaction
+    // that turns the whole world molten.
+    const grid = slab(20, 20, MaterialId.stone)
+    for (let y = 0; y < 20; y++) {
+      for (let x = 0; x < 10; x++) put(grid, x, y, MaterialId.lava)
+    }
+    const molten = () => countMaterials(grid)[MaterialId.lava]
+    const before = molten()
+
+    heatFor(grid, 600)
+
+    expect(molten()).toBe(before)
+    expect(grid.temperature[cellIndex(grid, 10, 10)]).toBeLessThan(
+      MATERIALS[MaterialId.stone].hot?.at ?? 0
+    )
+  })
+
+  it('holds a melted pool at its size once the heat stops', () => {
+    const grid = slab(30, 30, MaterialId.stone)
+    for (let press = 0; press < 40; press++) {
+      temper(grid, 15, 15, 4, true)
+      simulateHeat(grid)
+    }
+    const onRelease = countMaterials(grid)[MaterialId.lava]
+    expect(onRelease).toBeGreaterThan(0)
+
+    heatFor(grid, 1200)
+
+    expect(countMaterials(grid)[MaterialId.lava]).toBe(onRelease)
   })
 
   it('melts sand into glass under lava heat', () => {

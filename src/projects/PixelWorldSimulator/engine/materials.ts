@@ -76,7 +76,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.stone,
     label: 'Stone',
-    blurb: 'Building material. Acid eats it slowly.',
+    blurb: 'Building material. Melts to lava, and acid eats it slowly.',
     behavior: MaterialBehavior.static,
     density: 1000,
     color: [122, 124, 130],
@@ -86,6 +86,11 @@ export const MATERIALS: readonly Material[] = [
     conductivity: 0.2,
     // Acid does eat stone, just slowly — glass is the container you build to hold it.
     acidResistance: 0.15,
+    // Above lava's own 1250 °C on purpose. `radiate` pulls a neighbour toward a source's temperature
+    // and never past it, so lava can heat a stone wall forever without melting it — which is what
+    // stops the pair from turning into a chain reaction that eats the world. Only a real heat source
+    // (the heat tool, a hotter melt) gets stone over the line.
+    hot: { at: 1500, into: MaterialId.lava },
   },
   {
     id: MaterialId.sand,

@@ -1,4 +1,5 @@
 import { Grid, MaterialBehavior, MaterialId } from '../pixel-world.types'
+import { AMBIENT_TEMPERATURE } from '../data'
 import { cellIndex, markHotRow, transformCell } from './grid'
 import { MATERIALS } from './materials'
 import { push } from './kinetic'
@@ -32,8 +33,20 @@ const RIM_SHARE = 0.35
  * The rim still gets almost nothing, so it scorches the middle rather than torching the whole disc.
  */
 const BLAST_HEAT = 360
-/** °C one press of heat or chill moves the cells under the brush. */
+/** °C one press of heat or chill moves the cells under the brush, at its weakest. */
 const TEMPERATURE_STEP = 90
+/**
+ * Extra grip, as a share of how far the cell already sits from room temperature. A flat step alone loses to
+ * anything that makes its own heat: chill took 90° off a lava pool and the heat pass handed almost all of it
+ * back through lava's own furnace and the surrounding pool, so a pool held under the brush settled 32° below
+ * its own temperature and never set.
+ *
+ * Distance from room temperature is the thing to scale by, rather than distance from where the tool is
+ * driving the cell: a source is resistant precisely because it holds an extreme temperature, while ordinary
+ * material near room temperature keeps the flat step and the tools keep their old feel. Scaling by the gap
+ * to the target instead gave a single tap of heat on cold water 375°, which boiled a pool on one click.
+ */
+const TEMPERATURE_PULL = 0.3
 
 /** The coldest and hottest the brush tools will drive a cell, so neither can run away. */
 const TEMPERATURE_FLOOR = -220
@@ -137,10 +150,13 @@ export function wind(
 
 /** Raises or lowers the temperature under the brush, for melting and freezing without painting. */
 export function temper(grid: Grid, cx: number, cy: number, radius: number, warming: boolean): void {
-  const step = warming ? TEMPERATURE_STEP : -TEMPERATURE_STEP
+  const direction = warming ? 1 : -1
 
   overDisc(grid, cx, cy, radius, (index, _dx, _dy, falloff) => {
-    const next = grid.temperature[index] + step * falloff
+    const current = grid.temperature[index]
+    const extreme = Math.abs(current - AMBIENT_TEMPERATURE)
+    const step = (TEMPERATURE_STEP + extreme * TEMPERATURE_PULL) * falloff * direction
+    const next = current + step
     grid.temperature[index] = Math.round(
       Math.max(TEMPERATURE_FLOOR, Math.min(TEMPERATURE_CEILING, next))
     )

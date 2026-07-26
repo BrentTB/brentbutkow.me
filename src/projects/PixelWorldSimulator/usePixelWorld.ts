@@ -1,7 +1,8 @@
 import { RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { CellPoint, CellReading, Grid, MaterialId, Tool } from './pixel-world.types'
+import { CellPoint, CellReading, Grid, MaterialId, SimSettings, Tool } from './pixel-world.types'
 import {
   CENSUS_INTERVAL,
+  DEFAULT_SETTINGS,
   DEFAULT_SPEED,
   GRID_HEIGHT,
   GRID_WIDTH,
@@ -50,6 +51,8 @@ export type PixelWorldSim = {
   watchCensus(on: boolean): void
   /** Cells of each material, indexed by `MaterialId`, or null while the tally is switched off. */
   census: Uint32Array | null
+  /** Hands the renderer the viewer's picture settings. Takes effect on the next frame drawn. */
+  applySettings(settings: SimSettings): void
 }
 
 /**
@@ -79,11 +82,14 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
   const censusOnRef = useRef(false)
   const [census, setCensus] = useState<Uint32Array | null>(null)
 
+  // The renderer reads this every frame, so toggling a setting repaints without rebuilding the loop.
+  const settingsRef = useRef<SimSettings>({ ...DEFAULT_SETTINGS })
+
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
 
-    const renderer = createRenderer(canvas, GRID_WIDTH, GRID_HEIGHT)
+    const renderer = createRenderer(canvas, GRID_WIDTH, GRID_HEIGHT, () => settingsRef.current)
     const msPerTick = 1000 / TICK_RATE
     let frame = requestAnimationFrame(loop)
     let previous: number | null = null
@@ -186,6 +192,10 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
     else if (!wasWatching) setReading(readCell(gridRef.current, cell))
   }, [])
 
+  const applySettings = useCallback((settings: SimSettings) => {
+    settingsRef.current = settings
+  }, [])
+
   const watchCensus = useCallback((on: boolean) => {
     censusOnRef.current = on
     // Switching on reads straight away, so the numbers are there the moment the panel opens rather than
@@ -209,6 +219,7 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
       reading,
       watchCensus,
       census,
+      applySettings,
     }),
     [
       isPaused,
@@ -224,6 +235,7 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
       reading,
       watchCensus,
       census,
+      applySettings,
     ]
   )
 }
