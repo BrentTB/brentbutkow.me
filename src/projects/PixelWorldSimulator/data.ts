@@ -42,6 +42,20 @@ export const READING_INTERVAL = 100
  */
 export const CENSUS_INTERVAL = 250
 
+/**
+ * The colours a tracked row is marked with, handed out in the order rows are marked. Deliberately not the
+ * palette's material colours: a marker has to be legible against every swatch it might sit beside, and it is
+ * saying "this is the row you asked about" rather than "this is what the stuff looks like".
+ */
+export const CENSUS_TRACK_COLOURS: readonly string[] = [
+  '#f2b34b',
+  '#5fb8e6',
+  '#e07a9c',
+  '#7ed07a',
+  '#c58ce6',
+  '#e8e05f',
+]
+
 export const BRUSH_RADIUS = {
   min: 0,
   max: 24,
@@ -203,8 +217,8 @@ export const simCopy = {
   census: {
     title: "What's in the world",
     empty: 'Nothing drawn yet.',
-    /** Air is most of an empty world, and counting it tells you nothing you want to know. */
-    airNote: 'The list leaves out air.',
+    /** On every row: the list re-sorts as counts change, so a marked row is one you can keep your eye on. */
+    track: 'Mark this row to follow it as the list moves',
   },
   searchPlaceholder: 'Find a material',
   noMatch: 'Nothing by that name.',

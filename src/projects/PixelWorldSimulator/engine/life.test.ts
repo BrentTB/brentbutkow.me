@@ -560,6 +560,38 @@ describe('the ant', () => {
     expect(deepest).toBeGreaterThan(startY + 2)
   })
 
+  it('walls a lane with its own food now and then, so a nest keeps a crop alive', () => {
+    // A block of wood with a bank of leaf through the middle of it, and a nest working the seam. An ant walls
+    // its lanes in whatever it is boring, and it will use leaf as well as timber — sparingly, but enough that
+    // the crop is replaced rather than only eaten. Refusing to build in its own food, a colony grazes a sealed
+    // case bare and starves, so the count here would only ever fall.
+    const grid = createGrid(40, 30)
+    for (let x = 0; x < grid.width; x++)
+      placeMaterial(grid, cellIndex(grid, x, 29), MaterialId.stone)
+    for (let y = 8; y < 29; y++) {
+      for (let x = 4; x < 36; x++) placeMaterial(grid, cellIndex(grid, x, y), MaterialId.wood)
+    }
+    for (let y = 14; y <= 20; y++) {
+      for (let x = 8; x < 32; x++) placeMaterial(grid, cellIndex(grid, x, y), MaterialId.plant)
+    }
+    const startPlant = count(grid, MaterialId.plant)
+    for (let x = 12; x <= 28; x += 4) ant(grid, x, 13, 1, 1)
+
+    run(grid, 400, 5)
+
+    // Cells of leaf standing where the ants have been working that were solid wood at the start: the crop is
+    // being put back, not just eaten down.
+    let sown = 0
+    for (let y = 9; y < 14; y++) {
+      for (let x = 4; x < 36; x++) {
+        if (grid.material[cellIndex(grid, x, y)] === MaterialId.plant) sown++
+      }
+    }
+    expect(sown).toBeGreaterThan(0)
+    expect(count(grid, MaterialId.plant)).toBeGreaterThan(0)
+    expect(startPlant).toBeGreaterThan(0)
+  })
+
   it('drives a lane forward instead of pacing it up and down', () => {
     // A horizontal wood bar with a short open lane cut through its middle, and an ant in the lane pointed
     // right. It should carry the lane on to the right and never turn round to re-walk it leftward — that

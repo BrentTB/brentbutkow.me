@@ -587,7 +587,7 @@ function antColony(grid: Grid, rng: Rng): void {
   for (let i = 0; i < pockets; i++) {
     const px = farmLeft + 4 + Math.floor(rng.next() * Math.max(1, farmRight - farmLeft - 8))
     const py = farmTop + 6 + Math.floor(rng.next() * Math.max(1, bedTop - farmTop - 8))
-    boulder(grid, px, py, 2, rng, MaterialId.plant)
+    boulder(grid, px, py, 4, rng, MaterialId.plant)
   }
 
   // The colony, seeded down in the wood where it starts boring straight away.
@@ -632,8 +632,8 @@ function antColony(grid: Grid, rng: Rng): void {
   // Low enough over the field to see a bug and dive on it — a bird's sight reaches about eighteen cells, so
   // one parked up in the clouds never spots a thing and starves over the grass. Placed into clear air, since
   // a bird sitting in the leaves of a tree is out of its medium and drains out within seconds.
-  for (let i = 1; i <= 2; i++) {
-    const bx = wildFrom + Math.floor(((width - wildFrom) * i) / 3)
+  for (let i = 1; i <= 3; i++) {
+    const bx = wildFrom + Math.floor(((width - wildFrom) * i) / 4)
     const perch = clearAir(grid, bx, ground[bx] - 8)
     if (perch >= 0) put(grid, bx, perch, MaterialId.bird)
   }

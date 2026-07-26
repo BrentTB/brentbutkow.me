@@ -828,7 +828,7 @@ export const MATERIALS: readonly Material[] = [
       // fast as it built it.
       diet: [MaterialId.plant],
       startEnergy: 200,
-      nutrition: 30,
+      nutrition: 60,
       feedChance: 0.1,
       // Slow to burn, so a nest keeps building for a good while on a patch of leaves.
       burnRate: 0.03,
@@ -839,10 +839,10 @@ export const MATERIALS: readonly Material[] = [
       // now, and a nest walled off from them still has to replace what starves, so the rate is what keeps a
       // colony going rather than dwindling to nothing.
       breedAt: 230,
-      breedChance: 0.0008,
+      breedChance: 0.0003,
       // A hungry ant steers for the nearest leaf it can see. Without this it bores on blindly and starves in
       // a nest with a crop at the far end of it, which is what emptied a sealed case every time.
-      hunts: 16,
+      hunts: 36,
       corpse: MaterialId.meat,
     },
   },

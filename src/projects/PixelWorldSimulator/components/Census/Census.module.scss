@@ -48,10 +48,13 @@
   color: var(--accent);
 }
 
+// Sized to roughly the room left beside the canvas, which is capped at 58vh with the tool column above it,
+// so opening the tally does not leave the world stranded above a column of dead space. It scrolls past that,
+// and never shows fewer than about three rows: below that there is no point opening it at all.
 .panel {
   border-top: 1px solid var(--border);
-  // Tall worlds hold a lot of materials; the list scrolls rather than pushing the page around.
-  max-height: 320px;
+  min-height: 5.6rem;
+  max-height: max(5.6rem, calc(58vh - 16rem));
   overflow-y: auto;
 }
 
@@ -67,14 +70,55 @@
 
 .row {
   display: grid;
-  // Chip, name, then the number hard against the right edge, so the digits line up as a column to read
-  // down rather than trailing after names of different lengths.
-  grid-template-columns: 8px 1fr auto;
+  // A marker rail, chip, name, then the number hard against the right edge, so the digits line up as a
+  // column to read down rather than trailing after names of different lengths.
+  grid-template-columns: 3px 8px 1fr auto;
   align-items: center;
   gap: 8px;
-  padding: 5px 14px;
+  width: 100%;
+  padding: 5px 14px 5px 0;
+  text-align: left;
   font-family: var(--font-mono);
   font-size: 0.72rem;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transition: background 0.18s ease;
+
+  // The rail is always in the grid, so marking a row does not shunt its contents sideways.
+  &::before {
+    content: '';
+    align-self: stretch;
+    background: transparent;
+  }
+
+  &:hover {
+    background: rgba(var(--accent-rgb), 0.08);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+}
+
+// Marked: the rail lights up in the colour this row was handed, and the name comes forward with it. The
+// colour is the point — the list re-sorts constantly, and a colour is what you can follow as a row moves.
+.trackedRow {
+  background: color-mix(in srgb, var(--track) 12%, transparent);
+
+  &::before {
+    background: var(--track);
+  }
+
+  .label {
+    color: var(--text);
+  }
+
+  .count {
+    color: var(--track);
+  }
 }
 
 .chip {
@@ -97,18 +141,13 @@
   font-variant-numeric: tabular-nums;
 }
 
-.empty,
-.note {
+.empty {
   margin: 0;
   padding: 8px 14px;
   font-family: var(--font-mono);
   font-size: 0.68rem;
   letter-spacing: 0.02em;
   color: var(--muted);
-}
-
-.note {
-  border-top: 1px solid var(--border);
 }
 
 // Narrow: the column lies down into a row beside the tools, so the tally goes full width under it.

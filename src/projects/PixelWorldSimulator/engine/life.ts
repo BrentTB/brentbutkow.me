@@ -44,6 +44,12 @@ const LEAP_SPREAD = 0.45
  * starting energy, so a nest spends most of its time working and only breaks off when it actually needs to.
  */
 const ANT_HUNGRY = 120
+/**
+ * Chance an ant will wall a path with its own food rather than passing the chance up. Low: enough that a
+ * colony keeps a crop alive around itself instead of eating a sealed case bare, far short of the leaf farm
+ * that building with food at every opportunity turns a nest into.
+ */
+const FOOD_WALL_CHANCE = 0.7
 
 // Which ids are alive, and their config, as flat lookups: the pass asks this of every cell it visits.
 const LIFE = MATERIALS.map((material) => material.life)
@@ -524,8 +530,6 @@ const ANT_TURN_OPEN = 0.05
  * they pass this up.
  */
 const REUSE_CHANCE = 0.9
-/** Energy a length of wall costs. Small: grazing keeps pace with it, but it cannot be built for free forever. */
-const TRAIL_COST = 1
 
 /**
  * Where an ant looks for the surface it is standing on, to lay a trail of the same stuff — below first,
@@ -655,11 +659,12 @@ function stepAnt(grid: Grid, rng: Rng, x: number, y: number, index: number, life
     }
   }
 
-  // The soft stuff at hand to build walls with, and the energy to. A length of wall costs a little so a nest
-  // cannot build forever, but little enough that grazing keeps up and it does not starve the moment it
-  // wanders off its food.
-  const wall = softNear(grid, x, y)
-  const lay = wall !== MaterialId.empty && grid.data[index] > TRAIL_COST
+  // The soft stuff at hand to build walls with. Building is free: charged for, it is by far an ant's largest
+  // outgoing — a nest builds ten times faster than it burns energy standing still — so a colony spent
+  // everything it grazed on masonry and starved beside a full crop. What bounds the network is `REUSE_CHANCE`,
+  // not a toll.
+  const wall = softNear(grid, rng, x, y)
+  const lay = wall !== MaterialId.empty
 
   for (const [dx, dy] of dirs) {
     // Never turn straight back the way it came, or an ant reaching the end of a lane just walks it in
@@ -698,8 +703,8 @@ function stepAnt(grid: Grid, rng: Rng, x: number, y: number, index: number, life
     // A ridge to either side, square across the heading, and only into open air — so a lane keeps its two
     // walls even once its middle is hollow, and a path never cuts through anything already standing.
     if (lay) {
-      const built = wallInto(grid, nx + dy, ny - dx, wall) + wallInto(grid, nx - dy, ny + dx, wall)
-      if (built > 0) grid.data[target] -= TRAIL_COST
+      wallInto(grid, nx + dy, ny - dx, wall)
+      wallInto(grid, nx - dy, ny + dx, wall)
     }
     return
   }
@@ -768,14 +773,15 @@ function wallInto(grid: Grid, x: number, y: number, material: number): number {
 
 /**
  * The material an ant has to hand to wall a path with, looked for underfoot first. Only the stuff it bores
- * counts — a ridge has to be a wall that stays put, so loose ground and open air are no use, which is why an
+ * counts: a ridge has to be a wall that stays put, so loose ground and open air are no use, which is why an
  * ant crossing bare dirt lays nothing and never grows the ground into a mound.
  *
- * It will not build in its own food. Walling with leaf makes an ant a leaf factory — a wall costs it almost
- * nothing and the cell it lays can be eaten back for a full meal — so a nest fed itself forever and both the
- * greenery and the colony grew without limit. Timber it cannot eat is the only thing it builds with.
+ * Timber it builds with freely. Its own food only now and then (`FOOD_WALL_CHANCE`), because a wall costs it
+ * almost nothing and a cell of leaf can be eaten back for a full meal: at every opportunity a nest feeds
+ * itself forever and the greenery runs away with the world, while at none it eats out a sealed case and
+ * starves. A trickle is what lets a colony keep a crop alive without farming the place solid.
  */
-function softNear(grid: Grid, x: number, y: number): number {
+function softNear(grid: Grid, rng: Rng, x: number, y: number): number {
   const species = grid.material[cellIndex(grid, x, y)]
 
   for (const [dx, dy] of UNDERFOOT) {
@@ -783,7 +789,9 @@ function softNear(grid: Grid, x: number, y: number): number {
     const ny = y + dy
     if (nx < 0 || nx >= grid.width || ny < 0 || ny >= grid.height) continue
     const material = grid.material[cellIndex(grid, nx, ny)]
-    if (BURROWABLE[material] === 1 && !eats(species, material)) return material
+    if (BURROWABLE[material] !== 1) continue
+    if (eats(species, material) && !rng.chance(FOOD_WALL_CHANCE)) continue
+    return material
   }
   return MaterialId.empty
 }

@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import { MaterialId } from '../../pixel-world.types'
-import { simCopy } from '../../data'
+import { CENSUS_TRACK_COLOURS, simCopy } from '../../data'
 import { MATERIALS } from '../../engine/materials'
 import { Census } from './Census'
 
@@ -19,7 +19,9 @@ describe('Census', () => {
     render(<Census counts={null} onWatch={vi.fn()} />)
 
     expect(
-      screen.getByRole('button', { name: new RegExp(simCopy.census.title) }).getAttribute('aria-expanded')
+      screen
+        .getByRole('button', { name: new RegExp(simCopy.census.title) })
+        .getAttribute('aria-expanded')
     ).toBe('false')
   })
 
@@ -83,6 +85,58 @@ describe('Census', () => {
     expect(rows).toHaveLength(1)
     expect(rows[0].textContent).toContain(MATERIALS[MaterialId.stone].label)
     expect(screen.queryByText(MATERIALS[MaterialId.empty].label)).toBeNull()
+  })
+
+  it('keeps a tracked row on screen at zero, and drops it once untracked', () => {
+    const view = render(
+      <Census counts={tally({ [MaterialId.stone]: 3, [MaterialId.ant]: 1 })} onWatch={vi.fn()} />
+    )
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(simCopy.census.title) }))
+
+    // Track the ant, then let the world run out of ants.
+    fireEvent.click(screen.getByRole('button', { name: /Ant/ }))
+    view.rerender(<Census counts={tally({ [MaterialId.stone]: 3 })} onWatch={vi.fn()} />)
+
+    // A count you are watching cannot slip off the list the moment its last cell goes.
+    const tracked = screen.getByRole('button', { name: /Ant/ })
+    expect(tracked.textContent).toContain('0')
+    expect(tracked.getAttribute('aria-pressed')).toBe('true')
+
+    // Untracked, it is gone: the row was only being held open for the sake of tracking it.
+    fireEvent.click(tracked)
+    expect(screen.queryByRole('button', { name: /Ant/ })).toBeNull()
+  })
+
+  it('gives each tracked row its own colour, so two can be told apart', () => {
+    render(
+      <Census
+        counts={tally({ [MaterialId.stone]: 3, [MaterialId.sand]: 2, [MaterialId.ant]: 1 })}
+        onWatch={vi.fn()}
+      />
+    )
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(simCopy.census.title) }))
+
+    fireEvent.click(screen.getByRole('button', { name: /Stone/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Sand/ }))
+
+    const first = screen.getByRole('button', { name: /Stone/ }).getAttribute('style')
+    const second = screen.getByRole('button', { name: /Sand/ }).getAttribute('style')
+    expect(first).toContain(CENSUS_TRACK_COLOURS[0])
+    expect(second).toContain(CENSUS_TRACK_COLOURS[1])
+    expect(first).not.toEqual(second)
+  })
+
+  it('tracks more than one row at a time', () => {
+    render(
+      <Census counts={tally({ [MaterialId.stone]: 3, [MaterialId.sand]: 2 })} onWatch={vi.fn()} />
+    )
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(simCopy.census.title) }))
+
+    fireEvent.click(screen.getByRole('button', { name: /Stone/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Sand/ }))
+
+    expect(screen.getByRole('button', { name: /Stone/ }).getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getByRole('button', { name: /Sand/ }).getAttribute('aria-pressed')).toBe('true')
   })
 
   it('says so when there is nothing drawn yet', () => {
