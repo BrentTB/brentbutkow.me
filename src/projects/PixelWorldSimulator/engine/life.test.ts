@@ -518,6 +518,27 @@ describe('the ant', () => {
     expect(deepest).toBeGreaterThan(startY + 4)
   })
 
+  it('walls the lane it bores, laying a ridge into the open beside its path', () => {
+    // Ants boring along the very top row of a wood block, open air just above them. As each eats forward it
+    // lays a wall to either side into the open, so wood ends up standing in the air above where the block's
+    // top started. A plain tunneller that only removed material would leave that air bare.
+    const grid = createGrid(30, 20)
+    for (let x = 0; x < grid.width; x++)
+      placeMaterial(grid, cellIndex(grid, x, 19), MaterialId.stone)
+    for (let y = 12; y < 19; y++) {
+      for (let x = 4; x < 26; x++) placeMaterial(grid, cellIndex(grid, x, y), MaterialId.wood)
+    }
+    for (let x = 8; x <= 22; x += 2) ant(grid, x, 12, 1, 0)
+
+    run(grid, 200, 3)
+
+    let ridge = 0
+    for (let x = 0; x < grid.width; x++) {
+      if (grid.material[cellIndex(grid, x, 11)] === MaterialId.wood) ridge++
+    }
+    expect(ridge).toBeGreaterThan(0)
+  })
+
   it('only builds where it can grip, not out in mid-air', () => {
     // A lone ant floating in empty space with nothing under it: it drops rather than laying trail into
     // the void, so nothing gets built up here.

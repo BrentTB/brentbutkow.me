@@ -800,7 +800,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.ant,
     label: 'Ant',
-    blurb: 'Crawls over surfaces trailing vine, and grazes on leaves.',
+    blurb: 'Bores galleries through wood, walling the paths as it digs.',
     behavior: MaterialBehavior.static,
     density: 1000,
     color: [140, 62, 46],

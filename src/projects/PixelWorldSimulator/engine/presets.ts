@@ -543,7 +543,7 @@ function antColony(grid: Grid, rng: Rng): void {
   }
 
   // A scatter of ants along the ground, out where each can set off into a log or across the dirt.
-  const ants = Math.max(4, Math.round(width / 34))
+  const ants = Math.max(8, Math.round(width / 20))
   for (let i = 0; i < ants; i++) {
     const ax = 2 + Math.floor(rng.next() * (width - 4))
     put(grid, ax, groundY - 2, MaterialId.ant)

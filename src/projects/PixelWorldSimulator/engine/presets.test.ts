@@ -342,11 +342,10 @@ describe('the ant colony preset', () => {
 
     soak(grid, 1000)
 
-    // The ants graze the ground bushes and keep working, so the colony is still alive; and because they
-    // wall each channel they open, the logs end up webbed with more wood than they started as rather than
-    // eaten away to nothing.
+    // The ants graze the ground bushes and keep working, so the colony is still alive, and it has opened
+    // real galleries into the logs — there is less solid wood than the logs started as.
     expect(count(grid, MaterialId.ant)).toBeGreaterThan(0)
-    expect(count(grid, MaterialId.wood)).toBeGreaterThan(woodStart)
+    expect(count(grid, MaterialId.wood)).toBeLessThan(woodStart)
   })
 
   it('comes out different every time it is loaded', () => {

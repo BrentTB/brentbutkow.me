@@ -480,7 +480,7 @@ function loose(material: number): boolean {
 // green paths that go on climbing on their own. Its heading lives in `grid.heading`.
 
 /** Energy a length of wall costs, so how far a nest can build is bounded by the leaves it can graze. */
-const TRAIL_COST = 3
+const TRAIL_COST = 1
 
 /** The soft stuff an ant bores straight through, so it can work into the middle of a plank, not just its face. */
 const BURROWABLE = new Uint8Array(MATERIALS.length)
@@ -583,22 +583,24 @@ function stepAnt(grid: Grid, rng: Rng, x: number, y: number, index: number, life
 
   if (rng.chance(ANT_BRANCH_CHANCE)) turn(heading, rng)
 
-  // The soft stuff at hand to wall a path with. An ant lines its lane in whatever it is boring through, so
-  // a hollowed-out log still shows the routes taken as two ridges either side of an open channel — the way
-  // an ant colony's galleries stay legible in the game this apes.
+  // The soft stuff at hand to wall a path with, and whether it has the material and the energy to build.
+  // An ant lines its lane in whatever it is boring through, so a hollowed-out log still shows the routes
+  // taken as two ridges either side of an open channel — the way an ant colony's galleries stay legible.
   const wall = softNear(grid, x, y)
+  const lay = wall !== MaterialId.empty && grid.data[index] > TRAIL_COST
 
-  const dirs = headingOrder(heading)
+  const dirs = headingOrder(heading, rng)
   for (const [dx, dy] of dirs) {
     const nx = x + dx
     const ny = y + dy
     if (nx < 0 || nx >= grid.width || ny < 0 || ny >= grid.height) continue
     const target = cellIndex(grid, nx, ny)
     const there = grid.material[target]
+    const boring = BURROWABLE[there] === 1
 
     // It eats forward through soft stuff; open air it enters only where a wall is already at hand, so it
     // does not walk off into the void. Hard rock, loose ground and other creatures it cannot pass at all.
-    if (there !== MaterialId.empty && BURROWABLE[there] !== 1) continue
+    if (there !== MaterialId.empty && !boring) continue
     if (there === MaterialId.empty && !clingsToWall(grid, nx, ny)) continue
 
     // Move, carving whatever it steps into so the lane it walks is left open behind it.
@@ -610,10 +612,10 @@ function stepAnt(grid: Grid, rng: Rng, x: number, y: number, index: number, life
     heading.hy = dy
     moveHeading(grid, index, target)
 
-    // A ridge to either side, square across the heading — but only into open air, so a path can never cut
-    // through anything already standing, its own kind or another's. This is what leaves a visible channel
-    // through a nearly empty trunk instead of one more scattered hole.
-    if (wall !== MaterialId.empty && grid.data[target] > TRAIL_COST) {
+    // Only when it is actually cutting through something does it lay a ridge to either side, square across
+    // the heading, and only into open air — so a channel bored through a trunk keeps its two walls even
+    // once the middle is hollow, while an ant merely crossing open ground builds nothing and cannot sprawl.
+    if (lay && boring) {
       const built = wallInto(grid, nx + dy, ny - dx, wall) + wallInto(grid, nx - dy, ny + dx, wall)
       if (built > 0) grid.data[target] -= TRAIL_COST
     }
@@ -647,11 +649,19 @@ function softNear(grid: Grid, x: number, y: number): number {
   return MaterialId.empty
 }
 
-/** The eight steps ordered so the one nearest the heading comes first, ties broken by a fixed order. */
-function headingOrder(heading: AntHeading): readonly (readonly [number, number])[] {
-  return [...ANT_STEPS].sort(
-    (a, b) => b[0] * heading.hx + b[1] * heading.hy - (a[0] * heading.hx + a[1] * heading.hy)
-  )
+/**
+ * The eight steps ordered so the one nearest the heading comes first. Ties — the cardinal and the two
+ * diagonals either side of a heading all score the same — are broken by a little rng rather than a fixed
+ * order, or the fixed order (which led with a rightward step) pulled every blocked ant into drifting right
+ * along flat, straight lines. The jitter stays under the gap between scores, so the heading itself still wins.
+ */
+function headingOrder(heading: AntHeading, rng: Rng): readonly (readonly [number, number])[] {
+  return ANT_STEPS.map((step) => ({
+    step,
+    score: step[0] * heading.hx + step[1] * heading.hy + rng.next() * 0.5,
+  }))
+    .sort((a, b) => b.score - a.score)
+    .map((scored) => scored.step)
 }
 
 /**
