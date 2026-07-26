@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react'
+import { useRef } from 'react'
 import { SimSetting, SimSettings } from '../../pixel-world.types'
 import { SETTING_ROWS, simCopy } from '../../data'
+import { useDialogChrome } from '../../useDialogChrome'
 import styles from './SettingsDialog.module.scss'
 
 type SettingsDialogProps = {
@@ -11,52 +12,10 @@ type SettingsDialogProps = {
 
 /** How the world is drawn, rather than what is in it: nothing here touches the simulation. */
 export function SettingsDialog({ settings, onToggle, onClose }: SettingsDialogProps) {
-  const panelRef = useRef<HTMLDivElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
-  // The parent hands a fresh onClose every render (it re-renders ten times a second as the readout ticks).
-  // The focus effect must run once on open, so read the latest onClose through a ref rather than depend on it
-  // — depending on it re-ran the effect on every parent render and yanked focus back to Done mid-toggle.
-  const onCloseRef = useRef(onClose)
-  onCloseRef.current = onClose
-  // A backdrop click only closes when the press started on the backdrop too, so a drag that begins on a
-  // switch and releases over the backdrop does not dismiss the dialog.
+  const { panelRef } = useDialogChrome(onClose, closeRef)
+  // A press that starts on a switch and drifts onto the backdrop is still a press on the switch.
   const pressedBackdrop = useRef(false)
-
-  useEffect(() => {
-    // Whatever opened the dialog gets the focus back when it closes, so the keyboard lands back on the
-    // gear rather than at the top of the page.
-    const opener = document.activeElement
-    closeRef.current?.focus()
-
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onCloseRef.current()
-        return
-      }
-      if (event.key !== 'Tab') return
-
-      // Tab cycles inside the panel: a modal that lets focus wander onto the world behind it leaves a
-      // keyboard user tabbing through a page they cannot see.
-      const focusable = panelRef.current?.querySelectorAll<HTMLElement>('button, input')
-      if (focusable === undefined || focusable.length === 0) return
-      const first = focusable[0]
-      const last = focusable[focusable.length - 1]
-
-      if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault()
-        first.focus()
-      } else if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault()
-        last.focus()
-      }
-    }
-
-    window.addEventListener('keydown', onKey)
-    return () => {
-      window.removeEventListener('keydown', onKey)
-      if (opener instanceof HTMLElement) opener.focus()
-    }
-  }, [])
 
   return (
     <div

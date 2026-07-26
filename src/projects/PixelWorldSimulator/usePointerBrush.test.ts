@@ -235,3 +235,61 @@ describe('usePointerBrush', () => {
     expect(canvas.setPointerCapture).not.toHaveBeenCalled()
   })
 })
+
+describe('a canvas with room to spare around the world', () => {
+  /** A canvas box taller than the world 16:9 — the shape full screen leaves behind on a phone. */
+  function boxed(width: number, height: number) {
+    const canvas = mockCanvas(width, height)
+    canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width, height }) as unknown as DOMRect
+    return canvas
+  }
+
+  it('maps the middle of the element to the middle of the world', () => {
+    // The world draws centred, with a band of nothing above and below. Reading straight from the element box
+    // would land the brush high by half a band, which at full screen is a fifth of the world.
+    const canvas = boxed(400, 400)
+    const { result, strokes } = mountBrush(canvas)
+
+    result.current.onPointerDown(pointerEvent(canvas, 200, 200))
+
+    // Cells are whole, and 225 halves to 112.5.
+    expect(strokes[0][0]).toEqual({ x: GRID_WIDTH / 2, y: Math.floor(GRID_HEIGHT / 2) })
+  })
+
+  it('starts the world where the world starts, not where the element does', () => {
+    const canvas = boxed(GRID_WIDTH, GRID_WIDTH)
+    const { result, strokes } = mountBrush(canvas)
+    // A square element, so the scale is 1 and the world sits (400 - 225) / 2 px down.
+    const bandAbove = (GRID_WIDTH - GRID_HEIGHT) / 2
+
+    result.current.onPointerDown(pointerEvent(canvas, 0, bandAbove))
+
+    expect(strokes[0][0]).toEqual({ x: 0, y: 0 })
+  })
+
+  it('is unchanged where the element already fits the world exactly', () => {
+    const canvas = boxed(GRID_WIDTH, GRID_HEIGHT)
+    const { result, strokes } = mountBrush(canvas)
+
+    result.current.onPointerDown(pointerEvent(canvas, 10, 20))
+
+    expect(strokes[0][0]).toEqual({ x: 10, y: 20 })
+  })
+})
+
+describe('without a hover reporter', () => {
+  it('still paints, and reports nothing to follow', () => {
+    // A touch screen has no hovering: the only way to put a finger on the world is to draw with it, so the
+    // page leaves the reporter out rather than swapping a two-line hint for a one-line reading mid-stroke.
+    const canvas = mockCanvas()
+    const strokes: [CellPoint, CellPoint][] = []
+    const { result } = renderHook(() =>
+      usePointerBrush({ current: canvas }, (from, to) => strokes.push([from, to]))
+    )
+
+    result.current.onPointerDown(pointerEvent(canvas, 40, 40))
+    result.current.onPointerMove(pointerEvent(canvas, 60, 60))
+
+    expect(strokes.length).toBeGreaterThan(0)
+  })
+})

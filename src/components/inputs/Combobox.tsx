@@ -255,6 +255,9 @@ export function Combobox({
                     left: coords.left,
                     width: coords.width,
                     minWidth: coords.width,
+                    // What the room where it landed allows, so a list too long for a short screen scrolls
+                    // rather than running off the edge.
+                    maxHeight: coords.maxHeight,
                   }
                 : { position: 'fixed', visibility: 'hidden' }
             }

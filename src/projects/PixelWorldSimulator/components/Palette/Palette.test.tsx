@@ -162,3 +162,131 @@ describe('Palette', () => {
     expect(sand.getAttribute('title')).toBe(MATERIALS[MaterialId.sand].blurb)
   })
 })
+
+describe('Palette on a phone', () => {
+  /** Pins matchMedia so the palette takes its sheet form, the way it does under 640px. */
+  function asPhone(matches = true) {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }))
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    cleanup()
+  })
+
+  it('shows the material it holds instead of the whole grid', () => {
+    asPhone()
+    renderPalette(MaterialId.water)
+
+    // 284px of swatches is more than the world itself gets on a phone.
+    expect(screen.queryByLabelText('Material group')).toBeNull()
+    expect(screen.getByRole('button', { name: /Water/ })).toBeTruthy()
+  })
+
+  it('opens the picker as a sheet, with the grid inside it', () => {
+    asPhone()
+    renderPalette()
+
+    fireEvent.click(screen.getByRole('button', { name: /Change material/ }))
+
+    const sheet = screen.getByRole('dialog')
+    expect(sheet.getAttribute('aria-modal')).toBe('true')
+    expect(screen.getByLabelText('Material group')).toBeTruthy()
+  })
+
+  it('picks a material and closes, since that is what you came for', () => {
+    asPhone()
+    const onSelect = renderPalette()
+    fireEvent.click(screen.getByRole('button', { name: /Change material/ }))
+
+    fireEvent.click(
+      screen.getByRole('button', { name: new RegExp(MATERIALS[MaterialId.dirt].label) })
+    )
+
+    expect(onSelect).toHaveBeenCalledWith(MaterialId.dirt)
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('opens the picker when a slot is set, since there is no grid to point at', () => {
+    asPhone()
+    renderPalette()
+
+    fireEvent.click(screen.getByRole('button', { name: /Favourite 1/ }))
+
+    expect(screen.getByRole('dialog')).toBeTruthy()
+  })
+
+  it('fills the slot with what was chosen in the sheet', () => {
+    asPhone()
+    renderPalette()
+    fireEvent.click(screen.getByRole('button', { name: /Favourite 2/ }))
+
+    // The sheet opens on the group holding the current brush, so the choice comes from Powders.
+    fireEvent.click(
+      screen.getByRole('button', { name: new RegExp(MATERIALS[MaterialId.ash].label) })
+    )
+
+    expect(
+      screen.getByRole('button', { name: `Favourite 2, ${MATERIALS[MaterialId.ash].label}` })
+    ).toBeTruthy()
+  })
+
+  it('keeps the grid inline where there is room for it', () => {
+    asPhone(false)
+    renderPalette()
+
+    expect(screen.getByLabelText('Material group')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /Change material/ })).toBeNull()
+  })
+})
+
+describe('the material sheet holds its shape', () => {
+  function asPhone() {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: true,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }))
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    cleanup()
+  })
+
+  it('reserves room for the largest group whichever group is open', () => {
+    // Sized to its contents, the sheet shrank when you switched from Solids to Energy and moved Done out
+    // from under your thumb. The reserved class is what keeps one height across all six groups.
+    asPhone()
+    renderPalette()
+    fireEvent.click(screen.getByRole('button', { name: /Change material/ }))
+    const grid = screen.getByRole('dialog').querySelector('[class*=swatchRoom]')
+    expect(grid).not.toBeNull()
+
+    const smallest = MATERIAL_GROUPS.reduce((fewest, group) =>
+      group.materials.length < fewest.materials.length ? group : fewest
+    )
+    fireEvent.click(screen.getByRole('button', { name: smallest.label }))
+
+    // Same element, same reserved height — only its contents changed.
+    expect(screen.getByRole('dialog').querySelector('[class*=swatchRoom]')).toBe(grid)
+  })
+
+  it('keeps the reserved room out of the inline palette, which has the page to grow into', () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: false,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }))
+    const { container } = render(<Palette selected={MaterialId.sand} onSelect={vi.fn()} />)
+
+    expect(container.querySelector('[class*=swatchRoom]')).toBeNull()
+  })
+})

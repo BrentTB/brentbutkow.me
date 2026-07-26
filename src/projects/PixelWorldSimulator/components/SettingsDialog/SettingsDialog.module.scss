@@ -3,7 +3,9 @@
 .backdrop {
   position: fixed;
   inset: 0;
-  z-index: 40;
+  // Above the pseudo-fullscreen overlay (60), which is the page-level layer the world sits on when the
+  // Fullscreen API is unavailable — under it, the dialog opened behind the world.
+  z-index: 70;
   display: flex;
   align-items: center;
   justify-content: center;

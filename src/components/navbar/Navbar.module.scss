@@ -10,6 +10,20 @@
   gap: 24px;
   padding: 22px 0 18px;
   margin-bottom: clamp(20px, 3vw, 36px);
+
+  // A phone has no vertical space to spare, and the bar is sticky — whatever it takes, it takes for the
+  // whole scroll. One line of text does not need 76px of room around it.
+  @include compact-viewport {
+    padding: 12px 0 10px;
+    margin-bottom: 14px;
+  }
+
+  // Sideways on a phone the whole screen is 390px tall: the bar and the page header together were taking
+  // 47% of it before the world got a pixel.
+  @include compact-landscape {
+    padding: 6px 0;
+    margin-bottom: 8px;
+  }
   transition: transform 0.24s ease;
 
   // Recall Radar retracts the bar once scrolled (its minimal sticky bar takes over); returning to

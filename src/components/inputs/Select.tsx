@@ -141,6 +141,9 @@ export function Select({
                     // Floor at the trigger width; the stylesheet's `width: max-content` (capped)
                     // grows it past that to fit the longest option rather than truncating.
                     minWidth: coords.width,
+                    // What the room where it landed allows, so a list too long for a short screen scrolls
+                    // rather than running off the edge.
+                    maxHeight: coords.maxHeight,
                   }
                 : { position: 'fixed', visibility: 'hidden' }
             }

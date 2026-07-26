@@ -248,6 +248,11 @@ export const simCopy = {
   tagline: 'Draw materials into a pixel world and watch them react.',
   taglineFun: 'Draw materials, mix them, and see what happens to the little world you just made.',
   hint: 'Pick a material and draw. Point at anything to see what it is.',
+  /**
+   * On a touch screen there is no pointing: the only way to put a finger on the world is to draw with it, so
+   * the readout never had a state where it was doing what the second sentence promised.
+   */
+  hintTouch: 'Pick a material and draw.',
   /** Shown in place of the paint hint while a force tool is selected. */
   toolHints: {
     [Tool.attract]: 'Drag to pull loose material toward you.',
@@ -267,6 +272,13 @@ export const simCopy = {
   },
   searchPlaceholder: 'Find a material',
   noMatch: 'Nothing by that name.',
+  /** The sheet a phone chooses a material in, in place of the grid there is no room for. */
+  picker: {
+    title: 'Materials',
+    close: 'Done',
+    /** On the chip that opens it: the material the brush currently holds. */
+    open: 'Change material',
+  },
   /** The slots under the palette, for the materials you keep coming back to. */
   slots: {
     /** Sits to the left of the row: without it the slots read as two odd extra swatches. */
@@ -345,3 +357,14 @@ export const SETTINGS_KEY = 'pixel-world-settings'
  * again, and the palette is one tab away regardless.
  */
 export const MATERIAL_SLOTS = 3
+
+/**
+ * Where the palette becomes a sheet. The grid of swatches plus its tabs is 284px of an 812px phone — more than
+ * the world itself gets — and choosing a material is a job you come to and leave rather than something that
+ * needs a permanent third of the screen.
+ *
+ * A phone turned sideways counts too: it is wide enough to read as a desktop and only 400-odd pixels tall,
+ * which is the case the swatch grid crushes hardest. Mirrors the `compact-viewport` mixin in styles/_shared.
+ */
+export const PALETTE_SHEET_QUERY =
+  '(max-width: 640px), (orientation: landscape) and (max-height: 600px)'

@@ -72,7 +72,7 @@ import { useTopics } from './useTopics'
 import { useEvents } from './useEvents'
 import { useFacets } from './useFacets'
 import { useStickyHeader } from '../../components/navbar/useStickyHeader'
-import { useMediaQuery } from './useMediaQuery'
+import { useMediaQuery } from '../../components/utils/useMediaQuery'
 import styles from './RecallRadar.module.scss'
 
 const EMPTY_FILTERS: RecallFilterValues = {
