@@ -1,0 +1,84 @@
+.slots {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+
+// Names the row, in the same small upper-case the brush slider uses for its label: without it three slots
+// beside the palette read as a few odd extra swatches rather than a set you filled yourself.
+.title {
+  display: flex;
+  align-items: center;
+  padding-right: 2px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+// Built like a palette swatch so a slot reads as a material you can draw with, but dashed while empty: an
+// outline says "something goes here" without pretending to be a material of its own.
+.slot {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 5.5rem;
+  padding: 7px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  color: var(--muted);
+  background: var(--surface-strong);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition:
+    color 0.18s ease,
+    border-color 0.18s ease,
+    background 0.18s ease;
+
+  &:hover {
+    color: var(--text);
+    border-color: var(--accent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  // Filled: a solid edge, because now it is a material rather than a space for one.
+  &:has(.chip) {
+    color: var(--text-secondary);
+    border-style: solid;
+  }
+
+  // On the brush, matching how a selected swatch reads in the palette.
+  &[aria-pressed='true'] {
+    color: var(--text);
+    border-color: var(--accent);
+    background: rgba(var(--accent-rgb), 0.16);
+  }
+}
+
+// Waiting for a material: the accent border says the next swatch pressed lands here.
+.waiting {
+  color: var(--text);
+  border-style: solid;
+  border-color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.1);
+}
+
+.chip {
+  width: 11px;
+  height: 11px;
+  flex: 0 0 auto;
+  border-radius: 3px;
+}
+
+.label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

@@ -10,6 +10,12 @@ export const Preset = {
 } as const
 export type Preset = (typeof Preset)[keyof typeof Preset]
 
+/**
+ * How far above the mountainside a cave tunnel keeps cutting, so the mouth comes out as a hole in the face
+ * rather than stopping a cell short and leaving a skin of rock across it.
+ */
+const CAVE_MOUTH_CLEARANCE = 4
+
 /** Fills a rectangle, inclusive of both corners and clipped to the grid. */
 function fill(
   grid: Grid,
@@ -105,16 +111,32 @@ function vein(
   dy: number,
   length: number,
   rng: Rng,
-  options: { stopAbove?: (col: number) => number; branch?: number; depth?: number } = {}
+  options: {
+    stopAbove?: (col: number) => number
+    branch?: number
+    depth?: number
+    /**
+     * How many cells across the channel is cut. One is a crack for lava to seep along; a tunnel something
+     * has to walk out of needs two or three, because a one-cell winding passage is a dead end to anything
+     * that cannot climb through open air.
+     */
+    bore?: number
+  } = {}
 ): void {
-  const { stopAbove, branch = 0, depth = 0 } = options
+  const { stopAbove, branch = 0, depth = 0, bore = 1 } = options
   let cx = x
   let cy = y
   for (let i = 0; i < length; i++) {
     if (cx < 0 || cx >= grid.width || cy < 0 || cy >= grid.height) return
     if (stopAbove !== undefined && cy < stopAbove(cx)) return
 
-    put(grid, cx, cy, MaterialId.empty)
+    // Cut across the direction of travel, so a wide channel stays wide around its corners rather than
+    // pinching to a single cell wherever it turns.
+    const across = Math.abs(dx) >= Math.abs(dy)
+    for (let step = 0; step < bore; step++) {
+      const offset = step - Math.floor((bore - 1) / 2)
+      put(grid, cx + (across ? 0 : offset), cy + (across ? offset : 0), MaterialId.empty)
+    }
     if (rng.next() < 0.35) put(grid, cx, cy + 1, MaterialId.empty)
 
     // A tributary throws off side branches as it runs, so the network tangles and sprawls through the rock
@@ -128,10 +150,20 @@ function vein(
       })
     }
 
-    cx += dx
-    cy += dy
-    if (rng.next() < 0.4) cx += rng.next() < 0.5 ? 1 : -1
-    if (rng.next() < 0.3) cy += rng.next() < 0.5 ? 1 : -1
+    // The wander bends the step rather than adding a move on top of it, so the head never travels more than
+    // one cell per axis and the channel it cuts is always joined to itself. A second move stacked on the step
+    // can jump the head two columns at once, and the cut either side of the jump does not meet — which reads
+    // as a wall of rock straight across the tunnel, with the cave sealed off behind it.
+    const bend = (step: number, chance: number) =>
+      rng.next() < chance ? Math.max(-1, Math.min(1, step + (rng.next() < 0.5 ? 1 : -1))) : step
+
+    const stepX = bend(dx, 0.4)
+    let stepY = bend(dy, 0.3)
+    // Something has to give, or the head sits still and the channel stops where it is.
+    if (stepX === 0 && stepY === 0) stepY = dy === 0 ? -1 : dy
+
+    cx += stepX
+    cy += stepY
   }
 }
 
@@ -239,6 +271,18 @@ function aquarium(grid: Grid, rng: Rng): void {
 
     crests.push({ x: cx, y: bed[cx] - lift })
   })
+
+  // Reefs and boulders go down over water that was already there, and where one lands awkwardly it can wall a
+  // gap of open air into the rock: a one-cell black speck along the sand line that no water can ever reach.
+  // Flooded back here, at the one moment the whole tank is known. Weed dying submerged is the other source of
+  // those specks, and that one belongs to the life pass, where a drowned weed leaves water behind.
+  for (let x = inLeft; x <= inRight; x++) {
+    for (let y = shelf[x] + 2; y < floor; y++) {
+      if (grid.material[cellIndex(grid, x, y)] === MaterialId.empty) {
+        put(grid, x, y, MaterialId.water)
+      }
+    }
+  }
 
   // Fish start over the reefs, spread up the water above each crest, not at even spacing: dropped in open
   // water they wandered until they starved with a garden nowhere near them. Every fish gets a mound.
@@ -468,9 +512,20 @@ function volcano(grid: Grid, rng: Rng): void {
     fill(grid, cx - 5, cy + 4, cx + 5, floor - 1, MaterialId.dirt)
     for (let dx = -4; dx <= 4; dx += 2) put(grid, cx + dx, cy + 4, MaterialId.worm)
     for (let dx = -3; dx <= 3; dx += 3) put(grid, cx + dx, cy + 3, MaterialId.bug)
-    vein(grid, cx, cy - 2, side, -1, 30, rng, {
-      stopAbove: (col) => slope[Math.max(0, Math.min(width - 1, col))],
-    })
+    // Three cells across and cut clean through the mountainside. A slime walks and cannot climb through open
+    // air, so a one-cell passage that winds and rises is a wall to it however far it goes. Stopping the
+    // channel at the surface line leaves a skin of rock across the mouth, which reads as a cave with a lid on
+    // it: the tunnel runs a few cells past the slope so the hole is genuinely open, and a flow coming down the
+    // face can pour straight in. The length is measured off the climb rather than fixed, or a tall foothill
+    // swallows the tunnel before it arrives.
+    const climb = Math.max(20, cy - slope[Math.max(0, Math.min(width - 1, cx))] + 16)
+    const toDaylight = (col: number) =>
+      slope[Math.max(0, Math.min(width - 1, col))] - CAVE_MOUTH_CLEARANCE
+    // Two ways out, one leaning out across the flank and one going more or less straight up. A single
+    // wandering channel can spend its length inside the rock and finish nowhere, and a den with no way out is
+    // the one thing this is all for; a second attempt on a different bearing costs a few cells of stone.
+    vein(grid, cx, cy - 2, side, -1, climb, rng, { stopAbove: toDaylight, bore: 3 })
+    vein(grid, cx + side * 2, cy - 2, 0, -1, climb, rng, { stopAbove: toDaylight, bore: 3 })
     put(grid, cx - 1, cy + 1, MaterialId.slime)
     put(grid, cx + 1, cy + 1, MaterialId.slime)
     put(grid, cx, cy, MaterialId.slime)
@@ -510,6 +565,15 @@ function volcano(grid: Grid, rng: Rng): void {
   for (let i = 0; i < 3; i++) {
     const x = Math.floor(width * (0.82 + rng.next() * 0.14))
     tree(grid, x, floor - 1, Math.max(6, Math.floor(height * (0.09 + rng.next() * 0.06))), rng)
+  }
+
+  // Birds over the woods, low enough to see the bugs in the meadow below them: a bird's sight reaches about
+  // eighteen cells, so one put up in the clouds starves over a full larder. Placed into clear air, since a
+  // bird sitting in the leaves of a tree is out of its medium and drains out within seconds.
+  for (let i = 0; i < 3; i++) {
+    const bx = Math.floor(width * (0.8 + rng.next() * 0.16))
+    const perch = clearAir(grid, bx, floor - 10 - Math.floor(rng.next() * 4))
+    if (perch >= 0) put(grid, bx, perch, MaterialId.bird)
   }
 
   // A pocket of oil sealed deep in the rock, well below the surface. Methane would seep straight up out of

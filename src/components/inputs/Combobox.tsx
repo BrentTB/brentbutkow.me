@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
 import type { SelectOption } from './option.types'
+import { portalTarget } from './portalTarget'
 import { useAnchoredPosition } from './useAnchoredPosition'
 import styles from './Combobox.module.scss'
 
@@ -295,7 +296,7 @@ export function Combobox({
               ))
             )}
           </ul>,
-          document.body
+          portalTarget()
         )}
     </div>
   )

@@ -26,12 +26,16 @@
   background: var(--bg-elevated);
 }
 
-// The stack beside the canvas: tools on top, the tally of the world under them.
+// The stack beside the canvas: tools on top, the tally of the world under them. One fixed width for the whole
+// stack, so the full-screen button, the tools and the tally all line up as a single column — and so the canvas
+// beside it does not jump every time a count in the tally grows a digit.
 .sidebar {
   display: flex;
   flex-direction: column;
   align-items: stretch;
   align-self: flex-start;
+  flex: 0 0 auto;
+  width: 12rem;
   gap: 8px;
 }
 
@@ -42,6 +46,8 @@
 
   .sidebar {
     align-self: stretch;
+    // The column lies down into a row under the canvas, so it takes the page width rather than its own.
+    width: auto;
   }
 }
 

@@ -197,6 +197,21 @@ describe('a fish', () => {
 })
 
 describe('dead algae', () => {
+  it('leaves the water it was standing in when it dies submerged', () => {
+    // A weed walled into rock with no water beside it strands and dies. Leaving a vacuum there puts a hole in
+    // the world that no water can reach, which showed up as one-cell black specks in the aquarium's reefs.
+    const grid = createGrid(11, 11)
+    for (let y = 0; y < grid.height; y++) {
+      for (let x = 0; x < grid.width; x++)
+        placeMaterial(grid, cellIndex(grid, x, y), MaterialId.stone)
+    }
+    const sealed = put(grid, 5, 5, MaterialId.algae)
+
+    run(grid, 300)
+
+    expect(grid.material[sealed]).toBe(MaterialId.water)
+  })
+
   it('leaves nothing behind, because a weed is not a carcass', () => {
     const grid = createGrid(21, 21)
     for (let x = 0; x < 21; x++) placeMaterial(grid, cellIndex(grid, x, 20), MaterialId.stone)

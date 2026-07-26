@@ -244,4 +244,21 @@ export const simCopy = {
   },
   searchPlaceholder: 'Find a material',
   noMatch: 'Nothing by that name.',
+  /** The slots under the palette, for the materials you keep coming back to. */
+  slots: {
+    /** Sits to the left of the row: without it the slots read as two odd extra swatches. */
+    title: 'Favourites',
+    empty: 'Empty',
+    /** Shown on the slot that is waiting to be filled, in place of its material. */
+    waiting: 'Pick one',
+    setHint: 'Press to choose what this slot holds',
+    useHint: 'Draw with this. Press twice to change it',
+  },
 }
+
+/**
+ * How many materials the quick slots hold. Three: enough for the handful you keep swapping between while
+ * building something, and few enough that they stay a shortcut. A row of eight would just be the palette
+ * again, and the palette is one tab away regardless.
+ */
+export const MATERIAL_SLOTS = 3

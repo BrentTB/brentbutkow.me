@@ -134,8 +134,23 @@ function spendEnergy(grid: Grid, index: number, life: Life, rng: Rng): boolean {
   }
 
   if (grid.data[index] > 0) return true
-  transformCell(grid, index, life.corpse)
+  transformCell(grid, index, remainsOf(grid, index, life))
   return false
+}
+
+/**
+ * What a dead cell leaves behind. Whatever its species declares, except that something aquatic dying with no
+ * air anywhere near it leaves the water it was standing in rather than a vacuum: eating already works this way
+ * (a grazed weed leaves water behind), and death did not, so weed that died submerged left one-cell bubbles
+ * of nothing — sealed into the reef where no water could ever reach them, which is exactly the little black
+ * specks that turned up along an aquarium's sand line.
+ *
+ * Air anywhere beside it means it died out of the water, and then it leaves nothing, because there was no
+ * water there to leave.
+ */
+function remainsOf(grid: Grid, index: number, life: Life): MaterialId {
+  if (life.corpse !== MaterialId.empty || life.medium !== Medium.water) return life.corpse
+  return touches(grid, index, isAir) ? life.corpse : MaterialId.water
 }
 
 /**

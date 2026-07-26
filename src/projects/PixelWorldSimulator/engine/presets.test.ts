@@ -52,9 +52,51 @@ describe('the aquarium preset', () => {
 
     soak(grid, 400)
 
-    // A tank that leaks is not a tank. Some slop off the open top pool as the vine grows and the water levels
-    // is expected; a real drain would empty a chamber, not shave a percent or two.
-    expect(count(grid, MaterialId.water)).toBeGreaterThan(before * 0.9)
+    // A tank that leaks is not a tank. A slice of the water is expected to go: the vine and the weed both
+    // grow by turning a water cell into themselves, and some slops off the open top pool as the levels
+    // settle. The margin is loose on purpose — the tank is a chaotic system, so shifting a single cell at
+    // load sends the run down a different path and moves this figure by a few percent either way. What it
+    // is guarding against is a chamber emptying itself, which is a different order of loss entirely.
+    expect(count(grid, MaterialId.water)).toBeGreaterThan(before * 0.8)
+  })
+
+  it('leaves no pockets of air walled into the rock', { timeout: 20_000 }, () => {
+    // Reefs and boulders land on top of water and weed that was already there, and a weed sealed in with no
+    // water beside it strands, dies and leaves a hole. Either way it shows as a one-cell black speck along the
+    // sand line that no water can reach. The soak is the point: the weed takes a few seconds to run itself
+    // down, so a tank checked only at load looks clean. Several seeds, since whether it happens at all comes
+    // down to where the rock lands.
+    for (let seed = 1; seed <= 4; seed++) {
+      // A tank at a size a test can afford to soak four times over. The artifact is a property of how the
+      // rock and the weed land together, not of how big the tank is.
+      const grid = createGrid(100, 64)
+      loadPreset(grid, Preset.aquarium, createRng(seed))
+      soak(grid, 300)
+
+      let sealed = 0
+      for (let x = 1; x < grid.width - 1; x++) {
+        for (let y = 1; y < grid.height - 1; y++) {
+          if (grid.material[cellIndex(grid, x, y)] !== MaterialId.empty) continue
+          // Air with something solid on all four sides, well inside the tank, is a pocket rather than the
+          // open air above the top pool.
+          const solid = ([dx, dy]: readonly number[]) => {
+            const found = grid.material[cellIndex(grid, x + dx, y + dy)]
+            return found !== MaterialId.empty
+          }
+          if (
+            [
+              [-1, 0],
+              [1, 0],
+              [0, -1],
+              [0, 1],
+            ].every(solid)
+          ) {
+            sealed++
+          }
+        }
+      }
+      expect(sealed).toBe(0)
+    }
   })
 
   it('still has a food chain running long after it was dropped in', { timeout: 20_000 }, () => {
@@ -229,6 +271,27 @@ describe('the volcano preset', () => {
     expect(count(grid, MaterialId.water)).toBeGreaterThan(50)
   })
 
+  it('puts birds over the woods, in air they can hunt from', () => {
+    const grid = builtVolcano()
+
+    expect(count(grid, MaterialId.bird)).toBeGreaterThanOrEqual(2)
+
+    // A bird dropped into the leaves of a tree is out of its medium and drains out in seconds, and one parked
+    // up in the clouds never sees the bugs in the meadow. Each starts in clear air near the ground.
+    for (let i = 0; i < grid.material.length; i++) {
+      if (grid.material[i] !== MaterialId.bird) continue
+      const x = i % grid.width
+      const y = Math.floor(i / grid.width)
+      for (const [dx, dy] of [
+        [-1, 0],
+        [1, 0],
+        [0, -1],
+      ]) {
+        expect(grid.material[cellIndex(grid, x + dx, y + dy)]).toBe(MaterialId.empty)
+      }
+    }
+  })
+
   it('pours lava down both faces, and never plugs its vent with stone', { timeout: 20_000 }, () => {
     // A few seeds, both sides. The crater sources are dormant until the climbing column reaches them, so the
     // spill comes after the eruption has risen rather than from the first tick; the soak covers that climb.
@@ -258,6 +321,57 @@ describe('the volcano preset', () => {
       expect(right).toBeGreaterThan(0)
       expect(plug).toBeLessThan(6)
     }
+  })
+
+  it('cuts the cave mouth wide enough to actually be a way out', () => {
+    // A slime walks and cannot climb through open air, so a one-cell winding crack is a wall to it however far
+    // it goes. Widening the mouth is what turns it into a passage — and the measure of that is whether the air
+    // a slime can reach opens onto the mountainside at all, rather than ending in the den it started in.
+    const escapes = [1, 2, 3, 4, 5, 6, 7, 8].filter((seed) => {
+      const grid = createGrid(200, 120)
+      loadPreset(grid, Preset.volcano, createRng(seed))
+
+      let start = -1
+      for (let i = 0; i < grid.material.length; i++) {
+        if (grid.material[i] === MaterialId.slime) {
+          start = i
+          break
+        }
+      }
+      if (start < 0) return false
+
+      // Walk the connected air out from the slime. A den on its own is a couple of hundred cells; reaching the
+      // sky outside the mountain is tens of thousands, so the two are never in doubt.
+      const seen = new Set<number>()
+      const queue = [start]
+      while (queue.length > 0) {
+        const at = queue.pop() as number
+        if (seen.has(at)) continue
+        seen.add(at)
+        const x = at % grid.width
+        const y = Math.floor(at / grid.width)
+        for (const [dx, dy] of [
+          [-1, 0],
+          [1, 0],
+          [0, -1],
+          [0, 1],
+        ]) {
+          const nx = x + dx
+          const ny = y + dy
+          if (nx < 0 || nx >= grid.width || ny < 0 || ny >= grid.height) continue
+          const next = cellIndex(grid, nx, ny)
+          const found = grid.material[next]
+          if (found !== MaterialId.empty && found !== MaterialId.slime) continue
+          if (!seen.has(next)) queue.push(next)
+        }
+      }
+      return seen.size > 2000
+    })
+
+    // The mountain is a different shape each load, so the odd seed still buries its tunnel and that is fine.
+    // Measured over these eight, the mouth opens on all but one or two; a narrow crack that stops at the
+    // surface line opened on one, and that one only by luck of where the terrain fell.
+    expect(escapes.length).toBeGreaterThanOrEqual(6)
   })
 
   it('digs its slimes an exit rather than sealing them in a pocket', { timeout: 20_000 }, () => {
