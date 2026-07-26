@@ -313,54 +313,38 @@ describe('the ant colony preset', () => {
     return grid
   }
 
-  it('arrives as trunks of wood, leaves and a nest of ants', () => {
+  it('arrives as leafy trunks with ants along the ground', () => {
     const grid = builtColony()
 
-    // Wood to tunnel, leaves to graze, and ants to do the tunnelling.
-    expect(count(grid, MaterialId.wood)).toBeGreaterThan(200)
+    // Trunks to crawl, leaves to graze, and a scatter of ants to do the building.
+    expect(count(grid, MaterialId.wood)).toBeGreaterThan(100)
     expect(count(grid, MaterialId.plant)).toBeGreaterThan(20)
-    expect(count(grid, MaterialId.ant)).toBeGreaterThan(10)
+    expect(count(grid, MaterialId.ant)).toBeGreaterThan(4)
   })
 
-  it('seeds its ants inside the wood, ready to dig out', () => {
+  it('sets its ants down on a surface, not floating in mid-air', () => {
     const grid = builtColony()
 
-    // An ant is meant to start embedded in the trunk, not sprinkled in the open air above it, or it just
-    // falls to the floor instead of tunnelling.
-    let embedded = 0
-    for (let y = 0; y < grid.height; y++) {
-      for (let x = 0; x < grid.width; x++) {
-        if (grid.material[cellIndex(grid, x, y)] !== MaterialId.ant) continue
-        for (const [dx, dy] of [
-          [-1, 0],
-          [1, 0],
-          [0, -1],
-          [0, 1],
-        ]) {
-          const nx = x + dx
-          const ny = y + dy
-          if (nx < 0 || nx >= grid.width || ny < 0 || ny >= grid.height) continue
-          if (grid.material[cellIndex(grid, nx, ny)] === MaterialId.wood) {
-            embedded++
-            break
-          }
-        }
-      }
+    // An ant needs something solid under it to crawl from; dropped into open air it just falls. Each one
+    // should start on the ground.
+    for (let i = 0; i < grid.material.length; i++) {
+      if (grid.material[i] !== MaterialId.ant) continue
+      const below = i + grid.width
+      expect(below).toBeLessThan(grid.material.length)
+      expect(grid.material[below]).not.toBe(MaterialId.empty)
     }
-    expect(embedded).toBeGreaterThan(10)
   })
 
-  it('is still tunnelling a while after it is dropped in', { timeout: 20_000 }, () => {
+  it('is still building a while after it is dropped in', { timeout: 20_000 }, () => {
     const grid = createGrid(140, 90)
     loadPreset(grid, Preset.antColony, createRng(2))
     const woodStart = count(grid, MaterialId.wood)
 
-    soak(grid, 1200)
+    soak(grid, 1000)
 
-    // The colony grazes the leaves for fuel, so it should still be alive and have opened real galleries,
-    // rather than starving out or standing still.
-    expect(count(grid, MaterialId.ant)).toBeGreaterThan(0)
-    expect(count(grid, MaterialId.wood)).toBeLessThan(woodStart)
+    // The ants crawl the trunks and draw lines of wood off them, so there is more wood than the trunks
+    // started with: they build in whatever they walk on rather than only tracing what is already there.
+    expect(count(grid, MaterialId.wood)).toBeGreaterThan(woodStart)
   })
 
   it('comes out different every time it is loaded', () => {

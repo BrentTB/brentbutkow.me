@@ -13,17 +13,6 @@ const PAINT_RANK: Record<MaterialBehavior, number> = {
   [MaterialBehavior.static]: 4,
 }
 
-/**
- * What an ant tunnels through, and so also what its brush may be painted straight into: a colony starts
- * as ants drawn inside a log, not sprinkled on top of one. The life pass reads the same list to decide
- * what an ant can dig.
- */
-export const ANT_TUNNELS: readonly MaterialId[] = [
-  MaterialId.wood,
-  MaterialId.plant,
-  MaterialId.vine,
-]
-
 export function canPaintOver(brush: MaterialId, existing: number): boolean {
   // Erase clears anything, and anything can be drawn into open air.
   if (brush === MaterialId.empty || existing === MaterialId.empty) return true
@@ -32,9 +21,6 @@ export function canPaintOver(brush: MaterialId, existing: number): boolean {
   if (MATERIALS[existing].behavior === MaterialBehavior.gas) return true
   // Living things are soft. Dropping a boulder on a fish should land on the fish, not bounce off it.
   if (MATERIALS[existing].life !== undefined) return true
-  // An ant nests inside wood, so its brush cuts into the very things it digs — the paint-rank rule would
-  // otherwise refuse it, both being solid.
-  if (brush === MaterialId.ant && (ANT_TUNNELS as readonly number[]).includes(existing)) return true
   return PAINT_RANK[MATERIALS[brush].behavior] > PAINT_RANK[MATERIALS[existing].behavior]
 }
 
@@ -804,7 +790,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.ant,
     label: 'Ant',
-    blurb: 'Tunnels straight galleries through wood, and grazes on leaves.',
+    blurb: 'Crawls over surfaces trailing vine, and grazes on leaves.',
     behavior: MaterialBehavior.static,
     density: 1000,
     color: [140, 62, 46],
@@ -815,22 +801,21 @@ export const MATERIALS: readonly Material[] = [
     hot: { at: 70, into: MaterialId.meat },
     cold: { at: -8, into: MaterialId.meat },
     life: {
-      // At home anywhere it fits, so a stretch of bare tunnel between one leaf and the next does not
-      // strand it: an ant that starved the moment it left the wood never dug anything.
+      // At home anywhere it fits, so an ant crawling a bare stretch between one leaf and the next is not
+      // stranded and left to drain out.
       medium: Medium.any,
-      // Greenery is its fuel; wood is what it tunnels, not what it eats. Digging pushes wood aside as
-      // spoil rather than turning it into a meal, so a log becomes galleries instead of vanishing.
-      diet: [MaterialId.plant, MaterialId.vine],
+      // Leaves are its fuel, not the vine it trails: an ant that grazed its own web would unbuild it as
+      // fast as it built it.
+      diet: [MaterialId.plant],
       startEnergy: 200,
       nutrition: 30,
       feedChance: 0.1,
-      // Slow to burn, so a single ant carves a long branching gallery before it runs down rather than
-      // stalling a few cells in.
+      // Slow to burn, so a nest keeps building for a good while on a patch of leaves.
       burnRate: 0.03,
-      moveChance: 0.55,
-      // Above its starting energy on purpose: an ant in bare wood never reaches the line, so a colony
-      // only grows where it can find leaves to eat, and a plank of ants does not breed into a swarm that
-      // strips its own food in seconds.
+      // Unhurried, so a trail reads as being laid a length at a time rather than sprayed across the world.
+      moveChance: 0.3,
+      // Above its starting energy on purpose: an ant only breeds where it has grazed well, so a nest grows
+      // into a stand of leaves rather than swarming out of a single one.
       breedAt: 230,
       breedChance: 0.0015,
       corpse: MaterialId.meat,

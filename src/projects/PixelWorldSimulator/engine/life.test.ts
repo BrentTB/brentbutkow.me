@@ -461,14 +461,11 @@ describe('the food chain', () => {
   })
 })
 
-/** A solid block of wood standing on a stone floor: the wall an ant is meant to tunnel. */
-function woodWall(width = 48, height = 32): Grid {
+/** A stone floor with open air above it: the surface an ant crawls along and builds out from. */
+function ground(width = 30, height = 12): Grid {
   const grid = createGrid(width, height)
   for (let x = 0; x < width; x++)
     placeMaterial(grid, cellIndex(grid, x, height - 1), MaterialId.stone)
-  for (let y = 4; y < height - 1; y++) {
-    for (let x = 6; x < width - 2; x++) placeMaterial(grid, cellIndex(grid, x, y), MaterialId.wood)
-  }
   return grid
 }
 
@@ -480,120 +477,63 @@ function ant(grid: Grid, x: number, y: number, hx: number, hy: number): number {
 }
 
 describe('the ant', () => {
-  it('tunnels a hollow gallery through a wall of wood', () => {
-    const grid = woodWall()
+  it('trails a line of whatever it is standing on', () => {
+    // A wood shelf to walk out along: the ant should draw its trail in wood, not some fixed material, so
+    // an ant on wood makes wood and an ant on stone makes stone.
+    const grid = ground(30, 14)
+    for (let x = 4; x < 26; x++) placeMaterial(grid, cellIndex(grid, x, 10), MaterialId.wood)
     const startWood = count(grid, MaterialId.wood)
-    // A short line of workers against the left face, all pointed into the wall.
-    for (let y = 20; y <= 24; y++) ant(grid, 7, y, 1, 0)
+    ant(grid, 15, 9, 1, 0)
 
-    run(grid, 400, 3)
+    run(grid, 200, 3)
 
-    // Wood is gone, and it turned into open tunnel rather than simply vanishing whole: the count drops
-    // and there is hollow space where solid wood stood.
-    const dug = startWood - count(grid, MaterialId.wood)
-    expect(dug).toBeGreaterThan(40)
+    // There is more wood than the shelf started with, and no vine at all: it built in the wood it walked.
+    expect(count(grid, MaterialId.wood)).toBeGreaterThan(startWood)
+    expect(count(grid, MaterialId.vine)).toBe(0)
+  })
 
-    let hollow = 0
-    for (let y = 5; y < grid.height - 1; y++) {
-      for (let x = 8; x < 40; x++) {
-        if (grid.material[cellIndex(grid, x, y)] === MaterialId.empty) hollow++
+  it('only builds where it can grip, not out in mid-air', () => {
+    // A lone ant floating in empty space with nothing under it: it drops rather than laying trail into
+    // the void, so nothing gets built up here.
+    const grid = createGrid(16, 16)
+    ant(grid, 8, 2, 1, 0)
+
+    run(grid, 40, 1)
+
+    expect(count(grid, MaterialId.vine)).toBe(0)
+  })
+
+  it('falls to a surface when set down in open air', () => {
+    const grid = ground(20, 22)
+    ant(grid, 10, 2, 1, 0)
+
+    run(grid, 150, 1)
+
+    // Nothing of the ant is left hanging near the top: gravity brought it down to the ground to crawl.
+    for (let y = 0; y < 4; y++) {
+      for (let x = 0; x < grid.width; x++) {
+        expect(grid.material[cellIndex(grid, x, y)]).not.toBe(MaterialId.ant)
       }
     }
-    expect(hollow).toBeGreaterThan(30)
-  })
-
-  it('follows the heading it is given, carving a run in that direction', () => {
-    const grid = woodWall(48, 32)
-    ant(grid, 7, 18, 1, 0)
-
-    run(grid, 250, 5)
-
-    // The gallery reaches well to the right of where the ant set off, rather than the ant milling in a
-    // knot at the mouth: something along the start row got hollowed several cells deep.
-    let furthest = 7
-    for (let x = 8; x < 46; x++) {
-      if (grid.material[cellIndex(grid, x, 18)] !== MaterialId.wood) furthest = x
-    }
-    expect(furthest).toBeGreaterThan(7 + 8)
-  })
-
-  it('drives its galleries on the diagonal', () => {
-    // Pointed down-and-right into a solid block, an ant should tunnel a slanting run: a cell dug well off
-    // both axes from where it started. Cardinal-only movement leaves a straight horizontal or vertical
-    // scratch and never reaches the corner this looks for.
-    const reachesCorner = (seed: number): boolean => {
-      const grid = woodWall(50, 44)
-      const startX = 10
-      const startY = 8
-      ant(grid, startX, startY, 1, 1)
-      run(grid, 150, seed)
-
-      for (let y = startY + 5; y < grid.height - 1; y++) {
-        for (let x = startX + 5; x < grid.width - 2; x++) {
-          if (grid.material[cellIndex(grid, x, y)] === MaterialId.empty) return true
-        }
-      }
-      return false
-    }
-
-    // A couple of seeds, since a single run could branch away early.
-    expect([2, 4, 6].some(reachesCorner)).toBe(true)
-  })
-
-  it('pushes some wood aside as spoil instead of eating all of it', () => {
-    const grid = woodWall()
-    for (let y = 20; y <= 24; y++) ant(grid, 7, y, 1, 0)
-
-    run(grid, 400, 3)
-
-    // Digging is not eating: a share of the wood comes out as spoil that piles up, so grit appears in a
-    // world that started with none.
-    expect(count(grid, MaterialId.gravel)).toBeGreaterThan(0)
-  })
-
-  it('climbs: it digs upward without dropping straight back down the hole', () => {
-    const grid = woodWall(24, 40)
-    // A single ant at the base of the wood, told to head up.
-    const start = ant(grid, 12, 36, 0, -1)
-    const startY = Math.floor(start / grid.width)
-
-    run(grid, 300, 2)
-
-    // Wood well above the ant's start is gone: it held to the wall and dug up, which gravity alone would
-    // never allow — each up-dig would otherwise be undone by a fall into the fresh hole.
-    let highestDug = grid.height
-    for (let y = 5; y < startY; y++) {
-      for (let x = 8; x < 22; x++) {
-        if (grid.material[cellIndex(grid, x, y)] === MaterialId.empty)
-          highestDug = Math.min(highestDug, y)
-      }
-    }
-    expect(highestDug).toBeLessThan(startY - 4)
   })
 
   it('survives out in the open, where a creature bound to one medium would strand', () => {
-    // Bare stone floor, no wood, no food: an ant is at home anywhere, so it should still be alive long
-    // after a medium-bound creature dragged into the wrong place would have drained out.
-    const grid = createGrid(20, 12)
-    for (let x = 0; x < grid.width; x++)
-      placeMaterial(grid, cellIndex(grid, x, grid.height - 1), MaterialId.stone)
-    ant(grid, 10, grid.height - 2, 1, 0)
+    const grid = ground(20, 12)
+    ant(grid, 10, 10, 1, 0)
 
-    run(grid, 300, 1)
+    run(grid, 150, 1)
 
     expect(count(grid, MaterialId.ant)).toBe(1)
   })
 
   it('dies into the corpse its material declares, and clears its heading when it goes', () => {
     const corpse = MATERIALS[MaterialId.ant].life?.corpse
-    const grid = createGrid(12, 8)
-    for (let x = 0; x < grid.width; x++)
-      placeMaterial(grid, cellIndex(grid, x, grid.height - 1), MaterialId.stone)
-    const index = ant(grid, 6, grid.height - 2, 1, 0)
-    // On its last legs, with nothing to eat.
+    const grid = ground(12, 8)
+    const index = ant(grid, 6, 6, 1, 0)
+    // On its last legs.
     grid.data[index] = 1
 
-    run(grid, 300, 1)
+    run(grid, 200, 1)
 
     expect(count(grid, MaterialId.ant)).toBe(0)
     expect(count(grid, corpse ?? MaterialId.meat)).toBeGreaterThan(0)
@@ -602,19 +542,19 @@ describe('the ant', () => {
   })
 
   it('keeps one heading per living ant, and no more', () => {
-    const grid = woodWall()
-    for (let y = 20; y <= 24; y++) ant(grid, 7, y, 1, 0)
+    const grid = ground(40, 14)
+    for (let x = 8; x <= 20; x += 3) ant(grid, x, 12, 1, 0)
 
-    run(grid, 400, 3)
+    run(grid, 200, 3)
 
     expect(grid.heading.size).toBe(count(grid, MaterialId.ant))
   })
 
   it('replays identically from the same seed', () => {
     const build = () => {
-      const grid = woodWall()
-      for (let y = 18; y <= 22; y++) ant(grid, 7, y, 1, 0)
-      run(grid, 250, 6)
+      const grid = ground(40, 14)
+      for (let x = 8; x <= 20; x += 3) ant(grid, x, 12, 1, 0)
+      run(grid, 200, 6)
       return [...grid.material]
     }
 
