@@ -1,5 +1,6 @@
 import { AntHeading, Grid, Life, MaterialBehavior, MaterialId, Medium } from '../pixel-world.types'
 import { cellIndex, placeMaterial, swapCells, transformCell } from './grid'
+import { push } from './kinetic'
 import { ANT_SOFT, MATERIALS } from './materials'
 import { NEIGHBOURS, pickNeighbour } from './neighbours'
 import { Rng } from './rng'
@@ -29,6 +30,20 @@ const SCAN_CHANCE = 0.25
 const SCAN_STEP = 2
 /** Close enough to stop looking: it is already next to something worth chasing. */
 const CLOSE_ENOUGH = 9
+
+/**
+ * Chance per move that a hungry leaper leaps rather than walks. Low: one flinging itself every tick reads as
+ * a bouncing ball rather than something stalking, and it has to sit still long enough to be watched.
+ */
+const JUMP_CHANCE = 0.12
+/** Share of a leap's strength that goes sideways. Under half, so a jump clears a wall rather than skidding. */
+const LEAP_SPREAD = 0.45
+
+/**
+ * Energy below which an ant leaves off tunnelling and heads for the nearest food it can see. Well under its
+ * starting energy, so a nest spends most of its time working and only breaks off when it actually needs to.
+ */
+const ANT_HUNGRY = 120
 
 // Which ids are alive, and their config, as flat lookups: the pass asks this of every cell it visits.
 const LIFE = MATERIALS.map((material) => material.life)
@@ -318,6 +333,17 @@ function roam(grid: Grid, rng: Rng, x: number, y: number, index: number, life: L
   const looks = life.hunts !== undefined && hungry && rng.chance(SCAN_CHANCE)
   const toward = looks ? sightOf(grid, x, y, index, life) : null
 
+  // A hungry leaper throws itself along every so often, toward prey when it can see any and otherwise at
+  // random. Ledges, boulders and pits are dead ends to something that can neither fly like a bird nor
+  // burrow like a worm, and hopping now and then is what gets it over them — the impulse goes through the
+  // kinetic map, so the arc and the landing are the same physics a blast uses.
+  if (life.jump !== undefined && hungry && rng.chance(JUMP_CHANCE)) {
+    const sideways = toward === null ? (rng.chance(0.5) ? 1 : -1) : toward.dx
+    push(grid, index, sideways * life.jump * LEAP_SPREAD, -life.jump)
+    grid.moved[index] = 1
+    return
+  }
+
   if (toward !== null) {
     const stepped = tryStep(grid, index, x, y, toward.dx, toward.dy, life)
     if (stepped) return
@@ -590,11 +616,22 @@ function stepAnt(grid: Grid, rng: Rng, x: number, y: number, index: number, life
     grid.heading.set(index, heading)
   }
 
-  // Out in the open, an ant turns far more often than when it is boring wood: a gallery threaded through a
-  // trunk wants to run long and straight, but a line drawn across empty air wants to bend into a shape
-  // rather than shoot dead to the edge of the world.
-  const inOpen = openNeighbours(grid, x, y) >= 4
-  if (rng.chance(inOpen ? ANT_TURN_OPEN : ANT_BRANCH_CHANCE)) turn(heading, rng)
+  // Running low, it stops working and goes to the larder: the heading swings toward the nearest leaf it can
+  // see. A nest that bored on regardless starved with a crop at the other end of its own galleries.
+  const starving = grid.data[index] < ANT_HUNGRY
+  const smells = starving && life.hunts !== undefined && rng.chance(SCAN_CHANCE)
+  const food = smells ? sightOf(grid, x, y, index, life) : null
+
+  if (food !== null) {
+    heading.hx = food.dx
+    heading.hy = food.dy
+  } else {
+    // Out in the open, an ant turns far more often than when it is boring wood: a gallery threaded through a
+    // trunk wants to run long and straight, but a line drawn across empty air wants to bend into a shape
+    // rather than shoot dead to the edge of the world.
+    const inOpen = openNeighbours(grid, x, y) >= 4
+    if (rng.chance(inOpen ? ANT_TURN_OPEN : ANT_BRANCH_CHANCE)) turn(heading, rng)
+  }
 
   const dirs = headingOrder(heading, rng)
 
@@ -730,17 +767,23 @@ function wallInto(grid: Grid, x: number, y: number, material: number): number {
 }
 
 /**
- * The soft material an ant has to hand to wall a path with, looked for underfoot first. Only the stuff it
- * bores through counts — a ridge has to be a wall that stays put, so loose ground and open air are no use,
- * which is also why an ant crossing bare dirt lays nothing and never grows the ground into a mound.
+ * The material an ant has to hand to wall a path with, looked for underfoot first. Only the stuff it bores
+ * counts — a ridge has to be a wall that stays put, so loose ground and open air are no use, which is why an
+ * ant crossing bare dirt lays nothing and never grows the ground into a mound.
+ *
+ * It will not build in its own food. Walling with leaf makes an ant a leaf factory — a wall costs it almost
+ * nothing and the cell it lays can be eaten back for a full meal — so a nest fed itself forever and both the
+ * greenery and the colony grew without limit. Timber it cannot eat is the only thing it builds with.
  */
 function softNear(grid: Grid, x: number, y: number): number {
+  const species = grid.material[cellIndex(grid, x, y)]
+
   for (const [dx, dy] of UNDERFOOT) {
     const nx = x + dx
     const ny = y + dy
     if (nx < 0 || nx >= grid.width || ny < 0 || ny >= grid.height) continue
     const material = grid.material[cellIndex(grid, nx, ny)]
-    if (BURROWABLE[material] === 1) return material
+    if (BURROWABLE[material] === 1 && !eats(species, material)) return material
   }
   return MaterialId.empty
 }

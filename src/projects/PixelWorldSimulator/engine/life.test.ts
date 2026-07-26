@@ -4,6 +4,7 @@ import { cellIndex, createGrid, placeMaterial } from './grid'
 import { MATERIALS } from './materials'
 import { simulateLife } from './life'
 import { createRng } from './rng'
+import { tickWorld } from './tick'
 
 /** A tank of water with a stone floor, which is where most of the food chain lives. */
 function tank(width = 21, height = 21): Grid {
@@ -396,6 +397,33 @@ describe('a slime', () => {
     // At home anywhere it can fit is not the same as flying, and one strolling up through open air looked
     // absurd. It has to end up on the floor.
     expect(row).toBe(19)
+  })
+
+  it('leaps at prey it can see but cannot walk to', () => {
+    // A bug on a ledge the slime cannot climb: it neither flies nor burrows, so without a leap it presses
+    // against the near side of the wall until it starves. The jump goes through the kinetic map, so this
+    // runs whole ticks rather than the life pass alone.
+    const grid = createGrid(24, 24)
+    for (let x = 0; x < grid.width; x++)
+      placeMaterial(grid, cellIndex(grid, x, 23), MaterialId.stone)
+    for (let y = 17; y <= 22; y++) placeMaterial(grid, cellIndex(grid, 13, y), MaterialId.stone)
+    put(grid, 11, 22, MaterialId.slime)
+    // Sight samples every second cell, so prey off that stride is simply invisible.
+    put(grid, 16, 16, MaterialId.bug)
+
+    const rng = createRng(3)
+    let highest = 22
+    for (let tick = 0; tick < 400; tick++) {
+      tickWorld(grid, rng, tick)
+      for (let i = 0; i < grid.material.length; i++) {
+        if (grid.material[i] === MaterialId.slime) {
+          highest = Math.min(highest, Math.floor(i / grid.width))
+        }
+      }
+    }
+
+    // It got itself off the floor, which nothing but the leap can do for a slime.
+    expect(highest).toBeLessThan(21)
   })
 
   it('is at home in water and in the air alike', () => {

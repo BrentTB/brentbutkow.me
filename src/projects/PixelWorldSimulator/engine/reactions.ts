@@ -44,6 +44,12 @@ const EMIT_CHANCE = 0.06
 const EMIT_REACH = 20
 /** Chance per tick that a void eats one of its neighbours. */
 const CONSUME_CHANCE = 0.5
+/**
+ * Chance per tick that a cell of chlorine kills a living neighbour. Lower than its bleaching of plants: a
+ * creature moves, so it takes several rolls as it passes through a cloud, and gassing should read as a tank
+ * going down over seconds rather than everything dropping the instant the gas arrives.
+ */
+const POISON_CHANCE = 0.05
 /** Chance per tick that a spark jumps to the next conductive cell. */
 const CONDUCT_CHANCE = 0.8
 /**
@@ -203,6 +209,7 @@ const isSource = (found: number) => found === MaterialId.source
 const isFeed = (found: number) => found !== MaterialId.empty && found !== MaterialId.source
 const isConductive = (found: number) => MATERIALS[found].conductive === true
 const isEdible = (found: number) => found !== MaterialId.empty && found !== MaterialId.void
+const isAlive = (found: number) => MATERIALS[found].life !== undefined
 const isCorrodible = (found: number) =>
   found !== MaterialId.empty && found !== MaterialId.acid && MATERIALS[found].acidProof !== true
 
@@ -237,6 +244,7 @@ export function applyReactions(grid: Grid, rng: Rng): void {
       else if (id === MaterialId.source) emit(grid, rng, x, y, index)
       else if (id === MaterialId.void) consume(grid, rng, x, y)
       else if (id === MaterialId.spark) conduct(grid, rng, x, y, index)
+      else if (id === MaterialId.chlorine) poison(grid, rng, x, y)
       else if (id === MaterialId.nitrogen) boilOff(grid, rng, x, y, index)
       else if (id === MaterialId.meat && rng.chance(ROT_CHANCE)) {
         transformCell(grid, index, MaterialId.empty)
@@ -422,6 +430,21 @@ function consume(grid: Grid, rng: Rng, x: number, y: number): void {
 
   const target = pickNeighbour(grid, x, y, isEdible, Math.floor(rng.next() * NEIGHBOURS.length))
   if (target >= 0) transformCell(grid, target, MaterialId.empty)
+}
+
+/**
+ * Chlorine is bleach, and it kills what breathes as readily as what grows: anything alive it touches dies
+ * into whatever that creature leaves behind. It is the one thing in the roster that clears a world of life
+ * without burning it, which is what makes gassing a tank a real option rather than a cosmetic one.
+ */
+function poison(grid: Grid, rng: Rng, x: number, y: number): void {
+  if (!rng.chance(POISON_CHANCE)) return
+
+  const target = pickNeighbour(grid, x, y, isAlive, Math.floor(rng.next() * NEIGHBOURS.length))
+  if (target < 0) return
+
+  const life = MATERIALS[grid.material[target]].life
+  transformCell(grid, target, life?.corpse ?? MaterialId.empty)
 }
 
 /**

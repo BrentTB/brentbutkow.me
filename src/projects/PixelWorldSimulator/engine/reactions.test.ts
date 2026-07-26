@@ -313,6 +313,29 @@ describe('chlorine', () => {
     expect(count(grid, MaterialId.chlorine)).toBe(0)
     expect(count(grid, MaterialId.saltWater)).toBe(1)
   })
+
+  it('kills a creature it touches, leaving the carcass that creature leaves', () => {
+    const grid = createGrid(9, 9)
+    put(grid, 4, 4, MaterialId.chlorine)
+    const bug = put(grid, 4, 5, MaterialId.bug)
+
+    // Long enough for the gas to land a roll, short enough that the carcass has not rotted away after.
+    react(grid, 60)
+
+    // Gas is how you clear a world of life without setting fire to it, and a bug dies into meat.
+    expect(grid.material[bug]).toBe(MATERIALS[MaterialId.bug].life?.corpse)
+  })
+
+  it('leaves nothing behind of a creature whose corpse is nothing', () => {
+    const grid = createGrid(9, 9)
+    put(grid, 4, 4, MaterialId.chlorine)
+    const algae = put(grid, 4, 5, MaterialId.algae)
+
+    react(grid, 2000)
+
+    // A weed is not a carcass: bleaching a bed of algae clears it rather than filling the tank with meat.
+    expect(grid.material[algae]).toBe(MaterialId.empty)
+  })
 })
 
 describe('plants', () => {

@@ -9,6 +9,7 @@ import { usePixelWorld } from './usePixelWorld'
 import { usePointerBrush } from './usePointerBrush'
 import { Palette } from './components/Palette/Palette'
 import { ToolRow } from './components/ToolRow/ToolRow'
+import { Census } from './components/Census/Census'
 import { Reading } from './components/Reading/Reading'
 import { SimControls } from './components/SimControls/SimControls'
 import styles from './PixelWorldSimulator.module.scss'
@@ -65,13 +66,17 @@ export function PixelWorldSimulator() {
             />
           </div>
 
-          <ToolRow
-            selected={tool}
-            onSelect={setTool}
-            isFullscreen={fullscreen.isFullscreen}
-            canFullscreen={fullscreen.supported}
-            onToggleFullscreen={fullscreen.toggle}
-          />
+          <div className={styles.sidebar}>
+            <ToolRow
+              selected={tool}
+              onSelect={setTool}
+              isFullscreen={fullscreen.isFullscreen}
+              canFullscreen={fullscreen.supported}
+              onToggleFullscreen={fullscreen.toggle}
+            />
+
+            <Census counts={sim.census} onWatch={sim.watchCensus} />
+          </div>
         </div>
 
         {/* Picking a material means you want to draw it, so it takes the brush back off a force tool. */}

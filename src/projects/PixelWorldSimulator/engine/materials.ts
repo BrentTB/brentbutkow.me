@@ -545,7 +545,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.chlorine,
     label: 'Chlorine',
-    blurb: 'Sinks and creeps along the ground. Bleaches plants.',
+    blurb: 'Sinks and creeps along the ground. Kills anything alive.',
     behavior: MaterialBehavior.gas,
     density: 8,
     color: [190, 214, 96],
@@ -755,7 +755,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.slime,
     label: 'Slime',
-    blurb: 'Slow, at home anywhere, and eats anything alive.',
+    blurb: 'Slow, at home anywhere, and leaps at anything alive.',
     behavior: MaterialBehavior.static,
     density: 1000,
     color: [148, 92, 190],
@@ -788,6 +788,9 @@ export const MATERIALS: readonly Material[] = [
       breedAt: 210,
       breedChance: 0.002,
       hunts: 14,
+      // It can neither fly like a bird nor burrow like a worm, so a ledge or a boulder would otherwise end
+      // the hunt. A leap is how the slowest hunter in the world reaches anything at all.
+      jump: 6,
       corpse: MaterialId.meat,
     },
   },
@@ -807,7 +810,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.ant,
     label: 'Ant',
-    blurb: 'Bores galleries through wood, walling the paths as it digs.',
+    blurb: 'Bores galleries through wood. Walls each path as it digs.',
     behavior: MaterialBehavior.static,
     density: 1000,
     color: [140, 62, 46],
@@ -832,10 +835,14 @@ export const MATERIALS: readonly Material[] = [
       // Unhurried, so a trail reads as being laid a length at a time rather than sprayed across the world.
       moveChance: 0.3,
       // Above its starting energy on purpose: an ant only breeds where it has grazed well, so a nest grows
-      // into a stand of leaves rather than swarming out of a single one. The rate is very slow — with no
-      // predator to thin them, a faster one had a colony balloon into thousands.
+      // into a stand of leaves rather than swarming out of a single one. Bugs, birds and slimes all eat ants
+      // now, and a nest walled off from them still has to replace what starves, so the rate is what keeps a
+      // colony going rather than dwindling to nothing.
       breedAt: 230,
-      breedChance: 0.0006,
+      breedChance: 0.0008,
+      // A hungry ant steers for the nearest leaf it can see. Without this it bores on blindly and starves in
+      // a nest with a crop at the far end of it, which is what emptied a sealed case every time.
+      hunts: 16,
       corpse: MaterialId.meat,
     },
   },

@@ -16,15 +16,32 @@
   display: flex;
   flex: 1;
   justify-content: center;
+  // The canvas keeps its own 16:9 shape rather than being stretched to whatever height the row happens to
+  // be. Opening the tally beside it makes the row taller, and a stretched flex item overrides its
+  // aspect-ratio — which squeezed the world into a tall, narrow strip.
+  align-items: flex-start;
   padding: 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--bg-elevated);
 }
 
+// The stack beside the canvas: tools on top, the tally of the world under them.
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  align-self: flex-start;
+  gap: 8px;
+}
+
 @media (max-width: 640px) {
   .world {
     flex-direction: column;
+  }
+
+  .sidebar {
+    align-self: stretch;
   }
 }
 

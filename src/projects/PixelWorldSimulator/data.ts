@@ -36,6 +36,12 @@ export const DEFAULT_SPEED = 1
 /** How often the hovered cell's reading refreshes, in ms. Fast enough to watch a temperature move. */
 export const READING_INTERVAL = 100
 
+/**
+ * How often the tally of what the world is made of refreshes, in ms. Slower than the readout: counting is a
+ * whole pass over the grid, and a column of numbers flickering at ten a second is unreadable anyway.
+ */
+export const CENSUS_INTERVAL = 250
+
 export const BRUSH_RADIUS = {
   min: 0,
   max: 24,
@@ -193,6 +199,13 @@ export const simCopy = {
   },
   /** A source that has not been fed yet has nothing to copy. */
   sourceEmpty: 'nothing yet',
+  /** The collapsible tally of what the world currently holds. */
+  census: {
+    title: "What's in the world",
+    empty: 'Nothing drawn yet.',
+    /** Air is most of an empty world, and counting it tells you nothing you want to know. */
+    airNote: 'The list leaves out air.',
+  },
   searchPlaceholder: 'Find a material',
   noMatch: 'Nothing by that name.',
 }

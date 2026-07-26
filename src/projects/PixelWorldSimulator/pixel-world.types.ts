@@ -199,6 +199,12 @@ export type Life = {
   breedChance: number
   /** How far it looks for something to eat. Zero for anything that only eats what it bumps into. */
   hunts?: number
+  /**
+   * Cells per tick of leap, for a hunter that throws itself at prey it can see but cannot walk to. The
+   * impulse goes through the same kinetic map a blast uses, so the jump arcs and lands under gravity. Absent
+   * on anything that only ever walks — a bird flies and a worm burrows, and neither needs to jump.
+   */
+  jump?: number
   /** What it leaves when it dies. */
   corpse: MaterialId
 }

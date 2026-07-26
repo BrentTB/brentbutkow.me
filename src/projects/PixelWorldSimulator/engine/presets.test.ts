@@ -313,26 +313,44 @@ describe('the ant colony preset', () => {
     return grid
   }
 
-  it('arrives as leafy trunks with ants along the ground', () => {
+  it('arrives as a glass case of wood beside open country', () => {
     const grid = builtColony()
 
-    // Trunks to crawl, leaves to graze, and a scatter of ants to do the building.
+    // The case, the nest inside it, and the countryside next door with its own creatures in it.
+    expect(count(grid, MaterialId.glass)).toBeGreaterThan(100)
     expect(count(grid, MaterialId.wood)).toBeGreaterThan(100)
     expect(count(grid, MaterialId.plant)).toBeGreaterThan(20)
     expect(count(grid, MaterialId.ant)).toBeGreaterThan(4)
+    expect(count(grid, MaterialId.bug)).toBeGreaterThan(0)
+    expect(count(grid, MaterialId.bird)).toBeGreaterThan(0)
   })
 
-  it('sets its ants down on a surface, not floating in mid-air', () => {
+  it('keeps the predators out of the case, and stocks it with ants', () => {
     const grid = builtColony()
 
-    // An ant needs something solid under it to crawl from; dropped into open air it just falls. Each one
-    // should start on the ground.
-    for (let i = 0; i < grid.material.length; i++) {
-      if (grid.material[i] !== MaterialId.ant) continue
-      const below = i + grid.width
-      expect(below).toBeLessThan(grid.material.length)
-      expect(grid.material[below]).not.toBe(MaterialId.empty)
+    // The point of the pairing: the colony behind the glass is sealed away from the things that eat ants, so
+    // it works on undisturbed while the trees outside take their chances. Ants live on both sides; a bug or a
+    // bird only ever out in the country.
+    const paneColumns: number[] = []
+    for (let x = 0; x < grid.width; x++) {
+      for (let y = 0; y < grid.height; y++) {
+        if (grid.material[cellIndex(grid, x, y)] === MaterialId.glass) {
+          paneColumns.push(x)
+          break
+        }
+      }
     }
+    const caseRight = Math.max(...paneColumns)
+
+    let inside = 0
+    for (let i = 0; i < grid.material.length; i++) {
+      const x = i % grid.width
+      if (grid.material[i] === MaterialId.ant && x < caseRight) inside++
+      if (grid.material[i] === MaterialId.bug || grid.material[i] === MaterialId.bird) {
+        expect(x).toBeGreaterThan(caseRight)
+      }
+    }
+    expect(inside).toBeGreaterThan(3)
   })
 
   it('is still boring galleries a while after it is dropped in', { timeout: 20_000 }, () => {
@@ -357,6 +375,56 @@ describe('the ant colony preset', () => {
     // Only the flat and upright lanes are counted here; the diagonal ones (walled corner to corner) are
     // not, so this is a floor well under the real number.
     expect(lanes).toBeGreaterThan(8)
+  })
+
+  it('starts a nest in every tree out in the country', () => {
+    const grid = builtColony()
+
+    // A tree out here is a colony of its own, working away with the birds overhead. Every trunk gets one, so
+    // there is something to watch wherever you look rather than only behind the glass.
+    const trunks = new Set<number>()
+    const nested = new Set<number>()
+    for (let i = 0; i < grid.material.length; i++) {
+      const x = i % grid.width
+      if (grid.material[i] === MaterialId.wood) trunks.add(x)
+      if (grid.material[i] === MaterialId.ant) nested.add(x)
+    }
+
+    // Every ant outside the case is in a trunk column: none are left standing about on bare ground.
+    const paneRight = (() => {
+      let right = 0
+      for (let i = 0; i < grid.material.length; i++) {
+        if (grid.material[i] === MaterialId.glass) right = Math.max(right, i % grid.width)
+      }
+      return right
+    })()
+    for (const x of nested) {
+      if (x <= paneRight) continue
+      expect(trunks.has(x)).toBe(true)
+    }
+    // And there are ants out there at all.
+    expect([...nested].some((x) => x > paneRight)).toBe(true)
+  })
+
+  it('gives its trees trunks thick enough to hold a gallery', () => {
+    const grid = builtColony()
+
+    // A one-cell trunk has no inside to tunnel. The widest run of wood on a row above the ground shows the
+    // trunks have real girth.
+    let widest = 0
+    for (let y = 0; y < grid.height; y++) {
+      let run = 0
+      for (let x = 0; x < grid.width; x++) {
+        run = grid.material[cellIndex(grid, x, y)] === MaterialId.wood ? run + 1 : 0
+        widest = Math.max(widest, run)
+      }
+    }
+    expect(widest).toBeGreaterThanOrEqual(3)
+  })
+
+  it('leaves the worms out of it', () => {
+    // A worm eats dirt, which is unlimited, so a handful breed away underground and hollow out the field.
+    expect(count(builtColony(), MaterialId.worm)).toBe(0)
   })
 
   it('comes out different every time it is loaded', () => {

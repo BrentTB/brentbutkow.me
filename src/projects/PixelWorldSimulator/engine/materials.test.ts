@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { MaterialBehavior, MaterialId } from '../pixel-world.types'
+import { MaterialBehavior, MaterialId, Medium } from '../pixel-world.types'
 import { MATERIALS, canDisplace, canFloatThrough, canPaintOver, isBurning } from './materials'
 
 const FLUIDS: readonly MaterialBehavior[] = [MaterialBehavior.liquid, MaterialBehavior.gas]
@@ -251,6 +251,26 @@ describe('every creature', () => {
     for (const hunter of [MaterialId.bug, MaterialId.bird, MaterialId.slime]) {
       expect(MATERIALS[hunter].life?.diet).toContain(MaterialId.ant)
     }
+  })
+
+  it('gives the slime a leap, since it can neither fly nor burrow', () => {
+    // Every other hunter has a way past an obstacle: a bird flies over it and a worm goes under. A slime
+    // walks, so without a jump a ledge or a boulder is the end of the hunt and it starves in place.
+    expect(MATERIALS[MaterialId.slime].life?.jump).toBeGreaterThan(0)
+  })
+
+  it('only gives a leap to something that cannot already fly', () => {
+    for (const creature of creatures) {
+      if (creature.life?.jump === undefined) continue
+      // A flier is already free of the ground; a jump on top of that is motion for nothing.
+      expect(creature.life.medium).not.toBe(Medium.air)
+    }
+  })
+
+  it('gives the ant the sight to find its food', () => {
+    // An ant bores blind without it, and starves in a nest whose larder is at the far end of its own
+    // galleries — which emptied a sealed case every time.
+    expect(MATERIALS[MaterialId.ant].life?.hunts).toBeGreaterThan(0)
   })
 
   it('leaves room above its breeding line for a full cell to sit', () => {

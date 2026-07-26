@@ -65,12 +65,19 @@ function boulder(
   }
 }
 
-/** A trunk of wood with a ragged canopy of plant over it. */
-function tree(grid: Grid, x: number, groundY: number, height: number, rng: Rng): void {
+/**
+ * A trunk of wood with a ragged canopy of plant over it. `girth` is how many cells thick the trunk is at the
+ * foot: one for a sapling, more for something an ant can work a gallery into, tapering as it rises so it
+ * reads as a tree rather than a post.
+ */
+function tree(grid: Grid, x: number, groundY: number, height: number, rng: Rng, girth = 1): void {
   for (let i = 0; i < height; i++) {
-    put(grid, x, groundY - i, MaterialId.wood)
+    // Thick at the base, thinning toward the crown, and never below one cell.
+    const taper = Math.max(1, Math.round(girth * (1 - (i / height) * 0.65)))
+    const from = x - Math.floor((taper - 1) / 2)
+    for (let w = 0; w < taper; w++) put(grid, from + w, groundY - i, MaterialId.wood)
     // A slight lean near the top, so no two trees look stamped from the same mould.
-    if (i > height * 0.6 && rng.next() < 0.4) put(grid, x + 1, groundY - i, MaterialId.wood)
+    if (i > height * 0.6 && rng.next() < 0.4) put(grid, from + taper, groundY - i, MaterialId.wood)
   }
 
   const crown = groundY - height
@@ -520,34 +527,129 @@ function volcano(grid: Grid, rng: Rng): void {
  */
 function antColony(grid: Grid, rng: Rng): void {
   const { width, height } = grid
-  const groundY = height - Math.max(2, Math.round(height * 0.08))
+  const base = Math.floor(height * 0.68)
+  const bedrock = height - Math.floor(height * 0.07)
 
-  fill(grid, 0, groundY + 1, width - 1, height - 1, MaterialId.stone)
-  fill(grid, 0, groundY - 1, width - 1, groundY, MaterialId.dirt)
+  // The land the whole scene stands on: a wandering surface over a bedrock line of its own, the same way the
+  // wild is built, so neither the farm nor the country beside it sits on a drawn straight edge.
+  const ground = surfaceLine(width, base, Math.max(2, height * 0.035), rng)
+  const rock = surfaceLine(width, bedrock, Math.max(2, height * 0.025), rng)
+  for (let x = 0; x < width; x++) {
+    fill(grid, x, rock[x], x, height - 1, MaterialId.stone)
+    fill(grid, x, ground[x], x, rock[x] - 1, MaterialId.dirt)
+    if (rng.next() < 0.25) put(grid, x, rock[x] - 1, MaterialId.gravel)
+  }
 
-  const logs = Math.max(2, Math.round(width / 150))
-  for (let t = 0; t < logs; t++) {
-    const cx = Math.round(((t + 1) / (logs + 1)) * width)
-    const half = Math.max(5, Math.round(width * 0.06))
-    const top = Math.round(height * (0.3 + rng.next() * 0.1))
+  // --- The farm: a glass case sunk into the ground on the left, packed with wood for the colony to work.
+  // Glass is the point of it. An ant bores wood, plants and vine and nothing else, so a glass wall holds a
+  // colony in for good — the ants inside can tunnel as far as they like and never get out among the birds.
+  const farmLeft = Math.floor(width * 0.05)
+  const farmRight = Math.floor(width * 0.38)
+  const farmTop = Math.floor(height * 0.16)
+  const farmFloor = Math.max(...ground.slice(farmLeft, farmRight + 1)) + Math.floor(height * 0.06)
 
-    // A fat block of wood, its top edge roughed up so it is not a brick — thick enough that galleries read
-    // as galleries rather than eating it straight through.
-    for (let x = cx - half; x <= cx + half; x++) {
-      const jitter = Math.round((rng.next() - 0.5) * 3)
-      fill(grid, x, top + jitter, x, groundY - 1, MaterialId.wood)
+  fill(grid, farmLeft, farmTop, farmRight, farmFloor, MaterialId.empty)
+  // Panes: two cells of glass all round, so a stray blast does not open the case on the first crack.
+  fill(grid, farmLeft, farmTop, farmLeft + 1, farmFloor, MaterialId.glass)
+  fill(grid, farmRight - 1, farmTop, farmRight, farmFloor, MaterialId.glass)
+  fill(grid, farmLeft, farmFloor - 1, farmRight, farmFloor, MaterialId.glass)
+  fill(grid, farmLeft, farmTop, farmRight, farmTop + 1, MaterialId.glass)
+
+  // The nest inside, filled to an uneven line with a clear band of air under the lid — a case packed to the
+  // brim reads as a solid block, and the gap is where you watch the galleries break the surface.
+  const nestTop = surfaceLine(
+    farmRight - farmLeft + 1,
+    farmTop + Math.floor(height * 0.1),
+    2.5,
+    rng
+  )
+  for (let x = farmLeft + 2; x <= farmRight - 2; x++) {
+    fill(grid, x, nestTop[x - farmLeft], x, farmFloor - 2, MaterialId.wood)
+  }
+
+  // A bed of soil along the floor of the case with leaf litter rooted in it. The crop is finite on purpose: a
+  // leaf only grows back into wet soil, and a spring anywhere near the leaves is an endless supply of new
+  // leaf that packs the case solid, so a jar is stocked generously rather than plumbed.
+  const bedTop = farmFloor - 6
+  fill(grid, farmLeft + 2, bedTop, farmRight - 2, farmFloor - 2, MaterialId.dirt)
+  // The spring needs somewhere to put what it makes, so it sits in a hollow rather than packed in soil — a
+  // source with no open cell in reach simply goes quiet, the same lesson the volcano's vent taught.
+  for (let x = farmLeft + 3; x <= farmRight - 3; x += 2) {
+    for (let up = 1; up <= 1 + Math.floor(rng.next() * 3); up++) {
+      put(grid, x, bedTop - up, MaterialId.plant)
     }
-    // Leaf bushes at the foot of the log, low and easy to graze, so the nest keeps its energy up.
-    boulder(grid, cx - half, groundY - 3, 3, rng, MaterialId.plant)
-    boulder(grid, cx + half, groundY - 3, 3, rng, MaterialId.plant)
   }
 
-  // A scatter of ants along the ground, out where each can set off into a log or across the dirt.
-  const ants = Math.max(8, Math.round(width / 20))
-  for (let i = 0; i < ants; i++) {
-    const ax = 2 + Math.floor(rng.next() * (width - 4))
-    put(grid, ax, groundY - 2, MaterialId.ant)
+  // Leaf pockets buried through the timber as well as the bed at the bottom. An ant only smells food about
+  // sixteen cells off, so a nest seeded at the top of a tall case starves halfway down to a full larder —
+  // scattered pockets mean there is always something within reach of wherever the galleries have got to.
+  const pockets = Math.max(6, Math.round((farmFloor - farmTop) / 5))
+  for (let i = 0; i < pockets; i++) {
+    const px = farmLeft + 4 + Math.floor(rng.next() * Math.max(1, farmRight - farmLeft - 8))
+    const py = farmTop + 6 + Math.floor(rng.next() * Math.max(1, bedTop - farmTop - 8))
+    boulder(grid, px, py, 2, rng, MaterialId.plant)
   }
+
+  // The colony, seeded down in the wood where it starts boring straight away.
+  const ants = Math.max(6, Math.round((farmRight - farmLeft) / 7))
+  for (let i = 0; i < ants; i++) {
+    const ax = farmLeft + 3 + Math.floor(rng.next() * Math.max(1, farmRight - farmLeft - 6))
+    const ay = nestTop[ax - farmLeft] + 1 + Math.floor(rng.next() * 5)
+    put(grid, ax, Math.min(ay, farmFloor - 3), MaterialId.ant)
+  }
+
+  // --- The country outside: grass, trees, boulders, and the creatures that would make short work of any ant
+  // that ever got loose. Kept to the right of the case so the two read as neighbours.
+  const wildFrom = farmRight + Math.floor(width * 0.04)
+
+  for (let x = wildFrom; x < width - 2; x++) {
+    const tufts = 1 + (rng.next() < 0.5 ? 1 : 0) + (rng.next() < 0.2 ? 1 : 0)
+    for (let i = 0; i < tufts; i++) put(grid, x, ground[x] - i, MaterialId.plant)
+  }
+
+  // Trees with trunks thick enough to hold a gallery, and a nest already in each one: a tree out here is a
+  // colony of its own, working away with the birds overhead rather than safe behind glass.
+  const trees = 3 + Math.floor(rng.next() * 2)
+  for (let i = 0; i < trees; i++) {
+    const tx = wildFrom + 4 + Math.floor(rng.next() * Math.max(1, width - wildFrom - 12))
+    const trunk = Math.max(8, Math.floor(height * (0.12 + rng.next() * 0.08)))
+    const girth = 3 + Math.floor(rng.next() * 3)
+    tree(grid, tx, ground[tx] - 1, trunk, rng, girth)
+    // Down in the trunk, a few cells up from the roots, where it starts boring straight away.
+    put(grid, tx, ground[tx] - 2 - Math.floor(rng.next() * 4), MaterialId.ant)
+  }
+
+  for (let i = 0; i < 4; i++) {
+    const bx = wildFrom + Math.floor(rng.next() * Math.max(1, width - wildFrom - 4))
+    boulder(grid, bx, ground[bx] + 1, 1 + Math.floor(rng.next() * 3), rng, MaterialId.stone)
+  }
+
+  for (let x = wildFrom + 4; x < width - 6; x += 8 + Math.floor(rng.next() * 6)) {
+    put(grid, x, ground[x] - 3, MaterialId.bug)
+  }
+  // Bugs and birds only. A worm eats dirt, which is unlimited, so a few of them breed away underground and
+  // hollow the whole field out — this scene is about the ants and the things that hunt them.
+  // Low enough over the field to see a bug and dive on it — a bird's sight reaches about eighteen cells, so
+  // one parked up in the clouds never spots a thing and starves over the grass. Placed into clear air, since
+  // a bird sitting in the leaves of a tree is out of its medium and drains out within seconds.
+  for (let i = 1; i <= 2; i++) {
+    const bx = wildFrom + Math.floor(((width - wildFrom) * i) / 3)
+    const perch = clearAir(grid, bx, ground[bx] - 8)
+    if (perch >= 0) put(grid, bx, perch, MaterialId.bird)
+  }
+}
+
+/** The nearest row at or above `from` where a flier has open air all round it, or -1 if there is none. */
+function clearAir(grid: Grid, x: number, from: number): number {
+  for (let y = from; y >= 1; y--) {
+    const open =
+      grid.material[cellIndex(grid, x, y)] === MaterialId.empty &&
+      grid.material[cellIndex(grid, x, y - 1)] === MaterialId.empty &&
+      grid.material[cellIndex(grid, Math.max(0, x - 1), y)] === MaterialId.empty &&
+      grid.material[cellIndex(grid, Math.min(grid.width - 1, x + 1), y)] === MaterialId.empty
+    if (open) return y
+  }
+  return -1
 }
 
 const BUILDERS: Record<Preset, (grid: Grid, rng: Rng) => void> = {

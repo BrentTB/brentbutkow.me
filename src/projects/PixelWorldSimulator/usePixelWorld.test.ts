@@ -3,6 +3,7 @@ import { renderHook, act, cleanup } from '@testing-library/react'
 import { CellPoint, CellReading, MaterialId, Tool } from './pixel-world.types'
 import {
   AMBIENT_TEMPERATURE,
+  CENSUS_INTERVAL,
   GRID_HEIGHT,
   GRID_WIDTH,
   MAX_TICKS_PER_FRAME,
@@ -467,5 +468,64 @@ describe('usePixelWorld', () => {
     unmount()
 
     expect(cancelledHandles).toContain(lastHandle)
+  })
+
+  it('keeps no tally until one is asked for', () => {
+    const { result } = mountSim()
+    act(() => result.current.paintStroke({ x: 20, y: 9 }, { x: 20, y: 9 }, MaterialId.stone, 0))
+    frame(MS_PER_TICK)
+
+    // Counting is a pass over every cell of the world, so nothing counts until the panel opens.
+    expect(result.current.census).toBeNull()
+  })
+
+  it('counts the world as soon as the tally is switched on', () => {
+    const { result } = mountSim()
+    act(() => result.current.paintStroke({ x: 20, y: 9 }, { x: 20, y: 9 }, MaterialId.stone, 0))
+
+    act(() => result.current.watchCensus(true))
+
+    // Straight away, not on the next refresh: the numbers are there the moment the panel opens.
+    expect(result.current.census?.[MaterialId.stone]).toBe(1)
+    expect(result.current.census?.[MaterialId.empty]).toBe(GRID_WIDTH * GRID_HEIGHT - 1)
+  })
+
+  it('refreshes the tally on its own as the world runs', () => {
+    const { result } = mountSim()
+    act(() => result.current.paintStroke({ x: 40, y: 4 }, { x: 40, y: 4 }, MaterialId.sand, 0))
+    act(() => result.current.watchCensus(true))
+    const settled = result.current.census?.[MaterialId.empty] ?? 0
+
+    // Sand falls; the world it lands in is a different one, and the tally follows without being asked.
+    for (let i = 0; i < 40; i++) frame(MS_PER_TICK)
+    act(() => frame(CENSUS_INTERVAL + MS_PER_TICK))
+
+    expect(result.current.census?.[MaterialId.sand]).toBe(1)
+    expect(result.current.census?.[MaterialId.empty]).toBe(settled)
+  })
+
+  it('drops the tally when it is switched off', () => {
+    const { result } = mountSim()
+    act(() => result.current.watchCensus(true))
+    expect(result.current.census).not.toBeNull()
+
+    act(() => result.current.watchCensus(false))
+
+    expect(result.current.census).toBeNull()
+  })
+
+  it('hands out a fresh tally each refresh rather than the same array mutated', () => {
+    const { result } = mountSim()
+    act(() => result.current.watchCensus(true))
+    const first = result.current.census
+
+    act(() => result.current.paintStroke({ x: 10, y: 10 }, { x: 10, y: 10 }, MaterialId.stone, 0))
+    act(() => frame(CENSUS_INTERVAL + MS_PER_TICK))
+
+    // Handing back the one working array would leave React comparing a value with itself, so the panel
+    // would never re-render — and the old snapshot would silently change under anyone holding it.
+    expect(result.current.census).not.toBe(first)
+    expect(first?.[MaterialId.stone]).toBe(0)
+    expect(result.current.census?.[MaterialId.stone]).toBe(1)
   })
 })

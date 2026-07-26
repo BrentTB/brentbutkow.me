@@ -1,6 +1,7 @@
 import { RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CellPoint, CellReading, Grid, MaterialId, Tool } from './pixel-world.types'
 import {
+  CENSUS_INTERVAL,
   DEFAULT_SPEED,
   GRID_HEIGHT,
   GRID_WIDTH,
@@ -9,6 +10,8 @@ import {
   TICK_RATE,
 } from './data'
 import { stampLine } from './engine/brush'
+import { countMaterials } from './engine/census'
+import { MATERIALS } from './engine/materials'
 import { Preset, loadPreset } from './engine/presets'
 import { attract, blast, temper, wind } from './engine/forces'
 import { asMaterial, cellIndex, clearGrid, createGrid } from './engine/grid'
@@ -39,6 +42,14 @@ export type PixelWorldSim = {
    */
   watch(cell: CellPoint | null): void
   reading: CellReading | null
+  /**
+   * Turn the running tally of what the world is made of on or off. Off by default and while the panel that
+   * shows it is collapsed: counting every cell is a whole pass over the grid, and there is no reason to pay
+   * for it when nobody is reading the numbers.
+   */
+  watchCensus(on: boolean): void
+  /** Cells of each material, indexed by `MaterialId`, or null while the tally is switched off. */
+  census: Uint32Array | null
 }
 
 /**
@@ -62,6 +73,12 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
   const watchedRef = useRef<CellPoint | null>(null)
   const [reading, setReading] = useState<CellReading | null>(null)
 
+  // The tally is written into one array for the life of the world and handed out as a fresh copy, so React
+  // sees a new value to render while the counting itself allocates nothing.
+  const censusRef = useRef(new Uint32Array(MATERIALS.length))
+  const censusOnRef = useRef(false)
+  const [census, setCensus] = useState<Uint32Array | null>(null)
+
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -72,6 +89,7 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
     let previous: number | null = null
     let accumulator = 0
     let lastReading = 0
+    let lastCensus = 0
 
     function loop(time: number) {
       frame = requestAnimationFrame(loop)
@@ -104,6 +122,11 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
       if (watched !== null && time - lastReading >= READING_INTERVAL) {
         lastReading = time
         setReading(readCell(gridRef.current, watched))
+      }
+
+      if (censusOnRef.current && time - lastCensus >= CENSUS_INTERVAL) {
+        lastCensus = time
+        setCensus(countMaterials(gridRef.current, censusRef.current).slice())
       }
     }
 
@@ -163,6 +186,14 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
     else if (!wasWatching) setReading(readCell(gridRef.current, cell))
   }, [])
 
+  const watchCensus = useCallback((on: boolean) => {
+    censusOnRef.current = on
+    // Switching on reads straight away, so the numbers are there the moment the panel opens rather than
+    // after the next refresh; switching off drops them so nothing stale is left on screen.
+    if (on) setCensus(countMaterials(gridRef.current, censusRef.current).slice())
+    else setCensus(null)
+  }, [])
+
   return useMemo(
     () => ({
       isPaused,
@@ -176,6 +207,8 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
       applyForce,
       watch,
       reading,
+      watchCensus,
+      census,
     }),
     [
       isPaused,
@@ -189,6 +222,8 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
       applyForce,
       watch,
       reading,
+      watchCensus,
+      census,
     ]
   )
 }
