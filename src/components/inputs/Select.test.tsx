@@ -17,6 +17,26 @@ describe('Select', () => {
     expect(screen.queryByRole('option')).toBeNull()
   })
 
+  it('opens its menu inside the full-screen element, not off in the body', () => {
+    // The browser paints only the full-screen element and its descendants, so a menu portaled to the body is
+    // simply not on screen: the control looks dead. This is what made the preset dropdown unopenable in the
+    // pixel world's full-screen view.
+    const stage = document.createElement('div')
+    document.body.append(stage)
+    Object.defineProperty(document, 'fullscreenElement', { configurable: true, get: () => stage })
+
+    render(<Select value="" options={options} onChange={() => {}} ariaLabel="Source" />, {
+      container: stage.appendChild(document.createElement('div')),
+    })
+    fireEvent.click(screen.getByLabelText('Source'))
+
+    const menu = screen.getByRole('listbox')
+    expect(stage.contains(menu)).toBe(true)
+
+    Object.defineProperty(document, 'fullscreenElement', { configurable: true, get: () => null })
+    stage.remove()
+  })
+
   it('opens, selects an option, and closes', () => {
     const onChange = vi.fn()
     render(<Select value="" options={options} onChange={onChange} ariaLabel="Source" />)

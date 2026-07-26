@@ -1,8 +1,9 @@
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest'
 import { renderHook, act, cleanup } from '@testing-library/react'
-import { CellPoint, CellReading, MaterialId } from './pixel-world.types'
+import { CellPoint, CellReading, MaterialId, Tool } from './pixel-world.types'
 import {
   AMBIENT_TEMPERATURE,
+  CENSUS_INTERVAL,
   GRID_HEIGHT,
   GRID_WIDTH,
   MAX_TICKS_PER_FRAME,
@@ -10,6 +11,7 @@ import {
   TICK_RATE,
 } from './data'
 import { MATERIALS } from './engine/materials'
+import { Preset } from './engine/presets'
 import { writeCellRgb } from './engine/palette'
 import { PixelWorldSim, usePixelWorld } from './usePixelWorld'
 
@@ -23,19 +25,26 @@ function blankImage() {
   }
 }
 
+/** The temperature overlay from the most recent mounted renderer, for reading the tint back. */
+let heatLayer = blankImage()
+/** The most recent fake context, for asking which extra passes were composited over the world. */
+let lastContext: { drawImage: ReturnType<typeof vi.fn> } | null = null
+
 /**
  * jsdom has no 2D context. The fake hands back ImageData the renderer keeps rewriting, so reading it
- * back is how a test observes the grid — no test-only accessor on the hook. The renderer asks for two
- * buffers (the world, then the glow layer) and they have to be separate, or the glow pass would punch
- * holes in what the test reads.
+ * back is how a test observes the grid — no test-only accessor on the hook. The renderer asks for three
+ * buffers (the world, the glow layer, then the temperature overlay) and they have to be separate, or the
+ * later passes would punch holes in what the test reads.
  */
 function mockCanvasContext() {
   const world = blankImage()
   const glow = blankImage()
+  heatLayer = blankImage()
+  const buffers = [world, glow, heatLayer]
   let served = 0
 
   const context = {
-    createImageData: () => (served++ === 0 ? world : glow),
+    createImageData: () => buffers[Math.min(served++, buffers.length - 1)],
     putImageData: vi.fn(),
     drawImage: vi.fn(),
     save: vi.fn(),
@@ -43,6 +52,7 @@ function mockCanvasContext() {
     filter: 'none',
     globalCompositeOperation: 'source-over',
   }
+  lastContext = context
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(
     context as unknown as CanvasRenderingContext2D
   )
@@ -71,11 +81,24 @@ function materialAt(image: { data: Uint8ClampedArray }, x: number, y: number): M
   return MaterialId.empty
 }
 
-/** How many cells of a material the drawn world holds. */
-function countMaterial(image: { data: Uint8ClampedArray }, material: MaterialId): number {
+/**
+ * How many cells of a material the drawn world holds, within a box. Classifying a pixel means reproducing
+ * every material's palette write for that cell, so scanning all ninety thousand of them for each count is
+ * slow enough to time a test out; every caller knows roughly where it painted.
+ */
+function countMaterial(
+  image: { data: Uint8ClampedArray },
+  material: MaterialId,
+  box: { x: number; y: number; width: number; height: number } = {
+    x: 0,
+    y: 0,
+    width: GRID_WIDTH,
+    height: GRID_HEIGHT,
+  }
+): number {
   let total = 0
-  for (let y = 0; y < GRID_HEIGHT; y++) {
-    for (let x = 0; x < GRID_WIDTH; x++) {
+  for (let y = box.y; y < Math.min(GRID_HEIGHT, box.y + box.height); y++) {
+    for (let x = box.x; x < Math.min(GRID_WIDTH, box.x + box.width); x++) {
       if (materialAt(image, x, y) === material) total++
     }
   }
@@ -142,6 +165,15 @@ function mountSim() {
   return { ...rendered, image }
 }
 
+// Heavy full-sim tests (many mounted ticks): run locally, skip on CI, where the shared runners are slow
+// enough to blow the per-test timeout. `npm test` locally still runs them.
+// tsconfig carries no node types, so reach `process.env` through globalThis to stay type-safe.
+const onCI = Boolean(
+  (globalThis as unknown as { process?: { env?: Record<string, string | undefined> } }).process?.env
+    ?.CI
+)
+const itSlow = it.skipIf(onCI)
+
 describe('usePixelWorld', () => {
   it('steps the world while running', () => {
     const { result, image } = mountSim()
@@ -154,7 +186,7 @@ describe('usePixelWorld', () => {
     expect(sandRow(image, 10)).toBe(15)
   })
 
-  it('runs the heat pass too, not just movement', () => {
+  itSlow('runs the heat pass too, not just movement', () => {
     const { result, image } = mountSim()
     // Lava sitting on an ice slab: only the temperature pass can melt any of this.
     act(() => {
@@ -172,12 +204,18 @@ describe('usePixelWorld', () => {
       )
     })
     frame(0)
-    const iceBefore = countMaterial(image, MaterialId.ice)
+    const slab = { x: 140, y: GRID_HEIGHT - 20, width: 80, height: 20 }
+    const iceBefore = countMaterial(image, MaterialId.ice, slab)
 
-    for (let i = 0; i < 300; i++) frame(MS_PER_TICK)
+    // Soaked with Step rather than 300 animation frames: same tick, without redrawing the whole world
+    // each time. That the loop ticks at all is what 'steps the world while running' is for.
+    act(() => {
+      for (let i = 0; i < 300; i++) result.current.stepOnce()
+    })
+    frame(MS_PER_TICK)
 
     expect(iceBefore).toBeGreaterThan(0)
-    expect(countMaterial(image, MaterialId.ice)).toBeLessThan(iceBefore)
+    expect(countMaterial(image, MaterialId.ice, slab)).toBeLessThan(iceBefore)
   })
 
   it('runs the reaction pass too', () => {
@@ -187,13 +225,17 @@ describe('usePixelWorld', () => {
       result.current.paintStroke({ x: 120, y: 138 }, { x: 120, y: 138 }, MaterialId.acid, 2)
     })
     frame(0)
-    const sandBefore = countMaterial(image, MaterialId.sand)
+    const heap = { x: 100, y: 130, width: 45, height: 40 }
+    const sandBefore = countMaterial(image, MaterialId.sand, heap)
 
-    for (let i = 0; i < 400; i++) frame(MS_PER_TICK)
+    act(() => {
+      for (let i = 0; i < 400; i++) result.current.stepOnce()
+    })
+    frame(MS_PER_TICK)
 
     // Nothing but the acid reaction removes sand — movement and heat leave it alone.
     expect(sandBefore).toBeGreaterThan(0)
-    expect(countMaterial(image, MaterialId.sand)).toBeLessThan(sandBefore)
+    expect(countMaterial(image, MaterialId.sand, heap)).toBeLessThan(sandBefore)
   })
 
   it('holds the world still while paused, and paints into it anyway', () => {
@@ -218,7 +260,7 @@ describe('usePixelWorld', () => {
     expect(sandRow(image, 30)).toBe(8)
   })
 
-  it('runs fewer ticks per second in slow motion and more at speed', () => {
+  itSlow('runs fewer ticks per second in slow motion and more at speed', () => {
     const fallenAfterASecond = (rate: number) => {
       const { result, image } = mountSim()
       act(() => result.current.setSpeed(rate))
@@ -356,6 +398,86 @@ describe('usePixelWorld', () => {
     expect(result.current.reading).toBeNull()
   })
 
+  it('warms and cools the world with the heat and chill tools', () => {
+    const { result } = mountSim()
+    const cell = { x: 80, y: 60 }
+    act(() => result.current.paintStroke(cell, cell, MaterialId.stone, 2))
+
+    act(() => result.current.applyForce(Tool.heat, cell, cell, 4))
+    const warmed = readingFor(result, cell).temperature
+
+    act(() => result.current.applyForce(Tool.chill, cell, cell, 4))
+    act(() => result.current.applyForce(Tool.chill, cell, cell, 4))
+
+    expect(warmed).toBeGreaterThan(AMBIENT_TEMPERATURE)
+    expect(readingFor(result, cell).temperature).toBeLessThan(AMBIENT_TEMPERATURE)
+  })
+
+  it('throws material upward with the blast tool', () => {
+    const { result, image } = mountSim()
+    const cell = { x: 90, y: 120 }
+    act(() => result.current.paintStroke(cell, cell, MaterialId.sand, 0))
+    frame(0)
+
+    act(() => result.current.applyForce(Tool.blast, cell, cell, 6))
+    for (let i = 0; i < 4; i++) frame(MS_PER_TICK)
+
+    // Sand alone would have fallen four rows by now; a blast under it sends it the other way.
+    const row = sandRow(image, 90)
+    expect(row).not.toBeNull()
+    expect(row ?? 0).toBeLessThan(cell.y)
+  })
+
+  it('blows material sideways with the wind tool, along the drag', () => {
+    const { result, image } = mountSim()
+    const start = { x: 150, y: 100 }
+    act(() => result.current.paintStroke(start, start, MaterialId.sand, 0))
+    frame(0)
+
+    // A drag to the right, one pointer sample at a time — which is how the events actually arrive.
+    for (let gust = 0; gust < 3; gust++) {
+      act(() =>
+        result.current.applyForce(Tool.wind, start, { x: start.x + 1, y: start.y + gust }, 6)
+      )
+    }
+    for (let i = 0; i < 6; i++) frame(MS_PER_TICK)
+
+    expect(sandRow(image, start.x)).toBeNull()
+    expect(
+      countMaterial(image, MaterialId.sand, { x: start.x, y: 60, width: 60, height: 80 })
+    ).toBe(1)
+  })
+
+  it('drops a whole world in on request', () => {
+    const { result, image } = mountSim()
+    act(() => result.current.paintStroke({ x: 5, y: 5 }, { x: 5, y: 5 }, MaterialId.lava, 0))
+    frame(0)
+
+    act(() => result.current.load(Preset.aquarium))
+    frame(0)
+
+    const tank = { x: 0, y: 0, width: GRID_WIDTH, height: 40 }
+    expect(countMaterial(image, MaterialId.lava, tank)).toBe(0)
+    expect(
+      countMaterial(image, MaterialId.water, { x: 0, y: 60, width: 120, height: 60 })
+    ).toBeGreaterThan(100)
+  })
+
+  it('builds a different world each time the same preset is loaded', () => {
+    const { result, image } = mountSim()
+
+    act(() => result.current.load(Preset.aquarium))
+    frame(0)
+    const first = [...image.data]
+
+    act(() => result.current.load(Preset.aquarium))
+    frame(0)
+
+    // The hook hands the loop's own rng to the builder. Handing over a fresh one, or none, would make every
+    // load land identically, which reads as a stamp rather than a place.
+    expect([...image.data]).not.toEqual(first)
+  })
+
   it('stops the loop on unmount', () => {
     const { unmount } = mountSim()
     frame(MS_PER_TICK)
@@ -363,5 +485,157 @@ describe('usePixelWorld', () => {
     unmount()
 
     expect(cancelledHandles).toContain(lastHandle)
+  })
+
+  describe('picture settings', () => {
+    /** Alpha written into the temperature overlay for one cell, which is the tint the viewer sees. */
+    function tintAt(x: number, y: number): number {
+      return heatLayer.data[(y * GRID_WIDTH + x) * 4 + 3]
+    }
+
+    function heatedWorld() {
+      const mounted = mountSim()
+      act(() =>
+        mounted.result.current.paintStroke({ x: 40, y: 40 }, { x: 40, y: 40 }, MaterialId.stone, 3)
+      )
+      act(() => mounted.result.current.applyForce(Tool.heat, { x: 40, y: 40 }, { x: 40, y: 40 }, 3))
+      return mounted
+    }
+
+    it('tints a warmed material', () => {
+      heatedWorld()
+
+      frame(MS_PER_TICK)
+
+      expect(tintAt(40, 40)).toBeGreaterThan(0)
+    })
+
+    it('composites nothing over the world once both tints are off', () => {
+      // Nothing here is emissive, so the only pass that draws over the world is the temperature one.
+      const { result } = heatedWorld()
+      frame(MS_PER_TICK)
+      expect(lastContext?.drawImage).toHaveBeenCalled()
+
+      act(() => result.current.applySettings({ tintBlocks: false, tintAir: false }))
+      lastContext?.drawImage.mockClear()
+      frame(MS_PER_TICK)
+
+      expect(lastContext?.drawImage).not.toHaveBeenCalled()
+    })
+
+    it("tints air only when asked, so a warm sky is the viewer's choice", () => {
+      const { result } = mountSim()
+      // The heat tool warms whatever is under it, open air included.
+      act(() => {
+        for (let press = 0; press < 6; press++)
+          result.current.applyForce(Tool.heat, { x: 90, y: 90 }, { x: 90, y: 90 }, 3)
+      })
+
+      frame(MS_PER_TICK)
+      expect(tintAt(90, 90)).toBe(0)
+
+      act(() => result.current.applySettings({ tintBlocks: false, tintAir: true }))
+      frame(MS_PER_TICK)
+
+      expect(tintAt(90, 90)).toBeGreaterThan(0)
+    })
+
+    it('leaves the loop running when a setting changes', () => {
+      // Settings live in a ref for exactly this reason: rebuilding the renderer would drop the
+      // accumulator and restart the animation frame every time a switch is flipped.
+      const { result } = mountSim()
+      frame(MS_PER_TICK)
+      cancelledHandles = []
+
+      act(() => result.current.applySettings({ tintBlocks: false, tintAir: true }))
+      frame(MS_PER_TICK)
+
+      expect(cancelledHandles).toEqual([])
+    })
+  })
+
+  it('fast-forwards by running more of the same ticks, not by changing them', () => {
+    // Speed is not a physics setting. The loop keeps a fixed 60 Hz tick and speed only decides how many of
+    // those ticks it runs between one drawn frame and the next, so fast-forward is safe to leave a world
+    // running under: a grain falls a cell per tick either way, and five times the speed covers five times the
+    // ground in the same real time. (The tick count at a given instant can sit one out from an exact multiple:
+    // the accumulator carries a sub-millisecond remainder. That is a rounding artefact, not a different world.)
+    const fellTo = (rate: number, frames: number) => {
+      const { result, image } = mountSim()
+      act(() => result.current.setSpeed(rate))
+      act(() => result.current.paintStroke({ x: 60, y: 2 }, { x: 60, y: 2 }, MaterialId.sand, 0))
+      frame(0)
+      for (let i = 0; i < frames; i++) frame(MS_PER_TICK)
+      const row = sandRow(image, 60)
+      cleanup()
+      return row ?? 0
+    }
+
+    const from = 2
+    const steady = fellTo(1, 12) - from
+    const fastForward = fellTo(5, 12) - from
+
+    // Five times the ground covered, give or take the odd tick either side of the boundary.
+    expect(fastForward / steady).toBeGreaterThan(4)
+    expect(fastForward / steady).toBeLessThan(6)
+  })
+
+  it('keeps no tally until one is asked for', () => {
+    const { result } = mountSim()
+    act(() => result.current.paintStroke({ x: 20, y: 9 }, { x: 20, y: 9 }, MaterialId.stone, 0))
+    frame(MS_PER_TICK)
+
+    // Counting is a pass over every cell of the world, so nothing counts until the panel opens.
+    expect(result.current.census).toBeNull()
+  })
+
+  it('counts the world as soon as the tally is switched on', () => {
+    const { result } = mountSim()
+    act(() => result.current.paintStroke({ x: 20, y: 9 }, { x: 20, y: 9 }, MaterialId.stone, 0))
+
+    act(() => result.current.watchCensus(true))
+
+    // Straight away, not on the next refresh: the numbers are there the moment the panel opens.
+    expect(result.current.census?.[MaterialId.stone]).toBe(1)
+    expect(result.current.census?.[MaterialId.empty]).toBe(GRID_WIDTH * GRID_HEIGHT - 1)
+  })
+
+  it('refreshes the tally on its own as the world runs', () => {
+    const { result } = mountSim()
+    act(() => result.current.paintStroke({ x: 40, y: 4 }, { x: 40, y: 4 }, MaterialId.sand, 0))
+    act(() => result.current.watchCensus(true))
+    const settled = result.current.census?.[MaterialId.empty] ?? 0
+
+    // Sand falls; the world it lands in is a different one, and the tally follows without being asked.
+    for (let i = 0; i < 40; i++) frame(MS_PER_TICK)
+    act(() => frame(CENSUS_INTERVAL + MS_PER_TICK))
+
+    expect(result.current.census?.[MaterialId.sand]).toBe(1)
+    expect(result.current.census?.[MaterialId.empty]).toBe(settled)
+  })
+
+  it('drops the tally when it is switched off', () => {
+    const { result } = mountSim()
+    act(() => result.current.watchCensus(true))
+    expect(result.current.census).not.toBeNull()
+
+    act(() => result.current.watchCensus(false))
+
+    expect(result.current.census).toBeNull()
+  })
+
+  it('hands out a fresh tally each refresh rather than the same array mutated', () => {
+    const { result } = mountSim()
+    act(() => result.current.watchCensus(true))
+    const first = result.current.census
+
+    act(() => result.current.paintStroke({ x: 10, y: 10 }, { x: 10, y: 10 }, MaterialId.stone, 0))
+    act(() => frame(CENSUS_INTERVAL + MS_PER_TICK))
+
+    // Handing back the one working array would leave React comparing a value with itself, so the panel
+    // would never re-render — and the old snapshot would silently change under anyone holding it.
+    expect(result.current.census).not.toBe(first)
+    expect(first?.[MaterialId.stone]).toBe(0)
+    expect(result.current.census?.[MaterialId.stone]).toBe(1)
   })
 })

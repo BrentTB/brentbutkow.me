@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { MaterialId } from '../pixel-world.types'
+import { MaterialId, SimSettings } from '../pixel-world.types'
+import { AMBIENT_TEMPERATURE, DEFAULT_SETTINGS } from '../data'
 import { MATERIALS } from './materials'
-import { isEmissive, materialCss, writeCellRgb } from './palette'
+import { chipColour, isEmissive, materialCss, writeCellRgb, writeHeatTint } from './palette'
 
 describe('writeCellRgb', () => {
   it('writes an opaque colour within jitter range of the material', () => {
@@ -93,5 +94,106 @@ describe('materialCss', () => {
   it('reads the same table the canvas paints from', () => {
     const [r, g, b] = MATERIALS[MaterialId.water].color
     expect(materialCss(MaterialId.water)).toBe(`rgb(${r} ${g} ${b})`)
+  })
+})
+
+describe('chipColour', () => {
+  it('gives a material its swatch colour, and Erase none', () => {
+    expect(chipColour(MaterialId.sand)).toBe(materialCss(MaterialId.sand))
+    // Erase carries no colour of its own, so a slot or swatch holding it shows an empty chip.
+    expect(chipColour(MaterialId.empty)).toBeUndefined()
+  })
+})
+
+describe('writeHeatTint', () => {
+  /** Everything tinted, which is what the settings default to for materials. */
+  const BOTH: SimSettings = { tintBlocks: true, tintAir: true }
+
+  /** A one-cell overlay buffer, for a cell of stone unless something else is asked for. */
+  function tintFor(
+    temperature: number,
+    material: MaterialId = MaterialId.stone,
+    settings: SimSettings = DEFAULT_SETTINGS
+  ) {
+    const pixels = new Uint8ClampedArray(4)
+    const tinted = writeHeatTint(pixels, 0, material, temperature, settings)
+    return { tinted, r: pixels[0], g: pixels[1], b: pixels[2], alpha: pixels[3] }
+  }
+
+  it('writes nothing at room temperature', () => {
+    const { tinted, alpha } = tintFor(AMBIENT_TEMPERATURE)
+
+    expect(tinted).toBe(false)
+    expect(alpha).toBe(0)
+  })
+
+  it('tints warm cells warmer the hotter they get', () => {
+    const warm = tintFor(300)
+    const hot = tintFor(1100)
+
+    // What makes heating something visible before it crosses a threshold.
+    expect(warm.tinted).toBe(true)
+    expect(warm.r).toBeGreaterThan(warm.b)
+    expect(hot.alpha).toBeGreaterThan(warm.alpha)
+  })
+
+  it('tints cold cells blue', () => {
+    const cold = tintFor(-150)
+
+    expect(cold.tinted).toBe(true)
+    expect(cold.b).toBeGreaterThan(cold.r)
+  })
+
+  it('leaves air alone by default, however hot it gets', () => {
+    const { tinted, alpha } = tintFor(900, MaterialId.empty)
+
+    // Hot air drawn as a glowing cloud makes the world look full of stuff that is not there, so the
+    // setting that draws it starts off.
+    expect(DEFAULT_SETTINGS.tintAir).toBe(false)
+    expect(tinted).toBe(false)
+    expect(alpha).toBe(0)
+  })
+
+  it('tints air once the viewer asks for it', () => {
+    const { tinted, r, b } = tintFor(900, MaterialId.empty, BOTH)
+
+    expect(tinted).toBe(true)
+    expect(r).toBeGreaterThan(b)
+  })
+
+  it('leaves materials alone when the material tint is switched off', () => {
+    const off: SimSettings = { tintBlocks: false, tintAir: true }
+    const { tinted, alpha } = tintFor(900, MaterialId.stone, off)
+
+    expect(tinted).toBe(false)
+    expect(alpha).toBe(0)
+  })
+
+  it('keeps the two tints independent, so air can be lit while materials are not', () => {
+    const airOnly: SimSettings = { tintBlocks: false, tintAir: true }
+
+    expect(tintFor(900, MaterialId.empty, airOnly).tinted).toBe(true)
+    expect(tintFor(900, MaterialId.stone, airOnly).tinted).toBe(false)
+  })
+
+  it('leaves alone anything that already looks its temperature', () => {
+    // Liquid nitrogen is pale blue by definition; tinting it blue washed it to white.
+    expect(tintFor(-190, MaterialId.nitrogen).tinted).toBe(false)
+    expect(tintFor(1250, MaterialId.lava).tinted).toBe(false)
+    expect(tintFor(-25, MaterialId.ice).tinted).toBe(false)
+  })
+
+  it('keeps the cold end quieter than the warm one', () => {
+    // Additive blue on a pale material washes it to white: liquid nitrogen came out pure white.
+    expect(tintFor(-190).alpha).toBeLessThan(tintFor(1200).alpha)
+  })
+
+  it('stays an indicator rather than a coat of paint', () => {
+    expect(tintFor(1200).alpha).toBeLessThan(128)
+  })
+
+  it('stops getting stronger past the ends of its range', () => {
+    expect(tintFor(1200).alpha).toBe(tintFor(4000).alpha)
+    expect(tintFor(-190).alpha).toBe(tintFor(-400).alpha)
   })
 })

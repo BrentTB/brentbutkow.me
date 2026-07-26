@@ -1,6 +1,8 @@
 import { RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { CellPoint, CellReading, Grid, MaterialId } from './pixel-world.types'
+import { CellPoint, CellReading, Grid, MaterialId, SimSettings, Tool } from './pixel-world.types'
 import {
+  CENSUS_INTERVAL,
+  DEFAULT_SETTINGS,
   DEFAULT_SPEED,
   GRID_HEIGHT,
   GRID_WIDTH,
@@ -9,6 +11,10 @@ import {
   TICK_RATE,
 } from './data'
 import { stampLine } from './engine/brush'
+import { countMaterials } from './engine/census'
+import { MATERIALS } from './engine/materials'
+import { Preset, loadPreset } from './engine/presets'
+import { attract, blast, temper, wind } from './engine/forces'
 import { asMaterial, cellIndex, clearGrid, createGrid } from './engine/grid'
 import { Rng, createRng } from './engine/rng'
 import { tickWorld } from './engine/tick'
@@ -23,13 +29,30 @@ export type PixelWorldSim = {
   /** Advances exactly one tick — the whole automaton becomes legible when you can watch it crawl. */
   stepOnce(): void
   clear(): void
+  /** Wipes the world and builds a ready-made one, for trying something without drawing it first. */
+  load(preset: Preset): void
   paintStroke(from: CellPoint, to: CellPoint, material: MaterialId, radius: number): void
+  /**
+   * Runs a force tool over the world. Takes both ends of the drag because wind blows the way you
+   * dragged; everything else only cares where the pointer ended up.
+   */
+  applyForce(tool: Tool, from: CellPoint, to: CellPoint, radius: number): void
   /**
    * Follow a cell: `reading` then refreshes on its own while the world runs, so a temperature can be
    * watched changing without clicking. Pass null to stop.
    */
   watch(cell: CellPoint | null): void
   reading: CellReading | null
+  /**
+   * Turn the running tally of what the world is made of on or off. Off by default and while the panel that
+   * shows it is collapsed: counting every cell is a whole pass over the grid, and there is no reason to pay
+   * for it when nobody is reading the numbers.
+   */
+  watchCensus(on: boolean): void
+  /** Cells of each material, indexed by `MaterialId`, or null while the tally is switched off. */
+  census: Uint32Array | null
+  /** Hands the renderer the viewer's picture settings. Takes effect on the next frame drawn. */
+  applySettings(settings: SimSettings): void
 }
 
 /**
@@ -53,16 +76,26 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
   const watchedRef = useRef<CellPoint | null>(null)
   const [reading, setReading] = useState<CellReading | null>(null)
 
+  // The tally is written into one array for the life of the world and handed out as a fresh copy, so React
+  // sees a new value to render while the counting itself allocates nothing.
+  const censusRef = useRef(new Uint32Array(MATERIALS.length))
+  const censusOnRef = useRef(false)
+  const [census, setCensus] = useState<Uint32Array | null>(null)
+
+  // The renderer reads this every frame, so toggling a setting repaints without rebuilding the loop.
+  const settingsRef = useRef<SimSettings>({ ...DEFAULT_SETTINGS })
+
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
 
-    const renderer = createRenderer(canvas, GRID_WIDTH, GRID_HEIGHT)
+    const renderer = createRenderer(canvas, GRID_WIDTH, GRID_HEIGHT, () => settingsRef.current)
     const msPerTick = 1000 / TICK_RATE
     let frame = requestAnimationFrame(loop)
     let previous: number | null = null
     let accumulator = 0
     let lastReading = 0
+    let lastCensus = 0
 
     function loop(time: number) {
       frame = requestAnimationFrame(loop)
@@ -96,6 +129,11 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
         lastReading = time
         setReading(readCell(gridRef.current, watched))
       }
+
+      if (censusOnRef.current && time - lastCensus >= CENSUS_INTERVAL) {
+        lastCensus = time
+        setCensus(countMaterials(gridRef.current, censusRef.current).slice())
+      }
     }
 
     return () => cancelAnimationFrame(frame)
@@ -119,12 +157,31 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
     clearGrid(gridRef.current)
   }, [])
 
+  const load = useCallback(
+    (preset: Preset) => {
+      loadPreset(gridRef.current, preset, rng)
+    },
+    [rng]
+  )
+
   const paintStroke = useCallback(
     (from: CellPoint, to: CellPoint, material: MaterialId, radius: number) => {
       stampLine(gridRef.current, from.x, from.y, to.x, to.y, radius, material)
     },
     []
   )
+
+  const applyForce = useCallback((tool: Tool, from: CellPoint, to: CellPoint, radius: number) => {
+    const grid = gridRef.current
+    // A force needs somewhere to reach even at the smallest brush, where the paint radius is 0.
+    const reach = Math.max(4, radius)
+
+    if (tool === Tool.attract) attract(grid, to.x, to.y, reach)
+    else if (tool === Tool.blast) blast(grid, to.x, to.y, reach)
+    else if (tool === Tool.wind) wind(grid, to.x, to.y, reach, to.x - from.x, to.y - from.y)
+    else if (tool === Tool.heat) temper(grid, to.x, to.y, reach, true)
+    else if (tool === Tool.chill) temper(grid, to.x, to.y, reach, false)
+  }, [])
 
   const watch = useCallback((cell: CellPoint | null) => {
     const wasWatching = watchedRef.current !== null
@@ -135,6 +192,18 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
     else if (!wasWatching) setReading(readCell(gridRef.current, cell))
   }, [])
 
+  const applySettings = useCallback((settings: SimSettings) => {
+    settingsRef.current = settings
+  }, [])
+
+  const watchCensus = useCallback((on: boolean) => {
+    censusOnRef.current = on
+    // Switching on reads straight away, so the numbers are there the moment the panel opens rather than
+    // after the next refresh; switching off drops them so nothing stale is left on screen.
+    if (on) setCensus(countMaterials(gridRef.current, censusRef.current).slice())
+    else setCensus(null)
+  }, [])
+
   return useMemo(
     () => ({
       isPaused,
@@ -143,11 +212,31 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
       setSpeed,
       stepOnce,
       clear,
+      load,
       paintStroke,
+      applyForce,
       watch,
       reading,
+      watchCensus,
+      census,
+      applySettings,
     }),
-    [isPaused, togglePause, speed, setSpeed, stepOnce, clear, paintStroke, watch, reading]
+    [
+      isPaused,
+      togglePause,
+      speed,
+      setSpeed,
+      stepOnce,
+      clear,
+      load,
+      paintStroke,
+      applyForce,
+      watch,
+      reading,
+      watchCensus,
+      census,
+      applySettings,
+    ]
   )
 }
 

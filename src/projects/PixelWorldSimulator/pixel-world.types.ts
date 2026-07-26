@@ -33,6 +33,17 @@ export const MaterialId = {
   void: 31,
   source: 32,
   chlorine: 33,
+  tnt: 34,
+  gunpowder: 35,
+  shard: 36,
+  algae: 37,
+  fish: 38,
+  bug: 39,
+  worm: 40,
+  bird: 41,
+  slime: 42,
+  meat: 43,
+  ant: 44,
 } as const
 export type MaterialId = (typeof MaterialId)[keyof typeof MaterialId]
 
@@ -56,6 +67,8 @@ export type Material = {
   id: MaterialId
   /** Shown on the palette swatch. */
   label: string
+  /** One line on the swatch's tooltip: what this is, or the one behaviour worth knowing about it. */
+  blurb: string
   behavior: MaterialBehavior
   /** Denser materials displace lighter ones; static materials are never displaced. */
   density: number
@@ -115,7 +128,129 @@ export type Material = {
   clingsToFuel?: boolean
   /** Gets the glow pass in the renderer. */
   emissive?: boolean
+  /**
+   * Share of its speed a thrown cell keeps when it bounces, 0–1. Most things thud and stay put; rubber
+   * is the one material with a real bounce in it.
+   */
+  restitution?: number
+  /** Detonates at `at` °C: an outward impulse over `radius` cells, a heat pulse, and `into` left behind. */
+  explodes?: {
+    at: number
+    radius: number
+    /** Speed in cells per tick handed to a cell at the centre; it falls off to nothing at the rim. */
+    impulse: number
+    /** °C written across the blast, which is what chains one charge into the next. */
+    heat: number
+    into: MaterialId
+  }
+  /** Breaks into this when something fast enough hits it. */
+  shatters?: MaterialId
+  /** Present on creatures. Absent on everything else, which is what "alive" means to the engine. */
+  life?: Life
 }
+
+/** Where a creature can live. Outside its own medium it starts losing energy fast. */
+export const Medium = {
+  water: 'water',
+  air: 'air',
+  soil: 'soil',
+  /** Walks on top of solid ground: air to stand in, something firm underfoot. */
+  surface: 'surface',
+  /** At home anywhere it can fit, which is what makes the slime relentless. */
+  any: 'any',
+} as const
+export type Medium = (typeof Medium)[keyof typeof Medium]
+
+/**
+ * What makes a cell alive. Species is the `MaterialId` and energy lives in the cell's `data` byte, so a
+ * creature costs the same as any other cell: no entity list, no ids, nothing to keep in sync.
+ */
+export type Life = {
+  medium: Medium
+  /** Materials it turns into energy by touching them. Empty for algae, which lives on light. */
+  diet: readonly MaterialId[]
+  /** Energy a newly placed or newly born cell starts with, out of 255. */
+  startEnergy: number
+  /** Energy one meal is worth. */
+  nutrition: number
+  /**
+   * Chance per tick of taking a bite when there is something to bite. Without a rate here a creature next
+   * to a bed of food eats a cell every single tick, which is a vacuum cleaner rather than a grazer, and no
+   * amount of tuning elsewhere lets the food keep up.
+   */
+  feedChance: number
+  /** Chance per tick of spending a point of energy. Everything alive is on a clock. */
+  burnRate: number
+  /**
+   * Producers only: chance per tick of gaining a point from light instead of spending one. It has to be
+   * generous, because a patch can only grow around its edge — the cells inside it have no room to divide
+   * into, so a thick bed grows at its perimeter while grazers eat it by area.
+   */
+  light?: number
+  /** Chance per tick of trying to move. */
+  moveChance: number
+  /** Splits in two above this much energy, half each. */
+  breedAt: number
+  /**
+   * Chance per tick of actually splitting once it has the energy for it. A threshold on its own makes
+   * population growth as fast as the food is rich, so a stocked tank goes from four fish to a hundred
+   * before the pasture can answer, and then everything starves. The rate is what lets the two settle.
+   */
+  breedChance: number
+  /** How far it looks for something to eat. Zero for anything that only eats what it bumps into. */
+  hunts?: number
+  /**
+   * Cells per tick of leap, for a hunter that throws itself at prey it can see but cannot walk to. The
+   * impulse goes through the same kinetic map a blast uses, so the jump arcs and lands under gravity. Absent
+   * on anything that only ever walks — a bird flies and a worm burrows, and neither needs to jump.
+   */
+  jump?: number
+  /** What it leaves when it dies. */
+  corpse: MaterialId
+}
+
+/**
+ * A cell in flight, in cells per tick. `ox`/`oy` carry the sub-cell remainder between ticks, so a cell
+ * drifting at a third of a cell per tick still moves every third tick instead of rounding to nothing.
+ */
+export type Velocity = {
+  vx: number
+  vy: number
+  ox: number
+  oy: number
+}
+
+/**
+ * The direction an ant is digging along, keyed by cell index. Sparse — only ants carry one. A single
+ * cell has no room to remember a direction: material, energy, burn and heat fill its bytes, so the
+ * heading lives in a side map, the same sparse shape as phase 4's velocity map. It is a heading store,
+ * not a physics one: the kinetic pass never reads it, so an ant keeps its bearing without being flung by
+ * gravity. Each axis is -1, 0 or 1, and both can be non-zero, so a heading can run on the diagonal.
+ */
+export type AntHeading = {
+  hx: number
+  hy: number
+}
+
+/** What the pointer does to the world. Paint is the material brush; the rest write forces or heat. */
+export const Tool = {
+  paint: 'paint',
+  attract: 'attract',
+  blast: 'blast',
+  wind: 'wind',
+  heat: 'heat',
+  chill: 'chill',
+} as const
+export type Tool = (typeof Tool)[keyof typeof Tool]
+
+/** What the viewer can turn on and off. Kept out of the world: settings change the picture, not the sim. */
+export const SimSetting = {
+  tintBlocks: 'tintBlocks',
+  tintAir: 'tintAir',
+} as const
+export type SimSetting = (typeof SimSetting)[keyof typeof SimSetting]
+
+export type SimSettings = Record<SimSetting, boolean>
 
 /** Cells live in flat typed arrays indexed `y * width + x`. */
 export type Grid = {
@@ -139,6 +274,16 @@ export type Grid = {
    */
   hotRows: Uint8Array
   hotRowsNext: Uint8Array
+  /**
+   * Cells currently in flight, keyed by index. Sparse because almost nothing is flying almost all of the
+   * time: an explosion fills it for a second and it empties itself as the debris settles.
+   */
+  velocity: Map<number, Velocity>
+  /**
+   * The heading each ant is digging along, keyed by cell index. Sparse, like `velocity`, and moved by
+   * hand as an ant steps: the life pass is the only thing that reads or writes it.
+   */
+  heading: Map<number, AntHeading>
 }
 
 /** What is in the cell under the pointer. */

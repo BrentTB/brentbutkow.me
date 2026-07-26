@@ -1,31 +1,64 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { PageLayout } from '../../components/PageFormatting/PageLayout'
 import { PageHeader } from '../../components/PageFormatting/PageHeader'
 import { useFunMode } from '../../contexts/useFunMode'
-import { CellPoint, MaterialId } from './pixel-world.types'
-import { BRUSH_RADIUS, DEFAULT_MATERIAL, simCopy } from './data'
+import { CellPoint, MaterialId, Tool } from './pixel-world.types'
+import { BRUSH_RADIUS, DEFAULT_MATERIAL, SIDEBAR_GAP, simCopy } from './data'
+import { useElementHeight } from './useElementHeight'
+import { useFullscreen } from './useFullscreen'
 import { usePixelWorld } from './usePixelWorld'
+import { useSimSettings } from './useSimSettings'
 import { usePointerBrush } from './usePointerBrush'
 import { Palette } from './components/Palette/Palette'
+import { ToolRow } from './components/ToolRow/ToolRow'
+import { Census } from './components/Census/Census'
 import { Reading } from './components/Reading/Reading'
 import { SimControls } from './components/SimControls/SimControls'
+import { SettingsDialog } from './components/SettingsDialog/SettingsDialog'
 import styles from './PixelWorldSimulator.module.scss'
+
+/** What to say when the pointer is off the canvas and there is no reading to show. */
+function hintFor(tool: Tool): string {
+  return tool === Tool.paint ? simCopy.hint : simCopy.toolHints[tool]
+}
 
 export function PixelWorldSimulator() {
   const { isFunMode } = useFunMode()
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  // The whole working area goes full screen, not just the canvas: the tools and palette have to come too.
+  const bodyRef = useRef<HTMLDivElement>(null)
+  const fullscreen = useFullscreen(bodyRef)
 
   const [material, setMaterial] = useState<MaterialId>(DEFAULT_MATERIAL)
+  const [tool, setTool] = useState<Tool>(Tool.paint)
   const [radius, setRadius] = useState(BRUSH_RADIUS.default)
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const { settings, toggle: toggleSetting } = useSimSettings()
+
+  // How much room is left beside the canvas once the tools have had theirs. The canvas takes its height from
+  // its own aspect ratio, so this can only be measured — and without it the tally runs on past the bottom of
+  // the world and leaves a column of dead space next to it.
+  const stageRef = useRef<HTMLDivElement>(null)
+  const toolsRef = useRef<HTMLDivElement>(null)
+  const stageHeight = useElementHeight(stageRef)
+  const toolsHeight = useElementHeight(toolsRef)
+  const censusRoom = stageHeight === 0 ? 0 : Math.max(0, stageHeight - toolsHeight - SIDEBAR_GAP)
 
   const sim = usePixelWorld(canvasRef)
 
+  // The renderer holds the settings in a ref, so the saved ones have to be handed over once on mount.
+  const { applySettings } = sim
+  useEffect(() => applySettings(settings), [applySettings, settings])
+
   // Depend on the two callbacks rather than on `sim`, whose identity changes every time the readout
   // refreshes — otherwise the canvas re-registers all five pointer listeners ten times a second.
-  const { paintStroke, watch } = sim
+  const { paintStroke, applyForce, watch } = sim
   const onStroke = useCallback(
-    (from: CellPoint, to: CellPoint) => paintStroke(from, to, material, radius),
-    [paintStroke, material, radius]
+    (from: CellPoint, to: CellPoint) => {
+      if (tool === Tool.paint) paintStroke(from, to, material, radius)
+      else applyForce(tool, from, to, radius)
+    },
+    [tool, paintStroke, applyForce, material, radius]
   )
 
   // The readout always follows the pointer: no mode to turn on, and painting is never interrupted.
@@ -37,17 +70,45 @@ export function PixelWorldSimulator() {
         {isFunMode ? simCopy.taglineFun : simCopy.tagline}
       </PageHeader>
 
-      <div className={styles.body}>
-        <div className={styles.stage}>
-          <canvas
-            ref={canvasRef}
-            className={styles.canvas}
-            aria-label="Pixel world. Draw materials with the pointer."
-            {...brushHandlers}
-          />
+      <div
+        ref={bodyRef}
+        className={`${styles.body} ${fullscreen.isFullscreen ? styles.filling : ''}`}
+      >
+        <div className={styles.world}>
+          <div className={styles.stage} ref={stageRef}>
+            <canvas
+              ref={canvasRef}
+              className={styles.canvas}
+              aria-label="Pixel world. Draw materials with the pointer."
+              {...brushHandlers}
+            />
+          </div>
+
+          <div className={styles.sidebar}>
+            <div ref={toolsRef}>
+              <ToolRow
+                selected={tool}
+                onSelect={setTool}
+                isFullscreen={fullscreen.isFullscreen}
+                canFullscreen={fullscreen.supported}
+                onToggleFullscreen={fullscreen.toggle}
+                isSettingsOpen={isSettingsOpen}
+                onOpenSettings={() => setIsSettingsOpen(true)}
+              />
+            </div>
+
+            <Census counts={sim.census} onWatch={sim.watchCensus} room={censusRoom} />
+          </div>
         </div>
 
-        <Palette selected={material} onSelect={setMaterial} />
+        {/* Picking a material means you want to draw it, so it takes the brush back off a force tool. */}
+        <Palette
+          selected={material}
+          onSelect={(picked) => {
+            setMaterial(picked)
+            setTool(Tool.paint)
+          }}
+        />
 
         <SimControls
           isPaused={sim.isPaused}
@@ -58,13 +119,23 @@ export function PixelWorldSimulator() {
           onStep={sim.stepOnce}
           onClear={sim.clear}
           onRadius={setRadius}
+          onLoad={sim.load}
         />
 
         {/* No live region: the readout refreshes ten times a second while the pointer moves, which a
             screen reader would read out as an unbroken stream of temperatures. */}
         <p className={styles.hint}>
-          {sim.reading === null ? simCopy.hint : <Reading reading={sim.reading} />}
+          {sim.reading === null ? hintFor(tool) : <Reading reading={sim.reading} />}
         </p>
+
+        {/* Inside the element that goes full screen, so the dialog is still there in full screen. */}
+        {isSettingsOpen && (
+          <SettingsDialog
+            settings={settings}
+            onToggle={toggleSetting}
+            onClose={() => setIsSettingsOpen(false)}
+          />
+        )}
       </div>
     </PageLayout>
   )

@@ -4,22 +4,59 @@
   gap: 16px;
 }
 
+// Canvas and tools share a row, so reaching for a material group never lands on a tool.
+.world {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+}
+
 .stage {
   display: flex;
+  flex: 1;
   justify-content: center;
+  // The canvas keeps its own 16:9 shape rather than being stretched to whatever height the row happens to
+  // be. Opening the tally beside it makes the row taller, and a stretched flex item overrides its
+  // aspect-ratio — which squeezed the world into a tall, narrow strip.
+  align-items: flex-start;
   padding: 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--bg-elevated);
 }
 
+// The stack beside the canvas: tools on top, the tally of the world under them. One fixed width for the whole
+// stack, so the full-screen button, the tools and the tally all line up as a single column — and so the canvas
+// beside it does not jump every time a count in the tally grows a digit.
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  align-self: flex-start;
+  flex: 0 0 auto;
+  width: 12rem;
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .world {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    align-self: stretch;
+    // The column lies down into a row under the canvas, so it takes the page width rather than its own.
+    width: auto;
+  }
+}
+
 .canvas {
   display: block;
   width: 100%;
-  // Matches the 300x200 grid, so cells stay square at every width. The height cap keeps the
-  // palette and controls on screen beside the canvas rather than below the fold.
-  aspect-ratio: 3 / 2;
-  max-width: calc(58vh * 1.5);
+  // Matches the grid, so cells stay square at every width. The height cap keeps the palette and
+  // controls on screen beside the canvas rather than below the fold.
+  aspect-ratio: 16 / 9;
+  max-width: calc(58vh * 16 / 9);
   border-radius: var(--radius);
   background: var(--bg);
   // The grid is 300 cells wide and drawn 1:1 into the backing store — the browser scales it up, and
@@ -44,4 +81,43 @@
   font-family: var(--font-mono);
   font-size: 0.78rem;
   letter-spacing: 0.02em;
+}
+
+// Full screen: the world takes every pixel it can, and the controls keep a strip at the bottom. Scrolling
+// is off, so nothing can push the canvas out of view. Keyed on the class as well as the pseudo-class,
+// since the flag comes from the document either way and a class is something tests can exercise.
+.body:fullscreen,
+.body.filling {
+  gap: 10px;
+  padding: 10px;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+
+  .world {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .stage {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .canvas {
+    width: auto;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    // The world and the controls are both on black, so without an edge the controls read as sitting on
+    // top of the world rather than beside it.
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+  }
+
+  .hint {
+    margin-top: -2px;
+  }
 }

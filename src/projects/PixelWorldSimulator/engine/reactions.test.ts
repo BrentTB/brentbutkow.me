@@ -313,6 +313,29 @@ describe('chlorine', () => {
     expect(count(grid, MaterialId.chlorine)).toBe(0)
     expect(count(grid, MaterialId.saltWater)).toBe(1)
   })
+
+  it('kills a creature it touches, leaving the carcass that creature leaves', () => {
+    const grid = createGrid(9, 9)
+    put(grid, 4, 4, MaterialId.chlorine)
+    const bug = put(grid, 4, 5, MaterialId.bug)
+
+    // Long enough for the gas to land a roll, short enough that the carcass has not rotted away after.
+    react(grid, 60)
+
+    // Gas is how you clear a world of life without setting fire to it, and a bug dies into meat.
+    expect(grid.material[bug]).toBe(MATERIALS[MaterialId.bug].life?.corpse)
+  })
+
+  it('leaves nothing behind of a creature whose corpse is nothing', () => {
+    const grid = createGrid(9, 9)
+    put(grid, 4, 4, MaterialId.chlorine)
+    const algae = put(grid, 4, 5, MaterialId.algae)
+
+    react(grid, 2000)
+
+    // A weed is not a carcass: bleaching a bed of algae clears it rather than filling the tank with meat.
+    expect(grid.material[algae]).toBe(MaterialId.empty)
+  })
 })
 
 describe('plants', () => {
@@ -890,5 +913,24 @@ describe('spark', () => {
     react(grid, 2)
 
     expect(grid.material[gas]).toBe(MaterialId.fire)
+  })
+})
+
+describe('plants on land', () => {
+  it('shoot into wet soil, not only into water', () => {
+    const grid = createGrid(15, 15)
+    for (let x = 0; x < 15; x++) {
+      for (let y = 10; y < 15; y++) placeMaterial(grid, cellIndex(grid, x, y), MaterialId.mud)
+    }
+    placeMaterial(grid, cellIndex(grid, 7, 9), MaterialId.plant)
+
+    const rng = createRng(3)
+    for (let tick = 0; tick < 200; tick++) applyReactions(grid, rng)
+
+    // Growing only into water meant every plant lived in a pond and dry land had no vegetation at all, so
+    // anything that grazes starved on the bank.
+    let plants = 0
+    for (const cell of grid.material) if (cell === MaterialId.plant) plants++
+    expect(plants).toBeGreaterThan(1)
   })
 })

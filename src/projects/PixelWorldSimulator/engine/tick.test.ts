@@ -5,6 +5,8 @@ import { stampCircle } from './brush'
 import { cellIndex, createGrid, placeMaterial } from './grid'
 import { createRng } from './rng'
 import { tickWorld } from './tick'
+import { MATERIALS } from './materials'
+import { push } from './kinetic'
 
 function put(grid: Grid, x: number, y: number, material: MaterialId): number {
   const index = cellIndex(grid, x, y)
@@ -360,6 +362,38 @@ describe('metal', () => {
 })
 
 describe('rubber', () => {
+  it('bounces off the floor it was dropped on', () => {
+    const grid = withVessel(15, 41)
+    put(grid, 7, 6, MaterialId.rubber)
+
+    // Dropped, not thrown: falling a cell per tick as a powder arrives at the floor with nothing to
+    // rebound with, so a ball of it just sat there.
+    let peak = 41
+    let landed = 0
+    for (let tick = 0; tick < 400; tick++) {
+      run(grid, 1)
+      let row = null
+      for (let y = 0; y < grid.height; y++) {
+        if (grid.material[cellIndex(grid, 7, y)] === MaterialId.rubber) row = y
+      }
+      if (row === null) break
+      if (row >= grid.height - 2) landed = tick
+      if (landed > 0 && tick > landed) peak = Math.min(peak, row)
+    }
+
+    expect(landed).toBeGreaterThan(0)
+    expect(peak).toBeLessThan(grid.height - 2)
+  })
+
+  it('settles instead of bouncing forever', () => {
+    const grid = withVessel(15, 41)
+    put(grid, 7, 6, MaterialId.rubber)
+
+    run(grid, 1200)
+
+    expect(grid.velocity.size).toBe(0)
+  })
+
   it('melts to oil rather than burning away', () => {
     const grid = withVessel(9, 9)
     const block = put(grid, 4, 4, MaterialId.rubber)
@@ -369,6 +403,153 @@ describe('rubber', () => {
 
     expect(count(grid, MaterialId.rubber)).toBe(0)
     expect(count(grid, MaterialId.oil)).toBe(1)
+  })
+})
+
+describe('life in the tick', () => {
+  it('runs the life pass, so a fish out of water drowns on its own', () => {
+    const grid = withVessel(15, 15)
+    const fish = put(grid, 7, 13, MaterialId.fish)
+
+    run(grid, 200)
+
+    // Nothing but the life pass can do this: the material pass leaves creatures alone entirely.
+    expect(grid.material[fish]).not.toBe(MaterialId.fish)
+    expect(count(grid, MaterialId.meat)).toBe(1)
+  })
+
+  it('leaves a creature in its own medium alone', () => {
+    const grid = withVessel(15, 15)
+    for (let y = 6; y < 14; y++) {
+      for (let x = 1; x < 14; x++) put(grid, x, y, MaterialId.water)
+    }
+    put(grid, 7, 10, MaterialId.fish)
+
+    run(grid, 200)
+
+    expect(count(grid, MaterialId.fish)).toBe(1)
+  })
+})
+
+describe('explosives', () => {
+  it('go off during a tick and throw what is around them', () => {
+    const grid = withVessel(41, 41)
+    const charge = put(grid, 20, 30, MaterialId.tnt)
+    put(grid, 25, 30, MaterialId.sand)
+    const { explodes } = MATERIALS[MaterialId.tnt]
+    grid.temperature[charge] = (explodes?.at ?? 0) + 20
+
+    run(grid, 2)
+
+    expect(grid.material[charge]).not.toBe(MaterialId.tnt)
+    expect(grid.velocity.size).toBeGreaterThan(0)
+  })
+
+  it('leave a crater in a pile they were buried under', () => {
+    const grid = withVessel(41, 41)
+    for (let y = 30; y < 39; y++) {
+      for (let x = 14; x < 27; x++) put(grid, x, y, MaterialId.sand)
+    }
+    const charge = put(grid, 20, 38, MaterialId.tnt)
+    const { explodes } = MATERIALS[MaterialId.tnt]
+    grid.temperature[charge] = (explodes?.at ?? 0) + 20
+    const buried = count(grid, MaterialId.sand)
+
+    run(grid, 30)
+
+    // Sand thrown clear of the pile has to end up somewhere other than the twelve columns it started in.
+    let inPlace = 0
+    for (let y = 0; y < 41; y++) {
+      for (let x = 14; x < 27; x++) {
+        if (grid.material[cellIndex(grid, x, y)] === MaterialId.sand) inPlace++
+      }
+    }
+    expect(inPlace).toBeLessThan(buried)
+  })
+})
+
+describe('the fire brush on a charge', () => {
+  it('sets it off, not just glowing', () => {
+    const grid = withVessel(41, 41)
+    for (let x = 14; x < 27; x++) put(grid, x, 20, MaterialId.tnt)
+
+    stampCircle(grid, 15, 20, 1, MaterialId.fire)
+    run(grid, 6)
+
+    // Lighting it exactly at its threshold let diffusion cool it back under before the pass tested it.
+    expect(count(grid, MaterialId.tnt)).toBe(0)
+  })
+})
+
+describe('a bouncing world', () => {
+  /** Drops a lump of rubber onto a slope and runs it, which exercises the scatter in every bounce. */
+  function bounceRun(seed: number) {
+    const grid = withVessel(41, 41)
+    for (let x = 8; x < 34; x++) {
+      const surface = 20 + Math.floor((x - 8) * 0.5)
+      for (let y = surface; y < 39; y++) put(grid, x, y, MaterialId.stone)
+    }
+    for (let y = 8; y < 11; y++) {
+      for (let x = 10; x < 13; x++) put(grid, x, y, MaterialId.rubber)
+    }
+
+    const rng = createRng(seed)
+    for (let tick = 0; tick < 150; tick++) tickWorld(grid, rng, tick)
+    return [...grid.material]
+  }
+
+  it('replays identically from the same seed', () => {
+    // A bounce now takes a random nudge sideways, so the kinetic pass draws from the seeded rng. Anything
+    // unseeded in there would make a replay drift from the world it is replaying.
+    expect(bounceRun(11)).toEqual(bounceRun(11))
+  })
+
+  it('lands somewhere else on a different seed', () => {
+    expect(bounceRun(11)).not.toEqual(bounceRun(12))
+  })
+})
+
+describe('a crowd of creatures', () => {
+  it('holds its ground over a full tick, not just the life pass', () => {
+    const grid = withVessel(81, 61)
+    for (let y = 20; y < 34; y++) {
+      for (let x = 30; x < 50; x++) put(grid, x, y, MaterialId.bird)
+    }
+
+    const centre = () => {
+      let total = 0
+      let seen = 0
+      for (let i = 0; i < grid.material.length; i++) {
+        if (grid.material[i] !== MaterialId.bird) continue
+        total += i % grid.width
+        seen++
+      }
+      return seen === 0 ? -1 : total / seen
+    }
+
+    const before = centre()
+    run(grid, 500)
+
+    // The scan direction alternates on the tick number, so the tick has to reach the life pass. Handed a
+    // constant, a blob drifts steadily to one side.
+    expect(Math.abs(centre() - before)).toBeLessThan(4)
+  })
+})
+
+describe('cells in flight', () => {
+  it('travel during a tick, and only the kinetic pass moves them', () => {
+    const grid = withVessel(21, 21)
+    const start = put(grid, 10, 10, MaterialId.sand)
+    push(grid, start, 0, -3)
+
+    run(grid, 1)
+
+    // Both passes moving one cell doubled its gravity, so a throw fell as fast as it rose.
+    let landed = -1
+    for (let i = 0; i < grid.material.length; i++) {
+      if (grid.material[i] === MaterialId.sand) landed = i
+    }
+    expect(Math.floor(landed / grid.width)).toBeLessThan(10)
   })
 })
 

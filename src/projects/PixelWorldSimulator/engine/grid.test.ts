@@ -10,6 +10,7 @@ import {
   markHotRow,
   placeMaterial,
   refreshCell,
+  swapCells,
   transformCell,
 } from './grid'
 import { MATERIALS } from './materials'
@@ -93,6 +94,17 @@ describe('placeMaterial', () => {
     expect(grid.data[drop]).toBe(MATERIALS[MaterialId.acid].uses)
   })
 
+  it('gives a fresh creature its starting energy', () => {
+    const grid = createGrid(5, 5)
+    const cell = cellIndex(grid, 2, 2)
+
+    placeMaterial(grid, cell, MaterialId.fish)
+
+    // Energy shares the `data` byte with gas lifetimes and acid charges: a creature placed with zero in
+    // there is a creature that dies on the tick it was painted.
+    expect(grid.data[cell]).toBe(MATERIALS[MaterialId.fish].life?.startEnergy)
+  })
+
   it('puts a plain material at room temperature with no counter', () => {
     const grid = createGrid(5, 5)
     const cell = cellIndex(grid, 2, 2)
@@ -144,6 +156,65 @@ describe('transformCell', () => {
 
     expect(grid.data[cell]).toBe(MATERIALS[MaterialId.steam].lifetime)
     expect(grid.burn[cell]).toBe(0)
+  })
+})
+
+describe('velocity layer', () => {
+  it('starts empty and is emptied by a clear', () => {
+    const grid = createGrid(5, 5)
+    const cell = cellIndex(grid, 2, 2)
+    expect(grid.velocity.size).toBe(0)
+
+    placeMaterial(grid, cell, MaterialId.sand)
+    grid.velocity.set(cell, { vx: 1, vy: -1, ox: 0, oy: 0 })
+    clearGrid(grid)
+
+    // Debris left in the map would keep flying through the world you just wiped.
+    expect(grid.velocity.size).toBe(0)
+  })
+})
+
+describe('ant heading layer', () => {
+  it('starts empty and is emptied by a clear', () => {
+    const grid = createGrid(5, 5)
+    const cell = cellIndex(grid, 2, 2)
+    expect(grid.heading.size).toBe(0)
+
+    placeMaterial(grid, cell, MaterialId.ant)
+    grid.heading.set(cell, { hx: 1, hy: 0 })
+    clearGrid(grid)
+
+    // A heading left pointing at a wiped cell would steer a ghost ant on the next world.
+    expect(grid.heading.size).toBe(0)
+  })
+})
+
+describe('swapCells', () => {
+  it('carries counters and heat with the material', () => {
+    const grid = createGrid(5, 5)
+    const from = cellIndex(grid, 2, 2)
+    const to = cellIndex(grid, 2, 3)
+    placeMaterial(grid, from, MaterialId.lava)
+    placeMaterial(grid, to, MaterialId.water)
+
+    swapCells(grid, from, to)
+
+    expect(grid.material[to]).toBe(MaterialId.lava)
+    expect(grid.temperature[to]).toBe(MATERIALS[MaterialId.lava].startTemperature)
+    expect(grid.material[from]).toBe(MaterialId.water)
+  })
+
+  it('wakes both rows when either end carries heat', () => {
+    const grid = createGrid(5, 5)
+    const from = cellIndex(grid, 2, 1)
+    const to = cellIndex(grid, 2, 3)
+    placeMaterial(grid, from, MaterialId.lava)
+    grid.hotRows.fill(0)
+
+    swapCells(grid, from, to)
+
+    expect(grid.hotRows[1]).toBe(1)
+    expect(grid.hotRows[3]).toBe(1)
   })
 })
 

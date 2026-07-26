@@ -1,16 +1,9 @@
 import { Grid, MaterialBehavior, MaterialId } from '../pixel-world.types'
-import { AMBIENT_TEMPERATURE } from '../data'
-import { cellIndex, markHotRow } from './grid'
-import { MATERIALS } from './materials'
+import { cellIndex, swapCells } from './grid'
+import { MATERIALS, canDisplace, canFloatThrough } from './materials'
+import { isSupported, push } from './kinetic'
+import { NEIGHBOURS } from './neighbours'
 import { Rng } from './rng'
-
-/** The four neighbour offsets, held still: built inline they were a fresh array per cell per tick. */
-const SIDES: readonly (readonly [number, number])[] = [
-  [0, -1],
-  [0, 1],
-  [-1, 0],
-  [1, 0],
-]
 
 /**
  * Advances the world one tick, in place.
@@ -36,6 +29,8 @@ function stepCell(grid: Grid, rng: Rng, x: number, y: number): void {
   // Air is most of the world most of the time, so it gets checked before anything is looked up.
   const id = grid.material[from]
   if (id === MaterialId.empty || grid.moved[from]) return
+  // A cell in flight belongs to the kinetic pass this tick; its own class would fight the arc.
+  if (grid.velocity.size > 0 && grid.velocity.has(from)) return
 
   const material = MATERIALS[id]
 
@@ -54,6 +49,12 @@ function stepCell(grid: Grid, rng: Rng, x: number, y: number): void {
   }
 
   if (material.behavior === MaterialBehavior.powder) {
+    // Anything springy falls as a thrown cell rather than a grain, which is the only way it arrives at
+    // the floor with a speed to bounce off it. Dropping one cell per tick has nothing to rebound with.
+    if (material.restitution !== undefined && !isSupported(grid, from)) {
+      push(grid, from, 0, 0)
+      return
+    }
     if (sinkingStalled(grid, rng, x, y, material.density)) return
     fall(grid, rng, x, y, from, material.steep === true)
     return
@@ -134,9 +135,9 @@ function rollOff(
   return tryMove(grid, from, x + dir, y + 1, false)
 }
 
-/** True when any of the four neighbours is something that can catch fire. */
+/** True when any of the four neighbours is something that can catch fire. Order does not matter here. */
 function touchesFuel(grid: Grid, x: number, y: number): boolean {
-  for (const [dx, dy] of SIDES) {
+  for (const [dx, dy] of NEIGHBOURS) {
     const nx = x + dx
     const ny = y + dy
     if (nx < 0 || nx >= grid.width || ny < 0 || ny >= grid.height) continue
@@ -194,22 +195,6 @@ function canMoveTo(grid: Grid, from: number, x: number, y: number, buoyant: bool
   return buoyant ? canFloatThrough(source, target) : canDisplace(source, target)
 }
 
-/** Air yields to anything; static materials yield to nothing; otherwise the denser cell wins. */
-function canDisplace(source: number, target: number): boolean {
-  if (target === MaterialId.empty) return true
-  const blocker = MATERIALS[target]
-  if (blocker.behavior === MaterialBehavior.static) return false
-  return blocker.density < MATERIALS[source].density
-}
-
-/** Buoyancy runs the comparison the other way, so a bubble climbs through water. */
-function canFloatThrough(source: number, target: number): boolean {
-  if (target === MaterialId.empty) return true
-  const blocker = MATERIALS[target]
-  if (blocker.behavior === MaterialBehavior.static) return false
-  return blocker.density > MATERIALS[source].density
-}
-
 function tryMove(grid: Grid, from: number, x: number, y: number, buoyant: boolean): boolean {
   if (!canMoveTo(grid, from, x, y, buoyant)) return false
 
@@ -218,33 +203,4 @@ function tryMove(grid: Grid, from: number, x: number, y: number, buoyant: boolea
   grid.moved[to] = 1
   grid.moved[from] = 1
   return true
-}
-
-/** A cell's counters and its heat travel with its material — lava carries its own temperature. */
-function swapCells(grid: Grid, a: number, b: number): void {
-  const material = grid.material[b]
-  const data = grid.data[b]
-  const burn = grid.burn[b]
-  const temperature = grid.temperature[b]
-
-  // Heat that moves between rows has to wake them, or the heat pass would skip the row it landed in.
-  if (
-    temperature !== AMBIENT_TEMPERATURE ||
-    grid.temperature[a] !== AMBIENT_TEMPERATURE ||
-    burn > 0 ||
-    grid.burn[a] > 0
-  ) {
-    markHotRow(grid, a)
-    markHotRow(grid, b)
-  }
-
-  grid.material[b] = grid.material[a]
-  grid.data[b] = grid.data[a]
-  grid.burn[b] = grid.burn[a]
-  grid.temperature[b] = grid.temperature[a]
-
-  grid.material[a] = material
-  grid.data[a] = data
-  grid.burn[a] = burn
-  grid.temperature[a] = temperature
 }

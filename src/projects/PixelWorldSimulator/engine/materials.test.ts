@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { MaterialBehavior, MaterialId } from '../pixel-world.types'
-import { MATERIALS, canPaintOver, isBurning } from './materials'
+import { MaterialBehavior, MaterialId, Medium } from '../pixel-world.types'
+import { MATERIALS, canDisplace, canFloatThrough, canPaintOver, isBurning } from './materials'
 
 const FLUIDS: readonly MaterialBehavior[] = [MaterialBehavior.liquid, MaterialBehavior.gas]
 
@@ -59,6 +59,22 @@ describe('MATERIALS', () => {
         const frozen = MATERIALS[material.cold.into]
         if (frozen.hot) expect(frozen.hot.at).toBeGreaterThan(material.cold.at)
       }
+    }
+  })
+
+  it('never melts a material into something hot enough to melt its neighbours', () => {
+    // The pair-of-materials version of a chain reaction: if stone melted at or below lava's own 1250 °C,
+    // one lava cell would melt the stone beside it, and that new lava the next, until the world was
+    // molten. `radiate` pulls a neighbour toward a source's temperature and never past it, so a melt
+    // point above the source is unreachable by contact alone — only a real heat source gets there.
+    for (const material of MATERIALS) {
+      const molten = material.hot
+      if (molten === undefined) continue
+
+      const heldBy = MATERIALS[molten.into].selfHeat
+      if (heldBy === undefined) continue
+
+      expect(molten.at).toBeGreaterThan(heldBy)
     }
   })
 
@@ -185,11 +201,206 @@ describe('canPaintOver', () => {
     expect(canPaintOver(MaterialId.empty, MaterialId.stone)).toBe(true)
     expect(canPaintOver(MaterialId.empty, MaterialId.lava)).toBe(true)
   })
+
+  it('drops an ant straight into the soft stuff it burrows, but not into stone', () => {
+    // A nest is set down inside a plank, not only sprinkled on top of it. Every other solid-on-solid
+    // brush is refused, so without the ant's exception this would be false.
+    expect(canPaintOver(MaterialId.ant, MaterialId.wood)).toBe(true)
+    expect(canPaintOver(MaterialId.ant, MaterialId.plant)).toBe(true)
+    expect(canPaintOver(MaterialId.ant, MaterialId.stone)).toBe(false)
+  })
 })
 
 describe('isBurning', () => {
   it('is true only while a burn timer is running', () => {
     expect(isBurning(0)).toBe(false)
     expect(isBurning(1)).toBe(true)
+  })
+})
+
+describe('every material', () => {
+  it('says in one line what it is or what it does', () => {
+    for (const material of MATERIALS) {
+      expect(material.blurb.length).toBeGreaterThan(0)
+      // A tooltip, not a manual: one behaviour, and it has to fit on a line.
+      expect(material.blurb.length).toBeLessThanOrEqual(70)
+      expect(material.blurb.endsWith('.')).toBe(true)
+    }
+  })
+
+  it('does not just repeat its own name back', () => {
+    for (const material of MATERIALS) {
+      expect(material.blurb.toLowerCase()).not.toBe(material.label.toLowerCase())
+    }
+  })
+})
+
+describe('every creature', () => {
+  const creatures = MATERIALS.filter((material) => material.life !== undefined)
+
+  it('exists', () => {
+    expect(creatures.length).toBeGreaterThan(0)
+  })
+
+  it('eats things that exist, and never itself', () => {
+    for (const creature of creatures) {
+      for (const food of creature.life?.diet ?? []) {
+        expect(MATERIALS[food]).toBeDefined()
+        expect(food).not.toBe(creature.id)
+      }
+    }
+  })
+
+  it('leaves the slime the only thing nothing preys on', () => {
+    // Every grazer and hunter has something above it, which is what keeps its numbers in check — an ant that
+    // nothing ate grew a colony without limit. The slime is the deliberate exception: it is the apex.
+    const hunted = (id: MaterialId) => creatures.some((eater) => eater.life?.diet.includes(id))
+
+    for (const creature of creatures) {
+      // Producers live on light and sit at the bottom of the chain, so nothing has to prey on them.
+      if (creature.life?.diet.length === 0) continue
+      expect(hunted(creature.id)).toBe(creature.id !== MaterialId.slime)
+    }
+  })
+
+  it('puts the ant on the menu of the things that would hunt it', () => {
+    for (const hunter of [MaterialId.bug, MaterialId.bird, MaterialId.slime]) {
+      expect(MATERIALS[hunter].life?.diet).toContain(MaterialId.ant)
+    }
+  })
+
+  it('gives the slime a leap, since it can neither fly nor burrow', () => {
+    // Every other hunter has a way past an obstacle: a bird flies over it and a worm goes under. A slime
+    // walks, so without a jump a ledge or a boulder is the end of the hunt and it starves in place.
+    expect(MATERIALS[MaterialId.slime].life?.jump).toBeGreaterThan(0)
+  })
+
+  it('only gives a leap to something that cannot already fly', () => {
+    for (const creature of creatures) {
+      if (creature.life?.jump === undefined) continue
+      // A flier is already free of the ground; a jump on top of that is motion for nothing.
+      expect(creature.life.medium).not.toBe(Medium.air)
+    }
+  })
+
+  it('gives the ant the sight to find its food', () => {
+    // An ant bores blind without it, and starves in a nest whose larder is at the far end of its own
+    // galleries — which emptied a sealed case every time.
+    expect(MATERIALS[MaterialId.ant].life?.hunts).toBeGreaterThan(0)
+  })
+
+  it('leaves room above its breeding line for a full cell to sit', () => {
+    for (const creature of creatures) {
+      // The `data` byte stops at 255. A threshold at the ceiling means a fed cell drops back under the
+      // line before its breeding roll ever lands.
+      expect(creature.life?.breedAt).toBeLessThan(240)
+      expect(creature.life?.breedChance).toBeGreaterThan(0)
+    }
+  })
+
+  it('either eats or lives on light, and pays for what it does', () => {
+    for (const creature of creatures) {
+      const life = creature.life
+      if (life === undefined) continue
+
+      if (life.diet.length === 0) {
+        // A producer earns from light and spends nothing; a grazer is the other way round.
+        expect(life.light ?? 0).toBeGreaterThan(0)
+        expect(life.burnRate).toBe(0)
+      } else {
+        expect(life.feedChance).toBeGreaterThan(0)
+        expect(life.nutrition).toBeGreaterThan(0)
+        expect(life.burnRate).toBeGreaterThan(0)
+      }
+    }
+  })
+
+  it('burns energy at a rate that is neither immortal nor hopeless', () => {
+    for (const creature of creatures) {
+      const life = creature.life
+      if (life === undefined || life.diet.length === 0) continue
+
+      // Below about a fiftieth nothing ever runs out: a bird on 0.03 could hang over an empty world for a
+      // minute and a half. Above a third it starves between one meal and the next.
+      expect(life.burnRate).toBeGreaterThanOrEqual(0.02)
+      expect(life.burnRate).toBeLessThanOrEqual(0.35)
+      // Long enough to cross a room looking for food, on a full tank.
+      expect(life.startEnergy / life.burnRate).toBeGreaterThan(600)
+    }
+  })
+
+  it('can be painted over, because living things are soft', () => {
+    for (const creature of creatures) {
+      expect(canPaintOver(MaterialId.stone, creature.id)).toBe(true)
+    }
+  })
+})
+
+describe('canDisplace', () => {
+  it('lets anything into open air', () => {
+    expect(canDisplace(MaterialId.smoke, MaterialId.empty)).toBe(true)
+  })
+
+  it('sinks the denser cell through the lighter one, and not the other way', () => {
+    expect(canDisplace(MaterialId.sand, MaterialId.water)).toBe(true)
+    expect(canDisplace(MaterialId.water, MaterialId.sand)).toBe(false)
+  })
+
+  it('stops at anything static, however heavy the cell falling on it', () => {
+    // The world's scaffolding: a wall holds up whatever lands on it.
+    expect(canDisplace(MaterialId.lava, MaterialId.stone)).toBe(false)
+    expect(canDisplace(MaterialId.lava, MaterialId.glass)).toBe(false)
+  })
+
+  it('will not swap two cells of the same material, which would be motion for free', () => {
+    expect(canDisplace(MaterialId.water, MaterialId.water)).toBe(false)
+  })
+})
+
+describe('canFloatThrough', () => {
+  it('runs the density comparison the other way, so a bubble climbs', () => {
+    expect(canFloatThrough(MaterialId.steam, MaterialId.water)).toBe(true)
+    expect(canFloatThrough(MaterialId.water, MaterialId.steam)).toBe(false)
+  })
+
+  it('cannot rise through something static either', () => {
+    expect(canFloatThrough(MaterialId.steam, MaterialId.stone)).toBe(false)
+  })
+})
+
+describe('explosives and breakables', () => {
+  it('leave behind a real material when they go off', () => {
+    for (const material of MATERIALS) {
+      if (material.explodes === undefined) continue
+      expect(MATERIALS[material.explodes.into]).toBeDefined()
+      expect(material.explodes.radius).toBeGreaterThan(0)
+      expect(material.explodes.impulse).toBeGreaterThan(0)
+    }
+  })
+
+  it('break into a material that can actually fall away', () => {
+    for (const material of MATERIALS) {
+      if (material.shatters === undefined) continue
+      // Fragments that were static would hang in the hole they were knocked out of.
+      expect(MATERIALS[material.shatters].behavior).not.toBe(MaterialBehavior.static)
+    }
+  })
+
+  it('break into fragments light enough to be thrown about', () => {
+    for (const material of MATERIALS) {
+      if (material.shatters === undefined) continue
+      // Splinters, not rubble: a heavy fragment barely moves when a charge goes off under it.
+      expect(MATERIALS[material.shatters].density).toBeLessThan(
+        MATERIALS[MaterialId.gravel].density
+      )
+    }
+  })
+
+  it('give a bounce only to something loose enough to be thrown', () => {
+    for (const material of MATERIALS) {
+      if (material.restitution === undefined) continue
+      expect(material.restitution).toBeGreaterThan(0)
+      expect(material.behavior).not.toBe(MaterialBehavior.static)
+    }
   })
 })

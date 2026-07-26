@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
 import { SegmentedToggle } from '../../../../components/inputs/SegmentedToggle'
 import { MaterialId } from '../../pixel-world.types'
-import { MATERIAL_GROUPS, MaterialGroup, simCopy } from '../../data'
+import { MATERIAL_GROUPS, MATERIAL_SLOTS, MaterialGroup, simCopy } from '../../data'
 import { MATERIALS } from '../../engine/materials'
-import { materialCss } from '../../engine/palette'
+import { chipColour } from '../../engine/palette'
+import { MaterialSlots } from '../MaterialSlots/MaterialSlots'
 import styles from './Palette.module.scss'
 
 type PaletteProps = {
@@ -25,6 +26,20 @@ export function Palette({ selected, onSelect }: PaletteProps) {
     () => groupHolding(selected) ?? MATERIAL_GROUPS[0].group
   )
   const [query, setQuery] = useState('')
+  const [slots, setSlots] = useState<(MaterialId | null)[]>(() =>
+    Array.from({ length: MATERIAL_SLOTS }, () => null)
+  )
+  const [waiting, setWaiting] = useState<number | null>(null)
+
+  // Picking a material fills a waiting slot rather than only moving the brush, which is what makes a slot
+  // something you set by pointing at what you want in it.
+  const pick = (material: MaterialId) => {
+    if (waiting !== null) {
+      setSlots((current) => current.map((held, index) => (index === waiting ? material : held)))
+      setWaiting(null)
+    }
+    onSelect(material)
+  }
 
   const searching = query.trim().length > 0
   const shown = useMemo(() => {
@@ -62,15 +77,28 @@ export function Palette({ selected, onSelect }: PaletteProps) {
         />
 
         {/* Erase stays out here: it is a tool, and it should never be a tab away. */}
-        <Swatch material={MaterialId.empty} selected={selected} onSelect={onSelect} />
+        <Swatch material={MaterialId.empty} selected={selected} onSelect={pick} />
       </div>
 
       <div className={styles.swatches}>
         {shown.map((material) => (
-          <Swatch key={material} material={material} selected={selected} onSelect={onSelect} />
+          <Swatch key={material} material={material} selected={selected} onSelect={pick} />
         ))}
         {searching && shown.length === 0 && <p className={styles.noMatch}>{simCopy.noMatch}</p>}
       </div>
+
+      {/* Kept under the swatches rather than in the tab row: these are the two you reach for without
+          looking, and they should sit still while the tabs above them change what is on show. */}
+      <MaterialSlots
+        slots={slots}
+        waiting={waiting}
+        selected={selected}
+        onUse={(index) => {
+          const held = slots[index]
+          if (held !== null) onSelect(held)
+        }}
+        onAssign={(index) => setWaiting((current) => (current === index ? null : index))}
+      />
     </div>
   )
 }
@@ -88,12 +116,13 @@ function Swatch({ material, selected, onSelect }: SwatchProps) {
     <button
       type="button"
       className={`${styles.swatch} ${isErase ? styles.erase : ''}`}
+      title={MATERIALS[material].blurb}
       aria-pressed={material === selected}
       onClick={() => onSelect(material)}
     >
       <span
         className={styles.chip}
-        style={isErase ? undefined : { background: materialCss(material) }}
+        style={{ background: chipColour(material) }}
         aria-hidden="true"
       />
       {MATERIALS[material].label}

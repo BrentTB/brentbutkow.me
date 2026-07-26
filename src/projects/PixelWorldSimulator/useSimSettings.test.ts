@@ -1,0 +1,69 @@
+import { describe, it, expect, beforeEach } from 'vitest'
+import { act, renderHook } from '@testing-library/react'
+import { SimSetting } from './pixel-world.types'
+import { DEFAULT_SETTINGS, SETTINGS_KEY } from './data'
+import { useSimSettings } from './useSimSettings'
+
+beforeEach(() => localStorage.clear())
+
+describe('useSimSettings', () => {
+  it('starts at the defaults with nothing saved', () => {
+    const { result } = renderHook(() => useSimSettings())
+
+    expect(result.current.settings).toEqual(DEFAULT_SETTINGS)
+  })
+
+  it('toggles a setting and leaves the other one alone', () => {
+    const { result } = renderHook(() => useSimSettings())
+
+    act(() => result.current.toggle(SimSetting.tintAir))
+
+    expect(result.current.settings.tintAir).toBe(!DEFAULT_SETTINGS.tintAir)
+    expect(result.current.settings.tintBlocks).toBe(DEFAULT_SETTINGS.tintBlocks)
+  })
+
+  it('saves a change and reads it back on the next visit', () => {
+    const first = renderHook(() => useSimSettings())
+    act(() => first.result.current.toggle(SimSetting.tintBlocks))
+
+    const second = renderHook(() => useSimSettings())
+
+    expect(second.result.current.settings.tintBlocks).toBe(!DEFAULT_SETTINGS.tintBlocks)
+  })
+
+  it('falls back to the defaults on unparseable storage', () => {
+    localStorage.setItem(SETTINGS_KEY, '{ not json')
+
+    const { result } = renderHook(() => useSimSettings())
+
+    expect(result.current.settings).toEqual(DEFAULT_SETTINGS)
+  })
+
+  it('defaults any field that is saved as the wrong type', () => {
+    // A truthy string would otherwise reach the renderer as an "on" the viewer never chose.
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ tintBlocks: 'yes', tintAir: true }))
+
+    const { result } = renderHook(() => useSimSettings())
+
+    expect(result.current.settings.tintBlocks).toBe(DEFAULT_SETTINGS.tintBlocks)
+    expect(result.current.settings.tintAir).toBe(true)
+  })
+
+  it('ignores a saved value that is not an object at all', () => {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify('tintBlocks'))
+
+    const { result } = renderHook(() => useSimSettings())
+
+    expect(result.current.settings).toEqual(DEFAULT_SETTINGS)
+  })
+
+  it('keeps a setting it does not recognise out of the settings it hands back', () => {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...DEFAULT_SETTINGS, tintWater: true }))
+
+    const { result } = renderHook(() => useSimSettings())
+
+    expect(Object.keys(result.current.settings).sort()).toEqual(
+      Object.keys(DEFAULT_SETTINGS).sort()
+    )
+  })
+})

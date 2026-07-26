@@ -5,6 +5,13 @@ import { prerenderMeta } from './scripts/prerender-plugin'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  server: {
+    // Pinned, and deliberately not allowed to wander: Vite's fallback walk is 5173 -> 5174 -> 5175, and
+    // 5174 belongs to something else on this machine. Failing loudly on a busy port beats quietly taking
+    // a port that is already someone's.
+    port: 5173,
+    strictPort: true,
+  },
   plugins: [react(), prerenderMeta()],
   test: {
     environment: 'jsdom',

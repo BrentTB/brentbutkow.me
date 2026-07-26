@@ -1,7 +1,8 @@
-import { Grid, MaterialId } from '../pixel-world.types'
+import { Grid, MaterialBehavior, MaterialId } from '../pixel-world.types'
 import { AMBIENT_TEMPERATURE } from '../data'
 import { MATERIALS, isBurning } from './materials'
 import { transformCell } from './grid'
+import { detonate, flashOver } from './forces'
 
 /**
  * How hard a self-heating or burning cell holds its own temperature against its surroundings. The
@@ -43,7 +44,10 @@ const SELF_HEAT = new Int16Array(MATERIALS.map((material) => material.selfHeat ?
 const BURN_HEAT = new Int16Array(MATERIALS.map((material) => material.ignite?.heat ?? 0))
 const REACTS_TO_HEAT = new Uint8Array(
   MATERIALS.map((material) =>
-    material.hot !== undefined || material.cold !== undefined || material.ignite !== undefined
+    material.hot !== undefined ||
+    material.cold !== undefined ||
+    material.ignite !== undefined ||
+    material.explodes !== undefined
       ? 1
       : 0
   )
@@ -200,7 +204,12 @@ function billHottestNeighbour(grid: Grid, index: number, x: number, y: number): 
     hottest = index + 1
   }
 
-  if (hottest >= 0 && peak > temperature[index]) temperature[hottest] = peak - LATENT_HEAT
+  // Never past the boiling cell's own temperature: heat does not flow from cold to hot, and without the
+  // floor a neighbour sitting just over boiling gets billed the full 260° and lands below freezing. That
+  // is what turned the heat tool held in a pool into a ring of ice.
+  if (hottest >= 0 && peak > temperature[index]) {
+    temperature[hottest] = Math.max(temperature[index], peak - LATENT_HEAT)
+  }
 }
 
 /** Heat crossing one interface, in degrees, positive when the neighbour is hotter. */
@@ -235,9 +244,16 @@ function applyThresholds(grid: Grid): void {
         temperature[index] = cell.cold.at
         continue
       }
+      // A charge goes off rather than burning: the pulse it writes is what sets the next one off.
+      if (cell.explodes !== undefined && heat >= cell.explodes.at) {
+        detonate(grid, index, x, y)
+        continue
+      }
       // Fuel catches once and burns on its own timer, so re-ignition can't reset the countdown.
       if (cell.ignite !== undefined && burn[index] === 0 && heat >= cell.ignite.at) {
         burn[index] = cell.ignite.ticks
+        // A pocket of gas catching is a detonation, not a candle.
+        if (cell.behavior === MaterialBehavior.gas) flashOver(grid, x, y)
       }
     }
   }

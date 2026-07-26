@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
-import { render, screen, cleanup } from '@testing-library/react'
-import { BRUSH_RADIUS, DEFAULT_SPEED, SIM_SPEEDS } from '../../data'
+import { render, screen, cleanup, fireEvent } from '@testing-library/react'
+import { BRUSH_RADIUS, DEFAULT_SPEED, PRESETS, SIM_SPEEDS } from '../../data'
 import { SimControls } from './SimControls'
 
 function renderControls(overrides: Partial<Parameters<typeof SimControls>[0]> = {}) {
@@ -13,6 +13,7 @@ function renderControls(overrides: Partial<Parameters<typeof SimControls>[0]> = 
     onStep: vi.fn(),
     onClear: vi.fn(),
     onRadius: vi.fn(),
+    onLoad: vi.fn(),
     ...overrides,
   }
   render(<SimControls {...props} />)
@@ -62,5 +63,37 @@ describe('SimControls', () => {
     screen.getByRole('button', { name: SIM_SPEEDS[2].label }).click()
 
     expect(props.onSpeed).toHaveBeenCalledWith(SIM_SPEEDS[2].rate)
+  })
+
+  it('keeps Clear away from the transport, past the brush control', () => {
+    renderControls()
+
+    const clear = screen.getByRole('button', { name: 'Clear' })
+    const brush = screen.getByRole('slider')
+    const pause = screen.getByRole('button', { name: 'Pause' })
+
+    // It throws the whole world away; a miss while reaching for a speed should not cost you that.
+    expect(clear.compareDocumentPosition(brush) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy()
+    expect(pause.compareDocumentPosition(clear) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('loads a ready-made world when one is picked from the menu', () => {
+    const props = renderControls()
+
+    // The prompt holds the trigger, so the menu has to be opened before any world can be chosen.
+    fireEvent.click(screen.getByRole('combobox', { name: 'Load a preset' }))
+    fireEvent.click(screen.getByRole('option', { name: PRESETS[0].label }))
+
+    expect(props.onLoad).toHaveBeenCalledWith(PRESETS[0].preset)
+  })
+
+  it('does not treat the prompt itself as a world to load', () => {
+    const props = renderControls()
+
+    fireEvent.click(screen.getByRole('combobox', { name: 'Load a preset' }))
+    // The "Load a preset…" row is disabled, so clicking it selects nothing.
+    fireEvent.click(screen.getByRole('option', { name: 'Load a preset…' }))
+
+    expect(props.onLoad).not.toHaveBeenCalled()
   })
 })

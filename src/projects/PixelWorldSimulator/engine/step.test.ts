@@ -4,6 +4,7 @@ import { AMBIENT_TEMPERATURE } from '../data'
 import { cellIndex, createGrid, placeMaterial } from './grid'
 import { createRng } from './rng'
 import { step } from './step'
+import { push } from './kinetic'
 
 function set(grid: Grid, x: number, y: number, material: MaterialId): void {
   placeMaterial(grid, cellIndex(grid, x, y), material)
@@ -336,6 +337,79 @@ function footprint(grid: Grid, material: MaterialId, row: number): number {
   }
   return rightmost < 0 ? 0 : rightmost - leftmost + 1
 }
+
+describe('a springy powder', () => {
+  it('hands itself to the kinetic pass while nothing is under it', () => {
+    const grid = createGrid(9, 9)
+    const cell = cellIndex(grid, 4, 4)
+    set(grid, 4, 4, MaterialId.rubber)
+
+    step(grid, createRng(1), 0)
+
+    // Falling a grain at a time reaches the floor with no speed to rebound from, so a dropped ball of
+    // rubber just sat there instead of bouncing.
+    expect(grid.velocity.has(cell)).toBe(true)
+    expect(grid.material[cell]).toBe(MaterialId.rubber)
+  })
+
+  it('takes a whole lump into the air, not a cell at a time', () => {
+    const grid = createGrid(15, 15)
+    for (let x = 0; x < 15; x++) set(grid, x, 14, MaterialId.stone)
+    for (let y = 5; y < 9; y++) {
+      for (let x = 6; x < 9; x++) set(grid, x, y, MaterialId.rubber)
+    }
+
+    step(grid, createRng(1), 0)
+
+    // Cells in a lump hold each other up, so only its bottom edge is unsupported. Taking one row per
+    // tick made a painted ball dribble downward instead of dropping and bouncing.
+    expect(grid.velocity.size).toBe(12)
+  })
+
+  it('is left alone once it has landed', () => {
+    const grid = createGrid(9, 9)
+    for (let x = 0; x < 9; x++) set(grid, x, 8, MaterialId.stone)
+    const cell = cellIndex(grid, 4, 7)
+    set(grid, 4, 7, MaterialId.rubber)
+
+    step(grid, createRng(1), 0)
+
+    expect(grid.velocity.has(cell)).toBe(false)
+  })
+
+  it('leaves an ordinary powder to fall as a grain', () => {
+    const grid = createGrid(9, 9)
+    set(grid, 4, 4, MaterialId.sand)
+
+    step(grid, createRng(1), 0)
+
+    expect(grid.velocity.size).toBe(0)
+    expect(at(grid, 4, 5)).toBe(MaterialId.sand)
+  })
+})
+
+describe('cells in flight', () => {
+  it('are left to the kinetic pass', () => {
+    const grid = createGrid(9, 9)
+    const cell = cellIndex(grid, 4, 4)
+    set(grid, 4, 4, MaterialId.sand)
+    push(grid, cell, 0, -3)
+
+    step(grid, createRng(1), 0)
+
+    // Gravity is part of kinetic motion, so a cell moved by both passes falls twice as fast as it flew.
+    expect(grid.material[cell]).toBe(MaterialId.sand)
+  })
+
+  it('fall as usual once they are back out of the map', () => {
+    const grid = createGrid(9, 9)
+    set(grid, 4, 4, MaterialId.sand)
+
+    step(grid, createRng(1), 0)
+
+    expect(at(grid, 4, 5)).toBe(MaterialId.sand)
+  })
+})
 
 describe('heaps', () => {
   it('piles gravel steeper than sand', () => {
