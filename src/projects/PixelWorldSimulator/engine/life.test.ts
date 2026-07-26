@@ -235,6 +235,20 @@ describe('a bug', () => {
 
     expect(count(grid, MaterialId.plant)).toBe(0)
   })
+
+  it('hunts down an ant, which is prey now', () => {
+    const grid = createGrid(16, 9)
+    for (let x = 0; x < grid.width; x++)
+      placeMaterial(grid, cellIndex(grid, x, 8), MaterialId.stone)
+    put(grid, 8, 7, MaterialId.ant)
+    put(grid, 5, 7, MaterialId.bug)
+    put(grid, 11, 7, MaterialId.bug)
+
+    run(grid, 500)
+
+    // With ants on the menu, a couple of bugs run the ant down and eat it rather than leaving it be.
+    expect(count(grid, MaterialId.ant)).toBe(0)
+  })
 })
 
 describe('a worm', () => {

@@ -680,7 +680,7 @@ export const MATERIALS: readonly Material[] = [
     cold: { at: -8, into: MaterialId.meat },
     life: {
       medium: Medium.surface,
-      diet: [MaterialId.plant, MaterialId.vine, MaterialId.meat],
+      diet: [MaterialId.plant, MaterialId.vine, MaterialId.meat, MaterialId.ant],
       startEnergy: 120,
       nutrition: 30,
       feedChance: 0.1,
@@ -738,7 +738,7 @@ export const MATERIALS: readonly Material[] = [
     cold: { at: -12, into: MaterialId.meat },
     life: {
       medium: Medium.air,
-      diet: [MaterialId.bug, MaterialId.worm, MaterialId.fish, MaterialId.meat],
+      diet: [MaterialId.bug, MaterialId.worm, MaterialId.fish, MaterialId.meat, MaterialId.ant],
       startEnergy: 170,
       nutrition: 60,
       feedChance: 0.14,
@@ -770,7 +770,14 @@ export const MATERIALS: readonly Material[] = [
       medium: Medium.any,
       // Creatures only. With algae on the menu it could live off the garden, and one slime turned a whole
       // tank into a hundred slimes that then sat there forever.
-      diet: [MaterialId.fish, MaterialId.bug, MaterialId.worm, MaterialId.bird, MaterialId.meat],
+      diet: [
+        MaterialId.fish,
+        MaterialId.bug,
+        MaterialId.worm,
+        MaterialId.bird,
+        MaterialId.meat,
+        MaterialId.ant,
+      ],
       startEnergy: 150,
       nutrition: 55,
       feedChance: 0.12,
@@ -825,9 +832,10 @@ export const MATERIALS: readonly Material[] = [
       // Unhurried, so a trail reads as being laid a length at a time rather than sprayed across the world.
       moveChance: 0.3,
       // Above its starting energy on purpose: an ant only breeds where it has grazed well, so a nest grows
-      // into a stand of leaves rather than swarming out of a single one.
+      // into a stand of leaves rather than swarming out of a single one. The rate is very slow — with no
+      // predator to thin them, a faster one had a colony balloon into thousands.
       breedAt: 230,
-      breedChance: 0.0015,
+      breedChance: 0.0006,
       corpse: MaterialId.meat,
     },
   },

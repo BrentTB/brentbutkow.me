@@ -235,6 +235,24 @@ describe('every creature', () => {
     }
   })
 
+  it('leaves the slime the only thing nothing preys on', () => {
+    // Every grazer and hunter has something above it, which is what keeps its numbers in check — an ant that
+    // nothing ate grew a colony without limit. The slime is the deliberate exception: it is the apex.
+    const hunted = (id: MaterialId) => creatures.some((eater) => eater.life?.diet.includes(id))
+
+    for (const creature of creatures) {
+      // Producers live on light and sit at the bottom of the chain, so nothing has to prey on them.
+      if (creature.life?.diet.length === 0) continue
+      expect(hunted(creature.id)).toBe(creature.id !== MaterialId.slime)
+    }
+  })
+
+  it('puts the ant on the menu of the things that would hunt it', () => {
+    for (const hunter of [MaterialId.bug, MaterialId.bird, MaterialId.slime]) {
+      expect(MATERIALS[hunter].life?.diet).toContain(MaterialId.ant)
+    }
+  })
+
   it('leaves room above its breeding line for a full cell to sit', () => {
     for (const creature of creatures) {
       // The `data` byte stops at 255. A threshold at the ceiling means a fed cell drops back under the
