@@ -1,7 +1,5 @@
 import { routePaths } from '../../../../routes/routes.paths'
-import { routesMeta } from '../../../../routes/routes.meta'
-import { funStuffSubRoutes } from '../../../FunStuff/data'
-import { gamesSubRoutes } from '../../../FunStuff/subpages/Games/data'
+import { browsableRoutePaths, routesMeta } from '../../../../routes/routes.meta'
 import { STEAM_LOCOMOTIVE, cowsay } from './ascii'
 
 // ─── Command index ────────────────────────────────────────────────────────────
@@ -54,23 +52,9 @@ type TerminalPage = {
 // marks a dotfile so it renders without a trailing slash; everything else is a folder.
 type TreeEntry = { name: string; children: TreeEntry[]; isFile?: boolean }
 
-const gamesPath = `${routePaths.funStuff}${funStuffSubRoutes.games}`
-
-const browsablePaths = [
-  routePaths.experience,
-  routePaths.education,
-  routePaths.achievements,
-  routePaths.projects,
-  routePaths.recallRadar,
-  routePaths.funStuff,
-  `${routePaths.funStuff}${funStuffSubRoutes.asciiArt}`,
-  `${routePaths.funStuff}${funStuffSubRoutes.imageEncoder}`,
-  `${routePaths.funStuff}${funStuffSubRoutes.gulagSort}`,
-  `${routePaths.funStuff}${funStuffSubRoutes.courseProjects}`,
-  gamesPath,
-  `${gamesPath}${gamesSubRoutes.nullSpace}`,
-  routePaths.contact,
-]
+// Derived, never listed: a hand-kept copy of the route tree is a copy somebody forgets, and this one had
+// already gone stale by a whole page. Home is the root the terminal calls `~`, so it is not a child of it.
+const browsablePaths = browsableRoutePaths.filter((path) => path !== routePaths.home)
 
 function buildTree(paths: string[]): TerminalPage[] {
   const root: TerminalPage[] = []

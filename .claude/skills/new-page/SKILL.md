@@ -63,6 +63,12 @@ render / swapped copy / `:global(html.fun-mode) &` CSS) are in
 (`loc` + `changefreq` + `priority`, match neighbors). Skip only for `noindex` routes, the
 `*` catch-all, and dynamic detail pages (`:param` paths).
 
+Nothing else needs a list updating. The home terminal's browsable filesystem and the sitemap
+invariant both read `browsableRoutePaths` from [routes.meta.ts](../../../src/routes/routes.meta.ts),
+which derives from the meta table — so a page with a meta entry is reachable from `ls`/`cd`/`tree`
+automatically. It used to be a hand-kept list in `terminal-engine.ts`, and a game shipped missing
+from it; if you find yourself editing a second copy of the route list, derive it instead.
+
 ## 7. Propagate and verify
 
 - Link to the page from wherever users should find it (Projects page, parent page, navbar) —

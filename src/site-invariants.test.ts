@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { routesMeta, SITE_URL } from './routes/routes.meta'
+import { browsableRoutePaths, SITE_URL } from './routes/routes.meta'
 
 // Repo-wide invariants that have each shipped broken at least once:
 
@@ -63,9 +63,9 @@ describe('site invariants', () => {
   it('every indexable route is in sitemap.xml (hand-maintained — the easy step to forget)', () => {
     const sitemap = readFileSync(join(publicDir, 'sitemap.xml'), 'utf8')
     const listed = new Set([...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]))
-    const indexable = Object.entries(routesMeta)
-      .filter(([path, meta]) => !meta.noindex && path !== '*' && !path.includes(':'))
-      .map(([path]) => `${SITE_URL}${path}`)
+    // The same derived list the home terminal browses, so the sitemap and the site's own idea of its pages
+    // cannot disagree.
+    const indexable = browsableRoutePaths.map((path) => `${SITE_URL}${path}`)
     const missing = indexable.filter((url) => !listed.has(url))
     expect(
       missing,
