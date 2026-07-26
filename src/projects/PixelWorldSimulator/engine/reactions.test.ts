@@ -6,6 +6,7 @@ import { MATERIALS } from './materials'
 import { createRng } from './rng'
 import { applyReactions } from './reactions'
 import { tickWorld } from './tick'
+import { onCI } from '../test-env'
 
 function put(grid: Grid, x: number, y: number, material: MaterialId): number {
   const index = cellIndex(grid, x, y)
@@ -21,6 +22,9 @@ function react(grid: Grid, ticks: number, seed = 7): void {
 function count(grid: Grid, material: MaterialId): number {
   return grid.material.reduce((total, cell) => (cell === material ? total + 1 : total), 0)
 }
+
+// Heavy deterministic soaks skip on CI and run locally.
+const itSlow = it.skipIf(onCI)
 
 describe('acid', () => {
   it('eats a neighbour it touches', () => {
@@ -204,7 +208,7 @@ describe('vines', () => {
     return grid
   }
 
-  it('keeps growing long past the point a plant runs out', () => {
+  itSlow('keeps growing long past the point a plant runs out', () => {
     const budget = MATERIALS[MaterialId.plant].uses ?? 0
     const vines = floodedPool(30, MaterialId.vine)
     const plants = floodedPool(30, MaterialId.plant)

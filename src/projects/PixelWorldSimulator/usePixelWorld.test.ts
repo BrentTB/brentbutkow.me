@@ -14,6 +14,7 @@ import { MATERIALS } from './engine/materials'
 import { Preset } from './engine/presets'
 import { writeCellRgb } from './engine/palette'
 import { PixelWorldSim, usePixelWorld } from './usePixelWorld'
+import { onCI } from './test-env'
 
 const MS_PER_TICK = 1000 / TICK_RATE
 
@@ -165,13 +166,7 @@ function mountSim() {
   return { ...rendered, image }
 }
 
-// Heavy full-sim tests (many mounted ticks): run locally, skip on CI, where the shared runners are slow
-// enough to blow the per-test timeout. `npm test` locally still runs them.
-// tsconfig carries no node types, so reach `process.env` through globalThis to stay type-safe.
-const onCI = Boolean(
-  (globalThis as unknown as { process?: { env?: Record<string, string | undefined> } }).process?.env
-    ?.CI
-)
+// Heavy full-sim tests (many mounted ticks) skip on CI and run locally.
 const itSlow = it.skipIf(onCI)
 
 describe('usePixelWorld', () => {
@@ -218,7 +213,7 @@ describe('usePixelWorld', () => {
     expect(countMaterial(image, MaterialId.ice, slab)).toBeLessThan(iceBefore)
   })
 
-  it('runs the reaction pass too', () => {
+  itSlow('runs the reaction pass too', () => {
     const { result, image } = mountSim()
     act(() => {
       result.current.paintStroke({ x: 120, y: 150 }, { x: 120, y: 150 }, MaterialId.sand, 8)
