@@ -165,6 +165,15 @@ function mountSim() {
   return { ...rendered, image }
 }
 
+// Heavy full-sim tests (many mounted ticks): run locally, skip on CI, where the shared runners are slow
+// enough to blow the per-test timeout. `npm test` locally still runs them.
+// tsconfig carries no node types, so reach `process.env` through globalThis to stay type-safe.
+const onCI = Boolean(
+  (globalThis as unknown as { process?: { env?: Record<string, string | undefined> } }).process?.env
+    ?.CI
+)
+const itSlow = it.skipIf(onCI)
+
 describe('usePixelWorld', () => {
   it('steps the world while running', () => {
     const { result, image } = mountSim()
@@ -177,7 +186,7 @@ describe('usePixelWorld', () => {
     expect(sandRow(image, 10)).toBe(15)
   })
 
-  it('runs the heat pass too, not just movement', () => {
+  itSlow('runs the heat pass too, not just movement', () => {
     const { result, image } = mountSim()
     // Lava sitting on an ice slab: only the temperature pass can melt any of this.
     act(() => {
@@ -251,7 +260,7 @@ describe('usePixelWorld', () => {
     expect(sandRow(image, 30)).toBe(8)
   })
 
-  it('runs fewer ticks per second in slow motion and more at speed', () => {
+  itSlow('runs fewer ticks per second in slow motion and more at speed', () => {
     const fallenAfterASecond = (rate: number) => {
       const { result, image } = mountSim()
       act(() => result.current.setSpeed(rate))

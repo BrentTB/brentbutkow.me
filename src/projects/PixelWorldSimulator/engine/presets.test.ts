@@ -6,6 +6,15 @@ import { Preset, loadPreset } from './presets'
 import { tickWorld } from './tick'
 import { createRng } from './rng'
 
+// Heavy deterministic soaks (hundreds of ticks on a full-size grid): run locally, skip on CI, where the
+// shared runners are slow enough to blow the per-test timeout. `npm test` locally still runs them.
+// tsconfig carries no node types, so reach `process.env` through globalThis to stay type-safe.
+const onCI = Boolean(
+  (globalThis as unknown as { process?: { env?: Record<string, string | undefined> } }).process?.env
+    ?.CI
+)
+const itSlow = it.skipIf(onCI)
+
 function count(grid: Grid, material: MaterialId): number {
   let total = 0
   for (const cell of grid.material) if (cell === material) total++
@@ -294,36 +303,40 @@ describe('the volcano preset', () => {
     }
   })
 
-  it('pours lava down both faces, and never plugs its vent with stone', { timeout: 20_000 }, () => {
-    // A few seeds, both sides. The crater sources are dormant until the climbing column reaches them, so the
-    // spill comes after the eruption has risen rather than from the first tick; the soak covers that climb.
-    for (const seed of [4, 5, 7]) {
-      const grid = createGrid(200, 120)
-      loadPreset(grid, Preset.volcano, createRng(seed))
-      const mid = Math.floor(200 * 0.46)
+  itSlow(
+    'pours lava down both faces, and never plugs its vent with stone',
+    { timeout: 20_000 },
+    () => {
+      // A few seeds, both sides. The crater sources are dormant until the climbing column reaches them, so the
+      // spill comes after the eruption has risen rather than from the first tick; the soak covers that climb.
+      for (const seed of [4, 5, 7]) {
+        const grid = createGrid(200, 120)
+        loadPreset(grid, Preset.volcano, createRng(seed))
+        const mid = Math.floor(200 * 0.46)
 
-      soak(grid, 600)
+        soak(grid, 600)
 
-      let left = 0
-      let right = 0
-      let plug = 0
-      for (let y = 0; y < grid.height; y++) {
-        for (let x = 0; x < grid.width; x++) {
-          if (grid.material[cellIndex(grid, x, y)] !== MaterialId.lava) continue
-          if (x < mid - 10) left++
-          else if (x > mid + 10) right++
+        let left = 0
+        let right = 0
+        let plug = 0
+        for (let y = 0; y < grid.height; y++) {
+          for (let x = 0; x < grid.width; x++) {
+            if (grid.material[cellIndex(grid, x, y)] !== MaterialId.lava) continue
+            if (x < mid - 10) left++
+            else if (x > mid + 10) right++
+          }
         }
+        // The crater lips and the rim above them are lava or air, not a grey stone plug from a source that
+        // learned to pump stone off the shaft walls.
+        for (let y = 20; y < 40; y++) {
+          if (grid.material[cellIndex(grid, mid, y)] === MaterialId.stone) plug++
+        }
+        expect(left).toBeGreaterThan(0)
+        expect(right).toBeGreaterThan(0)
+        expect(plug).toBeLessThan(6)
       }
-      // The crater lips and the rim above them are lava or air, not a grey stone plug from a source that
-      // learned to pump stone off the shaft walls.
-      for (let y = 20; y < 40; y++) {
-        if (grid.material[cellIndex(grid, mid, y)] === MaterialId.stone) plug++
-      }
-      expect(left).toBeGreaterThan(0)
-      expect(right).toBeGreaterThan(0)
-      expect(plug).toBeLessThan(6)
     }
-  })
+  )
 
   it('cuts the cave mouth wide enough to actually be a way out', () => {
     // A slime walks and cannot climb through open air, so a one-cell winding crack is a wall to it however far
@@ -411,7 +424,7 @@ describe('the volcano preset', () => {
     expect(free).toBe(slimes)
   })
 
-  it('does not cook its own slimes on the way in', () => {
+  itSlow('does not cook its own slimes on the way in', () => {
     const grid = createGrid(200, 120)
     loadPreset(grid, Preset.volcano, createRng(3))
 
