@@ -77,7 +77,16 @@ export function Palette({ selected, onSelect }: PaletteProps) {
       />
 
       {sheetOpen && (
-        <MaterialSheet selected={selected} onSelect={pick} onClose={() => setSheetOpen(false)} />
+        <MaterialSheet
+          selected={selected}
+          onSelect={pick}
+          onClose={() => {
+            setSheetOpen(false)
+            // Dropped without a pick: let go of the slot too, or the next material chosen for the brush alone
+            // would silently drop into a slot the visitor had walked away from.
+            setWaiting(null)
+          }}
+        />
       )}
     </div>
   )

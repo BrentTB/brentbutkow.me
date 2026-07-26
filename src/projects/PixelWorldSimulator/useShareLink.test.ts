@@ -125,7 +125,9 @@ describe('useShareLink — sending a world', () => {
     writeText()
     const overlong = 'x'.repeat(SNAPSHOT_MAX_CHARS + 1)
     const { result } = renderHook(() =>
-      useShareLink(ports({ snapshot: () => Promise.resolve({ code: overlong, heatDropped: true }) }))
+      useShareLink(
+        ports({ snapshot: () => Promise.resolve({ code: overlong, heatDropped: true }) })
+      )
     )
 
     act(() => result.current.share())
@@ -169,6 +171,8 @@ describe('useShareLink — arriving on a world', () => {
 
     await waitFor(() => expect(result.current.note).toBe(simCopy.share.loaded))
     expect(doors.loadSnapshot).toHaveBeenCalledWith(CODE)
+    // Arriving on a link is not copying one: the control must show its own state, not the copied tick.
+    expect(result.current.outcome).toBe(ShareOutcome.loaded)
   })
 
   it('says what was wrong with a link it cannot read', async () => {

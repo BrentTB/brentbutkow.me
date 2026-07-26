@@ -14,6 +14,8 @@ type SnapshotPorts = {
 export const ShareOutcome = {
   idle: 'idle',
   copied: 'copied',
+  /** A world read out of the link on arrival: it worked, but the visitor copied nothing. */
+  loaded: 'loaded',
   /** The link is good but the clipboard refused it, so it is only in the address bar. */
   inBar: 'inBar',
   refused: 'refused',
@@ -52,6 +54,7 @@ export function useShareLink({ snapshot, loadSnapshot }: SnapshotPorts): ShareLi
   const [note, setNote] = useState<string | null>(null)
   const [outcome, setOutcome] = useState<ShareOutcome>(ShareOutcome.idle)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const mountedRef = useRef(true)
 
   const say = useCallback((message: string, result: ShareOutcome) => {
     setNote(message)
@@ -65,6 +68,7 @@ export function useShareLink({ snapshot, loadSnapshot }: SnapshotPorts): ShareLi
 
   useEffect(() => {
     return () => {
+      mountedRef.current = false
       if (timerRef.current !== null) clearTimeout(timerRef.current)
     }
   }, [])
@@ -85,7 +89,7 @@ export function useShareLink({ snapshot, loadSnapshot }: SnapshotPorts): ShareLi
       if (!live) return
       say(
         result.ok ? simCopy.share.loaded : refusalNote(result.refusal),
-        result.ok ? ShareOutcome.copied : ShareOutcome.refused
+        result.ok ? ShareOutcome.loaded : ShareOutcome.refused
       )
     })
 
@@ -96,6 +100,10 @@ export function useShareLink({ snapshot, loadSnapshot }: SnapshotPorts): ShareLi
 
   const share = useCallback(() => {
     snapshot().then(async ({ code, heatDropped }) => {
+      // A clipboard prompt can outlive the page — the visitor may leave while it is up — so every outcome
+      // checks the component is still mounted before it lands a note on it.
+      if (!mountedRef.current) return
+
       // Even without its heat, some worlds are past the cap. Nothing useful can be sent for those.
       if (code.length > SNAPSHOT_MAX_CHARS) {
         say(simCopy.share.tooBig, ShareOutcome.refused)
@@ -109,11 +117,13 @@ export function useShareLink({ snapshot, loadSnapshot }: SnapshotPorts): ShareLi
 
       try {
         await navigator.clipboard.writeText(link)
+        if (!mountedRef.current) return
         say(
           heatDropped ? simCopy.share.copiedWithoutHeat : simCopy.share.copied,
           ShareOutcome.copied
         )
       } catch {
+        if (!mountedRef.current) return
         say(simCopy.share.inBar, ShareOutcome.inBar)
       }
     })

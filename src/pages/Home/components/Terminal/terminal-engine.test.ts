@@ -365,6 +365,14 @@ describe('completions', () => {
     expect(completions('cd fun-stuff/games/n')).toEqual(['cd fun-stuff/games/null-space'])
   })
 
+  it('lists every game when the games directory itself is the prefix', () => {
+    // Two children now, so a Tab at the directory must offer both rather than silently one of them.
+    expect(completions('cd fun-stuff/games/')).toEqual([
+      'cd fun-stuff/games/null-space',
+      'cd fun-stuff/games/pixel-world-simulator',
+    ])
+  })
+
   it('returns every match sorted for ambiguous prefixes', () => {
     expect(completions('cd e')).toEqual(['cd education', 'cd experience'])
   })

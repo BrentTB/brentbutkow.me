@@ -204,8 +204,11 @@
     background: rgba(var(--success-rgb), 0.14);
   }
 
-  // The link is good, it just is not on the clipboard — a warning rather than a failure.
-  &[data-outcome='inBar'] {
+  // The link is good, it just is not on the clipboard (inBar), or the world came from a link the visitor
+  // opened rather than one they copied (loaded): informational, so accent rather than success or danger.
+  // Only inBar carries a glyph; loaded stays a bare accent so it never claims a copy that did not happen.
+  &[data-outcome='inBar'],
+  &[data-outcome='loaded'] {
     color: var(--accent);
     border-color: var(--accent);
     background: rgba(var(--accent-rgb), 0.14);

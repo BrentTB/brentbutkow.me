@@ -86,21 +86,28 @@ function triggersOf(material: MaterialId): { at: number; onRising: boolean }[] {
 
 /** A stored temperature level, keeping the cell on the same side of every threshold it was on. */
 function toLevel(material: MaterialId, held: number): number {
-  let value = Math.round((held - TEMPERATURE_LIMITS.floor) / TEMPERATURE_QUANTUM)
-  value = Math.max(0, Math.min(AS_PLACED - 1, value))
-  let degrees = fromLevel(value)
+  let level = Math.round((held - TEMPERATURE_LIMITS.floor) / TEMPERATURE_QUANTUM)
+  level = Math.max(0, Math.min(AS_PLACED - 1, level))
 
+  // Enforce each threshold in level space, not in degrees: clamping the degrees and then requantising rounds
+  // the value straight back across the line whenever the nearest level lands on the far side, which is what
+  // ignited or melted a shared world the moment it loaded. `fromLevel(level)` is what decode reads back, so
+  // the level itself is what has to sit on the right side.
   for (const { at, onRising } of triggersOf(material)) {
+    const boundary = (at - TEMPERATURE_LIMITS.floor) / TEMPERATURE_QUANTUM
     const fired = onRising ? held >= at : held <= at
     if (onRising) {
-      degrees = fired ? Math.max(degrees, at) : Math.min(degrees, at - 1)
+      level = fired
+        ? Math.max(level, Math.ceil(boundary))
+        : Math.min(level, Math.ceil(boundary) - 1)
     } else {
-      degrees = fired ? Math.min(degrees, at) : Math.max(degrees, at + 1)
+      level = fired
+        ? Math.min(level, Math.floor(boundary))
+        : Math.max(level, Math.floor(boundary) + 1)
     }
   }
 
-  const clamped = Math.round((degrees - TEMPERATURE_LIMITS.floor) / TEMPERATURE_QUANTUM)
-  return Math.max(0, Math.min(AS_PLACED - 1, clamped))
+  return Math.max(0, Math.min(AS_PLACED - 1, level))
 }
 
 function fromLevel(level: number): number {
@@ -129,9 +136,7 @@ async function deflate(bytes: Uint8Array<ArrayBuffer>): Promise<Uint8Array> {
  * Anything corrupt fails the same way as anything oversized.
  */
 async function inflate(bytes: Uint8Array<ArrayBuffer>, cap: number): Promise<Uint8Array | null> {
-  const reader = streamOf(bytes)
-    .pipeThrough(new DecompressionStream('deflate-raw'))
-    .getReader()
+  const reader = streamOf(bytes).pipeThrough(new DecompressionStream('deflate-raw')).getReader()
   const chunks: Uint8Array[] = []
   let held = 0
 

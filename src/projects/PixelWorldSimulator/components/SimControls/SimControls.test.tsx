@@ -124,6 +124,23 @@ describe('SimControls', () => {
     expect(copied).not.toBe(refused)
   })
 
+  it('shows an arrived link as its own state, without the copied tick', () => {
+    renderControls({ shareOutcome: ShareOutcome.loaded })
+    const share = screen.getByRole('button', { name: simCopy.share.button })
+
+    expect(share.getAttribute('data-outcome')).toBe(ShareOutcome.loaded)
+    // Opening someone's link copied nothing, so the button must not claim it did.
+    expect(share.textContent).toBe(simCopy.share.button)
+  })
+
+  it('flags a link that reached only the address bar', () => {
+    renderControls({ shareOutcome: ShareOutcome.inBar })
+    const share = screen.getByRole('button', { name: simCopy.share.button })
+
+    expect(share.getAttribute('data-outcome')).toBe(ShareOutcome.inBar)
+    expect(share.textContent).toBe(`${simCopy.share.button}!`)
+  })
+
   it('leaves the share control out where the browser cannot build a link', () => {
     renderControls({ canShare: false })
 

@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
 import type { SelectOption } from './option.types'
 import { portalTarget } from './portalTarget'
@@ -134,17 +134,17 @@ export function Select({
             aria-label={ariaLabel}
             style={
               coords
-                ? {
+                ? ({
                     position: 'fixed',
                     top: coords.top,
                     left: coords.left,
                     // Floor at the trigger width; the stylesheet's `width: max-content` (capped)
                     // grows it past that to fit the longest option rather than truncating.
                     minWidth: coords.width,
-                    // What the room where it landed allows, so a list too long for a short screen scrolls
-                    // rather than running off the edge.
-                    maxHeight: coords.maxHeight,
-                  }
+                    // The stylesheet holds the design cap; this hands it the room where the menu landed, so
+                    // its `min()` takes whichever is smaller and a list too long for a short screen scrolls.
+                    '--anchored-max': `${coords.maxHeight}px`,
+                  } as CSSProperties)
                 : { position: 'fixed', visibility: 'hidden' }
             }
           >

@@ -70,25 +70,42 @@ describe('encodeSnapshot / decodeSnapshot', () => {
     expect(loaded.hotRows[20]).toBe(1)
   })
 
-  it('never rounds a cell across a threshold into melting or catching fire', async () => {
-    // A rounding error eight degrees wide must not make a shared world ignite the moment it loads: that
-    // reads as a broken link rather than as lost precision.
-    const built = builtWorld()
-    const plank = cellIndex(built, 12, 20)
-    const rock = cellIndex(built, 14, 20)
-    put(built, 12, 20, MaterialId.wood)
-    put(built, 14, 20, MaterialId.stone)
-    const catches = MATERIALS[MaterialId.wood].ignite?.at ?? 0
-    const melts = MATERIALS[MaterialId.stone].hot?.at ?? 0
-    // Both a hair under the line they must not cross.
-    built.temperature[plank] = catches - 1
-    built.temperature[rock] = melts - 1
+  it('keeps every material on its own side of every threshold across a round-trip', async () => {
+    // A rounding error eight degrees wide must not make a shared world ignite, melt or freeze the moment it
+    // loads: that reads as a broken link rather than as lost precision. Every material with a threshold, at a
+    // degree either side of it, must decode back onto the side it was drawn on — not just the two whose
+    // nearest level happens to round the safe way.
+    const risingKeys = ['hot', 'ignite', 'explodes'] as const
 
-    const loaded = createGrid(built.width, built.height)
-    await decodeSnapshot((await encodeSnapshot(built)).code, loaded)
+    for (const material of MATERIALS) {
+      const triggers: { at: number; onRising: boolean }[] = []
+      for (const key of risingKeys) {
+        const trigger = material[key]
+        if (trigger !== undefined) triggers.push({ at: trigger.at, onRising: true })
+      }
+      if (material.cold !== undefined) triggers.push({ at: material.cold.at, onRising: false })
 
-    expect(loaded.temperature[plank]).toBeLessThan(catches)
-    expect(loaded.temperature[rock]).toBeLessThan(melts)
+      for (const { at, onRising } of triggers) {
+        for (const held of [at - 1, at, at + 1]) {
+          if (held <= TEMPERATURE_LIMITS.floor || held >= TEMPERATURE_LIMITS.ceiling) continue
+
+          const grid = createGrid(4, 4)
+          const cell = cellIndex(grid, 1, 1)
+          placeMaterial(grid, cell, material.id)
+          grid.temperature[cell] = held
+
+          const loaded = createGrid(4, 4)
+          expect(await decodeSnapshot((await encodeSnapshot(grid)).code, loaded)).toEqual({
+            ok: true,
+          })
+
+          const back = loaded.temperature[cell]
+          const liveFired = onRising ? held >= at : held <= at
+          const loadedFired = onRising ? back >= at : back <= at
+          expect(loadedFired, `${material.label} at ${held}° across ${at}°`).toBe(liveFired)
+        }
+      }
+    }
   })
 
   it('keeps a cell that was already past a threshold past it', async () => {
@@ -132,16 +149,20 @@ describe('encodeSnapshot / decodeSnapshot', () => {
     }
   })
 
-  it('still fits a world that has been left running, not just a fresh one', { timeout: 60_000 }, async () => {
-    // The case the first cap got wrong. A volcano scatters debris across ground that started as clean stone,
-    // so a lived-in world compresses far worse than the one that was loaded.
-    const grid = createGrid(400, 225)
-    const rng = createRng(7)
-    loadPreset(grid, Preset.volcano, rng)
-    for (let tick = 0; tick < 400; tick++) tickWorld(grid, rng, tick)
+  it(
+    'still fits a world that has been left running, not just a fresh one',
+    { timeout: 60_000 },
+    async () => {
+      // The case the first cap got wrong. A volcano scatters debris across ground that started as clean stone,
+      // so a lived-in world compresses far worse than the one that was loaded.
+      const grid = createGrid(400, 225)
+      const rng = createRng(7)
+      loadPreset(grid, Preset.volcano, rng)
+      for (let tick = 0; tick < 400; tick++) tickWorld(grid, rng, tick)
 
-    expect((await encodeSnapshot(grid)).code.length).toBeLessThan(SNAPSHOT_MAX_CHARS)
-  })
+      expect((await encodeSnapshot(grid)).code.length).toBeLessThan(SNAPSHOT_MAX_CHARS)
+    }
+  )
 
   it('drops the heat rather than the link when a world will not otherwise fit', async () => {
     // A plain stone slab costs almost nothing; a different temperature in every cell costs everything, since

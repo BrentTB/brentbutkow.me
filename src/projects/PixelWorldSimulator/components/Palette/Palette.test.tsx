@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import { MaterialId } from '../../pixel-world.types'
-import { MATERIAL_GROUPS, MATERIAL_SLOTS, MaterialGroup } from '../../data'
+import { MATERIAL_GROUPS, MATERIAL_SLOTS, MaterialGroup, simCopy } from '../../data'
 import { MATERIALS } from '../../engine/materials'
 import { Palette } from './Palette'
 
@@ -234,6 +234,26 @@ describe('Palette on a phone', () => {
     expect(
       screen.getByRole('button', { name: `Favourite 2, ${MATERIALS[MaterialId.ash].label}` })
     ).toBeTruthy()
+  })
+
+  it('lets go of a waiting slot when the sheet is dismissed without a pick', () => {
+    asPhone()
+    const onSelect = renderPalette()
+
+    // Arm Favourite 1, then leave the sheet without choosing anything.
+    fireEvent.click(screen.getByRole('button', { name: /Favourite 1/ }))
+    fireEvent.click(screen.getByRole('button', { name: simCopy.picker.close }))
+
+    // Reopen to change the brush alone and pick: the abandoned slot must not quietly take the pick.
+    fireEvent.click(screen.getByRole('button', { name: /Change material/ }))
+    fireEvent.click(
+      screen.getByRole('button', { name: new RegExp(MATERIALS[MaterialId.dirt].label) })
+    )
+
+    expect(onSelect).toHaveBeenCalledWith(MaterialId.dirt)
+    expect(
+      screen.queryByRole('button', { name: `Favourite 1, ${MATERIALS[MaterialId.dirt].label}` })
+    ).toBeNull()
   })
 
   it('keeps the grid inline where there is room for it', () => {

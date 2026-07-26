@@ -1,4 +1,4 @@
-import { RefObject, useCallback, useEffect, useState } from 'react'
+import { RefObject, useCallback, useEffect, useRef, useState } from 'react'
 import { usePseudoFullscreenChrome } from '../../components/fullscreen/usePseudoFullscreenChrome'
 import { resetPinchZoom } from '../../components/fullscreen/reset-pinch-zoom'
 
@@ -22,6 +22,8 @@ export type Fullscreen = {
 export function useFullscreen(elementRef: RefObject<HTMLElement | null>): Fullscreen {
   const [isReal, setIsReal] = useState(false)
   const [isPseudo, setIsPseudo] = useState(false)
+  const mountedRef = useRef(true)
+  useEffect(() => () => void (mountedRef.current = false), [])
 
   useEffect(() => {
     // The flag follows the document rather than the click, so leaving with Escape or the browser's own
@@ -59,7 +61,7 @@ export function useFullscreen(elementRef: RefObject<HTMLElement | null>): Fullsc
     resetPinchZoom()
     if (typeof element.requestFullscreen === 'function') {
       // Rejected counts as much as absent: a browser can have the method and refuse the call.
-      element.requestFullscreen().catch(() => setIsPseudo(true))
+      element.requestFullscreen().catch(() => mountedRef.current && setIsPseudo(true))
     } else {
       setIsPseudo(true)
     }
