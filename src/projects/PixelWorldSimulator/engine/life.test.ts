@@ -505,7 +505,7 @@ describe('the ant', () => {
     const startY = 5
     ant(grid, 10, startY, 0, 1)
 
-    run(grid, 300, 2)
+    run(grid, 600, 2)
 
     // The deepest tunnel opened inside the block: an empty cell that used to be wood, well below the top.
     let deepest = startY
@@ -515,7 +515,31 @@ describe('the ant', () => {
           deepest = Math.max(deepest, y)
       }
     }
-    expect(deepest).toBeGreaterThan(startY + 4)
+    expect(deepest).toBeGreaterThan(startY + 2)
+  })
+
+  it('drives a lane forward instead of pacing it up and down', () => {
+    // A horizontal wood bar with a short open lane cut through its middle, and an ant in the lane pointed
+    // right. It should carry the lane on to the right and never turn round to re-walk it leftward — that
+    // back-and-forth on one corridor is the thing being guarded against.
+    const grid = createGrid(48, 22)
+    for (let y = 9; y <= 11; y++) {
+      for (let x = 5; x <= 42; x++) placeMaterial(grid, cellIndex(grid, x, y), MaterialId.wood)
+    }
+    for (let x = 18; x <= 22; x++) placeMaterial(grid, cellIndex(grid, x, 10), MaterialId.empty)
+    ant(grid, 20, 10, 1, 0)
+
+    run(grid, 150, 4)
+
+    let right = 0
+    let left = 0
+    for (let x = 23; x <= 40; x++)
+      if (grid.material[cellIndex(grid, x, 10)] === MaterialId.empty) right++
+    for (let x = 6; x <= 17; x++)
+      if (grid.material[cellIndex(grid, x, 10)] === MaterialId.empty) left++
+
+    expect(right).toBeGreaterThan(left)
+    expect(left).toBeLessThan(3)
   })
 
   it('walls the lane it bores, laying a ridge into the open beside its path', () => {

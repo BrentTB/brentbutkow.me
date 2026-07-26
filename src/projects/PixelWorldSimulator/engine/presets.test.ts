@@ -338,14 +338,25 @@ describe('the ant colony preset', () => {
   it('is still boring galleries a while after it is dropped in', { timeout: 20_000 }, () => {
     const grid = createGrid(140, 90)
     loadPreset(grid, Preset.antColony, createRng(2))
-    const woodStart = count(grid, MaterialId.wood)
 
     soak(grid, 1000)
 
-    // The ants graze the ground bushes and keep working, so the colony is still alive, and it has opened
-    // real galleries into the logs — there is less solid wood than the logs started as.
+    // The ants graze the ground bushes and keep working, so the colony is still alive; and it has opened
+    // real walled lanes — open cells with a wall on each side, which a solid log has none of.
     expect(count(grid, MaterialId.ant)).toBeGreaterThan(0)
-    expect(count(grid, MaterialId.wood)).toBeLessThan(woodStart)
+
+    let lanes = 0
+    for (let y = 1; y < grid.height - 1; y++) {
+      for (let x = 1; x < grid.width - 1; x++) {
+        if (grid.material[cellIndex(grid, x, y)] !== MaterialId.empty) continue
+        const wall = (dx: number, dy: number) =>
+          grid.material[cellIndex(grid, x + dx, y + dy)] === MaterialId.wood
+        if ((wall(-1, 0) && wall(1, 0)) || (wall(0, -1) && wall(0, 1))) lanes++
+      }
+    }
+    // Only the flat and upright lanes are counted here; the diagonal ones (walled corner to corner) are
+    // not, so this is a floor well under the real number.
+    expect(lanes).toBeGreaterThan(8)
   })
 
   it('comes out different every time it is loaded', () => {

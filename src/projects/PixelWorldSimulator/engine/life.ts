@@ -479,18 +479,27 @@ function loose(material: number): boolean {
 // grip, and lays a trail of vine behind it as it goes, so a nest webs its surroundings with branching
 // green paths that go on climbing on their own. Its heading lives in `grid.heading`.
 
-/** Energy a length of wall costs, so how far a nest can build is bounded by the leaves it can graze. */
-const TRAIL_COST = 1
-
 /** The soft stuff an ant bores straight through, so it can work into the middle of a plank, not just its face. */
 const BURROWABLE = new Uint8Array(MATERIALS.length)
 for (const id of ANT_SOFT) BURROWABLE[id] = 1
 /**
- * Chance per move that an ant turns of its own accord. Kept low: an ant that mostly holds its heading
- * draws long, deliberate lines and turns hard corners off walls, which is what makes its trails read as
- * built rather than as an ordinary spreading weed.
+ * Chance per move that an ant turns while boring wood. Low, so a gallery holds its heading and runs long —
+ * a turn mostly picks another diagonal and now and then a cardinal, mixing the odd flat or upright run in.
  */
-const ANT_BRANCH_CHANCE = 0.01
+const ANT_BRANCH_CHANCE = 0.02
+/**
+ * Chance per move that an ant turns while walling out in the open. Higher than boring, so a line struck
+ * across empty air bends into a shape rather than shooting straight to the edge of the world.
+ */
+const ANT_TURN_OPEN = 0.05
+/**
+ * Chance per move an ant walks an existing lane instead of cutting a new one. High, so a few ants do not
+ * pave the whole world — they mostly patrol what they have built, and the network grows only on the moves
+ * they pass this up.
+ */
+const REUSE_CHANCE = 0.9
+/** Energy a length of wall costs. Small: grazing keeps pace with it, but it cannot be built for free forever. */
+const TRAIL_COST = 1
 
 /**
  * Where an ant looks for the surface it is standing on, to lay a trail of the same stuff — below first,
@@ -581,16 +590,46 @@ function stepAnt(grid: Grid, rng: Rng, x: number, y: number, index: number, life
     grid.heading.set(index, heading)
   }
 
-  if (rng.chance(ANT_BRANCH_CHANCE)) turn(heading, rng)
+  // Out in the open, an ant turns far more often than when it is boring wood: a gallery threaded through a
+  // trunk wants to run long and straight, but a line drawn across empty air wants to bend into a shape
+  // rather than shoot dead to the edge of the world.
+  const inOpen = openNeighbours(grid, x, y) >= 4
+  if (rng.chance(inOpen ? ANT_TURN_OPEN : ANT_BRANCH_CHANCE)) turn(heading, rng)
 
-  // The soft stuff at hand to wall a path with, and whether it has the material and the energy to build.
-  // An ant lines its lane in whatever it is boring through, so a hollowed-out log still shows the routes
-  // taken as two ridges either side of an open channel — the way an ant colony's galleries stay legible.
+  const dirs = headingOrder(heading, rng)
+
+  // Mostly, walk a lane that already exists rather than cut a new one — otherwise a handful of ants pave the
+  // whole world in a minute. Reusing costs nothing and builds nothing; only now and then does an ant pass
+  // this up and strike out somewhere fresh. A lane is a real corridor — open, walled on both sides across the
+  // way ahead, and carrying on for another cell — so an ant does not take the flat face of a log for a path
+  // and pace up its edge, which is exactly what a plain "next to a wall" test had them doing.
+  if (rng.chance(REUSE_CHANCE)) {
+    for (const [dx, dy] of dirs) {
+      if (dx === -heading.hx && dy === -heading.hy) continue
+      if (!isCorridor(grid, x, y, dx, dy)) continue
+      const target = cellIndex(grid, x + dx, y + dy)
+      swapCells(grid, index, target)
+      grid.moved[index] = 1
+      grid.moved[target] = 1
+      heading.hx = dx
+      heading.hy = dy
+      moveHeading(grid, index, target)
+      return
+    }
+  }
+
+  // The soft stuff at hand to build walls with, and the energy to. A length of wall costs a little so a nest
+  // cannot build forever, but little enough that grazing keeps up and it does not starve the moment it
+  // wanders off its food.
   const wall = softNear(grid, x, y)
   const lay = wall !== MaterialId.empty && grid.data[index] > TRAIL_COST
 
-  const dirs = headingOrder(heading, rng)
   for (const [dx, dy] of dirs) {
+    // Never turn straight back the way it came, or an ant reaching the end of a lane just walks it in
+    // reverse and paces the same corridor up and down forever. Blocked in front, it extends or turns onto
+    // another lane instead.
+    if (dx === -heading.hx && dy === -heading.hy) continue
+
     const nx = x + dx
     const ny = y + dy
     if (nx < 0 || nx >= grid.width || ny < 0 || ny >= grid.height) continue
@@ -598,10 +637,17 @@ function stepAnt(grid: Grid, rng: Rng, x: number, y: number, index: number, life
     const there = grid.material[target]
     const boring = BURROWABLE[there] === 1
 
-    // It eats forward through soft stuff; open air it enters only where a wall is already at hand, so it
-    // does not walk off into the void. Hard rock, loose ground and other creatures it cannot pass at all.
+    // Eat forward through soft stuff. Into open air only to walk a lane that is already there, or to open a
+    // fresh one by laying a wall to each side — never to skirt a single face, which is what had ants pacing
+    // up the wood instead of into it. Hard rock, loose ground and creatures it cannot pass.
     if (there !== MaterialId.empty && !boring) continue
-    if (there === MaterialId.empty && !clingsToWall(grid, nx, ny)) continue
+    if (
+      there === MaterialId.empty &&
+      !isLane(grid, x, y, dx, dy) &&
+      !(lay && canOpenLane(grid, x, y, dx, dy))
+    ) {
+      continue
+    }
 
     // Move, carving whatever it steps into so the lane it walks is left open behind it.
     swapCells(grid, index, target)
@@ -612,15 +658,65 @@ function stepAnt(grid: Grid, rng: Rng, x: number, y: number, index: number, life
     heading.hy = dy
     moveHeading(grid, index, target)
 
-    // Only when it is actually cutting through something does it lay a ridge to either side, square across
-    // the heading, and only into open air — so a channel bored through a trunk keeps its two walls even
-    // once the middle is hollow, while an ant merely crossing open ground builds nothing and cannot sprawl.
-    if (lay && boring) {
+    // A ridge to either side, square across the heading, and only into open air — so a lane keeps its two
+    // walls even once its middle is hollow, and a path never cuts through anything already standing.
+    if (lay) {
       const built = wallInto(grid, nx + dy, ny - dx, wall) + wallInto(grid, nx - dy, ny + dx, wall)
       if (built > 0) grid.data[target] -= TRAIL_COST
     }
     return
   }
+}
+
+/** How many of the eight surrounding cells are open air — a read of how out-in-the-open the ant is. */
+function openNeighbours(grid: Grid, x: number, y: number): number {
+  let open = 0
+  for (const [dx, dy] of ANT_STEPS) {
+    const nx = x + dx
+    const ny = y + dy
+    if (nx < 0 || nx >= grid.width || ny < 0 || ny >= grid.height) continue
+    if (grid.material[cellIndex(grid, nx, ny)] === MaterialId.empty) open++
+  }
+  return open
+}
+
+/** Whether a cell is in bounds and open air. */
+function isEmpty(grid: Grid, x: number, y: number): boolean {
+  if (x < 0 || x >= grid.width || y < 0 || y >= grid.height) return false
+  return grid.material[cellIndex(grid, x, y)] === MaterialId.empty
+}
+
+/** Whether a cell is a solid wall a lane can run between: not open air, a fluid, or a creature. */
+function isWallCell(grid: Grid, x: number, y: number): boolean {
+  if (x < 0 || x >= grid.width || y < 0 || y >= grid.height) return false
+  const material = grid.material[cellIndex(grid, x, y)]
+  if (IS_ALIVE[material] === 1) return false
+  const behavior = MATERIALS[material].behavior
+  return behavior === MaterialBehavior.static || behavior === MaterialBehavior.powder
+}
+
+/**
+ * Whether the cell one step on is an open lane: empty, with a wall on each side square across the step. A
+ * wall on only one side is the flat face of a log, not a path — the distinction that stops an ant reading a
+ * trunk's edge as a corridor and pacing up it.
+ */
+function isLane(grid: Grid, x: number, y: number, dx: number, dy: number): boolean {
+  const tx = x + dx
+  const ty = y + dy
+  if (!isEmpty(grid, tx, ty)) return false
+  return isWallCell(grid, tx + dy, ty - dx) && isWallCell(grid, tx - dy, ty + dx)
+}
+
+/** Whether the step opens onto a real corridor: a lane that carries on another cell, not a lone pocket. */
+function isCorridor(grid: Grid, x: number, y: number, dx: number, dy: number): boolean {
+  return isLane(grid, x, y, dx, dy) && isEmpty(grid, x + 2 * dx, y + 2 * dy)
+}
+
+/** Whether the step could open a fresh lane: both flanks of the cell ahead are open air to wall into. */
+function canOpenLane(grid: Grid, x: number, y: number, dx: number, dy: number): boolean {
+  const tx = x + dx
+  const ty = y + dy
+  return isEmpty(grid, tx + dy, ty - dx) && isEmpty(grid, tx - dy, ty + dx)
 }
 
 /** Places a ridge of `material` at a cell, but only into open air, and reports whether it did. */
@@ -650,16 +746,17 @@ function softNear(grid: Grid, x: number, y: number): number {
 }
 
 /**
- * The eight steps ordered so the one nearest the heading comes first. Ties — the cardinal and the two
- * diagonals either side of a heading all score the same — are broken by a little rng rather than a fixed
- * order, or the fixed order (which led with a rightward step) pulled every blocked ant into drifting right
- * along flat, straight lines. The jitter stays under the gap between scores, so the heading itself still wins.
+ * The eight steps ordered so the one nearest the heading comes first. The exact heading gets a bump so an
+ * ant holds its line — otherwise a cardinal heading ties with the two diagonals beside it and, with the old
+ * fixed tie order leading on a rightward step, every blocked ant drifted right along the flat. The bump
+ * keeps a diagonal heading diagonal and a straight one straight, so a change of direction comes from a
+ * deliberate turn rather than a wobble; a little rng under the bump settles the remaining ties without bias.
  */
 function headingOrder(heading: AntHeading, rng: Rng): readonly (readonly [number, number])[] {
-  return ANT_STEPS.map((step) => ({
-    step,
-    score: step[0] * heading.hx + step[1] * heading.hy + rng.next() * 0.5,
-  }))
+  return ANT_STEPS.map((step) => {
+    const exact = step[0] === heading.hx && step[1] === heading.hy ? 0.4 : 0
+    return { step, score: step[0] * heading.hx + step[1] * heading.hy + exact + rng.next() * 0.3 }
+  })
     .sort((a, b) => b.score - a.score)
     .map((scored) => scored.step)
 }
