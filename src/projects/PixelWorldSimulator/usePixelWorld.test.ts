@@ -482,6 +482,46 @@ describe('usePixelWorld', () => {
     expect(cancelledHandles).toContain(lastHandle)
   })
 
+  describe('sharing a world', () => {
+    it('takes a snapshot and loads it back over a cleared world', async () => {
+      const { result, image } = mountSim()
+      act(() =>
+        result.current.paintStroke({ x: 80, y: 90 }, { x: 140, y: 90 }, MaterialId.stone, 4)
+      )
+      frame(0)
+      const box = { x: 60, y: 70, width: 100, height: 40 }
+      const drawn = countMaterial(image, MaterialId.stone, box)
+      expect(drawn).toBeGreaterThan(0)
+
+      const { code } = await result.current.snapshot()
+      act(() => result.current.clear())
+      frame(0)
+      expect(countMaterial(image, MaterialId.stone, box)).toBe(0)
+
+      const loaded = await result.current.loadSnapshot(code)
+      frame(0)
+
+      expect(loaded).toEqual({ ok: true })
+      expect(countMaterial(image, MaterialId.stone, box)).toBe(drawn)
+    })
+
+    it('leaves the world alone when a link cannot be read', async () => {
+      const { result, image } = mountSim()
+      act(() =>
+        result.current.paintStroke({ x: 80, y: 90 }, { x: 140, y: 90 }, MaterialId.stone, 4)
+      )
+      frame(0)
+      const box = { x: 60, y: 70, width: 100, height: 40 }
+      const drawn = countMaterial(image, MaterialId.stone, box)
+
+      const refused = await result.current.loadSnapshot('not-a-world')
+      frame(0)
+
+      expect(refused.ok).toBe(false)
+      expect(countMaterial(image, MaterialId.stone, box)).toBe(drawn)
+    })
+  })
+
   describe('picture settings', () => {
     /** Alpha written into the temperature overlay for one cell, which is the tint the viewer sees. */
     function tintAt(x: number, y: number): number {

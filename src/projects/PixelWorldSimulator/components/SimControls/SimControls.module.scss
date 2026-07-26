@@ -182,3 +182,41 @@
     }
   }
 }
+
+// The share control carries its own outcome: a visitor who presses it and looks straight back at the world
+// should still know whether it worked, without reading the line underneath.
+.share {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+
+  &[data-outcome='copied'] {
+    color: var(--success);
+    border-color: var(--success);
+    background: rgba(var(--success-rgb), 0.14);
+  }
+
+  // The link is good, it just is not on the clipboard — a warning rather than a failure.
+  &[data-outcome='inBar'] {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: rgba(var(--accent-rgb), 0.14);
+  }
+
+  &[data-outcome='refused'] {
+    color: var(--danger);
+    border-color: var(--danger);
+    background: rgba(var(--danger-rgb), 0.14);
+  }
+
+  // Hover must not paint over the answer the button is currently giving.
+  &:hover:not([data-outcome='idle']) {
+    border-color: currentColor;
+  }
+}
+
+// A tick, a cross or a warning beside the label, so the state does not rest on colour alone.
+.mark {
+  font-size: 0.78rem;
+  line-height: 1;
+}

@@ -8,6 +8,7 @@ import { useElementHeight } from './useElementHeight'
 import { useFullscreen } from './useFullscreen'
 import { usePixelWorld } from './usePixelWorld'
 import { useSimSettings } from './useSimSettings'
+import { useShareLink } from './useShareLink'
 import { usePointerBrush } from './usePointerBrush'
 import { Palette } from './components/Palette/Palette'
 import { ToolRow } from './components/ToolRow/ToolRow'
@@ -49,6 +50,9 @@ export function PixelWorldSimulator() {
   // The renderer holds the settings in a ref, so the saved ones have to be handed over once on mount.
   const { applySettings } = sim
   useEffect(() => applySettings(settings), [applySettings, settings])
+
+  const { snapshot, loadSnapshot } = sim
+  const link = useShareLink({ snapshot, loadSnapshot })
 
   // Depend on the two callbacks rather than on `sim`, whose identity changes every time the readout
   // refreshes — otherwise the canvas re-registers all five pointer listeners ten times a second.
@@ -120,12 +124,17 @@ export function PixelWorldSimulator() {
           onClear={sim.clear}
           onRadius={setRadius}
           onLoad={sim.load}
+          canShare={link.supported}
+          shareOutcome={link.outcome}
+          onShare={link.share}
         />
 
         {/* No live region: the readout refreshes ten times a second while the pointer moves, which a
             screen reader would read out as an unbroken stream of temperatures. */}
+        {/* A note about a link outrules the tool hint while it is up: it is the answer to something the
+            visitor just did, and the hint will still be there afterwards. */}
         <p className={styles.hint}>
-          {sim.reading === null ? hintFor(tool) : <Reading reading={sim.reading} />}
+          {sim.reading !== null ? <Reading reading={sim.reading} /> : (link.note ?? hintFor(tool))}
         </p>
 
         {/* Inside the element that goes full screen, so the dialog is still there in full screen. */}

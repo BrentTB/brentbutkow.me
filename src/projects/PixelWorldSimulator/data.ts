@@ -78,6 +78,29 @@ export const CENSUS_TRACK_COLOURS: readonly string[] = [
   '#e8e05f',
 ]
 
+/**
+ * The coldest and hottest anything in the world is allowed to get. The heat and chill tools clamp to it so
+ * neither can run away, and a snapshot arriving from a URL is clamped to it too — an `Int16` holds 32,000°,
+ * which no world should.
+ */
+export const TEMPERATURE_LIMITS = {
+  floor: -220,
+  ceiling: 1800,
+}
+
+/**
+ * The longest a shared link's world code may be, in characters, measured rather than guessed. Ready-made
+ * worlds deflate to 2,300-4,600, and the same worlds after a minute of running reach 2,700-11,000: an
+ * erupting volcano scatters debris across ground that started as clean stone. A world scribbled at random
+ * comes to about 15,000.
+ *
+ * Hence 32,768 rather than the 8,192 this started at: that refused any volcano left to erupt, which is the
+ * most worth sharing. A world past the cap is retried without its heat before it is refused, so only a
+ * genuinely pathological one — every cell a different material, which measures 83,000 even stripped — is
+ * turned away. The cap still bounds what the decoder will accept from a stranger's URL.
+ */
+export const SNAPSHOT_MAX_CHARS = 32_768
+
 export const BRUSH_RADIUS = {
   min: 0,
   max: 24,
@@ -259,7 +282,33 @@ export const simCopy = {
     title: 'Settings',
     close: 'Done',
   },
+  /** The link that carries a world to somebody else, and what to say when it does or doesn't. */
+  share: {
+    button: 'Share',
+    title: 'Copy a link to this world',
+    copied: 'Link copied. Anyone who opens it gets this world.',
+    /** Heat is the layer that gets dropped when a world will not fit; better a link than a refusal. */
+    copiedWithoutHeat: 'Link copied. The heat would not fit, so this world arrives cold.',
+    /** The clipboard is off limits in some browsers, so the address bar is the fallback that always works. */
+    inBar: 'Copying was blocked, so the link is in the address bar instead.',
+    tooBig:
+      'This world is too detailed to fit in a link, even without its heat. Clear some of it and try again.',
+    loaded: 'This world came from the link you opened.',
+    refused: {
+      malformed: 'That link is damaged, so nothing loaded.',
+      version: 'That link came from a newer version of this page.',
+      size: 'That link holds a world of a different size.',
+      tooLong: 'That link is too long to be a world.',
+      unsupported: 'This browser cannot open shared worlds.',
+    },
+  },
 }
+
+/** How long a note about a link stays up before the hint line goes back to normal, in ms. */
+export const SHARE_NOTE_LINGER = 6000
+
+/** The part of the URL a world travels in. Kept in the hash, so no world is ever sent to a server. */
+export const SHARE_HASH_KEY = 'w'
 
 /**
  * The picture settings, and what each one does in plain terms. Rendered straight from here, so the dialog
