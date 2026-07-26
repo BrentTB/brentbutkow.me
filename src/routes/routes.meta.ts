@@ -145,6 +145,7 @@ export const routesMeta: Record<string, RouteMeta> = {
     title: 'Pixel World Simulator — Brent Butkow',
     description:
       'Pixel World Simulator — a browser sandbox where you draw materials and watch them fall, flow, and react to each other.',
+    ogImage: '/og/pixel-world-simulator.png',
     jsonLd: {
       '@context': 'https://schema.org',
       '@type': 'VideoGame',
