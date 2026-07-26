@@ -58,7 +58,8 @@
   left: 0;
   // Match the control's width so the dropdown stays put as results change (long labels truncate).
   width: 100%;
-  max-height: 280px;
+  // The design cap, tightened to the room the anchor hook reports when that is smaller (a short viewport).
+  max-height: min(280px, var(--anchored-max, 280px));
   overflow-y: auto;
   margin: 0;
   padding: 4px;

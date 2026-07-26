@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { completions, execute, TerminalActionType, TerminalContext } from './terminal-engine'
 import { routePaths } from '../../../../routes/routes.paths'
-import { routesMeta } from '../../../../routes/routes.meta'
+import { browsableRoutePaths, routesMeta } from '../../../../routes/routes.meta'
 
 const ctx: TerminalContext = {
   isFunMode: false,
@@ -83,7 +83,9 @@ describe('execute — ls', () => {
   })
 
   it('lists a nested level by path, still slashed', () => {
-    expect(execute('ls fun-stuff/games', ctx).output[0]).toBe('null-space/')
+    const listing = execute('ls fun-stuff/games', ctx).output[0]
+    expect(listing).toContain('null-space/')
+    expect(listing).toContain('pixel-world-simulator/')
   })
 
   it('rejects unknown paths', () => {
@@ -110,8 +112,9 @@ describe('execute — tree', () => {
     expect(output[0]).toBe('.')
     expect(output).toContain('├── projects/')
     expect(output).toContain('│   └── recall-radar/') // leaf, still a folder
-    expect(output).toContain('│   └── games/')
-    expect(output).toContain('│       └── null-space/')
+    expect(output).toContain('│   ├── games/')
+    expect(output).toContain('│   │   ├── null-space/')
+    expect(output).toContain('│   │   └── pixel-world-simulator/')
     expect(output).toContain('└── contact/')
   })
 
@@ -119,6 +122,18 @@ describe('execute — tree', () => {
     const output = execute('tree', ctx).output.join('\n')
     for (const name of ['experience', 'education', 'achievements', 'ascii-art', 'gulag-sort']) {
       expect(output).toContain(name)
+    }
+  })
+
+  it('browses every page the site says it has, so a new page cannot be forgotten', () => {
+    // The filesystem is derived from the meta table rather than a list kept by hand. It was kept by hand
+    // once, and the pixel world shipped missing from it.
+    const output = execute('tree', ctx).output.join('\n')
+
+    for (const path of browsableRoutePaths) {
+      const leaf = path.split('/').filter(Boolean).pop()
+      if (leaf === undefined) continue // home, which is the root the tree is drawn from
+      expect(output, `tree is missing ${path}`).toContain(leaf)
     }
   })
 
@@ -347,7 +362,15 @@ describe('completions', () => {
 
   it('completes nested paths so repeated Tab digs deeper', () => {
     expect(completions('cd fun-stuff/ga')).toEqual(['cd fun-stuff/games/'])
-    expect(completions('cd fun-stuff/games/')).toEqual(['cd fun-stuff/games/null-space'])
+    expect(completions('cd fun-stuff/games/n')).toEqual(['cd fun-stuff/games/null-space'])
+  })
+
+  it('lists every game when the games directory itself is the prefix', () => {
+    // Two children now, so a Tab at the directory must offer both rather than silently one of them.
+    expect(completions('cd fun-stuff/games/')).toEqual([
+      'cd fun-stuff/games/null-space',
+      'cd fun-stuff/games/pixel-world-simulator',
+    ])
   })
 
   it('returns every match sorted for ambiguous prefixes', () => {

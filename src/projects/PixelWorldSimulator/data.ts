@@ -78,6 +78,29 @@ export const CENSUS_TRACK_COLOURS: readonly string[] = [
   '#e8e05f',
 ]
 
+/**
+ * The coldest and hottest anything in the world is allowed to get. The heat and chill tools clamp to it so
+ * neither can run away, and a snapshot arriving from a URL is clamped to it too — an `Int16` holds 32,000°,
+ * which no world should.
+ */
+export const TEMPERATURE_LIMITS = {
+  floor: -220,
+  ceiling: 1800,
+}
+
+/**
+ * The longest a shared link's world code may be, in characters, measured rather than guessed. Ready-made
+ * worlds deflate to 2,300-4,600, and the same worlds after a minute of running reach 2,700-11,000: an
+ * erupting volcano scatters debris across ground that started as clean stone. A world scribbled at random
+ * comes to about 15,000.
+ *
+ * Hence 32,768 rather than the 8,192 this started at: that refused any volcano left to erupt, which is the
+ * most worth sharing. A world past the cap is retried without its heat before it is refused, so only a
+ * genuinely pathological one — every cell a different material, which measures 83,000 even stripped — is
+ * turned away. The cap still bounds what the decoder will accept from a stranger's URL.
+ */
+export const SNAPSHOT_MAX_CHARS = 32_768
+
 export const BRUSH_RADIUS = {
   min: 0,
   max: 24,
@@ -225,6 +248,11 @@ export const simCopy = {
   tagline: 'Draw materials into a pixel world and watch them react.',
   taglineFun: 'Draw materials, mix them, and see what happens to the little world you just made.',
   hint: 'Pick a material and draw. Point at anything to see what it is.',
+  /**
+   * On a touch screen there is no pointing: the only way to put a finger on the world is to draw with it, so
+   * the readout never had a state where it was doing what the second sentence promised.
+   */
+  hintTouch: 'Pick a material and draw.',
   /** Shown in place of the paint hint while a force tool is selected. */
   toolHints: {
     [Tool.attract]: 'Drag to pull loose material toward you.',
@@ -244,6 +272,21 @@ export const simCopy = {
   },
   searchPlaceholder: 'Find a material',
   noMatch: 'Nothing by that name.',
+  /**
+   * On the world itself when a shared link arrives paused. A still world with a play button over it is the
+   * one arrangement nobody needs told about; the line underneath says it in words as well.
+   */
+  paused: {
+    title: 'Paused',
+    hint: 'Press to start this world',
+  },
+  /** The sheet a phone chooses a material in, in place of the grid there is no room for. */
+  picker: {
+    title: 'Materials',
+    close: 'Done',
+    /** On the chip that opens it: the material the brush currently holds. */
+    open: 'Change material',
+  },
   /** The slots under the palette, for the materials you keep coming back to. */
   slots: {
     /** Sits to the left of the row: without it the slots read as two odd extra swatches. */
@@ -259,7 +302,42 @@ export const simCopy = {
     title: 'Settings',
     close: 'Done',
   },
+  /** The link that carries a world to somebody else, and what to say when it does or doesn't. */
+  share: {
+    button: 'Share',
+    title: 'Copy a link to this world',
+    copied: 'Link copied. Anyone who opens it gets this world, paused.',
+    /** Heat is the layer that gets dropped when a world will not fit; better a link than a refusal. */
+    copiedWithoutHeat: 'Link copied. The heat would not fit, so this world arrives cold.',
+    /** The clipboard is off limits in some browsers, so the address bar is the fallback that always works. */
+    inBar: 'Copying was blocked, so the link is in the address bar instead.',
+    tooBig:
+      'This world is too detailed to fit in a link, even without its heat. Clear some of it and try again.',
+    loaded: 'This world came from the link you opened.',
+    loadedPaused:
+      'This world came from the link you opened, and it is paused. Press play to start it.',
+    refused: {
+      malformed: 'That link is damaged, so nothing loaded.',
+      version: 'That link came from a newer version of this page.',
+      size: 'That link holds a world of a different size.',
+      tooLong: 'That link is too long to be a world.',
+      unsupported: 'This browser cannot open shared worlds.',
+    },
+  },
 }
+
+/** How long a note about a link stays up before the hint line goes back to normal, in ms. */
+export const SHARE_NOTE_LINGER = 6000
+
+/** The part of the URL a world travels in. Kept in the hash, so no world is ever sent to a server. */
+export const SHARE_HASH_KEY = 'w'
+
+/**
+ * Whether the world in the link should arrive paused. A separate parameter rather than a bit in the payload:
+ * this is how the world is being *shown*, not what is in it, and the snapshot's validating parser is the last
+ * thing worth extending for a boolean.
+ */
+export const SHARE_PAUSED_KEY = 'p'
 
 /**
  * The picture settings, and what each one does in plain terms. Rendered straight from here, so the dialog
@@ -296,3 +374,14 @@ export const SETTINGS_KEY = 'pixel-world-settings'
  * again, and the palette is one tab away regardless.
  */
 export const MATERIAL_SLOTS = 3
+
+/**
+ * Where the palette becomes a sheet. The grid of swatches plus its tabs is 284px of an 812px phone — more than
+ * the world itself gets — and choosing a material is a job you come to and leave rather than something that
+ * needs a permanent third of the screen.
+ *
+ * A phone turned sideways counts too: it is wide enough to read as a desktop and only 400-odd pixels tall,
+ * which is the case the swatch grid crushes hardest. Mirrors the `compact-viewport` mixin in styles/_shared.
+ */
+export const PALETTE_SHEET_QUERY =
+  '(max-width: 640px), (orientation: landscape) and (max-height: 600px)'

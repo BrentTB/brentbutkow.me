@@ -145,6 +145,7 @@ export const routesMeta: Record<string, RouteMeta> = {
     title: 'Pixel World Simulator — Brent Butkow',
     description:
       'Pixel World Simulator — a browser sandbox where you draw materials and watch them fall, flow, and react to each other.',
+    ogImage: '/og/pixel-world-simulator.png',
     jsonLd: {
       '@context': 'https://schema.org',
       '@type': 'VideoGame',
@@ -193,3 +194,17 @@ export const routesMeta: Record<string, RouteMeta> = {
     description: 'The page you are looking for does not exist.',
   },
 }
+
+/**
+ * Every page a visitor can actually reach and browse: indexable, real, and static. Derived from the meta
+ * table rather than listed by hand, because three places wanted the same list and a hand-kept copy is a
+ * list somebody forgets — the home terminal's filesystem shipped without the pixel world for exactly that
+ * reason. Excludes pages held out of search (email landings, admin), the 404 catch-all, and routes with a
+ * dynamic segment, which are a page per record rather than a page you can navigate to.
+ *
+ * The order is the order of the table above, so the terminal's tree and the sitemap read in the same order
+ * the routes are declared in.
+ */
+export const browsableRoutePaths: readonly string[] = Object.entries(routesMeta)
+  .filter(([path, meta]) => !meta.noindex && path !== routePaths.notFound && !path.includes(':'))
+  .map(([path]) => path)

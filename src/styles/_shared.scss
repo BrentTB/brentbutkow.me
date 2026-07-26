@@ -2,6 +2,32 @@
 // site's kinetic accents (link arrows, mode toggle, terminal). One source keeps them in sync.
 $ease-shoot: cubic-bezier(0.34, 1.56, 0.64, 1);
 
+/**
+ * The screens that need the compact layout: phones upright, and phones turned sideways, where the viewport is
+ * wide enough to look like a desktop but only 400-odd pixels tall. Keying on width alone gave a landscape
+ * phone the full desktop layout inside a 420px-tall window, which left the world about a twentieth of the
+ * screen — the worst case of the lot, on the orientation that should suit a 16:9 world best.
+ *
+ * `PALETTE_SHEET_QUERY` in the pixel world's data.ts is the same condition for the one choice JavaScript has
+ * to make. Keep the two in step.
+ */
+@mixin compact-viewport {
+  @media (max-width: 640px), (orientation: landscape) and (max-height: 600px) {
+    @content;
+  }
+}
+
+/**
+ * A phone held sideways: wide, and 400-odd pixels tall. The stacked layout is the wrong shape here — a 16:9
+ * world wants the width, and the controls want the side rather than a row underneath that pushes the world
+ * off the top of the screen.
+ */
+@mixin compact-landscape {
+  @media (orientation: landscape) and (max-height: 600px) {
+    @content;
+  }
+}
+
 // Shared card base styles mixin
 @mixin card-base {
   border: 1px solid var(--border);

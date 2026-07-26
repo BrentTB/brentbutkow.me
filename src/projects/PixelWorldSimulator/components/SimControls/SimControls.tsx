@@ -1,5 +1,6 @@
 import { Preset } from '../../engine/presets'
-import { BRUSH_RADIUS, PRESETS, SIM_SPEEDS } from '../../data'
+import { ShareOutcome } from '../../useShareLink'
+import { BRUSH_RADIUS, PRESETS, SIM_SPEEDS, simCopy } from '../../data'
 import { Select } from '../../../../components/inputs/Select'
 import type { SelectOption } from '../../../../components/inputs/option.types'
 import styles from './SimControls.module.scss'
@@ -23,6 +24,11 @@ type SimControlsProps = {
   onClear(): void
   onRadius(radius: number): void
   onLoad(preset: Preset): void
+  /** Left out where the browser cannot build a link, rather than shown and broken. */
+  canShare: boolean
+  /** How the last attempt went, so the control shows it without the reader having to read the line below. */
+  shareOutcome: ShareOutcome
+  onShare(): void
 }
 
 export function SimControls({
@@ -35,6 +41,9 @@ export function SimControls({
   onClear,
   onRadius,
   onLoad,
+  canShare,
+  shareOutcome,
+  onShare,
 }: SimControlsProps) {
   const brushCells = radius * 2 + 1
 
@@ -85,6 +94,29 @@ export function SimControls({
           if (chosen) onLoad(chosen.preset)
         }}
       />
+
+      {canShare && (
+        <button
+          type="button"
+          className={`${styles.button} ${styles.share}`}
+          title={simCopy.share.title}
+          // Not colour alone: the outcome names itself here and spells itself out in the line under the
+          // world, so the green is a shortcut rather than the only way to tell.
+          data-outcome={shareOutcome}
+          onClick={onShare}
+        >
+          {simCopy.share.button}
+          <span className={styles.mark} aria-hidden="true">
+            {shareOutcome === ShareOutcome.copied
+              ? '✓'
+              : shareOutcome === ShareOutcome.refused
+                ? '✕'
+                : shareOutcome === ShareOutcome.inBar
+                  ? '!'
+                  : ''}
+          </span>
+        </button>
+      )}
 
       <label className={styles.slider}>
         Brush

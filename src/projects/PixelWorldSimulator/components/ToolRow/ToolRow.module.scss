@@ -1,3 +1,5 @@
+@use '../../../../styles/shared' as *;
+
 // The tool column, with the full-screen control sitting above it: it acts on the world rather than on the
 // pointer, so it stays outside the tool group instead of reading as a seventh tool.
 .column {
@@ -104,16 +106,25 @@
 }
 
 // Narrow enough that the canvas needs the full width: the column lies back down into a row.
-@media (max-width: 640px) {
+@include compact-viewport {
   .column {
     align-self: stretch;
     flex-direction: row-reverse;
     align-items: stretch;
   }
 
-  // Laid out as a row, the two view controls stack instead: side by side they eat width the tools need.
+  // Off the page flow entirely and onto the world's own top-right corner, the way a video player holds its
+  // controls. Stacked in the row they made the tool bar two buttons tall for no reason; beside the tools they
+  // ate width the six of them need. `.world` in the page module is the positioned ancestor.
   .view {
-    flex-direction: column;
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 2;
+  }
+
+  .expand {
+    flex: 0 0 auto;
   }
 
   .tools {

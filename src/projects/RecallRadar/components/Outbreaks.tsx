@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { EventSort, type EventOut } from '../recall.types'
 import { formatDate, pluralize } from '../chart-format'
 import { SegmentedToggle } from '../../../components/inputs/SegmentedToggle'
-import { useMediaQuery } from '../useMediaQuery'
+import { useMediaQuery } from '../../../components/utils/useMediaQuery'
 import { ShowMoreToggle } from './ShowMoreToggle'
 import styles from './Outbreaks.module.scss'
 

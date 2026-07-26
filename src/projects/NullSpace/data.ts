@@ -607,6 +607,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.17.1',
+    date: '2026-07-26',
+    changes: {
+      fixes: [
+        "On an iPhone, going full screen upright and then turning the phone sideways brought Safari's address bar back and left it there. Rotating shortens the page, and the trick that hides the bar was skipping itself whenever the page was already scrolled to its end, which after a rotate it usually is.",
+      ],
+    },
+  },
+  {
     version: '1.17.0',
     date: '2026-07-06',
     changes: {

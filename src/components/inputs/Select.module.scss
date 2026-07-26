@@ -59,7 +59,8 @@
   min-width: 100%;
   width: max-content;
   max-width: min(440px, 90vw);
-  max-height: 420px;
+  // The design cap, tightened to the room the anchor hook reports when that is smaller (a short viewport).
+  max-height: min(420px, var(--anchored-max, 420px));
   overflow-y: auto;
   margin: 0;
   padding: 4px;

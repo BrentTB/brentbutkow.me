@@ -31,6 +31,7 @@ const cards = [
   { variant: 'home', out: 'public/og-image.png' },
   { variant: 'recall-radar', out: 'public/og/recall-radar.png' },
   { variant: 'null-space', out: 'public/og/null-space.png' },
+  { variant: 'pixel-world-simulator', out: 'public/og/pixel-world-simulator.png' },
 ]
 
 for (const { variant, out } of cards) {

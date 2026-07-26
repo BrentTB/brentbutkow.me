@@ -62,12 +62,47 @@ describe('useFullscreen', () => {
     expect(result.current.isFullscreen).toBe(false)
   })
 
-  it('reports no support when the browser has no Fullscreen API', () => {
+  it('offers full screen even where the browser has no Fullscreen API', () => {
+    // iPhone Safari has none, and hiding the control there left the device most in need of a bigger world
+    // without one. The fixed-overlay fallback stands in, so the control is always offered.
     Object.defineProperty(document, 'exitFullscreen', { configurable: true, value: undefined })
 
     const { result } = mount()
 
-    expect(result.current.supported).toBe(false)
+    expect(result.current.supported).toBe(true)
+  })
+
+  it('falls back to the overlay where the API is missing', () => {
+    const element = document.createElement('div')
+    Object.defineProperty(element, 'requestFullscreen', { configurable: true, value: undefined })
+    const { result } = renderHook(() => useFullscreen({ current: element }))
+
+    act(() => result.current.toggle())
+
+    expect(result.current.isPseudo).toBe(true)
+    expect(result.current.isFullscreen).toBe(true)
+  })
+
+  it('falls back to the overlay when the API refuses the call', async () => {
+    // Having the method is not the same as being allowed to use it.
+    requestFullscreen.mockRejectedValue(new Error('not allowed'))
+    const { result } = mount()
+
+    await act(async () => result.current.toggle())
+
+    expect(result.current.isPseudo).toBe(true)
+  })
+
+  it('comes back out of the overlay on a second press', async () => {
+    requestFullscreen.mockRejectedValue(new Error('not allowed'))
+    const { result } = mount()
+    await act(async () => result.current.toggle())
+    expect(result.current.isPseudo).toBe(true)
+
+    act(() => result.current.toggle())
+
+    expect(result.current.isPseudo).toBe(false)
+    expect(result.current.isFullscreen).toBe(false)
   })
 
   it('swallows a refused request rather than throwing at the page', () => {

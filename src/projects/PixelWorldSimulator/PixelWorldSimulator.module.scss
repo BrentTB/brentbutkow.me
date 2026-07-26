@@ -1,17 +1,23 @@
+@use '../../styles/shared' as *;
+
 .body {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-// Canvas and tools share a row, so reaching for a material group never lands on a tool.
+// Canvas and tools share a row, so reaching for a material group never lands on a tool. Positioned, so the
+// full-screen and settings buttons can sit on the world's corner on a phone rather than in the flow.
 .world {
+  position: relative;
   display: flex;
   align-items: stretch;
   gap: 12px;
 }
 
 .stage {
+  // Positioned so the paused overlay lands on the world and nothing else.
+  position: relative;
   display: flex;
   flex: 1;
   justify-content: center;
@@ -38,7 +44,7 @@
   gap: 8px;
 }
 
-@media (max-width: 640px) {
+@include compact-viewport {
   .world {
     flex-direction: column;
   }
@@ -47,6 +53,12 @@
     align-self: stretch;
     // The column lies down into a row under the canvas, so it takes the page width rather than its own.
     width: auto;
+  }
+
+  // The tally is a curiosity, and on a phone it is the first thing that should lose its seat: it costs a
+  // whole pass over ninety thousand cells when open, and the world it describes is the thing short of room.
+  .tally {
+    display: none;
   }
 }
 
@@ -59,9 +71,14 @@
   max-width: calc(58vh * 16 / 9);
   border-radius: var(--radius);
   background: var(--bg);
-  // The grid is 300 cells wide and drawn 1:1 into the backing store — the browser scales it up, and
+  // The grid is 400 cells wide and drawn 1:1 into the backing store — the browser scales it up, and
   // the cells have to stay cells.
   image-rendering: pixelated;
+  // Letterboxed rather than stretched, whatever shape the element ends up. Every attempt to hold the ratio
+  // with widths and heights failed somewhere: two bounds and `aspect-ratio` yields to both, and sizing from a
+  // measured height gave a zero-width world the moment that measurement was zero. `contain` also centres the
+  // world in the space it has, which is what full screen on a phone should do with the room left over.
+  object-fit: contain;
   cursor: crosshair;
   touch-action: none;
 
@@ -75,22 +92,43 @@
   }
 }
 
+// Normally no box at all: the palette, the controls and the hint are children of the body directly. Sideways
+// on a phone it becomes a real column beside the world.
+.deck {
+  display: contents;
+}
+
 .hint {
   margin: 0;
   color: var(--muted);
   font-family: var(--font-mono);
   font-size: 0.78rem;
   letter-spacing: 0.02em;
+  // Two lines' worth of room, so a longer tool hint or a note about a link never shifts what is under it.
+  // On a phone the readout is off altogether, so nothing swaps a two-line hint for a one-line reading.
+  min-height: 2.6em;
 }
 
 // Full screen: the world takes every pixel it can, and the controls keep a strip at the bottom. Scrolling
 // is off, so nothing can push the canvas out of view. Keyed on the class as well as the pseudo-class,
 // since the flag comes from the document either way and a class is something tests can exercise.
+// Standing in for the Fullscreen API: a fixed overlay over the page. Only the pseudo mode needs lifting —
+// the real API already paints the element on its own layer.
+.body.pseudo {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  border-radius: 0;
+}
+
 .body:fullscreen,
 .body.filling {
   gap: 10px;
   padding: 10px;
-  height: 100%;
+  // The viewport itself rather than `100%` of a parent that may have no definite height: `100%` resolved to
+  // auto outside the real Fullscreen API, which is exactly the state the pseudo-fullscreen fallback runs in.
+  // `dvh` also tracks a phone's chrome sliding in and out instead of measuring the taller window.
+  height: 100dvh;
   overflow: hidden;
   background: var(--bg);
 
@@ -107,10 +145,13 @@
   }
 
   .canvas {
-    width: auto;
+    // Fills the stage and lets `object-fit` do the fitting: centred, never stretched, and no measurement to
+    // go stale or come back zero.
+    width: 100%;
     height: 100%;
-    max-width: 100%;
-    max-height: 100%;
+    max-width: none;
+    max-height: none;
+    aspect-ratio: auto;
     // The world and the controls are both on black, so without an edge the controls read as sitting on
     // top of the world rather than beside it.
     border: 1px solid var(--border-strong);
@@ -119,5 +160,76 @@
 
   .hint {
     margin-top: -2px;
+  }
+}
+
+// A phone held sideways. The world takes the height and the controls take the side: stacked, the world was
+// capped at 58vh of a 390px window and came out about a twentieth of the screen, on the orientation that
+// suits a 16:9 world best.
+// Sideways in full screen the column fitted to within a few pixels and scrolled for them. The hint is the
+// first thing to go: it explains how to start, and by full screen that has been answered.
+.body.filling {
+  @include compact-viewport {
+    .hint {
+      display: none;
+    }
+  }
+
+  // Only in full screen does the column scroll itself — the page has nowhere to go. And only downward: asking
+  // for `overflow-y` alone turns the other axis from `visible` into `auto`, and two stray pixels of width were
+  // enough to give the column a sideways scroll that clipped the start of its own labels.
+  @include compact-landscape {
+    .deck {
+      overflow-x: hidden;
+      overflow-y: auto;
+      overscroll-behavior-y: contain;
+    }
+  }
+}
+
+@include compact-landscape {
+  .body {
+    flex-direction: row;
+    align-items: stretch;
+    gap: 10px;
+    // The page itself does the scrolling on a short screen, not two panes with their own bars.
+    max-height: none;
+  }
+
+  // A zero basis, not `auto`: the world's width has to come from the room left in the row, because the canvas
+  // inside it is sized from the world. On an `auto` basis the two took their size from each other and both
+  // collapsed — in full screen the stage measured 0 wide and the world vanished completely.
+  .world {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .stage {
+    min-width: 0;
+    padding: 6px;
+  }
+
+  .canvas {
+    // Capped by what the height budget allows rather than by a max-height: a width and a height together are
+    // two bounds, and `aspect-ratio` yields to both — which drew the world at 2.2:1, cells no longer square.
+    //
+    // The budget is generous on purpose. At 62dvh the world was leaving 116px of width and 38px of height
+    // unused inside its own stage: sideways there is width to spare and the page scrolls anyway, so the world
+    // takes the room across and the cap only binds on a screen wide enough to make it silly.
+    max-width: calc(85dvh * 16 / 9);
+  }
+
+  .deck {
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 auto;
+    gap: 8px;
+    width: 15.5rem;
+    min-height: 0;
+  }
+
+  .hint {
+    // Two lines of mono at this width, so the reading swapping in for the hint still doesn't move anything.
+    min-height: 3.4em;
   }
 }

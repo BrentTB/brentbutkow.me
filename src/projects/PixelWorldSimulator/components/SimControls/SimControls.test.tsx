@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
-import { BRUSH_RADIUS, DEFAULT_SPEED, PRESETS, SIM_SPEEDS } from '../../data'
+import { BRUSH_RADIUS, DEFAULT_SPEED, PRESETS, SIM_SPEEDS, simCopy } from '../../data'
+import { ShareOutcome } from '../../useShareLink'
 import { SimControls } from './SimControls'
 
 function renderControls(overrides: Partial<Parameters<typeof SimControls>[0]> = {}) {
@@ -14,6 +15,9 @@ function renderControls(overrides: Partial<Parameters<typeof SimControls>[0]> = 
     onClear: vi.fn(),
     onRadius: vi.fn(),
     onLoad: vi.fn(),
+    canShare: true,
+    shareOutcome: ShareOutcome.idle,
+    onShare: vi.fn(),
     ...overrides,
   }
   render(<SimControls {...props} />)
@@ -85,6 +89,74 @@ describe('SimControls', () => {
     fireEvent.click(screen.getByRole('option', { name: PRESETS[0].label }))
 
     expect(props.onLoad).toHaveBeenCalledWith(PRESETS[0].preset)
+  })
+
+  it('offers a share control and reports a press', () => {
+    const props = renderControls()
+
+    fireEvent.click(screen.getByRole('button', { name: simCopy.share.button }))
+
+    expect(props.onShare).toHaveBeenCalled()
+  })
+
+  it('shows the outcome on the control itself, not only in the line below', () => {
+    renderControls({ shareOutcome: ShareOutcome.copied })
+    const share = screen.getByRole('button', { name: simCopy.share.button })
+    expect(share.getAttribute('data-outcome')).toBe(ShareOutcome.copied)
+
+    cleanup()
+    renderControls({ shareOutcome: ShareOutcome.refused })
+
+    expect(
+      screen.getByRole('button', { name: simCopy.share.button }).getAttribute('data-outcome')
+    ).toBe(ShareOutcome.refused)
+  })
+
+  it('marks the outcome with a glyph as well as a colour', () => {
+    renderControls({ shareOutcome: ShareOutcome.copied })
+    const copied = screen.getByRole('button', { name: simCopy.share.button }).textContent
+
+    cleanup()
+    renderControls({ shareOutcome: ShareOutcome.refused })
+    const refused = screen.getByRole('button', { name: simCopy.share.button }).textContent
+
+    // Colour alone would leave the two states identical to anyone who cannot tell them apart.
+    expect(copied).not.toBe(refused)
+  })
+
+  it('shows an arrived link as its own state, without the copied tick', () => {
+    renderControls({ shareOutcome: ShareOutcome.loaded })
+    const share = screen.getByRole('button', { name: simCopy.share.button })
+
+    expect(share.getAttribute('data-outcome')).toBe(ShareOutcome.loaded)
+    // Opening someone's link copied nothing, so the button must not claim it did.
+    expect(share.textContent).toBe(simCopy.share.button)
+  })
+
+  it('flags a link that reached only the address bar', () => {
+    renderControls({ shareOutcome: ShareOutcome.inBar })
+    const share = screen.getByRole('button', { name: simCopy.share.button })
+
+    expect(share.getAttribute('data-outcome')).toBe(ShareOutcome.inBar)
+    expect(share.textContent).toBe(`${simCopy.share.button}!`)
+  })
+
+  it('leaves the share control out where the browser cannot build a link', () => {
+    renderControls({ canShare: false })
+
+    expect(screen.queryByRole('button', { name: simCopy.share.button })).toBeNull()
+  })
+
+  it('keeps sharing away from the button that throws the world away', () => {
+    renderControls()
+    const share = screen.getByRole('button', { name: simCopy.share.button })
+    const clear = screen.getByRole('button', { name: 'Clear' })
+    const brush = screen.getByRole('slider', { name: /brush/i })
+
+    // A miss while reaching for Share should never clear a world, so the brush sits between the two.
+    const order = (node: Element) => [...document.querySelectorAll('button, input')].indexOf(node)
+    expect(order(share)).toBeLessThan(order(brush))
+    expect(order(brush)).toBeLessThan(order(clear))
   })
 
   it('does not treat the prompt itself as a world to load', () => {

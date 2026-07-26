@@ -14,6 +14,7 @@ import { MATERIALS } from './engine/materials'
 import { Preset } from './engine/presets'
 import { writeCellRgb } from './engine/palette'
 import { PixelWorldSim, usePixelWorld } from './usePixelWorld'
+import { onCI } from './test-env'
 
 const MS_PER_TICK = 1000 / TICK_RATE
 
@@ -165,13 +166,7 @@ function mountSim() {
   return { ...rendered, image }
 }
 
-// Heavy full-sim tests (many mounted ticks): run locally, skip on CI, where the shared runners are slow
-// enough to blow the per-test timeout. `npm test` locally still runs them.
-// tsconfig carries no node types, so reach `process.env` through globalThis to stay type-safe.
-const onCI = Boolean(
-  (globalThis as unknown as { process?: { env?: Record<string, string | undefined> } }).process?.env
-    ?.CI
-)
+// Heavy full-sim tests (many mounted ticks) skip on CI and run locally.
 const itSlow = it.skipIf(onCI)
 
 describe('usePixelWorld', () => {
@@ -218,7 +213,7 @@ describe('usePixelWorld', () => {
     expect(countMaterial(image, MaterialId.ice, slab)).toBeLessThan(iceBefore)
   })
 
-  it('runs the reaction pass too', () => {
+  itSlow('runs the reaction pass too', () => {
     const { result, image } = mountSim()
     act(() => {
       result.current.paintStroke({ x: 120, y: 150 }, { x: 120, y: 150 }, MaterialId.sand, 8)
@@ -487,6 +482,46 @@ describe('usePixelWorld', () => {
     expect(cancelledHandles).toContain(lastHandle)
   })
 
+  describe('sharing a world', () => {
+    it('takes a snapshot and loads it back over a cleared world', async () => {
+      const { result, image } = mountSim()
+      act(() =>
+        result.current.paintStroke({ x: 80, y: 90 }, { x: 140, y: 90 }, MaterialId.stone, 4)
+      )
+      frame(0)
+      const box = { x: 60, y: 70, width: 100, height: 40 }
+      const drawn = countMaterial(image, MaterialId.stone, box)
+      expect(drawn).toBeGreaterThan(0)
+
+      const { code } = await result.current.snapshot()
+      act(() => result.current.clear())
+      frame(0)
+      expect(countMaterial(image, MaterialId.stone, box)).toBe(0)
+
+      const loaded = await result.current.loadSnapshot(code)
+      frame(0)
+
+      expect(loaded).toEqual({ ok: true })
+      expect(countMaterial(image, MaterialId.stone, box)).toBe(drawn)
+    })
+
+    it('leaves the world alone when a link cannot be read', async () => {
+      const { result, image } = mountSim()
+      act(() =>
+        result.current.paintStroke({ x: 80, y: 90 }, { x: 140, y: 90 }, MaterialId.stone, 4)
+      )
+      frame(0)
+      const box = { x: 60, y: 70, width: 100, height: 40 }
+      const drawn = countMaterial(image, MaterialId.stone, box)
+
+      const refused = await result.current.loadSnapshot('not-a-world')
+      frame(0)
+
+      expect(refused.ok).toBe(false)
+      expect(countMaterial(image, MaterialId.stone, box)).toBe(drawn)
+    })
+  })
+
   describe('picture settings', () => {
     /** Alpha written into the temperature overlay for one cell, which is the tint the viewer sees. */
     function tintAt(x: number, y: number): number {
@@ -552,6 +587,30 @@ describe('usePixelWorld', () => {
 
       expect(cancelledHandles).toEqual([])
     })
+  })
+
+  it('stops the world on pause, whatever it was doing', () => {
+    // A world arriving paused from a link cannot toggle: it has to stop, whether it was running or already
+    // stopped by the visitor a moment earlier.
+    const { result } = mountSim()
+
+    act(() => result.current.pause())
+    expect(result.current.isPaused).toBe(true)
+
+    act(() => result.current.pause())
+    expect(result.current.isPaused).toBe(true)
+  })
+
+  it('keeps a paused world still', () => {
+    const { result, image } = mountSim()
+    act(() => result.current.paintStroke({ x: 70, y: 2 }, { x: 70, y: 2 }, MaterialId.sand, 0))
+    act(() => result.current.pause())
+    frame(0)
+    const resting = sandRow(image, 70)
+
+    for (let i = 0; i < 10; i++) frame(MS_PER_TICK)
+
+    expect(sandRow(image, 70)).toBe(resting)
   })
 
   it('fast-forwards by running more of the same ticks, not by changing them', () => {

@@ -1,3 +1,5 @@
+@use '../../../../styles/shared' as *;
+
 .slots {
   display: flex;
   align-items: stretch;
@@ -81,4 +83,18 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+@include compact-viewport {
+  // The row is the last five pixels of horizontal overflow: the slots share what is left after the label
+  // rather than each insisting on its own width.
+  .slot {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 7px 8px;
+  }
+
+  .title {
+    flex: 0 0 auto;
+  }
 }

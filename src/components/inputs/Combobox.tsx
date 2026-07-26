@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
 import type { SelectOption } from './option.types'
 import { portalTarget } from './portalTarget'
@@ -249,13 +249,16 @@ export function Combobox({
             aria-label={ariaLabel}
             style={
               coords
-                ? {
+                ? ({
                     position: 'fixed',
                     top: coords.top,
                     left: coords.left,
                     width: coords.width,
                     minWidth: coords.width,
-                  }
+                    // The stylesheet holds the design cap; this hands it the room where the menu landed, so
+                    // its `min()` takes whichever is smaller and a list too long for a short screen scrolls.
+                    '--anchored-max': `${coords.maxHeight}px`,
+                  } as CSSProperties)
                 : { position: 'fixed', visibility: 'hidden' }
             }
           >

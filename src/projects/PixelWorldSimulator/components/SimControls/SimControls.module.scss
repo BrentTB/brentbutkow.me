@@ -1,3 +1,5 @@
+@use '../../../../styles/shared' as *;
+
 .controls {
   display: flex;
   flex-wrap: wrap;
@@ -172,13 +174,80 @@
   margin-left: auto;
 }
 
-@media (max-width: 560px) {
+@include compact-viewport {
+  // The slider takes its own line last, which puts Clear back on the row with the preset menu instead of
+  // stranded under the brush width.
   .slider {
+    order: 2;
     margin-left: 0;
     width: 100%;
 
     input[type='range'] {
       flex: 1;
+      // A range input will not shrink past the width the browser gives it by default, so in a narrow column
+      // the row came out two pixels wider than the column and left it scrollable sideways by exactly that.
+      min-width: 0;
     }
+  }
+}
+
+// The share control carries its own outcome: a visitor who presses it and looks straight back at the world
+// should still know whether it worked, without reading the line underneath.
+.share {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+
+  &[data-outcome='copied'] {
+    color: var(--success);
+    border-color: var(--success);
+    background: rgba(var(--success-rgb), 0.14);
+  }
+
+  // The link is good, it just is not on the clipboard (inBar), or the world came from a link the visitor
+  // opened rather than one they copied (loaded): informational, so accent rather than success or danger.
+  // Only inBar carries a glyph; loaded stays a bare accent so it never claims a copy that did not happen.
+  &[data-outcome='inBar'],
+  &[data-outcome='loaded'] {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: rgba(var(--accent-rgb), 0.14);
+  }
+
+  &[data-outcome='refused'] {
+    color: var(--danger);
+    border-color: var(--danger);
+    background: rgba(var(--danger-rgb), 0.14);
+  }
+
+  // Hover must not paint over the answer the button is currently giving.
+  &:hover:not([data-outcome='idle']) {
+    border-color: currentColor;
+  }
+}
+
+// A tick, a cross or a warning beside the label, so the state does not rest on colour alone.
+.mark {
+  font-size: 0.78rem;
+  line-height: 1;
+}
+
+// Play, step and five speeds come to 348px. Upright on a phone that fits; sideways the column holding them is
+// 248px and the last two speeds were simply off the end of it. Only there do they drop to their own line
+// inside the same shell, still reading as one instrument, sharing the width between them.
+@include compact-landscape {
+  .transport {
+    flex-wrap: wrap;
+  }
+
+  .speeds {
+    flex: 1 0 100%;
+    border-top: 1px solid var(--border);
+  }
+
+  .speed {
+    flex: 1;
+    padding-inline: 6px;
+    text-align: center;
   }
 }

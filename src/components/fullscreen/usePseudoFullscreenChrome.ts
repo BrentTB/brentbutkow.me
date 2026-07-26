@@ -2,8 +2,9 @@ import { useEffect } from 'react'
 
 // Delays (ms) for the staggered scroll nudges. iOS finishes re-laying out a
 // rotation at an unpredictable time, so an early scrollTo is silently ignored —
-// firing a few times covers the settle window.
-const NUDGE_DELAYS = [0, 150, 350, 600]
+// firing a few times covers the settle window. The tail reaches past 600ms
+// because a rotate can still be settling then.
+const NUDGE_DELAYS = [0, 150, 350, 600, 900]
 
 // iOS Safari has no Fullscreen API, so the game falls back to a CSS
 // pseudo-fullscreen overlay. Safari keeps its URL / tab bar visible until the
@@ -20,9 +21,13 @@ export function usePseudoFullscreenChrome(active: boolean) {
     let pending: ReturnType<typeof setTimeout>[] = []
     const hideChrome = () => {
       const max = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight)
-      // Skip if already at the bottom, so the resize Safari fires while hiding its
-      // own chrome doesn't bounce back into another scroll.
-      if (window.scrollY + window.innerHeight >= max) return
+      // Safari only auto-hides its bars in response to real downward movement, and being at the bottom of
+      // the page is not the same as the bars being hidden. Rotating to landscape shortens the page and
+      // shrinks the viewport, so after a rotate the page is often already at its end — an earlier version
+      // skipped the scroll in exactly that case and the bars stayed up for good. Going to the top first
+      // guarantees there is somewhere to travel back down from; the overlay is fixed, so nothing visibly
+      // moves either way.
+      if (window.scrollY + window.innerHeight >= max) window.scrollTo(0, 0)
       window.scrollTo(0, max)
     }
     const nudge = () => {
@@ -33,10 +38,14 @@ export function usePseudoFullscreenChrome(active: boolean) {
 
     window.addEventListener('orientationchange', nudge)
     window.addEventListener('resize', nudge)
+    // The one iOS reports reliably: `orientationchange` is deprecated and `resize` does not always fire for a
+    // rotate, but the visual viewport always changes size when the bars come back.
+    window.visualViewport?.addEventListener('resize', nudge)
     return () => {
       pending.forEach(clearTimeout)
       window.removeEventListener('orientationchange', nudge)
       window.removeEventListener('resize', nudge)
+      window.visualViewport?.removeEventListener('resize', nudge)
     }
   }, [active])
 }

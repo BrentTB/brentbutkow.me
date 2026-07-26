@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { MaterialId } from '../pixel-world.types'
-import { AMBIENT_TEMPERATURE } from '../data'
+import { AMBIENT_TEMPERATURE, TEMPERATURE_LIMITS } from '../data'
 import { cellIndex, createGrid, placeMaterial } from './grid'
 import { attract, blast, detonate, flashOver, temper, wind } from './forces'
 import { MATERIALS } from './materials'
@@ -209,8 +209,10 @@ describe('temper', () => {
     const ceiling = grid.temperature[middle]
     for (let press = 0; press < 200; press++) temper(grid, 10, 10, 4, false)
 
-    expect(ceiling).toBeLessThan(2000)
-    expect(grid.temperature[middle]).toBeGreaterThan(-273)
+    // Against the shared limits rather than copies of their values: the snapshot decoder clamps incoming
+    // temperatures to the same pair, so they live in `data.ts` and a retune moves both at once.
+    expect(ceiling).toBe(TEMPERATURE_LIMITS.ceiling)
+    expect(grid.temperature[middle]).toBe(TEMPERATURE_LIMITS.floor)
   })
 })
 

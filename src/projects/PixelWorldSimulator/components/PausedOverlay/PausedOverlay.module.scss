@@ -1,0 +1,71 @@
+// Covers the world it belongs to, not the page: the stage is the positioned ancestor, so this lands exactly
+// on the canvas and nothing else.
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  // The world stays legible through it. The point is to show what was shared, not to hide it behind a scrim.
+  background: rgba(6, 7, 10, 0.42);
+  border: 0;
+  border-radius: var(--radius);
+  color: var(--text);
+  cursor: pointer;
+  // The whole world is the target, so a thumb anywhere on it starts the thing.
+  -webkit-tap-highlight-color: transparent;
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -4px;
+  }
+}
+
+// The one accented thing on a dimmed world, so the eye lands here first.
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 58px;
+  height: 58px;
+  color: var(--on-accent);
+  background: var(--accent);
+  border-radius: 50%;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+  transition: transform 0.18s ease;
+
+  .overlay:hover & {
+    transform: scale(1.06);
+  }
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.hint {
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+}
+
+// A small world has room for the button and nothing else; the line underneath already says it in words.
+@media (max-width: 420px) {
+  .label,
+  .hint {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .badge {
+    transition: none;
+  }
+}

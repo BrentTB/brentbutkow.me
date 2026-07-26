@@ -77,4 +77,34 @@ describe('usePseudoFullscreenChrome', () => {
     vi.advanceTimersByTime(600)
     expect(scrollTo.mock.calls.length).toBe(afterUnmount)
   })
+
+  // The bug this hook was reported as still having: rotate to landscape and Safari's bars come back and stay.
+  // A landscape rotate shortens the page and the viewport, so the page is often already at its end — and the
+  // old guard read "already at the bottom" as "bars already hidden" and skipped the scroll entirely.
+  it('still scrolls after a rotate that leaves the page already at its end', () => {
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: PAGE_HEIGHT - 400 })
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 400 })
+
+    renderHook(() => usePseudoFullscreenChrome(true))
+    vi.advanceTimersByTime(1000)
+
+    // Top first, so there is somewhere to travel down from, then back to the end.
+    expect(scrollTo).toHaveBeenCalledWith(0, 0)
+    expect(scrollTo).toHaveBeenLastCalledWith(0, PAGE_HEIGHT)
+  })
+
+  it('listens to the visual viewport, which is the signal iOS reports for a rotate', () => {
+    const add = vi.fn()
+    const remove = vi.fn()
+    Object.defineProperty(window, 'visualViewport', {
+      configurable: true,
+      value: { addEventListener: add, removeEventListener: remove },
+    })
+
+    const view = renderHook(() => usePseudoFullscreenChrome(true))
+    expect(add).toHaveBeenCalledWith('resize', expect.any(Function))
+
+    view.unmount()
+    expect(remove).toHaveBeenCalledWith('resize', expect.any(Function))
+  })
 })

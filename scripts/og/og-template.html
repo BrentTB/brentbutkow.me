@@ -1,6 +1,6 @@
 <!doctype html>
 <!-- 1200x630 Open Graph card template. Rendered to PNG by scripts/generate-og.mjs via headless
-     Chrome; pick a variant with ?v=home|recall-radar|null-space. Mirrors the site's design
+     Chrome; pick a variant with ?v=home|recall-radar|null-space|pixel-world-simulator. Mirrors the site's design
      tokens (ink bg, warm gold accent, IBM Plex) and the terminal ~/ path motif. -->
 <html lang="en">
   <head>
@@ -108,12 +108,54 @@
         border-radius: 50%;
         background: rgba(243, 239, 231, 0.7);
       }
+      /* A slab of the world itself down the right-hand edge: sky, grains mid-fall, then the strata. The card
+         for a falling-sand sandbox should be made of cells, and the text column ends well clear of it. */
+      /* With the world down the right-hand edge, the title has to wrap rather than run into it: at 96px,
+         "Pixel World Simulator" reaches within 200px of the far edge on one line. */
+      .card.hasStrata .title {
+        max-width: 620px;
+        /* A two-line title plus a subtitle and a tag overran the card at 96px and drove the tag into the
+           brand line, which is pinned to the bottom. */
+        font-size: 78px;
+      }
+      .card.hasStrata .subtitle {
+        /* Two lines, not three: the text column has room to 798px before the world's edge, and a third line
+           pushed the tag into the brand line pinned at the bottom. */
+        max-width: 21em;
+      }
+      /* The bloom the renderer composites over anything alight. A blurred pass in the sim, a soft radial here
+         — sitting over the crater in the slab, well clear of the text column. */
+      .blast {
+        position: absolute;
+        left: 1000px;
+        top: 200px;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(
+          circle,
+          rgba(255, 196, 92, 0.5) 0%,
+          rgba(240, 120, 40, 0.26) 34%,
+          transparent 66%
+        );
+      }
+      .strata {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 380px;
+        height: 630px;
+        image-rendering: pixelated;
+        -webkit-mask-image: linear-gradient(to right, transparent, #000 90px);
+        mask-image: linear-gradient(to right, transparent, #000 90px);
+      }
     </style>
   </head>
   <body>
     <div class="card">
       <div class="glow"></div>
       <div class="stars" id="stars"></div>
+      <canvas class="strata" id="strata" width="38" height="63"></canvas>
+      <div class="blast" id="blast" hidden></div>
       <div class="path" id="path"></div>
       <div class="title" id="title"></div>
       <div class="subtitle" id="subtitle"></div>
@@ -136,6 +178,16 @@
           subtitle:
             'Live food-recall tracking across the US, Canada, UK and South Africa — updated daily, with severity ratings and free email alerts.',
           tags: ['FDA', 'USDA', 'CFIA', 'FSA', 'NCC'],
+        },
+        'pixel-world-simulator': {
+          path: '~/fun-stuff/games/pixel-world-simulator',
+          title: 'Pixel World Simulator',
+          subtitle:
+            'A falling-sand sandbox. Draw a world, then flood it, set it alight, blow it up, or leave the ants to tunnel through it.',
+          // No tag: a three-line subtitle plus a two-line title already fills the column, and a tag under it
+          // ran into the brand line pinned to the bottom. The path above says it is a game.
+          tags: [],
+          strata: true,
         },
         'null-space': {
           path: '~/fun-stuff/games/null-space',
@@ -162,6 +214,102 @@
         tag.textContent = label
         document.getElementById('tags').appendChild(tag)
       }
+      if (variant.strata) {
+        // The material colours come from the sim's own table (engine/materials.ts). Copied rather than
+        // imported: this file is rendered by Chrome on its own, with no build step to pull TypeScript in.
+        const SKY = null
+        const SAND = [214, 172, 96]
+        const DIRT = [110, 78, 52]
+        const STONE = [122, 124, 130]
+        const WATER = [62, 122, 186]
+        const LAVA = [226, 104, 38]
+        const PLANT = [78, 148, 66]
+        const FIRE = [255, 168, 60]
+        const EMBER = [255, 214, 132]
+        const SMOKE = [116, 112, 108]
+        const ASH = [92, 88, 86]
+
+        // Deterministic, so regenerating the card gives the same world back.
+        let s2 = 1337
+        const r2 = () => (s2 = (s2 * 16807) % 2147483647) / 2147483647
+        document.querySelector('.card').classList.add('hasStrata')
+        const canvas = document.getElementById('strata')
+        const ctx = canvas.getContext('2d')
+        const { width: W, height: H } = canvas
+
+        // A surface that wanders, a pool worn into it, and the layers underneath — the shape every preset has.
+        // Low enough that the ground sits under the title rather than through it, with a dip worn into it.
+        const surface = []
+        let level = 34
+        for (let x = 0; x < W; x++) {
+          level += Math.round(r2() * 2 - 1)
+          level = Math.max(30, Math.min(38, level))
+          surface.push(x > 12 && x < 26 ? level + 7 : level)
+        }
+
+        const put = (x, y, rgb, jitter) => {
+          if (!rgb) return
+          const shade = jitter ? Math.round((r2() * 2 - 1) * jitter) : 0
+          ctx.fillStyle = `rgb(${rgb[0] + shade} ${rgb[1] + shade} ${rgb[2] + shade})`
+          ctx.fillRect(x, y, 1, 1)
+        }
+
+        for (let x = 0; x < W; x++) {
+          const top = surface[x]
+          const pooled = x > 13 && x < 25
+          for (let y = 0; y < H; y++) {
+            if (y < top) {
+              // Water fills the dip to the level of the ground around it; above that, the odd grain still
+              // falling out of the sky.
+              if (pooled && y >= surface[2]) put(x, y, WATER, 12)
+              else if (r2() < 0.014) put(x, y, SAND, 18)
+              continue
+            }
+            if (y < top + 2) put(x, y, pooled ? DIRT : SAND, 16)
+            else if (y < top + 12) put(x, y, DIRT, 12)
+            else put(x, y, STONE, 10)
+          }
+          // A little growth along the dry ground, and a vein of lava deep down.
+          if (!pooled && r2() < 0.14) put(x, top - 1, PLANT, 14)
+          if (r2() < 0.1) put(x, H - 4 - Math.round(r2() * 3), LAVA, 20)
+        }
+
+        // Something just went off in the right-hand shoulder of the ground: a charge takes a bite out of the
+        // terrain, throws what it removed, and leaves the hole burning. The whole card is one frame of that.
+        const bx = 30
+        const by = 36
+        const CRATER = 6
+        for (let dy = -CRATER; dy <= CRATER; dy++) {
+          for (let dx = -CRATER; dx <= CRATER; dx++) {
+            const away = Math.sqrt(dx * dx + dy * dy)
+            // A ragged rim rather than a compass circle — a clean disc is the shape that always reads as a bug.
+            if (away > CRATER - r2() * 1.8) continue
+            const x = bx + dx
+            const y = by + dy
+            if (x < 0 || x >= W || y < 0 || y >= H) continue
+            ctx.clearRect(x, y, 1, 1)
+            // The bottom of the hole is still alight, the rim only scorched.
+            if (away < CRATER * 0.45) put(x, y, r2() < 0.35 ? EMBER : FIRE, 22)
+            else if (away < CRATER * 0.7 && r2() < 0.3) put(x, y, FIRE, 26)
+          }
+        }
+
+        // What the blast threw: debris on its way out, embers above it, and smoke taking over higher up.
+        for (let i = 0; i < 90; i++) {
+          const angle = -Math.PI * r2()
+          const reach = CRATER + r2() * 16
+          const x = Math.round(bx + Math.cos(angle) * reach)
+          const y = Math.round(by + Math.sin(angle) * reach * 0.85)
+          if (x < 0 || x >= W || y < 0 || y >= H) continue
+          const height = by - y
+          if (height > 12) put(x, y, r2() < 0.5 ? SMOKE : ASH, 10)
+          else if (r2() < 0.4) put(x, y, r2() < 0.5 ? EMBER : FIRE, 24)
+          else put(x, y, r2() < 0.5 ? DIRT : STONE, 14)
+        }
+
+        document.getElementById('blast').hidden = false
+      }
+
       if (variant.stars) {
         // Deterministic pseudo-random starfield so regenerating gives the same image.
         let seed = 42

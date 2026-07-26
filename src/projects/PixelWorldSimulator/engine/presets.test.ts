@@ -5,14 +5,9 @@ import { cellIndex, createGrid, placeMaterial } from './grid'
 import { Preset, loadPreset } from './presets'
 import { tickWorld } from './tick'
 import { createRng } from './rng'
+import { onCI } from '../test-env'
 
-// Heavy deterministic soaks (hundreds of ticks on a full-size grid): run locally, skip on CI, where the
-// shared runners are slow enough to blow the per-test timeout. `npm test` locally still runs them.
-// tsconfig carries no node types, so reach `process.env` through globalThis to stay type-safe.
-const onCI = Boolean(
-  (globalThis as unknown as { process?: { env?: Record<string, string | undefined> } }).process?.env
-    ?.CI
-)
+// Heavy deterministic soaks (hundreds of ticks on a full-size grid) skip on CI and run locally.
 const itSlow = it.skipIf(onCI)
 
 function count(grid: Grid, material: MaterialId): number {
@@ -69,7 +64,7 @@ describe('the aquarium preset', () => {
     expect(count(grid, MaterialId.water)).toBeGreaterThan(before * 0.8)
   })
 
-  it('leaves no pockets of air walled into the rock', { timeout: 20_000 }, () => {
+  itSlow('leaves no pockets of air walled into the rock', { timeout: 20_000 }, () => {
     // Reefs and boulders land on top of water and weed that was already there, and a weed sealed in with no
     // water beside it strands, dies and leaves a hole. Either way it shows as a one-cell black speck along the
     // sand line that no water can reach. The soak is the point: the weed takes a few seconds to run itself
@@ -108,7 +103,7 @@ describe('the aquarium preset', () => {
     }
   })
 
-  it('still has a food chain running long after it was dropped in', { timeout: 20_000 }, () => {
+  itSlow('still has a food chain running long after it was dropped in', { timeout: 20_000 }, () => {
     const grid = smallTank()
 
     soak(grid, 2000)
@@ -228,7 +223,7 @@ describe('the wild preset', () => {
     expect(count(grid, MaterialId.water)).toBeGreaterThan(before * 0.6)
   })
 
-  it('still has a world going a while later', { timeout: 20_000 }, () => {
+  itSlow('still has a world going a while later', { timeout: 20_000 }, () => {
     const grid = createGrid(120, 80)
     loadPreset(grid, Preset.wild, createRng(1))
 
@@ -482,7 +477,7 @@ describe('the ant colony preset', () => {
     expect(inside).toBeGreaterThan(3)
   })
 
-  it('is still boring galleries a while after it is dropped in', { timeout: 20_000 }, () => {
+  itSlow('is still boring galleries a while after it is dropped in', { timeout: 20_000 }, () => {
     const grid = createGrid(140, 90)
     loadPreset(grid, Preset.antColony, createRng(2))
 

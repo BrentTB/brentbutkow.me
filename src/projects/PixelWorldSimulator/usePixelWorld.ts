@@ -18,11 +18,14 @@ import { attract, blast, temper, wind } from './engine/forces'
 import { asMaterial, cellIndex, clearGrid, createGrid } from './engine/grid'
 import { Rng, createRng } from './engine/rng'
 import { tickWorld } from './engine/tick'
+import { Snapshot, SnapshotResult, decodeSnapshot, encodeSnapshot } from './engine/snapshot'
 import { createRenderer } from './render'
 
 export type PixelWorldSim = {
   isPaused: boolean
   togglePause(): void
+  /** Stops the world whatever it was doing. A world arriving paused from a link cannot flip a coin about it. */
+  pause(): void
   /** Multiplier on how fast the world runs. 1 is real time. */
   speed: number
   setSpeed(rate: number): void
@@ -53,6 +56,10 @@ export type PixelWorldSim = {
   census: Uint32Array | null
   /** Hands the renderer the viewer's picture settings. Takes effect on the next frame drawn. */
   applySettings(settings: SimSettings): void
+  /** The world as a string for a link, and whether its heat had to be left out to fit. */
+  snapshot(): Promise<Snapshot>
+  /** Replaces the world with one from a link, or refuses it and leaves this one alone. */
+  loadSnapshot(code: string): Promise<SnapshotResult>
 }
 
 /**
@@ -144,6 +151,11 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
     setIsPaused(pausedRef.current)
   }, [])
 
+  const pause = useCallback(() => {
+    pausedRef.current = true
+    setIsPaused(true)
+  }, [])
+
   const setSpeed = useCallback((rate: number) => {
     speedRef.current = rate
     setSpeedState(rate)
@@ -192,6 +204,10 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
     else if (!wasWatching) setReading(readCell(gridRef.current, cell))
   }, [])
 
+  const snapshot = useCallback(() => encodeSnapshot(gridRef.current), [])
+
+  const loadSnapshot = useCallback((code: string) => decodeSnapshot(code, gridRef.current), [])
+
   const applySettings = useCallback((settings: SimSettings) => {
     settingsRef.current = settings
   }, [])
@@ -208,6 +224,7 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
     () => ({
       isPaused,
       togglePause,
+      pause,
       speed,
       setSpeed,
       stepOnce,
@@ -220,10 +237,13 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
       watchCensus,
       census,
       applySettings,
+      snapshot,
+      loadSnapshot,
     }),
     [
       isPaused,
       togglePause,
+      pause,
       speed,
       setSpeed,
       stepOnce,
@@ -236,6 +256,8 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
       watchCensus,
       census,
       applySettings,
+      snapshot,
+      loadSnapshot,
     ]
   )
 }

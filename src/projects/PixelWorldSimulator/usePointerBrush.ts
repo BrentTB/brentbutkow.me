@@ -29,6 +29,7 @@ function clamp(value: number, max: number): number {
 export function usePointerBrush(
   canvasRef: RefObject<HTMLCanvasElement | null>,
   onStroke: (from: CellPoint, to: CellPoint) => void,
+  /** Left out on a touch screen: there is no hovering there, so there is nothing to report. */
   onHover: (cell: CellPoint | null) => void = () => {}
 ): PointerBrushHandlers {
   const lastRef = useRef<CellPoint | null>(null)
@@ -59,9 +60,19 @@ export function usePointerBrush(
       const rect = canvas.getBoundingClientRect()
       if (rect.width === 0 || rect.height === 0) return null
 
+      // The canvas draws with `object-fit: contain`, so the world is centred inside the element and one axis
+      // may have a band of nothing either side of it. Mapping straight from the element's box would put the
+      // brush off by the width of that band — and where the element is exactly the world's shape, which is
+      // every case but full screen, the bands are zero and this is the same sum as before.
+      const scale = Math.min(rect.width / GRID_WIDTH, rect.height / GRID_HEIGHT)
+      const drawnWidth = GRID_WIDTH * scale
+      const drawnHeight = GRID_HEIGHT * scale
+      const left = rect.left + (rect.width - drawnWidth) / 2
+      const top = rect.top + (rect.height - drawnHeight) / 2
+
       return {
-        x: clamp(Math.floor(((clientX - rect.left) / rect.width) * GRID_WIDTH), GRID_WIDTH - 1),
-        y: clamp(Math.floor(((clientY - rect.top) / rect.height) * GRID_HEIGHT), GRID_HEIGHT - 1),
+        x: clamp(Math.floor((clientX - left) / scale), GRID_WIDTH - 1),
+        y: clamp(Math.floor((clientY - top) / scale), GRID_HEIGHT - 1),
       }
     },
     [canvasRef]

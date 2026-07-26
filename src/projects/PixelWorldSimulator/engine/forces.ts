@@ -1,5 +1,5 @@
 import { Grid, MaterialBehavior, MaterialId } from '../pixel-world.types'
-import { AMBIENT_TEMPERATURE } from '../data'
+import { AMBIENT_TEMPERATURE, TEMPERATURE_LIMITS } from '../data'
 import { cellIndex, markHotRow, transformCell } from './grid'
 import { MATERIALS } from './materials'
 import { push } from './kinetic'
@@ -47,10 +47,6 @@ const TEMPERATURE_STEP = 90
  * to the target instead gave a single tap of heat on cold water 375°, which boiled a pool on one click.
  */
 const TEMPERATURE_PULL = 0.3
-
-/** The coldest and hottest the brush tools will drive a cell, so neither can run away. */
-const TEMPERATURE_FLOOR = -220
-const TEMPERATURE_CEILING = 1800
 
 /**
  * The density a force is calibrated against: sand takes the strength as written, anything lighter goes
@@ -158,7 +154,7 @@ export function temper(grid: Grid, cx: number, cy: number, radius: number, warmi
     const step = (TEMPERATURE_STEP + extreme * TEMPERATURE_PULL) * falloff * direction
     const next = current + step
     grid.temperature[index] = Math.round(
-      Math.max(TEMPERATURE_FLOOR, Math.min(TEMPERATURE_CEILING, next))
+      Math.max(TEMPERATURE_LIMITS.floor, Math.min(TEMPERATURE_LIMITS.ceiling, next))
     )
     markHotRow(grid, index)
   })

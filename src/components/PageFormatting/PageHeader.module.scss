@@ -1,3 +1,5 @@
+@use '../../styles/shared' as *;
+
 .header {
   max-width: 760px;
 }
@@ -18,4 +20,37 @@
   margin: 16px 0 0;
   color: var(--text-secondary);
   line-height: 1.5;
+}
+
+// A phone's whole screen is the fold. The floor of that clamp is 38px, which wraps most titles onto two
+// lines and spends 78px of a 812px screen saying where you already are — before the page has said anything.
+@include compact-viewport {
+  .title {
+    font-size: clamp(1.85rem, 8.5vw, 2.4rem);
+  }
+
+  .subtitle {
+    margin-top: 10px;
+    font-size: 0.94rem;
+  }
+
+  .rail {
+    margin-bottom: 6px;
+  }
+}
+
+// Sideways on a phone, the page's own name is the least useful thing on a 390px-tall screen: the tab already
+// says it and the breadcrumb still does. The title stays, quieter; the tagline goes.
+@include compact-landscape {
+  .title {
+    font-size: 1.6rem;
+  }
+
+  .subtitle {
+    display: none;
+  }
+
+  .rail {
+    margin-bottom: 2px;
+  }
 }
