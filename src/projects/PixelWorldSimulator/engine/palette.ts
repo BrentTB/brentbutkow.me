@@ -141,3 +141,8 @@ export function materialCss(material: MaterialId): string {
   const [r, g, b] = MATERIALS[material].color
   return `rgb(${r} ${g} ${b})`
 }
+
+/** Chip background for a material tile, or nothing for Erase, which carries no colour of its own. */
+export function chipColour(material: MaterialId): string | undefined {
+  return material === MaterialId.empty ? undefined : materialCss(material)
+}

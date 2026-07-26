@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { Grid, MaterialId } from '../pixel-world.types'
 import { cellIndex, createGrid, placeMaterial } from './grid'
-import { moveKinetic, push } from './kinetic'
+import { MAX_IN_FLIGHT, moveKinetic, push } from './kinetic'
 import { createRng } from './rng'
 
 /** A world with a stone floor along the bottom row. */
@@ -290,6 +290,6 @@ describe('moveKinetic', () => {
 
     moveKinetic(grid, rng)
 
-    expect(grid.velocity.size).toBeLessThan(grid.material.length)
+    expect(grid.velocity.size).toBeLessThanOrEqual(MAX_IN_FLIGHT)
   })
 })

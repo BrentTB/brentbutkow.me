@@ -60,6 +60,48 @@ describe('algae', () => {
   })
 })
 
+describe('a slime hunting underwater', () => {
+  it('leaves an eaten fish as its corpse, not a hole in the water', () => {
+    // A sealed 3x3 pocket of water walled in stone, with the hunter ringed by prey, so it eats within a few
+    // ticks rather than wandering off.
+    const grid = createGrid(5, 5)
+    for (let y = 1; y < 4; y++) {
+      for (let x = 1; x < 4; x++) put(grid, x, y, MaterialId.water)
+    }
+    for (let i = 0; i < grid.material.length; i++) {
+      const x = i % grid.width
+      const y = Math.floor(i / grid.width)
+      if (x === 0 || x === 4 || y === 0 || y === 4) placeMaterial(grid, i, MaterialId.stone)
+    }
+
+    const slimeAt = put(grid, 2, 2, MaterialId.slime)
+    const slimeStart = grid.data[slimeAt]
+    put(grid, 1, 2, MaterialId.fish)
+    put(grid, 3, 2, MaterialId.fish)
+    put(grid, 2, 1, MaterialId.fish)
+    put(grid, 2, 3, MaterialId.fish)
+
+    const rng = createRng(4)
+    let fed = false
+    // Stop the moment the first corpse appears: the slime eats meat too, and eating a carcass would recycle
+    // the cell before the assertion could see it.
+    for (let tick = 0; tick < 400 && count(grid, MaterialId.meat) === 0; tick++) {
+      grid.moved.fill(0)
+      simulateLife(grid, rng, tick)
+      // The hunter only gains energy by eating; a rise proves the fish was eaten, not that it starved.
+      for (let i = 0; i < grid.material.length; i++) {
+        if (grid.material[i] === MaterialId.slime && grid.data[i] > slimeStart) fed = true
+      }
+    }
+
+    // A slime is medium 'any', not water, so reading the eater's medium left the cell empty: a sealed bubble
+    // on the reef. Routing through remainsOf leaves the fish's corpse where it died instead.
+    expect(count(grid, MaterialId.meat)).toBeGreaterThan(0)
+    expect(fed).toBe(true)
+    expect(count(grid, MaterialId.fish)).toBeLessThan(4)
+  })
+})
+
 describe('a fish', () => {
   it('grazes algae down without ever finishing it off', () => {
     /** Energy held by every algae cell in a world. */

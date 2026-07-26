@@ -252,7 +252,7 @@ export const simCopy = {
     /** Shown on the slot that is waiting to be filled, in place of its material. */
     waiting: 'Pick one',
     setHint: 'Press to choose what this slot holds',
-    useHint: 'Draw with this. Press twice to change it',
+    useHint: 'Draw with this. Press it twice or Shift-press to change it',
   },
   settings: {
     open: 'Settings',

@@ -649,5 +649,3 @@ function boilOff(grid: Grid, rng: Rng, x: number, y: number, index: number): voi
     transformCell(grid, index, MaterialId.empty)
   }
 }
-
-/** First neighbour matching `accepts`, scanning NEIGHBOURS from `startAt`, or -1. */

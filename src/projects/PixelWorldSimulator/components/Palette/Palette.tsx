@@ -3,7 +3,7 @@ import { SegmentedToggle } from '../../../../components/inputs/SegmentedToggle'
 import { MaterialId } from '../../pixel-world.types'
 import { MATERIAL_GROUPS, MATERIAL_SLOTS, MaterialGroup, simCopy } from '../../data'
 import { MATERIALS } from '../../engine/materials'
-import { materialCss } from '../../engine/palette'
+import { chipColour } from '../../engine/palette'
 import { MaterialSlots } from '../MaterialSlots/MaterialSlots'
 import styles from './Palette.module.scss'
 
@@ -122,7 +122,7 @@ function Swatch({ material, selected, onSelect }: SwatchProps) {
     >
       <span
         className={styles.chip}
-        style={isErase ? undefined : { background: materialCss(material) }}
+        style={{ background: chipColour(material) }}
         aria-hidden="true"
       />
       {MATERIALS[material].label}

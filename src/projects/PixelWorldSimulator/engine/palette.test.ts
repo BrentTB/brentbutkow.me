@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { MaterialId, SimSettings } from '../pixel-world.types'
 import { AMBIENT_TEMPERATURE, DEFAULT_SETTINGS } from '../data'
 import { MATERIALS } from './materials'
-import { isEmissive, materialCss, writeCellRgb, writeHeatTint } from './palette'
+import { chipColour, isEmissive, materialCss, writeCellRgb, writeHeatTint } from './palette'
 
 describe('writeCellRgb', () => {
   it('writes an opaque colour within jitter range of the material', () => {
@@ -94,6 +94,14 @@ describe('materialCss', () => {
   it('reads the same table the canvas paints from', () => {
     const [r, g, b] = MATERIALS[MaterialId.water].color
     expect(materialCss(MaterialId.water)).toBe(`rgb(${r} ${g} ${b})`)
+  })
+})
+
+describe('chipColour', () => {
+  it('gives a material its swatch colour, and Erase none', () => {
+    expect(chipColour(MaterialId.sand)).toBe(materialCss(MaterialId.sand))
+    // Erase carries no colour of its own, so a slot or swatch holding it shows an empty chip.
+    expect(chipColour(MaterialId.empty)).toBeUndefined()
   })
 })
 

@@ -18,6 +18,9 @@ export function SettingsDialog({ settings, onToggle, onClose }: SettingsDialogPr
   // — depending on it re-ran the effect on every parent render and yanked focus back to Done mid-toggle.
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
+  // A backdrop click only closes when the press started on the backdrop too, so a drag that begins on a
+  // switch and releases over the backdrop does not dismiss the dialog.
+  const pressedBackdrop = useRef(false)
 
   useEffect(() => {
     // Whatever opened the dialog gets the focus back when it closes, so the keyboard lands back on the
@@ -59,8 +62,13 @@ export function SettingsDialog({ settings, onToggle, onClose }: SettingsDialogPr
     <div
       className={styles.backdrop}
       role="presentation"
-      // Only clicks that start on the backdrop itself close it, so a drag off a switch doesn't.
-      onClick={(event) => event.target === event.currentTarget && onClose()}
+      onPointerDown={(event) => {
+        pressedBackdrop.current = event.target === event.currentTarget
+      }}
+      // Close only when both the press and the release land on the backdrop, so a drag off a switch doesn't.
+      onClick={(event) => {
+        if (pressedBackdrop.current && event.target === event.currentTarget) onClose()
+      }}
     >
       <div
         ref={panelRef}

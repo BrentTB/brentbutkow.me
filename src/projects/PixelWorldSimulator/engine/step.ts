@@ -2,15 +2,8 @@ import { Grid, MaterialBehavior, MaterialId } from '../pixel-world.types'
 import { cellIndex, swapCells } from './grid'
 import { MATERIALS, canDisplace, canFloatThrough } from './materials'
 import { isSupported, push } from './kinetic'
+import { NEIGHBOURS } from './neighbours'
 import { Rng } from './rng'
-
-/** The four neighbour offsets, held still: built inline they were a fresh array per cell per tick. */
-const SIDES: readonly (readonly [number, number])[] = [
-  [0, -1],
-  [0, 1],
-  [-1, 0],
-  [1, 0],
-]
 
 /**
  * Advances the world one tick, in place.
@@ -142,9 +135,9 @@ function rollOff(
   return tryMove(grid, from, x + dir, y + 1, false)
 }
 
-/** True when any of the four neighbours is something that can catch fire. */
+/** True when any of the four neighbours is something that can catch fire. Order does not matter here. */
 function touchesFuel(grid: Grid, x: number, y: number): boolean {
-  for (const [dx, dy] of SIDES) {
+  for (const [dx, dy] of NEIGHBOURS) {
     const nx = x + dx
     const ny = y + dy
     if (nx < 0 || nx >= grid.width || ny < 0 || ny >= grid.height) continue

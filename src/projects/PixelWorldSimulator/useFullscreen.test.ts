@@ -86,6 +86,23 @@ describe('useFullscreen', () => {
     expect(requestFullscreen).not.toHaveBeenCalled()
   })
 
+  it('leaves full screen if the page is torn down while still in it', () => {
+    const { unmount } = mount()
+    documentGoes(true)
+
+    unmount()
+
+    expect(exitFullscreen).toHaveBeenCalled()
+  })
+
+  it('does not try to exit on unmount when it was already windowed', () => {
+    const { unmount } = mount()
+
+    unmount()
+
+    expect(exitFullscreen).not.toHaveBeenCalled()
+  })
+
   it('stops listening once it is gone', () => {
     const remove = vi.spyOn(document, 'removeEventListener')
     const { unmount } = mount()

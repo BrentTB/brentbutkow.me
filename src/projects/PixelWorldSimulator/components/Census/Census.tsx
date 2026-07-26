@@ -78,7 +78,7 @@ export function Census({ counts, onWatch, room = 0 }: CensusProps) {
         type="button"
         className={styles.toggle}
         aria-expanded={open}
-        aria-controls={panelId}
+        aria-controls={open ? panelId : undefined}
         onClick={() => setOpen(!open)}
       >
         <span className={styles.caret} aria-hidden="true">

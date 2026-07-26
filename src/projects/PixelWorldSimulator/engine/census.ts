@@ -9,6 +9,6 @@ import { MATERIALS } from './materials'
 export function countMaterials(grid: Grid, into?: Uint32Array): Uint32Array {
   const counts = into ?? new Uint32Array(MATERIALS.length)
   counts.fill(0)
-  for (const material of grid.material) counts[material]++
+  for (let i = 0; i < grid.material.length; i++) counts[grid.material[i]]++
   return counts
 }

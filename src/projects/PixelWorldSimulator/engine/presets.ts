@@ -171,6 +171,30 @@ function vein(
  * A tank of water with a bed of algae and a few fish: the food chain running on its own, without anyone
  * having to draw a tank first. Sized as a share of the grid so it fits whatever the world is.
  */
+/** Stone below the bedrock line, dirt above it to the surface, with gravel seams where the two meet. */
+function bedrockFloor(
+  grid: Grid,
+  ground: number[],
+  rock: number[],
+  rng: Rng,
+  seams: readonly { chance: number; up: number }[]
+): void {
+  const { width, height } = grid
+  for (let x = 0; x < width; x++) {
+    fill(grid, x, rock[x], x, height - 1, MaterialId.stone)
+    fill(grid, x, ground[x], x, rock[x] - 1, MaterialId.dirt)
+    for (const seam of seams) {
+      if (rng.next() < seam.chance) put(grid, x, rock[x] - seam.up, MaterialId.gravel)
+    }
+  }
+}
+
+/** A short ragged column of grass at one spot: one blade, sometimes two, rarely three. */
+function grassTuft(grid: Grid, ground: number[], x: number, rng: Rng): void {
+  const tufts = 1 + (rng.next() < 0.5 ? 1 : 0) + (rng.next() < 0.2 ? 1 : 0)
+  for (let i = 0; i < tufts; i++) put(grid, x, ground[x] - i, MaterialId.plant)
+}
+
 function aquarium(grid: Grid, rng: Rng): void {
   const { width, height } = grid
   const left = Math.floor(width * 0.1)
@@ -311,12 +335,10 @@ function wild(grid: Grid, rng: Rng): void {
   // Bedrock has its own line, deeper than the surface and out of phase with it, with gravel seams where the
   // two come close. A dead straight band of stone under the soil was the last thing that looked drawn.
   const rock = surfaceLine(width, bedrock, Math.max(2, height * 0.03), rng)
-  for (let x = 0; x < width; x++) {
-    fill(grid, x, rock[x], x, height - 1, MaterialId.stone)
-    fill(grid, x, ground[x], x, rock[x] - 1, MaterialId.dirt)
-    if (rng.next() < 0.3) put(grid, x, rock[x] - 1, MaterialId.gravel)
-    if (rng.next() < 0.15) put(grid, x, rock[x] - 2, MaterialId.gravel)
-  }
+  bedrockFloor(grid, ground, rock, rng, [
+    { chance: 0.3, up: 1 },
+    { chance: 0.15, up: 2 },
+  ])
 
   // A sandy stretch on the left, following the surface rather than cutting across it.
   const sandTo = Math.floor(width * 0.22)
@@ -369,10 +391,7 @@ function wild(grid: Grid, rng: Rng): void {
 
   // Grass on the land: a ragged band, which is the only food a bug can reach. Shoots along the pond edge
   // grow into the water instead, where something that walks on surfaces cannot follow.
-  for (let x = Math.floor(width * 0.24); x < pond.left - 2; x++) {
-    const tufts = 1 + (rng.next() < 0.5 ? 1 : 0) + (rng.next() < 0.2 ? 1 : 0)
-    for (let i = 0; i < tufts; i++) put(grid, x, ground[x] - i, MaterialId.plant)
-  }
+  for (let x = Math.floor(width * 0.24); x < pond.left - 2; x++) grassTuft(grid, ground, x, rng)
 
   // A spring buried under the field, with a drop of water beside it to teach it what to make. A source
   // produces forever, so the field stays damp: wet soil is the only thing grass can grow into, and a lawn
@@ -598,11 +617,7 @@ function antColony(grid: Grid, rng: Rng): void {
   // wild is built, so neither the farm nor the country beside it sits on a drawn straight edge.
   const ground = surfaceLine(width, base, Math.max(2, height * 0.035), rng)
   const rock = surfaceLine(width, bedrock, Math.max(2, height * 0.025), rng)
-  for (let x = 0; x < width; x++) {
-    fill(grid, x, rock[x], x, height - 1, MaterialId.stone)
-    fill(grid, x, ground[x], x, rock[x] - 1, MaterialId.dirt)
-    if (rng.next() < 0.25) put(grid, x, rock[x] - 1, MaterialId.gravel)
-  }
+  bedrockFloor(grid, ground, rock, rng, [{ chance: 0.25, up: 1 }])
 
   // --- The farm: a glass case sunk into the ground on the left, packed with wood for the colony to work.
   // Glass is the point of it. An ant bores wood, plants and vine and nothing else, so a glass wall holds a
@@ -666,10 +681,7 @@ function antColony(grid: Grid, rng: Rng): void {
   // that ever got loose. Kept to the right of the case so the two read as neighbours.
   const wildFrom = farmRight + Math.floor(width * 0.04)
 
-  for (let x = wildFrom; x < width - 2; x++) {
-    const tufts = 1 + (rng.next() < 0.5 ? 1 : 0) + (rng.next() < 0.2 ? 1 : 0)
-    for (let i = 0; i < tufts; i++) put(grid, x, ground[x] - i, MaterialId.plant)
-  }
+  for (let x = wildFrom; x < width - 2; x++) grassTuft(grid, ground, x, rng)
 
   // Trees with trunks thick enough to hold a gallery, and a nest already in each one: a tree out here is a
   // colony of its own, working away with the birds overhead rather than safe behind glass.

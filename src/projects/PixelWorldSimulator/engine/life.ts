@@ -1,5 +1,5 @@
 import { AntHeading, Grid, Life, MaterialBehavior, MaterialId, Medium } from '../pixel-world.types'
-import { cellIndex, placeMaterial, swapCells, transformCell } from './grid'
+import { asMaterial, cellIndex, placeMaterial, swapCells, transformCell } from './grid'
 import { push } from './kinetic'
 import { ANT_SOFT, MATERIALS } from './materials'
 import { NEIGHBOURS, pickNeighbour } from './neighbours'
@@ -314,7 +314,10 @@ function eat(grid: Grid, rng: Rng, x: number, y: number, index: number, life: Li
   } else {
     grid.data[meal] -= taken
     if (grid.data[meal] === 0) {
-      transformCell(grid, meal, life.medium === Medium.water ? MaterialId.water : MaterialId.empty)
+      // Leave behind what the prey leaves when it dies of anything else: an aquatic creature walled into the
+      // water leaves water, not a sealed air bubble. Reading the eater's medium instead left slime-eaten fish
+      // as little pockets of vacuum on the reef.
+      transformCell(grid, meal, remainsOf(grid, meal, prey))
     }
   }
 
@@ -349,7 +352,7 @@ function breed(grid: Grid, rng: Rng, x: number, y: number, index: number, life: 
   const child = produces ? life.startEnergy : Math.floor(energy / 2)
   const kept = produces ? energy - SPLIT_COST : energy - child
 
-  placeMaterial(grid, room, grid.material[index] as MaterialId)
+  placeMaterial(grid, room, asMaterial(grid.material[index]))
   // A newborn waits for the next tick, like everything else that has already been dealt with.
   grid.moved[room] = 1
   grid.data[room] = child
@@ -812,7 +815,7 @@ function wallInto(grid: Grid, x: number, y: number, material: number): number {
   if (x < 0 || x >= grid.width || y < 0 || y >= grid.height) return 0
   const index = cellIndex(grid, x, y)
   if (grid.material[index] !== MaterialId.empty) return 0
-  placeMaterial(grid, index, material as MaterialId)
+  placeMaterial(grid, index, asMaterial(material))
   grid.moved[index] = 1
   return 1
 }

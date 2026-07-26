@@ -269,6 +269,8 @@ describe('the volcano preset', () => {
     expect(count(grid, MaterialId.slime)).toBeGreaterThan(1)
     expect(count(grid, MaterialId.tnt) + count(grid, MaterialId.gunpowder)).toBeGreaterThan(10)
     expect(count(grid, MaterialId.water)).toBeGreaterThan(50)
+    // A pocket of oil sealed in the rock, waiting for a lava flow to find it.
+    expect(count(grid, MaterialId.oil)).toBeGreaterThan(0)
   })
 
   it('puts birds over the woods, in air they can hunt from', () => {

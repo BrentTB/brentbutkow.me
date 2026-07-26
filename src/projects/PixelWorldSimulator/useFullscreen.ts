@@ -22,7 +22,12 @@ export function useFullscreen(elementRef: RefObject<HTMLElement | null>): Fullsc
     document.addEventListener('fullscreenchange', sync)
     sync()
 
-    return () => document.removeEventListener('fullscreenchange', sync)
+    return () => {
+      document.removeEventListener('fullscreenchange', sync)
+      // Leave full screen if the page is torn down while still in it, rather than relying on the browser to
+      // notice the element has gone.
+      if (document.fullscreenElement !== null) void document.exitFullscreen?.()?.catch(() => {})
+    }
   }, [])
 
   const toggle = useCallback(() => {

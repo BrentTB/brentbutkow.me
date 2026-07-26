@@ -1,7 +1,7 @@
 import { MaterialId } from '../../pixel-world.types'
 import { simCopy } from '../../data'
 import { MATERIALS } from '../../engine/materials'
-import { materialCss } from '../../engine/palette'
+import { chipColour } from '../../engine/palette'
 import styles from './MaterialSlots.module.scss'
 
 type MaterialSlotsProps = {
@@ -58,7 +58,7 @@ export function MaterialSlots({ slots, waiting, selected, onUse, onAssign }: Mat
             {material !== null && (
               <span
                 className={styles.chip}
-                style={{ background: materialCss(material) }}
+                style={{ background: chipColour(material) }}
                 aria-hidden="true"
               />
             )}

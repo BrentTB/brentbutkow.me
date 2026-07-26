@@ -36,7 +36,7 @@ const BOUNCE_SCATTER = 0.12
  * Cap on cells in flight. A blast big enough to exceed it should degrade into ordinary falling debris
  * rather than stall the tick, so the slowest entries are the ones dropped.
  */
-const MAX_IN_FLIGHT = 3000
+export const MAX_IN_FLIGHT = 3000
 
 /** Hands a cell a velocity, adding to whatever it already had — impulses from two blasts compound. */
 export function push(grid: Grid, index: number, vx: number, vy: number): void {
@@ -203,9 +203,6 @@ function slideTo(grid: Grid, at: number, dx: number, dy: number, motion: Velocit
   }
 
   swapCells(grid, at, to)
-  // Marking both ends keeps the material pass from moving a cell that has already flown this tick.
-  grid.moved[at] = 1
-  grid.moved[to] = 1
   if (dx !== 0) motion.ox -= dx
   if (dy !== 0) motion.oy -= dy
   return to

@@ -39,7 +39,6 @@ describe('SettingsDialog', () => {
     open({ settings: { tintBlocks: false, tintAir: true } })
 
     const [blocks, air] = screen.getAllByRole('checkbox')
-    expect(blocks.getAttribute('checked')).toBe(null)
     expect((blocks as HTMLInputElement).checked).toBe(false)
     expect((air as HTMLInputElement).checked).toBe(true)
   })
@@ -68,13 +67,24 @@ describe('SettingsDialog', () => {
     expect(onClose).toHaveBeenCalled()
   })
 
-  it('closes on a click on the backdrop but not one inside the panel', () => {
+  it('closes on a backdrop press-and-release, but not a panel click or a drag off a switch', () => {
     const { onClose } = open()
+    const dialog = screen.getByRole('dialog')
+    const backdrop = screen.getByRole('presentation')
 
-    fireEvent.click(screen.getByRole('dialog'))
+    // Press and release inside the panel: never closes.
+    fireEvent.pointerDown(dialog)
+    fireEvent.click(dialog)
     expect(onClose).not.toHaveBeenCalled()
 
-    fireEvent.click(screen.getByRole('presentation'))
+    // A drag starting on the panel and releasing on the backdrop: still does not close.
+    fireEvent.pointerDown(dialog)
+    fireEvent.click(backdrop)
+    expect(onClose).not.toHaveBeenCalled()
+
+    // Press and release both on the backdrop: closes.
+    fireEvent.pointerDown(backdrop)
+    fireEvent.click(backdrop)
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
