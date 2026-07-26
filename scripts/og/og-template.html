@@ -123,6 +123,21 @@
            pushed the tag into the brand line pinned at the bottom. */
         max-width: 21em;
       }
+      /* The bloom the renderer composites over anything alight. A blurred pass in the sim, a soft radial here
+         — sitting over the crater in the slab, well clear of the text column. */
+      .blast {
+        position: absolute;
+        left: 1000px;
+        top: 200px;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(
+          circle,
+          rgba(255, 196, 92, 0.5) 0%,
+          rgba(240, 120, 40, 0.26) 34%,
+          transparent 66%
+        );
+      }
       .strata {
         position: absolute;
         top: 0;
@@ -140,6 +155,7 @@
       <div class="glow"></div>
       <div class="stars" id="stars"></div>
       <canvas class="strata" id="strata" width="38" height="63"></canvas>
+      <div class="blast" id="blast" hidden></div>
       <div class="path" id="path"></div>
       <div class="title" id="title"></div>
       <div class="subtitle" id="subtitle"></div>
@@ -208,6 +224,10 @@
         const WATER = [62, 122, 186]
         const LAVA = [226, 104, 38]
         const PLANT = [78, 148, 66]
+        const FIRE = [255, 168, 60]
+        const EMBER = [255, 214, 132]
+        const SMOKE = [116, 112, 108]
+        const ASH = [92, 88, 86]
 
         // Deterministic, so regenerating the card gives the same world back.
         let s2 = 1337
@@ -253,6 +273,41 @@
           if (!pooled && r2() < 0.14) put(x, top - 1, PLANT, 14)
           if (r2() < 0.1) put(x, H - 4 - Math.round(r2() * 3), LAVA, 20)
         }
+
+        // Something just went off in the right-hand shoulder of the ground: a charge takes a bite out of the
+        // terrain, throws what it removed, and leaves the hole burning. The whole card is one frame of that.
+        const bx = 30
+        const by = 36
+        const CRATER = 6
+        for (let dy = -CRATER; dy <= CRATER; dy++) {
+          for (let dx = -CRATER; dx <= CRATER; dx++) {
+            const away = Math.sqrt(dx * dx + dy * dy)
+            // A ragged rim rather than a compass circle — a clean disc is the shape that always reads as a bug.
+            if (away > CRATER - r2() * 1.8) continue
+            const x = bx + dx
+            const y = by + dy
+            if (x < 0 || x >= W || y < 0 || y >= H) continue
+            ctx.clearRect(x, y, 1, 1)
+            // The bottom of the hole is still alight, the rim only scorched.
+            if (away < CRATER * 0.45) put(x, y, r2() < 0.35 ? EMBER : FIRE, 22)
+            else if (away < CRATER * 0.7 && r2() < 0.3) put(x, y, FIRE, 26)
+          }
+        }
+
+        // What the blast threw: debris on its way out, embers above it, and smoke taking over higher up.
+        for (let i = 0; i < 90; i++) {
+          const angle = -Math.PI * r2()
+          const reach = CRATER + r2() * 16
+          const x = Math.round(bx + Math.cos(angle) * reach)
+          const y = Math.round(by + Math.sin(angle) * reach * 0.85)
+          if (x < 0 || x >= W || y < 0 || y >= H) continue
+          const height = by - y
+          if (height > 12) put(x, y, r2() < 0.5 ? SMOKE : ASH, 10)
+          else if (r2() < 0.4) put(x, y, r2() < 0.5 ? EMBER : FIRE, 24)
+          else put(x, y, r2() < 0.5 ? DIRT : STONE, 14)
+        }
+
+        document.getElementById('blast').hidden = false
       }
 
       if (variant.stars) {
