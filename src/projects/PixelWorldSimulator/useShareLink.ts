@@ -66,7 +66,10 @@ export function useShareLink({ snapshot, loadSnapshot }: SnapshotPorts): ShareLi
     }, SHARE_NOTE_LINGER)
   }, [])
 
+  // Reset on every mount, not just at first render: StrictMode mounts, unmounts and remounts, and the
+  // cleanup below would otherwise leave the flag stuck false — freezing share and swallowing the arrival note.
   useEffect(() => {
+    mountedRef.current = true
     return () => {
       mountedRef.current = false
       if (timerRef.current !== null) clearTimeout(timerRef.current)
@@ -75,7 +78,8 @@ export function useShareLink({ snapshot, loadSnapshot }: SnapshotPorts): ShareLi
 
   // A world in the URL is loaded once per visit, guarded by a ref rather than by the effect's dependencies:
   // sharing rewrites the hash, so an effect that re-ran would reload that world straight over whatever the
-  // visitor had drawn since. Cancelled on unmount so a slow decode cannot land a note on a page that has gone.
+  // visitor had drawn since. The note is gated on the mounted ref, not a per-effect flag: under StrictMode the
+  // load fires on the first mount, and its result still has to land once the second mount has settled.
   const arrivalRef = useRef(false)
   useEffect(() => {
     if (arrivalRef.current) return
@@ -84,18 +88,13 @@ export function useShareLink({ snapshot, loadSnapshot }: SnapshotPorts): ShareLi
     const code = codeInHash(window.location.hash)
     if (code === null) return
 
-    let live = true
     loadSnapshot(code).then((result) => {
-      if (!live) return
+      if (!mountedRef.current) return
       say(
         result.ok ? simCopy.share.loaded : refusalNote(result.refusal),
         result.ok ? ShareOutcome.loaded : ShareOutcome.refused
       )
     })
-
-    return () => {
-      live = false
-    }
   }, [loadSnapshot, say])
 
   const share = useCallback(() => {

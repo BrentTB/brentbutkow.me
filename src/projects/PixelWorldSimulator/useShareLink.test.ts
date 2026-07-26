@@ -1,3 +1,4 @@
+import { StrictMode } from 'react'
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { SHARE_HASH_KEY, SHARE_NOTE_LINGER, SNAPSHOT_MAX_CHARS, simCopy } from './data'
@@ -148,6 +149,18 @@ describe('useShareLink — sending a world', () => {
     expect(window.history.length).toBe(before)
   })
 
+  it('still shares after StrictMode has mounted, unmounted and remounted the hook', async () => {
+    // The mount/unmount/remount StrictMode runs in development left a mounted flag stuck false, so the
+    // button did nothing. renderHook without a wrapper mounts once and never caught it.
+    const write = writeText()
+    const { result } = renderHook(() => useShareLink(ports()), { wrapper: StrictMode })
+
+    act(() => result.current.share())
+
+    await waitFor(() => expect(result.current.outcome).toBe(ShareOutcome.copied))
+    expect(write).toHaveBeenCalled()
+  })
+
   it('drops the note after a while, so it does not become furniture', async () => {
     vi.useFakeTimers()
     writeText()
@@ -186,6 +199,23 @@ describe('useShareLink — arriving on a world', () => {
     await waitFor(() =>
       expect(result.current.note).toBe(simCopy.share.refused[SnapshotRefusal.version])
     )
+  })
+
+  it('still reports a refused arrival after a StrictMode remount, rather than falling silent', async () => {
+    // The arrival note used to hinge on a per-effect flag the first StrictMode unmount cleared, so a bad
+    // link decoded, refused, and said nothing — the world just looked fresh with no reason given.
+    window.history.replaceState(null, '', `#${SHARE_HASH_KEY}=${CODE}`)
+    const doors = ports({
+      loadSnapshot: vi.fn(() => Promise.resolve({ ok: false, refusal: SnapshotRefusal.version })),
+    })
+
+    const { result } = renderHook(() => useShareLink(doors), { wrapper: StrictMode })
+
+    await waitFor(() =>
+      expect(result.current.note).toBe(simCopy.share.refused[SnapshotRefusal.version])
+    )
+    // Loaded once across both StrictMode mounts, not twice.
+    expect(doors.loadSnapshot).toHaveBeenCalledTimes(1)
   })
 
   it('has a message for every reason a link can be refused', () => {
