@@ -1,6 +1,6 @@
 import { AntHeading, Grid, Life, MaterialBehavior, MaterialId, Medium } from '../pixel-world.types'
 import { cellIndex, placeMaterial, swapCells, transformCell } from './grid'
-import { MATERIALS } from './materials'
+import { ANT_SOFT, MATERIALS } from './materials'
 import { NEIGHBOURS, pickNeighbour } from './neighbours'
 import { Rng } from './rng'
 
@@ -479,10 +479,12 @@ function loose(material: number): boolean {
 // grip, and lays a trail of vine behind it as it goes, so a nest webs its surroundings with branching
 // green paths that go on climbing on their own. Its heading lives in `grid.heading`.
 
-/** Chance per move an ant leaves a length of trail behind it: its whole point, and it lays it thick. */
-const TRAIL_CHANCE = 0.75
-/** Energy a length of trail costs, so how far a nest can build is bounded by the leaves it can graze. */
+/** Energy a length of wall costs, so how far a nest can build is bounded by the leaves it can graze. */
 const TRAIL_COST = 3
+
+/** The soft stuff an ant bores straight through, so it can work into the middle of a plank, not just its face. */
+const BURROWABLE = new Uint8Array(MATERIALS.length)
+for (const id of ANT_SOFT) BURROWABLE[id] = 1
 /**
  * Chance per move that an ant turns of its own accord. Kept low: an ant that mostly holds its heading
  * draws long, deliberate lines and turns hard corners off walls, which is what makes its trails read as
@@ -581,13 +583,10 @@ function stepAnt(grid: Grid, rng: Rng, x: number, y: number, index: number, life
 
   if (rng.chance(ANT_BRANCH_CHANCE)) turn(heading, rng)
 
-  // The stuff the ant is standing on, and whether it has the energy and the roll to lay a length of it
-  // this step. When it is laying, it can strike out into open air, because the trail it leaves behind is
-  // the ground it stands on next — that is what lets it draw a long line off a wall instead of only
-  // creeping along one. When it is not, it may only step where there is already something to grip.
-  const trail = surfaceUnder(grid, x, y)
-  const lay =
-    trail !== MaterialId.empty && grid.data[index] > TRAIL_COST && rng.chance(TRAIL_CHANCE)
+  // The soft stuff at hand to wall a path with. An ant lines its lane in whatever it is boring through, so
+  // a hollowed-out log still shows the routes taken as two ridges either side of an open channel — the way
+  // an ant colony's galleries stay legible in the game this apes.
+  const wall = softNear(grid, x, y)
 
   const dirs = headingOrder(heading)
   for (const [dx, dy] of dirs) {
@@ -595,34 +594,55 @@ function stepAnt(grid: Grid, rng: Rng, x: number, y: number, index: number, life
     const ny = y + dy
     if (nx < 0 || nx >= grid.width || ny < 0 || ny >= grid.height) continue
     const target = cellIndex(grid, nx, ny)
-    if (grid.material[target] !== MaterialId.empty) continue
-    if (!lay && !clingsToWall(grid, nx, ny)) continue
+    const there = grid.material[target]
 
+    // It eats forward through soft stuff; open air it enters only where a wall is already at hand, so it
+    // does not walk off into the void. Hard rock, loose ground and other creatures it cannot pass at all.
+    if (there !== MaterialId.empty && BURROWABLE[there] !== 1) continue
+    if (there === MaterialId.empty && !clingsToWall(grid, nx, ny)) continue
+
+    // Move, carving whatever it steps into so the lane it walks is left open behind it.
     swapCells(grid, index, target)
+    transformCell(grid, index, MaterialId.empty)
     grid.moved[index] = 1
     grid.moved[target] = 1
     heading.hx = dx
     heading.hy = dy
     moveHeading(grid, index, target)
-    if (lay) {
-      transformCell(grid, index, trail as MaterialId)
-      grid.data[target] -= TRAIL_COST
+
+    // A ridge to either side, square across the heading — but only into open air, so a path can never cut
+    // through anything already standing, its own kind or another's. This is what leaves a visible channel
+    // through a nearly empty trunk instead of one more scattered hole.
+    if (wall !== MaterialId.empty && grid.data[target] > TRAIL_COST) {
+      const built = wallInto(grid, nx + dy, ny - dx, wall) + wallInto(grid, nx - dy, ny + dx, wall)
+      if (built > 0) grid.data[target] -= TRAIL_COST
     }
     return
   }
 }
 
-/** The material of the surface an ant is standing on, looked for underfoot first; empty if it finds none. */
-function surfaceUnder(grid: Grid, x: number, y: number): number {
+/** Places a ridge of `material` at a cell, but only into open air, and reports whether it did. */
+function wallInto(grid: Grid, x: number, y: number, material: number): number {
+  if (x < 0 || x >= grid.width || y < 0 || y >= grid.height) return 0
+  const index = cellIndex(grid, x, y)
+  if (grid.material[index] !== MaterialId.empty) return 0
+  placeMaterial(grid, index, material as MaterialId)
+  grid.moved[index] = 1
+  return 1
+}
+
+/**
+ * The soft material an ant has to hand to wall a path with, looked for underfoot first. Only the stuff it
+ * bores through counts — a ridge has to be a wall that stays put, so loose ground and open air are no use,
+ * which is also why an ant crossing bare dirt lays nothing and never grows the ground into a mound.
+ */
+function softNear(grid: Grid, x: number, y: number): number {
   for (const [dx, dy] of UNDERFOOT) {
     const nx = x + dx
     const ny = y + dy
     if (nx < 0 || nx >= grid.width || ny < 0 || ny >= grid.height) continue
     const material = grid.material[cellIndex(grid, nx, ny)]
-    if (IS_ALIVE[material] === 1) continue
-    const behavior = MATERIALS[material].behavior
-    if (behavior === MaterialBehavior.static || behavior === MaterialBehavior.powder)
-      return material
+    if (BURROWABLE[material] === 1) return material
   }
   return MaterialId.empty
 }

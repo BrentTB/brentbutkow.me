@@ -185,6 +185,14 @@ describe('canPaintOver', () => {
     expect(canPaintOver(MaterialId.empty, MaterialId.stone)).toBe(true)
     expect(canPaintOver(MaterialId.empty, MaterialId.lava)).toBe(true)
   })
+
+  it('drops an ant straight into the soft stuff it burrows, but not into stone', () => {
+    // A nest is set down inside a plank, not only sprinkled on top of it. Every other solid-on-solid
+    // brush is refused, so without the ant's exception this would be false.
+    expect(canPaintOver(MaterialId.ant, MaterialId.wood)).toBe(true)
+    expect(canPaintOver(MaterialId.ant, MaterialId.plant)).toBe(true)
+    expect(canPaintOver(MaterialId.ant, MaterialId.stone)).toBe(false)
+  })
 })
 
 describe('isBurning', () => {

@@ -335,15 +335,17 @@ describe('the ant colony preset', () => {
     }
   })
 
-  it('is still building a while after it is dropped in', { timeout: 20_000 }, () => {
+  it('is still boring galleries a while after it is dropped in', { timeout: 20_000 }, () => {
     const grid = createGrid(140, 90)
     loadPreset(grid, Preset.antColony, createRng(2))
     const woodStart = count(grid, MaterialId.wood)
 
     soak(grid, 1000)
 
-    // The ants crawl the trunks and draw lines of wood off them, so there is more wood than the trunks
-    // started with: they build in whatever they walk on rather than only tracing what is already there.
+    // The ants graze the ground bushes and keep working, so the colony is still alive; and because they
+    // wall each channel they open, the logs end up webbed with more wood than they started as rather than
+    // eaten away to nothing.
+    expect(count(grid, MaterialId.ant)).toBeGreaterThan(0)
     expect(count(grid, MaterialId.wood)).toBeGreaterThan(woodStart)
   })
 

@@ -513,10 +513,10 @@ function volcano(grid: Grid, rng: Rng): void {
 }
 
 /**
- * A plain ant colony: open ground with a couple of leafy tree trunks to crawl over, and ants on the
- * ground between them. The ants graze the leaves and web the trunks and the ground with trailing vine.
- * Deliberately basic — it exists to show the ants building, with no point shaping it while their
- * behaviour is still being tuned.
+ * A plain ant colony: open ground with a couple of thick wooden logs to tunnel into, a leaf bush at each
+ * for food, and ants scattered along the ground. The ants bore galleries into the logs and draw lines out
+ * along the ground. Deliberately basic — it exists to show the ants working, with no point shaping it
+ * while their behaviour is still being tuned.
  */
 function antColony(grid: Grid, rng: Rng): void {
   const { width, height } = grid
@@ -525,16 +525,25 @@ function antColony(grid: Grid, rng: Rng): void {
   fill(grid, 0, groundY + 1, width - 1, height - 1, MaterialId.stone)
   fill(grid, 0, groundY - 1, width - 1, groundY, MaterialId.dirt)
 
-  const trees = Math.max(2, Math.round(width / 150))
-  for (let t = 0; t < trees; t++) {
-    const tx = Math.round(((t + 1) / (trees + 1)) * width)
-    const trunkHeight = Math.round(height * (0.4 + rng.next() * 0.2))
-    tree(grid, tx, groundY - 1, trunkHeight, rng)
+  const logs = Math.max(2, Math.round(width / 150))
+  for (let t = 0; t < logs; t++) {
+    const cx = Math.round(((t + 1) / (logs + 1)) * width)
+    const half = Math.max(5, Math.round(width * 0.06))
+    const top = Math.round(height * (0.3 + rng.next() * 0.1))
+
+    // A fat block of wood, its top edge roughed up so it is not a brick — thick enough that galleries read
+    // as galleries rather than eating it straight through.
+    for (let x = cx - half; x <= cx + half; x++) {
+      const jitter = Math.round((rng.next() - 0.5) * 3)
+      fill(grid, x, top + jitter, x, groundY - 1, MaterialId.wood)
+    }
+    // Leaf bushes at the foot of the log, low and easy to graze, so the nest keeps its energy up.
+    boulder(grid, cx - half, groundY - 3, 3, rng, MaterialId.plant)
+    boulder(grid, cx + half, groundY - 3, 3, rng, MaterialId.plant)
   }
 
-  // Ants along the ground, out where they can set off up a trunk or across the dirt. A few, not a mob:
-  // each lays its own trail, and a crowd in one spot just overwrites the same cells.
-  const ants = Math.max(4, Math.round(width / 22))
+  // A scatter of ants along the ground, out where each can set off into a log or across the dirt.
+  const ants = Math.max(4, Math.round(width / 34))
   for (let i = 0; i < ants; i++) {
     const ax = 2 + Math.floor(rng.next() * (width - 4))
     put(grid, ax, groundY - 2, MaterialId.ant)

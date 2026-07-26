@@ -492,6 +492,32 @@ describe('the ant', () => {
     expect(count(grid, MaterialId.vine)).toBe(0)
   })
 
+  it('bores down into a plank rather than only pacing its top', () => {
+    // A thick block of wood on a floor, an ant set on top and pointed down. It should tunnel into the body
+    // of the wood, not sit on the surface — so open tunnel appears well below where it started. Without
+    // the ability to burrow, an ant cannot enter solid wood at all and this stays zero.
+    const grid = createGrid(20, 20)
+    for (let x = 0; x < grid.width; x++)
+      placeMaterial(grid, cellIndex(grid, x, 19), MaterialId.stone)
+    for (let y = 6; y < 19; y++) {
+      for (let x = 3; x < 17; x++) placeMaterial(grid, cellIndex(grid, x, y), MaterialId.wood)
+    }
+    const startY = 5
+    ant(grid, 10, startY, 0, 1)
+
+    run(grid, 300, 2)
+
+    // The deepest tunnel opened inside the block: an empty cell that used to be wood, well below the top.
+    let deepest = startY
+    for (let y = 7; y < 19; y++) {
+      for (let x = 3; x < 17; x++) {
+        if (grid.material[cellIndex(grid, x, y)] === MaterialId.empty)
+          deepest = Math.max(deepest, y)
+      }
+    }
+    expect(deepest).toBeGreaterThan(startY + 4)
+  })
+
   it('only builds where it can grip, not out in mid-air', () => {
     // A lone ant floating in empty space with nothing under it: it drops rather than laying trail into
     // the void, so nothing gets built up here.

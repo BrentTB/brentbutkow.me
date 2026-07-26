@@ -13,6 +13,13 @@ const PAINT_RANK: Record<MaterialBehavior, number> = {
   [MaterialBehavior.static]: 4,
 }
 
+/**
+ * The soft materials an ant lives in: it can be painted straight into them and it burrows through them,
+ * so a nest can be set down inside a plank rather than only on top of it. The life pass reads the same
+ * list to decide what an ant can bore into.
+ */
+export const ANT_SOFT: readonly MaterialId[] = [MaterialId.wood, MaterialId.plant, MaterialId.vine]
+
 export function canPaintOver(brush: MaterialId, existing: number): boolean {
   // Erase clears anything, and anything can be drawn into open air.
   if (brush === MaterialId.empty || existing === MaterialId.empty) return true
@@ -21,6 +28,9 @@ export function canPaintOver(brush: MaterialId, existing: number): boolean {
   if (MATERIALS[existing].behavior === MaterialBehavior.gas) return true
   // Living things are soft. Dropping a boulder on a fish should land on the fish, not bounce off it.
   if (MATERIALS[existing].life !== undefined) return true
+  // An ant lives in wood, so its brush is placed straight into the soft stuff it burrows through — the
+  // paint-rank rule would otherwise refuse it, both being solid.
+  if (brush === MaterialId.ant && (ANT_SOFT as readonly number[]).includes(existing)) return true
   return PAINT_RANK[MATERIALS[brush].behavior] > PAINT_RANK[MATERIALS[existing].behavior]
 }
 
