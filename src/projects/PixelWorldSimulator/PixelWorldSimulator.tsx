@@ -3,7 +3,8 @@ import { PageLayout } from '../../components/PageFormatting/PageLayout'
 import { PageHeader } from '../../components/PageFormatting/PageHeader'
 import { useFunMode } from '../../contexts/useFunMode'
 import { CellPoint, MaterialId, Tool } from './pixel-world.types'
-import { BRUSH_RADIUS, DEFAULT_MATERIAL, simCopy } from './data'
+import { BRUSH_RADIUS, DEFAULT_MATERIAL, SIDEBAR_GAP, simCopy } from './data'
+import { useElementHeight } from './useElementHeight'
 import { useFullscreen } from './useFullscreen'
 import { usePixelWorld } from './usePixelWorld'
 import { usePointerBrush } from './usePointerBrush'
@@ -29,6 +30,15 @@ export function PixelWorldSimulator() {
   const [material, setMaterial] = useState<MaterialId>(DEFAULT_MATERIAL)
   const [tool, setTool] = useState<Tool>(Tool.paint)
   const [radius, setRadius] = useState(BRUSH_RADIUS.default)
+
+  // How much room is left beside the canvas once the tools have had theirs. The canvas takes its height from
+  // its own aspect ratio, so this can only be measured — and without it the tally runs on past the bottom of
+  // the world and leaves a column of dead space next to it.
+  const stageRef = useRef<HTMLDivElement>(null)
+  const toolsRef = useRef<HTMLDivElement>(null)
+  const stageHeight = useElementHeight(stageRef)
+  const toolsHeight = useElementHeight(toolsRef)
+  const censusRoom = stageHeight === 0 ? 0 : Math.max(0, stageHeight - toolsHeight - SIDEBAR_GAP)
 
   const sim = usePixelWorld(canvasRef)
 
@@ -57,7 +67,7 @@ export function PixelWorldSimulator() {
         className={`${styles.body} ${fullscreen.isFullscreen ? styles.filling : ''}`}
       >
         <div className={styles.world}>
-          <div className={styles.stage}>
+          <div className={styles.stage} ref={stageRef}>
             <canvas
               ref={canvasRef}
               className={styles.canvas}
@@ -67,15 +77,17 @@ export function PixelWorldSimulator() {
           </div>
 
           <div className={styles.sidebar}>
-            <ToolRow
-              selected={tool}
-              onSelect={setTool}
-              isFullscreen={fullscreen.isFullscreen}
-              canFullscreen={fullscreen.supported}
-              onToggleFullscreen={fullscreen.toggle}
-            />
+            <div ref={toolsRef}>
+              <ToolRow
+                selected={tool}
+                onSelect={setTool}
+                isFullscreen={fullscreen.isFullscreen}
+                canFullscreen={fullscreen.supported}
+                onToggleFullscreen={fullscreen.toggle}
+              />
+            </div>
 
-            <Census counts={sim.census} onWatch={sim.watchCensus} />
+            <Census counts={sim.census} onWatch={sim.watchCensus} room={censusRoom} />
           </div>
         </div>
 

@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import { MaterialId } from '../../pixel-world.types'
-import { CENSUS_TRACK_COLOURS, simCopy } from '../../data'
+import { CENSUS_MIN_HEIGHT, CENSUS_TRACK_COLOURS, simCopy } from '../../data'
 import { MATERIALS } from '../../engine/materials'
 import { Census } from './Census'
 
@@ -137,6 +137,36 @@ describe('Census', () => {
 
     expect(screen.getByRole('button', { name: /Stone/ }).getAttribute('aria-pressed')).toBe('true')
     expect(screen.getByRole('button', { name: /Sand/ }).getAttribute('aria-pressed')).toBe('true')
+  })
+
+  it('fits itself to the room beside the canvas', () => {
+    const { container } = render(
+      <Census counts={tally({ [MaterialId.stone]: 3 })} onWatch={vi.fn()} room={400} />
+    )
+
+    // Left to its natural height the list runs on past the bottom of the world and strands the canvas above a
+    // column of dead space, so it is capped at the room actually measured.
+    expect(container.querySelector('section')?.getAttribute('style')).toContain('400px')
+  })
+
+  it('keeps about three rows even where there is barely any room', () => {
+    const { container } = render(
+      <Census counts={tally({ [MaterialId.stone]: 3 })} onWatch={vi.fn()} room={20} />
+    )
+
+    // A list you cannot read two entries of is not worth opening, so the floor wins over the measurement.
+    expect(container.querySelector('section')?.getAttribute('style')).toContain(
+      `${CENSUS_MIN_HEIGHT}px`
+    )
+  })
+
+  it('sets no height at all before the page has been measured', () => {
+    const { container } = render(
+      <Census counts={tally({ [MaterialId.stone]: 3 })} onWatch={vi.fn()} />
+    )
+
+    // Capping to a measurement of zero would collapse the panel on the first render.
+    expect(container.querySelector('section')?.getAttribute('style')).toBeNull()
   })
 
   it('says so when there is nothing drawn yet', () => {

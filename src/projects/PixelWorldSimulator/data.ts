@@ -19,17 +19,29 @@ export const AMBIENT_TEMPERATURE = 20
 export const MAX_TICKS_PER_FRAME = 2
 
 /**
+ * A fast-forward speed for watching a world settle without sitting through it: handy for seeing whether a
+ * colony survives an hour of ticks, useless for watching anything happen. Off unless
+ * `VITE_PIXEL_WORLD_FAST_FORWARD=true`, so it stays a local testing tool rather than shipping.
+ *
+ * Speed changes nothing about the simulation itself. The loop runs a fixed 60 Hz tick and speed only decides
+ * how many of those ticks it runs between one drawn frame and the next, so a world at 5× passes through
+ * exactly the states it would at 1× — there are simply fewer frames drawn along the way.
+ */
+const FAST_FORWARD = import.meta.env.VITE_PIXEL_WORLD_FAST_FORWARD === 'true'
+
+/**
  * How fast the world runs. Slow motion is how you actually watch a reaction happen.
  *
- * The top speed is 2×, not 4×: drawing is capped at the display's refresh rate, so every extra tick per
- * frame is movement you never see happening. At 4× a flame jumped four cells between frames, which reads
- * as stutter rather than speed.
+ * The top speed on the page is 2×, not 4×: drawing is capped at the display's refresh rate, so every extra
+ * tick per frame is movement you never see happening. At 4× a flame jumped four cells between frames, which
+ * reads as stutter rather than speed.
  */
 export const SIM_SPEEDS: readonly { label: string; rate: number }[] = [
   { label: '0.25×', rate: 0.25 },
   { label: '0.5×', rate: 0.5 },
   { label: '1×', rate: 1 },
   { label: '2×', rate: 2 },
+  ...(FAST_FORWARD ? [{ label: '5×', rate: 5 }] : []),
 ]
 export const DEFAULT_SPEED = 1
 
@@ -41,6 +53,16 @@ export const READING_INTERVAL = 100
  * whole pass over the grid, and a column of numbers flickering at ten a second is unreadable anyway.
  */
 export const CENSUS_INTERVAL = 250
+
+/** Gap between the tool column and the tally under it, in px. Matches the `gap` the sidebar is laid out with. */
+export const SIDEBAR_GAP = 8
+
+/**
+ * The shortest the tally is allowed to be, in px: its header plus about three rows. Where the canvas leaves
+ * less room than this the panel keeps its three rows and scrolls, because a list you cannot read two entries
+ * of is not worth opening.
+ */
+export const CENSUS_MIN_HEIGHT = 122
 
 /**
  * The colours a tracked row is marked with, handed out in the order rows are marked. Deliberately not the

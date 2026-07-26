@@ -470,6 +470,32 @@ describe('usePixelWorld', () => {
     expect(cancelledHandles).toContain(lastHandle)
   })
 
+  it('fast-forwards by running more of the same ticks, not by changing them', () => {
+    // Speed is not a physics setting. The loop keeps a fixed 60 Hz tick and speed only decides how many of
+    // those ticks it runs between one drawn frame and the next, so fast-forward is safe to leave a world
+    // running under: a grain falls a cell per tick either way, and five times the speed covers five times the
+    // ground in the same real time. (The tick count at a given instant can sit one out from an exact multiple:
+    // the accumulator carries a sub-millisecond remainder. That is a rounding artefact, not a different world.)
+    const fellTo = (rate: number, frames: number) => {
+      const { result, image } = mountSim()
+      act(() => result.current.setSpeed(rate))
+      act(() => result.current.paintStroke({ x: 60, y: 2 }, { x: 60, y: 2 }, MaterialId.sand, 0))
+      frame(0)
+      for (let i = 0; i < frames; i++) frame(MS_PER_TICK)
+      const row = sandRow(image, 60)
+      cleanup()
+      return row ?? 0
+    }
+
+    const from = 2
+    const steady = fellTo(1, 12) - from
+    const fastForward = fellTo(5, 12) - from
+
+    // Five times the ground covered, give or take the odd tick either side of the boundary.
+    expect(fastForward / steady).toBeGreaterThan(4)
+    expect(fastForward / steady).toBeLessThan(6)
+  })
+
   it('keeps no tally until one is asked for', () => {
     const { result } = mountSim()
     act(() => result.current.paintStroke({ x: 20, y: 9 }, { x: 20, y: 9 }, MaterialId.stone, 0))

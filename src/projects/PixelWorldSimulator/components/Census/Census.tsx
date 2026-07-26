@@ -1,6 +1,6 @@
 import { useEffect, useId, useState, type CSSProperties } from 'react'
 import { MaterialId } from '../../pixel-world.types'
-import { CENSUS_TRACK_COLOURS, simCopy } from '../../data'
+import { CENSUS_MIN_HEIGHT, CENSUS_TRACK_COLOURS, simCopy } from '../../data'
 import { MATERIALS } from '../../engine/materials'
 import { materialCss } from '../../engine/palette'
 import styles from './Census.module.scss'
@@ -10,6 +10,11 @@ type CensusProps = {
   counts: Uint32Array | null
   /** Starts and stops the count, so a closed panel costs nothing to keep around. */
   onWatch(on: boolean): void
+  /**
+   * Pixels of room left beside the canvas, or 0 before the page has been measured. The panel takes as many
+   * rows as fit in it and scrolls the rest, so opening the tally never runs on past the bottom of the world.
+   */
+  room?: number
 }
 
 /**
@@ -20,7 +25,7 @@ type CensusProps = {
  * slides up and down the list as the world runs — tracking pins a colour to it so you can find it at a
  * glance, and holds it on screen at zero rather than letting it vanish the moment the last cell goes.
  */
-export function Census({ counts, onWatch }: CensusProps) {
+export function Census({ counts, onWatch, room = 0 }: CensusProps) {
   const [open, setOpen] = useState(false)
   // Insertion order is what assigns the colours, so the first material tracked keeps its colour as others
   // come and go.
@@ -51,8 +56,14 @@ export function Census({ counts, onWatch }: CensusProps) {
     rows.sort((a, b) => b.count - a.count)
   }
 
+  // Never shorter than its header and about three rows, however little room the canvas leaves.
+  const capped = room === 0 ? undefined : Math.max(room, CENSUS_MIN_HEIGHT)
+
   return (
-    <section className={styles.census}>
+    <section
+      className={styles.census}
+      style={capped === undefined ? undefined : { maxHeight: capped }}
+    >
       <button
         type="button"
         className={styles.toggle}
