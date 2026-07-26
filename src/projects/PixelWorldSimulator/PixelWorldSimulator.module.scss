@@ -4,8 +4,7 @@
   gap: 16px;
 }
 
-// Canvas and tools share a row: the tools used to sit directly above the material-group tabs, where
-// reaching for a group hit a tool instead.
+// Canvas and tools share a row, so reaching for a material group never lands on a tool.
 .world {
   display: flex;
   align-items: stretch;

@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type CSSProperties } from 'react'
+import { useEffect, useId, useRef, useState, type CSSProperties } from 'react'
 import { MaterialId } from '../../pixel-world.types'
 import { CENSUS_MIN_HEIGHT, CENSUS_TRACK_COLOURS, simCopy } from '../../data'
 import { MATERIALS } from '../../engine/materials'
@@ -27,9 +27,11 @@ type CensusProps = {
  */
 export function Census({ counts, onWatch, room = 0 }: CensusProps) {
   const [open, setOpen] = useState(false)
-  // Insertion order is what assigns the colours, so the first material tracked keeps its colour as others
-  // come and go.
   const [tracked, setTracked] = useState<MaterialId[]>([])
+  // A tracked row keeps the colour it was handed even as other rows are untracked: the colour is a stable
+  // slot held per material, not its position in the live list. Freed slots are reused so the palette never
+  // runs off its end.
+  const colourSlots = useRef(new Map<MaterialId, number>())
   const panelId = useId()
 
   // Counting is a pass over every cell, so it only runs while the panel is actually open.
@@ -39,9 +41,17 @@ export function Census({ counts, onWatch, room = 0 }: CensusProps) {
   }, [open, onWatch])
 
   const toggleTracked = (material: MaterialId) => {
-    setTracked((current) =>
-      current.includes(material) ? current.filter((id) => id !== material) : [...current, material]
-    )
+    const slots = colourSlots.current
+    if (slots.has(material)) {
+      slots.delete(material)
+      setTracked((current) => current.filter((id) => id !== material))
+    } else {
+      const taken = new Set(slots.values())
+      let slot = 0
+      while (taken.has(slot)) slot++
+      slots.set(material, slot)
+      setTracked((current) => [...current, material])
+    }
   }
 
   const rows: { material: MaterialId; count: number }[] = []
@@ -84,23 +94,24 @@ export function Census({ counts, onWatch, room = 0 }: CensusProps) {
           ) : (
             <ul className={styles.list}>
               {rows.map(({ material, count }) => {
-                const marker = tracked.indexOf(material)
+                const slot = colourSlots.current.get(material)
+                const isTracked = slot !== undefined
                 const colour =
-                  marker < 0
+                  slot === undefined
                     ? undefined
-                    : CENSUS_TRACK_COLOURS[marker % CENSUS_TRACK_COLOURS.length]
+                    : CENSUS_TRACK_COLOURS[slot % CENSUS_TRACK_COLOURS.length]
 
                 return (
                   <li key={material}>
                     <button
                       type="button"
-                      className={`${styles.row} ${marker < 0 ? '' : styles.trackedRow}`}
+                      className={`${styles.row} ${isTracked ? styles.trackedRow : ''}`}
                       // The marker colour rides in as a custom property, so the stylesheet owns how a
                       // tracked row actually looks and this only says which colour it was handed.
                       style={
                         colour === undefined ? undefined : ({ '--track': colour } as CSSProperties)
                       }
-                      aria-pressed={marker >= 0}
+                      aria-pressed={isTracked}
                       title={simCopy.census.track}
                       onClick={() => toggleTracked(material)}
                     >

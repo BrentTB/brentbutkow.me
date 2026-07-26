@@ -30,8 +30,11 @@ export function MaterialSlots({ slots, waiting, selected, onUse, onAssign }: Mat
       {slots.map((material, index) => {
         const isWaiting = waiting === index
         const label = material === null ? simCopy.slots.empty : MATERIALS[material].label
-        const name =
-          material === null
+        // Match the visible text: a waiting slot reads "Pick one", so a screen reader has to hear that it is
+        // waiting rather than still "empty".
+        const name = isWaiting
+          ? `Favourite ${index + 1}, waiting for a material`
+          : material === null
             ? `Favourite ${index + 1}, empty`
             : `Favourite ${index + 1}, ${MATERIALS[material].label}`
 
@@ -41,7 +44,8 @@ export function MaterialSlots({ slots, waiting, selected, onUse, onAssign }: Mat
             type="button"
             className={`${styles.slot} ${isWaiting ? styles.waiting : ''}`}
             aria-label={name}
-            aria-pressed={material !== null && material === selected}
+            // An empty slot is a "fill me" action, not a toggle; only a filled slot is the brush toggle.
+            aria-pressed={material === null ? undefined : material === selected}
             title={material === null ? simCopy.slots.setHint : simCopy.slots.useHint}
             onClick={(event) => {
               // An empty slot is asking to be filled. A full one draws, unless the press is a second one or

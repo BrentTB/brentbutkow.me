@@ -166,23 +166,27 @@ function advance(
   motion: Velocity,
   rng: Rng
 ): number {
+  // Held before any slide moves the cell out of `at`: a partial diagonal leaves an empty (or a displaced
+  // neighbour) behind, and bounce/deflect must read the flying material and its new home, not that gap.
+  const material = grid.material[at]
+
   const moved = slideTo(grid, at, dx, dy, motion)
   if (moved !== at) return moved
 
   if (dx !== 0 && dy !== 0) {
     const alongX = slideTo(grid, at, dx, 0, motion)
     if (alongX !== at) {
-      bounce(grid, at, motion, false, true, rng)
+      bounce(grid, alongX, material, motion, false, true, rng)
       return alongX
     }
     const alongY = slideTo(grid, at, 0, dy, motion)
     if (alongY !== at) {
-      bounce(grid, at, motion, true, false, rng)
+      bounce(grid, alongY, material, motion, true, false, rng)
       return alongY
     }
   }
 
-  bounce(grid, at, motion, dx !== 0, dy !== 0, rng)
+  bounce(grid, at, material, motion, dx !== 0, dy !== 0, rng)
   return at
 }
 
@@ -211,12 +215,13 @@ function slideTo(grid: Grid, at: number, dx: number, dy: number, motion: Velocit
 function bounce(
   grid: Grid,
   at: number,
+  material: number,
   motion: Velocity,
   blockedX: boolean,
   blockedY: boolean,
   rng: Rng
 ): void {
-  const restitution = MATERIALS[grid.material[at]].restitution ?? DEFAULT_RESTITUTION
+  const restitution = MATERIALS[material].restitution ?? DEFAULT_RESTITUTION
 
   if (blockedX) {
     motion.vx = -motion.vx * restitution

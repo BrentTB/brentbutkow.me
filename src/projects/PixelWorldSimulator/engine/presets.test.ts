@@ -545,3 +545,18 @@ describe('the ant colony preset', () => {
     expect([...builtColony(2).material]).not.toEqual([...builtColony(1).material])
   })
 })
+
+describe('preset determinism', () => {
+  it('builds an identical world from the same seed, for every preset', () => {
+    for (const preset of Object.values(Preset)) {
+      const first = createGrid(GRID_WIDTH, GRID_HEIGHT)
+      const second = createGrid(GRID_WIDTH, GRID_HEIGHT)
+      loadPreset(first, preset, createRng(42))
+      loadPreset(second, preset, createRng(42))
+
+      // A world that fills nothing would pass equality trivially, so prove there is something to reproduce.
+      expect([...first.material].some((material) => material !== MaterialId.empty)).toBe(true)
+      expect([...second.material]).toEqual([...first.material])
+    }
+  })
+})

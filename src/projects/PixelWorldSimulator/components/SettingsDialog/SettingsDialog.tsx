@@ -13,6 +13,11 @@ type SettingsDialogProps = {
 export function SettingsDialog({ settings, onToggle, onClose }: SettingsDialogProps) {
   const panelRef = useRef<HTMLDivElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
+  // The parent hands a fresh onClose every render (it re-renders ten times a second as the readout ticks).
+  // The focus effect must run once on open, so read the latest onClose through a ref rather than depend on it
+  // — depending on it re-ran the effect on every parent render and yanked focus back to Done mid-toggle.
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
 
   useEffect(() => {
     // Whatever opened the dialog gets the focus back when it closes, so the keyboard lands back on the
@@ -22,7 +27,7 @@ export function SettingsDialog({ settings, onToggle, onClose }: SettingsDialogPr
 
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        onClose()
+        onCloseRef.current()
         return
       }
       if (event.key !== 'Tab') return
@@ -48,7 +53,7 @@ export function SettingsDialog({ settings, onToggle, onClose }: SettingsDialogPr
       window.removeEventListener('keydown', onKey)
       if (opener instanceof HTMLElement) opener.focus()
     }
-  }, [onClose])
+  }, [])
 
   return (
     <div

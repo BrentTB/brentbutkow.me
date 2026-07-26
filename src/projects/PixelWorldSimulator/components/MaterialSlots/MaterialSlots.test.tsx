@@ -92,6 +92,36 @@ describe('MaterialSlots', () => {
     expect(slots[0].textContent).toContain(simCopy.slots.empty)
   })
 
+  it('announces a waiting slot to a screen reader, not just an empty one', () => {
+    renderSlots({ slots: [null, null], waiting: 1 })
+
+    // The visible text swaps to "Pick one"; the accessible name has to move with it or the change is silent.
+    expect(screen.getByRole('button', { name: /Favourite 2, waiting/ })).toBeTruthy()
+  })
+
+  it('leaves aria-pressed off an empty slot, which fills rather than toggles', () => {
+    renderSlots()
+
+    for (const slot of screen.getAllByRole('button')) {
+      expect(slot.getAttribute('aria-pressed')).toBeNull()
+    }
+  })
+
+  it('holds the eraser like any material, so a slot set to Erase draws with it', () => {
+    const props = renderSlots({ slots: [MaterialId.empty, null] })
+
+    // A slot holding MaterialId.empty (0) is a filled slot, not an empty one: it names the eraser and a
+    // single press draws with it. Guards a future `!material` check treating the falsy 0 as empty.
+    const erase = screen.getByRole('button', {
+      name: new RegExp(MATERIALS[MaterialId.empty].label),
+    })
+    expect(erase.textContent).toContain(MATERIALS[MaterialId.empty].label)
+
+    fireEvent.click(erase)
+    expect(props.onUse).toHaveBeenCalledWith(0)
+    expect(props.onAssign).not.toHaveBeenCalled()
+  })
+
   it('marks the slot whose material is on the brush', () => {
     renderSlots({ slots: [MaterialId.stone, MaterialId.sand], selected: MaterialId.sand })
 

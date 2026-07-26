@@ -20,7 +20,12 @@ export function useElementHeight(ref: RefObject<HTMLElement | null>): number {
     if (typeof ResizeObserver === 'undefined') return
 
     const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) setHeight(entry.contentRect.height)
+      for (const entry of entries) {
+        // Border-box, to match the first measurement above: contentRect is content-box, so a padded or
+        // bordered element would jump by its padding the moment the observer first fired.
+        const border = entry.borderBoxSize?.[0]?.blockSize
+        setHeight(border ?? entry.target.getBoundingClientRect().height)
+      }
     })
     observer.observe(element)
     return () => observer.disconnect()

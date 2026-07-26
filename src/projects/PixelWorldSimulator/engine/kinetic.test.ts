@@ -112,6 +112,26 @@ describe('moveKinetic', () => {
     expect(dull.velocity.size).toBe(0)
   })
 
+  it('reads the flying material after a diagonal slide, so a corner bounce still springs', () => {
+    const rng = createRng(7)
+    const grid = walledGrid(21, 21)
+    const startY = grid.height - 2
+    const start = cellIndex(grid, 5, startY)
+    placeMaterial(grid, start, MaterialId.rubber)
+    // Down and to the side into the floor: the down-diagonal is blocked, so the cell slides along the open
+    // side and reflects its vertical speed. That bounce has to read rubber's restitution — not the empty
+    // cell it just vacated by sliding, which thuds flat and never leaves the floor row.
+    push(grid, start, 2, 3)
+
+    let apex = startY
+    for (let tick = 0; tick < 20 && grid.velocity.size > 0; tick++) {
+      moveKinetic(grid, rng)
+      apex = Math.min(apex, find(grid, MaterialId.rubber)?.y ?? apex)
+    }
+
+    expect(apex).toBeLessThan(startY)
+  })
+
   it('drops a cell out of the map once it is barely moving and has landed', () => {
     const rng = createRng(7)
     const grid = walledGrid()

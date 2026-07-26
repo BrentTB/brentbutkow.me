@@ -94,6 +94,39 @@ describe('SettingsDialog', () => {
     opener.remove()
   })
 
+  it('leaves focus alone when the parent re-renders with a fresh onClose', () => {
+    const view = render(
+      <SettingsDialog settings={{ ...DEFAULT_SETTINGS }} onToggle={vi.fn()} onClose={vi.fn()} />
+    )
+    const checkbox = screen.getAllByRole('checkbox')[1] as HTMLElement
+    checkbox.focus()
+    expect(document.activeElement).toBe(checkbox)
+
+    // The parent hands a brand-new onClose ten times a second; the focus effect must not re-run and drag
+    // focus back to Done mid-toggle.
+    view.rerender(
+      <SettingsDialog settings={{ ...DEFAULT_SETTINGS }} onToggle={vi.fn()} onClose={vi.fn()} />
+    )
+
+    expect(document.activeElement).toBe(checkbox)
+  })
+
+  it('closes through the latest onClose after a re-render', () => {
+    const stale = vi.fn()
+    const fresh = vi.fn()
+    const view = render(
+      <SettingsDialog settings={{ ...DEFAULT_SETTINGS }} onToggle={vi.fn()} onClose={stale} />
+    )
+    view.rerender(
+      <SettingsDialog settings={{ ...DEFAULT_SETTINGS }} onToggle={vi.fn()} onClose={fresh} />
+    )
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+
+    expect(fresh).toHaveBeenCalled()
+    expect(stale).not.toHaveBeenCalled()
+  })
+
   it('keeps Tab inside the dialog, so focus cannot wander onto the world behind it', () => {
     open()
     const focusable = screen.getByRole('dialog').querySelectorAll('button, input')

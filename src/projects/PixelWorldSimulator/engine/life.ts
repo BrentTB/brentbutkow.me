@@ -163,21 +163,45 @@ function inMedium(grid: Grid, index: number, life: Life): boolean {
   const medium = life.medium
   if (medium === Medium.any) return true
 
-  // Anything that lives in the same medium counts as that medium. A fish in the middle of a shoal, or
-  // swimming into a patch of algae, is not stranded: it is surrounded by things that are themselves in
-  // water. Counting only the bare medium suffocated packed patches from the inside, all at once.
-  const neighbourly = (material: number) => LIFE[material]?.medium === medium
+  // Scanned inline rather than through a `touches` predicate: this runs for every creature every tick, and
+  // a fresh closure per call is allocation the hot loop cannot spare.
+  const x = index % grid.width
+  const y = Math.floor(index / grid.width)
 
   if (medium === Medium.surface) {
-    // Its own food counts as breathable: a bug that eats its way into a bank of grass buries itself, when
-    // what should happen is that it tunnels through, grazing as it goes.
+    if (!standingOnSomething(grid, index)) return false
+    // Its own food counts as breathable: a bug that eats its way into a bank of grass tunnels through,
+    // grazing, rather than burying itself.
     const species = grid.material[index]
-    const athome = (m: number) => isAir(m) || neighbourly(m) || eats(species, m)
-    return standingOnSomething(grid, index) && touches(grid, index, athome)
+    for (const [dx, dy] of NEIGHBOURS) {
+      const nx = x + dx
+      const ny = y + dy
+      if (nx < 0 || nx >= grid.width || ny < 0 || ny >= grid.height) continue
+      const material = grid.material[cellIndex(grid, nx, ny)]
+      if (isAir(material) || LIFE[material]?.medium === medium || eats(species, material))
+        return true
+    }
+    return false
   }
 
-  const wants = medium === Medium.water ? isWater : medium === Medium.soil ? isSoil : isAir
-  return touches(grid, index, (material) => wants(material) || neighbourly(material))
+  // Bordering the bare medium counts, and so does bordering anything that itself lives in it: the water a
+  // fish swims in is in its neighbours, and a fish packed into a shoal is not stranded. Counting only the
+  // bare medium suffocated packed patches from the inside, all at once.
+  for (const [dx, dy] of NEIGHBOURS) {
+    const nx = x + dx
+    const ny = y + dy
+    if (nx < 0 || nx >= grid.width || ny < 0 || ny >= grid.height) continue
+    const material = grid.material[cellIndex(grid, nx, ny)]
+    if (isMedium(medium, material) || LIFE[material]?.medium === medium) return true
+  }
+  return false
+}
+
+/** The bare medium itself: water for water, soil for soil, air otherwise. */
+function isMedium(medium: Medium, material: number): boolean {
+  if (medium === Medium.water) return isWater(material)
+  if (medium === Medium.soil) return isSoil(material)
+  return isAir(material)
 }
 
 /** Whether any of the four neighbours satisfies `accepts`. */
@@ -574,6 +598,13 @@ const ANT_STEPS: readonly (readonly [number, number])[] = [
   [1, -1],
 ]
 
+// Scratch for headingOrder, reused every call so ordering an ant's eight steps allocates nothing in the
+// tick loop. Scores are filled per call; the index list is sorted in place and mapped back to the steps.
+const HEADING_SCORES = new Float64Array(ANT_STEPS.length)
+const HEADING_INDEX = ANT_STEPS.map((_, i) => i)
+const HEADING_OUT: (readonly [number, number])[] = ANT_STEPS.map((step) => step)
+const byHeadingScore = (a: number, b: number) => HEADING_SCORES[b] - HEADING_SCORES[a]
+
 /**
  * The bearings a turning ant may pick, weighted by how often they come up: the four diagonals dominate,
  * up and down alike, with the straight cardinals a minority, so galleries mostly run on the slant rather
@@ -819,12 +850,15 @@ function softNear(grid: Grid, rng: Rng, x: number, y: number): number {
  * deliberate turn rather than a wobble; a little rng under the bump settles the remaining ties without bias.
  */
 function headingOrder(heading: AntHeading, rng: Rng): readonly (readonly [number, number])[] {
-  return ANT_STEPS.map((step) => {
+  for (let i = 0; i < ANT_STEPS.length; i++) {
+    const step = ANT_STEPS[i]
     const exact = step[0] === heading.hx && step[1] === heading.hy ? 0.4 : 0
-    return { step, score: step[0] * heading.hx + step[1] * heading.hy + exact + rng.next() * 0.3 }
-  })
-    .sort((a, b) => b.score - a.score)
-    .map((scored) => scored.step)
+    HEADING_SCORES[i] = step[0] * heading.hx + step[1] * heading.hy + exact + rng.next() * 0.3
+    HEADING_INDEX[i] = i
+  }
+  HEADING_INDEX.sort(byHeadingScore)
+  for (let i = 0; i < HEADING_INDEX.length; i++) HEADING_OUT[i] = ANT_STEPS[HEADING_INDEX[i]]
+  return HEADING_OUT
 }
 
 /**

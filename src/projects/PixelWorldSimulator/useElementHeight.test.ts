@@ -3,7 +3,11 @@ import { renderHook, cleanup, act } from '@testing-library/react'
 import { useElementHeight } from './useElementHeight'
 
 /** The observers created during a test, so one can be fired by hand the way a real resize would. */
-let observers: { element: Element; fire(height: number): void; disconnected: boolean }[] = []
+let observers: {
+  element: Element
+  fire(borderHeight: number, contentHeight?: number): void
+  disconnected: boolean
+}[] = []
 
 function stubResizeObserver() {
   class Stub {
@@ -17,9 +21,15 @@ function stubResizeObserver() {
       const record = {
         element,
         disconnected: false,
-        fire: (height: number) => {
+        fire: (borderHeight: number, contentHeight: number = borderHeight) => {
           this.callback(
-            [{ target: element, contentRect: { height } } as unknown as ResizeObserverEntry],
+            [
+              {
+                target: element,
+                borderBoxSize: [{ blockSize: borderHeight, inlineSize: 0 }],
+                contentRect: { height: contentHeight },
+              } as unknown as ResizeObserverEntry,
+            ],
             this as unknown as ResizeObserver
           )
         },
@@ -79,6 +89,18 @@ describe('useElementHeight', () => {
     act(() => observers[0].fire(180))
 
     expect(result.current).toBe(180)
+  })
+
+  it('follows the border-box, so a padded element does not jump when the observer first fires', () => {
+    stubResizeObserver()
+    // Initial measurement is getBoundingClientRect (border-box) at 240.
+    const { result } = mount(240)
+
+    // A real resize hands both boxes; content-box is smaller by the padding + border. Reading contentRect
+    // would drop the height by that gap on the very first fire.
+    act(() => observers[0].fire(200, 178))
+
+    expect(result.current).toBe(200)
   })
 
   it('gives 0 for an element that is not there', () => {

@@ -126,6 +126,31 @@ describe('Census', () => {
     expect(first).not.toEqual(second)
   })
 
+  it('holds a row its colour when an earlier-tracked row is untracked', () => {
+    render(
+      <Census
+        counts={tally({ [MaterialId.stone]: 3, [MaterialId.sand]: 2, [MaterialId.ant]: 1 })}
+        onWatch={vi.fn()}
+      />
+    )
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(simCopy.census.title) }))
+
+    fireEvent.click(screen.getByRole('button', { name: /Stone/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Sand/ }))
+    // Sand was handed the second colour; untracking stone must not slide sand onto the first.
+    fireEvent.click(screen.getByRole('button', { name: /Stone/ }))
+
+    expect(screen.getByRole('button', { name: /Sand/ }).getAttribute('style')).toContain(
+      CENSUS_TRACK_COLOURS[1]
+    )
+
+    // The freed first colour is reused by the next row tracked, so the palette never runs off its end.
+    fireEvent.click(screen.getByRole('button', { name: /Ant/ }))
+    expect(screen.getByRole('button', { name: /Ant/ }).getAttribute('style')).toContain(
+      CENSUS_TRACK_COLOURS[0]
+    )
+  })
+
   it('tracks more than one row at a time', () => {
     render(
       <Census counts={tally({ [MaterialId.stone]: 3, [MaterialId.sand]: 2 })} onWatch={vi.fn()} />

@@ -580,7 +580,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.gunpowder,
     label: 'Gunpowder',
-    blurb: 'A fuse: each grain pops and lights the next.',
+    blurb: 'Light one grain and a whole trail of it goes up in a flash.',
     behavior: MaterialBehavior.powder,
     density: 90,
     color: [72, 70, 76],
