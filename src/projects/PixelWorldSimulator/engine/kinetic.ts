@@ -60,13 +60,20 @@ const SHOVE_DEPTH = 24
  * Cap on cells in flight. A blast big enough to exceed it degrades into ordinary falling debris rather
  * than stalling the tick, so the slowest entries are the ones dropped.
  *
- * A tenth of the world, because a third of that was quietly eating the big explosions: a bed sitting on
- * a deep charge puts far more than three thousand cells in the air at once, and everything past the cap
- * was deleted mid-launch. That is what left large chunks of a bed hanging there unmoved while the rest
- * of it flew. Measured on a world of 17,700 charges, the share of sand thrown clear of the blast went
- * from 9% to 28%, for about a fifth more time in the worst tick of the explosion.
+ * Deliberately generous, because it is a valve against an absurd world rather than a budget, and at 3,000
+ * it was quietly eating ordinary explosions: a bed on a deep charge puts twenty thousand cells in the air
+ * at once, so most of a launch was deleted while it was still happening. That is what left large chunks of
+ * a bed hanging there unmoved while the rest of it flew. A test asserts a built explosion passes under it
+ * untouched.
+ *
+ * It does not bound the pass it runs in, so lowering it buys much less than it looks like it should:
+ * `trim` fires at the end of `moveKinetic`, but the pushes arrive from `detonate` later in the same tick,
+ * so the next pass starts over the cap whatever it is set to. Measured, the peak detonation tick walked
+ * 22,248 cells with the cap at 3,000, and the worst tick is the same with the cap removed entirely. What
+ * it actually bounds is the long aftermath: on a world where every cell is a charge, dropping the cap
+ * altogether costs about half again as much total time, which is why this stays.
  */
-export const MAX_IN_FLIGHT = 10_000
+export const MAX_IN_FLIGHT = 20_000
 
 /** Hands a cell a velocity, adding to whatever it already had — impulses from two blasts compound. */
 export function push(grid: Grid, index: number, vx: number, vy: number): void {

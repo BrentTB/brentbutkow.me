@@ -385,4 +385,36 @@ describe('the cap on cells in flight', () => {
     // sits at 0.27, because the launch was being deleted as it happened.
     expect(stillThere / bed.length).toBeLessThan(0.15)
   })
+
+  it('never fires on an ordinary explosion', () => {
+    // The cap is a valve against a world made of nothing but explosives, where the aftermath costs half
+    // again as much without it. It is not a budget, and an explosion somebody actually built has to pass
+    // under it untouched — clipping one deletes the launch mid-flight and costs nothing, because `trim`
+    // runs at the end of this pass while the pushes arrive from `detonate` later in the same tick.
+    const grid = createGrid(GRID_WIDTH, GRID_HEIGHT)
+    const floor = GRID_HEIGHT - 1
+    for (let x = 0; x < GRID_WIDTH; x++) {
+      placeMaterial(grid, cellIndex(grid, x, floor), MaterialId.stone)
+    }
+    const chargeTop = floor - 20
+    for (let y = chargeTop - 40; y < chargeTop; y++) {
+      for (let x = 0; x < GRID_WIDTH; x++)
+        placeMaterial(grid, cellIndex(grid, x, y), MaterialId.sand)
+    }
+    for (let y = chargeTop; y < floor; y++) {
+      for (let x = 180; x < 220; x++) placeMaterial(grid, cellIndex(grid, x, y), MaterialId.tnt)
+    }
+
+    grid.temperature[cellIndex(grid, 200, floor - 1)] = 1200
+    grid.hotRows.fill(1)
+    const rng = createRng(1)
+    let peakInFlight = 0
+    for (let tick = 0; tick < 30; tick++) {
+      tickWorld(grid, rng, tick)
+      peakInFlight = Math.max(peakInFlight, grid.velocity.size)
+    }
+
+    expect(peakInFlight).toBeGreaterThan(0)
+    expect(peakInFlight).toBeLessThan(MAX_IN_FLIGHT)
+  })
 })
