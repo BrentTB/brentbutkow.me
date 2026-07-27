@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { Grid, MaterialId } from '../pixel-world.types'
 import { cellIndex, createGrid, placeMaterial } from './grid'
+import { GRID_HEIGHT, GRID_WIDTH } from '../data'
 import { MAX_IN_FLIGHT, moveKinetic, push } from './kinetic'
 import { createRng } from './rng'
+import { tickWorld } from './tick'
 
 /** A world with a stone floor along the bottom row. */
 function walledGrid(width = 21, height = 21): Grid {
@@ -299,7 +301,8 @@ describe('an impact on packed material', () => {
   function packedBed(depth: number) {
     const grid = walledGrid(41, depth + 6)
     for (let y = 1; y <= depth; y++) {
-      for (let x = 0; x < grid.width; x++) placeMaterial(grid, cellIndex(grid, x, y), MaterialId.sand)
+      for (let x = 0; x < grid.width; x++)
+        placeMaterial(grid, cellIndex(grid, x, y), MaterialId.sand)
     }
     return grid
   }
@@ -342,5 +345,44 @@ describe('an impact on packed material', () => {
     moveKinetic(grid, createRng(1))
 
     expect(grid.velocity.has(cellIndex(grid, 20, grid.height - 1))).toBe(false)
+  })
+})
+
+describe('the cap on cells in flight', () => {
+  it('holds a real explosion instead of deleting it mid-launch', () => {
+    // The complaint this guards: a bed sitting on a deep charge puts many thousands of cells in the air at
+    // once, and everything past the cap was dropped mid-flight — which is what left large chunks of a bed
+    // hanging there unmoved while the rest of it flew. The cap is a safety valve for absurd worlds, so it
+    // has to sit above what an ordinary explosion throws.
+    const grid = createGrid(GRID_WIDTH, GRID_HEIGHT)
+    const floor = GRID_HEIGHT - 1
+    for (let x = 0; x < GRID_WIDTH; x++) {
+      placeMaterial(grid, cellIndex(grid, x, floor), MaterialId.stone)
+    }
+    const chargeTop = floor - 20
+    for (let y = chargeTop - 40; y < chargeTop; y++) {
+      for (let x = 0; x < GRID_WIDTH; x++)
+        placeMaterial(grid, cellIndex(grid, x, y), MaterialId.sand)
+    }
+    for (let y = chargeTop; y < floor; y++) {
+      for (let x = 180; x < 220; x++) placeMaterial(grid, cellIndex(grid, x, y), MaterialId.tnt)
+    }
+
+    const bed: number[] = []
+    for (let y = chargeTop - 40; y < chargeTop; y++) {
+      for (let x = 180; x < 220; x++) bed.push(cellIndex(grid, x, y))
+    }
+
+    grid.temperature[cellIndex(grid, 200, floor - 1)] = 1200
+    grid.hotRows.fill(1)
+    const rng = createRng(1)
+    for (let tick = 0; tick < 30; tick++) tickWorld(grid, rng, tick)
+
+    let stillThere = 0
+    for (const cell of bed) if (grid.material[cell] === MaterialId.sand) stillThere++
+
+    // Most of the bed over the charge has left the cell it started in. At the old three-thousand cap this
+    // sits at 0.27, because the launch was being deleted as it happened.
+    expect(stillThere / bed.length).toBeLessThan(0.15)
   })
 })

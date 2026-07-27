@@ -32,27 +32,41 @@ const SLOPE_DEFLECT = 0.6
 /** A little sideways wander on every bounce, so a ball does not repeat one line up and down. */
 const BOUNCE_SCATTER = 0.12
 /**
- * Share of a boxed-in cell's speed that carries into the packed material ahead of it. Equal densities
- * cannot displace each other, so inside a bed of sand every grain is walled in by more sand: without a
- * way to hand the impact on, a buried grain reflects off its neighbour and throws the whole impulse
- * away. A charge under a bed deeper than its own blast reach could not move it at all — the surface
- * layer, the only part with air above it, was the only part that ever flew.
+ * Speed a boxed-in cell hands to each of the packed cells ahead of it, as a share of its own. Equal
+ * densities cannot displace each other, so inside a bed of sand every grain is walled in by more sand:
+ * with nowhere to put its motion, a buried grain reflected off its neighbour and threw the impulse away.
+ * A charge under a bed deeper than its own blast reach could not move that bed at all, and the middle of
+ * one stayed perfectly still while the surface flew off — the only layer with open air to fly into.
+ *
+ * The run takes the share each rather than splitting it, which treats packed material as rigid: the
+ * whole column goes at once instead of at a fraction that gravity cancels before the next tick. Dividing
+ * it is the more honest arithmetic and it does not work — even handing over the entire impulse, a
+ * twenty-fourth of it per cell left a third of the bed sitting exactly where it started.
  */
-const IMPACT_TRANSFER = 0.6
-/** Below this, in cells per tick, an impact is a thud and not a shove. */
+const IMPACT_TRANSFER = 0.2
+/**
+ * Below this, in cells per tick, an impact is a thud and not a shove. It is also what stops the chain
+ * running away: a shoved cell carries a fifth of what hit it, so anything under five cells per tick
+ * dies on the next hop instead of multiplying down the column.
+ */
 const IMPACT_SPEED = 0.75
 /**
- * Cells of packed material one impact carries through. The run is shoved together, so the impulse
- * reaches open space instead of stopping at the first grain. Bounded because an impact against a deep
- * bed would otherwise walk to the far side of the world, once per blocked cell of every blast.
+ * Cells of packed material one impact carries through. Bounded because an impact against a deep bed
+ * would otherwise walk to the far side of the world, once per blocked cell of every blast.
  */
 const SHOVE_DEPTH = 24
 
 /**
- * Cap on cells in flight. A blast big enough to exceed it should degrade into ordinary falling debris
- * rather than stall the tick, so the slowest entries are the ones dropped.
+ * Cap on cells in flight. A blast big enough to exceed it degrades into ordinary falling debris rather
+ * than stalling the tick, so the slowest entries are the ones dropped.
+ *
+ * A tenth of the world, because a third of that was quietly eating the big explosions: a bed sitting on
+ * a deep charge puts far more than three thousand cells in the air at once, and everything past the cap
+ * was deleted mid-launch. That is what left large chunks of a bed hanging there unmoved while the rest
+ * of it flew. Measured on a world of 17,700 charges, the share of sand thrown clear of the blast went
+ * from 9% to 28%, for about a fifth more time in the worst tick of the explosion.
  */
-export const MAX_IN_FLIGHT = 3000
+export const MAX_IN_FLIGHT = 10_000
 
 /** Hands a cell a velocity, adding to whatever it already had — impulses from two blasts compound. */
 export function push(grid: Grid, index: number, vx: number, vy: number): void {
@@ -210,10 +224,9 @@ function advance(
 }
 
 /**
- * Passes a blocked cell's impact into the packed cells ahead of it, shared out between them so a deeper
- * run takes the same shove further. They move on the next pass, topmost first, which is what lets a
- * column travel as a column: the leading cell reaches open space and each one behind follows into the
- * gap it left.
+ * Passes a blocked cell's impact into the run of packed cells ahead of it. They move on the next pass,
+ * topmost first, which is what lets a column travel as a column: the leading cell reaches open space and
+ * each one behind follows into the gap it left.
  */
 function shove(grid: Grid, at: number, dx: number, dy: number, motion: Velocity): void {
   const vx = dx === 0 ? 0 : motion.vx * IMPACT_TRANSFER
@@ -221,16 +234,12 @@ function shove(grid: Grid, at: number, dx: number, dy: number, motion: Velocity)
   if (Math.abs(vx) + Math.abs(vy) < IMPACT_SPEED) return
 
   const packed = packedRun(grid, at, dx, dy)
-  if (packed === 0) return
-
-  const shareX = vx / packed
-  const shareY = vy / packed
   let x = at % grid.width
   let y = Math.floor(at / grid.width)
   for (let step = 0; step < packed; step++) {
     x += dx
     y += dy
-    push(grid, cellIndex(grid, x, y), shareX, shareY)
+    push(grid, cellIndex(grid, x, y), vx, vy)
   }
 }
 
