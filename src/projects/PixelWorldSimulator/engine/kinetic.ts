@@ -1,5 +1,6 @@
 import { Grid, MaterialBehavior, MaterialId, Velocity } from '../pixel-world.types'
 import { cellIndex, markHotRow, swapCells, transformCell } from './grid'
+import { wakeChunk } from './chunks'
 import { MATERIALS, canDisplace, isMovable } from './materials'
 import { Rng } from './rng'
 
@@ -79,6 +80,9 @@ export const MAX_IN_FLIGHT = 20_000
 export function push(grid: Grid, index: number, vx: number, vy: number): void {
   const id = grid.material[index]
   if (id === MaterialId.empty) return
+
+  // A cell handed momentum is about to move, which the chunk it sits in has no other way of knowing.
+  wakeChunk(grid, index)
 
   const current = grid.velocity.get(index)
   if (current === undefined) {

@@ -1,9 +1,12 @@
 import { Grid, MaterialId } from '../pixel-world.types'
 import { AMBIENT_TEMPERATURE } from '../data'
 import { MATERIALS } from './materials'
+import { chunksAcross, chunksDown, wakeAllChunks, wakeChunk } from './chunks'
 
 export function createGrid(width: number, height: number): Grid {
   const cells = width * height
+  const columns = chunksAcross(width)
+  const rows = chunksDown(height)
   return {
     width,
     height,
@@ -15,6 +18,11 @@ export function createGrid(width: number, height: number): Grid {
     temperatureNext: new Int16Array(cells).fill(AMBIENT_TEMPERATURE),
     hotRows: new Uint8Array(height),
     hotRowsNext: new Uint8Array(height),
+    // Awake to begin with: a brand new world has no last tick to have been quiet during.
+    awakeChunks: new Uint8Array(columns * rows).fill(1),
+    awakeChunksNext: new Uint8Array(columns * rows).fill(1),
+    chunkColumns: columns,
+    chunkRows: rows,
     velocity: new Map(),
     heading: new Map(),
   }
@@ -37,6 +45,7 @@ export function clearGrid(grid: Grid): void {
   grid.temperatureNext.fill(AMBIENT_TEMPERATURE)
   grid.hotRows.fill(0)
   grid.hotRowsNext.fill(0)
+  wakeAllChunks(grid)
   grid.velocity.clear()
   grid.heading.clear()
 }
@@ -63,6 +72,7 @@ function startingData(material: MaterialId): number {
  */
 export function refreshCell(grid: Grid, index: number, material: MaterialId): void {
   grid.data[index] = startingData(material)
+  wakeChunk(grid, index)
 }
 
 /** A cell's counters and its heat travel with its material — lava carries its own temperature. */
@@ -92,6 +102,9 @@ export function swapCells(grid: Grid, a: number, b: number): void {
   grid.data[a] = data
   grid.burn[a] = burn
   grid.temperature[a] = temperature
+
+  wakeChunk(grid, a)
+  wakeChunk(grid, b)
 }
 
 /** Wakes a row and its neighbours for the heat pass. */
@@ -120,6 +133,7 @@ export function placeMaterial(grid: Grid, index: number, material: MaterialId): 
   grid.burn[index] = 0
   grid.temperature[index] = MATERIALS[material].startTemperature ?? AMBIENT_TEMPERATURE
   markHotRow(grid, index)
+  wakeChunk(grid, index)
 }
 
 /**
@@ -131,4 +145,5 @@ export function transformCell(grid: Grid, index: number, material: MaterialId): 
   grid.data[index] = startingData(material)
   grid.burn[index] = 0
   markHotRow(grid, index)
+  wakeChunk(grid, index)
 }

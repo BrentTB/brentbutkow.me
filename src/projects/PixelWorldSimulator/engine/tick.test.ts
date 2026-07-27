@@ -585,3 +585,38 @@ describe('an untouched world', () => {
     expect(grid.temperature.every((heat) => heat === AMBIENT_TEMPERATURE)).toBe(true)
   })
 })
+
+describe('tickWorld and the chunk flags', () => {
+  it('lets a settled world fall asleep, which is what makes an idle world cheap', () => {
+    // The tick hands the flags over at the end: what was woken during it becomes what is awake for the
+    // next one. Without that handover every chunk stays awake for the life of the world and all four
+    // material passes keep scanning 90,000 cells whether anything is happening or not.
+    const grid = createGrid(96, 96)
+    for (let x = 0; x < grid.width; x++) put(grid, x, grid.height - 1, MaterialId.stone)
+    for (let y = 80; y < grid.height - 1; y++) {
+      for (let x = 20; x < 76; x++) put(grid, x, y, MaterialId.sand)
+    }
+
+    run(grid, 300)
+
+    let asleep = 0
+    for (const flag of grid.awakeChunks) if (flag === 0) asleep++
+    // A pile of sand on a floor touches a handful of chunks; the rest of the world is empty air.
+    expect(asleep).toBeGreaterThan(grid.awakeChunks.length / 2)
+  })
+
+  it('wakes a sleeping world again the moment something is painted into it', () => {
+    const grid = createGrid(96, 96)
+    for (let x = 0; x < grid.width; x++) put(grid, x, grid.height - 1, MaterialId.stone)
+    run(grid, 300)
+
+    // The top-left chunk holds nothing but air by now.
+    expect(grid.awakeChunks[0]).toBe(0)
+
+    put(grid, 48, 10, MaterialId.sand)
+    run(grid, 200)
+
+    // It fell, rather than sitting where the brush left it in a chunk nobody was visiting.
+    expect(grid.material[cellIndex(grid, 48, 10)]).toBe(MaterialId.empty)
+  })
+})

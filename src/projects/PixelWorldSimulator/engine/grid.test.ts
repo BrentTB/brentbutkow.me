@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { MaterialId } from '../pixel-world.types'
 import { AMBIENT_TEMPERATURE } from '../data'
+import { createRng } from './rng'
+import { tickWorld } from './tick'
 import {
   asMaterial,
   cellIndex,
@@ -297,5 +299,23 @@ describe('asMaterial', () => {
     for (const material of MATERIALS) {
       expect(asMaterial(material.id)).toBe(material.id)
     }
+  })
+})
+
+describe('clearGrid and the chunk flags', () => {
+  it('wakes everything, so a wiped world can be drawn into again', () => {
+    const grid = createGrid(96, 96)
+    for (let x = 0; x < grid.width; x++) {
+      placeMaterial(grid, cellIndex(grid, x, grid.height - 1), MaterialId.stone)
+    }
+    const rng = createRng(1)
+    for (let tick = 0; tick < 100; tick++) tickWorld(grid, rng, tick)
+    // It has gone quiet, which is the state a clear has to undo.
+    expect(grid.awakeChunks.some((flag) => flag === 0)).toBe(true)
+
+    clearGrid(grid)
+
+    // A cleared world has no last tick to have been quiet during, so nothing may still be asleep.
+    expect(grid.awakeChunks.every((flag) => flag === 1)).toBe(true)
   })
 })

@@ -6,6 +6,7 @@ import { advanceTimers } from './timers'
 import { applyReactions } from './reactions'
 import { moveKinetic } from './kinetic'
 import { simulateLife } from './life'
+import { advanceChunks } from './chunks'
 
 /**
  * One world tick: chemistry acts on the world as it stands, then things move, then heat spreads and
@@ -33,4 +34,6 @@ export function tickWorld(grid: Grid, rng: Rng, tick: number): void {
   moveKinetic(grid, rng)
   simulateHeat(grid)
   advanceTimers(grid, rng)
+  // Last, so every wake this tick recorded is what the next one starts from.
+  advanceChunks(grid)
 }

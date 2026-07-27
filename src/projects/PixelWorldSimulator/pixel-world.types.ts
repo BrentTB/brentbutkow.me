@@ -275,6 +275,16 @@ export type Grid = {
   hotRows: Uint8Array
   hotRowsNext: Uint8Array
   /**
+   * One flag per chunk: did anything in or beside it change last tick? The movement, chemistry, timer
+   * and life passes skip the rest, the way `hotRows` already lets the heat pass skip quiet rows. A
+   * settled world costs almost nothing, which is what pays for the air field.
+   */
+  awakeChunks: Uint8Array
+  awakeChunksNext: Uint8Array
+  /** Chunks per row and per column, held rather than recomputed: the passes index these per cell. */
+  chunkColumns: number
+  chunkRows: number
+  /**
    * Cells currently in flight, keyed by index. Sparse because almost nothing is flying almost all of the
    * time: an explosion fills it for a second and it empties itself as the debris settles.
    */

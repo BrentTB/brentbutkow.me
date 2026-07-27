@@ -2,6 +2,7 @@ import { Grid, MaterialBehavior, MaterialId } from '../pixel-world.types'
 import { AMBIENT_TEMPERATURE } from '../data'
 import { MATERIALS, isBurning } from './materials'
 import { transformCell } from './grid'
+import { wakeChunk } from './chunks'
 import { detonate, flashOver } from './forces'
 
 /**
@@ -252,6 +253,9 @@ function applyThresholds(grid: Grid): void {
       // Fuel catches once and burns on its own timer, so re-ignition can't reset the countdown.
       if (cell.ignite !== undefined && burn[index] === 0 && heat >= cell.ignite.at) {
         burn[index] = cell.ignite.ticks
+        // Catching fire writes nothing a chunk can see: heat travels by row, and the flame's own clock
+        // runs in the timer pass, which skips sleeping chunks.
+        wakeChunk(grid, index)
         // A pocket of gas catching is a detonation, not a candle.
         if (cell.behavior === MaterialBehavior.gas) flashOver(grid, x, y)
       }

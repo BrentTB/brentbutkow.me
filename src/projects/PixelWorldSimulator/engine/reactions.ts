@@ -3,6 +3,7 @@ import { MATERIALS } from './materials'
 import { asMaterial, cellIndex, placeMaterial, transformCell } from './grid'
 import { Rng } from './rng'
 import { NEIGHBOURS, pickNeighbour } from './neighbours'
+import { isCellAwake, isRowBandAwake, wakeChunk } from './chunks'
 
 /** Chance per tick that a drop of acid eats one of its neighbours. */
 const DISSOLVE_CHANCE = 0.14
@@ -200,6 +201,32 @@ const RULES_BY_MATERIAL: readonly (readonly CompiledRule[])[] = MATERIALS.map((m
   }))
 )
 
+/** The materials the pass below has anything to say about, keyed by id. */
+const SELF_DRIVEN: readonly MaterialId[] = [
+  MaterialId.acid,
+  MaterialId.plant,
+  MaterialId.vine,
+  MaterialId.ice,
+  MaterialId.snow,
+  MaterialId.sponge,
+  MaterialId.source,
+  MaterialId.void,
+  MaterialId.spark,
+  MaterialId.chlorine,
+  MaterialId.nitrogen,
+  MaterialId.meat,
+]
+
+/**
+ * Whether a material reacts at all. Every reaction here is a roll against a neighbour that is not itself
+ * changing — acid beside a wall eats it on some later tick, a plant grows into dirt on some later tick —
+ * so nothing writes in the meantime and the chunk would sleep before the roll ever landed. Anything with
+ * a rule therefore keeps its own chunk awake for as long as it exists.
+ */
+const REACTIVE = new Uint8Array(
+  MATERIALS.map(({ id }) => (RULES_BY_MATERIAL[id].length > 0 || SELF_DRIVEN.includes(id) ? 1 : 0))
+)
+
 // Neighbour tests the reactions reuse every tick, built once. Written inline they were a fresh
 // closure per rule per reactive cell, which is thousands of throwaway objects a tick in a busy world.
 const isEmpty = (found: number) => found === MaterialId.empty
@@ -227,10 +254,13 @@ export function applyReactions(grid: Grid, rng: Rng): void {
   grid.moved.fill(0)
 
   for (let y = 0; y < height; y++) {
+    if (!isRowBandAwake(grid, y)) continue
     for (let x = 0; x < width; x++) {
+      if (!isCellAwake(grid, x, y)) continue
       const index = y * width + x
       const id = material[index]
       if (id === MaterialId.empty) continue
+      if (REACTIVE[id] === 1) wakeChunk(grid, index)
 
       if (RULES_BY_MATERIAL[id].length > 0)
         applyContactRules(grid, rng, x, y, index, asMaterial(id))

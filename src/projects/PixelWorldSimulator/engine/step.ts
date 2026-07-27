@@ -1,5 +1,6 @@
 import { Grid, MaterialBehavior, MaterialId } from '../pixel-world.types'
 import { cellIndex, swapCells } from './grid'
+import { isCellAwake, isRowBandAwake, wakeChunk } from './chunks'
 import { MATERIALS, canDisplace, canFloatThrough } from './materials'
 import { isSupported, push } from './kinetic'
 import { NEIGHBOURS } from './neighbours'
@@ -17,8 +18,12 @@ export function step(grid: Grid, rng: Rng, tick: number): void {
   const leftToRight = tick % 2 === 0
 
   for (let y = grid.height - 1; y >= 0; y--) {
+    // A band of sleeping chunks is skipped whole, so a quiet world costs a flag per row rather than a
+    // material lookup per cell.
+    if (!isRowBandAwake(grid, y)) continue
     for (let i = 0; i < grid.width; i++) {
       const x = leftToRight ? i : grid.width - 1 - i
+      if (!isCellAwake(grid, x, y)) continue
       stepCell(grid, rng, x, y)
     }
   }
@@ -84,6 +89,10 @@ function sinkAndDrift(
   from: number,
   dispersion: number
 ): void {
+  // Which of the three things it tries is a roll, so a cloud that failed to move this tick could still
+  // move on the next one. It has to stay awake to get that roll.
+  wakeChunk(grid, from)
+
   const roll = rng.next()
 
   if (roll < HEAVY_GAS_SINK) {
@@ -105,7 +114,12 @@ function sinkAndDrift(
 function sinkingStalled(grid: Grid, rng: Rng, x: number, y: number, density: number): boolean {
   if (y + 1 >= grid.height) return false
   const below = MATERIALS[grid.material[cellIndex(grid, x, y + 1)]]
-  return below.drag > 0 && below.density < density && rng.chance(below.drag)
+  if (!(below.drag > 0 && below.density < density && rng.chance(below.drag))) return false
+
+  // Losing a tick to drag is not the same as having settled: nothing moved, so nothing else here will
+  // keep this chunk awake, and a grain that slept mid-descent would hang in the fluid forever.
+  wakeChunk(grid, cellIndex(grid, x, y))
+  return true
 }
 
 /**
