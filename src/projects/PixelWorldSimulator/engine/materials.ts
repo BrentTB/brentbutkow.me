@@ -852,3 +852,18 @@ export const MATERIALS: readonly Material[] = [
     },
   },
 ]
+
+/**
+ * Whether a force or an impact can pick a cell up at all. Static materials are the world's scaffolding:
+ * a wall you built should not drift toward the pointer, blow away in the wind, or get shoved along by
+ * something landing on it. A flat lookup because the blast and kinetic passes both ask it per cell.
+ */
+const MOVABLE = new Uint8Array(
+  MATERIALS.map(({ id, behavior }) =>
+    id !== MaterialId.empty && behavior !== MaterialBehavior.static ? 1 : 0
+  )
+)
+
+export function isMovable(id: number): boolean {
+  return MOVABLE[id] === 1
+}

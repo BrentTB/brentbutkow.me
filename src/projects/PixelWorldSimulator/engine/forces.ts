@@ -1,7 +1,7 @@
-import { Grid, MaterialBehavior, MaterialId } from '../pixel-world.types'
+import { Grid } from '../pixel-world.types'
 import { AMBIENT_TEMPERATURE, TEMPERATURE_LIMITS } from '../data'
-import { cellIndex, markHotRow, transformCell } from './grid'
-import { MATERIALS } from './materials'
+import { cellIndex, markHotRow, markHotRowBand, transformCell } from './grid'
+import { MATERIALS, isMovable } from './materials'
 import { push } from './kinetic'
 
 /**
@@ -18,8 +18,13 @@ const BLAST_STRENGTH = 9
 /** Cells per tick a held wind adds each tick, along the direction of the drag. */
 const WIND_STRENGTH = 2.4
 /**
- * The smallest disc a force works over, whatever the brush is set to. Force falls off to nothing at the
- * rim, so a brush-sized blast at the smallest setting had almost no room to push anything at all.
+ * The smallest disc a force works over, whatever the brush is set to, and whatever a charge's own radius says.
+ * Force falls off to nothing at the rim, so a brush-sized blast at the smallest setting had almost no room to
+ * push anything at all.
+ *
+ * It floors charges too, which makes `explodes.radius` a lower bound rather than the whole story: gunpowder
+ * asks for 5 and gets 12. Tempting to "fix", and measurably faster, but it is what gunpowder was tuned
+ * against — cut to its stated 5 it stopped throwing a sand bed at all. There is a test for that.
  */
 const MIN_REACH = 12
 /**
@@ -58,19 +63,18 @@ const REFERENCE_DENSITY = 60
 const LIGHTEST = 2.2
 const HEAVIEST = 0.45
 
+// Per-material lookups, the way the heat pass keeps its own: a blast asks both of these questions for every
+// cell in its disc, and a field of gunpowder going off asks them millions of times in a tick. Walking the
+// material objects for an answer that never changes was most of what that cost.
+const MASS_FACTOR = new Float32Array(
+  MATERIALS.map(({ density }) =>
+    density <= 0 ? 1 : Math.max(HEAVIEST, Math.min(LIGHTEST, REFERENCE_DENSITY / density))
+  )
+)
+
 /** How far a given material is thrown by the same impulse. Lighter cells fly. */
 function massFactor(id: number): number {
-  const { density } = MATERIALS[id]
-  if (density <= 0) return 1
-  return Math.max(HEAVIEST, Math.min(LIGHTEST, REFERENCE_DENSITY / density))
-}
-
-/**
- * Whether a force can pick this cell up at all. Static materials are the world's scaffolding: a wall you
- * built should not drift toward the pointer or blow away in the wind.
- */
-function isMovable(id: number): boolean {
-  return id !== MaterialId.empty && MATERIALS[id].behavior !== MaterialBehavior.static
+  return MASS_FACTOR[id]
 }
 
 /**
@@ -83,21 +87,27 @@ function overDisc(
   cx: number,
   cy: number,
   radius: number,
-  apply: (index: number, dx: number, dy: number, falloff: number) => void
+  apply: (index: number, dx: number, dy: number, falloff: number, distance: number) => void,
+  minReach = MIN_REACH
 ): void {
-  const reach = Math.max(MIN_REACH, Math.floor(radius))
+  const reach = Math.max(minReach, Math.floor(radius))
+  // Squared, so the cells outside the circle are culled without a square root each. The root is only taken
+  // for the cells that are actually inside it, where the falloff needs a real distance.
+  const reachSq = reach * reach
 
   for (let dy = -reach; dy <= reach; dy++) {
+    const y = cy + dy
+    if (y < 0 || y >= grid.height) continue
     for (let dx = -reach; dx <= reach; dx++) {
-      const distance = Math.sqrt(dx * dx + dy * dy)
-      if (distance > reach) continue
+      const spanSq = dx * dx + dy * dy
+      if (spanSq > reachSq) continue
 
       const x = cx + dx
-      const y = cy + dy
-      if (x < 0 || x >= grid.width || y < 0 || y >= grid.height) continue
+      if (x < 0 || x >= grid.width) continue
 
+      const distance = Math.sqrt(spanSq)
       const falloff = 1 - (1 - RIM_SHARE) * (distance / reach)
-      apply(cellIndex(grid, x, y), dx, dy, falloff)
+      apply(cellIndex(grid, x, y), dx, dy, falloff, distance)
     }
   }
 }
@@ -170,29 +180,41 @@ function impulse(
   cy: number,
   radius: number,
   strength: number,
-  heat: number
+  heat: number,
+  minReach = MIN_REACH
 ): void {
-  overDisc(grid, cx, cy, radius, (index, dx, dy, falloff) => {
-    if (heat > 0) {
-      // Written as a floor rather than added, so overlapping blasts don't stack into a fake sun.
-      const pulse = Math.round(heat * falloff)
-      if (grid.temperature[index] < pulse) grid.temperature[index] = pulse
-      markHotRow(grid, index)
-    }
+  overDisc(
+    grid,
+    cx,
+    cy,
+    radius,
+    (index, dx, dy, falloff, distance) => {
+      if (heat > 0) {
+        // Written as a floor rather than added, so overlapping blasts don't stack into a fake sun.
+        const pulse = Math.round(heat * falloff)
+        if (grid.temperature[index] < pulse) grid.temperature[index] = pulse
+      }
 
-    if (!isMovable(grid.material[index])) return
+      if (!isMovable(grid.material[index])) return
 
-    const thrown = strength * massFactor(grid.material[index])
-    const distance = Math.sqrt(dx * dx + dy * dy)
-    // The cell at the centre has no direction to go, so it takes the shove straight up.
-    if (distance === 0) {
-      push(grid, index, 0, -thrown)
-      return
-    }
+      const thrown = strength * massFactor(grid.material[index])
+      // The cell at the centre has no direction to go, so it takes the shove straight up.
+      if (distance === 0) {
+        push(grid, index, 0, -thrown)
+        return
+      }
 
-    const speed = thrown * falloff
-    push(grid, index, (dx / distance) * speed, (dy / distance) * speed)
-  })
+      const speed = thrown * falloff
+      push(grid, index, (dx / distance) * speed, (dy / distance) * speed)
+    },
+    minReach
+  )
+
+  // The rows the blast reached, woken once between them rather than once per cell.
+  if (heat > 0) {
+    const reach = Math.max(minReach, Math.floor(radius))
+    markHotRowBand(grid, cy - reach, cy + reach)
+  }
 }
 
 /** How far a pocket of gas throws things when it flashes over, and how hard. */
@@ -211,6 +233,10 @@ export function flashOver(grid: Grid, x: number, y: number): void {
 /**
  * Sets a charge off: it becomes whatever it leaves behind, then throws and heats everything around it.
  * The heat is what chains one charge into the next, so a buried line of TNT goes up as a line.
+ *
+ * Every charge blasts in full, including the ones going off inside another blast. That looks wasteful in a
+ * packed field, and skipping them is much faster, but the overlapping impulses are the launch: it is what
+ * makes a deep slab throw a sand bed instead of just scorching it.
  */
 export function detonate(grid: Grid, index: number, x: number, y: number): void {
   const charge = MATERIALS[grid.material[index]].explodes

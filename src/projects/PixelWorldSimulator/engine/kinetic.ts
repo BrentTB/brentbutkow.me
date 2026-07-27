@@ -1,6 +1,6 @@
 import { Grid, MaterialBehavior, MaterialId, Velocity } from '../pixel-world.types'
 import { cellIndex, markHotRow, swapCells, transformCell } from './grid'
-import { MATERIALS, canDisplace } from './materials'
+import { MATERIALS, canDisplace, isMovable } from './materials'
 import { Rng } from './rng'
 
 /**
@@ -31,6 +31,22 @@ const SHATTER_SPREAD = 0.4
 const SLOPE_DEFLECT = 0.6
 /** A little sideways wander on every bounce, so a ball does not repeat one line up and down. */
 const BOUNCE_SCATTER = 0.12
+/**
+ * Share of a boxed-in cell's speed that carries into the packed material ahead of it. Equal densities
+ * cannot displace each other, so inside a bed of sand every grain is walled in by more sand: without a
+ * way to hand the impact on, a buried grain reflects off its neighbour and throws the whole impulse
+ * away. A charge under a bed deeper than its own blast reach could not move it at all — the surface
+ * layer, the only part with air above it, was the only part that ever flew.
+ */
+const IMPACT_TRANSFER = 0.6
+/** Below this, in cells per tick, an impact is a thud and not a shove. */
+const IMPACT_SPEED = 0.75
+/**
+ * Cells of packed material one impact carries through. The run is shoved together, so the impulse
+ * reaches open space instead of stopping at the first grain. Bounded because an impact against a deep
+ * bed would otherwise walk to the far side of the world, once per blocked cell of every blast.
+ */
+const SHOVE_DEPTH = 24
 
 /**
  * Cap on cells in flight. A blast big enough to exceed it should degrade into ordinary falling debris
@@ -186,8 +202,61 @@ function advance(
     }
   }
 
+  // Boxed in on every axis it was travelling along. Hand the impact to the run of packed cells ahead
+  // before reflecting, so it carries through to open space rather than dying here.
+  shove(grid, at, dx, dy, motion)
   bounce(grid, at, material, motion, dx !== 0, dy !== 0, rng)
   return at
+}
+
+/**
+ * Passes a blocked cell's impact into the packed cells ahead of it, shared out between them so a deeper
+ * run takes the same shove further. They move on the next pass, topmost first, which is what lets a
+ * column travel as a column: the leading cell reaches open space and each one behind follows into the
+ * gap it left.
+ */
+function shove(grid: Grid, at: number, dx: number, dy: number, motion: Velocity): void {
+  const vx = dx === 0 ? 0 : motion.vx * IMPACT_TRANSFER
+  const vy = dy === 0 ? 0 : motion.vy * IMPACT_TRANSFER
+  if (Math.abs(vx) + Math.abs(vy) < IMPACT_SPEED) return
+
+  const packed = packedRun(grid, at, dx, dy)
+  if (packed === 0) return
+
+  const shareX = vx / packed
+  const shareY = vy / packed
+  let x = at % grid.width
+  let y = Math.floor(at / grid.width)
+  for (let step = 0; step < packed; step++) {
+    x += dx
+    y += dy
+    push(grid, cellIndex(grid, x, y), shareX, shareY)
+  }
+}
+
+/**
+ * How many cells ahead are packed in behind each other, up to the cap. Zero when the run is braced
+ * against the world — a wall or the edge of the grid — because an impact on scaffolding goes nowhere.
+ */
+function packedRun(grid: Grid, at: number, dx: number, dy: number): number {
+  const source = grid.material[at]
+  let x = at % grid.width
+  let y = Math.floor(at / grid.width)
+  let packed = 0
+
+  while (packed < SHOVE_DEPTH) {
+    x += dx
+    y += dy
+    if (x < 0 || x >= grid.width || y < 0 || y >= grid.height) return 0
+
+    const id = grid.material[cellIndex(grid, x, y)]
+    // Open space, or something loose enough to push through: the run ends before this cell.
+    if (canDisplace(source, id)) return packed
+    if (!isMovable(id)) return 0
+    packed++
+  }
+
+  return packed
 }
 
 /** Moves one cell if the target yields, consuming that step from the remainder. */

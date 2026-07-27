@@ -102,6 +102,17 @@ export function markHotRow(grid: Grid, index: number): void {
   if (row < grid.height - 1) grid.hotRows[row + 1] = 1
 }
 
+/**
+ * Wakes every row a blast touched, in one call. An explosion heats hundreds of cells and they land in a
+ * couple of dozen rows, so waking per cell did the same work hundreds of times over — and a field of
+ * gunpowder going off is tens of thousands of blasts in a tick.
+ */
+export function markHotRowBand(grid: Grid, fromRow: number, toRow: number): void {
+  const top = Math.max(0, fromRow - 1)
+  const bottom = Math.min(grid.height - 1, toRow + 1)
+  for (let row = top; row <= bottom; row++) grid.hotRows[row] = 1
+}
+
 /** Places a brand new cell, with its own starting temperature and counter. */
 export function placeMaterial(grid: Grid, index: number, material: MaterialId): void {
   grid.material[index] = material

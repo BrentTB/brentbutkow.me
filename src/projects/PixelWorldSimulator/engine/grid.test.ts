@@ -8,6 +8,7 @@ import {
   createGrid,
   inBounds,
   markHotRow,
+  markHotRowBand,
   placeMaterial,
   refreshCell,
   swapCells,
@@ -254,6 +255,38 @@ describe('markHotRow', () => {
     grid.hotRows.fill(0)
     markHotRow(grid, cellIndex(grid, 1, 2))
     expect(Array.from(grid.hotRows)).toEqual([0, 1, 1])
+  })
+})
+
+describe('markHotRowBand', () => {
+  it('wakes the band and a row either side of it, the same as marking each row by hand', () => {
+    // A blast heats hundreds of cells that land in a couple of dozen rows, so waking per cell did the same
+    // work hundreds of times over. Waking the band has to leave the heat pass with exactly the same rows
+    // awake, or heat would be skipped in the row a blast reached.
+    const grid = createGrid(4, 10)
+    const perCell = createGrid(4, 10)
+
+    markHotRowBand(grid, 4, 6)
+    for (let row = 4; row <= 6; row++) markHotRow(perCell, cellIndex(perCell, 0, row))
+
+    expect(Array.from(grid.hotRows)).toEqual(Array.from(perCell.hotRows))
+    expect(Array.from(grid.hotRows)).toEqual([0, 0, 0, 1, 1, 1, 1, 1, 0, 0])
+  })
+
+  it('clamps at the top and bottom rather than writing past the grid', () => {
+    const grid = createGrid(4, 3)
+
+    markHotRowBand(grid, -8, 40)
+
+    expect(Array.from(grid.hotRows)).toEqual([1, 1, 1])
+  })
+
+  it('leaves a world alone where the band is off the grid entirely', () => {
+    const grid = createGrid(4, 3)
+
+    markHotRowBand(grid, 20, 24)
+
+    expect(Array.from(grid.hotRows)).toEqual([0, 0, 0])
   })
 })
 

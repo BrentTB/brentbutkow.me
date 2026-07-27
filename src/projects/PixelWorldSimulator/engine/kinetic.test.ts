@@ -293,3 +293,54 @@ describe('moveKinetic', () => {
     expect(grid.velocity.size).toBeLessThanOrEqual(MAX_IN_FLIGHT)
   })
 })
+
+describe('an impact on packed material', () => {
+  /** A tall bed of sand with the middle of its bottom row shoved upward, hard. */
+  function packedBed(depth: number) {
+    const grid = walledGrid(41, depth + 6)
+    for (let y = 1; y <= depth; y++) {
+      for (let x = 0; x < grid.width; x++) placeMaterial(grid, cellIndex(grid, x, y), MaterialId.sand)
+    }
+    return grid
+  }
+
+  /** The height of the fastest-rising sand, as a negative number of cells per tick. */
+  function fastestUpward(grid: Grid) {
+    let fastest = 0
+    for (const [index, motion] of grid.velocity) {
+      if (grid.material[index] === MaterialId.sand) fastest = Math.min(fastest, motion.vy)
+    }
+    return fastest
+  }
+
+  it('carries the impact through to the far side of the run', () => {
+    // The complaint this guards: a charge buried under a bed deeper than its blast reach moved nothing.
+    // Sand cannot displace sand, so a grain walled in by more sand reflected off its neighbour and threw
+    // the impulse away, and only the surface layer with air above it ever flew. Large chunks of a bed sat
+    // completely still through an explosion and then simply fell into the hole.
+    const depth = 12
+    const grid = packedBed(depth)
+    const struck = cellIndex(grid, 20, depth)
+    push(grid, struck, 0, -12)
+
+    moveKinetic(grid, createRng(1))
+
+    // The run above the struck cell is now moving, all the way up to the open air at the top of the bed.
+    for (let y = 1; y < depth; y++) {
+      expect(grid.velocity.has(cellIndex(grid, 20, y))).toBe(true)
+    }
+    expect(fastestUpward(grid)).toBeLessThan(0)
+  })
+
+  it('leaves a run braced against the world alone', () => {
+    // A wall is scaffolding. Sand driven down into the stone floor has nowhere to send the impact, so
+    // nothing under it may be handed any.
+    const grid = packedBed(4)
+    const struck = cellIndex(grid, 20, 4)
+    push(grid, struck, 0, 12)
+
+    moveKinetic(grid, createRng(1))
+
+    expect(grid.velocity.has(cellIndex(grid, 20, grid.height - 1))).toBe(false)
+  })
+})
