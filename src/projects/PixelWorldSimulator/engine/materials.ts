@@ -890,7 +890,11 @@ export const MATERIALS: readonly Material[] = [
     // One way on purpose. A thing that keeps popping never settles, and three separate bugs in this project
     // have been exactly that: bouncing gravel, dirt jittering on lava, dirt climbing the volcano.
     hot: { at: 180, into: MaterialId.popcorn },
-    pops: 4.5,
+    // Hard, and harder than a firework launches at, because a kernel buried in a pan spends nearly all of it
+    // on the thud into the cell above: a popped cell keeps an eighth of its speed off a knock. At a third of
+    // this the pop was a swap in place, and the only thing that visibly moved popcorn was a firework's
+    // draught. Kept below the kinetic pass's own ceiling of 16 so the number here is the number that acts.
+    pops: 14,
   },
   {
     id: MaterialId.popcorn,
@@ -1006,7 +1010,9 @@ export const MATERIALS: readonly Material[] = [
     dispersion: 0,
     drag: 0.2,
     conductivity: 0.12,
-    // Heat launches it. `pops` is the kick a kernel uses, borrowed whole: a shove upward the moment it turns.
+    // Heat launches it, on the same `pops` mechanism a kernel uses: a shove upward the moment it turns. Its
+    // own figure is gentler than the kernel's, because this one has open sky above it rather than a pan of
+    // kernels to fight through.
     hot: { at: 200, into: MaterialId.fireworkLit },
     pops: 11,
   },

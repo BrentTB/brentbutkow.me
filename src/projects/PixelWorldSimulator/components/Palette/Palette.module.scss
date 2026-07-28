@@ -15,8 +15,8 @@
   gap: 10px;
 }
 
-// Keeps the tab strip inside the page. Without it the six groups push the document 30px wider than the
-// viewport, so the whole page slides sideways under a thumb that meant to scroll down.
+// Keeps the tab strip inside the page. Without it the tabs push the document wider than the viewport, so
+// the whole page slides sideways under a thumb that meant to scroll down.
 .groupStrip {
   max-width: 100%;
   overflow-x: auto;

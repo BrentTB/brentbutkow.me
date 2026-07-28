@@ -624,4 +624,40 @@ describe('scatter', () => {
     for (const id of grid.material) if (id === MaterialId.stone) stone++
     expect(stone).toBe(21 * 21 - 1)
   })
+
+  it('stops a trail at a wall instead of putting it down on the far side', () => {
+    // A firework going off beside the divider in the kitchen was landing embers in the next stall, which lit
+    // that stall's fuse early. The ray walked on past anything it could not fill and dropped its trail in the
+    // first open cell it found, and the first open cell was through the wall.
+    // Inside the reach of a trail, or the ray stops short of the wall and the test proves nothing.
+    const wall = 42
+    const grid = createGrid(81, 81)
+    for (let y = 0; y < 81; y++) placeMaterial(grid, cellIndex(grid, wall, y), MaterialId.stone)
+
+    scatter(grid, createRng(1), 40, 40, 40, 6, MaterialId.ember)
+
+    for (let index = 0; index < grid.material.length; index++) {
+      if (grid.material[index] !== MaterialId.ember) continue
+      expect(index % grid.width).toBeLessThan(wall)
+    }
+  })
+
+  it('still throws trails out through loose material it is buried in', () => {
+    // The other half of that rule. A firework that goes off down among its own kernels has to be able to
+    // spray through them, or bursting inside anything at all produces nothing. A layer thinner than the reach
+    // of a trail, since past that the burst gives up on a direction whatever is in the way.
+    const grid = createGrid(81, 81)
+    for (let y = 38; y < 43; y++) {
+      for (let x = 38; x < 43; x++) {
+        if (x === 40 && y === 40) continue
+        placeMaterial(grid, cellIndex(grid, x, y), MaterialId.sand)
+      }
+    }
+
+    scatter(grid, createRng(1), 40, 40, 20, 6, MaterialId.ember)
+
+    let embers = 0
+    for (const id of grid.material) if (id === MaterialId.ember) embers++
+    expect(embers).toBeGreaterThan(6)
+  })
 })

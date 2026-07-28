@@ -233,7 +233,13 @@ export function scatter(
       if (x < 0 || x >= grid.width || y < 0 || y >= grid.height) break
 
       const index = cellIndex(grid, x, y)
-      if (grid.material[index] !== MaterialId.empty) continue
+      // A wall stops the spark. Loose material does not: a firework that goes off buried in its own pan has
+      // to be able to throw sparks out through the kernels, or bursting inside anything produces nothing.
+      // Walking on past a wall is how a firework going off beside a divider landed embers in the next stall
+      // and lit the fuse there early.
+      const found = grid.material[index]
+      if (found !== MaterialId.empty && !isMovable(found)) break
+      if (found !== MaterialId.empty) continue
 
       placeMaterial(grid, index, product)
       push(grid, index, ux * speed, uy * speed)

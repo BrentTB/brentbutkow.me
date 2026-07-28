@@ -110,17 +110,21 @@ export const BRUSH_RADIUS = {
 export const MaterialGroup = {
   solids: 'solids',
   powders: 'powders',
+  /**
+   * Seeds, kernels and what they turn into. Powders was twice the size of any other tab, and these four are
+   * the ones that were only filed there because they fall: what they have in common is a life cycle, not a
+   * grain size. Splitting on grain size instead would have put gravel under a label meaning "grains".
+   */
+  grains: 'grains',
   liquids: 'liquids',
   gases: 'gases',
-  energy: 'energy',
   life: 'life',
   /**
-   * Things that act on their own rather than sitting there being shoved about. Not a seventh class of matter,
-   * which is why it earns a tab: `void` and `source` were always devices filed under Energy because there was
-   * nowhere else for them, so this makes the other six groups more honest rather than only making the row
-   * longer.
+   * Everything that isn't a class of matter: flame and spark, the machines that act on their own rather than
+   * sitting there being shoved about, and corruption. Filing them together keeps the other tabs honest, and it
+   * is the one label that promises nothing about how its contents behave.
    */
-  devices: 'devices',
+  special: 'special',
 } as const
 export type MaterialGroup = (typeof MaterialGroup)[keyof typeof MaterialGroup]
 
@@ -161,14 +165,15 @@ export const MATERIAL_GROUPS: readonly {
       MaterialId.ash,
       MaterialId.snow,
       MaterialId.salt,
-      MaterialId.seed,
-      MaterialId.gunpowder,
       MaterialId.shard,
-      MaterialId.kernel,
-      MaterialId.popcorn,
-      MaterialId.pollen,
+      MaterialId.gunpowder,
       MaterialId.firework,
     ],
+  },
+  {
+    group: MaterialGroup.grains,
+    label: 'Grains',
+    materials: [MaterialId.seed, MaterialId.pollen, MaterialId.kernel, MaterialId.popcorn],
   },
   {
     group: MaterialGroup.liquids,
@@ -197,11 +202,6 @@ export const MATERIAL_GROUPS: readonly {
     ],
   },
   {
-    group: MaterialGroup.energy,
-    label: 'Energy',
-    materials: [MaterialId.fire, MaterialId.spark],
-  },
-  {
     group: MaterialGroup.life,
     label: 'Life',
     materials: [
@@ -216,9 +216,11 @@ export const MATERIAL_GROUPS: readonly {
     ],
   },
   {
-    group: MaterialGroup.devices,
-    label: 'Devices',
+    group: MaterialGroup.special,
+    label: 'Special',
     materials: [
+      MaterialId.fire,
+      MaterialId.spark,
       MaterialId.source,
       MaterialId.randomSource,
       MaterialId.turbine,

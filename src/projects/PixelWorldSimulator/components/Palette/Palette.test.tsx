@@ -284,8 +284,8 @@ describe('the material sheet holds its shape', () => {
   })
 
   it('reserves room for the largest group whichever group is open', () => {
-    // Sized to its contents, the sheet shrank when you switched from Solids to Energy and moved Done out
-    // from under your thumb. The reserved class is what keeps one height across all six groups.
+    // Sized to its contents, the sheet shrank when you switched from Solids to Grains and moved Done out
+    // from under your thumb. The reserved class is what keeps one height across every group.
     asPhone()
     renderPalette()
     fireEvent.click(screen.getByRole('button', { name: /Change material/ }))

@@ -584,39 +584,178 @@ describe('the pots and pans preset', () => {
     return n
   }
 
-  it('lays out pans of both fillings over both kinds of heat', () => {
+  /** Which quarter of the counter a cell sits in, one quarter to a vessel. */
+  function panOf(grid: Grid, index: number): number {
+    return Math.floor((index % grid.width) / Math.floor(grid.width / 4))
+  }
+
+  /** Which columns of one quarter of the counter hold `material` on a given row. */
+  function columnsOf(grid: Grid, quarter: number, row: number, material: MaterialId): number[] {
+    const columns: number[] = []
+    for (let x = 0; x < grid.width; x++) {
+      const index = cellIndex(grid, x, row)
+      if (grid.material[index] === material && panOf(grid, index) === quarter) columns.push(x)
+    }
+    return columns
+  }
+
+  /** The highest row holding any of `material` in one quarter of the counter, or -1 if it holds none. */
+  function topOf(grid: Grid, quarter: number, material: MaterialId): number {
+    for (let y = 0; y < grid.height; y++) {
+      for (let x = 0; x < grid.width; x++) {
+        const index = cellIndex(grid, x, y)
+        if (grid.material[index] === material && panOf(grid, index) === quarter) return y
+      }
+    }
+    return -1
+  }
+
+  it('lays out both fillings over a lit fuse', () => {
     const grid = kitchen()
 
     expect(count(grid, MaterialId.metal)).toBeGreaterThan(0)
     expect(count(grid, MaterialId.kernel)).toBeGreaterThan(0)
     expect(count(grid, MaterialId.firework)).toBeGreaterThan(0)
-    // Two burners that fail differently: lava sits and cooks, a fed source keeps making more flame.
-    expect(count(grid, MaterialId.lava)).toBeGreaterThan(0)
     expect(count(grid, MaterialId.source)).toBeGreaterThan(0)
+    // Three cells deep and the full width of the counter, and one flame at the near end starts the show.
+    expect(count(grid, MaterialId.wood)).toBe(grid.width * 3)
+    expect(count(grid, MaterialId.fire)).toBe(1)
   })
 
-  itSlow('actually cooks: the kernels pop and the fireworks go up', { timeout: 20_000 }, () => {
+  it('builds lidded pots for the kernels and open pans for the fireworks', () => {
+    // Which one you are looking at should be obvious before anything happens in it, so the shape carries it:
+    // a pot is deep and narrow and has a lid, a pan is shallow and wide and open to the sky. Both held
+    // kernels in identical vessels before, and the counter read as four of the same thing.
+    const grid = kitchen()
+
+    for (const pot of [0, 2]) {
+      const pan = pot + 1
+      // The pot's metal starts higher up than the pan's: that is the lid, above a deeper wall.
+      expect(topOf(grid, pot, MaterialId.metal)).toBeLessThan(topOf(grid, pan, MaterialId.metal))
+      // And the lid is over the kernels rather than beside them.
+      expect(topOf(grid, pot, MaterialId.metal)).toBeLessThan(topOf(grid, pot, MaterialId.kernel))
+      // Nothing roofs the pan, so its fireworks have open sky to go up into.
+      expect(topOf(grid, pan, MaterialId.firework)).toBeGreaterThan(
+        topOf(grid, pan, MaterialId.metal)
+      )
+      expect(topOf(grid, pot, MaterialId.firework)).toBe(-1)
+      expect(topOf(grid, pan, MaterialId.kernel)).toBe(-1)
+    }
+  })
+
+  it('domes the lid rather than laying a flat plate across the top', () => {
+    const grid = kitchen()
+
+    for (const pot of [0, 2]) {
+      const peak = topOf(grid, pot, MaterialId.metal)
+      const kernels = topOf(grid, pot, MaterialId.kernel)
+
+      // The topmost metal in each column of the pot's roofline, walls included.
+      const tops = new Map<number, number>()
+      for (let y = peak; y < kernels; y++) {
+        for (const x of columnsOf(grid, pot, y, MaterialId.metal)) {
+          if (!tops.has(x)) tops.set(x, y)
+        }
+      }
+      const columns = [...tops.keys()].sort((a, b) => a - b)
+      const middle = tops.get(columns[Math.floor(columns.length / 2)])!
+
+      // A flat lid clears the rim by exactly one, so anything this far above it is a curve.
+      expect(tops.get(columns[0])! - middle).toBeGreaterThanOrEqual(3)
+      expect(tops.get(columns[columns.length - 1])! - middle).toBeGreaterThanOrEqual(3)
+    }
+  })
+
+  it('hangs a handle off the side of each pan', () => {
+    const grid = kitchen()
+
+    for (const pan of [1, 3]) {
+      // The walls stand either side of the fireworks, so the outer one is where the vessel itself ends.
+      const inside = topOf(grid, pan, MaterialId.firework)
+      const outer = Math.max(...columnsOf(grid, pan, inside, MaterialId.metal))
+
+      const rows: number[] = []
+      for (let y = 0; y < grid.height; y++) {
+        for (const x of columnsOf(grid, pan, y, MaterialId.metal)) if (x > outer) rows.push(y)
+      }
+
+      expect(rows.length).toBeGreaterThan(4)
+      // It lifts as it runs out, so it reads as a handle rather than a shelf.
+      expect(Math.min(...rows)).toBeLessThan(Math.max(...rows))
+    }
+  })
+
+  it('leaves every burner block touching nothing but air and itself', () => {
+    // The reason the sources sit in clear air. A source copies the first material fed to it, so one placed
+    // against the pan learns metal and one on the counter learns stone — and then it is a stone fountain
+    // rather than a burner. Clear of everything, the only thing that can reach it is what the fuse vents.
+    const grid = kitchen()
+
+    for (let index = 0; index < grid.material.length; index++) {
+      if (grid.material[index] !== MaterialId.source) continue
+      const x = index % grid.width
+      const y = Math.floor(index / grid.width)
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          if (dx === 0 && dy === 0) continue
+          const found = grid.material[cellIndex(grid, x + dx, y + dy)]
+          expect([MaterialId.empty, MaterialId.source]).toContain(found)
+        }
+      }
+    }
+  })
+
+  itSlow('lights each pan in turn, and every pan cooks', { timeout: 60_000 }, () => {
+    // What the fuse is for. It burns at roughly a cell every four or five ticks, so the pans go off in order
+    // with several seconds between them rather than all at once.
     const grid = kitchen()
     const rng = createRng(3)
-    // Timed to the middle of the show. Everything has gone off by around 300 ticks and the embers have burned
-    // down to ash by 600, so a later look finds a burnt-out kitchen and proves nothing about how it got there.
-    for (let tick = 0; tick < 300; tick++) tickWorld(grid, rng, tick)
+    const corn = count(grid, MaterialId.kernel)
+    const firstCooked = new Map<number, number>()
+    let embersSeen = 0
 
-    // Metal neither melts nor breaks, so whatever else happens the pans are still pans.
-    expect(count(grid, MaterialId.metal)).toBeGreaterThan(0)
-    expect(count(grid, MaterialId.popcorn)).toBeGreaterThan(0)
+    for (let tick = 0; tick < 2000; tick++) {
+      tickWorld(grid, rng, tick)
+      if (tick % 5 !== 0) continue
+      for (let index = 0; index < grid.material.length; index++) {
+        const id = grid.material[index]
+        if (id === MaterialId.ember) embersSeen++
+        // Popcorn only ever comes from an even pan and a lit firework from an odd one, so the first sighting
+        // of either dates the pan it belongs to even after the stuff has scattered across the counter.
+        const pan = panOf(grid, index)
+        const cooking = pan % 2 === 0 ? id === MaterialId.popcorn : id === MaterialId.fireworkLit
+        if (cooking && !firstCooked.has(pan)) firstCooked.set(pan, tick)
+      }
+    }
+
+    // Every pan cooks, in left-to-right order, and no two within two and a half seconds of each other.
+    const order = [0, 1, 2, 3].map((pan) => firstCooked.get(pan))
+    expect(order.every((tick) => tick !== undefined)).toBe(true)
+    for (let pan = 1; pan < 4; pan++) {
+      expect(order[pan]! - order[pan - 1]!).toBeGreaterThan(150)
+    }
+
     // Fireworks that went off, leaving trails rather than one blast.
-    expect(count(grid, MaterialId.ember)).toBeGreaterThan(0)
-  })
+    expect(embersSeen).toBeGreaterThan(0)
+    // Most burners learn flame rather than the smoke that shares the firebox with it. That is what the height
+    // of the firebox buys: squat, the smoke reaches the sources first and every last burner learns smoke.
+    let flame = 0
+    let smoke = 0
+    for (let index = 0; index < grid.material.length; index++) {
+      if (grid.material[index] !== MaterialId.source) continue
+      if (grid.data[index] === MaterialId.fire) flame++
+      if (grid.data[index] === MaterialId.smoke) smoke++
+    }
+    expect(flame).toBeGreaterThan(smoke)
 
-  itSlow('leaves the world alive a while later', { timeout: 20_000 }, () => {
-    const grid = kitchen()
-    const rng = createRng(3)
-    for (let tick = 0; tick < 900; tick++) tickWorld(grid, rng, tick)
-
-    // The counter is stone and the pans are metal: neither has anything that undoes it, so a scene that ran
-    // wild is still recognisably a kitchen.
-    expect(count(grid, MaterialId.stone)).toBeGreaterThan(0)
+    // Nearly every kernel pops, and hardly any chars. Through a one-cell base the pan runs hot enough to
+    // burn them, and these two counts come up well short of what went in.
+    const popped = count(grid, MaterialId.popcorn)
+    expect(count(grid, MaterialId.kernel) + popped).toBeGreaterThan(corn * 0.99)
+    expect(popped).toBeGreaterThan(corn * 0.8)
+    // Metal neither melts nor breaks and stone has nothing that undoes it, so however wild it gets the
+    // scene is still recognisably a kitchen.
     expect(count(grid, MaterialId.metal)).toBeGreaterThan(0)
+    expect(count(grid, MaterialId.stone)).toBeGreaterThan(0)
   })
 })

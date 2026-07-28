@@ -461,7 +461,7 @@ describe('the new materials pull their weight', () => {
     const lit = MATERIALS[MaterialId.fireworkLit]
 
     expect(MATERIALS[MaterialId.firework].hot?.into).toBe(MaterialId.fireworkLit)
-    // The launch borrows the kick a kernel pops with, unchanged.
+    // The launch runs on the same `pops` mechanism a kernel pops with, at its own strength.
     expect(MATERIALS[MaterialId.firework].pops).toBeGreaterThan(0)
     expect(lit.lifetime).toBeGreaterThan(0)
     expect(lit.bursts?.sparks).toBeGreaterThan(1)

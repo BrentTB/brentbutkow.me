@@ -39,6 +39,29 @@ function put(grid: Grid, x: number, y: number, material: MaterialId): void {
 }
 
 /**
+ * A one-cell arc from `left` to `right`, both ends resting on `edge` and the middle `rise` cells above it.
+ *
+ * Each column fills the run between its own height and the previous column's, so where the curve steps the
+ * two cells share an edge instead of only touching at a corner. Drawn a cell per column, a lid this shallow
+ * comes out as a dotted diagonal with gaps a grain can pass straight through.
+ */
+function dome(grid: Grid, left: number, right: number, edge: number, rise: number): void {
+  fill(grid, left, edge, right + 1, edge, MaterialId.metal)
+
+  const span = right - left
+  if (span <= 0) return
+
+  const heightAt = (x: number) => edge - Math.round(rise * Math.sin((Math.PI * (x - left)) / span))
+
+  let previous = heightAt(left)
+  for (let x = left; x <= right; x++) {
+    const here = heightAt(x)
+    fill(grid, x, Math.min(here, previous), x, Math.max(here, previous), MaterialId.metal)
+    previous = here
+  }
+}
+
+/**
  * A run of surface heights: two slow waves plus a little jitter. Dead straight lines are what make a built
  * world look built, and a couple of sines is the cheapest way to stop that.
  */
@@ -729,53 +752,123 @@ function clearAir(grid: Grid, x: number, from: number): number {
   return -1
 }
 
+/** How many vessels the kitchen builds, alternating a lidded pot of kernels with an open pan of fireworks. */
+const KITCHEN_PANS = 4
 /**
- * A row of metal pots over heat, some full of kernels and some full of fireworks.
+ * How many stalls the dividers cut the counter into. Two, so each holds a pot and a pan: the popcorn does
+ * nothing to the fireworks, and the fireworks get the width of two vessels to burst across. The wall is only
+ * there to keep one stall's sparks out of the other's.
+ */
+const KITCHEN_STALLS = 2
+/** How thick the fuse is. Three, because one reads as a scratch on the counter rather than a fuse. */
+const KITCHEN_FUSE_HEIGHT = 3
+/** How many 2×2 blocks of source sit in each firebox. */
+const KITCHEN_BURNERS = 8
+/** Left edge to left edge between burner blocks, so the gap between them is this less the block's 2 cells. */
+const KITCHEN_BURNER_PITCH = 5
+
+/** How many cells shallower a pan's walls are than a pot's, which is most of what tells the two apart. */
+const KITCHEN_PAN_SHALLOWER = 5
+/** How far the middle of a pot's lid sits above its edges. */
+const KITCHEN_LID_RISE = 4
+/** How far the lid is pushed off centre: the gap it leaves at one shoulder and its overhang at the other. */
+const KITCHEN_LID_SHIFT = 4
+/** How far a pan's handle juts out past its wall, and how many cells it runs before lifting another one. */
+const KITCHEN_HANDLE_LENGTH = 10
+const KITCHEN_HANDLE_RUN = 3
+
+/** How thickly the filling fills a vessel: ragged rather than solid, so the heat gets in among it. */
+const KITCHEN_FILL_DENSITY = 0.82
+
+/**
+ * A counter of metal pots and pans over burners, lit one after another by a single fuse. Lidded pots hold the
+ * kernels and open pans hold the fireworks, which is also the difference between the two things they do: one
+ * rattles under a lid and the other goes straight up out of the pan.
  *
- * Metal is the only thing that would do for the pots: it neither melts nor breaks, so the pans survive what is
- * under them, and it is far and away the best conductor, so the heat arrives at what is inside rather than
- * stopping at the base. Two kinds of burner because they fail differently — lava sits there and cooks, while a
- * source fed one flame keeps making more and will happily set the room alight.
+ * Metal is the only thing that would do for them: it neither melts nor breaks, so they survive what is under
+ * them, and it is far and away the best conductor, so the heat arrives at what is inside rather than stopping
+ * at the base. The base is two cells thick, which is what paces the cooking: through one the vessel pops twice
+ * as fast and is empty in half the time, and the odd kernel chars instead of popping.
+ *
+ * The fuse is what makes it a show rather than a bang. It runs the length of the counter, lit at the near end
+ * by a single flame, and burns at roughly a cell every four or five ticks — so each pan goes off several
+ * seconds after the one before it, and there is time to watch each one. Under every pan it passes a firebox of
+ * source blocks that touch nothing: a source copies the first material fed to it, so the only thing that can
+ * ever reach one here is the flame the fuse vents upward, and then it makes flame of its own forever. That is
+ * the whole trick, and it is why they sit in clear air — one placed against the pan learned stone instead.
+ *
+ * The firebox is tall for the same reason a chimney is. A burning cell vents smoke as well as flame, and the
+ * flame it vents becomes smoke in another thirty ticks, so the smoke in a firebox outweighs the flame about
+ * five to one. Height sorts them: the smoke climbs to the exhaust gaps under the base and the flame clings to
+ * the fuse it came off, down where the sources are. Squat, and every burner in the world learned smoke.
  */
 function kitchen(grid: Grid, rng: Rng): void {
   const { width, height } = grid
   const counter = height - 8
+  const fuse = counter - 1
+  const base = fuse - 14
+  const rim = base - 14
 
   fill(grid, 0, counter, width - 1, height - 1, MaterialId.stone)
 
-  const pans = 4
-  const span = Math.floor(width / pans)
-  for (let pan = 0; pan < pans; pan++) {
-    const left = pan * span + Math.floor(span * 0.18)
-    const right = left + Math.floor(span * 0.52)
-    // The base sits close over the counter, and the burner fills the gap. An earlier version left two cells of
-    // air between them and nothing ever cooked: air conducts at 0.05, so the heat simply never arrived.
-    const base = counter - 6
-    const rim = base - 13
+  const span = Math.floor(width / KITCHEN_PANS)
+  const stall = Math.floor(width / KITCHEN_STALLS)
+  for (let divider = 1; divider < KITCHEN_STALLS; divider++) {
+    fill(grid, divider * stall - 1, 0, divider * stall, fuse - 1, MaterialId.stone)
+  }
 
-    fill(grid, left, base, right, base, MaterialId.metal)
-    fill(grid, left, rim, left, base - 1, MaterialId.metal)
-    fill(grid, right, rim, right, base - 1, MaterialId.metal)
+  // One fuse for the whole counter, threaded through the dividers rather than round them: the gap in a wall
+  // is filled with wood, so the burn crosses but the sparks and embers on either side cannot. It sinks into
+  // the counter rather than standing on it, so thickening it leaves everything above at the same height.
+  fill(grid, 0, fuse, width - 1, fuse + KITCHEN_FUSE_HEIGHT - 1, MaterialId.wood)
+  put(grid, 1, fuse - 1, MaterialId.fire)
 
-    // Two burners, because they fail differently: lava sits there and cooks, while a source fed one flame keeps
-    // making more and will happily set the room alight.
-    if (pan % 2 === 0) {
-      fill(grid, left + 1, base + 1, right - 1, counter - 1, MaterialId.lava)
-    } else {
-      const middle = Math.floor((left + right) / 2)
-      // Right under the base, so the flame it makes touches the metal. A source with one flame beside it
-      // learns fire and then keeps producing it.
-      put(grid, middle, base + 2, MaterialId.source)
-      put(grid, middle, base + 1, MaterialId.fire)
-      fill(grid, left + 1, base + 3, right - 1, counter - 1, MaterialId.stone)
+  for (let vessel = 0; vessel < KITCHEN_PANS; vessel++) {
+    // Pots are deep and narrow and take a lid; pans are shallow, wide and open. Which one you are looking at
+    // should be obvious before anything happens in it, so the shape carries it rather than the contents.
+    const isPot = vessel % 2 === 0
+    const left = vessel * span + Math.floor(span * (isPot ? 0.28 : 0.18))
+    const right = left + Math.floor(span * (isPot ? 0.44 : 0.6))
+    const middle = Math.floor((left + right) / 2)
+    const lip = isPot ? rim : rim + KITCHEN_PAN_SHALLOWER
+
+    // Legs down to the fuse, so the firebox under the base is a chimney: metal overhead, metal at both sides,
+    // fuse for a floor. A pair of gaps just under the base is the exhaust.
+    fill(grid, left, base, right, base + 1, MaterialId.metal)
+    fill(grid, left, lip, left, base + 1, MaterialId.metal)
+    fill(grid, right, lip, right, base + 1, MaterialId.metal)
+    fill(grid, left, base + 4, left, fuse - 1, MaterialId.metal)
+    fill(grid, right, base + 4, right, fuse - 1, MaterialId.metal)
+
+    // The lid: a dome the full width of the pot, resting a cell above the rim and pushed to one side. Sitting
+    // to one side is what makes it read as a lid at all — it leaves the pot open at one shoulder and hangs
+    // over the far wall by the same amount, which is a lid knocked askew rather than a plate that fits badly.
+    // Sealed it would still cook, but watching popcorn escape past it is the point of a lid.
+    if (isPot) {
+      dome(grid, left + KITCHEN_LID_SHIFT, right + KITCHEN_LID_SHIFT, lip - 1, KITCHEN_LID_RISE)
     }
 
-    // Kernels in one pan and fireworks in the next, so the difference between a pop and a burst is side by
-    // side. Ragged rather than a solid block, so the heat gets in among them.
-    const filling = pan % 2 === 0 ? MaterialId.kernel : MaterialId.firework
+    // A handle out of the pan's right side, lifting as it goes: the one line that says frying pan rather than
+    // open box, and the pot has a lid to say the same thing about itself.
+    if (!isPot) {
+      for (let out = 1; out <= KITCHEN_HANDLE_LENGTH; out++) {
+        put(grid, right + out, lip - Math.floor(out / KITCHEN_HANDLE_RUN), MaterialId.metal)
+      }
+    }
+
+    // Blocks a cell apart, so no two touch and none touches the fuse — a source teaches every source it
+    // touches, which would make one connected run a single roll for the whole vessel.
+    const burnerStart = middle - Math.floor((KITCHEN_BURNERS * KITCHEN_BURNER_PITCH - 2) / 2)
+    for (let burner = 0; burner < KITCHEN_BURNERS; burner++) {
+      const at = burnerStart + burner * KITCHEN_BURNER_PITCH
+      fill(grid, at, fuse - 3, at + 1, fuse - 2, MaterialId.source)
+    }
+
+    // Ragged rather than a solid block, so the heat gets in among it.
+    const filling = isPot ? MaterialId.kernel : MaterialId.firework
     for (let y = base - 1; y > base - 7; y--) {
       for (let x = left + 1; x < right; x++) {
-        if (rng.next() < 0.82) put(grid, x, y, filling)
+        if (rng.next() < KITCHEN_FILL_DENSITY) put(grid, x, y, filling)
       }
     }
   }
