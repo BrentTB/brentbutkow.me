@@ -458,3 +458,52 @@ describe('a charge going off', () => {
     expect(fastestUpward(big)).toBeLessThan(fastestUpward(small))
   })
 })
+
+describe('the tools writing into the air', () => {
+  it('makes the wind tool blow a draught, not only shove the grains under it', () => {
+    // What makes it wind rather than a hand: the flow it leaves behind keeps working after the drag stops,
+    // and bends around whatever is in the way.
+    const grid = createGrid(61, 61)
+
+    wind(grid, 30, 30, 6, 8, 0)
+
+    let moving = 0
+    for (let i = 0; i < grid.airX.length; i++) if (grid.airX[i] > 0) moving++
+    expect(moving).toBeGreaterThan(0)
+  })
+
+  it('shoves air far beyond the debris a blast throws', () => {
+    // The complaint this guards: the draught was written over the same disc as the impulse, so it only ever
+    // overlapped a couple of hundred of the tens of thousands of cells a blast puts in the air. Turning the
+    // whole field off changed nothing you could see.
+    const grid = createGrid(201, 201)
+    const centre = 100
+    const radius = 6
+
+    blast(grid, centre, centre, radius)
+
+    // Air is moving well outside the disc the blast itself reached.
+    let farthest = 0
+    for (let y = 0; y < grid.height; y++) {
+      for (let x = 0; x < grid.width; x++) {
+        const at = cellIndex(grid, x, y)
+        if (grid.airX[at] === 0 && grid.airY[at] === 0) continue
+        farthest = Math.max(farthest, Math.hypot(x - centre, y - centre))
+      }
+    }
+    const blastReach = Math.max(radius, 12)
+    expect(farthest).toBeGreaterThan(blastReach * 2)
+  })
+
+  it('leaves the air alone when the blast has no push in it', () => {
+    // A gas flashing over is heat and shove with no draught of its own: the flame it becomes is the heat.
+    const grid = createGrid(61, 61)
+
+    temper(grid, 30, 30, 6, true)
+
+    for (let i = 0; i < grid.airX.length; i++) {
+      expect(grid.airX[i]).toBe(0)
+      expect(grid.airY[i]).toBe(0)
+    }
+  })
+})

@@ -319,3 +319,19 @@ describe('clearGrid and the chunk flags', () => {
     expect(grid.awakeChunks.every((flag) => flag === 1)).toBe(true)
   })
 })
+
+describe('the air field on a grid', () => {
+  it('starts still and is wiped along with everything else', () => {
+    const grid = createGrid(64, 64)
+    expect(grid.airX.every((speed) => speed === 0)).toBe(true)
+    expect(grid.airY.every((speed) => speed === 0)).toBe(true)
+
+    grid.airX[cellIndex(grid, 10, 10)] = 5
+    grid.airY[cellIndex(grid, 10, 10)] = -5
+    clearGrid(grid)
+
+    // A wiped world has no weather either.
+    expect(grid.airX.every((speed) => speed === 0)).toBe(true)
+    expect(grid.airY.every((speed) => speed === 0)).toBe(true)
+  })
+})

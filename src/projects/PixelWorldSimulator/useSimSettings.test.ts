@@ -13,6 +13,16 @@ describe('useSimSettings', () => {
     expect(result.current.settings).toEqual(DEFAULT_SETTINGS)
   })
 
+  it('starts a first visit with only the material tint on', () => {
+    // Comparing against `DEFAULT_SETTINGS` above cannot catch a default being flipped, since it moves with
+    // it. These two are deliberate calls about what a visitor sees before touching anything: warm cells are
+    // worth colouring straight away, and the two overlays that draw things which are not really there are
+    // not. Both are easy to turn on by accident and hard to notice in review.
+    expect(DEFAULT_SETTINGS[SimSetting.tintBlocks]).toBe(true)
+    expect(DEFAULT_SETTINGS[SimSetting.tintAir]).toBe(false)
+    expect(DEFAULT_SETTINGS[SimSetting.showFlow]).toBe(false)
+  })
+
   it('toggles a setting and leaves the other one alone', () => {
     const { result } = renderHook(() => useSimSettings())
 

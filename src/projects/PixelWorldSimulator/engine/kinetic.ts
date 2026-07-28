@@ -18,7 +18,7 @@ const AIR_DRAG = 0.985
  */
 const MAX_SPEED = 16
 /** Below this, in cells per tick, a cell has stopped being thrown and goes back to its normal class. */
-const MIN_SPEED = 0.5
+export const MIN_SPEED = 0.5
 /** What a cell keeps after a bounce when its material has nothing springy about it: a thud. */
 const DEFAULT_RESTITUTION = 0.12
 /** How hard an impact has to land, in cells per tick, to break something breakable. */
@@ -118,7 +118,15 @@ export function moveKinetic(grid: Grid, rng: Rng): void {
     const speed = Math.abs(motion.vx) + Math.abs(motion.vy)
     // Slow cells go back to their own class, but only once something is under them: a cell released
     // mid-air stops where it is, which turns the back half of every arc into a freeze frame.
-    if (speed >= MIN_SPEED || !isSupported(grid, landed)) keep(grid, landed, motion)
+    if (speed >= MIN_SPEED || !isSupported(grid, landed)) {
+      keep(grid, landed, motion)
+      continue
+    }
+
+    // Handing a cell back to its own class has to wake its chunk. `step` skips anything in flight, so a
+    // grain the air grabbed too gently was never visited by either pass: kinetic could not move it and
+    // dropped it, and step had stopped looking. It sat there frozen with open space beside it.
+    wakeChunk(grid, landed)
   }
 
   trim(grid)

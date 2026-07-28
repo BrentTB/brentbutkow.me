@@ -107,7 +107,7 @@ describe('chipColour', () => {
 
 describe('writeHeatTint', () => {
   /** Everything tinted, which is what the settings default to for materials. */
-  const BOTH: SimSettings = { tintBlocks: true, tintAir: true }
+  const BOTH: SimSettings = { tintBlocks: true, tintAir: true, showFlow: false }
 
   /** A one-cell overlay buffer, for a cell of stone unless something else is asked for. */
   function tintFor(
@@ -162,7 +162,7 @@ describe('writeHeatTint', () => {
   })
 
   it('leaves materials alone when the material tint is switched off', () => {
-    const off: SimSettings = { tintBlocks: false, tintAir: true }
+    const off: SimSettings = { tintBlocks: false, tintAir: true, showFlow: false }
     const { tinted, alpha } = tintFor(900, MaterialId.stone, off)
 
     expect(tinted).toBe(false)
@@ -170,7 +170,7 @@ describe('writeHeatTint', () => {
   })
 
   it('keeps the two tints independent, so air can be lit while materials are not', () => {
-    const airOnly: SimSettings = { tintBlocks: false, tintAir: true }
+    const airOnly: SimSettings = { tintBlocks: false, tintAir: true, showFlow: false }
 
     expect(tintFor(900, MaterialId.empty, airOnly).tinted).toBe(true)
     expect(tintFor(900, MaterialId.stone, airOnly).tinted).toBe(false)

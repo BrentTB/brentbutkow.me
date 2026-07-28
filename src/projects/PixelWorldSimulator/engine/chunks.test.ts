@@ -3,7 +3,7 @@ import { Grid, MaterialId } from '../pixel-world.types'
 import { cellIndex, createGrid, markHotRow, placeMaterial } from './grid'
 import { createRng } from './rng'
 import { tickWorld } from './tick'
-import { CHUNK_SIZE, isCellAwake, wakeAllChunks, wakeChunk } from './chunks'
+import { CHUNK_SIZE, isCellAwake, wakeChunk } from './chunks'
 
 describe('wakeChunk', () => {
   function sleeping(width = 96, height = 96): Grid {
@@ -99,7 +99,10 @@ describe('a sleeping chunk holds nothing that would still move', () => {
 
     const settled = clone(grid)
     const forced = clone(grid)
-    wakeAllChunks(forced)
+    // Material flags only. Waking the air as well changes what the flow does, which is a second variable in
+    // a question about the material passes: buoyancy would raise a draught the real run never had.
+    forced.awakeChunks.fill(1)
+    forced.awakeChunksNext.fill(1)
     tickWorld(forced, createRng(ticks + 1), ticks)
 
     let frozen = 0

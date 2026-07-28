@@ -36,7 +36,7 @@ describe('SettingsDialog', () => {
   })
 
   it('shows each switch at the state it was given', () => {
-    open({ settings: { tintBlocks: false, tintAir: true } })
+    open({ settings: { tintBlocks: false, tintAir: true, showFlow: false } })
 
     const [blocks, air] = screen.getAllByRole('checkbox')
     expect((blocks as HTMLInputElement).checked).toBe(false)
@@ -160,6 +160,7 @@ describe('SettingsDialog', () => {
     expect(SETTING_ROWS.map(({ setting }) => setting)).toEqual([
       SimSetting.tintBlocks,
       SimSetting.tintAir,
+      SimSetting.showFlow,
     ])
   })
 })

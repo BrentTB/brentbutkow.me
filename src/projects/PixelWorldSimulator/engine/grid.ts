@@ -21,8 +21,14 @@ export function createGrid(width: number, height: number): Grid {
     // Awake to begin with: a brand new world has no last tick to have been quiet during.
     awakeChunks: new Uint8Array(columns * rows).fill(1),
     awakeChunksNext: new Uint8Array(columns * rows).fill(1),
+    airChunks: new Uint8Array(columns * rows).fill(1),
+    airChunksNext: new Uint8Array(columns * rows).fill(1),
     chunkColumns: columns,
     chunkRows: rows,
+    airX: new Float32Array(cells),
+    airY: new Float32Array(cells),
+    airXNext: new Float32Array(cells),
+    airYNext: new Float32Array(cells),
     velocity: new Map(),
     heading: new Map(),
   }
@@ -46,6 +52,10 @@ export function clearGrid(grid: Grid): void {
   grid.hotRows.fill(0)
   grid.hotRowsNext.fill(0)
   wakeAllChunks(grid)
+  grid.airX.fill(0)
+  grid.airY.fill(0)
+  grid.airXNext.fill(0)
+  grid.airYNext.fill(0)
   grid.velocity.clear()
   grid.heading.clear()
 }

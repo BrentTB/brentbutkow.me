@@ -26,10 +26,43 @@ export function chunksDown(height: number): number {
  * decides who is still awake a tick from now.
  */
 export function wakeChunk(grid: Grid, index: number): void {
+  wake(grid, index, grid.awakeChunks, grid.awakeChunksNext)
+}
+
+/**
+ * Wakes the air's chunk for a cell **only if that cell sits in a different chunk than the last call did.**
+ *
+ * The passes that use this walk a row left to right, so sixteen consecutive cells share a chunk and waking on
+ * each of them writes the same nine flags sixteen times over. A lava pool leaves most of the world's air
+ * moving, so that was thousands of redundant calls a tick. Same lesson as `markHotRowBand`: a band woken once
+ * is a band woken.
+ *
+ * Only safe because of that left-to-right walk. Pass the running memo back in and keep the return value.
+ */
+export function wakeAirChunkOnce(grid: Grid, index: number, lastChunk: number): number {
+  const cellX = index % grid.width
+  const chunk =
+    (((index - cellX) / grid.width) >> CHUNK_SHIFT) * grid.chunkColumns + (cellX >> CHUNK_SHIFT)
+  if (chunk === lastChunk) return chunk
+
+  wakeAirChunk(grid, index)
+  return chunk
+}
+
+/**
+ * The same, for the air's own flags. Air keeps a separate set on purpose: a draught evolves over most of the
+ * world at once, and waking the material passes everywhere it reaches cost more than the flow itself. Air
+ * only wakes material where it is strong enough to carry something, which it does by handing out momentum.
+ */
+export function wakeAirChunk(grid: Grid, index: number): void {
+  wake(grid, index, grid.airChunks, grid.airChunksNext)
+}
+
+function wake(grid: Grid, index: number, now: Uint8Array, next: Uint8Array): void {
   const cellX = index % grid.width
   const chunkX = cellX >> CHUNK_SHIFT
   const chunkY = ((index - cellX) / grid.width) >> CHUNK_SHIFT
-  const { awakeChunks, awakeChunksNext, chunkColumns, chunkRows } = grid
+  const { chunkColumns, chunkRows } = grid
 
   const left = chunkX > 0 ? chunkX - 1 : 0
   const right = chunkX < chunkColumns - 1 ? chunkX + 1 : chunkColumns - 1
@@ -39,8 +72,8 @@ export function wakeChunk(grid: Grid, index: number): void {
   for (let row = top; row <= bottom; row++) {
     const offset = row * chunkColumns
     for (let column = left; column <= right; column++) {
-      awakeChunks[offset + column] = 1
-      awakeChunksNext[offset + column] = 1
+      now[offset + column] = 1
+      next[offset + column] = 1
     }
   }
 }
@@ -48,6 +81,15 @@ export function wakeChunk(grid: Grid, index: number): void {
 /** Whether the pass should visit this cell at all. */
 export function isCellAwake(grid: Grid, x: number, y: number): boolean {
   return grid.awakeChunks[(y >> CHUNK_SHIFT) * grid.chunkColumns + (x >> CHUNK_SHIFT)] === 1
+}
+
+/** Whether any chunk in this band holds moving air. */
+export function isAirRowBandAwake(grid: Grid, y: number): boolean {
+  const offset = (y >> CHUNK_SHIFT) * grid.chunkColumns
+  for (let column = 0; column < grid.chunkColumns; column++) {
+    if (grid.airChunks[offset + column] === 1) return true
+  }
+  return false
 }
 
 /**
@@ -67,6 +109,8 @@ export function isRowBandAwake(grid: Grid, y: number): boolean {
 export function wakeAllChunks(grid: Grid): void {
   grid.awakeChunks.fill(1)
   grid.awakeChunksNext.fill(1)
+  grid.airChunks.fill(1)
+  grid.airChunksNext.fill(1)
 }
 
 /**
@@ -78,4 +122,9 @@ export function advanceChunks(grid: Grid): void {
   grid.awakeChunks = grid.awakeChunksNext
   grid.awakeChunksNext = retiring
   retiring.fill(0)
+
+  const retiringAir = grid.airChunks
+  grid.airChunks = grid.airChunksNext
+  grid.airChunksNext = retiringAir
+  retiringAir.fill(0)
 }

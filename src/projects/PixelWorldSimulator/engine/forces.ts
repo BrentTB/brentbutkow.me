@@ -3,6 +3,7 @@ import { AMBIENT_TEMPERATURE, TEMPERATURE_LIMITS } from '../data'
 import { cellIndex, markHotRow, markHotRowBand, transformCell } from './grid'
 import { MATERIALS, isMovable } from './materials'
 import { push } from './kinetic'
+import { pushAir } from './air'
 
 /**
  * Cells per tick the attract tool adds at its strongest. It has to be a grab, not a nudge: at a third of
@@ -17,6 +18,12 @@ const PULL_STRENGTH = 4.5
 const BLAST_STRENGTH = 9
 /** Cells per tick a held wind adds each tick, along the direction of the drag. */
 const WIND_STRENGTH = 2.4
+/**
+ * Cells per tick the wind tool puts into the air itself, on top of the shove it gives material directly.
+ * Comfortably over the speed the flow needs to pick anything up, so a held drag reads as a gust that lingers
+ * rather than a hand pushing individual grains.
+ */
+const WIND_AIR = 3.5
 /**
  * The smallest disc a force works over, whatever the brush is set to, and whatever a charge's own radius says.
  * Force falls off to nothing at the rim, so a brush-sized blast at the smallest setting had almost no room to
@@ -58,6 +65,18 @@ const TEMPERATURE_PULL = 0.3
  * further and anything heavier goes less far. Without this every material flew identically, which made
  * splinters of glass behave like wet gravel.
  */
+/**
+ * Share of a blast's strength that goes into the air rather than straight into material. The draught is what
+ * makes the seconds after an explosion interesting: debris curls, smoke billows outward, and a fire leans.
+ */
+const AIR_SHARE = 1.1
+/**
+ * How much wider than the blast itself the draught reaches. A blast wave shoves air far beyond the debris it
+ * throws, and without this the flow only ever overlapped a couple of hundred of the twenty thousand cells in
+ * the air — which is why turning it off changed nothing you could see.
+ */
+const AIR_REACH = 3
+
 const REFERENCE_DENSITY = 60
 /** Bounds on that, so nothing is either immovable or launched into orbit. */
 const LIGHTEST = 2.2
@@ -148,6 +167,10 @@ export function wind(
   const uy = dy / length
 
   overDisc(grid, cx, cy, radius, (index, _dx, _dy, falloff) => {
+    // Into the air first: the tool blows a draught, and the draught is what carries things. It keeps
+    // working after the pointer stops, and it bends around whatever is in the way.
+    pushAir(grid, index, ux * WIND_AIR * falloff, uy * WIND_AIR * falloff)
+
     if (!isMovable(grid.material[index])) return
     const speed = WIND_STRENGTH * falloff * massFactor(grid.material[index])
     push(grid, index, ux * speed, uy * speed)
@@ -209,6 +232,24 @@ function impulse(
     },
     minReach
   )
+
+  // The draught, over a much wider disc than the blast itself: this is what curls debris around and drags
+  // smoke outward instead of leaving a still world with things flying through it.
+  if (strength > 0) {
+    const gustReach = Math.max(minReach, Math.floor(radius)) * AIR_REACH
+    overDisc(
+      grid,
+      cx,
+      cy,
+      gustReach,
+      (index, dx, dy, falloff, distance) => {
+        if (distance === 0) return
+        const gust = strength * AIR_SHARE * falloff
+        pushAir(grid, index, (dx / distance) * gust, (dy / distance) * gust)
+      },
+      gustReach
+    )
+  }
 
   // The rows the blast reached, woken once between them rather than once per cell.
   if (heat > 0) {

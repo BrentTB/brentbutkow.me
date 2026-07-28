@@ -7,6 +7,7 @@ import { applyReactions } from './reactions'
 import { moveKinetic } from './kinetic'
 import { simulateLife } from './life'
 import { advanceChunks } from './chunks'
+import { simulateAir } from './air'
 
 /**
  * One world tick: chemistry acts on the world as it stands, then things move, then heat spreads and
@@ -26,11 +27,16 @@ import { advanceChunks } from './chunks'
  * Cells in flight move after the ordinary pass, and `step` leaves them alone while they are: gravity is
  * already part of a kinetic cell's own motion, so letting both passes have a go at one sent debris down
  * twice as fast as it flew up.
+ *
+ * Air sits between the two movement passes, and that is the answer to the feedback loop the spec worried
+ * about. It reads temperature and walls, never momentum, so material can never push air back: the flow is
+ * driven only by heat and by explicit sources, and anything it grabs is moving by the end of the same tick.
  */
 export function tickWorld(grid: Grid, rng: Rng, tick: number): void {
   applyReactions(grid, rng)
   simulateLife(grid, rng, tick)
   step(grid, rng, tick)
+  simulateAir(grid, tick)
   moveKinetic(grid, rng)
   simulateHeat(grid)
   advanceTimers(grid, rng)

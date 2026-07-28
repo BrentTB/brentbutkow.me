@@ -503,3 +503,113 @@ describe('heavy gas', () => {
     }
   })
 })
+
+describe('a gas in a draught', () => {
+  /** Where a puff of smoke ends up after drifting down a sealed corridor in a flow of `airX`. */
+  function driftedTo(airX: number): number {
+    const grid = createGrid(81, 21)
+    for (let x = 0; x < grid.width; x++) {
+      set(grid, x, 8, MaterialId.stone)
+      set(grid, x, 12, MaterialId.stone)
+    }
+    const start = 40
+    set(grid, start, 10, MaterialId.smoke)
+    grid.airX.fill(airX)
+
+    const rng = createRng(1)
+    for (let tick = 0; tick < 20; tick++) step(grid, rng, tick)
+
+    // It rises to the top of the corridor as well as drifting, so look at every open row.
+    for (let y = 9; y <= 11; y++) {
+      for (let x = 0; x < grid.width; x++) {
+        if (at(grid, x, y) === MaterialId.smoke) return x
+      }
+    }
+    return -1
+  }
+
+  it('leans the way the air is going instead of drifting at random', () => {
+    // The cheap half of the air coupling, and the one that reads best: a plume bends downwind a cell at a
+    // time, without the flow ever having to be strong enough to throw anything. Compared against the same
+    // seed blowing the other way, because a random walk on its own wanders in both directions.
+    const downwind = driftedTo(4)
+    const upwind = driftedTo(-4)
+
+    expect(downwind).toBeGreaterThan(upwind)
+  })
+})
+
+describe('a liquid sliding sideways', () => {
+  /** Cells whose material changes per tick, once a scene has had long enough to settle. */
+  function churnPerTick(build: (grid: Grid) => void, settle: number, ticks: number): number {
+    const grid = createGrid(160, 120)
+    for (let x = 0; x < grid.width; x++) {
+      set(grid, x, grid.height - 1, MaterialId.stone)
+    }
+    build(grid)
+    const rng = createRng(1)
+    for (let tick = 0; tick < settle; tick++) step(grid, rng, tick)
+
+    let previous = grid.material.slice()
+    let changed = 0
+    for (let tick = settle; tick < settle + ticks; tick++) {
+      step(grid, rng, tick)
+      for (let i = 0; i < grid.material.length; i++) {
+        if (grid.material[i] !== previous[i]) changed++
+      }
+      previous = grid.material.slice()
+    }
+    return changed / ticks
+  }
+
+  it('does not shove a lighter solid out of the way', () => {
+    // The complaint this guards: dirt and sand resting on lava jumped about as if they were alive. Density
+    // decides who sinks through whom, which is a rule about gravity, and the sideways move was using it too.
+    // Lava is denser than dirt, so a pool shoved the dirt above it left and right forever.
+    //
+    // A sealed tank of lava with one grain of dirt in it. The grain rises, because lava is heavier and
+    // displaces it upward, and then it has lava on both sides with nowhere left to go.
+    const churn = churnPerTick(
+      (grid) => {
+        for (let y = 90; y < grid.height; y++) {
+          set(grid, 40, y, MaterialId.stone)
+          set(grid, 120, y, MaterialId.stone)
+        }
+        for (let y = 100; y < grid.height - 1; y++) {
+          for (let x = 41; x < 120; x++) set(grid, x, y, MaterialId.lava)
+        }
+        set(grid, 80, grid.height - 2, MaterialId.dirt)
+      },
+      400,
+      40
+    )
+
+    expect(churn).toBe(0)
+  })
+
+  it('still lets a poured column find its level across a wide floor', () => {
+    // The other half, and the reason two earlier attempts at the jitter were thrown away: sliding sideways
+    // into open space is how a pool levels itself, so the rule above has to leave that alone. A vessel only
+    // forty cells wide is too small to catch a pool that gives up part-way, so this one is wide.
+    const grid = createGrid(200, 90)
+    for (let x = 0; x < grid.width; x++) set(grid, x, grid.height - 1, MaterialId.stone)
+    for (let y = 10; y < grid.height - 1; y++) {
+      for (let x = 90; x < 110; x++) set(grid, x, y, MaterialId.water)
+    }
+
+    const rng = createRng(1)
+    for (let tick = 0; tick < 2000; tick++) step(grid, rng, tick)
+
+    const surfaces: number[] = []
+    for (let x = 0; x < grid.width; x++) {
+      for (let y = 0; y < grid.height; y++) {
+        if (at(grid, x, y) === MaterialId.water) {
+          surfaces.push(y)
+          break
+        }
+      }
+    }
+    expect(surfaces.length).toBe(grid.width)
+    expect(Math.max(...surfaces) - Math.min(...surfaces)).toBeLessThanOrEqual(3)
+  })
+})

@@ -354,15 +354,23 @@ export const SETTING_ROWS: readonly { setting: SimSetting; label: string; hint: 
     label: 'Tint air by temperature',
     hint: 'Shows warmth in the air itself, so you can watch heat rise off a fire. Gets busy once things burn.',
   },
+  {
+    setting: SimSetting.showFlow,
+    label: 'Show which way the air is moving',
+    hint: 'Moving air turns hazy, brighter the faster it goes. A fire pushes it up and an explosion throws it out, so a still world shows nothing.',
+  },
 ]
 
 /**
  * Materials are tinted by default and air is not: warmth in a solid is otherwise invisible until it crosses
- * a threshold, while hot air covers half the world in a haze that reads as fog rather than temperature.
+ * a threshold, while hot air covers half the world in a haze that reads as fog rather than temperature. The
+ * flow streaks are off for the same reason — they explain what the world is doing, which is worth a look and
+ * then worth turning off again.
  */
 export const DEFAULT_SETTINGS: SimSettings = {
   [SimSetting.tintBlocks]: true,
   [SimSetting.tintAir]: false,
+  [SimSetting.showFlow]: false,
 }
 
 /** Where the settings live between visits. */

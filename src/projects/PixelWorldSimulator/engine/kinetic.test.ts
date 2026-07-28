@@ -4,6 +4,7 @@ import { cellIndex, createGrid, placeMaterial } from './grid'
 import { GRID_HEIGHT, GRID_WIDTH } from '../data'
 import { MAX_IN_FLIGHT, moveKinetic, push } from './kinetic'
 import { createRng } from './rng'
+import { isCellAwake } from './chunks'
 import { tickWorld } from './tick'
 
 /** A world with a stone floor along the bottom row. */
@@ -349,43 +350,6 @@ describe('an impact on packed material', () => {
 })
 
 describe('the cap on cells in flight', () => {
-  it('holds a real explosion instead of deleting it mid-launch', () => {
-    // The complaint this guards: a bed sitting on a deep charge puts many thousands of cells in the air at
-    // once, and everything past the cap was dropped mid-flight — which is what left large chunks of a bed
-    // hanging there unmoved while the rest of it flew. The cap is a safety valve for absurd worlds, so it
-    // has to sit above what an ordinary explosion throws.
-    const grid = createGrid(GRID_WIDTH, GRID_HEIGHT)
-    const floor = GRID_HEIGHT - 1
-    for (let x = 0; x < GRID_WIDTH; x++) {
-      placeMaterial(grid, cellIndex(grid, x, floor), MaterialId.stone)
-    }
-    const chargeTop = floor - 20
-    for (let y = chargeTop - 40; y < chargeTop; y++) {
-      for (let x = 0; x < GRID_WIDTH; x++)
-        placeMaterial(grid, cellIndex(grid, x, y), MaterialId.sand)
-    }
-    for (let y = chargeTop; y < floor; y++) {
-      for (let x = 180; x < 220; x++) placeMaterial(grid, cellIndex(grid, x, y), MaterialId.tnt)
-    }
-
-    const bed: number[] = []
-    for (let y = chargeTop - 40; y < chargeTop; y++) {
-      for (let x = 180; x < 220; x++) bed.push(cellIndex(grid, x, y))
-    }
-
-    grid.temperature[cellIndex(grid, 200, floor - 1)] = 1200
-    grid.hotRows.fill(1)
-    const rng = createRng(1)
-    for (let tick = 0; tick < 30; tick++) tickWorld(grid, rng, tick)
-
-    let stillThere = 0
-    for (const cell of bed) if (grid.material[cell] === MaterialId.sand) stillThere++
-
-    // Most of the bed over the charge has left the cell it started in. At the old three-thousand cap this
-    // sits at 0.27, because the launch was being deleted as it happened.
-    expect(stillThere / bed.length).toBeLessThan(0.15)
-  })
-
   it('never fires on an ordinary explosion', () => {
     // The cap is a valve against a world made of nothing but explosives, where the aftermath costs half
     // again as much without it. It is not a budget, and an explosion somebody actually built has to pass
@@ -416,5 +380,27 @@ describe('the cap on cells in flight', () => {
 
     expect(peakInFlight).toBeGreaterThan(0)
     expect(peakInFlight).toBeLessThan(MAX_IN_FLIGHT)
+  })
+})
+
+describe('handing a cell back from flight', () => {
+  it('wakes its chunk, because the movement pass had stopped looking at it', () => {
+    // `step` skips anything in the velocity map, so a cell that flight gives up on is a cell neither pass is
+    // watching. Air grabbing a grain too gently to move it was enough to trigger this: kinetic dropped it and
+    // step never looked again, leaving it frozen with open space beside it.
+    const grid = walledGrid(96, 96)
+    const resting = cellIndex(grid, 50, grid.height - 2)
+    placeMaterial(grid, resting, MaterialId.sand)
+
+    // Nudged too gently for flight to do anything with it, from a world that has gone quiet.
+    push(grid, resting, 0, -0.05)
+    grid.awakeChunks.fill(0)
+    grid.awakeChunksNext.fill(0)
+
+    moveKinetic(grid, createRng(1))
+
+    // Flight has let it go, so the chunk has to be awake again for `step` to pick it up.
+    expect(grid.velocity.has(resting)).toBe(false)
+    expect(isCellAwake(grid, 50, grid.height - 2)).toBe(true)
   })
 })

@@ -620,3 +620,19 @@ describe('tickWorld and the chunk flags', () => {
     expect(grid.material[cellIndex(grid, 48, 10)]).toBe(MaterialId.empty)
   })
 })
+
+describe('tickWorld and the air', () => {
+  it('runs the air pass, so a fire raises its own draught', () => {
+    const grid = withVessel(48, 48)
+    put(grid, 24, 40, MaterialId.lava)
+
+    run(grid, 10)
+
+    // Upward is negative. Nothing but the air pass writes this, so its presence is the wiring.
+    let rising = 0
+    for (let y = 20; y < 40; y++) {
+      if (grid.airY[cellIndex(grid, 24, y)] < 0) rising++
+    }
+    expect(rising).toBeGreaterThan(0)
+  })
+})

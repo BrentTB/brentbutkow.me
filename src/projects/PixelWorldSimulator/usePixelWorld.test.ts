@@ -551,7 +551,9 @@ describe('usePixelWorld', () => {
       frame(MS_PER_TICK)
       expect(lastContext?.drawImage).toHaveBeenCalled()
 
-      act(() => result.current.applySettings({ tintBlocks: false, tintAir: false }))
+      act(() =>
+        result.current.applySettings({ tintBlocks: false, tintAir: false, showFlow: false })
+      )
       lastContext?.drawImage.mockClear()
       frame(MS_PER_TICK)
 
@@ -569,7 +571,7 @@ describe('usePixelWorld', () => {
       frame(MS_PER_TICK)
       expect(tintAt(90, 90)).toBe(0)
 
-      act(() => result.current.applySettings({ tintBlocks: false, tintAir: true }))
+      act(() => result.current.applySettings({ tintBlocks: false, tintAir: true, showFlow: false }))
       frame(MS_PER_TICK)
 
       expect(tintAt(90, 90)).toBeGreaterThan(0)
@@ -582,7 +584,7 @@ describe('usePixelWorld', () => {
       frame(MS_PER_TICK)
       cancelledHandles = []
 
-      act(() => result.current.applySettings({ tintBlocks: false, tintAir: true }))
+      act(() => result.current.applySettings({ tintBlocks: false, tintAir: true, showFlow: false }))
       frame(MS_PER_TICK)
 
       expect(cancelledHandles).toEqual([])
