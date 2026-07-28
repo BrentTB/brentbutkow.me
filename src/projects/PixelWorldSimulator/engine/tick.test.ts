@@ -636,3 +636,29 @@ describe('tickWorld and the air', () => {
     expect(rising).toBeGreaterThan(0)
   })
 })
+
+describe('air behind its setting', () => {
+  it('leaves the world alone when air currents are off', () => {
+    // The one setting that changes what the world does rather than how it looks, so it has to reach the sim
+    // and not only the renderer.
+    function run(airCurrents: boolean) {
+      const grid = createGrid(81, 81)
+      for (let x = 0; x < grid.width; x++) {
+        placeMaterial(grid, cellIndex(grid, x, 80), MaterialId.stone)
+      }
+      for (let x = 36; x < 45; x++) placeMaterial(grid, cellIndex(grid, x, 79), MaterialId.lava)
+
+      const rng = createRng(1)
+      for (let tick = 0; tick < 60; tick++) tickWorld(grid, rng, tick, airCurrents)
+
+      let moving = 0
+      for (let i = 0; i < grid.airX.length; i++) {
+        if (grid.airX[i] !== 0 || grid.airY[i] !== 0) moving++
+      }
+      return moving
+    }
+
+    expect(run(true)).toBeGreaterThan(0)
+    expect(run(false)).toBe(0)
+  })
+})

@@ -35,17 +35,17 @@ function builtWorld(width = 60, height = 40): Grid {
 describe('encodeSnapshot / decodeSnapshot', () => {
   it('brings a world back exactly as it was drawn', async () => {
     const built = builtWorld()
-    const { code } = await encodeSnapshot(built)
+    const { code } = await encodeSnapshot(built, true)
 
     const loaded = createGrid(built.width, built.height)
-    expect(await decodeSnapshot(code, loaded)).toEqual({ ok: true })
+    expect(await decodeSnapshot(code, loaded)).toEqual({ ok: true, airCurrents: true })
 
     expect([...loaded.material]).toEqual([...built.material])
   })
 
   it('carries the heat a material holds on its own, without spending bytes on it', async () => {
     const built = builtWorld()
-    const { code } = await encodeSnapshot(built)
+    const { code } = await encodeSnapshot(built, true)
     const loaded = createGrid(built.width, built.height)
 
     await decodeSnapshot(code, loaded)
@@ -62,7 +62,7 @@ describe('encodeSnapshot / decodeSnapshot', () => {
     built.temperature[warmed] = 640
 
     const loaded = createGrid(built.width, built.height)
-    await decodeSnapshot((await encodeSnapshot(built)).code, loaded)
+    await decodeSnapshot((await encodeSnapshot(built, true)).code, loaded)
 
     // Stored as a level rather than a degree, which halves the layer. A step is finer than the tint shows.
     expect(Math.abs(loaded.temperature[warmed] - 640)).toBeLessThanOrEqual(TEMPERATURE_QUANTUM)
@@ -95,8 +95,9 @@ describe('encodeSnapshot / decodeSnapshot', () => {
           grid.temperature[cell] = held
 
           const loaded = createGrid(4, 4)
-          expect(await decodeSnapshot((await encodeSnapshot(grid)).code, loaded)).toEqual({
+          expect(await decodeSnapshot((await encodeSnapshot(grid, true)).code, loaded)).toEqual({
             ok: true,
+            airCurrents: true,
           })
 
           const back = loaded.temperature[cell]
@@ -116,7 +117,7 @@ describe('encodeSnapshot / decodeSnapshot', () => {
     built.temperature[rock] = melts + 4
 
     const loaded = createGrid(built.width, built.height)
-    await decodeSnapshot((await encodeSnapshot(built)).code, loaded)
+    await decodeSnapshot((await encodeSnapshot(built, true)).code, loaded)
 
     expect(loaded.temperature[rock]).toBeGreaterThanOrEqual(melts)
   })
@@ -126,7 +127,7 @@ describe('encodeSnapshot / decodeSnapshot', () => {
     const bug = cellIndex(built, 45, built.height - 3)
 
     const loaded = createGrid(built.width, built.height)
-    await decodeSnapshot((await encodeSnapshot(built)).code, loaded)
+    await decodeSnapshot((await encodeSnapshot(built, true)).code, loaded)
 
     expect(loaded.data[bug]).toBe(MATERIALS[MaterialId.bug].life?.startEnergy)
   })
@@ -136,7 +137,7 @@ describe('encodeSnapshot / decodeSnapshot', () => {
     // and one repeated temperature, which is what compression is for.
     const empty = createGrid(400, 225)
 
-    expect((await encodeSnapshot(empty)).code.length).toBeLessThan(600)
+    expect((await encodeSnapshot(empty, true)).code.length).toBeLessThan(600)
   })
 
   it('fits a whole preset into a link', async () => {
@@ -145,7 +146,7 @@ describe('encodeSnapshot / decodeSnapshot', () => {
       loadPreset(grid, preset, createRng(7))
 
       // The cap the UI refuses past; a ready-made world has to come in well under it.
-      expect((await encodeSnapshot(grid)).code.length).toBeLessThan(SNAPSHOT_MAX_CHARS)
+      expect((await encodeSnapshot(grid, true)).code.length).toBeLessThan(SNAPSHOT_MAX_CHARS)
     }
   })
 
@@ -160,7 +161,7 @@ describe('encodeSnapshot / decodeSnapshot', () => {
       loadPreset(grid, Preset.volcano, rng)
       for (let tick = 0; tick < 400; tick++) tickWorld(grid, rng, tick)
 
-      expect((await encodeSnapshot(grid)).code.length).toBeLessThan(SNAPSHOT_MAX_CHARS)
+      expect((await encodeSnapshot(grid, true)).code.length).toBeLessThan(SNAPSHOT_MAX_CHARS)
     }
   )
 
@@ -175,14 +176,14 @@ describe('encodeSnapshot / decodeSnapshot', () => {
       grid.temperature[cell] = Math.floor(rng.next() * 1400)
     }
 
-    const sent = await encodeSnapshot(grid)
+    const sent = await encodeSnapshot(grid, true)
 
     expect(sent.heatDropped).toBe(true)
     expect(sent.code.length).toBeLessThan(SNAPSHOT_MAX_CHARS)
 
     // The world still arrives; only its warmth is missing.
     const loaded = createGrid(400, 225)
-    expect(await decodeSnapshot(sent.code, loaded)).toEqual({ ok: true })
+    expect(await decodeSnapshot(sent.code, loaded)).toEqual({ ok: true, airCurrents: true })
     expect(loaded.material[0]).toBe(MaterialId.stone)
     expect(loaded.temperature[0]).toBe(AMBIENT_TEMPERATURE)
   })
@@ -191,7 +192,7 @@ describe('encodeSnapshot / decodeSnapshot', () => {
     const grid = createGrid(400, 225)
     loadPreset(grid, Preset.volcano, createRng(7))
 
-    expect((await encodeSnapshot(grid)).heatDropped).toBe(false)
+    expect((await encodeSnapshot(grid, true)).heatDropped).toBe(false)
   })
 
   it('leaves room for the worlds people actually build', () => {
@@ -206,7 +207,10 @@ describe('encodeSnapshot / decodeSnapshot', () => {
       loadPreset(built, preset, createRng(3))
       const loaded = createGrid(400, 225)
 
-      expect(await decodeSnapshot((await encodeSnapshot(built)).code, loaded)).toEqual({ ok: true })
+      expect(await decodeSnapshot((await encodeSnapshot(built, true)).code, loaded)).toEqual({
+        ok: true,
+        airCurrents: true,
+      })
       expect([...loaded.material]).toEqual([...built.material])
     }
   })
@@ -215,7 +219,7 @@ describe('encodeSnapshot / decodeSnapshot', () => {
     const built = createGrid(40, 30)
     const loaded = builtWorld(40, 30)
 
-    await decodeSnapshot((await encodeSnapshot(built)).code, loaded)
+    await decodeSnapshot((await encodeSnapshot(built, true)).code, loaded)
 
     expect([...loaded.material].every((cell) => cell === MaterialId.empty)).toBe(true)
     expect(loaded.velocity.size).toBe(0)
@@ -262,7 +266,12 @@ describe('decodeSnapshot on input nobody should trust', () => {
   }
 
   it('accepts the payload the other tests break, so they are breaking something that worked', async () => {
-    expect(await decodeSnapshot(await codeFor(goodPayload()), target())).toEqual({ ok: true })
+    // Only the heat bit set, which is what every link written before air existed looks like. Those worlds
+    // were built without it, so reading the missing flag as "off" replays them as they were.
+    expect(await decodeSnapshot(await codeFor(goodPayload()), target())).toEqual({
+      ok: true,
+      airCurrents: false,
+    })
   })
 
   it('refuses a string that is not base64 at all', async () => {
@@ -284,7 +293,7 @@ describe('decodeSnapshot on input nobody should trust', () => {
   })
 
   it('refuses a world of different dimensions rather than stretching it', async () => {
-    const { code: small } = await encodeSnapshot(createGrid(20, 20))
+    const { code: small } = await encodeSnapshot(createGrid(20, 20), true)
 
     expect(await decodeSnapshot(small, target())).toEqual({
       ok: false,
@@ -344,7 +353,7 @@ describe('decodeSnapshot on input nobody should trust', () => {
   })
 
   it('refuses a truncated code', async () => {
-    const { code } = await encodeSnapshot(builtWorld())
+    const { code } = await encodeSnapshot(builtWorld(), true)
 
     expect((await decodeSnapshot(code.slice(0, 12), target())).ok).toBe(false)
   })
@@ -353,7 +362,7 @@ describe('decodeSnapshot on input nobody should trust', () => {
     const grid = builtWorld()
     const before = [...grid.material]
 
-    await decodeSnapshot((await encodeSnapshot(createGrid(10, 10))).code, grid)
+    await decodeSnapshot((await encodeSnapshot(createGrid(10, 10), true)).code, grid)
 
     expect([...grid.material]).toEqual(before)
     expect(grid.temperature[cellIndex(grid, 0, 0)]).toBe(AMBIENT_TEMPERATURE)
@@ -366,7 +375,7 @@ describe('decodeSnapshot on input nobody should trust', () => {
     built.temperature[cell] = 30000
 
     const loaded = createGrid(built.width, built.height)
-    await decodeSnapshot((await encodeSnapshot(built)).code, loaded)
+    await decodeSnapshot((await encodeSnapshot(built, true)).code, loaded)
 
     // An Int16 holds 32,000°, which is not a temperature any world should come back with.
     expect(loaded.temperature[cell]).toBe(TEMPERATURE_LIMITS.ceiling)
@@ -390,5 +399,36 @@ describe('snapshotsSupported', () => {
     })
 
     globalThis.DecompressionStream = streams
+  })
+})
+
+describe('a link carries the air setting', () => {
+  /** A blank world the same size as `builtWorld`, ready to receive one. */
+  function blank(): Grid {
+    return createGrid(60, 40)
+  }
+
+  it('brings back whichever way the sender had it', async () => {
+    const built = builtWorld()
+
+    const withAir = await encodeSnapshot(built, true)
+    const withoutAir = await encodeSnapshot(built, false)
+
+    // Air changes what a world does, not just how it looks, so a link that dropped this would replay into
+    // something the sender never saw.
+    expect(await decodeSnapshot(withAir.code, blank())).toEqual({ ok: true, airCurrents: true })
+    expect(await decodeSnapshot(withoutAir.code, blank())).toEqual({
+      ok: true,
+      airCurrents: false,
+    })
+  })
+
+  it('still brings the world itself back either way', async () => {
+    const built = builtWorld()
+    const { code } = await encodeSnapshot(built, false)
+    const loaded = blank()
+
+    expect((await decodeSnapshot(code, loaded)).ok).toBe(true)
+    expect([...loaded.material]).toEqual([...built.material])
   })
 })

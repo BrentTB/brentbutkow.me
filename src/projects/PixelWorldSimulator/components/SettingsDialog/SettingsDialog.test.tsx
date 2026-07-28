@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { SimSetting } from '../../pixel-world.types'
-import { DEFAULT_SETTINGS, SETTING_ROWS, simCopy } from '../../data'
+import { DEFAULT_SETTINGS, SETTING_ROWS, SETTING_SECTIONS, simCopy } from '../../data'
 import { SettingsDialog } from './SettingsDialog'
 
 function open(overrides: Partial<Parameters<typeof SettingsDialog>[0]> = {}) {
@@ -36,7 +36,7 @@ describe('SettingsDialog', () => {
   })
 
   it('shows each switch at the state it was given', () => {
-    open({ settings: { tintBlocks: false, tintAir: true, showFlow: false } })
+    open({ settings: { tintBlocks: false, tintAir: true, showFlow: false, airCurrents: true } })
 
     const [blocks, air] = screen.getAllByRole('checkbox')
     expect((blocks as HTMLInputElement).checked).toBe(false)
@@ -153,14 +153,69 @@ describe('SettingsDialog', () => {
     expect(document.activeElement).toBe(last)
   })
 
-  it('names each setting for the tint the viewer will see', () => {
+  it('lists every setting, in the order the dialog shows them', () => {
     open()
 
     expect(screen.getByText(SETTING_ROWS[0].hint)).toBeTruthy()
     expect(SETTING_ROWS.map(({ setting }) => setting)).toEqual([
       SimSetting.tintBlocks,
       SimSetting.tintAir,
+      SimSetting.airCurrents,
       SimSetting.showFlow,
     ])
+  })
+})
+
+describe('the switches, grouped', () => {
+  it('names each group and puts every switch in one', () => {
+    open()
+
+    for (const { title } of SETTING_SECTIONS) {
+      expect(screen.getByRole('group', { name: new RegExp(title, 'i') })).toBeTruthy()
+    }
+    // Nothing stranded outside a group, and the flat list stays in the order the dialog shows.
+    expect(SETTING_ROWS.map(({ setting }) => setting)).toEqual(
+      SETTING_SECTIONS.flatMap(({ rows }) => rows.map(({ setting }) => setting))
+    )
+  })
+
+  it('keeps the tints and the world separate', () => {
+    // Worth saying out loud: the first pair changes the picture, the second changes what the world does.
+    expect(SETTING_SECTIONS.map(({ title }) => title)).toEqual(['Tint', 'Air mechanics'])
+    expect(SETTING_SECTIONS[1].rows.map(({ setting }) => setting)).toEqual([
+      SimSetting.airCurrents,
+      SimSetting.showFlow,
+    ])
+  })
+})
+
+describe('a setting that depends on another', () => {
+  /** Looked up by setting rather than by position, so inserting a row above it cannot silently retarget this. */
+  function flowCheckbox(): HTMLInputElement {
+    const row = SETTING_ROWS.find(({ setting }) => setting === SimSetting.showFlow)
+    if (row === undefined) throw new Error('no flow row')
+    return screen.getByRole('checkbox', { name: new RegExp(row.label, 'i') }) as HTMLInputElement
+  }
+
+  it('greys the flow overlay out and reads it as off while air is off', () => {
+    // The overlay draws the air field, so with air switched off it would be showing a draught that is not
+    // blowing. The stored preference is left alone, so turning air back on brings it back as it was.
+    open({ settings: { tintBlocks: true, tintAir: false, showFlow: true, airCurrents: false } })
+
+    const flow = flowCheckbox()
+
+    expect(flow.disabled).toBe(true)
+    expect(flow.checked).toBe(false)
+    // A greyed control with no reason given is a dead end, so the row says which switch brings it back.
+    expect(screen.getByText(new RegExp(simCopy.settings.locked, 'i'))).toBeTruthy()
+  })
+
+  it('leaves it alone once air is on', () => {
+    open({ settings: { tintBlocks: true, tintAir: false, showFlow: true, airCurrents: true } })
+
+    const flow = flowCheckbox()
+
+    expect(flow.disabled).toBe(false)
+    expect(flow.checked).toBe(true)
   })
 })

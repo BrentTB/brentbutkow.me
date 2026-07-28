@@ -75,7 +75,9 @@ export function createRenderer(
       // With both tints off there is nothing for the pass to write, so it doesn't run at all.
       const heatPixels =
         settings.tintBlocks || settings.tintAir ? (heatImage?.data ?? undefined) : undefined
-      const flowShown = settings.showFlow
+      // Air switched off leaves the field frozen at whatever it last held, so the haze has to go with it or
+      // it draws a draught that is no longer blowing.
+      const flowShown = settings.showFlow && settings.airCurrents
       let emissiveCells = 0
       let tintedCells = 0
 

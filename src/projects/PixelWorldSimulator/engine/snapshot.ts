@@ -15,6 +15,11 @@ const HEADER_BYTES = 6
 
 /** Set in the flags byte when the payload carries a temperature layer at all. */
 const HAS_HEAT = 1
+/**
+ * Set when the world was built with air currents switched on. Air changes what a world *does*, not just how
+ * it looks, so a link that dropped this would replay into something the sender never saw.
+ */
+const HAS_AIR = 2
 
 /**
  * Stands in for "however this cell came out when it was placed" in the temperature layer. It keeps a
@@ -49,7 +54,13 @@ export const SnapshotRefusal = {
 } as const
 export type SnapshotRefusal = (typeof SnapshotRefusal)[keyof typeof SnapshotRefusal]
 
-export type SnapshotResult = { ok: true } | { ok: false; refusal: SnapshotRefusal }
+export type SnapshotResult =
+  | {
+      ok: true
+      /** Whether the sender had air currents on. The reader matches it, so the world replays as they saw it. */
+      airCurrents: boolean
+    }
+  | { ok: false; refusal: SnapshotRefusal }
 
 /**
  * Whether links work here at all. Compression streams are the one part of this with a real support gap, so
@@ -190,7 +201,7 @@ function fromBase64Url(code: string): Uint8Array<ArrayBuffer> | null {
  * Counters, momentum and burning are left out. A shared world arrives as the thing that was built rather
  * than mid-reaction, which is the more useful thing to receive as well as the shorter one to send.
  */
-async function encodeLayers(grid: Grid, withHeat: boolean): Promise<string> {
+async function encodeLayers(grid: Grid, withHeat: boolean, airCurrents: boolean): Promise<string> {
   const cells = grid.width * grid.height
   const payload = new Uint8Array(payloadBytes(cells, withHeat))
   const view = new DataView(payload.buffer)
@@ -198,7 +209,7 @@ async function encodeLayers(grid: Grid, withHeat: boolean): Promise<string> {
   payload[0] = VERSION
   view.setUint16(1, grid.width, true)
   view.setUint16(3, grid.height, true)
-  payload[5] = withHeat ? HAS_HEAT : 0
+  payload[5] = (withHeat ? HAS_HEAT : 0) | (airCurrents ? HAS_AIR : 0)
   payload.set(grid.material.subarray(0, cells), HEADER_BYTES)
 
   if (withHeat) {
@@ -232,11 +243,11 @@ export type Snapshot = {
  * Counters, momentum and burning are always left out. A shared world arrives as the thing that was built
  * rather than mid-reaction, which is the more useful thing to receive as well as the shorter one to send.
  */
-export async function encodeSnapshot(grid: Grid): Promise<Snapshot> {
-  const withHeat = await encodeLayers(grid, true)
+export async function encodeSnapshot(grid: Grid, airCurrents: boolean): Promise<Snapshot> {
+  const withHeat = await encodeLayers(grid, true, airCurrents)
   if (withHeat.length <= SNAPSHOT_MAX_CHARS) return { code: withHeat, heatDropped: false }
 
-  return { code: await encodeLayers(grid, false), heatDropped: true }
+  return { code: await encodeLayers(grid, false, airCurrents), heatDropped: true }
 }
 
 /**
@@ -298,5 +309,7 @@ export async function decodeSnapshot(code: string, grid: Grid): Promise<Snapshot
     }
   }
 
-  return { ok: true }
+  // Links written before air existed have the bit clear, and they were built in a world with no air at all,
+  // so reading a missing flag as "off" is the honest answer rather than a default.
+  return { ok: true, airCurrents: (payload[5] & HAS_AIR) !== 0 }
 }

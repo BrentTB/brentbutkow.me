@@ -31,12 +31,16 @@ import { simulateAir } from './air'
  * Air sits between the two movement passes, and that is the answer to the feedback loop the spec worried
  * about. It reads temperature and walls, never momentum, so material can never push air back: the flow is
  * driven only by heat and by explicit sources, and anything it grabs is moving by the end of the same tick.
+ *
+ * It is also the one pass a viewer can switch off. Air is young and it costs real time on a busy world, so
+ * `airCurrents` skips it — and because that changes what the world does rather than how it looks, a shared
+ * link records which way it was set.
  */
-export function tickWorld(grid: Grid, rng: Rng, tick: number): void {
+export function tickWorld(grid: Grid, rng: Rng, tick: number, airCurrents = true): void {
   applyReactions(grid, rng)
   simulateLife(grid, rng, tick)
   step(grid, rng, tick)
-  simulateAir(grid, tick)
+  if (airCurrents) simulateAir(grid, tick)
   moveKinetic(grid, rng)
   simulateHeat(grid)
   advanceTimers(grid, rng)

@@ -248,6 +248,12 @@ export const SimSetting = {
   tintBlocks: 'tintBlocks',
   tintAir: 'tintAir',
   showFlow: 'showFlow',
+  /**
+   * The one setting here that changes the world rather than the picture of it. Air is young and it costs real
+   * time on a busy world, so it can be switched off — and because it changes what the world does, a shared
+   * link carries the state it was built with.
+   */
+  airCurrents: 'airCurrents',
 } as const
 export type SimSetting = (typeof SimSetting)[keyof typeof SimSetting]
 

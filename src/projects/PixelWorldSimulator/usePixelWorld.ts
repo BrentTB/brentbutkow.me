@@ -54,7 +54,10 @@ export type PixelWorldSim = {
   watchCensus(on: boolean): void
   /** Cells of each material, indexed by `MaterialId`, or null while the tally is switched off. */
   census: Uint32Array | null
-  /** Hands the renderer the viewer's picture settings. Takes effect on the next frame drawn. */
+  /**
+   * Hands over the viewer's settings. The picture ones take effect on the next frame drawn; `airCurrents`
+   * also decides whether the air pass runs at all, so it reaches the sim through the same ref.
+   */
   applySettings(settings: SimSettings): void
   /** The world as a string for a link, and whether its heat had to be left out to fit. */
   snapshot(): Promise<Snapshot>
@@ -122,7 +125,7 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
         while (accumulator >= step && ticks < budget) {
           accumulator -= step
           ticks++
-          tickWorld(gridRef.current, rng, tickRef.current++)
+          tickWorld(gridRef.current, rng, tickRef.current++, settingsRef.current.airCurrents)
         }
         // Whatever the frame budget couldn't cover is dropped, not owed — a backgrounded tab
         // shouldn't come back and fast-forward the world.
@@ -162,7 +165,7 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
   }, [])
 
   const stepOnce = useCallback(() => {
-    tickWorld(gridRef.current, rng, tickRef.current++)
+    tickWorld(gridRef.current, rng, tickRef.current++, settingsRef.current.airCurrents)
   }, [rng])
 
   const clear = useCallback(() => {
@@ -204,12 +207,24 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
     else if (!wasWatching) setReading(readCell(gridRef.current, cell))
   }, [])
 
-  const snapshot = useCallback(() => encodeSnapshot(gridRef.current), [])
+  const snapshot = useCallback(
+    () => encodeSnapshot(gridRef.current, settingsRef.current.airCurrents),
+    []
+  )
 
   const loadSnapshot = useCallback((code: string) => decodeSnapshot(code, gridRef.current), [])
 
   const applySettings = useCallback((settings: SimSettings) => {
+    const wasOn = settingsRef.current.airCurrents
     settingsRef.current = settings
+    // Switching air off stops the pass, which would otherwise leave the field frozen mid-gust: the next time
+    // it came back on, a draught nobody raised would still be blowing.
+    if (wasOn && !settings.airCurrents) {
+      gridRef.current.airX.fill(0)
+      gridRef.current.airY.fill(0)
+      gridRef.current.airXNext.fill(0)
+      gridRef.current.airYNext.fill(0)
+    }
   }, [])
 
   const watchCensus = useCallback((on: boolean) => {

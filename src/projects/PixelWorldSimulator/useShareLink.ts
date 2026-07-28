@@ -13,6 +13,11 @@ type SnapshotPorts = {
   loadSnapshot(code: string): Promise<SnapshotResult>
   /** Called with a world that arrived paused, so the sim can stop before the visitor sees it move. */
   onArrivePaused(): void
+  /**
+   * Called with whether the sender had air currents on. Air changes what a world does rather than how it
+   * looks, so a link replays into something else entirely if the reader's own setting disagrees.
+   */
+  onArriveAirCurrents(on: boolean): void
 }
 
 /**
@@ -70,7 +75,12 @@ function refusalNote(refusal: SnapshotRefusal): string {
  * clipboard is also the fallback: where a browser refuses clipboard access, the link the visitor wanted is
  * still sitting in the address bar.
  */
-export function useShareLink({ snapshot, loadSnapshot, onArrivePaused }: SnapshotPorts): ShareLink {
+export function useShareLink({
+  snapshot,
+  loadSnapshot,
+  onArrivePaused,
+  onArriveAirCurrents,
+}: SnapshotPorts): ShareLink {
   const [note, setNote] = useState<string | null>(null)
   const [outcome, setOutcome] = useState<ShareOutcome>(ShareOutcome.idle)
   const [arrivedPaused, setArrivedPaused] = useState(false)
@@ -78,6 +88,8 @@ export function useShareLink({ snapshot, loadSnapshot, onArrivePaused }: Snapsho
   // times a second, and the arrival effect must run once per visit rather than on every one of those renders.
   const arrivePausedRef = useRef(onArrivePaused)
   arrivePausedRef.current = onArrivePaused
+  const arriveAirRef = useRef(onArriveAirCurrents)
+  arriveAirRef.current = onArriveAirCurrents
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const mountedRef = useRef(true)
 
@@ -121,6 +133,8 @@ export function useShareLink({ snapshot, loadSnapshot, onArrivePaused }: Snapsho
         say(refusalNote(result.refusal), ShareOutcome.refused)
         return
       }
+      // Match the sender's air setting before anything runs, so the world behaves the way they built it.
+      arriveAirRef.current(result.airCurrents)
       // Stop the world before the visitor sees it move, then hand them something to press.
       if (paused) {
         arrivePausedRef.current()

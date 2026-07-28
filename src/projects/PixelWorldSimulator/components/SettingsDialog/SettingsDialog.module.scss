@@ -38,6 +38,38 @@
   color: var(--muted);
 }
 
+// Grouped rather than one flat list: the second pair changes the world and the first only changes the picture
+// of it. A fieldset is the markup that says so to a screen reader as well as to the eye.
+.section {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+// A hairline running out from the label to the panel edge, so the group reads as one block without a box
+// around it. The rule is the grouping; the words only name it.
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  margin-bottom: 5px;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-strong);
+  }
+}
+
 .rows {
   display: flex;
   flex-direction: column;
@@ -61,6 +93,23 @@
 
   &:hover {
     background: rgba(var(--accent-rgb), 0.08);
+  }
+}
+
+// Nothing here can be pressed, so nothing here should look pressable: no hover, no pointer, and the whole
+// row dimmed. The switch is dimmed further and its track hollowed out, so it reads as unwired rather than
+// merely off — off is a state you chose, and this is one you cannot.
+.rowLocked {
+  cursor: not-allowed;
+  opacity: 0.45;
+
+  &:hover {
+    background: none;
+  }
+
+  .switch {
+    border-style: dashed;
+    background: none;
   }
 }
 

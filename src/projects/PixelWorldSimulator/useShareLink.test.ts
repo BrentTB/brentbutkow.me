@@ -17,7 +17,10 @@ const CODE = 'a-world-code'
 function ports(overrides: Partial<Parameters<typeof useShareLink>[0]> = {}) {
   return {
     snapshot: vi.fn(() => Promise.resolve({ code: CODE, heatDropped: false })),
-    loadSnapshot: vi.fn((): Promise<SnapshotResult> => Promise.resolve({ ok: true })),
+    loadSnapshot: vi.fn(
+      (): Promise<SnapshotResult> => Promise.resolve({ ok: true, airCurrents: true })
+    ),
+    onArriveAirCurrents: () => {},
     onArrivePaused: vi.fn(),
     ...overrides,
   }
@@ -213,7 +216,10 @@ describe('useShareLink — arriving on a world', () => {
     // link decoded, refused, and said nothing — the world just looked fresh with no reason given.
     window.history.replaceState(null, '', `#${SHARE_HASH_KEY}=${CODE}`)
     const doors = ports({
-      loadSnapshot: vi.fn(() => Promise.resolve({ ok: false, refusal: SnapshotRefusal.version })),
+      loadSnapshot: vi.fn(
+        (): Promise<SnapshotResult> =>
+          Promise.resolve({ ok: false, refusal: SnapshotRefusal.version })
+      ),
     })
 
     const { result } = renderHook(() => useShareLink(doors), { wrapper: StrictMode })

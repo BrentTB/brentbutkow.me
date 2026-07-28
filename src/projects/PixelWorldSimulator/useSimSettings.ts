@@ -39,6 +39,8 @@ function writeSettings(settings: SimSettings): void {
 export type SimSettingsControl = {
   settings: SimSettings
   toggle(setting: SimSetting): void
+  /** Sets one outright, for a shared world that arrives asking for a particular setting. */
+  set(setting: SimSetting, value: boolean): void
 }
 
 /** The viewer's picture settings, kept in `localStorage` so a world looks the way they left it. */
@@ -53,5 +55,14 @@ export function useSimSettings(): SimSettingsControl {
     })
   }, [])
 
-  return { settings, toggle }
+  const set = useCallback((setting: SimSetting, value: boolean) => {
+    setSettings((current) => {
+      if (current[setting] === value) return current
+      const next = { ...current, [setting]: value }
+      writeSettings(next)
+      return next
+    })
+  }, [])
+
+  return { settings, toggle, set }
 }
