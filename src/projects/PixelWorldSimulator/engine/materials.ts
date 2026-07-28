@@ -955,7 +955,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.corruption,
     label: 'Corruption',
-    blurb: 'Turns whatever it touches into more of itself. Only fire stops it.',
+    blurb: 'Spreads through anything, turning life to slime. Only fire stops it.',
     behavior: MaterialBehavior.static,
     density: 1000,
     color: [92, 44, 118],

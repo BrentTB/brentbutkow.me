@@ -528,6 +528,10 @@ function spinAir(grid: Grid, _rng: Rng, x: number, y: number): void {
 /**
  * Corruption taking a neighbour. Anything at all, which is what makes it a threat rather than a nuisance,
  * except what is already corruption and empty air, where there is nothing to convert.
+ *
+ * Living things go to slime rather than to corruption. A creature turning into more of the wall coming for it
+ * reads as the wall eating it; a creature turning into a slime that then crawls off on its own reads as the
+ * creature being turned, which is the more alarming of the two and the only one you can watch happen.
  */
 function corrupt(grid: Grid, rng: Rng, x: number, y: number): void {
   if (!rng.chance(CORRUPT_CHANCE)) return
@@ -546,7 +550,9 @@ function corrupt(grid: Grid, rng: Rng, x: number, y: number): void {
     if (isBurning(grid.burn[target]) || found === MaterialId.fire) continue
     if (corruptionAround(grid, nx, ny, cellIndex(grid, x, y)) > CORRUPT_CROWD) continue
 
-    transformCell(grid, target, MaterialId.corruption)
+    // Slime is already alive, so there is nothing left in it to turn.
+    const alive = MATERIALS[found].life !== undefined && found !== MaterialId.slime
+    transformCell(grid, target, alive ? MaterialId.slime : MaterialId.corruption)
     return
   }
 }

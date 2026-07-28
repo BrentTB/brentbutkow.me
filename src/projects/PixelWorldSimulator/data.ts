@@ -271,6 +271,11 @@ export const PRESETS: readonly { preset: Preset; label: string; title: string }[
     label: 'Pots and pans',
     title: 'Pans of kernels and fireworks, over lava and open flame',
   },
+  {
+    preset: Preset.containment,
+    label: 'Containment unit',
+    title: 'Corruption locked up at one end of a lab, an incinerator at the other',
+  },
 ]
 
 /** The material a fresh page starts on. */

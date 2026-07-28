@@ -571,6 +571,125 @@ describe('preset determinism', () => {
   })
 })
 
+describe('the containment unit preset', () => {
+  function lab(seed = 3): Grid {
+    const grid = createGrid(GRID_WIDTH, GRID_HEIGHT)
+    loadPreset(grid, Preset.containment, createRng(seed))
+    return grid
+  }
+
+  it('arrives with exactly one cell of corruption, sealed in rock', () => {
+    const grid = lab()
+
+    expect(count(grid, MaterialId.corruption)).toBe(1)
+    const at = grid.material.indexOf(MaterialId.corruption)
+    const x = at % grid.width
+    const y = Math.floor(at / grid.width)
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        if (dx === 0 && dy === 0) continue
+        expect(grid.material[cellIndex(grid, x + dx, y + dy)]).toBe(MaterialId.stone)
+      }
+    }
+  })
+
+  it('gives the spread a continuous path from the chamber to the lava', () => {
+    // The plan turns on this. Corruption cannot cross open air, only travel through what it touches, so if
+    // the deck under the lab is broken anywhere the spread stops there and the incinerator is never reached.
+    // The first version of the chamber had a void between two walls, which contained the thing forever.
+    const grid = lab()
+    const start = grid.material.indexOf(MaterialId.corruption)
+
+    const reached = new Uint8Array(grid.material.length)
+    const queue = [start]
+    reached[start] = 1
+    for (let at = 0; at < queue.length; at++) {
+      const index = queue[at]
+      const x = index % grid.width
+      const y = Math.floor(index / grid.width)
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const nx = x + dx
+          const ny = y + dy
+          if (nx < 0 || nx >= grid.width || ny < 0 || ny >= grid.height) continue
+          const next = cellIndex(grid, nx, ny)
+          if (reached[next] === 1 || grid.material[next] === MaterialId.empty) continue
+          reached[next] = 1
+          queue.push(next)
+        }
+      }
+    }
+
+    let lava = 0
+    for (let index = 0; index < grid.material.length; index++) {
+      if (grid.material[index] === MaterialId.lava && reached[index] === 1) lava++
+    }
+    expect(lava).toBeGreaterThan(0)
+  })
+
+  it('builds the lab to a plan and leaves the randomness outside it', () => {
+    const first = lab(1)
+    const second = lab(2)
+
+    // The hall itself is identical between loads: a lab that came out different every time reads as rubble
+    // rather than as a place somebody built.
+    const hall = (grid: Grid) => {
+      const rows: number[] = []
+      for (let y = Math.floor(GRID_HEIGHT * 0.5); y < GRID_HEIGHT * 0.76; y++) {
+        for (let x = Math.floor(GRID_WIDTH * 0.08); x < GRID_WIDTH * 0.36; x++) {
+          rows.push(grid.material[cellIndex(grid, x, y)])
+        }
+      }
+      return rows
+    }
+    expect(hall(second)).toEqual(hall(first))
+    // The country it stands on is not.
+    expect([...second.material]).not.toEqual([...first.material])
+  })
+
+  it('stocks the pen, and hangs a hazard sign that is not part of the building', () => {
+    const grid = lab()
+
+    for (const material of [
+      MaterialId.water,
+      MaterialId.algae,
+      MaterialId.fish,
+      MaterialId.glass,
+    ]) {
+      expect(count(grid, material)).toBeGreaterThan(0)
+    }
+    // Sponge appears nowhere else in the lab, so its cells are the sign and nothing but the sign.
+    expect(count(grid, MaterialId.sponge)).toBeGreaterThan(20)
+    expect(count(grid, MaterialId.randomSource)).toBe(1)
+  })
+
+  itSlow(
+    'lets the corruption out of the chamber, and the lava ends it',
+    { timeout: 60_000 },
+    () => {
+      // At a size a test can afford to run the whole story out. The lab is laid out as fractions of the world
+      // it is given, so a smaller one is the same building with less distance to cross — and distance is the
+      // only thing that paces the spread. Full size, this takes upwards of twelve thousand ticks.
+      const grid = createGrid(160, 90)
+      loadPreset(grid, Preset.containment, createRng(3))
+      const rng = createRng(3)
+      let peak = 0
+
+      for (let tick = 0; tick < 5000; tick++) {
+        tickWorld(grid, rng, tick)
+        if (tick % 50 === 0) peak = Math.max(peak, count(grid, MaterialId.corruption))
+      }
+
+      // It got out of the chamber and took a real bite of the lab on the way across.
+      expect(peak).toBeGreaterThan(50)
+      // And the incinerator is still an incinerator. Burning corruption radiates well over its own ignition
+      // point, so the fire races back through the trail rather than nibbling at the leading edge.
+      expect(count(grid, MaterialId.lava)).toBeGreaterThan(0)
+      expect(count(grid, MaterialId.corruption)).toBeLessThan(peak / 2)
+    }
+  )
+})
+
 describe('the pots and pans preset', () => {
   function kitchen(): Grid {
     const grid = createGrid(GRID_WIDTH, GRID_HEIGHT)

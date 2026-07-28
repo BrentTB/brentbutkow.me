@@ -8,6 +8,7 @@ export const Preset = {
   volcano: 'volcano',
   antColony: 'antColony',
   kitchen: 'kitchen',
+  containment: 'containment',
 } as const
 export type Preset = (typeof Preset)[keyof typeof Preset]
 
@@ -59,6 +60,26 @@ function dome(grid: Grid, left: number, right: number, edge: number, rise: numbe
     fill(grid, x, Math.min(here, previous), x, Math.max(here, previous), MaterialId.metal)
     previous = here
   }
+}
+
+/**
+ * Stamps a small picture, one character of `art` to a cell, through a legend of what each character means.
+ * A character the legend does not mention leaves the cell as it is, which is how a sign gets a shape that
+ * is not a rectangle.
+ */
+function stamp(
+  grid: Grid,
+  left: number,
+  top: number,
+  art: readonly string[],
+  legend: Readonly<Record<string, MaterialId>>
+): void {
+  art.forEach((row, dy) => {
+    for (let dx = 0; dx < row.length; dx++) {
+      const material = legend[row[dx]]
+      if (material !== undefined) put(grid, left + dx, top + dy, material)
+    }
+  })
 }
 
 /**
@@ -874,12 +895,178 @@ function kitchen(grid: Grid, rng: Rng): void {
   }
 }
 
+/**
+ * The hazard plate bolted beside the containment cell. Sponge is the only bright yellow that stays put — the
+ * rest of the yellows are powders and would pour off the wall — and stone is the darkest thing that does
+ * nothing on its own, which rules out the two that are actually black.
+ */
+const DANGER_SIGN: readonly string[] = [
+  '.....A.....',
+  '....AAA....',
+  '....ABA....',
+  '...AABAA...',
+  '...AABAA...',
+  '..AAABAAA..',
+  '..AAAAAAA..',
+  '.AAAABAAAA.',
+  '.AAAAAAAAA.',
+  'AAAAAAAAAAA',
+]
+
+const SIGN_LEGEND = { A: MaterialId.sponge, B: MaterialId.stone } as const
+
+/** How many cells thick the containment chamber's wall is. */
+const CELL_WALL = 3
+
+/**
+ * A lab with one cell of corruption locked in a containment chamber at one end, and an incinerator at the
+ * other. The corruption eats its way out of the chamber, creeps the length of the deck taking everything
+ * standing on it — the pen of animals on the way turns to slime rather than to wall — and finally reaches the
+ * lava, which is the only thing in the world that stops it.
+ *
+ * Deliberately the least random preset of the set: the building is drawn to a plan and the randomness is in
+ * the terrain outside it and in what the pen happens to be stocked with. A lab that came out different every
+ * time would read as rubble rather than as a place somebody built.
+ *
+ * Two things about corruption set the whole plan. It cannot cross open air, only travel through material it
+ * touches — so the chamber is packed solid with rock rather than being a room with a specimen sitting in it,
+ * and the metal deck is what carries the spread from one end of the hall to the other. And it spreads at the
+ * same rate through metal, glass and stone alike, measured, all three identical — so what buys time is
+ * distance and nothing else. A thicker wall of a better material is a thicker wall, no more. The first
+ * version of this had a void between two walls, which reads as high security and in fact contains the thing
+ * completely and forever, because there is no material across the gap for it to travel through.
+ */
+function containment(grid: Grid, rng: Rng): void {
+  const { width, height } = grid
+  const base = Math.floor(height * 0.76)
+  const bedrock = height - Math.floor(height * 0.07)
+
+  // The country the lab was built on, and the only part of the scene that changes between loads.
+  const ground = surfaceLine(width, base, Math.max(2, height * 0.03), rng)
+  const rock = surfaceLine(width, bedrock, Math.max(2, height * 0.02), rng)
+  bedrockFloor(grid, ground, rock, rng, [{ chance: 0.22, up: 1 }])
+
+  const labLeft = Math.floor(width * 0.08)
+  const labRight = width - 1 - labLeft
+  const span = labRight - labLeft
+  const deck = base + 2
+  const roof = Math.floor(height * 0.5)
+  const floorY = deck - 2
+
+  // --- The shell. Hollowed out first, then walled: a metal deck and roof, glazed along the top course of both
+  // end walls and down the length of the roof, so you can see the whole hall at once and watch it crossed.
+  fill(grid, labLeft, roof, labRight, deck, MaterialId.empty)
+  fill(grid, labLeft, deck - 1, labRight, deck, MaterialId.metal)
+  fill(grid, labLeft, roof, labRight, roof + 1, MaterialId.metal)
+  fill(grid, labLeft, roof, labLeft + 1, deck, MaterialId.metal)
+  fill(grid, labRight - 1, roof, labRight, deck, MaterialId.metal)
+  fill(grid, labLeft, roof + 2, labLeft + 1, roof + 9, MaterialId.glass)
+  fill(grid, labRight - 1, roof + 2, labRight, roof + 9, MaterialId.glass)
+
+  // Service run under the roof, dropping into the extraction hood over the incinerator.
+  fill(grid, labLeft + 8, roof + 4, labRight - 8, roof + 4, MaterialId.metal)
+
+  // --- The containment chamber, standing on the deck at the near end: a thick metal box packed solid with
+  // rock, the specimen at the middle of it, and a glass port to look in through.
+  const cellLeft = labLeft + 6
+  const cellRight = cellLeft + Math.floor(span * 0.13)
+  const cellTop = floorY - Math.floor((floorY - roof) * 0.62)
+
+  fill(grid, cellLeft, cellTop, cellRight, floorY, MaterialId.metal)
+  fill(
+    grid,
+    cellLeft + CELL_WALL,
+    cellTop + CELL_WALL,
+    cellRight - CELL_WALL,
+    floorY,
+    MaterialId.stone
+  )
+  fill(grid, cellRight - CELL_WALL + 1, cellTop + 5, cellRight, cellTop + 12, MaterialId.glass)
+
+  placeMaterial(
+    grid,
+    cellIndex(
+      grid,
+      Math.floor((cellLeft + cellRight) / 2),
+      Math.floor((cellTop + CELL_WALL + floorY) / 2)
+    ),
+    MaterialId.corruption
+  )
+
+  // The hazard plate on a post beside the chamber, at head height.
+  const signLeft = cellRight + 7
+  const signTop = cellTop + 2
+  stamp(grid, signLeft, signTop, DANGER_SIGN, SIGN_LEGEND)
+  fill(grid, signLeft + 5, signTop + DANGER_SIGN.length, signLeft + 5, floorY, MaterialId.metal)
+
+  // --- The pen, in the middle of the hall: a glass tank of water on a bed of algae, stocked at random.
+  const penLeft = labLeft + Math.floor(span * 0.38)
+  const penRight = labLeft + Math.floor(span * 0.68)
+  const penTop = roof + Math.floor((deck - roof) * 0.24)
+
+  fill(grid, penLeft, penTop, penRight, deck - 2, MaterialId.glass)
+  fill(grid, penLeft + 2, penTop + 2, penRight - 2, deck - 4, MaterialId.empty)
+  const waterLine = penTop + Math.floor((deck - penTop) * 0.35)
+  fill(grid, penLeft + 2, waterLine, penRight - 2, deck - 4, MaterialId.water)
+  for (let x = penLeft + 2; x <= penRight - 2; x++) {
+    if (rng.next() < 0.5) put(grid, x, deck - 4, MaterialId.algae)
+    if (rng.next() < 0.14) put(grid, x, deck - 5, MaterialId.algae)
+  }
+  scatterLife(grid, rng, penLeft + 3, penRight - 3, waterLine, deck - 6)
+
+  // --- The incinerator at the far end: a metal tank of lava with a hood over it, and the wild source beside
+  // it, because a lab is where the thing nobody can predict gets built too.
+  const pitLeft = labLeft + Math.floor(span * 0.78)
+  const pitRight = labRight - 4
+  const pitTop = deck - Math.floor((deck - roof) * 0.42)
+
+  fill(grid, pitLeft, pitTop, pitRight, deck - 2, MaterialId.metal)
+  fill(grid, pitLeft + 2, pitTop + 2, pitRight - 2, deck - 3, MaterialId.lava)
+  fill(grid, pitLeft, pitTop, pitRight, pitTop, MaterialId.metal)
+  fill(grid, pitLeft + 3, pitTop - 5, pitLeft + 4, pitTop - 1, MaterialId.metal)
+  fill(grid, pitRight - 4, pitTop - 5, pitRight - 3, pitTop - 1, MaterialId.metal)
+  fill(grid, pitLeft + 3, pitTop - 6, pitRight - 3, pitTop - 6, MaterialId.metal)
+
+  put(grid, pitLeft - 8, deck - 3, MaterialId.randomSource)
+  fill(grid, pitLeft - 10, deck - 2, pitLeft - 6, deck - 2, MaterialId.metal)
+
+  // --- Outside: a couple of trees on the ground the lab does not cover, placed at random.
+  for (const side of [Math.floor(labLeft * 0.5), labRight + Math.floor((width - labRight) * 0.5)]) {
+    const at = Math.max(2, Math.min(width - 3, side + Math.floor(rng.next() * 6) - 3))
+    tree(grid, at, ground[at] - 1, 8 + Math.floor(rng.next() * 6), rng, 2)
+  }
+}
+
+/** Drops a few of each creature into a tank, above the water line for the bird and in it for the rest. */
+function scatterLife(
+  grid: Grid,
+  rng: Rng,
+  left: number,
+  right: number,
+  waterLine: number,
+  floorY: number
+): void {
+  const place = (material: MaterialId, count: number, top: number, bottom: number) => {
+    for (let n = 0; n < count; n++) {
+      const x = left + Math.floor(rng.next() * (right - left + 1))
+      const y = top + Math.floor(rng.next() * Math.max(1, bottom - top + 1))
+      put(grid, x, y, material)
+    }
+  }
+
+  place(MaterialId.fish, 5, waterLine + 2, floorY - 2)
+  place(MaterialId.worm, 4, floorY - 1, floorY)
+  place(MaterialId.bug, 4, waterLine - 6, waterLine - 2)
+  place(MaterialId.bird, 2, waterLine - 8, waterLine - 5)
+}
+
 const BUILDERS: Record<Preset, (grid: Grid, rng: Rng) => void> = {
   [Preset.aquarium]: aquarium,
   [Preset.wild]: wild,
   [Preset.volcano]: volcano,
   [Preset.antColony]: antColony,
   [Preset.kitchen]: kitchen,
+  [Preset.containment]: containment,
 }
 
 /** Wipes the world and builds a preset into it. The rng is what keeps two loads from being identical. */

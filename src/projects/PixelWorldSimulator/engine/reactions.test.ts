@@ -1192,4 +1192,48 @@ describe('corruption', () => {
     // Remembering what a cell used to be needs a byte per cell, and `data` has none spare.
     expect(MATERIALS[MaterialId.corruption].ignite?.into).toBe(MaterialId.ash)
   })
+
+  it('turns a creature it touches into slime rather than into more of itself', () => {
+    // A creature becoming wall reads as the wall eating it. A creature becoming a slime that then crawls off
+    // on its own reads as the creature being turned, which is the more alarming of the two.
+    const grid = createGrid(61, 61)
+    for (let y = 20; y < 41; y++) {
+      for (let x = 20; x < 41; x++) placeMaterial(grid, cellIndex(grid, x, y), MaterialId.water)
+    }
+    for (const [at, creature] of [
+      [28, MaterialId.fish],
+      [30, MaterialId.bug],
+      [32, MaterialId.worm],
+      [34, MaterialId.bird],
+    ] as const) {
+      placeMaterial(grid, cellIndex(grid, at, 30), creature)
+      placeMaterial(grid, cellIndex(grid, at, 31), MaterialId.corruption)
+    }
+
+    const rng = createRng(4)
+    for (let tick = 0; tick < 600; tick++) applyReactions(grid, rng)
+
+    expect(count(grid, MaterialId.slime)).toBeGreaterThan(0)
+    for (const creature of [MaterialId.fish, MaterialId.bug, MaterialId.worm, MaterialId.bird]) {
+      expect(count(grid, creature)).toBe(0)
+    }
+    // The swatch says so, and the swatch is the only place a visitor is told. Tied together here so that
+    // editing one side without the other fails rather than shipping a promise the rule stopped keeping.
+    expect(MATERIALS[MaterialId.corruption].blurb).toContain('slime')
+  })
+
+  it('takes slime itself, so a pen of animals is not a wall it cannot cross', () => {
+    // Slime is already alive, so there is nothing left in it to turn — it has to go the way stone goes, or
+    // every creature corruption meets would leave a permanent hole in its own advance.
+    const grid = createGrid(41, 41)
+    for (let y = 10; y < 31; y++) {
+      for (let x = 10; x < 31; x++) placeMaterial(grid, cellIndex(grid, x, y), MaterialId.slime)
+    }
+    placeMaterial(grid, cellIndex(grid, 20, 20), MaterialId.corruption)
+
+    const rng = createRng(4)
+    for (let tick = 0; tick < 3000; tick++) applyReactions(grid, rng)
+
+    expect(count(grid, MaterialId.corruption)).toBeGreaterThan(1)
+  })
 })
