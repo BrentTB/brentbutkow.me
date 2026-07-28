@@ -78,34 +78,50 @@ describe('useSimSettings', () => {
   })
 })
 
-describe('setting one outright', () => {
+describe('applying one for a session', () => {
   it('sets rather than flips, so an arriving world lands on what it asked for', () => {
     // A shared world says which way it was built. `toggle` cannot express that: asking for "off" when it is
     // already off would turn it on.
     const { result } = renderHook(() => useSimSettings())
     expect(result.current.settings[SimSetting.airCurrents]).toBe(true)
 
-    act(() => result.current.set(SimSetting.airCurrents, false))
+    act(() => result.current.apply(SimSetting.airCurrents, false))
     expect(result.current.settings[SimSetting.airCurrents]).toBe(false)
 
-    act(() => result.current.set(SimSetting.airCurrents, false))
+    act(() => result.current.apply(SimSetting.airCurrents, false))
     expect(result.current.settings[SimSetting.airCurrents]).toBe(false)
   })
 
-  it('saves it, so a shared world still behaves that way on the next visit', () => {
+  it('does not save it, so opening a link never overwrites a saved preference', () => {
+    // A shared world changes what you are looking at for the session, not the setting you come back to.
     const { result } = renderHook(() => useSimSettings())
 
-    act(() => result.current.set(SimSetting.airCurrents, false))
+    act(() => result.current.apply(SimSetting.airCurrents, false))
 
-    const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? '{}')
-    expect(saved[SimSetting.airCurrents]).toBe(false)
+    expect(localStorage.getItem(SETTINGS_KEY)).toBeNull()
+  })
+
+  it('keeps the saved preference even after a later toggle of something else', () => {
+    // The applied value must not leak into storage on the next unrelated write: toggling the tint later
+    // should save the viewer's own air setting, not the one a link handed them.
+    const first = renderHook(() => useSimSettings())
+    act(() => first.result.current.apply(SimSetting.airCurrents, false))
+    act(() => first.result.current.toggle(SimSetting.tintBlocks))
+
+    const second = renderHook(() => useSimSettings())
+    expect(second.result.current.settings[SimSetting.airCurrents]).toBe(
+      DEFAULT_SETTINGS[SimSetting.airCurrents]
+    )
+    expect(second.result.current.settings[SimSetting.tintBlocks]).toBe(
+      !DEFAULT_SETTINGS[SimSetting.tintBlocks]
+    )
   })
 
   it('hands back the same object when nothing changes, so the page does not re-render for nothing', () => {
     const { result } = renderHook(() => useSimSettings())
     const before = result.current.settings
 
-    act(() => result.current.set(SimSetting.tintBlocks, DEFAULT_SETTINGS[SimSetting.tintBlocks]))
+    act(() => result.current.apply(SimSetting.tintBlocks, DEFAULT_SETTINGS[SimSetting.tintBlocks]))
 
     expect(result.current.settings).toBe(before)
   })
@@ -113,7 +129,7 @@ describe('setting one outright', () => {
   it('leaves the other settings alone', () => {
     const { result } = renderHook(() => useSimSettings())
 
-    act(() => result.current.set(SimSetting.airCurrents, false))
+    act(() => result.current.apply(SimSetting.airCurrents, false))
 
     expect(result.current.settings[SimSetting.tintBlocks]).toBe(
       DEFAULT_SETTINGS[SimSetting.tintBlocks]

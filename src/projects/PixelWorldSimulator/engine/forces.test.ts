@@ -495,8 +495,25 @@ describe('the tools writing into the air', () => {
     expect(farthest).toBeGreaterThan(blastReach * 2)
   })
 
-  it('leaves the air alone when the blast has no push in it', () => {
-    // A gas flashing over is heat and shove with no draught of its own: the flame it becomes is the heat.
+  it('stirs the air when a gas flashes over, because a shove leaves a draught', () => {
+    // A flash-over is a shove, and the air-gust gate turns any shove into a draught. Without it the flow
+    // stays dead and the flame the gas becomes rises through still air.
+    const grid = createGrid(61, 61)
+
+    flashOver(grid, 30, 30)
+
+    let stirred = false
+    for (let i = 0; i < grid.airX.length; i++) {
+      if (grid.airX[i] !== 0 || grid.airY[i] !== 0) {
+        stirred = true
+        break
+      }
+    }
+    expect(stirred).toBe(true)
+  })
+
+  it('leaves the air alone when only heat is applied, with no shove behind it', () => {
+    // `temper` moves heat and nothing else, so there is no shove to become a draught.
     const grid = createGrid(61, 61)
 
     temper(grid, 30, 30, 6, true)

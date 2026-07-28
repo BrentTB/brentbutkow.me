@@ -177,40 +177,34 @@ function carry(grid: Grid): void {
       const id = material[index]
       if (id === MaterialId.empty || DRIFTS[id] === 0) continue
 
-      // A solid cell holds no air of its own, so the flow it sits in is the flow in the open cells around
-      // it. Reading the cell's own entry instead gives zero for everything that is not a gas, which is
-      // every single thing this pass exists to move.
+      // A drifter is a loose solid, never a gas, so it holds no air of its own: the flow it sits in is the
+      // flow in the open cells around it. Its own entry would read zero, which is every case this pass moves.
       let flowX = 0
       let flowY = 0
-      if (canAirEnter(id)) {
-        flowX = airX[index]
-        flowY = airY[index]
-      } else {
-        let open = 0
-        if (y > 0 && canAirEnter(material[index - width])) {
-          flowX += airX[index - width]
-          flowY += airY[index - width]
-          open++
-        }
-        if (y < height - 1 && canAirEnter(material[index + width])) {
-          flowX += airX[index + width]
-          flowY += airY[index + width]
-          open++
-        }
-        if (x > 0 && canAirEnter(material[index - 1])) {
-          flowX += airX[index - 1]
-          flowY += airY[index - 1]
-          open++
-        }
-        if (x < width - 1 && canAirEnter(material[index + 1])) {
-          flowX += airX[index + 1]
-          flowY += airY[index + 1]
-          open++
-        }
-        if (open === 0) continue
-        flowX /= open
-        flowY /= open
+      let open = 0
+      if (y > 0 && canAirEnter(material[index - width])) {
+        flowX += airX[index - width]
+        flowY += airY[index - width]
+        open++
       }
+      if (y < height - 1 && canAirEnter(material[index + width])) {
+        flowX += airX[index + width]
+        flowY += airY[index + width]
+        open++
+      }
+      if (x > 0 && canAirEnter(material[index - 1])) {
+        flowX += airX[index - 1]
+        flowY += airY[index - 1]
+        open++
+      }
+      if (x < width - 1 && canAirEnter(material[index + 1])) {
+        flowX += airX[index + 1]
+        flowY += airY[index + 1]
+        open++
+      }
+      if (open === 0) continue
+      flowX /= open
+      flowY /= open
 
       const flow = Math.abs(flowX) + Math.abs(flowY)
       const motion = grid.velocity.get(index)

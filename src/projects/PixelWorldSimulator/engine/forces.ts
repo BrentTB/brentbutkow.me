@@ -61,11 +61,6 @@ const TEMPERATURE_STEP = 90
 const TEMPERATURE_PULL = 0.3
 
 /**
- * The density a force is calibrated against: sand takes the strength as written, anything lighter goes
- * further and anything heavier goes less far. Without this every material flew identically, which made
- * splinters of glass behave like wet gravel.
- */
-/**
  * Share of a blast's strength that goes into the air rather than straight into material. The draught is what
  * makes the seconds after an explosion interesting: debris curls, smoke billows outward, and a fire leans.
  */
@@ -77,6 +72,11 @@ const AIR_SHARE = 1.1
  */
 const AIR_REACH = 3
 
+/**
+ * The density a force is calibrated against: sand takes the strength as written, anything lighter goes
+ * further and anything heavier goes less far. Without this every material flew identically, which made
+ * splinters of glass behave like wet gravel.
+ */
 const REFERENCE_DENSITY = 60
 /** Bounds on that, so nothing is either immovable or launched into orbit. */
 const LIGHTEST = 2.2

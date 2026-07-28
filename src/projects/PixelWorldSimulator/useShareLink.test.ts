@@ -20,7 +20,7 @@ function ports(overrides: Partial<Parameters<typeof useShareLink>[0]> = {}) {
     loadSnapshot: vi.fn(
       (): Promise<SnapshotResult> => Promise.resolve({ ok: true, airCurrents: true })
     ),
-    onArriveAirCurrents: () => {},
+    onArriveAirCurrents: vi.fn(),
     onArrivePaused: vi.fn(),
     ...overrides,
   }
@@ -196,6 +196,36 @@ describe('useShareLink — arriving on a world', () => {
     expect(doors.loadSnapshot).toHaveBeenCalledWith(CODE)
     // Arriving on a link is not copying one: the control must show its own state, not the copied tick.
     expect(result.current.outcome).toBe(ShareOutcome.loaded)
+  })
+
+  it('matches the sender air setting on arrival, on and off alike', async () => {
+    window.history.replaceState(null, '', `#${SHARE_HASH_KEY}=${CODE}`)
+    const on = ports({
+      loadSnapshot: () => Promise.resolve({ ok: true, airCurrents: true }),
+    })
+    const first = renderHook(() => useShareLink(on))
+    await waitFor(() => expect(first.result.current.note).toBe(simCopy.share.loaded))
+    expect(on.onArriveAirCurrents).toHaveBeenCalledWith(true)
+    first.unmount()
+
+    const off = ports({
+      loadSnapshot: () => Promise.resolve({ ok: true, airCurrents: false }),
+    })
+    const second = renderHook(() => useShareLink(off))
+    await waitFor(() => expect(second.result.current.note).toBe(simCopy.share.loaded))
+    expect(off.onArriveAirCurrents).toHaveBeenCalledWith(false)
+  })
+
+  it('does not touch the air setting for a link it could not read', async () => {
+    window.history.replaceState(null, '', `#${SHARE_HASH_KEY}=${CODE}`)
+    const doors = ports({
+      loadSnapshot: () => Promise.resolve({ ok: false, refusal: SnapshotRefusal.version }),
+    })
+
+    const { result } = renderHook(() => useShareLink(doors))
+
+    await waitFor(() => expect(result.current.outcome).toBe(ShareOutcome.refused))
+    expect(doors.onArriveAirCurrents).not.toHaveBeenCalled()
   })
 
   it('says what was wrong with a link it cannot read', async () => {

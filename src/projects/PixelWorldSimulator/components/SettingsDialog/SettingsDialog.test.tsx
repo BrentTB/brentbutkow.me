@@ -218,4 +218,15 @@ describe('a setting that depends on another', () => {
     expect(flow.disabled).toBe(false)
     expect(flow.checked).toBe(true)
   })
+
+  it('reports no toggle when the locked switch is pressed', () => {
+    // Greyed out is only half the promise: pressing it must do nothing, not quietly flip a hidden value.
+    const { onToggle } = open({
+      settings: { tintBlocks: true, tintAir: false, showFlow: true, airCurrents: false },
+    })
+
+    fireEvent.click(flowCheckbox())
+
+    expect(onToggle).not.toHaveBeenCalled()
+  })
 })

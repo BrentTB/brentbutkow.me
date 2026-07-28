@@ -41,7 +41,7 @@ export function PixelWorldSimulator() {
   const [tool, setTool] = useState<Tool>(Tool.paint)
   const [radius, setRadius] = useState(BRUSH_RADIUS.default)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
-  const { settings, toggle: toggleSetting, set: setSetting } = useSimSettings()
+  const { settings, toggle: toggleSetting, apply: applySetting } = useSimSettings()
 
   // How much room is left beside the canvas once the tools have had theirs. The canvas takes its height from
   // its own aspect ratio, so this can only be measured — and without it the tally runs on past the bottom of
@@ -63,7 +63,7 @@ export function PixelWorldSimulator() {
     snapshot,
     loadSnapshot,
     onArrivePaused: pause,
-    onArriveAirCurrents: (on) => setSetting(SimSetting.airCurrents, on),
+    onArriveAirCurrents: (on) => applySetting(SimSetting.airCurrents, on),
   })
 
   // Depend on the two callbacks rather than on `sim`, whose identity changes every time the readout

@@ -305,7 +305,7 @@ export const simCopy = {
      * Said on a switch that cannot be pressed. A greyed control with no reason given is a dead end, and the
      * one thing worth knowing there is which other switch brings it back.
      */
-    locked: 'Turn air mechanics on to use this.',
+    locked: 'Turn on "Let air move things around" to use this.',
   },
   /** The link that carries a world to somebody else, and what to say when it does or doesn't. */
   share: {
@@ -395,7 +395,7 @@ export const SETTING_SECTIONS: readonly { title: string; rows: readonly SettingR
   },
 ]
 
-/** Every switch in order, for anything that does not care which group it sits in. */
+/** Every switch flattened out of its group, so a test can enumerate them all in one pass. */
 export const SETTING_ROWS: readonly SettingRow[] = SETTING_SECTIONS.flatMap(({ rows }) => rows)
 
 /**

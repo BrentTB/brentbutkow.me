@@ -4,11 +4,12 @@ import { MATERIALS } from './materials'
 import { asMaterial, clearGrid, markHotRow, placeMaterial } from './grid'
 
 /**
- * Bumped whenever the payload below changes. An old link read by a newer build is refused rather than
- * misread: a snapshot is somebody else's world, and a plausible-looking wrong answer is worse than a
- * refusal they can understand.
+ * Bumped when an old link would read wrong under the new format. A new flag bit that an old link simply
+ * lacks stays backward-compatible — the bit reads as clear, which is what that world was — so it holds.
+ * An old link read by a newer build is refused rather than misread: a snapshot is somebody else's world,
+ * and a plausible-looking wrong answer is worse than a refusal they can understand.
  */
-const VERSION = 2
+export const VERSION = 1
 
 /** Bytes before the cell data: version, width, height, flags. */
 const HEADER_BYTES = 6

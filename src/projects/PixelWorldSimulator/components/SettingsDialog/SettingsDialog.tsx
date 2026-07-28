@@ -56,7 +56,11 @@ export function SettingsDialog({ settings, onToggle, onClose }: SettingsDialogPr
                         className={styles.check}
                         checked={available && settings[setting]}
                         disabled={!available}
-                        onChange={() => onToggle(setting)}
+                        onChange={() => {
+                          // `disabled` already blocks a real click; guard the handler too, so the row stays
+                          // inert even if the disabled attribute is ever dropped by mistake.
+                          if (available) onToggle(setting)
+                        }}
                       />
                       <span className={styles.switch} aria-hidden="true" />
                       <span className={styles.label}>{label}</span>

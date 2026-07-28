@@ -9,6 +9,7 @@ import { tickWorld } from './tick'
 import {
   SnapshotRefusal,
   TEMPERATURE_QUANTUM,
+  VERSION,
   decodeSnapshot,
   encodeSnapshot,
   snapshotsSupported,
@@ -240,7 +241,7 @@ describe('decodeSnapshot on input nobody should trust', () => {
     const cells = width * height
     const payload = new Uint8Array(HEADER_BYTES + cells * 2)
     const view = new DataView(payload.buffer)
-    payload[0] = 2
+    payload[0] = VERSION
     view.setUint16(1, width, true)
     view.setUint16(3, height, true)
     payload[5] = 1
