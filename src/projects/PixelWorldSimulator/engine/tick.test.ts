@@ -567,14 +567,25 @@ describe('embers', () => {
     expect(caught).toBe(true)
   })
 
-  it('cool into ash rather than vanishing', () => {
-    const grid = withVessel(9, 12)
-    put(grid, 4, 5, MaterialId.ember)
+  it('cool away, leaving a speck of ash off only a few of them', () => {
+    // Ash off every ember meant a firework's twenty-two trails became twenty-two specks on the floor, and a
+    // minute of fireworks buried the counter in thousands of cells of it. Some ash, though: embers sitting in
+    // ash and relighting what drifts in is the point of the material.
+    const grid = withVessel(40, 30)
+    let embers = 0
+    for (let x = 2; x < 38; x++) {
+      for (let y = 2; y < 12; y++) {
+        put(grid, x, y, MaterialId.ember)
+        embers++
+      }
+    }
 
     run(grid, 400)
 
     expect(count(grid, MaterialId.ember)).toBe(0)
-    expect(count(grid, MaterialId.ash)).toBeGreaterThan(0)
+    const ash = count(grid, MaterialId.ash)
+    expect(ash).toBeGreaterThan(0)
+    expect(ash).toBeLessThan(embers / 3)
   })
 })
 

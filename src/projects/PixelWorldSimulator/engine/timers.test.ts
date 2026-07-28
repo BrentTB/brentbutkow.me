@@ -182,3 +182,58 @@ describe('a firework going off', () => {
     expect(grid.velocity.size).toBe(0)
   })
 })
+
+describe('what a cell leaves behind when its clock runs out', () => {
+  /** Expires `count` cells of one material, each on its own, and counts what is left standing. */
+  function residueOf(material: MaterialId, count: number): number {
+    const grid = createGrid(count, 1)
+    for (let x = 0; x < count; x++) {
+      const index = cellIndex(grid, x, 0)
+      placeMaterial(grid, index, material)
+      grid.data[index] = 1
+    }
+
+    advanceTimers(grid, createRng(7))
+
+    const leaves = MATERIALS[material].expiresInto
+    let left = 0
+    for (const id of grid.material) if (id === leaves) left++
+    return left
+  }
+
+  it('leaves the residue every time when the material never rolls for it', () => {
+    // Everything with a lifetime behaves this way except the products of a burst, and that has to stay true:
+    // glue that only sometimes set would make a shape you poured full of holes you did not ask for.
+    expect(MATERIALS[MaterialId.glue].residueChance).toBeUndefined()
+    expect(residueOf(MaterialId.glue, 200)).toBe(200)
+  })
+
+  it('leaves a speck of ash off only a fraction of embers', () => {
+    // A firework throws twenty-two embers. Ash off every one of them buried the kitchen counter under
+    // thousands of cells of it in a couple of minutes, which is the whole reason the roll exists.
+    const chance = MATERIALS[MaterialId.ember].residueChance ?? 1
+    expect(chance).toBeLessThan(0.5)
+
+    const left = residueOf(MaterialId.ember, 2000)
+
+    // Loose bounds around the odds in the table: this is checking a roll happens, not the shape of the rng.
+    expect(left).toBeGreaterThan(2000 * chance * 0.5)
+    expect(left).toBeLessThan(2000 * chance * 1.5)
+  })
+
+  it('clears the cell outright when the roll says no residue', () => {
+    const grid = createGrid(2000, 1)
+    for (let x = 0; x < 2000; x++) {
+      const index = cellIndex(grid, x, 0)
+      placeMaterial(grid, index, MaterialId.ember)
+      grid.data[index] = 1
+    }
+
+    advanceTimers(grid, createRng(7))
+
+    // Nothing is left mid-transformation: every ember is now ash or open air.
+    for (const id of grid.material) {
+      expect([MaterialId.ash, MaterialId.empty]).toContain(id)
+    }
+  })
+})

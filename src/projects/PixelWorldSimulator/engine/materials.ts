@@ -520,6 +520,9 @@ export const MATERIALS: readonly Material[] = [
     // Longer lived and cooler than flame: embers sit in the ash and relight anything that drifts in.
     lifetime: 140,
     expiresInto: MaterialId.ash,
+    // A firework throws twenty-two of these, so an ember that always left a speck of ash meant every rocket
+    // dumped twenty-two of them on the floor and a few minutes of fireworks buried the counter.
+    residueChance: 0.1,
     clingsToFuel: true,
     emissive: true,
   },

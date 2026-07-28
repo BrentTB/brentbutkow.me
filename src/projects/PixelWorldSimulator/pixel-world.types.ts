@@ -127,6 +127,12 @@ export type Material = {
   /** Ticks a spawned cell survives before turning into `expiresInto`. Gases and flames. */
   lifetime?: number
   expiresInto?: MaterialId
+  /**
+   * Chance in [0, 1] that expiry actually leaves `expiresInto` behind, rather than nothing at all. Absent
+   * means always, which is what everything with a lifetime wants except the products of a burst: one
+   * firework throws twenty-two embers, and twenty-two specks of ash apiece buries the world in it.
+   */
+  residueChance?: number
   /** Generic per-cell budget held in `data`: acid dissolves left, plant growth steps left. */
   uses?: number
   /** Acid leaves this material alone — the container you build to hold acid. */

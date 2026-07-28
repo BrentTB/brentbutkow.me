@@ -27,6 +27,18 @@ describe('MATERIALS', () => {
     }
   })
 
+  it('only puts odds on a residue where there is a residue to roll for', () => {
+    for (const material of MATERIALS) {
+      if (material.residueChance === undefined) continue
+      // The roll happens where a clock runs out, so it does nothing at all on a material with no clock.
+      expect(material.lifetime).toBeGreaterThan(0)
+      expect(material.expiresInto).toBeDefined()
+      expect(material.residueChance).toBeGreaterThan(0)
+      // Odds of one are what leaving the field off already means, and mean an rng roll for nothing.
+      expect(material.residueChance).toBeLessThan(1)
+    }
+  })
+
   it('keeps jitter from darkening a colour below black', () => {
     for (const material of MATERIALS) {
       for (const channel of material.color) {

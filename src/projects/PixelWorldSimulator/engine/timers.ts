@@ -60,7 +60,11 @@ export function advanceTimers(grid: Grid, rng: Rng): void {
             const { sparks, speed, product } = cell.bursts
             scatter(grid, rng, x, y, sparks, speed, product)
           }
-          transformCell(grid, index, cell.expiresInto)
+          // Most things leave what they say they leave. A material that only leaves it sometimes rolls for
+          // it, and the roll is skipped entirely when there is nothing to decide — so adding this changed no
+          // other material's path through the rng.
+          const leaves = cell.residueChance === undefined || rng.chance(cell.residueChance)
+          transformCell(grid, index, leaves ? cell.expiresInto : MaterialId.empty)
         }
       }
     }
