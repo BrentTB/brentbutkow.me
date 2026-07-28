@@ -1,5 +1,5 @@
 import { Grid, MaterialId } from '../pixel-world.types'
-import { MATERIALS } from './materials'
+import { MATERIALS, isBurning } from './materials'
 import { asMaterial, cellIndex, placeMaterial, transformCell } from './grid'
 import { Rng } from './rng'
 import { NEIGHBOURS, pickNeighbour } from './neighbours'
@@ -55,6 +55,17 @@ const DEVOUR_CHANCE = 0.35
 const WILD_CHANCE = 0.04
 /** How far a turbine's swirl reaches. Wide enough to be worth placing, small enough to stay a local cost. */
 const TURBINE_REACH = 20
+/**
+ * Chance per tick a cell of corruption takes one neighbour. Slow on purpose: a fast spread is a countdown
+ * rather than a threat, and the player needs time to get a firebreak in.
+ */
+const CORRUPT_CHANCE = 0.02
+/**
+ * Most corruption a newly taken cell may already be touching, not counting the one that took it. The same
+ * crowding rule vine uses, and for the same reason: without it the spread is a smooth expanding disc, which
+ * is the shape every version of this rule produces first and it always reads as a bug.
+ */
+const CORRUPT_CROWD = 3
 /**
  * Chance per tick that a cell of chlorine kills a living neighbour. Lower than its bleaching of plants: a
  * creature moves, so it takes several rolls as it passes through a cloud, and gassing should read as a tank
@@ -245,6 +256,7 @@ const SELF_DRIVEN: Partial<Record<MaterialId, SelfDrivenReaction>> = {
   // The devices. Being in this table is what keeps their chunks awake: a turbine over already-still air and a
   // wild source that loses its roll both write nothing, so a sleeping chunk would stop them dead.
   [MaterialId.blackHole]: devour,
+  [MaterialId.corruption]: corrupt,
   [MaterialId.turbine]: spinAir,
   [MaterialId.randomSource]: pourWildly,
 }
@@ -511,6 +523,47 @@ function spaceAlong(
 /** A turbine: writes a rotation into the air, and the air's own coupling decides what is light enough to go. */
 function spinAir(grid: Grid, _rng: Rng, x: number, y: number): void {
   swirl(grid, x, y, TURBINE_REACH)
+}
+
+/**
+ * Corruption taking a neighbour. Anything at all, which is what makes it a threat rather than a nuisance,
+ * except what is already corruption and empty air, where there is nothing to convert.
+ */
+function corrupt(grid: Grid, rng: Rng, x: number, y: number): void {
+  if (!rng.chance(CORRUPT_CHANCE)) return
+
+  const start = Math.floor(rng.next() * AROUND.length)
+  for (let step = 0; step < AROUND.length; step++) {
+    const [dx, dy] = AROUND[(start + step) % AROUND.length]
+    const nx = x + dx
+    const ny = y + dy
+    if (nx < 0 || nx >= grid.width || ny < 0 || ny >= grid.height) continue
+
+    const target = cellIndex(grid, nx, ny)
+    const found = grid.material[target]
+    if (found === MaterialId.empty || found === MaterialId.corruption) continue
+    // Never through fire: a firebreak is the one thing that has to hold, or the weakness is theoretical.
+    if (isBurning(grid.burn[target]) || found === MaterialId.fire) continue
+    if (corruptionAround(grid, nx, ny, cellIndex(grid, x, y)) > CORRUPT_CROWD) continue
+
+    transformCell(grid, target, MaterialId.corruption)
+    return
+  }
+}
+
+/** How much corruption a cell already touches, ignoring the one asking. */
+function corruptionAround(grid: Grid, x: number, y: number, ignore: number): number {
+  let neighbours = 0
+  for (const [dx, dy] of AROUND) {
+    const nx = x + dx
+    const ny = y + dy
+    if (nx < 0 || nx >= grid.width || ny < 0 || ny >= grid.height) continue
+
+    const index = cellIndex(grid, nx, ny)
+    if (index === ignore || grid.material[index] !== MaterialId.corruption) continue
+    neighbours++
+  }
+  return neighbours
 }
 
 /**

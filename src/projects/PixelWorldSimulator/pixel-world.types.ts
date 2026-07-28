@@ -52,6 +52,11 @@ export const MaterialId = {
   blackHole: 48,
   turbine: 49,
   randomSource: 50,
+  corruption: 51,
+  glue: 52,
+  resin: 53,
+  firework: 54,
+  fireworkLit: 55,
 } as const
 export type MaterialId = (typeof MaterialId)[keyof typeof MaterialId]
 
@@ -157,6 +162,18 @@ export type Material = {
    * rather than a die roll, which keeps the heat pass free of the rng.
    */
   pops?: number
+  /**
+   * Throws a spray of `product` outward when this cell's own clock runs out, instead of quietly becoming
+   * whatever it expires into. This is what makes a firework a firework rather than an explosion in the sky:
+   * trails leaving a point, each one a cell with a speed and a short life of its own.
+   */
+  bursts?: {
+    /** How many trails leave the burst. */
+    sparks: number
+    /** Cells per tick each one starts with. */
+    speed: number
+    product: MaterialId
+  }
   /** Breaks into this when something fast enough hits it. */
   shatters?: MaterialId
   /** Present on creatures. Absent on everything else, which is what "alive" means to the engine. */

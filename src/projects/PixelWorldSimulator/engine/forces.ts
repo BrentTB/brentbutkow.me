@@ -1,8 +1,9 @@
-import { Grid } from '../pixel-world.types'
+import { Grid, MaterialId } from '../pixel-world.types'
 import { AMBIENT_TEMPERATURE, TEMPERATURE_LIMITS } from '../data'
-import { cellIndex, markHotRow, markHotRowBand, transformCell } from './grid'
+import { cellIndex, markHotRow, markHotRowBand, placeMaterial, transformCell } from './grid'
 import { MATERIALS, isMovable } from './materials'
 import { push } from './kinetic'
+import { Rng } from './rng'
 import { pushAir } from './air'
 
 /**
@@ -196,6 +197,49 @@ export function swirl(grid: Grid, cx: number, cy: number, radius: number): void 
     },
     radius
   )
+}
+
+/** How far out a burst looks for somewhere to put each trail before giving up on that direction. */
+const BURST_REACH = 4
+
+/**
+ * Throws a spray of trails out from a point: one cell each, placed in the first open space along its own
+ * direction and handed a speed outward.
+ *
+ * Deliberately not `impulse`. A blast shoves whatever is already there, which in open sky is nothing at all —
+ * a firework needs to *make* the things that fly, and it needs them to leave from one point along separate
+ * lines. Each trail is an ordinary cell with a lifetime, so it fades on its own and the draught curls it on
+ * the way out.
+ */
+export function scatter(
+  grid: Grid,
+  rng: Rng,
+  cx: number,
+  cy: number,
+  sparks: number,
+  speed: number,
+  product: MaterialId
+): void {
+  // One turn of the circle divided between them, jittered, so it reads as a spray rather than a cartwheel.
+  const offset = rng.next() * Math.PI * 2
+  for (let spark = 0; spark < sparks; spark++) {
+    const angle = offset + ((spark + rng.next() * 0.6) / sparks) * Math.PI * 2
+    const ux = Math.cos(angle)
+    const uy = Math.sin(angle)
+
+    for (let step = 1; step <= BURST_REACH; step++) {
+      const x = Math.round(cx + ux * step)
+      const y = Math.round(cy + uy * step)
+      if (x < 0 || x >= grid.width || y < 0 || y >= grid.height) break
+
+      const index = cellIndex(grid, x, y)
+      if (grid.material[index] !== MaterialId.empty) continue
+
+      placeMaterial(grid, index, product)
+      push(grid, index, ux * speed, uy * speed)
+      break
+    }
+  }
 }
 
 /** Throws everything outward and warms it, so things shoot up and whatever can catch fire does. */

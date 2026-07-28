@@ -1114,3 +1114,82 @@ describe('pollen landing', () => {
     expect(grid.material[ground]).toBe(MaterialId.sand)
   })
 })
+
+describe('corruption', () => {
+  /** A slab of stone with one cell of corruption in the middle of it. */
+  function infected(width = 61, height = 61): Grid {
+    const grid = createGrid(width, height)
+    for (let y = 10; y < height - 10; y++) {
+      for (let x = 10; x < width - 10; x++)
+        placeMaterial(grid, cellIndex(grid, x, y), MaterialId.stone)
+    }
+    placeMaterial(grid, cellIndex(grid, 30, 30), MaterialId.corruption)
+    return grid
+  }
+
+  function count(grid: Grid, material: MaterialId): number {
+    let n = 0
+    for (const id of grid.material) if (id === material) n++
+    return n
+  }
+
+  it('eats a world if nobody stops it', () => {
+    const grid = infected()
+    const rng = createRng(1)
+    for (let tick = 0; tick < 3000; tick++) applyReactions(grid, rng)
+
+    expect(count(grid, MaterialId.corruption)).toBeGreaterThan(50)
+  })
+
+  it('creeps unevenly rather than as a growing disc', () => {
+    // A smooth expanding circle is the shape every version of this rule produces first, and it always reads as
+    // a bug. The crowding rule is what keeps the edge ragged.
+    const grid = infected()
+    const rng = createRng(1)
+    for (let tick = 0; tick < 3000; tick++) applyReactions(grid, rng)
+
+    // A solid disc would fill nearly every cell inside its own radius. A creeping tangle leaves holes.
+    let reach = 0
+    let taken = 0
+    for (let i = 0; i < grid.material.length; i++) {
+      if (grid.material[i] !== MaterialId.corruption) continue
+      taken++
+      reach = Math.max(reach, Math.hypot((i % grid.width) - 30, Math.floor(i / grid.width) - 30))
+    }
+    const disc = Math.PI * reach * reach
+    expect(taken).toBeLessThan(disc * 0.6)
+  })
+
+  it('cannot cross fire, so a firebreak actually holds', () => {
+    // The weakness has to be usable, not theoretical. A wall it could not cross would make it a non-threat;
+    // nothing stopping it would make it a timer.
+    const grid = createGrid(61, 61)
+    for (let y = 20; y < 41; y++) {
+      for (let x = 20; x < 41; x++) placeMaterial(grid, cellIndex(grid, x, y), MaterialId.stone)
+    }
+    // A ring of flame around one cell of it.
+    placeMaterial(grid, cellIndex(grid, 30, 30), MaterialId.corruption)
+    for (const [dx, dy] of [
+      [-1, -1],
+      [0, -1],
+      [1, -1],
+      [-1, 0],
+      [1, 0],
+      [-1, 1],
+      [0, 1],
+      [1, 1],
+    ]) {
+      placeMaterial(grid, cellIndex(grid, 30 + dx, 30 + dy), MaterialId.fire)
+    }
+
+    const rng = createRng(1)
+    for (let tick = 0; tick < 400; tick++) applyReactions(grid, rng)
+
+    expect(count(grid, MaterialId.corruption)).toBe(1)
+  })
+
+  it('burns back to ash rather than to whatever it ate', () => {
+    // Remembering what a cell used to be needs a byte per cell, and `data` has none spare.
+    expect(MATERIALS[MaterialId.corruption].ignite?.into).toBe(MaterialId.ash)
+  })
+})

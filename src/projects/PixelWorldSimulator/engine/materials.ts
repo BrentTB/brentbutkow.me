@@ -945,6 +945,90 @@ export const MATERIALS: readonly Material[] = [
     conductivity: 0.1,
     acidProof: true,
   },
+  {
+    id: MaterialId.corruption,
+    label: 'Corruption',
+    blurb: 'Turns whatever it touches into more of itself. Only fire stops it.',
+    behavior: MaterialBehavior.static,
+    density: 1000,
+    color: [92, 44, 118],
+    jitter: 16,
+    dispersion: 0,
+    drag: 0,
+    conductivity: 0.1,
+    // The one weakness, and it has to be a weakness the player already has and pays to use. A wall it could
+    // not cross would make it a non-threat; nothing stopping it would make it a timer. Fire is neither.
+    //
+    // It leaves ash rather than what it ate: remembering that needs a byte per cell, and `data` has none
+    // spare — gas lifetime, acid charges, plant growth and life energy already share it.
+    ignite: { at: 220, ticks: 30, heat: 420, into: MaterialId.ash },
+  },
+  {
+    id: MaterialId.glue,
+    label: 'Glue',
+    blurb: 'Pours like syrup, then sets hard. Build a shape and wait.',
+    behavior: MaterialBehavior.liquid,
+    density: 70,
+    color: [214, 206, 168],
+    jitter: 8,
+    // Thick. It has to hold a shape long enough to be worth pouring one.
+    dispersion: 1,
+    drag: 0.6,
+    conductivity: 0.12,
+    // The setting is the gas-lifetime mechanism, unchanged: a clock in `data` that `advanceTimers` counts
+    // down, and a material to become at zero. Nothing new was needed for it.
+    lifetime: 150,
+    expiresInto: MaterialId.resin,
+  },
+  {
+    id: MaterialId.resin,
+    label: 'Resin',
+    blurb: 'What glue sets into. Holds like stone until something hits it.',
+    behavior: MaterialBehavior.static,
+    density: 1000,
+    color: [196, 150, 82],
+    jitter: 10,
+    dispersion: 0,
+    drag: 0,
+    conductivity: 0.15,
+    // Brittle, which is the trade for setting so quickly: it holds a shape but not a beating.
+    shatters: MaterialId.shard,
+    ignite: { at: 300, ticks: 40, heat: 380, into: MaterialId.ash },
+  },
+  {
+    id: MaterialId.firework,
+    label: 'Firework',
+    blurb: 'Light it and it flies, then bursts into a spray of sparks.',
+    behavior: MaterialBehavior.powder,
+    density: 50,
+    color: [204, 92, 108],
+    jitter: 10,
+    dispersion: 0,
+    drag: 0.2,
+    conductivity: 0.12,
+    // Heat launches it. `pops` is the kick a kernel uses, borrowed whole: a shove upward the moment it turns.
+    hot: { at: 200, into: MaterialId.fireworkLit },
+    pops: 11,
+  },
+  {
+    id: MaterialId.fireworkLit,
+    label: 'Firework, lit',
+    blurb: 'On its way up, and about to go off.',
+    behavior: MaterialBehavior.powder,
+    density: 50,
+    color: [246, 208, 132],
+    jitter: 20,
+    dispersion: 0,
+    drag: 0.1,
+    conductivity: 0.12,
+    emissive: true,
+    // Long enough to clear the ground it launched from before it goes.
+    lifetime: 40,
+    expiresInto: MaterialId.smoke,
+    // Trails, not a blast. `detonate` would make an explosion in the sky, which is the one thing a firework
+    // must not look like.
+    bursts: { sparks: 22, speed: 7, product: MaterialId.ember },
+  },
 ]
 
 /**

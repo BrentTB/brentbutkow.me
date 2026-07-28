@@ -436,6 +436,38 @@ describe('the new materials pull their weight', () => {
     expect(MATERIALS[MaterialId.popcorn].hot?.into).not.toBe(MaterialId.kernel)
   })
 
+  it('sets glue into something that holds, on the clock a gas uses', () => {
+    // No new mechanism: a clock in `data` and a material to become at zero, exactly a gas lifetime. What makes
+    // it worth having is that the result is a shape you poured rather than a puddle.
+    const glue = MATERIALS[MaterialId.glue]
+
+    expect(glue.behavior).toBe(MaterialBehavior.liquid)
+    expect(glue.lifetime).toBeGreaterThan(0)
+    expect(glue.expiresInto).toBe(MaterialId.resin)
+    expect(MATERIALS[MaterialId.resin].behavior).toBe(MaterialBehavior.static)
+  })
+
+  it('gives corruption exactly one weakness, and one the player already owns', () => {
+    // A wall it could not cross would make it a non-threat; nothing stopping it would make it a timer.
+    const corruption = MATERIALS[MaterialId.corruption]
+
+    expect(corruption.ignite).toBeDefined()
+    // Nothing else undoes it: no melt, no freeze, and acid does not get a free pass either.
+    expect(corruption.hot).toBeUndefined()
+    expect(corruption.cold).toBeUndefined()
+  })
+
+  it('bursts the firework into trails rather than expiring quietly', () => {
+    const lit = MATERIALS[MaterialId.fireworkLit]
+
+    expect(MATERIALS[MaterialId.firework].hot?.into).toBe(MaterialId.fireworkLit)
+    // The launch borrows the kick a kernel pops with, unchanged.
+    expect(MATERIALS[MaterialId.firework].pops).toBeGreaterThan(0)
+    expect(lit.lifetime).toBeGreaterThan(0)
+    expect(lit.bursts?.sparks).toBeGreaterThan(1)
+    expect(lit.bursts?.speed).toBeGreaterThan(0)
+  })
+
   it('leaves every device static, so the world can be built out of them', () => {
     for (const id of [MaterialId.turbine, MaterialId.blackHole, MaterialId.randomSource]) {
       expect(MATERIALS[id].behavior).toBe(MaterialBehavior.static)

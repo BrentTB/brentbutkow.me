@@ -126,3 +126,59 @@ describe('advanceTimers', () => {
     expect(grid.data[plant]).toBe(budget)
   })
 })
+
+describe('a firework going off', () => {
+  /** A lit firework in open sky, with its clock wound down to the tick before it bursts. */
+  function aboutToBurst(): Grid {
+    const grid = createGrid(81, 81)
+    const at = cellIndex(grid, 40, 40)
+    placeMaterial(grid, at, MaterialId.fireworkLit)
+    grid.data[at] = 1
+    return grid
+  }
+
+  it('throws trails outward instead of a single blast', () => {
+    // The one thing a firework must not look like is an explosion in the sky. `detonate` shoves whatever is
+    // already there, which up in the air is nothing at all: a burst has to make the things that fly.
+    const grid = aboutToBurst()
+
+    advanceTimers(grid, createRng(1))
+
+    let embers = 0
+    for (const id of grid.material) if (id === MaterialId.ember) embers++
+    expect(embers).toBeGreaterThan(6)
+  })
+
+  it('sends them out along separate lines, not all one way', () => {
+    const grid = aboutToBurst()
+
+    advanceTimers(grid, createRng(1))
+
+    // Every trail leaves with a speed of its own, and between them they cover more than one quadrant.
+    const quadrants = new Set<string>()
+    for (const [index, motion] of grid.velocity) {
+      if (grid.material[index] !== MaterialId.ember) continue
+      quadrants.add(`${Math.sign(motion.vx)},${Math.sign(motion.vy)}`)
+    }
+    expect(quadrants.size).toBeGreaterThan(2)
+  })
+
+  it('leaves nothing behind but smoke where the firework was', () => {
+    const grid = aboutToBurst()
+
+    advanceTimers(grid, createRng(1))
+
+    expect(grid.material[cellIndex(grid, 40, 40)]).toBe(MaterialId.smoke)
+  })
+
+  it('does not burst a material that only expires', () => {
+    const grid = createGrid(81, 81)
+    const at = cellIndex(grid, 40, 40)
+    placeMaterial(grid, at, MaterialId.smoke)
+    grid.data[at] = 1
+
+    advanceTimers(grid, createRng(1))
+
+    expect(grid.velocity.size).toBe(0)
+  })
+})

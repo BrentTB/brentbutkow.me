@@ -570,3 +570,53 @@ describe('preset determinism', () => {
     }
   })
 })
+
+describe('the pots and pans preset', () => {
+  function kitchen(): Grid {
+    const grid = createGrid(GRID_WIDTH, GRID_HEIGHT)
+    loadPreset(grid, Preset.kitchen, createRng(3))
+    return grid
+  }
+
+  function count(grid: Grid, material: MaterialId): number {
+    let n = 0
+    for (const id of grid.material) if (id === material) n++
+    return n
+  }
+
+  it('lays out pans of both fillings over both kinds of heat', () => {
+    const grid = kitchen()
+
+    expect(count(grid, MaterialId.metal)).toBeGreaterThan(0)
+    expect(count(grid, MaterialId.kernel)).toBeGreaterThan(0)
+    expect(count(grid, MaterialId.firework)).toBeGreaterThan(0)
+    // Two burners that fail differently: lava sits and cooks, a fed source keeps making more flame.
+    expect(count(grid, MaterialId.lava)).toBeGreaterThan(0)
+    expect(count(grid, MaterialId.source)).toBeGreaterThan(0)
+  })
+
+  itSlow('actually cooks: the kernels pop and the fireworks go up', { timeout: 20_000 }, () => {
+    const grid = kitchen()
+    const rng = createRng(3)
+    // Timed to the middle of the show. Everything has gone off by around 300 ticks and the embers have burned
+    // down to ash by 600, so a later look finds a burnt-out kitchen and proves nothing about how it got there.
+    for (let tick = 0; tick < 300; tick++) tickWorld(grid, rng, tick)
+
+    // Metal neither melts nor breaks, so whatever else happens the pans are still pans.
+    expect(count(grid, MaterialId.metal)).toBeGreaterThan(0)
+    expect(count(grid, MaterialId.popcorn)).toBeGreaterThan(0)
+    // Fireworks that went off, leaving trails rather than one blast.
+    expect(count(grid, MaterialId.ember)).toBeGreaterThan(0)
+  })
+
+  itSlow('leaves the world alive a while later', { timeout: 20_000 }, () => {
+    const grid = kitchen()
+    const rng = createRng(3)
+    for (let tick = 0; tick < 900; tick++) tickWorld(grid, rng, tick)
+
+    // The counter is stone and the pans are metal: neither has anything that undoes it, so a scene that ran
+    // wild is still recognisably a kitchen.
+    expect(count(grid, MaterialId.stone)).toBeGreaterThan(0)
+    expect(count(grid, MaterialId.metal)).toBeGreaterThan(0)
+  })
+})

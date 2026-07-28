@@ -147,6 +147,7 @@ export const MATERIAL_GROUPS: readonly {
       MaterialId.vine,
       MaterialId.sponge,
       MaterialId.tnt,
+      MaterialId.resin,
     ],
   },
   {
@@ -166,6 +167,7 @@ export const MATERIAL_GROUPS: readonly {
       MaterialId.kernel,
       MaterialId.popcorn,
       MaterialId.pollen,
+      MaterialId.firework,
     ],
   },
   {
@@ -180,6 +182,7 @@ export const MATERIAL_GROUPS: readonly {
       MaterialId.acid,
       MaterialId.lava,
       MaterialId.nitrogen,
+      MaterialId.glue,
     ],
   },
   {
@@ -220,6 +223,7 @@ export const MATERIAL_GROUPS: readonly {
       MaterialId.randomSource,
       MaterialId.turbine,
       MaterialId.blackHole,
+      MaterialId.corruption,
       MaterialId.void,
     ],
   },
@@ -259,6 +263,11 @@ export const PRESETS: readonly { preset: Preset; label: string; title: string }[
     preset: Preset.antColony,
     label: 'Ant colony',
     title: 'Leafy wooden trunks with ants tunnelling galleries through them',
+  },
+  {
+    preset: Preset.kitchen,
+    label: 'Pots and pans',
+    title: 'Pans of kernels and fireworks, over lava and open flame',
   },
 ]
 

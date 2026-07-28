@@ -2,8 +2,19 @@ import { describe, it, expect } from 'vitest'
 import { MaterialId } from '../pixel-world.types'
 import { AMBIENT_TEMPERATURE, TEMPERATURE_LIMITS } from '../data'
 import { cellIndex, createGrid, placeMaterial } from './grid'
-import { attract, blast, detonate, flashOver, swallow, swirl, temper, wind } from './forces'
+import {
+  attract,
+  blast,
+  detonate,
+  flashOver,
+  scatter,
+  swallow,
+  swirl,
+  temper,
+  wind,
+} from './forces'
 import { MATERIALS } from './materials'
+import { createRng } from './rng'
 import { simulateHeat } from './heat'
 import { countMaterials } from './census'
 
@@ -564,5 +575,53 @@ describe('swirl', () => {
 
     // The flow carries things; the coupling rules in `carry` decide what is light enough to go.
     expect(grid.velocity.size).toBe(0)
+  })
+})
+
+describe('scatter', () => {
+  it('makes the things that fly, rather than shoving what is already there', () => {
+    // The whole reason a burst cannot be `impulse`: a blast shoves whatever it finds, and up in open sky it
+    // finds nothing at all. A firework has to create its own trails.
+    const grid = createGrid(81, 81)
+
+    scatter(grid, createRng(1), 40, 40, 20, 6, MaterialId.ember)
+
+    let embers = 0
+    for (const id of grid.material) if (id === MaterialId.ember) embers++
+    expect(embers).toBeGreaterThan(6)
+  })
+
+  it('sends each trail out along its own line', () => {
+    const grid = createGrid(81, 81)
+
+    scatter(grid, createRng(1), 40, 40, 20, 6, MaterialId.ember)
+
+    // Away from the middle, and not all the same way: a spray rather than one jet.
+    const quadrants = new Set<string>()
+    for (const [index, motion] of grid.velocity) {
+      const x = index % grid.width
+      const y = Math.floor(index / grid.width)
+      // Pointing outward: the dot product of its own offset and its own speed is positive.
+      expect((x - 40) * motion.vx + (y - 40) * motion.vy).toBeGreaterThan(0)
+      quadrants.add(`${Math.sign(motion.vx)},${Math.sign(motion.vy)}`)
+    }
+    expect(quadrants.size).toBeGreaterThan(2)
+  })
+
+  it('leaves whatever was already in the way alone', () => {
+    // It only ever fills open space, so a burst inside a box does not eat the box.
+    const grid = createGrid(81, 81)
+    for (let y = 30; y < 51; y++) {
+      for (let x = 30; x < 51; x++) {
+        if (x === 40 && y === 40) continue
+        placeMaterial(grid, cellIndex(grid, x, y), MaterialId.stone)
+      }
+    }
+
+    scatter(grid, createRng(1), 40, 40, 20, 6, MaterialId.ember)
+
+    let stone = 0
+    for (const id of grid.material) if (id === MaterialId.stone) stone++
+    expect(stone).toBe(21 * 21 - 1)
   })
 })

@@ -664,3 +664,55 @@ describe('air behind its setting', () => {
     expect(run(false)).toBe(0)
   })
 })
+
+describe('glue', () => {
+  it('pours as a liquid and then sets hard', () => {
+    // The setting is the gas-lifetime mechanism with nothing added: a clock in `data` and a material to become
+    // at zero. What makes it worth having is that the result is a shape you built rather than a puddle.
+    const grid = withVessel(20, 20)
+    for (let x = 4; x < 16; x++) put(grid, x, 16, MaterialId.glue)
+
+    // Long enough to level out, and well past its own clock.
+    run(grid, 400)
+
+    expect(count(grid, MaterialId.glue)).toBe(0)
+    expect(count(grid, MaterialId.resin)).toBeGreaterThan(0)
+  })
+
+  it('is still liquid on the way there, so a pour can find its level', () => {
+    const grid = withVessel(20, 20)
+    put(grid, 10, 4, MaterialId.glue)
+
+    run(grid, 20)
+
+    // It fell. Setting where it was painted would make it a solid brush rather than a liquid.
+    expect(highestRow(grid, MaterialId.glue) ?? 0).toBeGreaterThan(4)
+  })
+})
+
+describe('a firework', () => {
+  it('launches when it is lit rather than sitting there burning', () => {
+    const grid = withVessel(41, 61)
+    const at = put(grid, 20, 55, MaterialId.firework)
+    grid.temperature[at] = 600
+
+    run(grid, 6)
+
+    // It has left the ground and is on its way up, as the lit form.
+    const lit = highestRow(grid, MaterialId.fireworkLit)
+    expect(lit).not.toBeNull()
+    expect(lit ?? 61).toBeLessThan(55)
+  })
+
+  it('ends as a spray of embers well above where it started', () => {
+    const grid = withVessel(41, 61)
+    const at = put(grid, 20, 55, MaterialId.firework)
+    grid.temperature[at] = 600
+
+    run(grid, 80)
+
+    let embers = 0
+    for (const id of grid.material) if (id === MaterialId.ember) embers++
+    expect(embers).toBeGreaterThan(0)
+  })
+})

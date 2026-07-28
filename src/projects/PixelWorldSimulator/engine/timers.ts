@@ -2,6 +2,7 @@ import { Grid, MaterialId } from '../pixel-world.types'
 import { MATERIALS } from './materials'
 import { cellIndex, placeMaterial, transformCell } from './grid'
 import { isCellAwake, isRowBandAwake, wakeChunk } from './chunks'
+import { scatter } from './forces'
 import { Rng } from './rng'
 
 /** Chance per tick that a burning cell throws a flame into a neighbouring cell of air. */
@@ -52,7 +53,15 @@ export function advanceTimers(grid: Grid, rng: Rng): void {
       if (cell.lifetime !== undefined && cell.expiresInto !== undefined && data[index] > 0) {
         data[index] -= 1
         wakeChunk(grid, index)
-        if (data[index] === 0) transformCell(grid, index, cell.expiresInto)
+        if (data[index] === 0) {
+          // The burst goes first: it needs the cell it is leaving from to still be there to spray around, and
+          // the trails go into the open cells beside it rather than into this one.
+          if (cell.bursts !== undefined) {
+            const { sparks, speed, product } = cell.bursts
+            scatter(grid, rng, x, y, sparks, speed, product)
+          }
+          transformCell(grid, index, cell.expiresInto)
+        }
       }
     }
   }

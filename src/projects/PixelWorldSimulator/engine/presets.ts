@@ -7,6 +7,7 @@ export const Preset = {
   wild: 'wild',
   volcano: 'volcano',
   antColony: 'antColony',
+  kitchen: 'kitchen',
 } as const
 export type Preset = (typeof Preset)[keyof typeof Preset]
 
@@ -728,11 +729,64 @@ function clearAir(grid: Grid, x: number, from: number): number {
   return -1
 }
 
+/**
+ * A row of metal pots over heat, some full of kernels and some full of fireworks.
+ *
+ * Metal is the only thing that would do for the pots: it neither melts nor breaks, so the pans survive what is
+ * under them, and it is far and away the best conductor, so the heat arrives at what is inside rather than
+ * stopping at the base. Two kinds of burner because they fail differently — lava sits there and cooks, while a
+ * source fed one flame keeps making more and will happily set the room alight.
+ */
+function kitchen(grid: Grid, rng: Rng): void {
+  const { width, height } = grid
+  const counter = height - 8
+
+  fill(grid, 0, counter, width - 1, height - 1, MaterialId.stone)
+
+  const pans = 4
+  const span = Math.floor(width / pans)
+  for (let pan = 0; pan < pans; pan++) {
+    const left = pan * span + Math.floor(span * 0.18)
+    const right = left + Math.floor(span * 0.52)
+    // The base sits close over the counter, and the burner fills the gap. An earlier version left two cells of
+    // air between them and nothing ever cooked: air conducts at 0.05, so the heat simply never arrived.
+    const base = counter - 6
+    const rim = base - 13
+
+    fill(grid, left, base, right, base, MaterialId.metal)
+    fill(grid, left, rim, left, base - 1, MaterialId.metal)
+    fill(grid, right, rim, right, base - 1, MaterialId.metal)
+
+    // Two burners, because they fail differently: lava sits there and cooks, while a source fed one flame keeps
+    // making more and will happily set the room alight.
+    if (pan % 2 === 0) {
+      fill(grid, left + 1, base + 1, right - 1, counter - 1, MaterialId.lava)
+    } else {
+      const middle = Math.floor((left + right) / 2)
+      // Right under the base, so the flame it makes touches the metal. A source with one flame beside it
+      // learns fire and then keeps producing it.
+      put(grid, middle, base + 2, MaterialId.source)
+      put(grid, middle, base + 1, MaterialId.fire)
+      fill(grid, left + 1, base + 3, right - 1, counter - 1, MaterialId.stone)
+    }
+
+    // Kernels in one pan and fireworks in the next, so the difference between a pop and a burst is side by
+    // side. Ragged rather than a solid block, so the heat gets in among them.
+    const filling = pan % 2 === 0 ? MaterialId.kernel : MaterialId.firework
+    for (let y = base - 1; y > base - 7; y--) {
+      for (let x = left + 1; x < right; x++) {
+        if (rng.next() < 0.82) put(grid, x, y, filling)
+      }
+    }
+  }
+}
+
 const BUILDERS: Record<Preset, (grid: Grid, rng: Rng) => void> = {
   [Preset.aquarium]: aquarium,
   [Preset.wild]: wild,
   [Preset.volcano]: volcano,
   [Preset.antColony]: antColony,
+  [Preset.kitchen]: kitchen,
 }
 
 /** Wipes the world and builds a preset into it. The rng is what keeps two loads from being identical. */
