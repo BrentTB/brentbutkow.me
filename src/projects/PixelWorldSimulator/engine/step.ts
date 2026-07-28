@@ -1,8 +1,10 @@
 import { Grid, MaterialBehavior, MaterialId } from '../pixel-world.types'
 import { cellIndex, swapCells } from './grid'
+import { isCellAwake, isRowBandAwake, wakeChunk } from './chunks'
+import { airLean } from './air'
 import { MATERIALS, canDisplace, canFloatThrough } from './materials'
-import { isSupported, push } from './kinetic'
 import { NEIGHBOURS } from './neighbours'
+import { isSupported, push } from './kinetic'
 import { Rng } from './rng'
 
 /**
@@ -17,8 +19,12 @@ export function step(grid: Grid, rng: Rng, tick: number): void {
   const leftToRight = tick % 2 === 0
 
   for (let y = grid.height - 1; y >= 0; y--) {
+    // A band of sleeping chunks is skipped whole, so a quiet world costs a flag per row rather than a
+    // material lookup per cell.
+    if (!isRowBandAwake(grid, y)) continue
     for (let i = 0; i < grid.width; i++) {
       const x = leftToRight ? i : grid.width - 1 - i
+      if (!isCellAwake(grid, x, y)) continue
       stepCell(grid, rng, x, y)
     }
   }
@@ -84,6 +90,10 @@ function sinkAndDrift(
   from: number,
   dispersion: number
 ): void {
+  // Which of the three things it tries is a roll, so a cloud that failed to move this tick could still
+  // move on the next one. It has to stay awake to get that roll.
+  wakeChunk(grid, from)
+
   const roll = rng.next()
 
   if (roll < HEAVY_GAS_SINK) {
@@ -105,7 +115,12 @@ function sinkAndDrift(
 function sinkingStalled(grid: Grid, rng: Rng, x: number, y: number, density: number): boolean {
   if (y + 1 >= grid.height) return false
   const below = MATERIALS[grid.material[cellIndex(grid, x, y + 1)]]
-  return below.drag > 0 && below.density < density && rng.chance(below.drag)
+  if (!(below.drag > 0 && below.density < density && rng.chance(below.drag))) return false
+
+  // Losing a tick to drag is not the same as having settled: nothing moved, so nothing else here will
+  // keep this chunk awake, and a grain that slept mid-descent would hang in the fluid forever.
+  wakeChunk(grid, cellIndex(grid, x, y))
+  return true
 }
 
 /**
@@ -163,7 +178,11 @@ function spread(
   dispersion: number,
   buoyant: boolean
 ): boolean {
-  const dir = rng.chance(0.5) ? 1 : -1
+  // A gas leans the way the air is going before it falls back on a coin flip. This is the cheap half of the
+  // coupling and the one that reads best: a plume of smoke bends downwind a cell at a time, without the
+  // flow ever having to be strong enough to throw it.
+  const lean = buoyant ? airLean(grid, from) : 0
+  const dir = lean !== 0 ? lean : rng.chance(0.5) ? 1 : -1
   return (
     slide(grid, from, x, y, dir, dispersion, buoyant) ||
     slide(grid, from, x, y, -dir, dispersion, buoyant)
@@ -182,10 +201,28 @@ function slide(
   let target = -1
   for (let distance = 1; distance <= dispersion; distance++) {
     const nx = x + dir * distance
-    if (!canMoveTo(grid, from, nx, y, buoyant)) break
+    if (!canSlideInto(grid, from, nx, y, buoyant)) break
     target = nx
   }
   return target >= 0 && tryMove(grid, from, target, y, buoyant)
+}
+
+/**
+ * Whether a cell may slide sideways into this one. A fluid flows around solids, never through them.
+ *
+ * Density decides who sinks through whom, which is a rule about gravity, and the plain displacement test
+ * applied it to sideways moves as well. Lava is denser than dirt, so a pool shoved the dirt above it left and
+ * right forever and the dirt read as jumping about. Only the solid classes are excluded: a liquid still
+ * exchanges places with a lighter liquid beside it, which is what lets water find its way out from between
+ * lava and a block of ice instead of sitting there insulating it.
+ */
+function canSlideInto(grid: Grid, from: number, x: number, y: number, buoyant: boolean): boolean {
+  if (!canMoveTo(grid, from, x, y, buoyant)) return false
+
+  const target = grid.material[cellIndex(grid, x, y)]
+  if (target === MaterialId.empty) return true
+  const behavior = MATERIALS[target].behavior
+  return behavior === MaterialBehavior.gas || behavior === MaterialBehavior.liquid
 }
 
 function canMoveTo(grid: Grid, from: number, x: number, y: number, buoyant: boolean): boolean {

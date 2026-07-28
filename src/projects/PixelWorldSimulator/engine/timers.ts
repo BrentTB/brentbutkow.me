@@ -1,6 +1,7 @@
 import { Grid, MaterialId } from '../pixel-world.types'
 import { MATERIALS } from './materials'
 import { cellIndex, placeMaterial, transformCell } from './grid'
+import { isCellAwake, isRowBandAwake, wakeChunk } from './chunks'
 import { Rng } from './rng'
 
 /** Chance per tick that a burning cell throws a flame into a neighbouring cell of air. */
@@ -26,7 +27,9 @@ export function advanceTimers(grid: Grid, rng: Rng): void {
   const { width, height, material, data, burn } = grid
 
   for (let y = 0; y < height; y++) {
+    if (!isRowBandAwake(grid, y)) continue
     for (let x = 0; x < width; x++) {
+      if (!isCellAwake(grid, x, y)) continue
       const index = y * width + x
       const id = material[index]
       if (id === MaterialId.empty) continue
@@ -35,6 +38,8 @@ export function advanceTimers(grid: Grid, rng: Rng): void {
 
       if (burn[index] > 0 && cell.ignite !== undefined) {
         burn[index] -= 1
+        // A clock counting down has to keep its own chunk awake, or it stops at whatever it had left.
+        wakeChunk(grid, index)
         if (burn[index] === 0) {
           transformCell(grid, index, cell.ignite.into)
           continue
@@ -46,6 +51,7 @@ export function advanceTimers(grid: Grid, rng: Rng): void {
 
       if (cell.lifetime !== undefined && cell.expiresInto !== undefined && data[index] > 0) {
         data[index] -= 1
+        wakeChunk(grid, index)
         if (data[index] === 0) transformCell(grid, index, cell.expiresInto)
       }
     }

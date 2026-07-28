@@ -247,6 +247,13 @@ export type Tool = (typeof Tool)[keyof typeof Tool]
 export const SimSetting = {
   tintBlocks: 'tintBlocks',
   tintAir: 'tintAir',
+  showFlow: 'showFlow',
+  /**
+   * The one setting here that changes the world rather than the picture of it. Air is young and it costs real
+   * time on a busy world, so it can be switched off — and because it changes what the world does, a shared
+   * link carries the state it was built with.
+   */
+  airCurrents: 'airCurrents',
 } as const
 export type SimSetting = (typeof SimSetting)[keyof typeof SimSetting]
 
@@ -274,6 +281,36 @@ export type Grid = {
    */
   hotRows: Uint8Array
   hotRowsNext: Uint8Array
+  /**
+   * One flag per chunk: did anything in or beside it change last tick? The movement, chemistry, timer
+   * and life passes skip the rest, the way `hotRows` already lets the heat pass skip quiet rows. A
+   * settled world costs almost nothing, which is what pays for the air field.
+   */
+  awakeChunks: Uint8Array
+  awakeChunksNext: Uint8Array
+  /**
+   * The same flags again for the air pass, which keeps its own. A draught reaches most of the world at once,
+   * and waking the movement, chemistry and timer passes everywhere it touched cost more than the flow itself
+   * did. Air wakes material only where it is strong enough to carry something.
+   */
+  airChunks: Uint8Array
+  airChunksNext: Uint8Array
+  /** Chunks per row and per column, held rather than recomputed: the passes index these per cell. */
+  chunkColumns: number
+  chunkRows: number
+  /**
+   * How the air is moving, in cells per tick, one pair of components per cell. Dense rather than the sparse
+   * map momentum uses, because a flow fills a whole region at once: almost every cell of a plume takes part,
+   * which is the opposite of the "almost nothing is in flight" case a map is good at.
+   *
+   * Only meaningful where air can actually go — open cells and gases. Solids and liquids read as walls, and
+   * the field is held at zero inside them.
+   */
+  airX: Float32Array
+  airY: Float32Array
+  /** Diffusion writes here and the two swap, so a flow spreads evenly instead of down-and-right. */
+  airXNext: Float32Array
+  airYNext: Float32Array
   /**
    * Cells currently in flight, keyed by index. Sparse because almost nothing is flying almost all of the
    * time: an explosion fills it for a second and it empties itself as the debris settles.

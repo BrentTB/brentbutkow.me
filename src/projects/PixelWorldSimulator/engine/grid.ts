@@ -1,9 +1,12 @@
 import { Grid, MaterialId } from '../pixel-world.types'
 import { AMBIENT_TEMPERATURE } from '../data'
 import { MATERIALS } from './materials'
+import { chunksAcross, chunksDown, wakeAllChunks, wakeChunk } from './chunks'
 
 export function createGrid(width: number, height: number): Grid {
   const cells = width * height
+  const columns = chunksAcross(width)
+  const rows = chunksDown(height)
   return {
     width,
     height,
@@ -15,6 +18,17 @@ export function createGrid(width: number, height: number): Grid {
     temperatureNext: new Int16Array(cells).fill(AMBIENT_TEMPERATURE),
     hotRows: new Uint8Array(height),
     hotRowsNext: new Uint8Array(height),
+    // Awake to begin with: a brand new world has no last tick to have been quiet during.
+    awakeChunks: new Uint8Array(columns * rows).fill(1),
+    awakeChunksNext: new Uint8Array(columns * rows).fill(1),
+    airChunks: new Uint8Array(columns * rows).fill(1),
+    airChunksNext: new Uint8Array(columns * rows).fill(1),
+    chunkColumns: columns,
+    chunkRows: rows,
+    airX: new Float32Array(cells),
+    airY: new Float32Array(cells),
+    airXNext: new Float32Array(cells),
+    airYNext: new Float32Array(cells),
     velocity: new Map(),
     heading: new Map(),
   }
@@ -37,6 +51,11 @@ export function clearGrid(grid: Grid): void {
   grid.temperatureNext.fill(AMBIENT_TEMPERATURE)
   grid.hotRows.fill(0)
   grid.hotRowsNext.fill(0)
+  wakeAllChunks(grid)
+  grid.airX.fill(0)
+  grid.airY.fill(0)
+  grid.airXNext.fill(0)
+  grid.airYNext.fill(0)
   grid.velocity.clear()
   grid.heading.clear()
 }
@@ -63,6 +82,7 @@ function startingData(material: MaterialId): number {
  */
 export function refreshCell(grid: Grid, index: number, material: MaterialId): void {
   grid.data[index] = startingData(material)
+  wakeChunk(grid, index)
 }
 
 /** A cell's counters and its heat travel with its material — lava carries its own temperature. */
@@ -92,6 +112,9 @@ export function swapCells(grid: Grid, a: number, b: number): void {
   grid.data[a] = data
   grid.burn[a] = burn
   grid.temperature[a] = temperature
+
+  wakeChunk(grid, a)
+  wakeChunk(grid, b)
 }
 
 /** Wakes a row and its neighbours for the heat pass. */
@@ -102,6 +125,17 @@ export function markHotRow(grid: Grid, index: number): void {
   if (row < grid.height - 1) grid.hotRows[row + 1] = 1
 }
 
+/**
+ * Wakes every row a blast touched, in one call. An explosion heats hundreds of cells and they land in a
+ * couple of dozen rows, so waking per cell did the same work hundreds of times over — and a field of
+ * gunpowder going off is tens of thousands of blasts in a tick.
+ */
+export function markHotRowBand(grid: Grid, fromRow: number, toRow: number): void {
+  const top = Math.max(0, fromRow - 1)
+  const bottom = Math.min(grid.height - 1, toRow + 1)
+  for (let row = top; row <= bottom; row++) grid.hotRows[row] = 1
+}
+
 /** Places a brand new cell, with its own starting temperature and counter. */
 export function placeMaterial(grid: Grid, index: number, material: MaterialId): void {
   grid.material[index] = material
@@ -109,6 +143,7 @@ export function placeMaterial(grid: Grid, index: number, material: MaterialId): 
   grid.burn[index] = 0
   grid.temperature[index] = MATERIALS[material].startTemperature ?? AMBIENT_TEMPERATURE
   markHotRow(grid, index)
+  wakeChunk(grid, index)
 }
 
 /**
@@ -120,4 +155,5 @@ export function transformCell(grid: Grid, index: number, material: MaterialId): 
   grid.data[index] = startingData(material)
   grid.burn[index] = 0
   markHotRow(grid, index)
+  wakeChunk(grid, index)
 }

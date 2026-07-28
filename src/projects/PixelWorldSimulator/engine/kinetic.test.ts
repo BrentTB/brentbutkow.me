@@ -1,8 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import { Grid, MaterialId } from '../pixel-world.types'
 import { cellIndex, createGrid, placeMaterial } from './grid'
+import { GRID_HEIGHT, GRID_WIDTH } from '../data'
 import { MAX_IN_FLIGHT, moveKinetic, push } from './kinetic'
 import { createRng } from './rng'
+import { isCellAwake } from './chunks'
+import { tickWorld } from './tick'
 
 /** A world with a stone floor along the bottom row. */
 function walledGrid(width = 21, height = 21): Grid {
@@ -291,5 +294,113 @@ describe('moveKinetic', () => {
     moveKinetic(grid, rng)
 
     expect(grid.velocity.size).toBeLessThanOrEqual(MAX_IN_FLIGHT)
+  })
+})
+
+describe('an impact on packed material', () => {
+  /** A tall bed of sand with the middle of its bottom row shoved upward, hard. */
+  function packedBed(depth: number) {
+    const grid = walledGrid(41, depth + 6)
+    for (let y = 1; y <= depth; y++) {
+      for (let x = 0; x < grid.width; x++)
+        placeMaterial(grid, cellIndex(grid, x, y), MaterialId.sand)
+    }
+    return grid
+  }
+
+  /** The height of the fastest-rising sand, as a negative number of cells per tick. */
+  function fastestUpward(grid: Grid) {
+    let fastest = 0
+    for (const [index, motion] of grid.velocity) {
+      if (grid.material[index] === MaterialId.sand) fastest = Math.min(fastest, motion.vy)
+    }
+    return fastest
+  }
+
+  it('carries the impact through to the far side of the run', () => {
+    // The complaint this guards: a charge buried under a bed deeper than its blast reach moved nothing.
+    // Sand cannot displace sand, so a grain walled in by more sand reflected off its neighbour and threw
+    // the impulse away, and only the surface layer with air above it ever flew. Large chunks of a bed sat
+    // completely still through an explosion and then simply fell into the hole.
+    const depth = 12
+    const grid = packedBed(depth)
+    const struck = cellIndex(grid, 20, depth)
+    push(grid, struck, 0, -12)
+
+    moveKinetic(grid, createRng(1))
+
+    // The run above the struck cell is now moving, all the way up to the open air at the top of the bed.
+    for (let y = 1; y < depth; y++) {
+      expect(grid.velocity.has(cellIndex(grid, 20, y))).toBe(true)
+    }
+    expect(fastestUpward(grid)).toBeLessThan(0)
+  })
+
+  it('leaves a run braced against the world alone', () => {
+    // A wall is scaffolding. Sand driven down into the stone floor has nowhere to send the impact, so
+    // nothing under it may be handed any.
+    const grid = packedBed(4)
+    const struck = cellIndex(grid, 20, 4)
+    push(grid, struck, 0, 12)
+
+    moveKinetic(grid, createRng(1))
+
+    expect(grid.velocity.has(cellIndex(grid, 20, grid.height - 1))).toBe(false)
+  })
+})
+
+describe('the cap on cells in flight', () => {
+  it('never fires on an ordinary explosion', () => {
+    // The cap is a valve against a world made of nothing but explosives, where the aftermath costs half
+    // again as much without it. It is not a budget, and an explosion somebody actually built has to pass
+    // under it untouched — clipping one deletes the launch mid-flight and costs nothing, because `trim`
+    // runs at the end of this pass while the pushes arrive from `detonate` later in the same tick.
+    const grid = createGrid(GRID_WIDTH, GRID_HEIGHT)
+    const floor = GRID_HEIGHT - 1
+    for (let x = 0; x < GRID_WIDTH; x++) {
+      placeMaterial(grid, cellIndex(grid, x, floor), MaterialId.stone)
+    }
+    const chargeTop = floor - 20
+    for (let y = chargeTop - 40; y < chargeTop; y++) {
+      for (let x = 0; x < GRID_WIDTH; x++)
+        placeMaterial(grid, cellIndex(grid, x, y), MaterialId.sand)
+    }
+    for (let y = chargeTop; y < floor; y++) {
+      for (let x = 180; x < 220; x++) placeMaterial(grid, cellIndex(grid, x, y), MaterialId.tnt)
+    }
+
+    grid.temperature[cellIndex(grid, 200, floor - 1)] = 1200
+    grid.hotRows.fill(1)
+    const rng = createRng(1)
+    let peakInFlight = 0
+    for (let tick = 0; tick < 30; tick++) {
+      tickWorld(grid, rng, tick)
+      peakInFlight = Math.max(peakInFlight, grid.velocity.size)
+    }
+
+    expect(peakInFlight).toBeGreaterThan(0)
+    expect(peakInFlight).toBeLessThan(MAX_IN_FLIGHT)
+  })
+})
+
+describe('handing a cell back from flight', () => {
+  it('wakes its chunk, because the movement pass had stopped looking at it', () => {
+    // `step` skips anything in the velocity map, so a cell that flight gives up on is a cell neither pass is
+    // watching. Air grabbing a grain too gently to move it was enough to trigger this: kinetic dropped it and
+    // step never looked again, leaving it frozen with open space beside it.
+    const grid = walledGrid(96, 96)
+    const resting = cellIndex(grid, 50, grid.height - 2)
+    placeMaterial(grid, resting, MaterialId.sand)
+
+    // Nudged too gently for flight to do anything with it, from a world that has gone quiet.
+    push(grid, resting, 0, -0.05)
+    grid.awakeChunks.fill(0)
+    grid.awakeChunksNext.fill(0)
+
+    moveKinetic(grid, createRng(1))
+
+    // Flight has let it go, so the chunk has to be awake again for `step` to pick it up.
+    expect(grid.velocity.has(resting)).toBe(false)
+    expect(isCellAwake(grid, 50, grid.height - 2)).toBe(true)
   })
 })

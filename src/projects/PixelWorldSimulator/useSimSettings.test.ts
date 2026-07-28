@@ -13,6 +13,16 @@ describe('useSimSettings', () => {
     expect(result.current.settings).toEqual(DEFAULT_SETTINGS)
   })
 
+  it('starts a first visit with only the material tint on', () => {
+    // Comparing against `DEFAULT_SETTINGS` above cannot catch a default being flipped, since it moves with
+    // it. These two are deliberate calls about what a visitor sees before touching anything: warm cells are
+    // worth colouring straight away, and the two overlays that draw things which are not really there are
+    // not. Both are easy to turn on by accident and hard to notice in review.
+    expect(DEFAULT_SETTINGS[SimSetting.tintBlocks]).toBe(true)
+    expect(DEFAULT_SETTINGS[SimSetting.tintAir]).toBe(false)
+    expect(DEFAULT_SETTINGS[SimSetting.showFlow]).toBe(false)
+  })
+
   it('toggles a setting and leaves the other one alone', () => {
     const { result } = renderHook(() => useSimSettings())
 
@@ -65,5 +75,65 @@ describe('useSimSettings', () => {
     expect(Object.keys(result.current.settings).sort()).toEqual(
       Object.keys(DEFAULT_SETTINGS).sort()
     )
+  })
+})
+
+describe('applying one for a session', () => {
+  it('sets rather than flips, so an arriving world lands on what it asked for', () => {
+    // A shared world says which way it was built. `toggle` cannot express that: asking for "off" when it is
+    // already off would turn it on.
+    const { result } = renderHook(() => useSimSettings())
+    expect(result.current.settings[SimSetting.airCurrents]).toBe(true)
+
+    act(() => result.current.apply(SimSetting.airCurrents, false))
+    expect(result.current.settings[SimSetting.airCurrents]).toBe(false)
+
+    act(() => result.current.apply(SimSetting.airCurrents, false))
+    expect(result.current.settings[SimSetting.airCurrents]).toBe(false)
+  })
+
+  it('does not save it, so opening a link never overwrites a saved preference', () => {
+    // A shared world changes what you are looking at for the session, not the setting you come back to.
+    const { result } = renderHook(() => useSimSettings())
+
+    act(() => result.current.apply(SimSetting.airCurrents, false))
+
+    expect(localStorage.getItem(SETTINGS_KEY)).toBeNull()
+  })
+
+  it('keeps the saved preference even after a later toggle of something else', () => {
+    // The applied value must not leak into storage on the next unrelated write: toggling the tint later
+    // should save the viewer's own air setting, not the one a link handed them.
+    const first = renderHook(() => useSimSettings())
+    act(() => first.result.current.apply(SimSetting.airCurrents, false))
+    act(() => first.result.current.toggle(SimSetting.tintBlocks))
+
+    const second = renderHook(() => useSimSettings())
+    expect(second.result.current.settings[SimSetting.airCurrents]).toBe(
+      DEFAULT_SETTINGS[SimSetting.airCurrents]
+    )
+    expect(second.result.current.settings[SimSetting.tintBlocks]).toBe(
+      !DEFAULT_SETTINGS[SimSetting.tintBlocks]
+    )
+  })
+
+  it('hands back the same object when nothing changes, so the page does not re-render for nothing', () => {
+    const { result } = renderHook(() => useSimSettings())
+    const before = result.current.settings
+
+    act(() => result.current.apply(SimSetting.tintBlocks, DEFAULT_SETTINGS[SimSetting.tintBlocks]))
+
+    expect(result.current.settings).toBe(before)
+  })
+
+  it('leaves the other settings alone', () => {
+    const { result } = renderHook(() => useSimSettings())
+
+    act(() => result.current.apply(SimSetting.airCurrents, false))
+
+    expect(result.current.settings[SimSetting.tintBlocks]).toBe(
+      DEFAULT_SETTINGS[SimSetting.tintBlocks]
+    )
+    expect(result.current.settings[SimSetting.tintAir]).toBe(DEFAULT_SETTINGS[SimSetting.tintAir])
   })
 })

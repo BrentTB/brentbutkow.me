@@ -301,6 +301,11 @@ export const simCopy = {
     open: 'Settings',
     title: 'Settings',
     close: 'Done',
+    /**
+     * Said on a switch that cannot be pressed. A greyed control with no reason given is a dead end, and the
+     * one thing worth knowing there is which other switch brings it back.
+     */
+    locked: 'Turn on "Let air move things around" to use this.',
   },
   /** The link that carries a world to somebody else, and what to say when it does or doesn't. */
   share: {
@@ -343,26 +348,67 @@ export const SHARE_PAUSED_KEY = 'p'
  * The picture settings, and what each one does in plain terms. Rendered straight from here, so the dialog
  * has no list of its own to fall out of step with.
  */
-export const SETTING_ROWS: readonly { setting: SimSetting; label: string; hint: string }[] = [
+export type SettingRow = {
+  setting: SimSetting
+  label: string
+  hint: string
+  /** Greyed out and treated as off while this other setting is off, because it would show nothing. */
+  requires?: SimSetting
+}
+
+/**
+ * The switches, grouped the way the dialog shows them. Two groups rather than a flat list because the second
+ * pair changes the world and the first pair only changes the picture of it, which is worth saying out loud
+ * before someone turns one off and wonders why their sand stopped moving.
+ */
+export const SETTING_SECTIONS: readonly { title: string; rows: readonly SettingRow[] }[] = [
   {
-    setting: SimSetting.tintBlocks,
-    label: 'Tint materials by temperature',
-    hint: 'Warm cells glow orange, cold ones go blue. Turn it off to see materials in their own colours.',
+    title: 'Tint',
+    rows: [
+      {
+        setting: SimSetting.tintBlocks,
+        label: 'Tint materials by temperature',
+        hint: 'Warm cells glow orange, cold ones go blue. Turn it off to see materials in their own colours.',
+      },
+      {
+        setting: SimSetting.tintAir,
+        label: 'Tint air by temperature',
+        hint: 'Shows warmth in the air itself, so you can watch heat rise off a fire. Gets busy once things burn.',
+      },
+    ],
   },
   {
-    setting: SimSetting.tintAir,
-    label: 'Tint air by temperature',
-    hint: 'Shows warmth in the air itself, so you can watch heat rise off a fire. Gets busy once things burn.',
+    title: 'Air mechanics',
+    rows: [
+      {
+        setting: SimSetting.airCurrents,
+        label: 'Let air move things around',
+        hint: 'Fire and lava push the air upward and a blast leaves it swirling, which drags loose sand and ash along. Costs a little speed on a busy world.',
+      },
+      {
+        setting: SimSetting.showFlow,
+        requires: SimSetting.airCurrents,
+        label: 'Show which way the air is moving',
+        hint: 'Moving air turns hazy, brighter the faster it goes. A fire pushes it up and an explosion throws it out, so a still world shows nothing.',
+      },
+    ],
   },
 ]
 
+/** Every switch flattened out of its group, so a test can enumerate them all in one pass. */
+export const SETTING_ROWS: readonly SettingRow[] = SETTING_SECTIONS.flatMap(({ rows }) => rows)
+
 /**
  * Materials are tinted by default and air is not: warmth in a solid is otherwise invisible until it crosses
- * a threshold, while hot air covers half the world in a haze that reads as fog rather than temperature.
+ * a threshold, while hot air covers half the world in a haze that reads as fog rather than temperature. The
+ * flow streaks are off for the same reason — they explain what the world is doing, which is worth a look and
+ * then worth turning off again.
  */
 export const DEFAULT_SETTINGS: SimSettings = {
   [SimSetting.tintBlocks]: true,
   [SimSetting.tintAir]: false,
+  [SimSetting.showFlow]: false,
+  [SimSetting.airCurrents]: true,
 }
 
 /** Where the settings live between visits. */

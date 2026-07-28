@@ -338,3 +338,189 @@ describe('blast reach', () => {
     expect(deep).toBeGreaterThan(0)
   })
 })
+
+describe('a charge going off', () => {
+  /** Furthest cell from the centre that the blast moved or heated. */
+  function blastReach(material: MaterialId): number {
+    const grid = createGrid(81, 81)
+    placeMaterial(grid, cellIndex(grid, 40, 40), material)
+    // Sand all around, so anything the blast touches shows up as a moved cell.
+    for (let y = 0; y < 81; y++) {
+      for (let x = 0; x < 81; x++) {
+        if (x !== 40 || y !== 40) placeMaterial(grid, cellIndex(grid, x, y), MaterialId.sand)
+      }
+    }
+
+    detonate(grid, cellIndex(grid, 40, 40), 40, 40)
+
+    let furthest = 0
+    for (const index of grid.velocity.keys()) {
+      const x = index % grid.width
+      const y = Math.floor(index / grid.width)
+      furthest = Math.max(furthest, Math.hypot(x - 40, y - 40))
+    }
+    return furthest
+  }
+
+  it('reaches at least as far as the smallest disc a force works over', () => {
+    // `explodes.radius` is a lower bound, not the whole story: `MIN_REACH` floors it, so gunpowder asks for 5
+    // and gets 12. Cutting it to the stated 5 is faster and stopped it throwing a sand bed at all.
+    const gunpowder = MATERIALS[MaterialId.gunpowder].explodes
+    expect(gunpowder?.radius).toBeLessThan(12)
+
+    expect(blastReach(MaterialId.gunpowder)).toBeGreaterThan(gunpowder?.radius ?? 0)
+  })
+
+  it('still lets a big charge reach as far as it says', () => {
+    const tnt = MATERIALS[MaterialId.tnt].explodes
+    const reach = blastReach(MaterialId.tnt)
+
+    expect(reach).toBeGreaterThan(20)
+    expect(reach).toBeLessThanOrEqual(tnt?.radius ?? 0)
+  })
+
+  it('keeps the pointer blast on its floor, which is what that floor is for', () => {
+    const grid = createGrid(81, 81)
+    for (let y = 0; y < 81; y++) {
+      for (let x = 0; x < 81; x++) placeMaterial(grid, cellIndex(grid, x, y), MaterialId.sand)
+    }
+
+    // The smallest brush there is: the floor is what gives it somewhere to push.
+    blast(grid, 40, 40, 1)
+
+    let furthest = 0
+    for (const index of grid.velocity.keys()) {
+      const x = index % grid.width
+      const y = Math.floor(index / grid.width)
+      furthest = Math.max(furthest, Math.hypot(x - 40, y - 40))
+    }
+    expect(furthest).toBeGreaterThan(8)
+  })
+
+  it('wakes every row it heated, so the heat pass does not skip the blast', () => {
+    const grid = createGrid(81, 81)
+    placeMaterial(grid, cellIndex(grid, 40, 40), MaterialId.tnt)
+    grid.hotRows.fill(0)
+
+    detonate(grid, cellIndex(grid, 40, 40), 40, 40)
+
+    const radius = MATERIALS[MaterialId.tnt].explodes?.radius ?? 0
+    for (let row = 40 - radius; row <= 40 + radius; row++) {
+      expect(grid.hotRows[row], `row ${row} left asleep`).toBe(1)
+    }
+  })
+})
+
+describe('a charge going off', () => {
+  /** A block of charge buried under a bed of sand, the way somebody actually lights one. */
+  function buriedUnderSand(charge: MaterialId) {
+    const grid = createGrid(81, 61)
+    for (let x = 0; x < 81; x++) placeMaterial(grid, cellIndex(grid, x, 60), MaterialId.stone)
+    for (let y = 20; y < 45; y++) {
+      for (let x = 0; x < 81; x++) placeMaterial(grid, cellIndex(grid, x, y), MaterialId.sand)
+    }
+    for (let y = 45; y < 51; y++) {
+      for (let x = 34; x < 46; x++) placeMaterial(grid, cellIndex(grid, x, y), charge)
+    }
+    return grid
+  }
+
+  /** How far up the fastest thrown sand is going, as a negative number of cells per tick. */
+  function fastestUpward(grid: ReturnType<typeof createGrid>) {
+    let fastest = 0
+    for (const [index, motion] of grid.velocity) {
+      if (grid.material[index] !== MaterialId.sand) continue
+      fastest = Math.min(fastest, motion.vy)
+    }
+    return fastest
+  }
+
+  it('throws the bed above it upward, which is what makes it an explosion', () => {
+    // The complaint this guards: with the blast cut down — either to the radius the table states, or by
+    // skipping charges inside another blast — a lit block under sand stopped throwing anything. It scorched
+    // the bed and the sand fell back in. Both were much faster and both were wrong.
+    const grid = buriedUnderSand(MaterialId.gunpowder)
+
+    for (const cell of [...grid.velocity.keys()]) grid.velocity.delete(cell)
+    for (let y = 45; y < 51; y++) {
+      for (let x = 34; x < 46; x++) detonate(grid, cellIndex(grid, x, y), x, y)
+    }
+
+    expect(fastestUpward(grid)).toBeLessThan(-2)
+  })
+
+  it('throws harder from a bigger charge', () => {
+    const small = buriedUnderSand(MaterialId.gunpowder)
+    detonate(small, cellIndex(small, 40, 45), 40, 45)
+    const big = buriedUnderSand(MaterialId.tnt)
+    detonate(big, cellIndex(big, 40, 45), 40, 45)
+
+    expect(fastestUpward(big)).toBeLessThan(fastestUpward(small))
+  })
+})
+
+describe('the tools writing into the air', () => {
+  it('makes the wind tool blow a draught, not only shove the grains under it', () => {
+    // What makes it wind rather than a hand: the flow it leaves behind keeps working after the drag stops,
+    // and bends around whatever is in the way.
+    const grid = createGrid(61, 61)
+
+    wind(grid, 30, 30, 6, 8, 0)
+
+    let moving = 0
+    for (let i = 0; i < grid.airX.length; i++) if (grid.airX[i] > 0) moving++
+    expect(moving).toBeGreaterThan(0)
+  })
+
+  it('shoves air far beyond the debris a blast throws', () => {
+    // The complaint this guards: the draught was written over the same disc as the impulse, so it only ever
+    // overlapped a couple of hundred of the tens of thousands of cells a blast puts in the air. Turning the
+    // whole field off changed nothing you could see.
+    const grid = createGrid(201, 201)
+    const centre = 100
+    const radius = 6
+
+    blast(grid, centre, centre, radius)
+
+    // Air is moving well outside the disc the blast itself reached.
+    let farthest = 0
+    for (let y = 0; y < grid.height; y++) {
+      for (let x = 0; x < grid.width; x++) {
+        const at = cellIndex(grid, x, y)
+        if (grid.airX[at] === 0 && grid.airY[at] === 0) continue
+        farthest = Math.max(farthest, Math.hypot(x - centre, y - centre))
+      }
+    }
+    const blastReach = Math.max(radius, 12)
+    expect(farthest).toBeGreaterThan(blastReach * 2)
+  })
+
+  it('stirs the air when a gas flashes over, because a shove leaves a draught', () => {
+    // A flash-over is a shove, and the air-gust gate turns any shove into a draught. Without it the flow
+    // stays dead and the flame the gas becomes rises through still air.
+    const grid = createGrid(61, 61)
+
+    flashOver(grid, 30, 30)
+
+    let stirred = false
+    for (let i = 0; i < grid.airX.length; i++) {
+      if (grid.airX[i] !== 0 || grid.airY[i] !== 0) {
+        stirred = true
+        break
+      }
+    }
+    expect(stirred).toBe(true)
+  })
+
+  it('leaves the air alone when only heat is applied, with no shove behind it', () => {
+    // `temper` moves heat and nothing else, so there is no shove to become a draught.
+    const grid = createGrid(61, 61)
+
+    temper(grid, 30, 30, 6, true)
+
+    for (let i = 0; i < grid.airX.length; i++) {
+      expect(grid.airX[i]).toBe(0)
+      expect(grid.airY[i]).toBe(0)
+    }
+  })
+})

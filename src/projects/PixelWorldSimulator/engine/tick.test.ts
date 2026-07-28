@@ -585,3 +585,80 @@ describe('an untouched world', () => {
     expect(grid.temperature.every((heat) => heat === AMBIENT_TEMPERATURE)).toBe(true)
   })
 })
+
+describe('tickWorld and the chunk flags', () => {
+  it('lets a settled world fall asleep, which is what makes an idle world cheap', () => {
+    // The tick hands the flags over at the end: what was woken during it becomes what is awake for the
+    // next one. Without that handover every chunk stays awake for the life of the world and all four
+    // material passes keep scanning 90,000 cells whether anything is happening or not.
+    const grid = createGrid(96, 96)
+    for (let x = 0; x < grid.width; x++) put(grid, x, grid.height - 1, MaterialId.stone)
+    for (let y = 80; y < grid.height - 1; y++) {
+      for (let x = 20; x < 76; x++) put(grid, x, y, MaterialId.sand)
+    }
+
+    run(grid, 300)
+
+    let asleep = 0
+    for (const flag of grid.awakeChunks) if (flag === 0) asleep++
+    // A pile of sand on a floor touches a handful of chunks; the rest of the world is empty air.
+    expect(asleep).toBeGreaterThan(grid.awakeChunks.length / 2)
+  })
+
+  it('wakes a sleeping world again the moment something is painted into it', () => {
+    const grid = createGrid(96, 96)
+    for (let x = 0; x < grid.width; x++) put(grid, x, grid.height - 1, MaterialId.stone)
+    run(grid, 300)
+
+    // The top-left chunk holds nothing but air by now.
+    expect(grid.awakeChunks[0]).toBe(0)
+
+    put(grid, 48, 10, MaterialId.sand)
+    run(grid, 200)
+
+    // It fell, rather than sitting where the brush left it in a chunk nobody was visiting.
+    expect(grid.material[cellIndex(grid, 48, 10)]).toBe(MaterialId.empty)
+  })
+})
+
+describe('tickWorld and the air', () => {
+  it('runs the air pass, so a fire raises its own draught', () => {
+    const grid = withVessel(48, 48)
+    put(grid, 24, 40, MaterialId.lava)
+
+    run(grid, 10)
+
+    // Upward is negative. Nothing but the air pass writes this, so its presence is the wiring.
+    let rising = 0
+    for (let y = 20; y < 40; y++) {
+      if (grid.airY[cellIndex(grid, 24, y)] < 0) rising++
+    }
+    expect(rising).toBeGreaterThan(0)
+  })
+})
+
+describe('air behind its setting', () => {
+  it('leaves the world alone when air currents are off', () => {
+    // The one setting that changes what the world does rather than how it looks, so it has to reach the sim
+    // and not only the renderer.
+    function run(airCurrents: boolean) {
+      const grid = createGrid(81, 81)
+      for (let x = 0; x < grid.width; x++) {
+        placeMaterial(grid, cellIndex(grid, x, 80), MaterialId.stone)
+      }
+      for (let x = 36; x < 45; x++) placeMaterial(grid, cellIndex(grid, x, 79), MaterialId.lava)
+
+      const rng = createRng(1)
+      for (let tick = 0; tick < 60; tick++) tickWorld(grid, rng, tick, airCurrents)
+
+      let moving = 0
+      for (let i = 0; i < grid.airX.length; i++) {
+        if (grid.airX[i] !== 0 || grid.airY[i] !== 0) moving++
+      }
+      return moving
+    }
+
+    expect(run(true)).toBeGreaterThan(0)
+    expect(run(false)).toBe(0)
+  })
+})

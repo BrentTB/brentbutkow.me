@@ -501,7 +501,7 @@ describe('usePixelWorld', () => {
       const loaded = await result.current.loadSnapshot(code)
       frame(0)
 
-      expect(loaded).toEqual({ ok: true })
+      expect(loaded).toEqual({ ok: true, airCurrents: true })
       expect(countMaterial(image, MaterialId.stone, box)).toBe(drawn)
     })
 
@@ -551,7 +551,14 @@ describe('usePixelWorld', () => {
       frame(MS_PER_TICK)
       expect(lastContext?.drawImage).toHaveBeenCalled()
 
-      act(() => result.current.applySettings({ tintBlocks: false, tintAir: false }))
+      act(() =>
+        result.current.applySettings({
+          tintBlocks: false,
+          tintAir: false,
+          showFlow: false,
+          airCurrents: true,
+        })
+      )
       lastContext?.drawImage.mockClear()
       frame(MS_PER_TICK)
 
@@ -569,7 +576,14 @@ describe('usePixelWorld', () => {
       frame(MS_PER_TICK)
       expect(tintAt(90, 90)).toBe(0)
 
-      act(() => result.current.applySettings({ tintBlocks: false, tintAir: true }))
+      act(() =>
+        result.current.applySettings({
+          tintBlocks: false,
+          tintAir: true,
+          showFlow: false,
+          airCurrents: true,
+        })
+      )
       frame(MS_PER_TICK)
 
       expect(tintAt(90, 90)).toBeGreaterThan(0)
@@ -582,7 +596,14 @@ describe('usePixelWorld', () => {
       frame(MS_PER_TICK)
       cancelledHandles = []
 
-      act(() => result.current.applySettings({ tintBlocks: false, tintAir: true }))
+      act(() =>
+        result.current.applySettings({
+          tintBlocks: false,
+          tintAir: true,
+          showFlow: false,
+          airCurrents: true,
+        })
+      )
       frame(MS_PER_TICK)
 
       expect(cancelledHandles).toEqual([])

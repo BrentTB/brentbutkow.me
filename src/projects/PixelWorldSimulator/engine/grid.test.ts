@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { MaterialId } from '../pixel-world.types'
 import { AMBIENT_TEMPERATURE } from '../data'
+import { createRng } from './rng'
+import { tickWorld } from './tick'
 import {
   asMaterial,
   cellIndex,
@@ -8,6 +10,7 @@ import {
   createGrid,
   inBounds,
   markHotRow,
+  markHotRowBand,
   placeMaterial,
   refreshCell,
   swapCells,
@@ -257,6 +260,38 @@ describe('markHotRow', () => {
   })
 })
 
+describe('markHotRowBand', () => {
+  it('wakes the band and a row either side of it, the same as marking each row by hand', () => {
+    // A blast heats hundreds of cells that land in a couple of dozen rows, so waking per cell did the same
+    // work hundreds of times over. Waking the band has to leave the heat pass with exactly the same rows
+    // awake, or heat would be skipped in the row a blast reached.
+    const grid = createGrid(4, 10)
+    const perCell = createGrid(4, 10)
+
+    markHotRowBand(grid, 4, 6)
+    for (let row = 4; row <= 6; row++) markHotRow(perCell, cellIndex(perCell, 0, row))
+
+    expect(Array.from(grid.hotRows)).toEqual(Array.from(perCell.hotRows))
+    expect(Array.from(grid.hotRows)).toEqual([0, 0, 0, 1, 1, 1, 1, 1, 0, 0])
+  })
+
+  it('clamps at the top and bottom rather than writing past the grid', () => {
+    const grid = createGrid(4, 3)
+
+    markHotRowBand(grid, -8, 40)
+
+    expect(Array.from(grid.hotRows)).toEqual([1, 1, 1])
+  })
+
+  it('leaves a world alone where the band is off the grid entirely', () => {
+    const grid = createGrid(4, 3)
+
+    markHotRowBand(grid, 20, 24)
+
+    expect(Array.from(grid.hotRows)).toEqual([0, 0, 0])
+  })
+})
+
 describe('asMaterial', () => {
   it('hands back every id unchanged', () => {
     // The single spot where the sim admits its typed arrays hold MaterialId bytes. If this ever starts
@@ -264,5 +299,39 @@ describe('asMaterial', () => {
     for (const material of MATERIALS) {
       expect(asMaterial(material.id)).toBe(material.id)
     }
+  })
+})
+
+describe('clearGrid and the chunk flags', () => {
+  it('wakes everything, so a wiped world can be drawn into again', () => {
+    const grid = createGrid(96, 96)
+    for (let x = 0; x < grid.width; x++) {
+      placeMaterial(grid, cellIndex(grid, x, grid.height - 1), MaterialId.stone)
+    }
+    const rng = createRng(1)
+    for (let tick = 0; tick < 100; tick++) tickWorld(grid, rng, tick)
+    // It has gone quiet, which is the state a clear has to undo.
+    expect(grid.awakeChunks.some((flag) => flag === 0)).toBe(true)
+
+    clearGrid(grid)
+
+    // A cleared world has no last tick to have been quiet during, so nothing may still be asleep.
+    expect(grid.awakeChunks.every((flag) => flag === 1)).toBe(true)
+  })
+})
+
+describe('the air field on a grid', () => {
+  it('starts still and is wiped along with everything else', () => {
+    const grid = createGrid(64, 64)
+    expect(grid.airX.every((speed) => speed === 0)).toBe(true)
+    expect(grid.airY.every((speed) => speed === 0)).toBe(true)
+
+    grid.airX[cellIndex(grid, 10, 10)] = 5
+    grid.airY[cellIndex(grid, 10, 10)] = -5
+    clearGrid(grid)
+
+    // A wiped world has no weather either.
+    expect(grid.airX.every((speed) => speed === 0)).toBe(true)
+    expect(grid.airY.every((speed) => speed === 0)).toBe(true)
   })
 })

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { SimSetting, SimSettings } from './pixel-world.types'
 import { DEFAULT_SETTINGS, SETTINGS_KEY } from './data'
 
@@ -39,19 +39,34 @@ function writeSettings(settings: SimSettings): void {
 export type SimSettingsControl = {
   settings: SimSettings
   toggle(setting: SimSetting): void
+  /**
+   * Applies one setting for this session without saving it, for a world arriving from a shared link: it
+   * changes what you are looking at, not the preference you come back to.
+   */
+  apply(setting: SimSetting, value: boolean): void
 }
 
 /** The viewer's picture settings, kept in `localStorage` so a world looks the way they left it. */
 export function useSimSettings(): SimSettingsControl {
   const [settings, setSettings] = useState<SimSettings>(readSettings)
+  // The saved preferences. Only a deliberate toggle writes here, so a shared world can change the live
+  // settings for one session without ever overwriting what the viewer chose for themselves.
+  const savedRef = useRef(settings)
 
   const toggle = useCallback((setting: SimSetting) => {
     setSettings((current) => {
       const next = { ...current, [setting]: !current[setting] }
-      writeSettings(next)
+      savedRef.current = { ...savedRef.current, [setting]: next[setting] }
+      writeSettings(savedRef.current)
       return next
     })
   }, [])
 
-  return { settings, toggle }
+  const apply = useCallback((setting: SimSetting, value: boolean) => {
+    setSettings((current) =>
+      current[setting] === value ? current : { ...current, [setting]: value }
+    )
+  }, [])
+
+  return { settings, toggle, apply }
 }

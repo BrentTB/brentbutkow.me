@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { PageLayout } from '../../components/PageFormatting/PageLayout'
 import { PageHeader } from '../../components/PageFormatting/PageHeader'
 import { useFunMode } from '../../contexts/useFunMode'
-import { CellPoint, MaterialId, Tool } from './pixel-world.types'
+import { CellPoint, MaterialId, SimSetting, Tool } from './pixel-world.types'
 import { BRUSH_RADIUS, DEFAULT_MATERIAL, PALETTE_SHEET_QUERY, SIDEBAR_GAP, simCopy } from './data'
 import { useMediaQuery } from '../../components/utils/useMediaQuery'
 import { useElementHeight } from './useElementHeight'
@@ -41,7 +41,7 @@ export function PixelWorldSimulator() {
   const [tool, setTool] = useState<Tool>(Tool.paint)
   const [radius, setRadius] = useState(BRUSH_RADIUS.default)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
-  const { settings, toggle: toggleSetting } = useSimSettings()
+  const { settings, toggle: toggleSetting, apply: applySetting } = useSimSettings()
 
   // How much room is left beside the canvas once the tools have had theirs. The canvas takes its height from
   // its own aspect ratio, so this can only be measured — and without it the tally runs on past the bottom of
@@ -59,7 +59,12 @@ export function PixelWorldSimulator() {
   useEffect(() => applySettings(settings), [applySettings, settings])
 
   const { snapshot, loadSnapshot, pause, togglePause } = sim
-  const link = useShareLink({ snapshot, loadSnapshot, onArrivePaused: pause })
+  const link = useShareLink({
+    snapshot,
+    loadSnapshot,
+    onArrivePaused: pause,
+    onArriveAirCurrents: (on) => applySetting(SimSetting.airCurrents, on),
+  })
 
   // Depend on the two callbacks rather than on `sim`, whose identity changes every time the readout
   // refreshes — otherwise the canvas re-registers all five pointer listeners ten times a second.

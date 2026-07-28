@@ -17,7 +17,10 @@ const CODE = 'a-world-code'
 function ports(overrides: Partial<Parameters<typeof useShareLink>[0]> = {}) {
   return {
     snapshot: vi.fn(() => Promise.resolve({ code: CODE, heatDropped: false })),
-    loadSnapshot: vi.fn((): Promise<SnapshotResult> => Promise.resolve({ ok: true })),
+    loadSnapshot: vi.fn(
+      (): Promise<SnapshotResult> => Promise.resolve({ ok: true, airCurrents: true })
+    ),
+    onArriveAirCurrents: vi.fn(),
     onArrivePaused: vi.fn(),
     ...overrides,
   }
@@ -195,6 +198,36 @@ describe('useShareLink — arriving on a world', () => {
     expect(result.current.outcome).toBe(ShareOutcome.loaded)
   })
 
+  it('matches the sender air setting on arrival, on and off alike', async () => {
+    window.history.replaceState(null, '', `#${SHARE_HASH_KEY}=${CODE}`)
+    const on = ports({
+      loadSnapshot: () => Promise.resolve({ ok: true, airCurrents: true }),
+    })
+    const first = renderHook(() => useShareLink(on))
+    await waitFor(() => expect(first.result.current.note).toBe(simCopy.share.loaded))
+    expect(on.onArriveAirCurrents).toHaveBeenCalledWith(true)
+    first.unmount()
+
+    const off = ports({
+      loadSnapshot: () => Promise.resolve({ ok: true, airCurrents: false }),
+    })
+    const second = renderHook(() => useShareLink(off))
+    await waitFor(() => expect(second.result.current.note).toBe(simCopy.share.loaded))
+    expect(off.onArriveAirCurrents).toHaveBeenCalledWith(false)
+  })
+
+  it('does not touch the air setting for a link it could not read', async () => {
+    window.history.replaceState(null, '', `#${SHARE_HASH_KEY}=${CODE}`)
+    const doors = ports({
+      loadSnapshot: () => Promise.resolve({ ok: false, refusal: SnapshotRefusal.version }),
+    })
+
+    const { result } = renderHook(() => useShareLink(doors))
+
+    await waitFor(() => expect(result.current.outcome).toBe(ShareOutcome.refused))
+    expect(doors.onArriveAirCurrents).not.toHaveBeenCalled()
+  })
+
   it('says what was wrong with a link it cannot read', async () => {
     window.history.replaceState(null, '', `#${SHARE_HASH_KEY}=${CODE}`)
     const doors = ports({
@@ -213,7 +246,10 @@ describe('useShareLink — arriving on a world', () => {
     // link decoded, refused, and said nothing — the world just looked fresh with no reason given.
     window.history.replaceState(null, '', `#${SHARE_HASH_KEY}=${CODE}`)
     const doors = ports({
-      loadSnapshot: vi.fn(() => Promise.resolve({ ok: false, refusal: SnapshotRefusal.version })),
+      loadSnapshot: vi.fn(
+        (): Promise<SnapshotResult> =>
+          Promise.resolve({ ok: false, refusal: SnapshotRefusal.version })
+      ),
     })
 
     const { result } = renderHook(() => useShareLink(doors), { wrapper: StrictMode })

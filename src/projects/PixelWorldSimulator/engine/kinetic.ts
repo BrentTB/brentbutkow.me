@@ -1,6 +1,7 @@
 import { Grid, MaterialBehavior, MaterialId, Velocity } from '../pixel-world.types'
 import { cellIndex, markHotRow, swapCells, transformCell } from './grid'
-import { MATERIALS, canDisplace } from './materials'
+import { wakeChunk } from './chunks'
+import { MATERIALS, canDisplace, isMovable } from './materials'
 import { Rng } from './rng'
 
 /**
@@ -17,7 +18,7 @@ const AIR_DRAG = 0.985
  */
 const MAX_SPEED = 16
 /** Below this, in cells per tick, a cell has stopped being thrown and goes back to its normal class. */
-const MIN_SPEED = 0.5
+export const MIN_SPEED = 0.5
 /** What a cell keeps after a bounce when its material has nothing springy about it: a thud. */
 const DEFAULT_RESTITUTION = 0.12
 /** How hard an impact has to land, in cells per tick, to break something breakable. */
@@ -31,17 +32,57 @@ const SHATTER_SPREAD = 0.4
 const SLOPE_DEFLECT = 0.6
 /** A little sideways wander on every bounce, so a ball does not repeat one line up and down. */
 const BOUNCE_SCATTER = 0.12
+/**
+ * Speed a boxed-in cell hands to each of the packed cells ahead of it, as a share of its own. Equal
+ * densities cannot displace each other, so inside a bed of sand every grain is walled in by more sand:
+ * with nowhere to put its motion, a buried grain reflected off its neighbour and threw the impulse away.
+ * A charge under a bed deeper than its own blast reach could not move that bed at all, and the middle of
+ * one stayed perfectly still while the surface flew off — the only layer with open air to fly into.
+ *
+ * The run takes the share each rather than splitting it, which treats packed material as rigid: the
+ * whole column goes at once instead of at a fraction that gravity cancels before the next tick. Dividing
+ * it is the more honest arithmetic and it does not work — even handing over the entire impulse, a
+ * twenty-fourth of it per cell left a third of the bed sitting exactly where it started.
+ */
+const IMPACT_TRANSFER = 0.2
+/**
+ * Below this, in cells per tick, an impact is a thud and not a shove. It is also what stops the chain
+ * running away: a shoved cell carries a fifth of what hit it, so anything under five cells per tick
+ * dies on the next hop instead of multiplying down the column.
+ */
+const IMPACT_SPEED = 0.75
+/**
+ * Cells of packed material one impact carries through. Bounded because an impact against a deep bed
+ * would otherwise walk to the far side of the world, once per blocked cell of every blast.
+ */
+const SHOVE_DEPTH = 24
 
 /**
- * Cap on cells in flight. A blast big enough to exceed it should degrade into ordinary falling debris
- * rather than stall the tick, so the slowest entries are the ones dropped.
+ * Cap on cells in flight. A blast big enough to exceed it degrades into ordinary falling debris rather
+ * than stalling the tick, so the slowest entries are the ones dropped.
+ *
+ * Deliberately generous, because it is a valve against an absurd world rather than a budget, and at 3,000
+ * it was quietly eating ordinary explosions: a bed on a deep charge puts twenty thousand cells in the air
+ * at once, so most of a launch was deleted while it was still happening. That is what left large chunks of
+ * a bed hanging there unmoved while the rest of it flew. A test asserts a built explosion passes under it
+ * untouched.
+ *
+ * It does not bound the pass it runs in, so lowering it buys much less than it looks like it should:
+ * `trim` fires at the end of `moveKinetic`, but the pushes arrive from `detonate` later in the same tick,
+ * so the next pass starts over the cap whatever it is set to. Measured, the peak detonation tick walked
+ * 22,248 cells with the cap at 3,000, and the worst tick is the same with the cap removed entirely. What
+ * it actually bounds is the long aftermath: on a world where every cell is a charge, dropping the cap
+ * altogether costs about half again as much total time, which is why this stays.
  */
-export const MAX_IN_FLIGHT = 3000
+export const MAX_IN_FLIGHT = 20_000
 
 /** Hands a cell a velocity, adding to whatever it already had — impulses from two blasts compound. */
 export function push(grid: Grid, index: number, vx: number, vy: number): void {
   const id = grid.material[index]
   if (id === MaterialId.empty) return
+
+  // A cell handed momentum is about to move, which the chunk it sits in has no other way of knowing.
+  wakeChunk(grid, index)
 
   const current = grid.velocity.get(index)
   if (current === undefined) {
@@ -77,7 +118,15 @@ export function moveKinetic(grid: Grid, rng: Rng): void {
     const speed = Math.abs(motion.vx) + Math.abs(motion.vy)
     // Slow cells go back to their own class, but only once something is under them: a cell released
     // mid-air stops where it is, which turns the back half of every arc into a freeze frame.
-    if (speed >= MIN_SPEED || !isSupported(grid, landed)) keep(grid, landed, motion)
+    if (speed >= MIN_SPEED || !isSupported(grid, landed)) {
+      keep(grid, landed, motion)
+      continue
+    }
+
+    // Handing a cell back to its own class has to wake its chunk. `step` skips anything in flight, so a
+    // grain the air grabbed too gently was never visited by either pass: kinetic could not move it and
+    // dropped it, and step had stopped looking. It sat there frozen with open space beside it.
+    wakeChunk(grid, landed)
   }
 
   trim(grid)
@@ -186,8 +235,56 @@ function advance(
     }
   }
 
+  // Boxed in on every axis it was travelling along. Hand the impact to the run of packed cells ahead
+  // before reflecting, so it carries through to open space rather than dying here.
+  shove(grid, at, dx, dy, motion)
   bounce(grid, at, material, motion, dx !== 0, dy !== 0, rng)
   return at
+}
+
+/**
+ * Passes a blocked cell's impact into the run of packed cells ahead of it. They move on the next pass,
+ * topmost first, which is what lets a column travel as a column: the leading cell reaches open space and
+ * each one behind follows into the gap it left.
+ */
+function shove(grid: Grid, at: number, dx: number, dy: number, motion: Velocity): void {
+  const vx = dx === 0 ? 0 : motion.vx * IMPACT_TRANSFER
+  const vy = dy === 0 ? 0 : motion.vy * IMPACT_TRANSFER
+  if (Math.abs(vx) + Math.abs(vy) < IMPACT_SPEED) return
+
+  const packed = packedRun(grid, at, dx, dy)
+  let x = at % grid.width
+  let y = Math.floor(at / grid.width)
+  for (let step = 0; step < packed; step++) {
+    x += dx
+    y += dy
+    push(grid, cellIndex(grid, x, y), vx, vy)
+  }
+}
+
+/**
+ * How many cells ahead are packed in behind each other, up to the cap. Zero when the run is braced
+ * against the world — a wall or the edge of the grid — because an impact on scaffolding goes nowhere.
+ */
+function packedRun(grid: Grid, at: number, dx: number, dy: number): number {
+  const source = grid.material[at]
+  let x = at % grid.width
+  let y = Math.floor(at / grid.width)
+  let packed = 0
+
+  while (packed < SHOVE_DEPTH) {
+    x += dx
+    y += dy
+    if (x < 0 || x >= grid.width || y < 0 || y >= grid.height) return 0
+
+    const id = grid.material[cellIndex(grid, x, y)]
+    // Open space, or something loose enough to push through: the run ends before this cell.
+    if (canDisplace(source, id)) return packed
+    if (!isMovable(id)) return 0
+    packed++
+  }
+
+  return packed
 }
 
 /** Moves one cell if the target yields, consuming that step from the remainder. */

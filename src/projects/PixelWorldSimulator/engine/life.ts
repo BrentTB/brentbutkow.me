@@ -3,6 +3,7 @@ import { asMaterial, cellIndex, placeMaterial, swapCells, transformCell } from '
 import { push } from './kinetic'
 import { ANT_SOFT, MATERIALS } from './materials'
 import { NEIGHBOURS, pickNeighbour } from './neighbours'
+import { isCellAwake, isRowBandAwake, wakeChunk } from './chunks'
 import { Rng } from './rng'
 
 /** Energy per tick a creature loses outside its own medium. A fish in the air is on a short clock. */
@@ -85,14 +86,21 @@ export function simulateLife(grid: Grid, rng: Rng, tick: number): void {
   const leftToRight = tick % 2 === 0
 
   for (let y = height - 1; y >= 0; y--) {
+    if (!isRowBandAwake(grid, y)) continue
     for (let i = 0; i < width; i++) {
       const x = leftToRight ? i : width - 1 - i
+      if (!isCellAwake(grid, x, y)) continue
       const index = y * width + x
       const id = material[index]
       if (IS_ALIVE[id] === 0 || moved[index]) continue
 
       const life = LIFE[id]
       if (life === undefined) continue
+
+      // Everything alive is on a roll every tick — moving, eating, breeding, burning a point of energy —
+      // so a creature that did nothing this tick is not a creature that has settled. It keeps its chunk
+      // awake for as long as it lives.
+      wakeChunk(grid, index)
 
       // Ants run their own rules: they dig and steer instead of drifting, so they never touch the
       // grazer path below.

@@ -3,6 +3,7 @@ import { MATERIALS } from './materials'
 import { asMaterial, cellIndex, placeMaterial, transformCell } from './grid'
 import { Rng } from './rng'
 import { NEIGHBOURS, pickNeighbour } from './neighbours'
+import { isCellAwake, isRowBandAwake, wakeChunk } from './chunks'
 
 /** Chance per tick that a drop of acid eats one of its neighbours. */
 const DISSOLVE_CHANCE = 0.14
@@ -200,6 +201,41 @@ const RULES_BY_MATERIAL: readonly (readonly CompiledRule[])[] = MATERIALS.map((m
   }))
 )
 
+/**
+ * A material's own behaviour beyond the contact rules: acid spending charges, plants and vines creeping,
+ * frost, sponges soaking, sources emitting, voids eating, sparks running a wire, meat rotting. One table
+ * keyed by material, so a material cannot act here without also counting as reactive below — the dispatch
+ * and the awake-list were two hand-kept lists that a new material had to be added to twice or it would
+ * quietly stop once its surroundings went still.
+ */
+type SelfDrivenReaction = (grid: Grid, rng: Rng, x: number, y: number, index: number) => void
+const SELF_DRIVEN: Partial<Record<MaterialId, SelfDrivenReaction>> = {
+  [MaterialId.acid]: dissolve,
+  [MaterialId.plant]: grow,
+  [MaterialId.vine]: creep,
+  [MaterialId.ice]: frost,
+  [MaterialId.snow]: pack,
+  [MaterialId.sponge]: soak,
+  [MaterialId.source]: emit,
+  [MaterialId.void]: consume,
+  [MaterialId.spark]: conduct,
+  [MaterialId.chlorine]: poison,
+  [MaterialId.nitrogen]: boilOff,
+  [MaterialId.meat]: rot,
+}
+
+/**
+ * Whether a material reacts at all. Every reaction here is a roll against a neighbour that is not itself
+ * changing — acid beside a wall eats it on some later tick, a plant grows into dirt on some later tick —
+ * so nothing writes in the meantime and the chunk would sleep before the roll ever landed. Anything with
+ * a rule therefore keeps its own chunk awake for as long as it exists.
+ */
+const REACTIVE = new Uint8Array(
+  MATERIALS.map(({ id }) =>
+    RULES_BY_MATERIAL[id].length > 0 || SELF_DRIVEN[id] !== undefined ? 1 : 0
+  )
+)
+
 // Neighbour tests the reactions reuse every tick, built once. Written inline they were a fresh
 // closure per rule per reactive cell, which is thousands of throwaway objects a tick in a busy world.
 const isEmpty = (found: number) => found === MaterialId.empty
@@ -227,28 +263,18 @@ export function applyReactions(grid: Grid, rng: Rng): void {
   grid.moved.fill(0)
 
   for (let y = 0; y < height; y++) {
+    if (!isRowBandAwake(grid, y)) continue
     for (let x = 0; x < width; x++) {
+      if (!isCellAwake(grid, x, y)) continue
       const index = y * width + x
       const id = material[index]
       if (id === MaterialId.empty) continue
+      if (REACTIVE[id] === 1) wakeChunk(grid, index)
 
       if (RULES_BY_MATERIAL[id].length > 0)
         applyContactRules(grid, rng, x, y, index, asMaterial(id))
 
-      if (id === MaterialId.acid) dissolve(grid, rng, x, y, index)
-      else if (id === MaterialId.plant) grow(grid, rng, x, y, index)
-      else if (id === MaterialId.vine) creep(grid, rng, x, y)
-      else if (id === MaterialId.ice) frost(grid, rng, x, y, index)
-      else if (id === MaterialId.snow) pack(grid, rng, x, y, index)
-      else if (id === MaterialId.sponge) soak(grid, rng, x, y, index)
-      else if (id === MaterialId.source) emit(grid, rng, x, y, index)
-      else if (id === MaterialId.void) consume(grid, rng, x, y)
-      else if (id === MaterialId.spark) conduct(grid, rng, x, y, index)
-      else if (id === MaterialId.chlorine) poison(grid, rng, x, y)
-      else if (id === MaterialId.nitrogen) boilOff(grid, rng, x, y, index)
-      else if (id === MaterialId.meat && rng.chance(ROT_CHANCE)) {
-        transformCell(grid, index, MaterialId.empty)
-      }
+      SELF_DRIVEN[asMaterial(id)]?.(grid, rng, x, y, index)
     }
   }
 }
@@ -290,6 +316,11 @@ function becomeCell(grid: Grid, index: number, material: MaterialId): void {
     return
   }
   transformCell(grid, index, material)
+}
+
+/** Meat left to itself spoils: on some tick it rots away to nothing. */
+function rot(grid: Grid, rng: Rng, _x: number, _y: number, index: number): void {
+  if (rng.chance(ROT_CHANCE)) transformCell(grid, index, MaterialId.empty)
 }
 
 /** Snow buried under more snow compacts into ice, so a deep drift turns solid from the bottom up. */

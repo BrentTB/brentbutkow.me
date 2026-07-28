@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { SimSetting, SimSettings } from '../../pixel-world.types'
-import { SETTING_ROWS, simCopy } from '../../data'
+import { SETTING_SECTIONS, simCopy } from '../../data'
 import { useDialogChrome } from '../../useDialogChrome'
 import styles from './SettingsDialog.module.scss'
 
@@ -40,23 +40,41 @@ export function SettingsDialog({ settings, onToggle, onClose }: SettingsDialogPr
           {simCopy.settings.title}
         </h2>
 
-        <ul className={styles.rows}>
-          {SETTING_ROWS.map(({ setting, label, hint }) => (
-            <li key={setting}>
-              <label className={styles.row}>
-                <input
-                  type="checkbox"
-                  className={styles.check}
-                  checked={settings[setting]}
-                  onChange={() => onToggle(setting)}
-                />
-                <span className={styles.switch} aria-hidden="true" />
-                <span className={styles.label}>{label}</span>
-                <span className={styles.hint}>{hint}</span>
-              </label>
-            </li>
-          ))}
-        </ul>
+        {SETTING_SECTIONS.map(({ title, rows }) => (
+          <fieldset key={title} className={styles.section}>
+            <legend className={styles.sectionTitle}>{title}</legend>
+            <ul className={styles.rows}>
+              {rows.map(({ setting, label, hint, requires }) => {
+                // A row whose dependency is off would show nothing, so it reads as off and cannot be pressed.
+                // The stored preference is left alone: turn air back on and the overlay returns as it was.
+                const available = requires === undefined || settings[requires]
+                return (
+                  <li key={setting}>
+                    <label className={`${styles.row} ${available ? '' : styles.rowLocked}`}>
+                      <input
+                        type="checkbox"
+                        className={styles.check}
+                        checked={available && settings[setting]}
+                        disabled={!available}
+                        onChange={() => {
+                          // `disabled` already blocks a real click; guard the handler too, so the row stays
+                          // inert even if the disabled attribute is ever dropped by mistake.
+                          if (available) onToggle(setting)
+                        }}
+                      />
+                      <span className={styles.switch} aria-hidden="true" />
+                      <span className={styles.label}>{label}</span>
+                      <span className={styles.hint}>
+                        {hint}
+                        {available ? null : ` ${simCopy.settings.locked}`}
+                      </span>
+                    </label>
+                  </li>
+                )
+              })}
+            </ul>
+          </fieldset>
+        ))}
 
         <div className={styles.actions}>
           <button ref={closeRef} type="button" className={styles.done} onClick={onClose}>
