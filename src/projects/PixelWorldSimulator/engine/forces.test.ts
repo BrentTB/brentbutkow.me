@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { MaterialId } from '../pixel-world.types'
 import { AMBIENT_TEMPERATURE, TEMPERATURE_LIMITS } from '../data'
 import { cellIndex, createGrid, placeMaterial } from './grid'
-import { attract, blast, detonate, flashOver, temper, wind } from './forces'
+import { attract, blast, detonate, flashOver, swallow, swirl, temper, wind } from './forces'
 import { MATERIALS } from './materials'
 import { simulateHeat } from './heat'
 import { countMaterials } from './census'
@@ -522,5 +522,47 @@ describe('the tools writing into the air', () => {
       expect(grid.airX[i]).toBe(0)
       expect(grid.airY[i]).toBe(0)
     }
+  })
+})
+
+describe('swallow', () => {
+  it('drags everything loose inward and leaves the scaffolding alone', () => {
+    const grid = createGrid(61, 61)
+    const loose = cellIndex(grid, 42, 30)
+    const wall = cellIndex(grid, 18, 30)
+    placeMaterial(grid, loose, MaterialId.sand)
+    placeMaterial(grid, wall, MaterialId.stone)
+
+    swallow(grid, 30, 30)
+
+    expect(grid.velocity.get(loose)?.vx ?? 0).toBeLessThan(0)
+    // A stone wall being sucked in would make every build site a hazard.
+    expect(grid.velocity.has(wall)).toBe(false)
+  })
+})
+
+describe('swirl', () => {
+  it('turns the air around a point rather than blowing it outward', () => {
+    const grid = createGrid(61, 61)
+
+    swirl(grid, 30, 30, 12)
+
+    // Above the middle the flow runs sideways, and below it runs the other way: that is a circle rather than
+    // a blast. A blast would point away from the centre at both.
+    const above = cellIndex(grid, 30, 22)
+    const below = cellIndex(grid, 30, 38)
+    expect(Math.abs(grid.airX[above])).toBeGreaterThan(Math.abs(grid.airY[above]))
+    expect(Math.sign(grid.airX[above])).not.toBe(Math.sign(grid.airX[below]))
+  })
+
+  it('writes into the air and not into material', () => {
+    const grid = createGrid(61, 61)
+    const grain = cellIndex(grid, 38, 30)
+    placeMaterial(grid, grain, MaterialId.sand)
+
+    swirl(grid, 30, 30, 12)
+
+    // The flow carries things; the coupling rules in `carry` decide what is light enough to go.
+    expect(grid.velocity.size).toBe(0)
   })
 })

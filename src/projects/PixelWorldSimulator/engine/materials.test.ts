@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { MaterialBehavior, MaterialId, Medium } from '../pixel-world.types'
+import { Material, MaterialBehavior, MaterialId, Medium } from '../pixel-world.types'
 import { MATERIALS, canDisplace, canFloatThrough, canPaintOver, isBurning } from './materials'
 
 const FLUIDS: readonly MaterialBehavior[] = [MaterialBehavior.liquid, MaterialBehavior.gas]
@@ -401,6 +401,68 @@ describe('explosives and breakables', () => {
       if (material.restitution === undefined) continue
       expect(material.restitution).toBeGreaterThan(0)
       expect(material.behavior).not.toBe(MaterialBehavior.static)
+    }
+  })
+})
+
+describe('the new materials pull their weight', () => {
+  it('gives popcorn to something that eats it, since the swatch says so', () => {
+    // The blurb promised bugs eat it before any diet did, which is a lie on the palette rather than a bug in
+    // the sim. Anything a swatch claims has to be true in the table.
+    const eaters = MATERIALS.filter(({ life }) => life?.diet.includes(MaterialId.popcorn))
+
+    expect(eaters.length).toBeGreaterThan(0)
+  })
+
+  it('makes pollen the lightest thing in the world, or the air cannot single it out', () => {
+    // Both air thresholds scale by how light a material is, so pollen only rides a breeze that leaves sand
+    // alone while it stays comfortably lighter than everything else loose.
+    const loose = MATERIALS.filter(
+      ({ id, behavior }) => id !== MaterialId.pollen && behavior === MaterialBehavior.powder
+    )
+
+    for (const material of loose) {
+      expect(MATERIALS[MaterialId.pollen].density).toBeLessThan(material.density)
+    }
+  })
+
+  it('pops the kernel one way, into something that is not another kernel', () => {
+    // A thing that keeps popping never settles, and three separate bugs here have been exactly that shape.
+    const kernel = MATERIALS[MaterialId.kernel]
+
+    expect(kernel.pops).toBeGreaterThan(0)
+    expect(kernel.hot?.into).toBe(MaterialId.popcorn)
+    expect(MATERIALS[MaterialId.popcorn].pops).toBeUndefined()
+    expect(MATERIALS[MaterialId.popcorn].hot?.into).not.toBe(MaterialId.kernel)
+  })
+
+  it('leaves every device static, so the world can be built out of them', () => {
+    for (const id of [MaterialId.turbine, MaterialId.blackHole, MaterialId.randomSource]) {
+      expect(MATERIALS[id].behavior).toBe(MaterialBehavior.static)
+    }
+  })
+})
+
+describe('a swatch cannot promise what the table does not do', () => {
+  /** Words a blurb uses for a phase change, and the field that would have to back each one up. */
+  const CLAIMS: readonly { word: RegExp; holds(material: Material): boolean }[] = [
+    // Only the intransitive forms, the ones where the material is describing itself. Nitrogen "freezes what
+    // it touches" and lava "melts what it lands on" are claims about their neighbours, and the fields that
+    // back those live on the neighbour.
+    { word: /\bmelts? (to|into|back)\b/i, holds: ({ hot }) => hot !== undefined },
+    { word: /\bfreezes? (to|into)\b/i, holds: ({ cold }) => cold !== undefined },
+    { word: /\bshatters?\b|\bbreak it\b/i, holds: ({ shatters }) => shatters !== undefined },
+  ]
+
+  it('backs every phase change a blurb mentions with the field that does it', () => {
+    // Metal's blurb said it melted for a while after its melt was taken away, and popcorn's said bugs ate it
+    // before any diet did. Both are lies on the palette rather than bugs in the sim, and neither showed up in
+    // anything that ran.
+    for (const material of MATERIALS) {
+      for (const { word, holds } of CLAIMS) {
+        if (!word.test(material.blurb)) continue
+        expect(holds(material), `${material.label}: "${material.blurb}"`).toBe(true)
+      }
     }
   })
 })

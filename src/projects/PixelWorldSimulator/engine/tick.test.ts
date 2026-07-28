@@ -349,15 +349,17 @@ describe('metal', () => {
     expect(reach(MaterialId.metal)).toBeGreaterThan(reach(MaterialId.stone))
   })
 
-  it('melts into lava when hot enough', () => {
+  it('does not melt, however hot it gets', () => {
+    // Metal is the one material a build can rely on staying exactly where it was put, and what it trades for
+    // that is any phase of its own. Everything else in the world has a temperature that undoes it.
     const grid = withVessel(9, 9)
     const bar = put(grid, 4, 4, MaterialId.metal)
-    grid.temperature[bar] = 1600
+    grid.temperature[bar] = 3000
 
-    run(grid, 4)
+    run(grid, 40)
 
-    expect(count(grid, MaterialId.metal)).toBe(0)
-    expect(count(grid, MaterialId.lava)).toBe(1)
+    expect(count(grid, MaterialId.metal)).toBe(1)
+    expect(count(grid, MaterialId.lava)).toBe(0)
   })
 })
 

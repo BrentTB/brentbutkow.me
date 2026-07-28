@@ -114,6 +114,13 @@ export const MaterialGroup = {
   gases: 'gases',
   energy: 'energy',
   life: 'life',
+  /**
+   * Things that act on their own rather than sitting there being shoved about. Not a seventh class of matter,
+   * which is why it earns a tab: `void` and `source` were always devices filed under Energy because there was
+   * nowhere else for them, so this makes the other six groups more honest rather than only making the row
+   * longer.
+   */
+  devices: 'devices',
 } as const
 export type MaterialGroup = (typeof MaterialGroup)[keyof typeof MaterialGroup]
 
@@ -156,6 +163,9 @@ export const MATERIAL_GROUPS: readonly {
       MaterialId.seed,
       MaterialId.gunpowder,
       MaterialId.shard,
+      MaterialId.kernel,
+      MaterialId.popcorn,
+      MaterialId.pollen,
     ],
   },
   {
@@ -186,7 +196,7 @@ export const MATERIAL_GROUPS: readonly {
   {
     group: MaterialGroup.energy,
     label: 'Energy',
-    materials: [MaterialId.fire, MaterialId.spark, MaterialId.void, MaterialId.source],
+    materials: [MaterialId.fire, MaterialId.spark],
   },
   {
     group: MaterialGroup.life,
@@ -200,6 +210,17 @@ export const MATERIAL_GROUPS: readonly {
       MaterialId.slime,
       MaterialId.ant,
       MaterialId.meat,
+    ],
+  },
+  {
+    group: MaterialGroup.devices,
+    label: 'Devices',
+    materials: [
+      MaterialId.source,
+      MaterialId.randomSource,
+      MaterialId.turbine,
+      MaterialId.blackHole,
+      MaterialId.void,
     ],
   },
 ]
@@ -413,6 +434,9 @@ export const DEFAULT_SETTINGS: SimSettings = {
 
 /** Where the settings live between visits. */
 export const SETTINGS_KEY = 'pixel-world-settings'
+
+/** Where the favourite slots live between visits, beside the settings. */
+export const FAVOURITES_KEY = 'pixel-world-favourites'
 
 /**
  * How many materials the quick slots hold. Three: enough for the handful you keep swapping between while

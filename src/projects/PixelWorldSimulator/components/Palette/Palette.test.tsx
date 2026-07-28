@@ -1,9 +1,12 @@
-import { describe, it, expect, afterEach, vi } from 'vitest'
+import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest'
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import { MaterialId } from '../../pixel-world.types'
 import { MATERIAL_GROUPS, MATERIAL_SLOTS, MaterialGroup, simCopy } from '../../data'
 import { MATERIALS } from '../../engine/materials'
 import { Palette } from './Palette'
+
+// The slots persist now, so a filled one would otherwise leak from one case into the next.
+beforeEach(() => localStorage.clear())
 
 function renderPalette(selected: MaterialId = MaterialId.sand) {
   const onSelect = vi.fn()

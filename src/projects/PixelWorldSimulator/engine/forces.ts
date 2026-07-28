@@ -146,6 +146,58 @@ export function attract(grid: Grid, cx: number, cy: number, radius: number): voi
   })
 }
 
+/** How far a black hole reaches, and how hard. Stronger than the attract tool: it is not a nudge. */
+const HOLE_REACH = 18
+const HOLE_STRENGTH = 6
+/**
+ * Cells per tick of swirl a turbine writes into the air. Into the air rather than into material, so the flow
+ * carries things round and the coupling rules decide what is light enough to go.
+ *
+ * Strong enough to clear water's own bar in `carry`, because a device that cannot stir a pool is a
+ * disappointment. Everything lighter than water was already moving at half this.
+ */
+const TURBINE_SWIRL = 15
+
+/**
+ * Pulls everything loose inward. Eating what arrives is the caller's job, and it matters: a puller that only
+ * pulls is a permanent orbit machine, so the kinetic map never empties and nothing ever settles — which is
+ * the exact shape of the performance problem the explosion work went in to fix.
+ */
+export function swallow(grid: Grid, cx: number, cy: number): void {
+  overDisc(
+    grid,
+    cx,
+    cy,
+    HOLE_REACH,
+    (index, dx, dy, falloff, distance) => {
+      if (!isMovable(grid.material[index]) || distance === 0) return
+      const speed = HOLE_STRENGTH * falloff * massFactor(grid.material[index])
+      push(grid, index, (-dx / distance) * speed, (-dy / distance) * speed)
+    },
+    HOLE_REACH
+  )
+}
+
+/**
+ * Writes a rotation into the air around a point, so the flow sweeps things round rather than outward. The
+ * direction at each cell is the offset turned a quarter turn, which is what makes a circle instead of a blast.
+ */
+export function swirl(grid: Grid, cx: number, cy: number, radius: number): void {
+  overDisc(
+    grid,
+    cx,
+    cy,
+    radius,
+    (index, dx, dy, falloff, distance) => {
+      if (distance === 0) return
+      // Perpendicular to the line out from the middle: (dx, dy) turned ninety degrees.
+      const speed = TURBINE_SWIRL * falloff
+      pushAir(grid, index, (-dy / distance) * speed, (dx / distance) * speed)
+    },
+    radius
+  )
+}
+
 /** Throws everything outward and warms it, so things shoot up and whatever can catch fire does. */
 export function blast(grid: Grid, cx: number, cy: number, radius: number): void {
   impulse(grid, cx, cy, radius, BLAST_STRENGTH, BLAST_HEAT)

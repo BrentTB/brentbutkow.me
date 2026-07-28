@@ -44,6 +44,14 @@ export const MaterialId = {
   slime: 42,
   meat: 43,
   ant: 44,
+  // Appended, never inserted: a snapshot stores raw material bytes, so renumbering anything above would
+  // turn every share link ever written into a different world.
+  pollen: 45,
+  kernel: 46,
+  popcorn: 47,
+  blackHole: 48,
+  turbine: 49,
+  randomSource: 50,
 } as const
 export type MaterialId = (typeof MaterialId)[keyof typeof MaterialId]
 
@@ -143,6 +151,12 @@ export type Material = {
     heat: number
     into: MaterialId
   }
+  /**
+   * Cells per tick of upward kick the moment this cell crosses its `hot` threshold, so a popcorn kernel
+   * jumps as it pops instead of quietly changing colour. Sideways scatter comes from the cell's own column
+   * rather than a die roll, which keeps the heat pass free of the rng.
+   */
+  pops?: number
   /** Breaks into this when something fast enough hits it. */
   shatters?: MaterialId
   /** Present on creatures. Absent on everything else, which is what "alive" means to the engine. */

@@ -528,6 +528,31 @@ describe('a gas in a draught', () => {
     return -1
   }
 
+  it('drifts downwind while it climbs, not only when it is blocked', () => {
+    // The complaint this guards: a turbine had no effect on gases at all. Rising is tried before spreading and
+    // usually succeeds, so a plume that only leaned when it was *blocked* ignored the flow almost entirely.
+    function rose(airX: number): number {
+      const grid = createGrid(81, 41)
+      const start = 40
+      set(grid, start, 35, MaterialId.smoke)
+      grid.airX.fill(airX)
+
+      const rng = createRng(1)
+      for (let tick = 0; tick < 12; tick++) step(grid, rng, tick)
+
+      for (let y = 0; y < grid.height; y++) {
+        for (let x = 0; x < grid.width; x++) {
+          if (at(grid, x, y) === MaterialId.smoke) return x
+        }
+      }
+      return start
+    }
+
+    // Open air above it either way, so nothing is blocked: the only thing that can move it sideways is the
+    // lean on the way up.
+    expect(rose(6)).toBeGreaterThan(rose(-6))
+  })
+
   it('leans the way the air is going instead of drifting at random', () => {
     // The cheap half of the air coupling, and the one that reads best: a plume bends downwind a cell at a
     // time, without the flow ever having to be strong enough to throw anything. Compared against the same

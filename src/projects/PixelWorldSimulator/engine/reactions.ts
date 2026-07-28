@@ -3,6 +3,7 @@ import { MATERIALS } from './materials'
 import { asMaterial, cellIndex, placeMaterial, transformCell } from './grid'
 import { Rng } from './rng'
 import { NEIGHBOURS, pickNeighbour } from './neighbours'
+import { swallow, swirl } from './forces'
 import { isCellAwake, isRowBandAwake, wakeChunk } from './chunks'
 
 /** Chance per tick that a drop of acid eats one of its neighbours. */
@@ -45,6 +46,15 @@ const EMIT_CHANCE = 0.06
 const EMIT_REACH = 20
 /** Chance per tick that a void eats one of its neighbours. */
 const CONSUME_CHANCE = 0.5
+/**
+ * Chance per tick a black hole eats one of the cells touching it. Below the rate things arrive at, so a
+ * crowd builds up around the rim rather than vanishing the instant it lands.
+ */
+const DEVOUR_CHANCE = 0.35
+/** Chance per tick a wild source pours something out. Slower than an ordinary source: variety is the point. */
+const WILD_CHANCE = 0.04
+/** How far a turbine's swirl reaches. Wide enough to be worth placing, small enough to stay a local cost. */
+const TURBINE_REACH = 20
 /**
  * Chance per tick that a cell of chlorine kills a living neighbour. Lower than its bleaching of plants: a
  * creature moves, so it takes several rolls as it passes through a cloud, and gassing should read as a tank
@@ -114,6 +124,16 @@ const CONTACT_RULES: readonly ContactRule[] = [
     becomes: MaterialId.empty,
     neighbourBecomes: MaterialId.saltWater,
     chance: 0.4,
+  },
+  // Pollination, and the reason pollen is worth having at all. Being light is a property, not a purpose: this
+  // is what makes carrying it across a world do something. It sprouts on wet ground only, so a draught over a
+  // dry desert scatters it for nothing and one over a marsh plants a meadow.
+  {
+    material: MaterialId.pollen,
+    neighbour: MaterialId.mud,
+    becomes: MaterialId.empty,
+    neighbourBecomes: MaterialId.seed,
+    chance: 0.25,
   },
   // Loose ground soaks up a drop and turns to mud.
   {
@@ -222,6 +242,11 @@ const SELF_DRIVEN: Partial<Record<MaterialId, SelfDrivenReaction>> = {
   [MaterialId.chlorine]: poison,
   [MaterialId.nitrogen]: boilOff,
   [MaterialId.meat]: rot,
+  // The devices. Being in this table is what keeps their chunks awake: a turbine over already-still air and a
+  // wild source that loses its roll both write nothing, so a sleeping chunk would stop them dead.
+  [MaterialId.blackHole]: devour,
+  [MaterialId.turbine]: spinAir,
+  [MaterialId.randomSource]: pourWildly,
 }
 
 /**
@@ -242,6 +267,33 @@ const isEmpty = (found: number) => found === MaterialId.empty
 const isWater = (found: number) => found === MaterialId.water
 const isSponge = (found: number) => found === MaterialId.sponge
 const isSource = (found: number) => found === MaterialId.source
+/**
+ * What a wild source may pour out. Never a solid: it would wall itself in and go quiet, the same lesson the
+ * volcano's vent taught. Powders, liquids and gases only, and nothing alive — a source of creatures is a
+ * population explosion rather than a surprise.
+ */
+export const WILD_PRODUCTS: readonly MaterialId[] = [
+  MaterialId.sand,
+  MaterialId.dirt,
+  MaterialId.gravel,
+  MaterialId.ash,
+  MaterialId.snow,
+  MaterialId.salt,
+  MaterialId.pollen,
+  MaterialId.kernel,
+  MaterialId.water,
+  MaterialId.oil,
+  MaterialId.honey,
+  MaterialId.mud,
+  MaterialId.acid,
+  MaterialId.lava,
+  MaterialId.nitrogen,
+  MaterialId.steam,
+  MaterialId.smoke,
+  MaterialId.methane,
+  MaterialId.chlorine,
+]
+
 const isFeed = (found: number) => found !== MaterialId.empty && found !== MaterialId.source
 const isConductive = (found: number) => MATERIALS[found].conductive === true
 const isEdible = (found: number) => found !== MaterialId.empty && found !== MaterialId.void
@@ -456,6 +508,40 @@ function spaceAlong(
 }
 
 /** A void eats whatever touches it, which is how you drain a world you have filled. */
+/** A turbine: writes a rotation into the air, and the air's own coupling decides what is light enough to go. */
+function spinAir(grid: Grid, _rng: Rng, x: number, y: number): void {
+  swirl(grid, x, y, TURBINE_REACH)
+}
+
+/**
+ * A black hole: pull everything loose inward, then eat whatever is touching it. Eating is what gives it an end
+ * state — a puller that only pulls leaves everything in orbit forever, which never settles and never empties
+ * the kinetic map.
+ */
+function devour(grid: Grid, rng: Rng, x: number, y: number): void {
+  swallow(grid, x, y)
+
+  if (!rng.chance(DEVOUR_CHANCE)) return
+  const target = pickNeighbour(grid, x, y, isEdible, Math.floor(rng.next() * NEIGHBOURS.length))
+  if (target >= 0) transformCell(grid, target, MaterialId.empty)
+}
+
+/** A source with no fixed product: it picks fresh every time, so what comes out is a surprise each pour. */
+function pourWildly(grid: Grid, rng: Rng, x: number, y: number): void {
+  if (!rng.chance(WILD_CHANCE)) return
+
+  const product = WILD_PRODUCTS[Math.floor(rng.next() * WILD_PRODUCTS.length)]
+  const start = Math.floor(rng.next() * NEIGHBOURS.length)
+  for (let step = 0; step < NEIGHBOURS.length; step++) {
+    const [dx, dy] = NEIGHBOURS[(start + step) % NEIGHBOURS.length]
+    const space = spaceAlong(grid, x, y, dx, dy, product)
+    if (space >= 0) {
+      placeMaterial(grid, space, product)
+      return
+    }
+  }
+}
+
 function consume(grid: Grid, rng: Rng, x: number, y: number): void {
   if (!rng.chance(CONSUME_CHANCE)) return
 

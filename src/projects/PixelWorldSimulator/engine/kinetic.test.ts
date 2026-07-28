@@ -3,6 +3,7 @@ import { Grid, MaterialId } from '../pixel-world.types'
 import { cellIndex, createGrid, placeMaterial } from './grid'
 import { GRID_HEIGHT, GRID_WIDTH } from '../data'
 import { MAX_IN_FLIGHT, moveKinetic, push } from './kinetic'
+import { MATERIALS } from './materials'
 import { createRng } from './rng'
 import { isCellAwake } from './chunks'
 import { tickWorld } from './tick'
@@ -402,5 +403,14 @@ describe('handing a cell back from flight', () => {
     // Flight has let it go, so the chunk has to be awake again for `step` to pick it up.
     expect(grid.velocity.has(resting)).toBe(false)
     expect(isCellAwake(grid, 50, grid.height - 2)).toBe(true)
+  })
+})
+
+describe('metal', () => {
+  it('neither melts nor breaks, so a build can rely on it', () => {
+    // The one material that stays exactly where it was put. It trades any phase of its own for that: heat and
+    // sparks travel through it and nothing else happens to it.
+    expect(MATERIALS[MaterialId.metal].hot).toBeUndefined()
+    expect(MATERIALS[MaterialId.metal].shatters).toBeUndefined()
   })
 })

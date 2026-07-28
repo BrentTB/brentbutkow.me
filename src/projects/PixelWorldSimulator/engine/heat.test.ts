@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { Grid, MaterialId } from '../pixel-world.types'
 import { AMBIENT_TEMPERATURE } from '../data'
-import { cellIndex, createGrid, placeMaterial } from './grid'
+import { cellIndex, createGrid, markHotRow, placeMaterial } from './grid'
 import { MATERIALS } from './materials'
 import { simulateHeat } from './heat'
 import { countMaterials } from './census'
@@ -306,5 +306,52 @@ describe('explosives in the heat pass', () => {
 
     expect(grid.velocity.size).toBeGreaterThan(0)
     expect(grid.velocity.get(bystander)?.vx ?? 0).toBeGreaterThanOrEqual(0)
+  })
+})
+
+describe('a kernel popping', () => {
+  it('jumps as it turns, rather than quietly changing colour', () => {
+    const grid = createGrid(41, 41)
+    const kernel = cellIndex(grid, 20, 30)
+    placeMaterial(grid, kernel, MaterialId.kernel)
+    grid.temperature[kernel] = 400
+    markHotRow(grid, kernel)
+
+    simulateHeat(grid)
+
+    expect(grid.material[kernel]).toBe(MaterialId.popcorn)
+    // Upward, and hard enough to be a hop rather than a twitch.
+    expect(grid.velocity.get(kernel)?.vy ?? 0).toBeLessThan(-1)
+  })
+
+  it('sends a heap of them in more than one direction', () => {
+    // Straight up for every kernel turns a tray of them into one wall going vertically. The scatter comes from
+    // the column each one sits in, so it costs no randomness and stays the same on a replayed seed.
+    const grid = createGrid(41, 41)
+    for (let x = 10; x < 31; x++) {
+      const at = cellIndex(grid, x, 30)
+      placeMaterial(grid, at, MaterialId.kernel)
+      grid.temperature[at] = 400
+      markHotRow(grid, at)
+    }
+
+    simulateHeat(grid)
+
+    const sideways = new Set<number>()
+    for (const [, motion] of grid.velocity) sideways.add(Math.sign(motion.vx))
+    expect(sideways.size).toBeGreaterThan(1)
+  })
+
+  it('leaves materials with no pop of their own alone', () => {
+    const grid = createGrid(41, 41)
+    const ice = cellIndex(grid, 20, 30)
+    placeMaterial(grid, ice, MaterialId.ice)
+    grid.temperature[ice] = 400
+    markHotRow(grid, ice)
+
+    simulateHeat(grid)
+
+    expect(grid.material[ice]).toBe(MaterialId.water)
+    expect(grid.velocity.has(ice)).toBe(false)
   })
 })

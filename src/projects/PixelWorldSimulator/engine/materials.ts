@@ -456,7 +456,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.metal,
     label: 'Metal',
-    blurb: 'Carries heat and sparks fast. Melts to lava.',
+    blurb: 'Carries heat and sparks fast, and nothing melts it.',
     behavior: MaterialBehavior.static,
     density: 1000,
     color: [168, 176, 188],
@@ -466,7 +466,9 @@ export const MATERIALS: readonly Material[] = [
     // Far and away the best conductor, so a bar carries heat across a gap and a spark along its length.
     conductivity: 0.85,
     conductive: true,
-    hot: { at: 1500, into: MaterialId.lava },
+    // Metal does not melt, and does not break. It is the one material a build can rely on staying exactly
+    // where it was put, and what it trades for that is any phase of its own: heat and sparks travel through it
+    // and it is otherwise inert.
   },
   {
     id: MaterialId.rubber,
@@ -685,7 +687,13 @@ export const MATERIALS: readonly Material[] = [
     cold: { at: -8, into: MaterialId.meat },
     life: {
       medium: Medium.surface,
-      diet: [MaterialId.plant, MaterialId.vine, MaterialId.meat, MaterialId.ant],
+      diet: [
+        MaterialId.plant,
+        MaterialId.vine,
+        MaterialId.meat,
+        MaterialId.ant,
+        MaterialId.popcorn,
+      ],
       startEnergy: 120,
       nutrition: 30,
       feedChance: 0.1,
@@ -830,8 +838,8 @@ export const MATERIALS: readonly Material[] = [
       // stranded and left to drain out.
       medium: Medium.any,
       // Leaves are its fuel, not the vine it trails: an ant that grazed its own web would unbuild it as
-      // fast as it built it.
-      diet: [MaterialId.plant],
+      // fast as it built it. Popcorn is the exception it will cross a room for.
+      diet: [MaterialId.plant, MaterialId.popcorn],
       startEnergy: 200,
       nutrition: 60,
       feedChance: 0.1,
@@ -850,6 +858,92 @@ export const MATERIALS: readonly Material[] = [
       hunts: 36,
       corpse: MaterialId.meat,
     },
+  },
+  {
+    id: MaterialId.pollen,
+    label: 'Pollen',
+    blurb: 'Rides the faintest draught. Sprouts into a seed on wet ground.',
+    behavior: MaterialBehavior.powder,
+    // The lightest thing in the world by a distance: snow is 30 and ash 40. The air pass scales what it can
+    // lift by how light a material is, and this is the one that rides a breath of it.
+    density: 6,
+    color: [226, 205, 122],
+    jitter: 18,
+    dispersion: 0,
+    drag: 0,
+    conductivity: 0.05,
+    // It still burns, but nowhere near as readily: at 180 a cloud of it went up before it had gone anywhere,
+    // and something you cannot watch travel is a poor advertisement for the thing that carries it.
+    ignite: { at: 420, ticks: 4, heat: 520, into: MaterialId.empty },
+  },
+  {
+    id: MaterialId.kernel,
+    label: 'Kernel',
+    blurb: 'Jumps when it gets hot, and lands as popcorn.',
+    behavior: MaterialBehavior.powder,
+    density: 45,
+    color: [198, 158, 86],
+    jitter: 10,
+    dispersion: 0,
+    drag: 0.2,
+    conductivity: 0.1,
+    // One way on purpose. A thing that keeps popping never settles, and three separate bugs in this project
+    // have been exactly that: bouncing gravel, dirt jittering on lava, dirt climbing the volcano.
+    hot: { at: 180, into: MaterialId.popcorn },
+    pops: 4.5,
+  },
+  {
+    id: MaterialId.popcorn,
+    label: 'Popcorn',
+    blurb: 'What a kernel turns into. Light enough to blow about, and bugs eat it.',
+    behavior: MaterialBehavior.powder,
+    density: 20,
+    color: [236, 226, 199],
+    jitter: 14,
+    dispersion: 0,
+    drag: 0.35,
+    conductivity: 0.08,
+    // Burns like the dry husk it is, and leaves ash — but well above the 180 its kernel pops at. At 260 a pile
+    // on a hot plate charred as fast as it popped, so the whole trick happened and was gone.
+    ignite: { at: 520, ticks: 24, heat: 560, into: MaterialId.ash },
+  },
+  {
+    id: MaterialId.blackHole,
+    label: 'Black hole',
+    blurb: 'Pulls in everything loose around it, and what reaches it is gone.',
+    behavior: MaterialBehavior.static,
+    density: 1000,
+    color: [22, 18, 34],
+    jitter: 4,
+    dispersion: 0,
+    drag: 0,
+    conductivity: 0.02,
+    acidProof: true,
+  },
+  {
+    id: MaterialId.turbine,
+    label: 'Turbine',
+    blurb: 'Spins the air around it, so loose things nearby get swept round.',
+    behavior: MaterialBehavior.static,
+    density: 1000,
+    color: [126, 148, 168],
+    jitter: 6,
+    dispersion: 0,
+    drag: 0,
+    conductivity: 0.4,
+  },
+  {
+    id: MaterialId.randomSource,
+    label: 'Wild source',
+    blurb: 'Pours out something different every time. Never anything solid.',
+    behavior: MaterialBehavior.static,
+    density: 1000,
+    color: [156, 122, 196],
+    jitter: 10,
+    dispersion: 0,
+    drag: 0,
+    conductivity: 0.1,
+    acidProof: true,
   },
 ]
 

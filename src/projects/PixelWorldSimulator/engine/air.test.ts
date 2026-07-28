@@ -209,10 +209,16 @@ describe('air carrying material', () => {
     expect(grid.velocity.has(at)).toBe(false)
   })
 
-  it('leaves a pool in its basin', () => {
-    // Water is deliberately exempt: a pool taken apart a cell at a time by wind reads as a bug.
-    const grid = inAGale(MaterialId.water)
+  it('leaves a pool alone in a draught, and only a device or a gale reaches it', () => {
+    // Water is no longer exempt outright, because a turbine that cannot stir a pool is a disappointment. What
+    // keeps it in its basin is the density-scaled bar in `carry`: a draught strong enough to be worth drawing
+    // still does not touch it. A turbine deliberately clears that bar, which `reactions` covers.
+    const grid = openWorld()
     const at = cellIndex(grid, 20, grid.height - 2)
+    placeMaterial(grid, at, MaterialId.water)
+    for (let i = 0; i < grid.airX.length; i++) grid.airX[i] = 5
+
+    simulateAir(grid, 0)
 
     expect(grid.velocity.has(at)).toBe(false)
   })
@@ -380,7 +386,6 @@ describe('what the flow is allowed to pick up', () => {
 
     expect(grid.velocity.has(grain)).toBe(true)
   })
-
 })
 
 describe('the flow runs on its own clock', () => {
@@ -412,5 +417,45 @@ describe('the flow runs on its own clock', () => {
 
     // The draught has spread into its neighbour, which only the field passes do.
     expect(grid.airY[cellIndex(grid, 32, 39)]).not.toBe(before)
+  })
+})
+
+describe('how much wind a material needs', () => {
+  /** Grains of `material` on the floor, left in a steady breeze, and how many left the cell they started in. */
+  function inABreeze(material: MaterialId, flow: number): { gone: number; of: number } {
+    const grid = createGrid(200, 60)
+    for (let x = 0; x < grid.width; x++) {
+      placeMaterial(grid, cellIndex(grid, x, grid.height - 1), MaterialId.stone)
+    }
+    // Spaced out: a solid row cannot move sideways into itself, equal densities being unable to displace
+    // each other, so a packed row would only ever lose its ends.
+    const grains: number[] = []
+    for (let x = 40; x < 160; x += 3) {
+      const at = cellIndex(grid, x, grid.height - 2)
+      placeMaterial(grid, at, material)
+      grains.push(at)
+    }
+
+    const rng = createRng(1)
+    for (let tick = 0; tick < 40; tick++) {
+      for (let i = 0; i < grid.airX.length; i++) grid.airX[i] = flow
+      tickWorld(grid, rng, tick)
+    }
+
+    let gone = 0
+    for (const at of grains) if (grid.material[at] !== material) gone++
+    return { gone, of: grains.length }
+  }
+
+  it('carries pollen on a breeze that leaves sand exactly where it is', () => {
+    // Both bars in `carry` scale with how light a material is. Without that they are one absolute number, so
+    // the lightest thing in the world needs the same gale as gravel and pollen simply never moves.
+    const breeze = 4
+
+    const pollen = inABreeze(MaterialId.pollen, breeze)
+    expect(pollen.gone).toBeGreaterThan(pollen.of / 2)
+    // Not a single grain: the same breeze has to leave ordinary ground alone, which is what stopped a lava
+    // pool plucking the dirt above it and loose dirt climbing the volcano.
+    expect(inABreeze(MaterialId.sand, breeze).gone).toBe(0)
   })
 })
