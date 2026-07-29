@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { MaterialId } from '../pixel-world.types'
+import { MaterialId, type Grid } from '../pixel-world.types'
 import { AMBIENT_TEMPERATURE, TEMPERATURE_LIMITS } from '../data'
 import { cellIndex, createGrid, placeMaterial } from './grid'
 import { blast, detonate, flashOver, scatter, swallow, temper } from './forces'
@@ -233,6 +233,52 @@ describe('detonate', () => {
 
     expect(grid.material[cell]).toBe(MaterialId.stone)
     expect(grid.velocity.size).toBe(0)
+  })
+})
+
+// A charge in the middle of a solid field of charges is the case that used to crawl: every one of them stirred
+// the air over a disc three times the blast radius, and none of it was visible under the neighbours.
+describe('a charge with nothing but other charges around it', () => {
+  function packedField(): { grid: Grid; middle: number } {
+    const grid = createGrid(81, 81)
+    for (let y = 30; y <= 50; y++) {
+      for (let x = 30; x <= 50; x++) placeMaterial(grid, cellIndex(grid, x, y), MaterialId.tnt)
+    }
+    return { grid, middle: cellIndex(grid, 40, 40) }
+  }
+
+  it('leaves the air alone', () => {
+    const { grid, middle } = packedField()
+
+    detonate(grid, middle, 40, 40)
+
+    for (let i = 0; i < grid.airX.length; i++) {
+      expect(grid.airX[i]).toBe(0)
+      expect(grid.airY[i]).toBe(0)
+    }
+  })
+
+  it('still heats its neighbours enough to set them off, so the chain runs', () => {
+    const { grid, middle } = packedField()
+    const along = cellIndex(grid, 46, 40)
+
+    detonate(grid, middle, 40, 40)
+
+    const { explodes } = MATERIALS[MaterialId.tnt]
+    expect(grid.temperature[along]).toBeGreaterThanOrEqual(explodes?.at ?? Infinity)
+  })
+
+  it('stirs the air again as soon as there is something worth throwing beside it', () => {
+    const { grid, middle } = packedField()
+    placeMaterial(grid, cellIndex(grid, 41, 40), MaterialId.sand)
+
+    detonate(grid, middle, 40, 40)
+
+    let stirred = false
+    for (let i = 0; i < grid.airX.length; i++) {
+      if (grid.airX[i] !== 0 || grid.airY[i] !== 0) stirred = true
+    }
+    expect(stirred).toBe(true)
   })
 })
 

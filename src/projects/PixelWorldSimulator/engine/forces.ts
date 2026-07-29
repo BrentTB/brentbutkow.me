@@ -1,4 +1,4 @@
-import { Grid, MaterialId } from '../pixel-world.types'
+import { Grid, MaterialBehavior, MaterialId } from '../pixel-world.types'
 import { AMBIENT_TEMPERATURE, TEMPERATURE_LIMITS } from '../data'
 import { cellIndex, markHotRow, markHotRowBand, placeMaterial, transformCell } from './grid'
 import { MATERIALS, isMovable } from './materials'
@@ -81,6 +81,36 @@ const MASS_FACTOR = new Float32Array(
 /** How far a given material is thrown by the same impulse. Lighter cells fly. */
 function massFactor(id: number): number {
   return MASS_FACTOR[id]
+}
+
+/**
+ * Whether a cell of this material is worth aiming a blast at: something a throw would visibly move. Charges are
+ * out because they are about to stop existing, and gases are out because a puff of smoke flying across the
+ * world is not something anybody watches. Air and walls are out already, being immovable.
+ */
+const WORTH_THROWING = new Uint8Array(
+  MATERIALS.map(({ id, behavior, explodes }) =>
+    isMovable(id) && behavior !== MaterialBehavior.gas && explodes === undefined ? 1 : 0
+  )
+)
+
+/**
+ * Whether none of the eight cells around this one is worth throwing.
+ *
+ * Asking what there is to throw, rather than the tempting "are all my neighbours charges", is the point. A charge
+ * only goes off because heat reached it, so the neighbour that lit it has already gone off and reads as spent:
+ * every charge in a chain has a spent neighbour, and a test on charges is false essentially always.
+ */
+function nothingToThrowBeside(grid: Grid, x: number, y: number): boolean {
+  if (x < 1 || y < 1 || x >= grid.width - 1 || y >= grid.height - 1) return false
+
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      if (dx === 0 && dy === 0) continue
+      if (WORTH_THROWING[grid.material[cellIndex(grid, x + dx, y + dy)]] === 1) return false
+    }
+  }
+  return true
 }
 
 /**
@@ -225,7 +255,13 @@ function impulse(
   radius: number,
   strength: number,
   heat: number,
-  minReach = MIN_REACH
+  minReach = MIN_REACH,
+  /**
+   * Whether to stir the air as well. The draught is the expensive half of a blast by a wide margin — it walks a
+   * disc three times the radius, so nine times the cells — and it is the half worth dropping for a charge with
+   * nothing but other charges around it.
+   */
+  gust = true
 ): void {
   overDisc(
     grid,
@@ -256,7 +292,7 @@ function impulse(
 
   // The draught, over a much wider disc than the blast itself: this is what curls debris around and drags
   // smoke outward instead of leaving a still world with things flying through it.
-  if (strength > 0) {
+  if (gust && strength > 0) {
     const gustReach = Math.max(minReach, Math.floor(radius)) * AIR_REACH
     overDisc(
       grid,
@@ -296,17 +332,27 @@ export function flashOver(grid: Grid, x: number, y: number): void {
  * Sets a charge off: it becomes whatever it leaves behind, then throws and heats everything around it.
  * The heat is what chains one charge into the next, so a buried line of TNT goes up as a line.
  *
- * Every charge blasts in full, including the ones going off inside another blast. That looks wasteful in a
- * packed field, and skipping them is much faster, but the overlapping impulses are the launch: it is what
- * makes a deep slab throw a sand bed instead of just scorching it.
+ * A charge with charges on every side throws over a much smaller disc. Everything its full disc would have
+ * reached is either another charge about to stop existing or deep inside the mass, so the reach buys nothing
+ * anybody can see and costs exactly what a charge at the surface costs. Half a screen of gunpowder is almost
+ * all interior, which is why it crawled.
+ *
+ * It still throws, and that part is not optional. Skipping enclosed charges outright is faster again and was
+ * tried and rejected: a deep slab then stops launching the bed above it, because the launch is many overlapping
+ * impulses rather than the one at the top. A small disc keeps the overlap and gives up only the reach that was
+ * landing on other charges.
  */
 export function detonate(grid: Grid, index: number, x: number, y: number): void {
   const charge = MATERIALS[grid.material[index]].explodes
   if (charge === undefined) return
 
+  // Asked before the cell is spent, or it would count itself out of its own neighbourhood.
+  const packed = nothingToThrowBeside(grid, x, y)
+
   transformCell(grid, index, charge.into)
   grid.temperature[index] = charge.heat
   markHotRow(grid, index)
 
-  impulse(grid, x, y, charge.radius, charge.impulse, charge.heat)
+  // Full throw and full heat pulse either way. Only the draught goes.
+  impulse(grid, x, y, charge.radius, charge.impulse, charge.heat, MIN_REACH, !packed)
 }
