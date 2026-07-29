@@ -14,7 +14,9 @@ jobs=""
 npm run typecheck:fast & jobs="$jobs typecheck:$!"
 if [ -n "$STAGED_TS" ]; then
   echo "$STAGED_TS" | tr '\n' '\0' | xargs -0 $BIN/eslint & jobs="$jobs eslint:$!"
-  echo "$STAGED_TS" | tr '\n' '\0' | xargs -0 $BIN/vitest related --run & jobs="$jobs vitest:$!"
+  # QUICK_TESTS skips the heavy preset soaks. Measured, they were 66 of the 68 seconds this step took,
+  # against under two for the typecheck, eslint and prettier put together. `npm test` still runs them.
+  echo "$STAGED_TS" | tr '\n' '\0' | QUICK_TESTS=1 xargs -0 $BIN/vitest related --run & jobs="$jobs vitest:$!"
 fi
 fail=0
 for job in $jobs; do

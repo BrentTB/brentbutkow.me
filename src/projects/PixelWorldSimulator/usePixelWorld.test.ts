@@ -14,7 +14,7 @@ import { MATERIALS } from './engine/materials'
 import { Preset } from './engine/presets'
 import { writeCellRgb } from './engine/palette'
 import { PixelWorldSim, usePixelWorld } from './usePixelWorld'
-import { onCI } from './test-env'
+import { skipSoaks } from './test-env'
 
 const MS_PER_TICK = 1000 / TICK_RATE
 
@@ -166,8 +166,8 @@ function mountSim() {
   return { ...rendered, image }
 }
 
-// Heavy full-sim tests (many mounted ticks) skip on CI and run locally.
-const itSlow = it.skipIf(onCI)
+// Heavy full-sim tests (many mounted ticks). Skipped on CI and in the pre-commit hook; see `skipSoaks`.
+const itSlow = it.skipIf(skipSoaks)
 
 describe('usePixelWorld', () => {
   it('steps the world while running', () => {

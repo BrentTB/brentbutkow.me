@@ -5,10 +5,11 @@ import { cellIndex, createGrid, placeMaterial } from './grid'
 import { Preset, loadPreset } from './presets'
 import { tickWorld } from './tick'
 import { createRng } from './rng'
-import { onCI } from '../test-env'
+import { skipSoaks } from '../test-env'
 
-// Heavy deterministic soaks (hundreds of ticks on a full-size grid) skip on CI and run locally.
-const itSlow = it.skipIf(onCI)
+// Heavy deterministic soaks (thousands of ticks on a full-size world), and nearly the whole cost of this
+// file. Skipped on CI and in the pre-commit hook; see `skipSoaks`.
+const itSlow = it.skipIf(skipSoaks)
 
 /** How far either side of the vault's middle the floating specimen can reach. */
 const CORE_REACH = 8

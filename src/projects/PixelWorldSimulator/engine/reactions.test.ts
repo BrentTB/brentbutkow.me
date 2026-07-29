@@ -7,7 +7,7 @@ import { createRng } from './rng'
 import { WILD_PRODUCTS, applyReactions } from './reactions'
 import { step } from './step'
 import { tickWorld } from './tick'
-import { onCI } from '../test-env'
+import { skipSoaks } from '../test-env'
 
 function put(grid: Grid, x: number, y: number, material: MaterialId): number {
   const index = cellIndex(grid, x, y)
@@ -24,8 +24,8 @@ function count(grid: Grid, material: MaterialId): number {
   return grid.material.reduce((total, cell) => (cell === material ? total + 1 : total), 0)
 }
 
-// Heavy deterministic soaks skip on CI and run locally.
-const itSlow = it.skipIf(onCI)
+// Heavy deterministic soaks. Skipped on CI and in the pre-commit hook; see `skipSoaks`.
+const itSlow = it.skipIf(skipSoaks)
 
 describe('acid', () => {
   it('eats a neighbour it touches', () => {
