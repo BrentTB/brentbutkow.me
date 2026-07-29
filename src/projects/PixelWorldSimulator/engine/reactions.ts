@@ -545,14 +545,24 @@ function corrupt(grid: Grid, rng: Rng, x: number, y: number): void {
 
     const target = cellIndex(grid, nx, ny)
     const found = grid.material[target]
-    if (found === MaterialId.empty || found === MaterialId.corruption) continue
+    // Slime is what it makes of a creature, so it leaves slime alone: the spread travels the ground and the
+    // water regardless, and a slime it skips costs it nothing but the one cell.
+    if (
+      found === MaterialId.empty ||
+      found === MaterialId.corruption ||
+      found === MaterialId.slime
+    ) {
+      continue
+    }
     // Never through fire: a firebreak is the one thing that has to hold, or the weakness is theoretical.
     if (isBurning(grid.burn[target]) || found === MaterialId.fire) continue
     if (corruptionAround(grid, nx, ny, cellIndex(grid, x, y)) > CORRUPT_CROWD) continue
 
-    // Slime is already alive, so there is nothing left in it to turn.
-    const alive = MATERIALS[found].life !== undefined && found !== MaterialId.slime
-    transformCell(grid, target, alive ? MaterialId.slime : MaterialId.corruption)
+    transformCell(
+      grid,
+      target,
+      MATERIALS[found].life !== undefined ? MaterialId.slime : MaterialId.corruption
+    )
     return
   }
 }

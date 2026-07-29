@@ -8,7 +8,7 @@ export const Preset = {
   volcano: 'volcano',
   antColony: 'antColony',
   kitchen: 'kitchen',
-  containment: 'containment',
+  madScience: 'madScience',
 } as const
 export type Preset = (typeof Preset)[keyof typeof Preset]
 
@@ -58,6 +58,44 @@ function dome(grid: Grid, left: number, right: number, edge: number, rise: numbe
   for (let x = left; x <= right; x++) {
     const here = heightAt(x)
     fill(grid, x, Math.min(here, previous), x, Math.max(here, previous), MaterialId.metal)
+    previous = here
+  }
+}
+
+/**
+ * A vault: a hollow room with straight side walls carrying a barrel arch, standing on `floorY`. The walls run
+ * from `spring` down to the floor and the arch springs from there, so the span sets how tall the arch is.
+ *
+ * A wobbled ellipse was the first attempt and reads as a badly drawn circle rather than as a room somebody
+ * built: what makes a vault a vault is the straight wall meeting the curve at a definite line.
+ */
+function vaultRoom(
+  grid: Grid,
+  left: number,
+  right: number,
+  floorY: number,
+  spring: number,
+  thick: number,
+  wall: MaterialId
+): void {
+  // Struck off the walls' inner faces rather than off the full span, so the curve meets the wall flush at the
+  // spring line. Off the full span the arch is `thick` wider than the room below it and leaves a ledge running
+  // right round the vault at the springing.
+  const radius = (right - left) / 2 - thick
+  const middle = (left + right) / 2
+  const crownAt = (x: number) =>
+    spring - Math.round(Math.sqrt(Math.max(0, radius * radius - (x - middle) ** 2)))
+
+  fill(grid, left, crownAt(middle) - thick, right, floorY, MaterialId.empty)
+  fill(grid, left, spring, left + thick - 1, floorY, wall)
+  fill(grid, right - thick + 1, spring, right, floorY, wall)
+
+  // Each column fills the run between its own crown and the last one's, so a steep part of the curve comes out
+  // joined rather than as a stack of cells touching at their corners.
+  let previous = crownAt(left)
+  for (let x = left; x <= right; x++) {
+    const here = crownAt(x)
+    fill(grid, x, Math.min(here, previous) - thick + 1, x, Math.max(here, previous), wall)
     previous = here
   }
 }
@@ -917,26 +955,37 @@ const SIGN_LEGEND = { A: MaterialId.sponge, B: MaterialId.stone } as const
 
 /** How many cells thick the containment chamber's wall is. */
 const CELL_WALL = 3
+/** How far the middle of the lab's barrel roof stands above the ceiling it sits on. */
+const LAB_ROOF_RISE = 14
+/** How far either side of its column the pedestal's cap reaches, so the specimen stands on a wide base. */
+const PEDESTAL_CAP = 4
+/** How many cells thick the reactor vault's wall is. */
+const CORE_WALL = 3
+/** How many columns of earth are banked against each end wall. */
+const LAB_BERM = 16
+/** How many wild sources stand in the reactor room. Fixed, because the building is drawn to a plan. */
+const CORE_SOURCES = 3
 
 /**
- * A lab with one cell of corruption locked in a containment chamber at one end, and an incinerator at the
- * other. The corruption eats its way out of the chamber, creeps the length of the deck taking everything
- * standing on it — the pen of animals on the way turns to slime rather than to wall — and finally reaches the
- * lava, which is the only thing in the world that stops it.
+ * A lab running three experiments at once: a bunker holding one cell of corruption on a pedestal, a glass pen
+ * of animals, and a vault of wild sources hanging in mid-air. An incinerator of lava stands at the far end,
+ * which is the only thing in the world that stops what gets out of the bunker.
+ *
+ * The corruption eats down its pedestal, crosses the deck taking everything standing on it — the pen of
+ * animals on the way turns to slime rather than to wall — and finally reaches the lava.
  *
  * Deliberately the least random preset of the set: the building is drawn to a plan and the randomness is in
  * the terrain outside it and in what the pen happens to be stocked with. A lab that came out different every
  * time would read as rubble rather than as a place somebody built.
  *
  * Two things about corruption set the whole plan. It cannot cross open air, only travel through material it
- * touches — so the chamber is packed solid with rock rather than being a room with a specimen sitting in it,
- * and the metal deck is what carries the spread from one end of the hall to the other. And it spreads at the
- * same rate through metal, glass and stone alike, measured, all three identical — so what buys time is
- * distance and nothing else. A thicker wall of a better material is a thicker wall, no more. The first
- * version of this had a void between two walls, which reads as high security and in fact contains the thing
+ * touches — so the pedestal is its only way down and the metal deck is what carries it the length of the hall.
+ * And it spreads at the same rate through metal, glass and stone alike, measured, all three identical, so what
+ * buys time is distance and nothing else: a thicker wall of a better material is a thicker wall, no more. The
+ * first bunker had a void between two walls, which reads as high security and in fact contains the thing
  * completely and forever, because there is no material across the gap for it to travel through.
  */
-function containment(grid: Grid, rng: Rng): void {
+function madScience(grid: Grid, rng: Rng): void {
   const { width, height } = grid
   const base = Math.floor(height * 0.76)
   const bedrock = height - Math.floor(height * 0.07)
@@ -953,87 +1002,188 @@ function containment(grid: Grid, rng: Rng): void {
   const roof = Math.floor(height * 0.5)
   const floorY = deck - 2
 
-  // --- The shell. Hollowed out first, then walled: a metal deck and roof, glazed along the top course of both
-  // end walls and down the length of the roof, so you can see the whole hall at once and watch it crossed.
-  fill(grid, labLeft, roof, labRight, deck, MaterialId.empty)
+  // --- The shell. Hollowed out first, then walled: a metal deck, a barrel roof over a flat ceiling, and glass
+  // down the top course of both end walls, so you can see the whole hall at once and watch it crossed.
+  fill(grid, labLeft, roof - LAB_ROOF_RISE, labRight, deck, MaterialId.empty)
   fill(grid, labLeft, deck - 1, labRight, deck, MaterialId.metal)
-  fill(grid, labLeft, roof, labRight, roof + 1, MaterialId.metal)
   fill(grid, labLeft, roof, labLeft + 1, deck, MaterialId.metal)
   fill(grid, labRight - 1, roof, labRight, deck, MaterialId.metal)
-  fill(grid, labLeft, roof + 2, labLeft + 1, roof + 9, MaterialId.glass)
-  fill(grid, labRight - 1, roof + 2, labRight, roof + 9, MaterialId.glass)
+  fill(grid, labLeft, roof + 2, labLeft + 1, roof + 11, MaterialId.glass)
+  fill(grid, labRight - 1, roof + 2, labRight, roof + 11, MaterialId.glass)
+  dome(grid, labLeft, labRight - 1, roof, LAB_ROOF_RISE)
 
-  // Service run under the roof, dropping into the extraction hood over the incinerator.
-  fill(grid, labLeft + 8, roof + 4, labRight - 8, roof + 4, MaterialId.metal)
+  // Trusses standing in the void between the arch and the ceiling it springs from. Glazing panels of the arch
+  // was the first attempt and came to nothing: glass and metal are four shades apart, so the skylights were
+  // invisible and the roof still read as one drawn line. Struts cross the gap, so they show.
+  const archAt = (x: number) =>
+    roof -
+    Math.round(LAB_ROOF_RISE * Math.sin((Math.PI * (x - labLeft)) / (labRight - 1 - labLeft)))
+  for (let x = labLeft + 18; x < labRight - 18; x += 30) {
+    fill(grid, x, archAt(x) + 1, x, roof - 1, MaterialId.metal)
+  }
 
-  // --- The containment chamber, standing on the deck at the near end: a thick metal box packed solid with
-  // rock, the specimen at the middle of it, and a glass port to look in through.
-  const cellLeft = labLeft + 6
+  // Knee braces where the walls meet the ceiling, two cells thick: stepped a cell at a time they come out as
+  // a dotted diagonal, which reads as debris rather than as steelwork.
+  for (let step = 0; step < 10; step++) {
+    fill(
+      grid,
+      labLeft + 2 + step,
+      roof + 10 - step,
+      labLeft + 3 + step,
+      roof + 11 - step,
+      MaterialId.metal
+    )
+    fill(
+      grid,
+      labRight - 3 - step,
+      roof + 10 - step,
+      labRight - 2 - step,
+      roof + 11 - step,
+      MaterialId.metal
+    )
+  }
+
+  // A catwalk slung off the ceiling over the near half of the hall, where the floor below it is clear. Run the
+  // full length it collides with everything standing on the deck, and hung every twenty cells it reads as a
+  // row of railings across the room rather than as a walkway.
+  const catwalk = roof + 16
+  const catwalkEnd = labLeft + Math.floor(span * 0.26)
+  fill(grid, labLeft + 6, catwalk, catwalkEnd, catwalk, MaterialId.metal)
+  for (let x = labLeft + 14; x < catwalkEnd; x += 42) {
+    fill(grid, x, roof + 1, x, catwalk - 1, MaterialId.metal)
+  }
+
+  /** A plinth under a station, so nothing in the hall stands straight on the deck. */
+  const plinth = (left: number, right: number) =>
+    fill(grid, left - 3, deck - 3, right + 3, deck - 2, MaterialId.metal)
+
+  // --- The containment bunker at the near end: an empty metal room under a barrel roof of its own, with the
+  // specimen alone on a pedestal in the middle of it and a glass port to look in through.
+  //
+  // The pedestal is also the only way out. Corruption travels through what it touches and cannot cross open
+  // air, so it has to eat down the column and along the floor before it reaches a wall — which is a slower and
+  // far better start than the block of rock this replaced, where it simply chewed outward in every direction.
+  const cellLeft = labLeft + 8
   const cellRight = cellLeft + Math.floor(span * 0.13)
-  const cellTop = floorY - Math.floor((floorY - roof) * 0.62)
+  const cellTop = floorY - Math.floor((floorY - roof) * 0.5)
 
+  plinth(cellLeft, cellRight)
   fill(grid, cellLeft, cellTop, cellRight, floorY, MaterialId.metal)
+  dome(grid, cellLeft, cellRight - 1, cellTop, 7)
   fill(
     grid,
     cellLeft + CELL_WALL,
     cellTop + CELL_WALL,
     cellRight - CELL_WALL,
     floorY,
-    MaterialId.stone
-  )
-  fill(grid, cellRight - CELL_WALL + 1, cellTop + 5, cellRight, cellTop + 12, MaterialId.glass)
-
-  placeMaterial(
-    grid,
-    cellIndex(
-      grid,
-      Math.floor((cellLeft + cellRight) / 2),
-      Math.floor((cellTop + CELL_WALL + floorY) / 2)
-    ),
-    MaterialId.corruption
+    MaterialId.empty
   )
 
-  // The hazard plate on a post beside the chamber, at head height.
-  const signLeft = cellRight + 7
-  const signTop = cellTop + 2
+  // A round hatch in the front wall rather than a slot: the one door reads as the way in.
+  const hatch = Math.floor((cellTop + CELL_WALL + floorY) / 2)
+  for (let dy = -5; dy <= 5; dy++) {
+    const reach = Math.round(Math.sqrt(Math.max(0, 25 - dy * dy)) * 0.6)
+    fill(grid, cellRight - reach, hatch + dy, cellRight, hatch + dy, MaterialId.glass)
+  }
+
+  const pillar = Math.floor((cellLeft + cellRight) / 2)
+  const cap = Math.floor((cellTop + CELL_WALL + floorY) / 2)
+  fill(grid, pillar - 1, cap + 2, pillar + 1, floorY, MaterialId.metal)
+  fill(grid, pillar - PEDESTAL_CAP, cap, pillar + PEDESTAL_CAP, cap + 1, MaterialId.metal)
+  placeMaterial(grid, cellIndex(grid, pillar, cap - 1), MaterialId.corruption)
+
+  // The hazard plate on a post beside the bunker, at head height.
+  const signLeft = cellRight + 8
+  const signTop = cellTop - 4
   stamp(grid, signLeft, signTop, DANGER_SIGN, SIGN_LEGEND)
   fill(grid, signLeft + 5, signTop + DANGER_SIGN.length, signLeft + 5, floorY, MaterialId.metal)
 
-  // --- The pen, in the middle of the hall: a glass tank of water on a bed of algae, stocked at random.
-  const penLeft = labLeft + Math.floor(span * 0.38)
-  const penRight = labLeft + Math.floor(span * 0.68)
-  const penTop = roof + Math.floor((deck - roof) * 0.24)
+  // --- The pen, in the middle of the hall: a glass tank of water on a bed of algae, stocked at random, with an
+  // arched cap so it is not one more box in a row of boxes.
+  const penLeft = labLeft + Math.floor(span * 0.3)
+  const penRight = labLeft + Math.floor(span * 0.56)
+  const penTop = roof + Math.floor((deck - roof) * 0.3)
 
-  fill(grid, penLeft, penTop, penRight, deck - 2, MaterialId.glass)
-  fill(grid, penLeft + 2, penTop + 2, penRight - 2, deck - 4, MaterialId.empty)
-  const waterLine = penTop + Math.floor((deck - penTop) * 0.35)
-  fill(grid, penLeft + 2, waterLine, penRight - 2, deck - 4, MaterialId.water)
+  plinth(penLeft, penRight)
+  fill(grid, penLeft, penTop, penRight, floorY, MaterialId.glass)
+  fill(grid, penLeft + 2, penTop + 2, penRight - 2, floorY - 1, MaterialId.empty)
+  const waterLine = penTop + Math.floor((floorY - penTop) * 0.3)
+  fill(grid, penLeft + 2, waterLine, penRight - 2, floorY - 1, MaterialId.water)
   for (let x = penLeft + 2; x <= penRight - 2; x++) {
-    if (rng.next() < 0.5) put(grid, x, deck - 4, MaterialId.algae)
-    if (rng.next() < 0.14) put(grid, x, deck - 5, MaterialId.algae)
+    if (rng.next() < 0.5) put(grid, x, floorY - 1, MaterialId.algae)
+    if (rng.next() < 0.14) put(grid, x, floorY - 2, MaterialId.algae)
   }
-  scatterLife(grid, rng, penLeft + 3, penRight - 3, waterLine, deck - 6)
+  scatterLife(grid, rng, penLeft + 3, penRight - 3, waterLine, floorY - 3)
+  dome(grid, penLeft, penRight - 1, penTop, 6)
 
-  // --- The incinerator at the far end: a metal tank of lava with a hood over it, and the wild source beside
-  // it, because a lab is where the thing nobody can predict gets built too.
-  const pitLeft = labLeft + Math.floor(span * 0.78)
-  const pitRight = labRight - 4
-  const pitTop = deck - Math.floor((deck - roof) * 0.42)
+  // --- The reactor room: a barrel vault with the wild sources hanging unsupported in the middle of it. A wild
+  // source is a static material, so it stays exactly where it is put and nothing has to hold it up. Clamps
+  // above and below were the first attempt and are gone: whatever they added in apparatus they took away from
+  // the one thing worth looking at, which is a substance floating in an empty room on nothing at all.
+  //
+  // Walled because watching the vault fill with whatever the things decide to pour is the point of having
+  // them, and out on the open deck they read as a spill rather than as an experiment.
+  const coreX = labLeft + Math.floor(span * 0.7)
+  const coreHalf = Math.floor(span * 0.075)
+  const coreSpring = floorY - Math.floor((floorY - roof) * 0.26)
 
-  fill(grid, pitLeft, pitTop, pitRight, deck - 2, MaterialId.metal)
-  fill(grid, pitLeft + 2, pitTop + 2, pitRight - 2, deck - 3, MaterialId.lava)
-  fill(grid, pitLeft, pitTop, pitRight, pitTop, MaterialId.metal)
-  fill(grid, pitLeft + 3, pitTop - 5, pitLeft + 4, pitTop - 1, MaterialId.metal)
-  fill(grid, pitRight - 4, pitTop - 5, pitRight - 3, pitTop - 1, MaterialId.metal)
-  fill(grid, pitLeft + 3, pitTop - 6, pitRight - 3, pitTop - 6, MaterialId.metal)
+  plinth(coreX - coreHalf, coreX + coreHalf)
+  vaultRoom(
+    grid,
+    coreX - coreHalf,
+    coreX + coreHalf,
+    floorY,
+    coreSpring,
+    CORE_WALL,
+    MaterialId.metal
+  )
+  fill(grid, coreX - coreHalf - 4, floorY, coreX + coreHalf + 4, deck, MaterialId.metal)
 
-  put(grid, pitLeft - 8, deck - 3, MaterialId.randomSource)
-  fill(grid, pitLeft - 10, deck - 2, pitLeft - 6, deck - 2, MaterialId.metal)
+  // Halfway between the crown of the arch and the floor, so it hangs in the middle of the room rather than up
+  // under the ceiling. The arch rises by the room's own inner half-width, which is the span less both walls.
+  const held = Math.floor((coreSpring - (coreHalf - CORE_WALL) + floorY) / 2)
+  for (let n = 0; n < CORE_SOURCES; n++) {
+    put(grid, coreX - CORE_SOURCES + 1 + n * 2, held, MaterialId.randomSource)
+  }
 
-  // --- Outside: a couple of trees on the ground the lab does not cover, placed at random.
-  for (const side of [Math.floor(labLeft * 0.5), labRight + Math.floor((width - labRight) * 0.5)]) {
+  // --- The incinerator at the far end: a lava tank under an extraction hood, ducted into the ceiling.
+  const pitLeft = labLeft + Math.floor(span * 0.84)
+  const pitRight = labRight - 5
+  const pitTop = deck - Math.floor((deck - roof) * 0.36)
+
+  plinth(pitLeft, pitRight)
+  fill(grid, pitLeft, pitTop, pitRight, floorY, MaterialId.metal)
+  fill(grid, pitLeft + 2, pitTop + 2, pitRight - 2, floorY - 1, MaterialId.lava)
+  dome(grid, pitLeft + 3, pitRight - 4, pitTop - 7, 4)
+  fill(grid, pitLeft + 3, pitTop - 6, pitLeft + 4, pitTop - 1, MaterialId.metal)
+  fill(grid, pitRight - 4, pitTop - 6, pitRight - 3, pitTop - 1, MaterialId.metal)
+  // The duct up from the hood into the roof, which is what the service run along the ceiling is for.
+  const duct = Math.floor((pitLeft + pitRight) / 2)
+  fill(grid, duct - 1, roof + 1, duct, pitTop - 11, MaterialId.metal)
+
+  // --- Outside: earth banked up against both end walls, and a tree either side of the site.
+  //
+  // The berm is what stops the building meeting the ground along one ruled line. It goes on after everything
+  // else so it banks against the finished walls, and it slopes away over `LAB_BERM` columns rather than
+  // stepping, so the two do not read as two rectangles stacked.
+  for (let step = 1; step <= LAB_BERM; step++) {
+    const crest = floorY - Math.round((1 - step / LAB_BERM) ** 1.6 * 12)
+    for (const x of [labLeft - step, labRight + step]) {
+      for (let y = crest; y <= ground[Math.max(0, Math.min(width - 1, x))]; y++) {
+        if (grid.material[cellIndex(grid, x, y)] !== MaterialId.empty) continue
+        put(grid, x, y, rng.next() < 0.16 ? MaterialId.gravel : MaterialId.dirt)
+      }
+    }
+  }
+
+  // Full-grown ones, so the site reads as somewhere that has stood a while. They go on after the berm, or the
+  // bank would be piled over the trunks.
+  for (const side of [
+    Math.floor(labLeft * 0.55),
+    labRight + Math.floor((width - labRight) * 0.5),
+  ]) {
     const at = Math.max(2, Math.min(width - 3, side + Math.floor(rng.next() * 6) - 3))
-    tree(grid, at, ground[at] - 1, 8 + Math.floor(rng.next() * 6), rng, 2)
+    tree(grid, at, ground[at] - 1, 26 + Math.floor(rng.next() * 8), rng, 5)
   }
 }
 
@@ -1066,7 +1216,7 @@ const BUILDERS: Record<Preset, (grid: Grid, rng: Rng) => void> = {
   [Preset.volcano]: volcano,
   [Preset.antColony]: antColony,
   [Preset.kitchen]: kitchen,
-  [Preset.containment]: containment,
+  [Preset.madScience]: madScience,
 }
 
 /** Wipes the world and builds a preset into it. The rng is what keeps two loads from being identical. */

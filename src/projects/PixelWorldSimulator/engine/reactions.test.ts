@@ -1222,18 +1222,24 @@ describe('corruption', () => {
     expect(MATERIALS[MaterialId.corruption].blurb).toContain('slime')
   })
 
-  it('takes slime itself, so a pen of animals is not a wall it cannot cross', () => {
-    // Slime is already alive, so there is nothing left in it to turn — it has to go the way stone goes, or
-    // every creature corruption meets would leave a permanent hole in its own advance.
+  it('leaves the slime it made alone, and goes around it', () => {
+    // Slime is what corruption makes of a creature, so it does not then turn on its own. Costing it nothing is
+    // what makes that affordable: the spread travels the ground and the water either way, so a slime it skips
+    // is one cell it goes around rather than a hole in its advance.
     const grid = createGrid(41, 41)
     for (let y = 10; y < 31; y++) {
-      for (let x = 10; x < 31; x++) placeMaterial(grid, cellIndex(grid, x, y), MaterialId.slime)
+      for (let x = 10; x < 31; x++) placeMaterial(grid, cellIndex(grid, x, y), MaterialId.stone)
     }
-    placeMaterial(grid, cellIndex(grid, 20, 20), MaterialId.corruption)
+    // A slime wall straight across the slab, with the corruption starting on one side of it.
+    for (let y = 10; y < 31; y++) placeMaterial(grid, cellIndex(grid, 20, y), MaterialId.slime)
+    const slimes = count(grid, MaterialId.slime)
+    placeMaterial(grid, cellIndex(grid, 14, 20), MaterialId.corruption)
 
     const rng = createRng(4)
     for (let tick = 0; tick < 3000; tick++) applyReactions(grid, rng)
 
-    expect(count(grid, MaterialId.corruption)).toBeGreaterThan(1)
+    // Every slime still standing, and the stone around it taken.
+    expect(count(grid, MaterialId.slime)).toBe(slimes)
+    expect(count(grid, MaterialId.corruption)).toBeGreaterThan(20)
   })
 })

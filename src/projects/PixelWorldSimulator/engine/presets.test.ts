@@ -10,6 +10,9 @@ import { onCI } from '../test-env'
 // Heavy deterministic soaks (hundreds of ticks on a full-size grid) skip on CI and run locally.
 const itSlow = it.skipIf(onCI)
 
+/** How far either side of the vault's middle the floating specimen can reach. */
+const CORE_REACH = 8
+
 function count(grid: Grid, material: MaterialId): number {
   let total = 0
   for (const cell of grid.material) if (cell === material) total++
@@ -571,26 +574,45 @@ describe('preset determinism', () => {
   })
 })
 
-describe('the containment unit preset', () => {
+describe('the mad science preset', () => {
   function lab(seed = 3): Grid {
     const grid = createGrid(GRID_WIDTH, GRID_HEIGHT)
-    loadPreset(grid, Preset.containment, createRng(seed))
+    loadPreset(grid, Preset.madScience, createRng(seed))
     return grid
   }
 
-  it('arrives with exactly one cell of corruption, sealed in rock', () => {
+  it('stands the one cell of corruption alone on a pedestal', () => {
     const grid = lab()
 
     expect(count(grid, MaterialId.corruption)).toBe(1)
     const at = grid.material.indexOf(MaterialId.corruption)
     const x = at % grid.width
     const y = Math.floor(at / grid.width)
-    for (let dy = -1; dy <= 1; dy++) {
-      for (let dx = -1; dx <= 1; dx++) {
-        if (dx === 0 && dy === 0) continue
-        expect(grid.material[cellIndex(grid, x + dx, y + dy)]).toBe(MaterialId.stone)
-      }
+
+    // On the cap, which is also its only way out: corruption travels through what it touches and cannot cross
+    // air, so it has to eat down the column and along the floor before it reaches a wall.
+    expect(grid.material[cellIndex(grid, x, y + 1)]).toBe(MaterialId.metal)
+    // And touching nothing else. Encased in rock, as it first was, it chewed outward in every direction at once.
+    for (const [dx, dy] of [
+      [-1, 0],
+      [1, 0],
+      [0, -1],
+      [-1, -1],
+      [1, -1],
+    ]) {
+      expect(grid.material[cellIndex(grid, x + dx, y + dy)]).toBe(MaterialId.empty)
     }
+
+    /** How many cells of the pedestal a given row holds, near the column. */
+    const widthAt = (row: number) => {
+      let cells = 0
+      for (let cx = x - 12; cx <= x + 12; cx++) {
+        if (grid.material[cellIndex(grid, cx, row)] === MaterialId.metal) cells++
+      }
+      return cells
+    }
+    // A wide base on a narrow column, rather than a post.
+    expect(widthAt(y + 1)).toBeGreaterThan(widthAt(y + 6))
   })
 
   it('gives the spread a continuous path from the chamber to the lava', () => {
@@ -635,8 +657,11 @@ describe('the containment unit preset', () => {
     // rather than as a place somebody built.
     const hall = (grid: Grid) => {
       const rows: number[] = []
+      // The near end only: the bunker, the sign and the catwalk. Bounded on both sides by things that are
+      // meant to differ — the pen is stocked at random just past it, and the tree outside throws its canopy to
+      // within a few cells of the near wall.
       for (let y = Math.floor(GRID_HEIGHT * 0.5); y < GRID_HEIGHT * 0.76; y++) {
-        for (let x = Math.floor(GRID_WIDTH * 0.08); x < GRID_WIDTH * 0.36; x++) {
+        for (let x = Math.floor(GRID_WIDTH * 0.1); x < GRID_WIDTH * 0.29; x++) {
           rows.push(grid.material[cellIndex(grid, x, y)])
         }
       }
@@ -660,7 +685,91 @@ describe('the containment unit preset', () => {
     }
     // Sponge appears nowhere else in the lab, so its cells are the sign and nothing but the sign.
     expect(count(grid, MaterialId.sponge)).toBeGreaterThan(20)
-    expect(count(grid, MaterialId.randomSource)).toBe(1)
+    // Several of them, together in the vault rather than one on the deck looking like a spill.
+    expect(count(grid, MaterialId.randomSource)).toBeGreaterThan(1)
+  })
+
+  it('hangs the wild sources in mid-air, touching nothing', () => {
+    // The one thing that makes them read as a specimen under investigation rather than as equipment bolted to
+    // a bench. It costs nothing to do: a wild source is static, so it stays where it is put with no support.
+    const grid = lab()
+
+    for (let index = 0; index < grid.material.length; index++) {
+      if (grid.material[index] !== MaterialId.randomSource) continue
+      const x = index % grid.width
+      const y = Math.floor(index / grid.width)
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          if (dx === 0 && dy === 0) continue
+          const found = grid.material[cellIndex(grid, x + dx, y + dy)]
+          expect([MaterialId.empty, MaterialId.randomSource]).toContain(found)
+        }
+      }
+    }
+  })
+
+  it('roofs the reactor vault with an arch on straight walls', () => {
+    // A vault, not a blob. What makes it read as a room somebody built is the straight wall meeting the curve
+    // at a definite line, which the wobbled ellipse this replaced did not have. Measured off the grid rather
+    // than off remembered offsets: the first version of this sampled the specimen's own row and read zero.
+    const grid = lab()
+
+    const columns: number[] = []
+    for (let index = 0; index < grid.material.length; index++) {
+      if (grid.material[index] === MaterialId.randomSource) columns.push(index % grid.width)
+    }
+    const middle = Math.round(columns.reduce((sum, x) => sum + x, 0) / columns.length)
+    const specimen = Math.floor(grid.material.indexOf(MaterialId.randomSource) / grid.width)
+
+    // The vault floor: the lowest cell of air with something under it, below the specimen. Dropping until the
+    // first obstacle instead finds the lower clamp, which hangs in the way and is not the floor.
+    let floorY = specimen
+    for (let y = specimen; y < grid.height - 1; y++) {
+      const air = grid.material[cellIndex(grid, middle, y)] === MaterialId.empty
+      if (air && grid.material[cellIndex(grid, middle, y + 1)] !== MaterialId.empty) floorY = y
+    }
+
+    /** How far the cavity reaches to the right of the middle on one row, out to the wall's inner face. */
+    const halfWidthAt = (y: number) => {
+      let x = middle
+      const limit = middle + Math.floor(grid.width * 0.2)
+      while (x < limit && grid.material[cellIndex(grid, x, y)] === MaterialId.empty) x++
+      return x - middle
+    }
+
+    /** Whether the specimen hangs on this row, in which case the row says nothing about the room's shape. */
+    const holdsSpecimen = (y: number) => {
+      for (let x = middle - CORE_REACH; x <= middle + CORE_REACH; x++) {
+        if (grid.material[cellIndex(grid, x, y)] === MaterialId.randomSource) return true
+      }
+      return false
+    }
+
+    // Climb from the floor, stopping the row after the cavity stops narrowing — which is the row above the
+    // crown, where the measurement escapes into the open hall and jumps.
+    const profile: number[] = []
+    for (let y = floorY; y > floorY - 60; y--) {
+      if (holdsSpecimen(y)) continue
+      const width = halfWidthAt(y)
+      if (profile.length > 3 && width > profile[profile.length - 1]) break
+      profile.push(width)
+    }
+
+    // A run of rows all the same width: the straight wall. Then a run that narrows every row: the arch.
+    const straight = profile.filter((w) => w === profile[2]).length
+    // The last row still at full width is where the wall stops and the arch springs from.
+    let shoulder = 0
+    profile.forEach((width, at) => {
+      if (width === profile[2]) shoulder = at
+    })
+    const arch = profile
+      .slice(shoulder + 1)
+      .filter((w, at, run) => at === 0 || w < run[at - 1]).length
+
+    expect(profile[2]).toBeGreaterThan(10)
+    expect(straight).toBeGreaterThan(6)
+    expect(arch).toBeGreaterThan(6)
+    expect(profile[profile.length - 1]).toBeLessThan(profile[2])
   })
 
   itSlow(
@@ -671,7 +780,7 @@ describe('the containment unit preset', () => {
       // it is given, so a smaller one is the same building with less distance to cross — and distance is the
       // only thing that paces the spread. Full size, this takes upwards of twelve thousand ticks.
       const grid = createGrid(160, 90)
-      loadPreset(grid, Preset.containment, createRng(3))
+      loadPreset(grid, Preset.madScience, createRng(3))
       const rng = createRng(3)
       let peak = 0
 

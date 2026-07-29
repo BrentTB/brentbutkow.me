@@ -272,9 +272,9 @@ export const PRESETS: readonly { preset: Preset; label: string; title: string }[
     title: 'Pans of kernels and fireworks, over lava and open flame',
   },
   {
-    preset: Preset.containment,
-    label: 'Containment unit',
-    title: 'Corruption locked up at one end of a lab, an incinerator at the other',
+    preset: Preset.madScience,
+    label: 'Mad science',
+    title: 'Experiments under one roof, and one of them gets out',
   },
 ]
 
