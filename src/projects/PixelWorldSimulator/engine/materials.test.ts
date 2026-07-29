@@ -481,7 +481,7 @@ describe('the new materials pull their weight', () => {
   })
 
   it('leaves every device static, so the world can be built out of them', () => {
-    for (const id of [MaterialId.turbine, MaterialId.blackHole, MaterialId.randomSource]) {
+    for (const id of [MaterialId.blackHole, MaterialId.randomSource]) {
       expect(MATERIALS[id].behavior).toBe(MaterialBehavior.static)
     }
   })

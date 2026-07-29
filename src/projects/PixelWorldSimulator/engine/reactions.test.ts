@@ -992,68 +992,6 @@ describe('the devices', () => {
     })
   })
 
-  describe('a turbine', () => {
-    it('writes a rotation into the air rather than blowing it outward', () => {
-      const grid = world((g) => placeMaterial(g, cellIndex(g, 40, 40), MaterialId.turbine))
-
-      applyReactions(grid, createRng(1))
-
-      // Directly above the turbine the flow runs sideways, not up: that is what makes a circle.
-      const above = cellIndex(grid, 40, 34)
-      expect(Math.abs(grid.airX[above])).toBeGreaterThan(Math.abs(grid.airY[above]))
-      // And on the far side it runs the other way.
-      const below = cellIndex(grid, 40, 46)
-      expect(Math.sign(grid.airX[above])).not.toBe(Math.sign(grid.airX[below]))
-    })
-  })
-
-  describe('what a turbine can stir', () => {
-    /** Mean distance of `material` from the middle, with a turbine there and without. */
-    function spread(material: MaterialId, withTurbine: boolean, ticks: number): number {
-      const grid = createGrid(121, 121)
-      for (let x = 0; x < grid.width; x++) {
-        placeMaterial(grid, cellIndex(grid, x, grid.height - 1), MaterialId.stone)
-      }
-      if (withTurbine) placeMaterial(grid, cellIndex(grid, 60, 60), MaterialId.turbine)
-      for (let y = 50; y < 71; y += 2) {
-        for (let x = 45; x < 76; x += 2) {
-          if (x === 60 && y === 60) continue
-          placeMaterial(grid, cellIndex(grid, x, y), material)
-        }
-      }
-
-      const rng = createRng(1)
-      for (let tick = 0; tick < ticks; tick++) tickWorld(grid, rng, tick)
-
-      // Where it ended up, not whether it left: water spreads and fish swim on their own, so the honest signal
-      // is how much further from the middle the whole lot sits.
-      let total = 0
-      let n = 0
-      for (let i = 0; i < grid.material.length; i++) {
-        if (grid.material[i] !== material) continue
-        total += Math.hypot((i % grid.width) - 60, Math.floor(i / grid.width) - 60)
-        n++
-      }
-      return n === 0 ? 0 : total / n
-    }
-
-    it('reaches liquids, gases and creatures, not only loose powder', () => {
-      // The complaint this guards: a turbine had no effect at all on any of the three. Liquids and creatures
-      // were excluded from what the flow may carry, and a rising gas leaned only when it was already blocked,
-      // which for a plume is almost never. Measured, water and fish did not move a single cell.
-      //
-      // A gas is measured inside its own lifetime, or there is nothing left to look at.
-      for (const [material, ticks] of [
-        [MaterialId.sand, 200],
-        [MaterialId.water, 200],
-        [MaterialId.fish, 200],
-        [MaterialId.smoke, 40],
-      ] as const) {
-        expect(spread(material, true, ticks)).toBeGreaterThan(spread(material, false, ticks))
-      }
-    })
-  })
-
   describe('a wild source', () => {
     it('pours out more than one kind of thing', () => {
       const grid = world((g) => placeMaterial(g, cellIndex(g, 40, 20), MaterialId.randomSource))

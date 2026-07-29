@@ -312,6 +312,21 @@ describe('decodeSnapshot on input nobody should trust', () => {
     })
   })
 
+  it('refuses a world written before the material ids were renumbered', async () => {
+    // Removing the turbine shifted every id above it down by one, so a version-1 world decodes into different
+    // materials entirely. Lowering `VERSION` back to 1 would look like it rescued those links and would in fact
+    // scramble them, which is why this pins the floor rather than only the mismatch above it.
+    expect(VERSION).toBeGreaterThan(1)
+
+    const payload = goodPayload()
+    payload[0] = 1
+
+    expect(await decodeSnapshot(await codeFor(payload), target())).toEqual({
+      ok: false,
+      refusal: SnapshotRefusal.version,
+    })
+  })
+
   it('refuses a material id that is not in the palette', async () => {
     const payload = goodPayload()
     // A cell claiming to hold material 250 would index past the palette on the very first read.

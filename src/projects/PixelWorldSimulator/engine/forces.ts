@@ -12,27 +12,6 @@ import { pushAir } from './air'
  */
 const BLAST_STRENGTH = 9
 /**
- * Cells per tick a held wind adds each tick, along the direction of the drag. This and `WIND_AIR` were both
- * raised by about two thirds because the tool felt weak, and measuring said why: a held drag across a hundred
- * cells of sand relocated 47 of them and left the rest of the heap sitting there. Half a pile ignoring the
- * pointer is what "lacking" was.
- *
- * Measured on that heap, cells relocated: sand 47 -> 61 and gravel 36 -> 47, with ash unchanged at 65 because
- * the light stuff always went. Another two thirds on top bought gravel 59 and nothing else, which is a wind
- * that shifts rubble as easily as sand — so it stops here, where heavy material is still work.
- */
-const WIND_STRENGTH = 4
-/**
- * Cells per tick the wind tool puts into the air itself, on top of the shove it gives material directly.
- * Comfortably over the speed the flow needs to pick anything up, so a held drag reads as a gust that lingers
- * rather than a hand pushing individual grains.
- *
- * This is the half that does the most for sand, which the draught carries once it is loose; the direct shove
- * above is what breaks a grain out of a heap in the first place. Raising one without the other moves only one
- * kind of material.
- */
-const WIND_AIR = 6
-/**
  * The smallest disc a force works over, whatever the brush is set to, and whatever a charge's own radius says.
  * Force falls off to nothing at the rim, so a brush-sized blast at the smallest setting had almost no room to
  * push anything at all.
@@ -155,14 +134,6 @@ function pullInward(grid: Grid, cx: number, cy: number, radius: number, strength
 /** How far a black hole reaches, and how hard. A grab rather than a nudge. */
 const HOLE_REACH = 18
 const HOLE_STRENGTH = 6
-/**
- * Cells per tick of swirl a turbine writes into the air. Into the air rather than into material, so the flow
- * carries things round and the coupling rules decide what is light enough to go.
- *
- * Strong enough to clear water's own bar in `carry`, because a device that cannot stir a pool is a
- * disappointment. Everything lighter than water was already moving at half this.
- */
-const TURBINE_SWIRL = 15
 
 /**
  * Pulls everything loose inward. Eating what arrives is the caller's job, and it matters: a puller that only
@@ -171,26 +142,6 @@ const TURBINE_SWIRL = 15
  */
 export function swallow(grid: Grid, cx: number, cy: number): void {
   pullInward(grid, cx, cy, HOLE_REACH, HOLE_STRENGTH)
-}
-
-/**
- * Writes a rotation into the air around a point, so the flow sweeps things round rather than outward. The
- * direction at each cell is the offset turned a quarter turn, which is what makes a circle instead of a blast.
- */
-export function swirl(grid: Grid, cx: number, cy: number, radius: number): void {
-  overDisc(
-    grid,
-    cx,
-    cy,
-    radius,
-    (index, dx, dy, falloff, distance) => {
-      if (distance === 0) return
-      // Perpendicular to the line out from the middle: (dx, dy) turned ninety degrees.
-      const speed = TURBINE_SWIRL * falloff
-      pushAir(grid, index, (-dy / distance) * speed, (dx / distance) * speed)
-    },
-    radius
-  )
 }
 
 /** How far out a burst looks for somewhere to put each trail before giving up on that direction. */
@@ -245,32 +196,6 @@ export function scatter(
 /** Throws everything outward and warms it, so things shoot up and whatever can catch fire does. */
 export function blast(grid: Grid, cx: number, cy: number, radius: number): void {
   impulse(grid, cx, cy, radius, BLAST_STRENGTH, BLAST_HEAT)
-}
-
-/** Pushes along the drag direction while the pointer is held. */
-export function wind(
-  grid: Grid,
-  cx: number,
-  cy: number,
-  radius: number,
-  dx: number,
-  dy: number
-): void {
-  const length = Math.sqrt(dx * dx + dy * dy)
-  if (length === 0) return
-
-  const ux = dx / length
-  const uy = dy / length
-
-  overDisc(grid, cx, cy, radius, (index, _dx, _dy, falloff) => {
-    // Into the air first: the tool blows a draught, and the draught is what carries things. It keeps
-    // working after the pointer stops, and it bends around whatever is in the way.
-    pushAir(grid, index, ux * WIND_AIR * falloff, uy * WIND_AIR * falloff)
-
-    if (!isMovable(grid.material[index])) return
-    const speed = WIND_STRENGTH * falloff * massFactor(grid.material[index])
-    push(grid, index, ux * speed, uy * speed)
-  })
 }
 
 /** Raises or lowers the temperature under the brush, for melting and freezing without painting. */

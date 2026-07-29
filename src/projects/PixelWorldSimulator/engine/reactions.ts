@@ -3,7 +3,7 @@ import { MATERIALS, isBurning } from './materials'
 import { asMaterial, cellIndex, placeMaterial, transformCell } from './grid'
 import { Rng } from './rng'
 import { NEIGHBOURS, pickNeighbour } from './neighbours'
-import { swallow, swirl } from './forces'
+import { swallow } from './forces'
 import { isCellAwake, isRowBandAwake, wakeChunk } from './chunks'
 
 /** Chance per tick that a drop of acid eats one of its neighbours. */
@@ -53,8 +53,6 @@ const CONSUME_CHANCE = 0.5
 const DEVOUR_CHANCE = 0.35
 /** Chance per tick a wild source pours something out. Slower than an ordinary source: variety is the point. */
 const WILD_CHANCE = 0.04
-/** How far a turbine's swirl reaches. Wide enough to be worth placing, small enough to stay a local cost. */
-const TURBINE_REACH = 20
 /**
  * Chance per tick a cell of corruption takes one neighbour. Slow on purpose: a fast spread is a countdown
  * rather than a threat, and the player needs time to get a firebreak in.
@@ -257,7 +255,6 @@ const SELF_DRIVEN: Partial<Record<MaterialId, SelfDrivenReaction>> = {
   // wild source that loses its roll both write nothing, so a sleeping chunk would stop them dead.
   [MaterialId.blackHole]: devour,
   [MaterialId.corruption]: corrupt,
-  [MaterialId.turbine]: spinAir,
   [MaterialId.randomSource]: pourWildly,
 }
 
@@ -517,11 +514,6 @@ function spaceAlong(
     if (found !== product && found !== MaterialId.source) return -1
   }
   return -1
-}
-
-/** A turbine: writes a rotation into the air, and the air's own coupling decides what is light enough to go. */
-function spinAir(grid: Grid, _rng: Rng, x: number, y: number): void {
-  swirl(grid, x, y, TURBINE_REACH)
 }
 
 /**

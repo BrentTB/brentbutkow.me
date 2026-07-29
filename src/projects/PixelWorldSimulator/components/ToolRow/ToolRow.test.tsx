@@ -45,10 +45,10 @@ describe('ToolRow', () => {
   it('reports the tool that was picked', () => {
     const props = renderTools()
 
-    const wind = TOOLS.find(({ tool }) => tool === Tool.wind)
-    screen.getByRole('button', { name: wind?.label ?? '' }).click()
+    const chill = TOOLS.find(({ tool }) => tool === Tool.chill)
+    screen.getByRole('button', { name: chill?.label ?? '' }).click()
 
-    expect(props.onSelect).toHaveBeenCalledWith(Tool.wind)
+    expect(props.onSelect).toHaveBeenCalledWith(Tool.chill)
   })
 
   it('offers full screen as its own control, not a seventh tool', () => {

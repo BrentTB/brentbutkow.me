@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { MaterialId } from '../pixel-world.types'
 import { AMBIENT_TEMPERATURE, TEMPERATURE_LIMITS } from '../data'
 import { cellIndex, createGrid, placeMaterial } from './grid'
-import { blast, detonate, flashOver, scatter, swallow, swirl, temper, wind } from './forces'
+import { blast, detonate, flashOver, scatter, swallow, temper } from './forces'
 import { MATERIALS } from './materials'
 import { createRng } from './rng'
 import { simulateHeat } from './heat'
@@ -124,29 +124,6 @@ describe('the same impulse on different materials', () => {
 
   it('still moves the heaviest thing a force can pick up', () => {
     expect(thrownSpeed(MaterialId.lava)).toBeGreaterThan(0)
-  })
-})
-
-describe('wind', () => {
-  it('blows the way the pointer was dragged', () => {
-    const grid = createGrid(21, 21)
-    const cell = cellIndex(grid, 10, 10)
-    placeMaterial(grid, cell, MaterialId.sand)
-
-    wind(grid, 10, 10, 6, 3, -3)
-
-    const motion = grid.velocity.get(cell)
-    expect(motion?.vx).toBeGreaterThan(0)
-    expect(motion?.vy).toBeLessThan(0)
-  })
-
-  it('does nothing without a drag to take a direction from', () => {
-    const grid = createGrid(21, 21)
-    placeMaterial(grid, cellIndex(grid, 10, 10), MaterialId.sand)
-
-    wind(grid, 10, 10, 6, 0, 0)
-
-    expect(grid.velocity.size).toBe(0)
   })
 })
 
@@ -464,18 +441,6 @@ describe('a charge going off', () => {
 })
 
 describe('the tools writing into the air', () => {
-  it('makes the wind tool blow a draught, not only shove the grains under it', () => {
-    // What makes it wind rather than a hand: the flow it leaves behind keeps working after the drag stops,
-    // and bends around whatever is in the way.
-    const grid = createGrid(61, 61)
-
-    wind(grid, 30, 30, 6, 8, 0)
-
-    let moving = 0
-    for (let i = 0; i < grid.airX.length; i++) if (grid.airX[i] > 0) moving++
-    expect(moving).toBeGreaterThan(0)
-  })
-
   it('shoves air far beyond the debris a blast throws', () => {
     // The complaint this guards: the draught was written over the same disc as the impulse, so it only ever
     // overlapped a couple of hundred of the tens of thousands of cells a blast puts in the air. Turning the
@@ -542,32 +507,6 @@ describe('swallow', () => {
     expect(grid.velocity.get(loose)?.vx ?? 0).toBeLessThan(0)
     // A stone wall being sucked in would make every build site a hazard.
     expect(grid.velocity.has(wall)).toBe(false)
-  })
-})
-
-describe('swirl', () => {
-  it('turns the air around a point rather than blowing it outward', () => {
-    const grid = createGrid(61, 61)
-
-    swirl(grid, 30, 30, 12)
-
-    // Above the middle the flow runs sideways, and below it runs the other way: that is a circle rather than
-    // a blast. A blast would point away from the centre at both.
-    const above = cellIndex(grid, 30, 22)
-    const below = cellIndex(grid, 30, 38)
-    expect(Math.abs(grid.airX[above])).toBeGreaterThan(Math.abs(grid.airY[above]))
-    expect(Math.sign(grid.airX[above])).not.toBe(Math.sign(grid.airX[below]))
-  })
-
-  it('writes into the air and not into material', () => {
-    const grid = createGrid(61, 61)
-    const grain = cellIndex(grid, 38, 30)
-    placeMaterial(grid, grain, MaterialId.sand)
-
-    swirl(grid, 30, 30, 12)
-
-    // The flow carries things; the coupling rules in `carry` decide what is light enough to go.
-    expect(grid.velocity.size).toBe(0)
   })
 })
 

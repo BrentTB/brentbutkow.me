@@ -74,7 +74,7 @@ export function PixelWorldSimulator() {
   const onStroke = useCallback(
     (from: CellPoint, to: CellPoint) => {
       if (tool === Tool.paint) paintStroke(from, to, material, radius)
-      else applyForce(tool, from, to, radius)
+      else applyForce(tool, to, radius)
     },
     [tool, paintStroke, applyForce, material, radius]
   )

@@ -223,7 +223,6 @@ export const MATERIAL_GROUPS: readonly {
       MaterialId.spark,
       MaterialId.source,
       MaterialId.randomSource,
-      MaterialId.turbine,
       MaterialId.blackHole,
       MaterialId.corruption,
       MaterialId.void,
@@ -241,7 +240,6 @@ export const MATERIAL_GROUPS: readonly {
  */
 export const TOOLS: readonly { tool: Tool; label: string; title: string }[] = [
   { tool: Tool.blast, label: 'Blast', title: 'Throw everything outward and heat it' },
-  { tool: Tool.wind, label: 'Wind', title: 'Blow material whichever way you drag' },
   { tool: Tool.heat, label: 'Heat', title: 'Warm whatever is under the brush' },
   { tool: Tool.chill, label: 'Chill', title: 'Cool whatever is under the brush' },
 ]
@@ -295,7 +293,6 @@ export const simCopy = {
   /** Shown in place of the paint hint while a force tool is selected. */
   toolHints: {
     [Tool.blast]: 'Click to throw everything outward. Hold it down for a fountain.',
-    [Tool.wind]: 'Material blows whichever way you drag.',
     [Tool.heat]: 'Hold to warm things up. Ice melts, wood catches fire.',
     [Tool.chill]: 'Hold to cool things down. Water freezes, lava sets.',
   },
@@ -371,7 +368,7 @@ export const simCopy = {
       'This world came from the link you opened, and it is paused. Press play to start it.',
     refused: {
       malformed: 'That link is damaged, so nothing loaded.',
-      version: 'That link came from a newer version of this page.',
+      version: 'That link came from a different version of this page.',
       size: 'That link holds a world of a different size.',
       tooLong: 'That link is too long to be a world.',
       unsupported: 'This browser cannot open shared worlds.',
@@ -536,7 +533,7 @@ export const HOW_IT_WORKS: readonly HowItWorksSection[] = [
   {
     heading: 'The air moves too',
     body: [
-      'The air has a velocity of its own. Heat is what moves it most of the time: warm air rises and cooler air slides in underneath, so a fire or a pool of lava makes its own draught. The wind tool and any explosion shove it directly.',
+      'The air has a velocity of its own. Heat is what moves it most of the time: warm air rises and cooler air slides in underneath, so a fire or a pool of lava makes its own draught. An explosion shoves it hard in every direction at once.',
       'Whatever the air is doing, it carries what is light enough to go along. Heavier material barely notices. Smoke and embers ride a draught a long way, and pollen goes further still.',
       'You can watch the flow itself under Settings, and turn the whole thing off there if you would rather have the frames.',
     ],
