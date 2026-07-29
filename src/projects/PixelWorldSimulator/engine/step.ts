@@ -161,10 +161,18 @@ function touchesFuel(grid: Grid, x: number, y: number): boolean {
   return false
 }
 
-/** The mirror of `fall` for gases: straight up, then a diagonal. */
+/**
+ * The mirror of `fall` for gases: straight up, then a diagonal.
+ *
+ * The diagonal leans downwind where there is a draught. Rising is tried first and usually succeeds, so a
+ * plume that only leaned when it was *blocked* ignored the flow almost entirely — a turbine beside a column
+ * of smoke did nothing to it at all.
+ */
 function rise(grid: Grid, rng: Rng, x: number, y: number, from: number): boolean {
+  const lean = airLean(grid, from)
+  if (lean !== 0 && tryMove(grid, from, x + lean, y - 1, true)) return true
   if (tryMove(grid, from, x, y - 1, true)) return true
-  const dir = rng.chance(0.5) ? 1 : -1
+  const dir = lean !== 0 ? lean : rng.chance(0.5) ? 1 : -1
   return tryMove(grid, from, x + dir, y - 1, true) || tryMove(grid, from, x - dir, y - 1, true)
 }
 

@@ -1,8 +1,9 @@
 import { Grid, MaterialId } from '../pixel-world.types'
-import { MATERIALS } from './materials'
+import { MATERIALS, isBurning } from './materials'
 import { asMaterial, cellIndex, placeMaterial, transformCell } from './grid'
 import { Rng } from './rng'
 import { NEIGHBOURS, pickNeighbour } from './neighbours'
+import { swallow, swirl } from './forces'
 import { isCellAwake, isRowBandAwake, wakeChunk } from './chunks'
 
 /** Chance per tick that a drop of acid eats one of its neighbours. */
@@ -45,6 +46,26 @@ const EMIT_CHANCE = 0.06
 const EMIT_REACH = 20
 /** Chance per tick that a void eats one of its neighbours. */
 const CONSUME_CHANCE = 0.5
+/**
+ * Chance per tick a black hole eats one of the cells touching it. Below the rate things arrive at, so a
+ * crowd builds up around the rim rather than vanishing the instant it lands.
+ */
+const DEVOUR_CHANCE = 0.35
+/** Chance per tick a wild source pours something out. Slower than an ordinary source: variety is the point. */
+const WILD_CHANCE = 0.04
+/** How far a turbine's swirl reaches. Wide enough to be worth placing, small enough to stay a local cost. */
+const TURBINE_REACH = 20
+/**
+ * Chance per tick a cell of corruption takes one neighbour. Slow on purpose: a fast spread is a countdown
+ * rather than a threat, and the player needs time to get a firebreak in.
+ */
+const CORRUPT_CHANCE = 0.02
+/**
+ * Most corruption a newly taken cell may already be touching, not counting the one that took it. The same
+ * crowding rule vine uses, and for the same reason: without it the spread is a smooth expanding disc, which
+ * is the shape every version of this rule produces first and it always reads as a bug.
+ */
+const CORRUPT_CROWD = 3
 /**
  * Chance per tick that a cell of chlorine kills a living neighbour. Lower than its bleaching of plants: a
  * creature moves, so it takes several rolls as it passes through a cloud, and gassing should read as a tank
@@ -114,6 +135,16 @@ const CONTACT_RULES: readonly ContactRule[] = [
     becomes: MaterialId.empty,
     neighbourBecomes: MaterialId.saltWater,
     chance: 0.4,
+  },
+  // Pollination, and the reason pollen is worth having at all. Being light is a property, not a purpose: this
+  // is what makes carrying it across a world do something. It sprouts on wet ground only, so a draught over a
+  // dry desert scatters it for nothing and one over a marsh plants a meadow.
+  {
+    material: MaterialId.pollen,
+    neighbour: MaterialId.mud,
+    becomes: MaterialId.empty,
+    neighbourBecomes: MaterialId.seed,
+    chance: 0.25,
   },
   // Loose ground soaks up a drop and turns to mud.
   {
@@ -222,6 +253,12 @@ const SELF_DRIVEN: Partial<Record<MaterialId, SelfDrivenReaction>> = {
   [MaterialId.chlorine]: poison,
   [MaterialId.nitrogen]: boilOff,
   [MaterialId.meat]: rot,
+  // The devices. Being in this table is what keeps their chunks awake: a turbine over already-still air and a
+  // wild source that loses its roll both write nothing, so a sleeping chunk would stop them dead.
+  [MaterialId.blackHole]: devour,
+  [MaterialId.corruption]: corrupt,
+  [MaterialId.turbine]: spinAir,
+  [MaterialId.randomSource]: pourWildly,
 }
 
 /**
@@ -242,6 +279,33 @@ const isEmpty = (found: number) => found === MaterialId.empty
 const isWater = (found: number) => found === MaterialId.water
 const isSponge = (found: number) => found === MaterialId.sponge
 const isSource = (found: number) => found === MaterialId.source
+/**
+ * What a wild source may pour out. Never a solid: it would wall itself in and go quiet, the same lesson the
+ * volcano's vent taught. Powders, liquids and gases only, and nothing alive — a source of creatures is a
+ * population explosion rather than a surprise.
+ */
+export const WILD_PRODUCTS: readonly MaterialId[] = [
+  MaterialId.sand,
+  MaterialId.dirt,
+  MaterialId.gravel,
+  MaterialId.ash,
+  MaterialId.snow,
+  MaterialId.salt,
+  MaterialId.pollen,
+  MaterialId.kernel,
+  MaterialId.water,
+  MaterialId.oil,
+  MaterialId.honey,
+  MaterialId.mud,
+  MaterialId.acid,
+  MaterialId.lava,
+  MaterialId.nitrogen,
+  MaterialId.steam,
+  MaterialId.smoke,
+  MaterialId.methane,
+  MaterialId.chlorine,
+]
+
 const isFeed = (found: number) => found !== MaterialId.empty && found !== MaterialId.source
 const isConductive = (found: number) => MATERIALS[found].conductive === true
 const isEdible = (found: number) => found !== MaterialId.empty && found !== MaterialId.void
@@ -453,6 +517,97 @@ function spaceAlong(
     if (found !== product && found !== MaterialId.source) return -1
   }
   return -1
+}
+
+/** A turbine: writes a rotation into the air, and the air's own coupling decides what is light enough to go. */
+function spinAir(grid: Grid, _rng: Rng, x: number, y: number): void {
+  swirl(grid, x, y, TURBINE_REACH)
+}
+
+/**
+ * Corruption taking a neighbour. Anything at all, which is what makes it a threat rather than a nuisance,
+ * except what is already corruption and empty air, where there is nothing to convert.
+ *
+ * Living things go to slime rather than to corruption. A creature turning into more of the wall coming for it
+ * reads as the wall eating it; a creature turning into a slime that then crawls off on its own reads as the
+ * creature being turned, which is the more alarming of the two and the only one you can watch happen.
+ */
+function corrupt(grid: Grid, rng: Rng, x: number, y: number): void {
+  if (!rng.chance(CORRUPT_CHANCE)) return
+
+  const start = Math.floor(rng.next() * AROUND.length)
+  for (let step = 0; step < AROUND.length; step++) {
+    const [dx, dy] = AROUND[(start + step) % AROUND.length]
+    const nx = x + dx
+    const ny = y + dy
+    if (nx < 0 || nx >= grid.width || ny < 0 || ny >= grid.height) continue
+
+    const target = cellIndex(grid, nx, ny)
+    const found = grid.material[target]
+    // Slime is what it makes of a creature, so it leaves slime alone: the spread travels the ground and the
+    // water regardless, and a slime it skips costs it nothing but the one cell.
+    if (
+      found === MaterialId.empty ||
+      found === MaterialId.corruption ||
+      found === MaterialId.slime
+    ) {
+      continue
+    }
+    // Never through fire: a firebreak is the one thing that has to hold, or the weakness is theoretical.
+    if (isBurning(grid.burn[target]) || found === MaterialId.fire) continue
+    if (corruptionAround(grid, nx, ny, cellIndex(grid, x, y)) > CORRUPT_CROWD) continue
+
+    transformCell(
+      grid,
+      target,
+      MATERIALS[found].life !== undefined ? MaterialId.slime : MaterialId.corruption
+    )
+    return
+  }
+}
+
+/** How much corruption a cell already touches, ignoring the one asking. */
+function corruptionAround(grid: Grid, x: number, y: number, ignore: number): number {
+  let neighbours = 0
+  for (const [dx, dy] of AROUND) {
+    const nx = x + dx
+    const ny = y + dy
+    if (nx < 0 || nx >= grid.width || ny < 0 || ny >= grid.height) continue
+
+    const index = cellIndex(grid, nx, ny)
+    if (index === ignore || grid.material[index] !== MaterialId.corruption) continue
+    neighbours++
+  }
+  return neighbours
+}
+
+/**
+ * A black hole: pull everything loose inward, then eat whatever is touching it. Eating is what gives it an end
+ * state — a puller that only pulls leaves everything in orbit forever, which never settles and never empties
+ * the kinetic map.
+ */
+function devour(grid: Grid, rng: Rng, x: number, y: number): void {
+  swallow(grid, x, y)
+
+  if (!rng.chance(DEVOUR_CHANCE)) return
+  const target = pickNeighbour(grid, x, y, isEdible, Math.floor(rng.next() * NEIGHBOURS.length))
+  if (target >= 0) transformCell(grid, target, MaterialId.empty)
+}
+
+/** A source with no fixed product: it picks fresh every time, so what comes out is a surprise each pour. */
+function pourWildly(grid: Grid, rng: Rng, x: number, y: number): void {
+  if (!rng.chance(WILD_CHANCE)) return
+
+  const product = WILD_PRODUCTS[Math.floor(rng.next() * WILD_PRODUCTS.length)]
+  const start = Math.floor(rng.next() * NEIGHBOURS.length)
+  for (let step = 0; step < NEIGHBOURS.length; step++) {
+    const [dx, dy] = NEIGHBOURS[(start + step) % NEIGHBOURS.length]
+    const space = spaceAlong(grid, x, y, dx, dy, product)
+    if (space >= 0) {
+      placeMaterial(grid, space, product)
+      return
+    }
+  }
 }
 
 /** A void eats whatever touches it, which is how you drain a world you have filled. */

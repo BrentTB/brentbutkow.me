@@ -2,8 +2,19 @@ import { describe, it, expect } from 'vitest'
 import { MaterialId } from '../pixel-world.types'
 import { AMBIENT_TEMPERATURE, TEMPERATURE_LIMITS } from '../data'
 import { cellIndex, createGrid, placeMaterial } from './grid'
-import { attract, blast, detonate, flashOver, temper, wind } from './forces'
+import {
+  attract,
+  blast,
+  detonate,
+  flashOver,
+  scatter,
+  swallow,
+  swirl,
+  temper,
+  wind,
+} from './forces'
 import { MATERIALS } from './materials'
+import { createRng } from './rng'
 import { simulateHeat } from './heat'
 import { countMaterials } from './census'
 
@@ -522,5 +533,131 @@ describe('the tools writing into the air', () => {
       expect(grid.airX[i]).toBe(0)
       expect(grid.airY[i]).toBe(0)
     }
+  })
+})
+
+describe('swallow', () => {
+  it('drags everything loose inward and leaves the scaffolding alone', () => {
+    const grid = createGrid(61, 61)
+    const loose = cellIndex(grid, 42, 30)
+    const wall = cellIndex(grid, 18, 30)
+    placeMaterial(grid, loose, MaterialId.sand)
+    placeMaterial(grid, wall, MaterialId.stone)
+
+    swallow(grid, 30, 30)
+
+    expect(grid.velocity.get(loose)?.vx ?? 0).toBeLessThan(0)
+    // A stone wall being sucked in would make every build site a hazard.
+    expect(grid.velocity.has(wall)).toBe(false)
+  })
+})
+
+describe('swirl', () => {
+  it('turns the air around a point rather than blowing it outward', () => {
+    const grid = createGrid(61, 61)
+
+    swirl(grid, 30, 30, 12)
+
+    // Above the middle the flow runs sideways, and below it runs the other way: that is a circle rather than
+    // a blast. A blast would point away from the centre at both.
+    const above = cellIndex(grid, 30, 22)
+    const below = cellIndex(grid, 30, 38)
+    expect(Math.abs(grid.airX[above])).toBeGreaterThan(Math.abs(grid.airY[above]))
+    expect(Math.sign(grid.airX[above])).not.toBe(Math.sign(grid.airX[below]))
+  })
+
+  it('writes into the air and not into material', () => {
+    const grid = createGrid(61, 61)
+    const grain = cellIndex(grid, 38, 30)
+    placeMaterial(grid, grain, MaterialId.sand)
+
+    swirl(grid, 30, 30, 12)
+
+    // The flow carries things; the coupling rules in `carry` decide what is light enough to go.
+    expect(grid.velocity.size).toBe(0)
+  })
+})
+
+describe('scatter', () => {
+  it('makes the things that fly, rather than shoving what is already there', () => {
+    // The whole reason a burst cannot be `impulse`: a blast shoves whatever it finds, and up in open sky it
+    // finds nothing at all. A firework has to create its own trails.
+    const grid = createGrid(81, 81)
+
+    scatter(grid, createRng(1), 40, 40, 20, 6, MaterialId.ember)
+
+    let embers = 0
+    for (const id of grid.material) if (id === MaterialId.ember) embers++
+    expect(embers).toBeGreaterThan(6)
+  })
+
+  it('sends each trail out along its own line', () => {
+    const grid = createGrid(81, 81)
+
+    scatter(grid, createRng(1), 40, 40, 20, 6, MaterialId.ember)
+
+    // Away from the middle, and not all the same way: a spray rather than one jet.
+    const quadrants = new Set<string>()
+    for (const [index, motion] of grid.velocity) {
+      const x = index % grid.width
+      const y = Math.floor(index / grid.width)
+      // Pointing outward: the dot product of its own offset and its own speed is positive.
+      expect((x - 40) * motion.vx + (y - 40) * motion.vy).toBeGreaterThan(0)
+      quadrants.add(`${Math.sign(motion.vx)},${Math.sign(motion.vy)}`)
+    }
+    expect(quadrants.size).toBeGreaterThan(2)
+  })
+
+  it('leaves whatever was already in the way alone', () => {
+    // It only ever fills open space, so a burst inside a box does not eat the box.
+    const grid = createGrid(81, 81)
+    for (let y = 30; y < 51; y++) {
+      for (let x = 30; x < 51; x++) {
+        if (x === 40 && y === 40) continue
+        placeMaterial(grid, cellIndex(grid, x, y), MaterialId.stone)
+      }
+    }
+
+    scatter(grid, createRng(1), 40, 40, 20, 6, MaterialId.ember)
+
+    let stone = 0
+    for (const id of grid.material) if (id === MaterialId.stone) stone++
+    expect(stone).toBe(21 * 21 - 1)
+  })
+
+  it('stops a trail at a wall instead of putting it down on the far side', () => {
+    // A firework going off beside the divider in the kitchen was landing embers in the next stall, which lit
+    // that stall's fuse early. The ray walked on past anything it could not fill and dropped its trail in the
+    // first open cell it found, and the first open cell was through the wall.
+    // Inside the reach of a trail, or the ray stops short of the wall and the test proves nothing.
+    const wall = 42
+    const grid = createGrid(81, 81)
+    for (let y = 0; y < 81; y++) placeMaterial(grid, cellIndex(grid, wall, y), MaterialId.stone)
+
+    scatter(grid, createRng(1), 40, 40, 40, 6, MaterialId.ember)
+
+    for (let index = 0; index < grid.material.length; index++) {
+      if (grid.material[index] !== MaterialId.ember) continue
+      expect(index % grid.width).toBeLessThan(wall)
+    }
+  })
+
+  it('still throws trails out through loose material it is buried in', () => {
+    // The other half of that rule. A firework that goes off down among its own kernels has to be able to
+    // spray through them, or bursting inside anything at all produces nothing. A layer thinner than the reach
+    // of a trail, since past that the burst gives up on a direction whatever is in the way.
+    const grid = createGrid(81, 81)
+    for (let y = 38; y < 43; y++) {
+      for (let x = 38; x < 43; x++) {
+        if (x === 40 && y === 40) continue
+        placeMaterial(grid, cellIndex(grid, x, y), MaterialId.sand)
+      }
+    }
+
+    scatter(grid, createRng(1), 40, 40, 20, 6, MaterialId.ember)
+
+    let embers = 0
+    for (const id of grid.material) if (id === MaterialId.ember) embers++
+    expect(embers).toBeGreaterThan(6)
   })
 })

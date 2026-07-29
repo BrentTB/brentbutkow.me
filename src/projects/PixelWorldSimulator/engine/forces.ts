@@ -1,8 +1,9 @@
-import { Grid } from '../pixel-world.types'
+import { Grid, MaterialId } from '../pixel-world.types'
 import { AMBIENT_TEMPERATURE, TEMPERATURE_LIMITS } from '../data'
-import { cellIndex, markHotRow, markHotRowBand, transformCell } from './grid'
+import { cellIndex, markHotRow, markHotRowBand, placeMaterial, transformCell } from './grid'
 import { MATERIALS, isMovable } from './materials'
 import { push } from './kinetic'
+import { Rng } from './rng'
 import { pushAir } from './air'
 
 /**
@@ -131,19 +132,112 @@ function overDisc(
   }
 }
 
-/** Pulls loose cells toward the pointer, black-hole style. */
-export function attract(grid: Grid, cx: number, cy: number, radius: number): void {
-  overDisc(grid, cx, cy, radius, (index, dx, dy, falloff) => {
-    if (!isMovable(grid.material[index])) return
-
-    const distance = Math.sqrt(dx * dx + dy * dy)
-    if (distance === 0) return
-
-    // Direction only: dividing the strength by the distance as well made anything more than a few cells
-    // out barely twitch, which is the opposite of a black hole.
-    const speed = PULL_STRENGTH * falloff * massFactor(grid.material[index])
+/**
+ * Pulls every loose cell straight toward the centre — direction only, so a cell far out is still yanked in
+ * rather than left to twitch, which is the opposite of a black hole. Strength and reach are the whole
+ * difference between the attract tool's nudge and a black hole's grip.
+ */
+function pullInward(grid: Grid, cx: number, cy: number, radius: number, strength: number): void {
+  overDisc(grid, cx, cy, radius, (index, dx, dy, falloff, distance) => {
+    if (!isMovable(grid.material[index]) || distance === 0) return
+    const speed = strength * falloff * massFactor(grid.material[index])
     push(grid, index, (-dx / distance) * speed, (-dy / distance) * speed)
   })
+}
+
+/** Pulls loose cells toward the pointer, black-hole style. */
+export function attract(grid: Grid, cx: number, cy: number, radius: number): void {
+  pullInward(grid, cx, cy, radius, PULL_STRENGTH)
+}
+
+/** How far a black hole reaches, and how hard. Stronger than the attract tool: it is not a nudge. */
+const HOLE_REACH = 18
+const HOLE_STRENGTH = 6
+/**
+ * Cells per tick of swirl a turbine writes into the air. Into the air rather than into material, so the flow
+ * carries things round and the coupling rules decide what is light enough to go.
+ *
+ * Strong enough to clear water's own bar in `carry`, because a device that cannot stir a pool is a
+ * disappointment. Everything lighter than water was already moving at half this.
+ */
+const TURBINE_SWIRL = 15
+
+/**
+ * Pulls everything loose inward. Eating what arrives is the caller's job, and it matters: a puller that only
+ * pulls is a permanent orbit machine, so the kinetic map never empties and nothing ever settles — which is
+ * the exact shape of the performance problem the explosion work went in to fix.
+ */
+export function swallow(grid: Grid, cx: number, cy: number): void {
+  pullInward(grid, cx, cy, HOLE_REACH, HOLE_STRENGTH)
+}
+
+/**
+ * Writes a rotation into the air around a point, so the flow sweeps things round rather than outward. The
+ * direction at each cell is the offset turned a quarter turn, which is what makes a circle instead of a blast.
+ */
+export function swirl(grid: Grid, cx: number, cy: number, radius: number): void {
+  overDisc(
+    grid,
+    cx,
+    cy,
+    radius,
+    (index, dx, dy, falloff, distance) => {
+      if (distance === 0) return
+      // Perpendicular to the line out from the middle: (dx, dy) turned ninety degrees.
+      const speed = TURBINE_SWIRL * falloff
+      pushAir(grid, index, (-dy / distance) * speed, (dx / distance) * speed)
+    },
+    radius
+  )
+}
+
+/** How far out a burst looks for somewhere to put each trail before giving up on that direction. */
+const BURST_REACH = 4
+
+/**
+ * Throws a spray of trails out from a point: one cell each, placed in the first open space along its own
+ * direction and handed a speed outward.
+ *
+ * Deliberately not `impulse`. A blast shoves whatever is already there, which in open sky is nothing at all —
+ * a firework needs to *make* the things that fly, and it needs them to leave from one point along separate
+ * lines. Each trail is an ordinary cell with a lifetime, so it fades on its own and the draught curls it on
+ * the way out.
+ */
+export function scatter(
+  grid: Grid,
+  rng: Rng,
+  cx: number,
+  cy: number,
+  sparks: number,
+  speed: number,
+  product: MaterialId
+): void {
+  // One turn of the circle divided between them, jittered, so it reads as a spray rather than a cartwheel.
+  const offset = rng.next() * Math.PI * 2
+  for (let spark = 0; spark < sparks; spark++) {
+    const angle = offset + ((spark + rng.next() * 0.6) / sparks) * Math.PI * 2
+    const ux = Math.cos(angle)
+    const uy = Math.sin(angle)
+
+    for (let step = 1; step <= BURST_REACH; step++) {
+      const x = Math.round(cx + ux * step)
+      const y = Math.round(cy + uy * step)
+      if (x < 0 || x >= grid.width || y < 0 || y >= grid.height) break
+
+      const index = cellIndex(grid, x, y)
+      // A wall stops the spark. Loose material does not: a firework that goes off buried in its own pan has
+      // to be able to throw sparks out through the kernels, or bursting inside anything produces nothing.
+      // Walking on past a wall is how a firework going off beside a divider landed embers in the next stall
+      // and lit the fuse there early.
+      const found = grid.material[index]
+      if (found !== MaterialId.empty && !isMovable(found)) break
+      if (found !== MaterialId.empty) continue
+
+      placeMaterial(grid, index, product)
+      push(grid, index, ux * speed, uy * speed)
+      break
+    }
+  }
 }
 
 /** Throws everything outward and warms it, so things shoot up and whatever can catch fire does. */

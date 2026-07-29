@@ -44,6 +44,19 @@ export const MaterialId = {
   slime: 42,
   meat: 43,
   ant: 44,
+  // Appended, never inserted: a snapshot stores raw material bytes, so renumbering anything above would
+  // turn every share link ever written into a different world.
+  pollen: 45,
+  kernel: 46,
+  popcorn: 47,
+  blackHole: 48,
+  turbine: 49,
+  randomSource: 50,
+  corruption: 51,
+  glue: 52,
+  resin: 53,
+  firework: 54,
+  fireworkLit: 55,
 } as const
 export type MaterialId = (typeof MaterialId)[keyof typeof MaterialId]
 
@@ -114,6 +127,12 @@ export type Material = {
   /** Ticks a spawned cell survives before turning into `expiresInto`. Gases and flames. */
   lifetime?: number
   expiresInto?: MaterialId
+  /**
+   * Chance in [0, 1] that expiry actually leaves `expiresInto` behind, rather than nothing at all. Absent
+   * means always, which is what everything with a lifetime wants except the products of a burst: one
+   * firework throws twenty-two embers, and twenty-two specks of ash apiece buries the world in it.
+   */
+  residueChance?: number
   /** Generic per-cell budget held in `data`: acid dissolves left, plant growth steps left. */
   uses?: number
   /** Acid leaves this material alone — the container you build to hold acid. */
@@ -142,6 +161,24 @@ export type Material = {
     /** °C written across the blast, which is what chains one charge into the next. */
     heat: number
     into: MaterialId
+  }
+  /**
+   * Cells per tick of upward kick the moment this cell crosses its `hot` threshold, so a popcorn kernel
+   * jumps as it pops instead of quietly changing colour. Sideways scatter comes from the cell's own column
+   * rather than a die roll, which keeps the heat pass free of the rng.
+   */
+  pops?: number
+  /**
+   * Throws a spray of `product` outward when this cell's own clock runs out, instead of quietly becoming
+   * whatever it expires into. This is what makes a firework a firework rather than an explosion in the sky:
+   * trails leaving a point, each one a cell with a speed and a short life of its own.
+   */
+  bursts?: {
+    /** How many trails leave the burst. */
+    sparks: number
+    /** Cells per tick each one starts with. */
+    speed: number
+    product: MaterialId
   }
   /** Breaks into this when something fast enough hits it. */
   shatters?: MaterialId

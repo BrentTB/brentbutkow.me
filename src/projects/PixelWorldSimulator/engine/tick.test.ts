@@ -334,9 +334,9 @@ describe('metal', () => {
       const grid = createGrid(20, 5)
       for (let x = 0; x < 20; x++) put(grid, x, 2, material)
 
-      // A blowtorch on one end, held below metal's melting point so the bar stays a bar. Compared
-      // against stone rather than wood: at this temperature wood catches fire and the flame front
-      // carries the heat along the bar, which is combustion, not conduction.
+      // A blowtorch on one end. Metal is inert, so the bar just conducts. Compared against stone rather
+      // than wood: at this temperature wood catches fire and the flame front carries the heat along the
+      // bar, which is combustion, not conduction.
       const rng = createRng(3)
       for (let tick = 0; tick < 200; tick++) {
         grid.temperature[cellIndex(grid, 19, 2)] = 600
@@ -349,15 +349,17 @@ describe('metal', () => {
     expect(reach(MaterialId.metal)).toBeGreaterThan(reach(MaterialId.stone))
   })
 
-  it('melts into lava when hot enough', () => {
+  it('does not melt, however hot it gets', () => {
+    // Metal is the one material a build can rely on staying exactly where it was put, and what it trades for
+    // that is any phase of its own. Everything else in the world has a temperature that undoes it.
     const grid = withVessel(9, 9)
     const bar = put(grid, 4, 4, MaterialId.metal)
-    grid.temperature[bar] = 1600
+    grid.temperature[bar] = 3000
 
-    run(grid, 4)
+    run(grid, 40)
 
-    expect(count(grid, MaterialId.metal)).toBe(0)
-    expect(count(grid, MaterialId.lava)).toBe(1)
+    expect(count(grid, MaterialId.metal)).toBe(1)
+    expect(count(grid, MaterialId.lava)).toBe(0)
   })
 })
 
@@ -565,14 +567,27 @@ describe('embers', () => {
     expect(caught).toBe(true)
   })
 
-  it('cool into ash rather than vanishing', () => {
-    const grid = withVessel(9, 12)
-    put(grid, 4, 5, MaterialId.ember)
+  it('cool away, leaving a speck of ash off only a few of them', () => {
+    // Ash off every ember meant a firework's twenty-two trails became twenty-two specks on the floor, and a
+    // minute of fireworks buried the counter in thousands of cells of it. Some ash, though: embers sitting in
+    // ash and relighting what drifts in is the point of the material.
+    const grid = withVessel(40, 30)
+    let embers = 0
+    for (let x = 2; x < 38; x++) {
+      for (let y = 2; y < 12; y++) {
+        put(grid, x, y, MaterialId.ember)
+        embers++
+      }
+    }
 
     run(grid, 400)
 
     expect(count(grid, MaterialId.ember)).toBe(0)
-    expect(count(grid, MaterialId.ash)).toBeGreaterThan(0)
+    const ash = count(grid, MaterialId.ash)
+    expect(ash).toBeGreaterThan(0)
+    // Bounded off the residue odds in the table, not a bare fraction, so retuning the chance moves this too.
+    const chance = MATERIALS[MaterialId.ember].residueChance ?? 1
+    expect(ash).toBeLessThan(embers * chance * 2)
   })
 })
 
@@ -660,5 +675,57 @@ describe('air behind its setting', () => {
 
     expect(run(true)).toBeGreaterThan(0)
     expect(run(false)).toBe(0)
+  })
+})
+
+describe('glue', () => {
+  it('pours as a liquid and then sets hard', () => {
+    // The setting is the gas-lifetime mechanism with nothing added: a clock in `data` and a material to become
+    // at zero. What makes it worth having is that the result is a shape you built rather than a puddle.
+    const grid = withVessel(20, 20)
+    for (let x = 4; x < 16; x++) put(grid, x, 16, MaterialId.glue)
+
+    // Long enough to level out, and well past its own clock.
+    run(grid, 400)
+
+    expect(count(grid, MaterialId.glue)).toBe(0)
+    expect(count(grid, MaterialId.resin)).toBeGreaterThan(0)
+  })
+
+  it('is still liquid on the way there, so a pour can find its level', () => {
+    const grid = withVessel(20, 20)
+    put(grid, 10, 4, MaterialId.glue)
+
+    run(grid, 20)
+
+    // It fell. Setting where it was painted would make it a solid brush rather than a liquid.
+    expect(highestRow(grid, MaterialId.glue) ?? 0).toBeGreaterThan(4)
+  })
+})
+
+describe('a firework', () => {
+  it('launches when it is lit rather than sitting there burning', () => {
+    const grid = withVessel(41, 61)
+    const at = put(grid, 20, 55, MaterialId.firework)
+    grid.temperature[at] = 600
+
+    run(grid, 6)
+
+    // It has left the ground and is on its way up, as the lit form.
+    const lit = highestRow(grid, MaterialId.fireworkLit)
+    expect(lit).not.toBeNull()
+    expect(lit ?? 61).toBeLessThan(55)
+  })
+
+  it('ends as a spray of embers well above where it started', () => {
+    const grid = withVessel(41, 61)
+    const at = put(grid, 20, 55, MaterialId.firework)
+    grid.temperature[at] = 600
+
+    run(grid, 80)
+
+    let embers = 0
+    for (const id of grid.material) if (id === MaterialId.ember) embers++
+    expect(embers).toBeGreaterThan(0)
   })
 })

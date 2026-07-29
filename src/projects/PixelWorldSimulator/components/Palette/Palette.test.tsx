@@ -1,9 +1,12 @@
-import { describe, it, expect, afterEach, vi } from 'vitest'
+import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest'
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import { MaterialId } from '../../pixel-world.types'
 import { MATERIAL_GROUPS, MATERIAL_SLOTS, MaterialGroup, simCopy } from '../../data'
 import { MATERIALS } from '../../engine/materials'
 import { Palette } from './Palette'
+
+// The slots persist now, so a filled one would otherwise leak from one case into the next.
+beforeEach(() => localStorage.clear())
 
 function renderPalette(selected: MaterialId = MaterialId.sand) {
   const onSelect = vi.fn()
@@ -281,8 +284,8 @@ describe('the material sheet holds its shape', () => {
   })
 
   it('reserves room for the largest group whichever group is open', () => {
-    // Sized to its contents, the sheet shrank when you switched from Solids to Energy and moved Done out
-    // from under your thumb. The reserved class is what keeps one height across all six groups.
+    // Sized to its contents, the sheet shrank when you switched from Solids to Grains and moved Done out
+    // from under your thumb. The reserved class is what keeps one height across every group.
     asPhone()
     renderPalette()
     fireEvent.click(screen.getByRole('button', { name: /Change material/ }))

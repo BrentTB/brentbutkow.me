@@ -763,3 +763,25 @@ describe('the ant', () => {
     expect(build()).toEqual(build())
   })
 })
+
+describe('a creature the air has pushed', () => {
+  it('carries its velocity to the cell it swims to, never stranding it on the water it left', () => {
+    const grid = tank()
+    const fish = put(grid, 10, 10, MaterialId.fish)
+    // A turbine's wind can hand a drifting creature a velocity; the life pass has to move that entry with it.
+    grid.velocity.set(fish, { vx: 4, vy: 0, ox: 0, oy: 0 })
+
+    const rng = createRng(7)
+    for (let tick = 0; tick < 60; tick++) {
+      grid.moved.fill(0)
+      simulateLife(grid, rng, tick)
+      // The only velocity entry must always sit on a creature — a swap that left it behind would land it on
+      // the water that filled the vacated cell, and moveKinetic would then fling that water.
+      for (const index of grid.velocity.keys()) {
+        expect(MATERIALS[grid.material[index]].life).toBeDefined()
+      }
+    }
+    // Carried, not dropped or duplicated: still the single entry it started as.
+    expect(grid.velocity.size).toBe(1)
+  })
+})

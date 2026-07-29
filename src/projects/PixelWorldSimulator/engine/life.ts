@@ -6,6 +6,22 @@ import { NEIGHBOURS, pickNeighbour } from './neighbours'
 import { isCellAwake, isRowBandAwake, wakeChunk } from './chunks'
 import { Rng } from './rng'
 
+/**
+ * Moves a creature and carries its momentum with it. A creature drifts on the air now, so it can hold a
+ * velocity entry; without this the entry would strand on the cell it just left and `moveKinetic` would fling
+ * whatever swapped in. Safe to touch the velocity map here — the life pass runs before `moveKinetic`, so
+ * nothing is walking it.
+ */
+function relocate(grid: Grid, from: number, to: number): void {
+  const fromMotion = grid.velocity.get(from)
+  const toMotion = grid.velocity.get(to)
+  swapCells(grid, from, to)
+  if (toMotion === undefined) grid.velocity.delete(from)
+  else grid.velocity.set(from, toMotion)
+  if (fromMotion === undefined) grid.velocity.delete(to)
+  else grid.velocity.set(to, fromMotion)
+}
+
 /** Energy per tick a creature loses outside its own medium. A fish in the air is on a short clock. */
 const STRANDED_DRAIN = 3
 /** Chance per tick that a stranded creature is dragged downward, so a fish out of water falls back in. */
@@ -436,7 +452,7 @@ function tryStep(
   // A surface walker has to keep something underfoot, or it walks off the edge of its own world.
   if (life.medium === Medium.surface && !standingOnSomething(grid, target)) return false
 
-  swapCells(grid, index, target)
+  relocate(grid, index, target)
   grid.moved[index] = 1
   grid.moved[target] = 1
   return true
@@ -506,7 +522,7 @@ function strand(grid: Grid, rng: Rng, x: number, y: number, index: number): void
   if (y + 1 < grid.height && rng.chance(STRANDED_FALL)) {
     const below = cellIndex(grid, x, y + 1)
     if (loose(grid.material[below])) {
-      swapCells(grid, index, below)
+      relocate(grid, index, below)
       grid.moved[index] = 1
       grid.moved[below] = 1
       return
@@ -526,7 +542,7 @@ function strand(grid: Grid, rng: Rng, x: number, y: number, index: number): void
 
     const target = cellIndex(grid, nx, ny)
     if (!loose(grid.material[target])) continue
-    swapCells(grid, index, target)
+    relocate(grid, index, target)
     grid.moved[index] = 1
     grid.moved[target] = 1
     return
@@ -543,7 +559,7 @@ function sink(grid: Grid, index: number, x: number, y: number, life: Life): bool
   const below = cellIndex(grid, x, y + 1)
   if (grid.material[below] !== MaterialId.empty) return false
 
-  swapCells(grid, index, below)
+  relocate(grid, index, below)
   grid.moved[index] = 1
   grid.moved[below] = 1
   return true
@@ -662,7 +678,7 @@ function stepAnt(grid: Grid, rng: Rng, x: number, y: number, index: number, life
     grid.material[cellIndex(grid, x, y + 1)] === MaterialId.empty
   ) {
     const below = cellIndex(grid, x, y + 1)
-    swapCells(grid, index, below)
+    relocate(grid, index, below)
     grid.moved[index] = 1
     grid.moved[below] = 1
     moveHeading(grid, index, below)
@@ -706,7 +722,7 @@ function stepAnt(grid: Grid, rng: Rng, x: number, y: number, index: number, life
       if (dx === -heading.hx && dy === -heading.hy) continue
       if (!isCorridor(grid, x, y, dx, dy)) continue
       const target = cellIndex(grid, x + dx, y + dy)
-      swapCells(grid, index, target)
+      relocate(grid, index, target)
       grid.moved[index] = 1
       grid.moved[target] = 1
       heading.hx = dx
@@ -749,7 +765,7 @@ function stepAnt(grid: Grid, rng: Rng, x: number, y: number, index: number, life
     }
 
     // Move, carving whatever it steps into so the lane it walks is left open behind it.
-    swapCells(grid, index, target)
+    relocate(grid, index, target)
     transformCell(grid, index, MaterialId.empty)
     grid.moved[index] = 1
     grid.moved[target] = 1

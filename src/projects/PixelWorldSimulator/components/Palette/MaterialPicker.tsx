@@ -49,8 +49,8 @@ export function MaterialPicker({ selected, onSelect, swatchClassName = '' }: Mat
   return (
     <>
       <div className={styles.groups}>
-        {/* The six groups are wider than a phone. They scroll on their own rather than taking the page
-            sideways with them, which is what a strip of tabs should do anyway. */}
+        {/* The tabs are wider than a phone. They scroll on their own rather than taking the page sideways
+            with them, which is what a strip of tabs should do anyway. */}
         <div className={styles.groupStrip}>
           <SegmentedToggle
             options={GROUP_OPTIONS}

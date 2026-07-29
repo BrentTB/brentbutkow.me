@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useMediaQuery } from '../../../../components/utils/useMediaQuery'
 import { MaterialId } from '../../pixel-world.types'
-import { MATERIAL_SLOTS, PALETTE_SHEET_QUERY, simCopy } from '../../data'
+import { PALETTE_SHEET_QUERY, simCopy } from '../../data'
 import { MATERIALS } from '../../engine/materials'
 import { chipColour } from '../../engine/palette'
+import { useFavouriteSlots } from '../../useFavouriteSlots'
 import { MaterialSlots } from '../MaterialSlots/MaterialSlots'
 import { MaterialPicker } from './MaterialPicker'
 import { MaterialSheet } from './MaterialSheet'
@@ -15,9 +16,7 @@ type PaletteProps = {
 }
 
 export function Palette({ selected, onSelect }: PaletteProps) {
-  const [slots, setSlots] = useState<(MaterialId | null)[]>(() =>
-    Array.from({ length: MATERIAL_SLOTS }, () => null)
-  )
+  const { slots, assign } = useFavouriteSlots()
   const [waiting, setWaiting] = useState<number | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
   // A sheet where there is no room for the grid, the grid where there is. Rendering both and hiding one with
@@ -28,7 +27,7 @@ export function Palette({ selected, onSelect }: PaletteProps) {
   // something you set by pointing at what you want in it.
   const pick = (material: MaterialId) => {
     if (waiting !== null) {
-      setSlots((current) => current.map((held, index) => (index === waiting ? material : held)))
+      assign(waiting, material)
       setWaiting(null)
     }
     onSelect(material)

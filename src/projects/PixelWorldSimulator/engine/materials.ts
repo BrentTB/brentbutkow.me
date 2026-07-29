@@ -456,7 +456,7 @@ export const MATERIALS: readonly Material[] = [
   {
     id: MaterialId.metal,
     label: 'Metal',
-    blurb: 'Carries heat and sparks fast. Melts to lava.',
+    blurb: 'Carries heat and sparks fast, and nothing melts it.',
     behavior: MaterialBehavior.static,
     density: 1000,
     color: [168, 176, 188],
@@ -466,7 +466,9 @@ export const MATERIALS: readonly Material[] = [
     // Far and away the best conductor, so a bar carries heat across a gap and a spark along its length.
     conductivity: 0.85,
     conductive: true,
-    hot: { at: 1500, into: MaterialId.lava },
+    // Metal does not melt, and does not break. It is the one material a build can rely on staying exactly
+    // where it was put, and what it trades for that is any phase of its own: heat and sparks travel through it
+    // and it is otherwise inert.
   },
   {
     id: MaterialId.rubber,
@@ -518,6 +520,9 @@ export const MATERIALS: readonly Material[] = [
     // Longer lived and cooler than flame: embers sit in the ash and relight anything that drifts in.
     lifetime: 140,
     expiresInto: MaterialId.ash,
+    // A firework throws twenty-two of these, so an ember that always left a speck of ash meant every rocket
+    // dumped twenty-two of them on the floor and a few minutes of fireworks buried the counter.
+    residueChance: 0.1,
     clingsToFuel: true,
     emissive: true,
   },
@@ -685,7 +690,13 @@ export const MATERIALS: readonly Material[] = [
     cold: { at: -8, into: MaterialId.meat },
     life: {
       medium: Medium.surface,
-      diet: [MaterialId.plant, MaterialId.vine, MaterialId.meat, MaterialId.ant],
+      diet: [
+        MaterialId.plant,
+        MaterialId.vine,
+        MaterialId.meat,
+        MaterialId.ant,
+        MaterialId.popcorn,
+      ],
       startEnergy: 120,
       nutrition: 30,
       feedChance: 0.1,
@@ -830,8 +841,8 @@ export const MATERIALS: readonly Material[] = [
       // stranded and left to drain out.
       medium: Medium.any,
       // Leaves are its fuel, not the vine it trails: an ant that grazed its own web would unbuild it as
-      // fast as it built it.
-      diet: [MaterialId.plant],
+      // fast as it built it. Popcorn is the exception it will cross a room for.
+      diet: [MaterialId.plant, MaterialId.popcorn],
       startEnergy: 200,
       nutrition: 60,
       feedChance: 0.1,
@@ -850,6 +861,182 @@ export const MATERIALS: readonly Material[] = [
       hunts: 36,
       corpse: MaterialId.meat,
     },
+  },
+  {
+    id: MaterialId.pollen,
+    label: 'Pollen',
+    blurb: 'Rides the faintest draught. Sprouts into a seed on wet ground.',
+    behavior: MaterialBehavior.powder,
+    // The lightest thing in the world by a distance: snow is 30 and ash 40. The air pass scales what it can
+    // lift by how light a material is, and this is the one that rides a breath of it.
+    density: 6,
+    color: [226, 205, 122],
+    jitter: 18,
+    dispersion: 0,
+    drag: 0,
+    conductivity: 0.05,
+    // It still burns, but nowhere near as readily: at 180 a cloud of it went up before it had gone anywhere,
+    // and something you cannot watch travel is a poor advertisement for the thing that carries it.
+    ignite: { at: 420, ticks: 4, heat: 520, into: MaterialId.empty },
+  },
+  {
+    id: MaterialId.kernel,
+    label: 'Kernel',
+    blurb: 'Jumps when it gets hot, and lands as popcorn.',
+    behavior: MaterialBehavior.powder,
+    density: 45,
+    color: [198, 158, 86],
+    jitter: 10,
+    dispersion: 0,
+    drag: 0.2,
+    conductivity: 0.1,
+    // One way on purpose. A thing that keeps popping never settles, and three separate bugs in this project
+    // have been exactly that: bouncing gravel, dirt jittering on lava, dirt climbing the volcano.
+    hot: { at: 180, into: MaterialId.popcorn },
+    // Hard, and harder than a firework launches at, because a kernel buried in a pan spends nearly all of it
+    // on the thud into the cell above: a popped cell keeps an eighth of its speed off a knock. At a third of
+    // this the pop was a swap in place, and the only thing that visibly moved popcorn was a firework's
+    // draught. Kept below the kinetic pass's own ceiling of 16 so the number here is the number that acts.
+    pops: 14,
+  },
+  {
+    id: MaterialId.popcorn,
+    label: 'Popcorn',
+    blurb: 'What a kernel turns into. Light enough to blow about, and bugs eat it.',
+    behavior: MaterialBehavior.powder,
+    density: 20,
+    color: [236, 226, 199],
+    jitter: 14,
+    dispersion: 0,
+    drag: 0.35,
+    conductivity: 0.08,
+    // Burns like the dry husk it is, and leaves ash — but well above the 180 its kernel pops at. At 260 a pile
+    // on a hot plate charred as fast as it popped, so the whole trick happened and was gone.
+    ignite: { at: 520, ticks: 24, heat: 560, into: MaterialId.ash },
+  },
+  {
+    id: MaterialId.blackHole,
+    label: 'Black hole',
+    blurb: 'Pulls in everything loose around it, and what reaches it is gone.',
+    behavior: MaterialBehavior.static,
+    density: 1000,
+    color: [22, 18, 34],
+    jitter: 4,
+    dispersion: 0,
+    drag: 0,
+    conductivity: 0.02,
+    acidProof: true,
+  },
+  {
+    id: MaterialId.turbine,
+    label: 'Turbine',
+    blurb: 'Spins the air around it, so loose things nearby get swept round.',
+    behavior: MaterialBehavior.static,
+    density: 1000,
+    color: [126, 148, 168],
+    jitter: 6,
+    dispersion: 0,
+    drag: 0,
+    conductivity: 0.4,
+  },
+  {
+    id: MaterialId.randomSource,
+    label: 'Wild source',
+    blurb: 'Pours out something different every time. Never anything solid.',
+    behavior: MaterialBehavior.static,
+    density: 1000,
+    color: [156, 122, 196],
+    jitter: 10,
+    dispersion: 0,
+    drag: 0,
+    conductivity: 0.1,
+    acidProof: true,
+  },
+  {
+    id: MaterialId.corruption,
+    label: 'Corruption',
+    blurb: 'Spreads through anything, turning life to slime. Only fire stops it.',
+    behavior: MaterialBehavior.static,
+    density: 1000,
+    color: [92, 44, 118],
+    jitter: 16,
+    dispersion: 0,
+    drag: 0,
+    conductivity: 0.1,
+    // The one weakness, and it has to be a weakness the player already has and pays to use. A wall it could
+    // not cross would make it a non-threat; nothing stopping it would make it a timer. Fire is neither.
+    //
+    // It leaves ash rather than what it ate: remembering that needs a byte per cell, and `data` has none
+    // spare — gas lifetime, acid charges, plant growth and life energy already share it.
+    ignite: { at: 220, ticks: 30, heat: 420, into: MaterialId.ash },
+  },
+  {
+    id: MaterialId.glue,
+    label: 'Glue',
+    blurb: 'Pours like syrup, then sets hard. Build a shape and wait.',
+    behavior: MaterialBehavior.liquid,
+    density: 70,
+    color: [214, 206, 168],
+    jitter: 8,
+    // Thick. It has to hold a shape long enough to be worth pouring one.
+    dispersion: 1,
+    drag: 0.6,
+    conductivity: 0.12,
+    // The setting is the gas-lifetime mechanism, unchanged: a clock in `data` that `advanceTimers` counts
+    // down, and a material to become at zero. Nothing new was needed for it.
+    lifetime: 150,
+    expiresInto: MaterialId.resin,
+  },
+  {
+    id: MaterialId.resin,
+    label: 'Resin',
+    blurb: 'What glue sets into. Holds like stone until something hits it.',
+    behavior: MaterialBehavior.static,
+    density: 1000,
+    color: [196, 150, 82],
+    jitter: 10,
+    dispersion: 0,
+    drag: 0,
+    conductivity: 0.15,
+    // Brittle, which is the trade for setting so quickly: it holds a shape but not a beating.
+    shatters: MaterialId.shard,
+    ignite: { at: 300, ticks: 40, heat: 380, into: MaterialId.ash },
+  },
+  {
+    id: MaterialId.firework,
+    label: 'Firework',
+    blurb: 'Light it and it flies, then bursts into a spray of sparks.',
+    behavior: MaterialBehavior.powder,
+    density: 50,
+    color: [204, 92, 108],
+    jitter: 10,
+    dispersion: 0,
+    drag: 0.2,
+    conductivity: 0.12,
+    // Heat launches it, on the same `pops` mechanism a kernel uses: a shove upward the moment it turns. Its
+    // own figure is gentler than the kernel's, because this one has open sky above it rather than a pan of
+    // kernels to fight through.
+    hot: { at: 200, into: MaterialId.fireworkLit },
+    pops: 11,
+  },
+  {
+    id: MaterialId.fireworkLit,
+    label: 'Firework, lit',
+    blurb: 'On its way up, and about to go off.',
+    behavior: MaterialBehavior.powder,
+    density: 50,
+    color: [246, 208, 132],
+    jitter: 20,
+    dispersion: 0,
+    drag: 0.1,
+    conductivity: 0.12,
+    emissive: true,
+    // Long enough to clear the ground it launched from before it goes.
+    lifetime: 40,
+    expiresInto: MaterialId.smoke,
+    // Trails, not a blast. `detonate` would make an explosion in the sky, which is the one thing a firework
+    // must not look like.
+    bursts: { sparks: 22, speed: 7, product: MaterialId.ember },
   },
 ]
 

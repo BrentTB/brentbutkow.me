@@ -55,21 +55,25 @@ const PERMEABLE = new Uint8Array(
 )
 
 /**
- * What the flow throws about. Only the loose solids.
+ * What the flow throws about: everything loose, plus liquids and anything alive.
  *
- * Static materials are the world's scaffolding and liquids stay in their basin: a pool blown apart cell by
- * cell reads as a bug rather than as weather. **Gases are excluded too, and that one matters for speed as
- * much as for looks.** A gas already follows the flow through `airLean`, which biases the direction it
- * spreads, so handing it momentum as well puts every cell of a cloud into the kinetic map: a burning field
- * of methane took the movement pass from a fraction of a millisecond to 46 of them, and the gas stopped
- * obeying its own rules on the way.
+ * Liquids are in because a device that cannot stir a pool is a disappointment, and what keeps a pool in its
+ * basin is the density-scaled bar in `carry` rather than a blanket exclusion — a breeze leaves water alone and
+ * a turbine does not. Creatures are in for the same reason: they read as `static` only because they move
+ * themselves in the life pass.
+ *
+ * **Gases stay out, and that one is about speed as much as looks.** A gas already follows the flow through
+ * `airLean`, which biases the direction it spreads and rises, so handing it momentum as well puts every cell
+ * of a cloud into the kinetic map: a burning field of methane took the movement pass from a fraction of a
+ * millisecond to 46 of them, and the gas stopped obeying its own rules on the way.
  */
 const DRIFTS = new Uint8Array(
-  MATERIALS.map(({ id, behavior }) =>
+  MATERIALS.map(({ id, behavior, life }) =>
     id !== MaterialId.empty &&
-    behavior !== MaterialBehavior.static &&
-    behavior !== MaterialBehavior.liquid &&
-    behavior !== MaterialBehavior.gas
+    behavior !== MaterialBehavior.gas &&
+    // Scaffolding stays scaffolding, but a creature is not scaffolding: it is only `static` because it moves
+    // itself in the life pass rather than falling.
+    (behavior !== MaterialBehavior.static || life !== undefined)
       ? 1
       : 0
   )
@@ -81,9 +85,12 @@ const DRIFTS = new Uint8Array(
  */
 const AIR_REFERENCE_DENSITY = 60
 const LIGHTNESS = new Float32Array(
-  MATERIALS.map(({ density }) =>
-    density <= 0 ? 1 : Math.max(0.15, Math.min(6, AIR_REFERENCE_DENSITY / density))
-  )
+  MATERIALS.map(({ density, life }) => {
+    // A creature's density is 1000 because that is what stops things falling through it, not because a fish
+    // weighs as much as a wall. Taken at face value it would need a wind four times the speed limit to budge.
+    const weight = life !== undefined ? AIR_REFERENCE_DENSITY : density
+    return weight <= 0 ? 1 : Math.max(0.15, Math.min(6, AIR_REFERENCE_DENSITY / weight))
+  })
 )
 
 /** Heat a cell holds of its own accord, which is what makes a flame raise a draught of its own. */
@@ -124,6 +131,9 @@ const AIR_GRAB = 1.2
  * lava pool is a couple of cells per tick, and at the lower bar it plucked the dirt above it into the air a
  * grain at a time, over and over, which reads as the world twitching rather than as heat rising. Only a real
  * gale — a blast, or the wind tool held on something — clears this.
+ *
+ * Divided by how light the material is, so the bar means "a gale for gravel" rather than one absolute number.
+ * Without that the lightest thing in the world needs the same wind as the heaviest, and pollen just sits there.
  */
 const AIR_LIFT = 12
 /**
@@ -213,9 +223,13 @@ function carry(grid: Grid): void {
       //
       // Support alone is not enough of a test. A grain that has come unstuck from a slope is unsupported for
       // a tick at a time, and at the low bar the vent's convection picked it straight back up, over and over.
+      // Both bars scale with how light the material is, or the lightest things in the world would need the
+      // same gale as gravel to shift. Pollen at density 6 clears them on a breath; dirt still needs 13,
+      // comfortably above the 9.9 a volcano vent's convection actually measured.
+      const lightness = LIGHTNESS[id]
       const speed = motion === undefined ? 0 : Math.abs(motion.vx) + Math.abs(motion.vy)
-      const flying = speed >= AIR_STEER_SPEED && !isSupported(grid, index)
-      if (flow < (flying ? AIR_GRAB : AIR_LIFT)) continue
+      const flying = speed >= AIR_STEER_SPEED / lightness && !isSupported(grid, index)
+      if (flow < (flying ? AIR_GRAB : AIR_LIFT) / lightness) continue
 
       const pull = AIR_DRAG * LIGHTNESS[id]
       const gainX = toward(flowX, motion?.vx ?? 0) * pull

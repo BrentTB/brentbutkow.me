@@ -1,12 +1,13 @@
 import { describe, it, expect } from 'vitest'
-import { Grid, MaterialId } from '../pixel-world.types'
+import { Grid, MaterialBehavior, MaterialId } from '../pixel-world.types'
 import { stampCircle } from './brush'
 import { cellIndex, createGrid, placeMaterial } from './grid'
 import { MATERIALS } from './materials'
 import { createRng } from './rng'
-import { applyReactions } from './reactions'
+import { WILD_PRODUCTS, applyReactions } from './reactions'
+import { step } from './step'
 import { tickWorld } from './tick'
-import { onCI } from '../test-env'
+import { skipSoaks } from '../test-env'
 
 function put(grid: Grid, x: number, y: number, material: MaterialId): number {
   const index = cellIndex(grid, x, y)
@@ -23,8 +24,8 @@ function count(grid: Grid, material: MaterialId): number {
   return grid.material.reduce((total, cell) => (cell === material ? total + 1 : total), 0)
 }
 
-// Heavy deterministic soaks skip on CI and run locally.
-const itSlow = it.skipIf(onCI)
+// Heavy deterministic soaks. Skipped on CI and in the pre-commit hook; see `skipSoaks`.
+const itSlow = it.skipIf(skipSoaks)
 
 describe('acid', () => {
   it('eats a neighbour it touches', () => {
@@ -936,5 +937,309 @@ describe('plants on land', () => {
     let plants = 0
     for (const cell of grid.material) if (cell === MaterialId.plant) plants++
     expect(plants).toBeGreaterThan(1)
+  })
+})
+
+describe('the devices', () => {
+  /** A world with a floor, and whatever the case needs put into it. */
+  function world(build: (grid: Grid) => void): Grid {
+    const grid = createGrid(81, 81)
+    for (let x = 0; x < grid.width; x++) {
+      placeMaterial(grid, cellIndex(grid, x, grid.height - 1), MaterialId.stone)
+    }
+    build(grid)
+    return grid
+  }
+
+  describe('a black hole', () => {
+    it('pulls loose things inward', () => {
+      const grid = world((g) => {
+        placeMaterial(g, cellIndex(g, 40, 40), MaterialId.blackHole)
+        placeMaterial(g, cellIndex(g, 52, 40), MaterialId.sand)
+      })
+
+      applyReactions(grid, createRng(1))
+
+      expect(grid.velocity.get(cellIndex(grid, 52, 40))?.vx ?? 0).toBeLessThan(0)
+    })
+
+    it('eats what reaches it, so things stop orbiting forever', () => {
+      // A puller that only pulls leaves everything in orbit: the kinetic map never empties and nothing ever
+      // settles, which is the shape of the performance problem the explosion work went in to fix.
+      const grid = world((g) => {
+        placeMaterial(g, cellIndex(g, 40, 40), MaterialId.blackHole)
+        for (const at of [
+          cellIndex(g, 39, 40),
+          cellIndex(g, 41, 40),
+          cellIndex(g, 40, 39),
+          cellIndex(g, 40, 41),
+        ]) {
+          placeMaterial(g, at, MaterialId.sand)
+        }
+      })
+
+      const rng = createRng(1)
+      for (let tick = 0; tick < 60; tick++) applyReactions(grid, rng)
+
+      for (const at of [
+        cellIndex(grid, 39, 40),
+        cellIndex(grid, 41, 40),
+        cellIndex(grid, 40, 39),
+        cellIndex(grid, 40, 41),
+      ]) {
+        expect(grid.material[at]).toBe(MaterialId.empty)
+      }
+    })
+  })
+
+  describe('a turbine', () => {
+    it('writes a rotation into the air rather than blowing it outward', () => {
+      const grid = world((g) => placeMaterial(g, cellIndex(g, 40, 40), MaterialId.turbine))
+
+      applyReactions(grid, createRng(1))
+
+      // Directly above the turbine the flow runs sideways, not up: that is what makes a circle.
+      const above = cellIndex(grid, 40, 34)
+      expect(Math.abs(grid.airX[above])).toBeGreaterThan(Math.abs(grid.airY[above]))
+      // And on the far side it runs the other way.
+      const below = cellIndex(grid, 40, 46)
+      expect(Math.sign(grid.airX[above])).not.toBe(Math.sign(grid.airX[below]))
+    })
+  })
+
+  describe('what a turbine can stir', () => {
+    /** Mean distance of `material` from the middle, with a turbine there and without. */
+    function spread(material: MaterialId, withTurbine: boolean, ticks: number): number {
+      const grid = createGrid(121, 121)
+      for (let x = 0; x < grid.width; x++) {
+        placeMaterial(grid, cellIndex(grid, x, grid.height - 1), MaterialId.stone)
+      }
+      if (withTurbine) placeMaterial(grid, cellIndex(grid, 60, 60), MaterialId.turbine)
+      for (let y = 50; y < 71; y += 2) {
+        for (let x = 45; x < 76; x += 2) {
+          if (x === 60 && y === 60) continue
+          placeMaterial(grid, cellIndex(grid, x, y), material)
+        }
+      }
+
+      const rng = createRng(1)
+      for (let tick = 0; tick < ticks; tick++) tickWorld(grid, rng, tick)
+
+      // Where it ended up, not whether it left: water spreads and fish swim on their own, so the honest signal
+      // is how much further from the middle the whole lot sits.
+      let total = 0
+      let n = 0
+      for (let i = 0; i < grid.material.length; i++) {
+        if (grid.material[i] !== material) continue
+        total += Math.hypot((i % grid.width) - 60, Math.floor(i / grid.width) - 60)
+        n++
+      }
+      return n === 0 ? 0 : total / n
+    }
+
+    it('reaches liquids, gases and creatures, not only loose powder', () => {
+      // The complaint this guards: a turbine had no effect at all on any of the three. Liquids and creatures
+      // were excluded from what the flow may carry, and a rising gas leaned only when it was already blocked,
+      // which for a plume is almost never. Measured, water and fish did not move a single cell.
+      //
+      // A gas is measured inside its own lifetime, or there is nothing left to look at.
+      for (const [material, ticks] of [
+        [MaterialId.sand, 200],
+        [MaterialId.water, 200],
+        [MaterialId.fish, 200],
+        [MaterialId.smoke, 40],
+      ] as const) {
+        expect(spread(material, true, ticks)).toBeGreaterThan(spread(material, false, ticks))
+      }
+    })
+  })
+
+  describe('a wild source', () => {
+    it('pours out more than one kind of thing', () => {
+      const grid = world((g) => placeMaterial(g, cellIndex(g, 40, 20), MaterialId.randomSource))
+
+      const rng = createRng(3)
+      const seen = new Set<number>()
+      for (let tick = 0; tick < 600; tick++) {
+        applyReactions(grid, rng)
+        step(grid, rng, tick)
+      }
+      for (let i = 0; i < grid.material.length; i++) {
+        const id = grid.material[i]
+        if (id !== MaterialId.empty && id !== MaterialId.stone && id !== MaterialId.randomSource) {
+          seen.add(id)
+        }
+      }
+
+      expect(seen.size).toBeGreaterThan(2)
+    })
+
+    it('never has a solid on its list of products, which would wall it in', () => {
+      // The lesson the volcano's vent taught: a source with no open cell in reach simply goes quiet. Asserted
+      // against the list rather than against the world, because a poured liquid is free to become a solid
+      // afterwards — lava cools to stone, and that is the sim working rather than the source misbehaving.
+      for (const product of WILD_PRODUCTS) {
+        const { behavior, life } = MATERIALS[product]
+        expect(behavior).not.toBe(MaterialBehavior.static)
+        // Nothing alive either: a source of creatures is a population explosion rather than a surprise.
+        expect(life).toBeUndefined()
+      }
+    })
+  })
+})
+
+describe('pollen landing', () => {
+  it('sprouts into a seed on wet ground', () => {
+    // Being light is a property, not a purpose. This is what makes carrying it somewhere worth doing.
+    const grid = createGrid(41, 41)
+    const ground = cellIndex(grid, 20, 30)
+    placeMaterial(grid, ground, MaterialId.mud)
+    placeMaterial(grid, cellIndex(grid, 20, 29), MaterialId.pollen)
+
+    const rng = createRng(2)
+    for (let tick = 0; tick < 200; tick++) applyReactions(grid, rng)
+
+    expect(grid.material[ground]).toBe(MaterialId.seed)
+  })
+
+  it('does nothing on dry ground, so where a draught drops it matters', () => {
+    const grid = createGrid(41, 41)
+    const ground = cellIndex(grid, 20, 30)
+    placeMaterial(grid, ground, MaterialId.sand)
+    placeMaterial(grid, cellIndex(grid, 20, 29), MaterialId.pollen)
+
+    const rng = createRng(2)
+    for (let tick = 0; tick < 200; tick++) applyReactions(grid, rng)
+
+    expect(grid.material[ground]).toBe(MaterialId.sand)
+  })
+})
+
+describe('corruption', () => {
+  /** A slab of stone with one cell of corruption in the middle of it. */
+  function infected(width = 61, height = 61): Grid {
+    const grid = createGrid(width, height)
+    for (let y = 10; y < height - 10; y++) {
+      for (let x = 10; x < width - 10; x++)
+        placeMaterial(grid, cellIndex(grid, x, y), MaterialId.stone)
+    }
+    placeMaterial(grid, cellIndex(grid, 30, 30), MaterialId.corruption)
+    return grid
+  }
+
+  function count(grid: Grid, material: MaterialId): number {
+    let n = 0
+    for (const id of grid.material) if (id === material) n++
+    return n
+  }
+
+  it('eats a world if nobody stops it', () => {
+    const grid = infected()
+    const rng = createRng(1)
+    for (let tick = 0; tick < 3000; tick++) applyReactions(grid, rng)
+
+    expect(count(grid, MaterialId.corruption)).toBeGreaterThan(50)
+  })
+
+  it('creeps unevenly rather than as a growing disc', () => {
+    // A smooth expanding circle is the shape every version of this rule produces first, and it always reads as
+    // a bug. The crowding rule is what keeps the edge ragged.
+    const grid = infected()
+    const rng = createRng(1)
+    for (let tick = 0; tick < 3000; tick++) applyReactions(grid, rng)
+
+    // A solid disc would fill nearly every cell inside its own radius. A creeping tangle leaves holes.
+    let reach = 0
+    let taken = 0
+    for (let i = 0; i < grid.material.length; i++) {
+      if (grid.material[i] !== MaterialId.corruption) continue
+      taken++
+      reach = Math.max(reach, Math.hypot((i % grid.width) - 30, Math.floor(i / grid.width) - 30))
+    }
+    const disc = Math.PI * reach * reach
+    expect(taken).toBeLessThan(disc * 0.6)
+  })
+
+  it('cannot cross fire, so a firebreak actually holds', () => {
+    // The weakness has to be usable, not theoretical. A wall it could not cross would make it a non-threat;
+    // nothing stopping it would make it a timer.
+    const grid = createGrid(61, 61)
+    for (let y = 20; y < 41; y++) {
+      for (let x = 20; x < 41; x++) placeMaterial(grid, cellIndex(grid, x, y), MaterialId.stone)
+    }
+    // A ring of flame around one cell of it.
+    placeMaterial(grid, cellIndex(grid, 30, 30), MaterialId.corruption)
+    for (const [dx, dy] of [
+      [-1, -1],
+      [0, -1],
+      [1, -1],
+      [-1, 0],
+      [1, 0],
+      [-1, 1],
+      [0, 1],
+      [1, 1],
+    ]) {
+      placeMaterial(grid, cellIndex(grid, 30 + dx, 30 + dy), MaterialId.fire)
+    }
+
+    const rng = createRng(1)
+    for (let tick = 0; tick < 400; tick++) applyReactions(grid, rng)
+
+    expect(count(grid, MaterialId.corruption)).toBe(1)
+  })
+
+  it('burns back to ash rather than to whatever it ate', () => {
+    // Remembering what a cell used to be needs a byte per cell, and `data` has none spare.
+    expect(MATERIALS[MaterialId.corruption].ignite?.into).toBe(MaterialId.ash)
+  })
+
+  it('turns a creature it touches into slime rather than into more of itself', () => {
+    // A creature becoming wall reads as the wall eating it. A creature becoming a slime that then crawls off
+    // on its own reads as the creature being turned, which is the more alarming of the two.
+    const grid = createGrid(61, 61)
+    for (let y = 20; y < 41; y++) {
+      for (let x = 20; x < 41; x++) placeMaterial(grid, cellIndex(grid, x, y), MaterialId.water)
+    }
+    for (const [at, creature] of [
+      [28, MaterialId.fish],
+      [30, MaterialId.bug],
+      [32, MaterialId.worm],
+      [34, MaterialId.bird],
+    ] as const) {
+      placeMaterial(grid, cellIndex(grid, at, 30), creature)
+      placeMaterial(grid, cellIndex(grid, at, 31), MaterialId.corruption)
+    }
+
+    const rng = createRng(4)
+    for (let tick = 0; tick < 600; tick++) applyReactions(grid, rng)
+
+    expect(count(grid, MaterialId.slime)).toBeGreaterThan(0)
+    for (const creature of [MaterialId.fish, MaterialId.bug, MaterialId.worm, MaterialId.bird]) {
+      expect(count(grid, creature)).toBe(0)
+    }
+    // The swatch says so, and the swatch is the only place a visitor is told. Tied together here so that
+    // editing one side without the other fails rather than shipping a promise the rule stopped keeping.
+    expect(MATERIALS[MaterialId.corruption].blurb).toContain('slime')
+  })
+
+  it('leaves the slime it made alone, and goes around it', () => {
+    // Slime is what corruption makes of a creature, so it does not then turn on its own. Costing it nothing is
+    // what makes that affordable: the spread travels the ground and the water either way, so a slime it skips
+    // is one cell it goes around rather than a hole in its advance.
+    const grid = createGrid(41, 41)
+    for (let y = 10; y < 31; y++) {
+      for (let x = 10; x < 31; x++) placeMaterial(grid, cellIndex(grid, x, y), MaterialId.stone)
+    }
+    // A slime wall straight across the slab, with the corruption starting on one side of it.
+    for (let y = 10; y < 31; y++) placeMaterial(grid, cellIndex(grid, 20, y), MaterialId.slime)
+    const slimes = count(grid, MaterialId.slime)
+    placeMaterial(grid, cellIndex(grid, 14, 20), MaterialId.corruption)
+
+    const rng = createRng(4)
+    for (let tick = 0; tick < 3000; tick++) applyReactions(grid, rng)
+
+    // Every slime still standing, and the stone around it taken.
+    expect(count(grid, MaterialId.slime)).toBe(slimes)
+    expect(count(grid, MaterialId.corruption)).toBeGreaterThan(20)
   })
 })

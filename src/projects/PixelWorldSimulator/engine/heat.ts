@@ -4,6 +4,7 @@ import { MATERIALS, isBurning } from './materials'
 import { transformCell } from './grid'
 import { wakeChunk } from './chunks'
 import { detonate, flashOver } from './forces'
+import { push } from './kinetic'
 
 /**
  * How hard a self-heating or burning cell holds its own temperature against its surroundings. The
@@ -237,6 +238,10 @@ function applyThresholds(grid: Grid): void {
       if (cell.hot !== undefined && heat >= cell.hot.at) {
         transformCell(grid, index, cell.hot.into)
         temperature[index] = cell.hot.at
+        // A kernel jumps as it pops rather than quietly changing colour. The sideways scatter comes from the
+        // cell's own column, not a die roll, so the heat pass stays free of the rng and a heap of kernels
+        // still goes off in three directions instead of straight up as one wall.
+        if (cell.pops !== undefined) push(grid, index, (x % 3) - 1, -cell.pops)
         billHottestNeighbour(grid, index, x, y)
         continue
       }

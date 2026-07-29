@@ -110,10 +110,21 @@ export const BRUSH_RADIUS = {
 export const MaterialGroup = {
   solids: 'solids',
   powders: 'powders',
+  /**
+   * Seeds, kernels and what they turn into. Powders was twice the size of any other tab, and these four are
+   * the ones that were only filed there because they fall: what they have in common is a life cycle, not a
+   * grain size. Splitting on grain size instead would have put gravel under a label meaning "grains".
+   */
+  grains: 'grains',
   liquids: 'liquids',
   gases: 'gases',
-  energy: 'energy',
   life: 'life',
+  /**
+   * Everything that isn't a class of matter: flame and spark, the machines that act on their own rather than
+   * sitting there being shoved about, and corruption. Filing them together keeps the other tabs honest, and it
+   * is the one label that promises nothing about how its contents behave.
+   */
+  special: 'special',
 } as const
 export type MaterialGroup = (typeof MaterialGroup)[keyof typeof MaterialGroup]
 
@@ -140,6 +151,7 @@ export const MATERIAL_GROUPS: readonly {
       MaterialId.vine,
       MaterialId.sponge,
       MaterialId.tnt,
+      MaterialId.resin,
     ],
   },
   {
@@ -153,10 +165,15 @@ export const MATERIAL_GROUPS: readonly {
       MaterialId.ash,
       MaterialId.snow,
       MaterialId.salt,
-      MaterialId.seed,
-      MaterialId.gunpowder,
       MaterialId.shard,
+      MaterialId.gunpowder,
+      MaterialId.firework,
     ],
+  },
+  {
+    group: MaterialGroup.grains,
+    label: 'Grains',
+    materials: [MaterialId.seed, MaterialId.pollen, MaterialId.kernel, MaterialId.popcorn],
   },
   {
     group: MaterialGroup.liquids,
@@ -170,6 +187,7 @@ export const MATERIAL_GROUPS: readonly {
       MaterialId.acid,
       MaterialId.lava,
       MaterialId.nitrogen,
+      MaterialId.glue,
     ],
   },
   {
@@ -184,11 +202,6 @@ export const MATERIAL_GROUPS: readonly {
     ],
   },
   {
-    group: MaterialGroup.energy,
-    label: 'Energy',
-    materials: [MaterialId.fire, MaterialId.spark, MaterialId.void, MaterialId.source],
-  },
-  {
     group: MaterialGroup.life,
     label: 'Life',
     materials: [
@@ -200,6 +213,20 @@ export const MATERIAL_GROUPS: readonly {
       MaterialId.slime,
       MaterialId.ant,
       MaterialId.meat,
+    ],
+  },
+  {
+    group: MaterialGroup.special,
+    label: 'Special',
+    materials: [
+      MaterialId.fire,
+      MaterialId.spark,
+      MaterialId.source,
+      MaterialId.randomSource,
+      MaterialId.turbine,
+      MaterialId.blackHole,
+      MaterialId.corruption,
+      MaterialId.void,
     ],
   },
 ]
@@ -238,6 +265,16 @@ export const PRESETS: readonly { preset: Preset; label: string; title: string }[
     preset: Preset.antColony,
     label: 'Ant colony',
     title: 'Leafy wooden trunks with ants tunnelling galleries through them',
+  },
+  {
+    preset: Preset.kitchen,
+    label: 'Pots and pans',
+    title: 'Pots and pans of kernels and fireworks, over an open flame',
+  },
+  {
+    preset: Preset.madScience,
+    label: 'Mad science',
+    title: 'Three experiments in one hall, and one of them gets out',
   },
 ]
 
@@ -413,6 +450,9 @@ export const DEFAULT_SETTINGS: SimSettings = {
 
 /** Where the settings live between visits. */
 export const SETTINGS_KEY = 'pixel-world-settings'
+
+/** Where the favourite slots live between visits, beside the settings. */
+export const FAVOURITES_KEY = 'pixel-world-favourites'
 
 /**
  * How many materials the quick slots hold. Three: enough for the handful you keep swapping between while
