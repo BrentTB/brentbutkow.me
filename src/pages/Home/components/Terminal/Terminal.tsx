@@ -182,17 +182,20 @@ export function Terminal() {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight
   }, [lines, active, animation])
 
+  // Set before a state-driven value change (accept, recall, clear) whose scroll must wait for the render.
+  const scrollAfterAccept = useRef(false)
+  // Set while typing when the caret sits at the line's end, so the effect scrolls to it once the text renders.
+  const caretAtEnd = useRef(false)
+
   /**
    * Bring the end of the line into view, and take the completion overlay with it. The input reserves a few
    * characters of room on its right, so this leaves the caret short of the edge with the suffix visible in the
    * gap rather than flush against it with nowhere to draw.
    *
-   * Every path that changes the value has to call this. Accepting a completion by Tab or by tapping the suffix
-   * used to skip it, so the accepted text was written into the reserved gap and stayed hidden: the command had
-   * grown and the row looked untouched.
+   * Every path that changes the value routes through the effect below so this runs against the rendered text.
+   * A path that skips it writes the new text into the reserved gap where it stays hidden — the command grows
+   * and the row looks untouched.
    */
-  const scrollAfterAccept = useRef(false)
-
   const keepEndInView = useCallback((moveCaret = true) => {
     const field = inputRef.current
     const row = rowRef.current
@@ -253,8 +256,9 @@ export function Terminal() {
   // call site — the input still holds the old text there. The prompt is brought back in step regardless, since
   // it tracks the length of the line however the line got that way.
   useEffect(() => {
-    const moveCaret = scrollAfterAccept.current
+    const moveCaret = scrollAfterAccept.current || caretAtEnd.current
     scrollAfterAccept.current = false
+    caretAtEnd.current = false
     keepEndInView(moveCaret)
   }, [input, keepEndInView])
 
@@ -421,17 +425,13 @@ export function Terminal() {
                 value={input}
                 onChange={(event) => {
                   cancelCascade()
-                  setInput(event.target.value)
-                  // Keep the end of a long command in view. On a narrow screen the row runs out of room long
-                  // before the command does, and what you need to see while typing is the end of it. Only when
-                  // the caret is at the end, or editing back in the middle of a line would yank the view away
-                  // from where you are working.
-                  // Only while typing at the end of the line. Editing a word back in the middle of a long
-                  // command should not throw the view away from where you are working.
-                  // The prompt tracks the whole line either way. Only the text itself holds still when the
-                  // caret is back in the middle of a command being edited.
                   const field = event.currentTarget
-                  keepEndInView(field.selectionStart === field.value.length)
+                  // Scroll to the end only when the caret is at the end — a mid-line edit shouldn't yank the
+                  // view away. The scroll waits for the effect above, which re-measures the mirror after React
+                  // renders the new text; the prompt slide and padding update now regardless.
+                  caretAtEnd.current = field.selectionStart === field.value.length
+                  setInput(field.value)
+                  keepEndInView(false)
                 }}
                 onKeyDown={onInputKeyDown}
                 onFocus={() => setActive(true)}

@@ -59,7 +59,7 @@ const PERMEABLE = new Uint8Array(
  *
  * Liquids are in because a device that cannot stir a pool is a disappointment, and what keeps a pool in its
  * basin is the density-scaled bar in `carry` rather than a blanket exclusion — a breeze leaves water alone and
- * a wall does not. Creatures are in for the same reason: they read as `static` only because they move
+ * a blast does not. Creatures are in for the same reason: they read as `static` only because they move
  * themselves in the life pass.
  *
  * **Gases stay out, and that one is about speed as much as looks.** A gas already follows the flow through

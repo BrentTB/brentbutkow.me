@@ -21,6 +21,9 @@ describe('usePseudoFullscreenChrome', () => {
     cleanup()
     vi.useRealTimers()
     vi.unstubAllGlobals()
+    // The end-of-page case redefines these; reset them so a later test starts from the jsdom defaults.
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: 0 })
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 768 })
   })
 
   it('does nothing while inactive', () => {

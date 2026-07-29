@@ -301,8 +301,8 @@ function impulse(
       gustReach,
       (index, dx, dy, falloff, distance) => {
         if (distance === 0) return
-        const gust = strength * AIR_SHARE * falloff
-        pushAir(grid, index, (dx / distance) * gust, (dy / distance) * gust)
+        const push = strength * AIR_SHARE * falloff
+        pushAir(grid, index, (dx / distance) * push, (dy / distance) * push)
       },
       gustReach
     )
@@ -332,15 +332,15 @@ export function flashOver(grid: Grid, x: number, y: number): void {
  * Sets a charge off: it becomes whatever it leaves behind, then throws and heats everything around it.
  * The heat is what chains one charge into the next, so a buried line of TNT goes up as a line.
  *
- * A charge with charges on every side throws over a much smaller disc. Everything its full disc would have
- * reached is either another charge about to stop existing or deep inside the mass, so the reach buys nothing
- * anybody can see and costs exactly what a charge at the surface costs. Half a screen of gunpowder is almost
- * all interior, which is why it crawled.
+ * A charge walled in by other charges skips the wide air draught. The draught's job is curling loose debris and
+ * smoke around the blast, and there is none of that deep inside a packed mass — every cell it would stir is
+ * another charge about to stop existing or buried solid, so it buys nothing anybody can see and costs what a
+ * surface charge costs. Half a screen of gunpowder is almost all interior, which is why it crawled.
  *
- * It still throws, and that part is not optional. Skipping enclosed charges outright is faster again and was
- * tried and rejected: a deep slab then stops launching the bed above it, because the launch is many overlapping
- * impulses rather than the one at the top. A small disc keeps the overlap and gives up only the reach that was
- * landing on other charges.
+ * The material throw and heat pulse still fire either way, and that part is not optional. Skipping enclosed
+ * charges outright is faster again and was tried and rejected: a deep slab then stops launching the bed above
+ * it, because the launch is many overlapping throws rather than the one at the top. Dropping only the draught
+ * keeps the overlap and gives up nothing but air nobody would have felt.
  */
 export function detonate(grid: Grid, index: number, x: number, y: number): void {
   const charge = MATERIALS[grid.material[index]].explodes

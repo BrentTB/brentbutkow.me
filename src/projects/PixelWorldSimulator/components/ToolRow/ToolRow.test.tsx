@@ -55,7 +55,7 @@ describe('ToolRow', () => {
     renderTools()
 
     // It acts on the window rather than on the pointer, so it stays out of the tool group.
-    const group = screen.getByRole('group', { name: 'Tool' })
+    const group = screen.getByRole('group', { name: simCopy.tools.label })
     const control = screen.getByRole('button', { name: 'Full screen' })
     expect(group.contains(control)).toBe(false)
   })
@@ -87,7 +87,7 @@ describe('ToolRow', () => {
 
     const gear = screen.getByRole('button', { name: simCopy.settings.open })
     expect(gear.getAttribute('aria-haspopup')).toBe('dialog')
-    expect(screen.getByRole('group', { name: 'Tool' }).contains(gear)).toBe(false)
+    expect(screen.getByRole('group', { name: simCopy.tools.label }).contains(gear)).toBe(false)
   })
 
   it('asks for the settings when the gear is pressed', () => {

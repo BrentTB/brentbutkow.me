@@ -31,7 +31,11 @@ describe('Palette', () => {
     for (const material of powders?.materials ?? []) {
       expect(screen.getByRole('button', { name: MATERIALS[material].label })).toBeTruthy()
     }
-    expect(screen.getByRole('button', { name: 'Sand' }).getAttribute('aria-pressed')).toBe('true')
+    expect(
+      screen
+        .getByRole('button', { name: MATERIALS[MaterialId.sand].label })
+        .getAttribute('aria-pressed')
+    ).toBe('true')
     expect(screen.queryByRole('button', { name: 'Stone' })).toBeNull()
   })
 
@@ -162,7 +166,7 @@ describe('Palette', () => {
     render(<Palette selected={MaterialId.sand} onSelect={vi.fn()} />)
 
     // Source and void are the two nobody can guess by looking, but the same line helps everywhere.
-    const sand = screen.getByRole('button', { name: /Sand/ })
+    const sand = screen.getByRole('button', { name: new RegExp(MATERIALS[MaterialId.sand].label) })
     expect(sand.getAttribute('title')).toBe(MATERIALS[MaterialId.sand].blurb)
   })
 })
@@ -336,7 +340,7 @@ describe('Palette — marking the material chip', () => {
     render(
       <Palette selected={MaterialId.sand} onSelect={vi.fn()} materialActive={materialActive} />
     )
-    const chip = screen.getByRole('button', { name: /Sand/ })
+    const chip = screen.getByRole('button', { name: new RegExp(MATERIALS[MaterialId.sand].label) })
     return [...chip.classList].some((name) => name.includes('currentActive'))
   }
 
@@ -367,7 +371,7 @@ describe('Palette — the forces beside the chip', () => {
     asPhone()
     renderPalette(MaterialId.sand, <button type="button">Force stand-in</button>)
 
-    const chip = screen.getByRole('button', { name: /Sand/ })
+    const chip = screen.getByRole('button', { name: new RegExp(MATERIALS[MaterialId.sand].label) })
     const beside = screen.getByRole('button', { name: 'Force stand-in' })
     expect(chip.parentElement).toBe(beside.parentElement)
   })

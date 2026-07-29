@@ -20,7 +20,11 @@ function DensityLadder({ materials }: { materials: readonly MaterialId[] }) {
       <ol className={styles.rungs}>
         {rungs.map((material) => (
           <li key={material} className={styles.rung}>
-            <span className={styles.swatch} style={{ background: materialCss(material) }} />
+            <span
+              className={styles.swatch}
+              style={{ background: materialCss(material) }}
+              aria-hidden="true"
+            />
             <span className={styles.rungLabel}>{MATERIALS[material].label}</span>
             <span
               className={styles.bar}
@@ -50,7 +54,7 @@ export function HowItWorks() {
                   {paragraph}
                 </p>
               ))}
-              {ladder !== undefined && <DensityLadder materials={ladder} />}
+              {ladder?.length ? <DensityLadder materials={ladder} /> : null}
             </section>
           ))}
         </div>

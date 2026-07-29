@@ -768,7 +768,7 @@ describe('a creature the air has pushed', () => {
   it('carries its velocity to the cell it swims to, never stranding it on the water it left', () => {
     const grid = tank()
     const fish = put(grid, 10, 10, MaterialId.fish)
-    // A turbine's wind can hand a drifting creature a velocity; the life pass has to move that entry with it.
+    // A draught can hand a drifting creature a velocity; the life pass has to move that entry with it.
     grid.velocity.set(fish, { vx: 4, vy: 0, ox: 0, oy: 0 })
 
     const rng = createRng(7)

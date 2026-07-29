@@ -251,8 +251,8 @@ const SELF_DRIVEN: Partial<Record<MaterialId, SelfDrivenReaction>> = {
   [MaterialId.chlorine]: poison,
   [MaterialId.nitrogen]: boilOff,
   [MaterialId.meat]: rot,
-  // The devices. Being in this table is what keeps their chunks awake: a turbine over already-still air and a
-  // wild source that loses its roll both write nothing, so a sleeping chunk would stop them dead.
+  // The devices. Being in this table is what keeps their chunks awake: a black hole with nothing left to pull
+  // and a wild source that loses its roll both write nothing, so a sleeping chunk would stop them dead.
   [MaterialId.blackHole]: devour,
   [MaterialId.corruption]: corrupt,
   [MaterialId.randomSource]: pourWildly,

@@ -236,8 +236,8 @@ describe('detonate', () => {
   })
 })
 
-// A charge in the middle of a solid field of charges is the case that used to crawl: every one of them stirred
-// the air over a disc three times the blast radius, and none of it was visible under the neighbours.
+// A charge in the middle of a solid field of charges is the expensive case: stirring the air walks a disc three
+// times the blast radius, nine times the cells, for a draught nobody can see under the neighbours.
 describe('a charge with nothing but other charges around it', () => {
   function packedField(): { grid: Grid; middle: number } {
     const grid = createGrid(81, 81)

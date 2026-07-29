@@ -45,4 +45,18 @@ describe('ToolButtons', () => {
 
     expect(onSelect).toHaveBeenCalledWith(Tool.paint)
   })
+
+  it('selects a force when a different one is pressed', () => {
+    const onSelect = renderButtons(Tool.paint)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Blast' }))
+
+    expect(onSelect).toHaveBeenCalledWith(Tool.blast)
+  })
+
+  it('marks the force in hand as pressed', () => {
+    renderButtons(Tool.blast)
+
+    expect(screen.getByRole('button', { name: 'Blast' }).getAttribute('aria-pressed')).toBe('true')
+  })
 })

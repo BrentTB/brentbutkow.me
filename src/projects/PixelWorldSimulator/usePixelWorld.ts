@@ -35,10 +35,7 @@ export type PixelWorldSim = {
   /** Wipes the world and builds a ready-made one, for trying something without drawing it first. */
   load(preset: Preset): void
   paintStroke(from: CellPoint, to: CellPoint, material: MaterialId, radius: number): void
-  /**
-   * Runs a force tool over the world. Takes both ends of the drag because wind blows the way you
-   * dragged; everything else only cares where the pointer ended up.
-   */
+  /** Runs a force tool on the disc under `to`. */
   applyForce(tool: Tool, to: CellPoint, radius: number): void
   /**
    * Follow a cell: `reading` then refreshes on its own while the world runs, so a temperature can be
@@ -186,8 +183,7 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
     []
   )
 
-  // No `from`: wind was the only force that cared which way the pointer was travelling, and the rest act on
-  // the disc under it.
+  // Forces act on the disc under the pointer, so only the end cell is needed.
   const applyForce = useCallback((tool: Tool, to: CellPoint, radius: number) => {
     const grid = gridRef.current
     // A force needs somewhere to reach even at the smallest brush, where the paint radius is 0.
