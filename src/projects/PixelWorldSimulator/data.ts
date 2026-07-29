@@ -274,7 +274,7 @@ export const PRESETS: readonly { preset: Preset; label: string; title: string }[
   {
     preset: Preset.madScience,
     label: 'Mad science',
-    title: 'Experiments under one roof, and one of them gets out',
+    title: 'Three experiments in one hall, and one of them gets out',
   },
 ]
 
