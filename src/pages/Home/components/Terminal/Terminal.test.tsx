@@ -202,3 +202,80 @@ describe('Terminal — tap the ghost to complete (Tab stand-in)', () => {
     expect(container.querySelector('[data-ghost-suffix]')).toBeNull()
   })
 })
+
+describe('Terminal — the prompt and the command are one line', () => {
+  /**
+   * jsdom reports every box as zero, so the widths that drive the line have to be stood in for: a row with room
+   * for 200px, a prompt taking 120px of it, and a command as wide as the caller asks. The component measures an
+   * unseen mirror of the line rather than the input's own box, which is the only way the arithmetic can be
+   * independent of the shift it has already applied.
+   */
+  function measured(container: HTMLElement, stripWidth: number) {
+    const input = container.querySelector('input[aria-label="Type a command"]') as HTMLInputElement
+    const wrap = input.parentElement as HTMLElement
+    const row = wrap.parentElement as HTMLElement
+    const prompt = row.firstElementChild as HTMLElement
+    const mirror = container.querySelector('[class*=mirror]') as HTMLElement
+
+    Object.defineProperty(mirror, 'offsetWidth', { configurable: true, value: stripWidth })
+    Object.defineProperty(row, 'clientWidth', { configurable: true, value: 200 })
+    Object.defineProperty(prompt, 'offsetWidth', { configurable: true, value: 120 })
+    return { input, prompt, mirror }
+  }
+
+  function type(input: HTMLInputElement, value: string) {
+    fireEvent.focus(input)
+    fireEvent.change(input, { target: { value } })
+  }
+
+  it('slides the prompt out first, and leaves the text where it is', () => {
+    // 120 of prompt plus 140 of line against 200 of room: 62 to travel, all of it out of the prompt.
+    const { container } = renderTerminal()
+    const { input, prompt } = measured(container, 140)
+
+    type(input, 'cd fun-stuff')
+
+    expect(prompt.style.transform).toBe('translateX(-62px)')
+    expect(input.scrollLeft).toBe(0)
+  })
+
+  it('only scrolls the text once the prompt has run out', () => {
+    // 120 plus 300 against 200: the prompt absorbs its full 120 and the text takes the remaining 102.
+    const { container } = renderTerminal()
+    const { input, prompt } = measured(container, 300)
+
+    type(input, 'cd fun-stuff/games/pixel-world')
+
+    expect(prompt.style.transform).toBe('translateX(-120px)')
+    expect(input.scrollLeft).toBe(102)
+  })
+
+  it('recovers completely when the line is deleted again', () => {
+    // The bug this measurement exists for. Reading the input's own box fed the arithmetic its own output, so any
+    // shift held itself in place: you could backspace to an empty line and the prompt stayed clipped.
+    const { container } = renderTerminal()
+    const { input, prompt, mirror } = measured(container, 300)
+    type(input, 'cd fun-stuff/games/pixel-world')
+    expect(prompt.style.transform).toBe('translateX(-120px)')
+
+    Object.defineProperty(mirror, 'offsetWidth', { configurable: true, value: 0 })
+    type(input, '')
+
+    expect(prompt.style.transform).toBe('translateX(0px)')
+    expect(input.scrollLeft).toBe(0)
+  })
+
+  it('keeps scroll room for the completion, and none without one', () => {
+    // The completion is drawn past the end of the text, and an input cannot scroll past its own text — so the
+    // room has to be there for the suffix to be reachable at the end of a long line. Sized to the suffix, so it
+    // never costs the start of the command for nothing.
+    const { container } = renderTerminal()
+    const { input } = measured(container, 300)
+    const mirrorGhost = container.querySelector('[class*=mirror] span') as HTMLElement
+    Object.defineProperty(mirrorGhost, 'offsetWidth', { configurable: true, value: 40 })
+
+    type(input, 'hel')
+
+    expect(input.style.paddingRight).toBe('42px')
+  })
+})

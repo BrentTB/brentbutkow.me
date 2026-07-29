@@ -1,3 +1,7 @@
+// Space between the prompt and the command. Read back in JS, which needs it to know how far the prompt has
+// to travel before it is out of the way.
+$prompt-gap: 10px;
+
 @use '../../../../styles/shared' as *;
 
 .terminal {
@@ -197,7 +201,15 @@
   }
 }
 
+// The prompt is part of the line rather than a fixed label beside it: as the command outgrows the row the
+// prompt slides out to the left first, and only once it has gone does the text itself start to scroll. Driven
+// from JS, because the arithmetic needs the prompt's width and the input's overflow together.
+//
+// A threshold on how much had been typed came before this and produced three separate artefacts: the first
+// character was already off-screen while the prompt still sat there, the prompt vanished all at once partway
+// through a word, and neither ever agreed with where the text actually was.
 .prompt {
+  flex: 0 0 auto;
   color: var(--accent);
   user-select: none;
   white-space: nowrap;
@@ -206,9 +218,11 @@
 .promptRow {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: $prompt-gap;
   padding: 12px 16px;
   cursor: text;
+  // Clips the prompt as it slides out, so it leaves at the edge of the shell rather than over the top of it.
+  overflow: hidden;
 }
 
 .inputWrap {
@@ -277,9 +291,15 @@
 .input {
   width: 100%;
   border: none;
-  // Zero padding so the real text starts at the same x as the .ghost overlay's left edge —
+  // Zero padding on the left so the real text starts at the same x as the .ghost overlay's left edge —
   // otherwise the completion suffix sits off-grid and a typed char jumps instead of just
   // recoloring the ghost letter beneath it.
+  //
+  // No padding on the right either, and that is the point. Two goes at reserving room there for the greyed
+  // completion both cost the start of the command: room inside the input is room taken from the text, so the
+  // line scrolled further left than it needed to and the first characters went off the end for nothing. The
+  // completion overflows into the row instead, where there is normally space for it, and a command long enough
+  // to fill the row clips it — Tab and the tap target still work.
   padding: 0;
   background: transparent;
   color: var(--text);
@@ -351,4 +371,15 @@
   :global(html.fun-mode) .frame:focus-within {
     animation: none;
   }
+}
+
+// An unseen copy of the line, purely to be measured. Out of flow so it lays nothing out, and inside the wrap so
+// it inherits the same font the input uses — a mirror in a different font measures the wrong line.
+.mirror {
+  position: absolute;
+  top: 0;
+  left: 0;
+  visibility: hidden;
+  white-space: pre;
+  pointer-events: none;
 }
