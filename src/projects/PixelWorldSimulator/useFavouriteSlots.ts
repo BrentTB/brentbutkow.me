@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { MaterialId } from './pixel-world.types'
 import { FAVOURITES_KEY, MATERIAL_SLOTS } from './data'
 import { MATERIALS } from './engine/materials'
@@ -61,14 +61,18 @@ export type FavouriteSlots = {
  */
 export function useFavouriteSlots(): FavouriteSlots {
   const [slots, setSlots] = useState<(MaterialId | null)[]>(readSlots)
+  // The write is a side effect, so it stays out of the state updater: StrictMode double-invokes updaters in
+  // dev. The ref carries the latest slots so back-to-back assigns still build on each other.
+  const latest = useRef(slots)
+  latest.current = slots
 
   const assign = useCallback((index: number, material: MaterialId) => {
-    setSlots((current) => {
-      if (index < 0 || index >= current.length) return current
-      const next = current.map((held, at) => (at === index ? material : held))
-      writeSlots(next)
-      return next
-    })
+    const current = latest.current
+    if (index < 0 || index >= current.length) return
+    const next = current.map((held, at) => (at === index ? material : held))
+    latest.current = next
+    writeSlots(next)
+    setSlots(next)
   }, [])
 
   return { slots, assign }

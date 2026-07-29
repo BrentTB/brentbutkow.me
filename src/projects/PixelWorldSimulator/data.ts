@@ -269,7 +269,7 @@ export const PRESETS: readonly { preset: Preset; label: string; title: string }[
   {
     preset: Preset.kitchen,
     label: 'Pots and pans',
-    title: 'Pans of kernels and fireworks, over lava and open flame',
+    title: 'Pots and pans of kernels and fireworks, over an open flame',
   },
   {
     preset: Preset.madScience,

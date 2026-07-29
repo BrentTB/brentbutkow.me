@@ -132,19 +132,22 @@ function overDisc(
   }
 }
 
-/** Pulls loose cells toward the pointer, black-hole style. */
-export function attract(grid: Grid, cx: number, cy: number, radius: number): void {
-  overDisc(grid, cx, cy, radius, (index, dx, dy, falloff) => {
-    if (!isMovable(grid.material[index])) return
-
-    const distance = Math.sqrt(dx * dx + dy * dy)
-    if (distance === 0) return
-
-    // Direction only: dividing the strength by the distance as well made anything more than a few cells
-    // out barely twitch, which is the opposite of a black hole.
-    const speed = PULL_STRENGTH * falloff * massFactor(grid.material[index])
+/**
+ * Pulls every loose cell straight toward the centre — direction only, so a cell far out is still yanked in
+ * rather than left to twitch, which is the opposite of a black hole. Strength and reach are the whole
+ * difference between the attract tool's nudge and a black hole's grip.
+ */
+function pullInward(grid: Grid, cx: number, cy: number, radius: number, strength: number): void {
+  overDisc(grid, cx, cy, radius, (index, dx, dy, falloff, distance) => {
+    if (!isMovable(grid.material[index]) || distance === 0) return
+    const speed = strength * falloff * massFactor(grid.material[index])
     push(grid, index, (-dx / distance) * speed, (-dy / distance) * speed)
   })
+}
+
+/** Pulls loose cells toward the pointer, black-hole style. */
+export function attract(grid: Grid, cx: number, cy: number, radius: number): void {
+  pullInward(grid, cx, cy, radius, PULL_STRENGTH)
 }
 
 /** How far a black hole reaches, and how hard. Stronger than the attract tool: it is not a nudge. */
@@ -165,18 +168,7 @@ const TURBINE_SWIRL = 15
  * the exact shape of the performance problem the explosion work went in to fix.
  */
 export function swallow(grid: Grid, cx: number, cy: number): void {
-  overDisc(
-    grid,
-    cx,
-    cy,
-    HOLE_REACH,
-    (index, dx, dy, falloff, distance) => {
-      if (!isMovable(grid.material[index]) || distance === 0) return
-      const speed = HOLE_STRENGTH * falloff * massFactor(grid.material[index])
-      push(grid, index, (-dx / distance) * speed, (-dy / distance) * speed)
-    },
-    HOLE_REACH
-  )
+  pullInward(grid, cx, cy, HOLE_REACH, HOLE_STRENGTH)
 }
 
 /**

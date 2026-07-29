@@ -20,6 +20,22 @@ function count(grid: Grid, material: MaterialId): number {
   return total
 }
 
+/** Asserts every cell of `material` touches nothing in its eight neighbours but empty air or its own kind. */
+function expectFloatsFree(grid: Grid, material: MaterialId): void {
+  for (let index = 0; index < grid.material.length; index++) {
+    if (grid.material[index] !== material) continue
+    const x = index % grid.width
+    const y = Math.floor(index / grid.width)
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        if (dx === 0 && dy === 0) continue
+        const found = grid.material[cellIndex(grid, x + dx, y + dy)]
+        expect([MaterialId.empty, material]).toContain(found)
+      }
+    }
+  }
+}
+
 function built(seed = 1): Grid {
   const grid = createGrid(GRID_WIDTH, GRID_HEIGHT)
   loadPreset(grid, Preset.aquarium, createRng(seed))
@@ -695,18 +711,7 @@ describe('the mad science preset', () => {
     // a bench. It costs nothing to do: a wild source is static, so it stays where it is put with no support.
     const grid = lab()
 
-    for (let index = 0; index < grid.material.length; index++) {
-      if (grid.material[index] !== MaterialId.randomSource) continue
-      const x = index % grid.width
-      const y = Math.floor(index / grid.width)
-      for (let dy = -1; dy <= 1; dy++) {
-        for (let dx = -1; dx <= 1; dx++) {
-          if (dx === 0 && dy === 0) continue
-          const found = grid.material[cellIndex(grid, x + dx, y + dy)]
-          expect([MaterialId.empty, MaterialId.randomSource]).toContain(found)
-        }
-      }
-    }
+    expectFloatsFree(grid, MaterialId.randomSource)
   })
 
   it('roofs the reactor vault with an arch on straight walls', () => {
@@ -805,12 +810,6 @@ describe('the pots and pans preset', () => {
     const grid = createGrid(GRID_WIDTH, GRID_HEIGHT)
     loadPreset(grid, Preset.kitchen, createRng(3))
     return grid
-  }
-
-  function count(grid: Grid, material: MaterialId): number {
-    let n = 0
-    for (const id of grid.material) if (id === material) n++
-    return n
   }
 
   /** Which quarter of the counter a cell sits in, one quarter to a vessel. */
@@ -920,18 +919,7 @@ describe('the pots and pans preset', () => {
     // rather than a burner. Clear of everything, the only thing that can reach it is what the fuse vents.
     const grid = kitchen()
 
-    for (let index = 0; index < grid.material.length; index++) {
-      if (grid.material[index] !== MaterialId.source) continue
-      const x = index % grid.width
-      const y = Math.floor(index / grid.width)
-      for (let dy = -1; dy <= 1; dy++) {
-        for (let dx = -1; dx <= 1; dx++) {
-          if (dx === 0 && dy === 0) continue
-          const found = grid.material[cellIndex(grid, x + dx, y + dy)]
-          expect([MaterialId.empty, MaterialId.source]).toContain(found)
-        }
-      }
-    }
+    expectFloatsFree(grid, MaterialId.source)
   })
 
   itSlow('lights each pan in turn, and every pan cooks', { timeout: 60_000 }, () => {

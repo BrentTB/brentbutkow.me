@@ -334,9 +334,9 @@ describe('metal', () => {
       const grid = createGrid(20, 5)
       for (let x = 0; x < 20; x++) put(grid, x, 2, material)
 
-      // A blowtorch on one end, held below metal's melting point so the bar stays a bar. Compared
-      // against stone rather than wood: at this temperature wood catches fire and the flame front
-      // carries the heat along the bar, which is combustion, not conduction.
+      // A blowtorch on one end. Metal is inert, so the bar just conducts. Compared against stone rather
+      // than wood: at this temperature wood catches fire and the flame front carries the heat along the
+      // bar, which is combustion, not conduction.
       const rng = createRng(3)
       for (let tick = 0; tick < 200; tick++) {
         grid.temperature[cellIndex(grid, 19, 2)] = 600
@@ -585,7 +585,9 @@ describe('embers', () => {
     expect(count(grid, MaterialId.ember)).toBe(0)
     const ash = count(grid, MaterialId.ash)
     expect(ash).toBeGreaterThan(0)
-    expect(ash).toBeLessThan(embers / 3)
+    // Bounded off the residue odds in the table, not a bare fraction, so retuning the chance moves this too.
+    const chance = MATERIALS[MaterialId.ember].residueChance ?? 1
+    expect(ash).toBeLessThan(embers * chance * 2)
   })
 })
 

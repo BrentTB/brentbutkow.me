@@ -519,7 +519,6 @@ function spaceAlong(
   return -1
 }
 
-/** A void eats whatever touches it, which is how you drain a world you have filled. */
 /** A turbine: writes a rotation into the air, and the air's own coupling decides what is light enough to go. */
 function spinAir(grid: Grid, _rng: Rng, x: number, y: number): void {
   swirl(grid, x, y, TURBINE_REACH)
@@ -611,6 +610,7 @@ function pourWildly(grid: Grid, rng: Rng, x: number, y: number): void {
   }
 }
 
+/** A void eats whatever touches it, which is how you drain a world you have filled. */
 function consume(grid: Grid, rng: Rng, x: number, y: number): void {
   if (!rng.chance(CONSUME_CHANCE)) return
 
