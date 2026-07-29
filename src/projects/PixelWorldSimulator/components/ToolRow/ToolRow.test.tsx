@@ -45,17 +45,17 @@ describe('ToolRow', () => {
   it('reports the tool that was picked', () => {
     const props = renderTools()
 
-    const wind = TOOLS.find(({ tool }) => tool === Tool.wind)
-    screen.getByRole('button', { name: wind?.label ?? '' }).click()
+    const chill = TOOLS.find(({ tool }) => tool === Tool.chill)
+    screen.getByRole('button', { name: chill?.label ?? '' }).click()
 
-    expect(props.onSelect).toHaveBeenCalledWith(Tool.wind)
+    expect(props.onSelect).toHaveBeenCalledWith(Tool.chill)
   })
 
   it('offers full screen as its own control, not a seventh tool', () => {
     renderTools()
 
     // It acts on the window rather than on the pointer, so it stays out of the tool group.
-    const group = screen.getByRole('group', { name: 'Tool' })
+    const group = screen.getByRole('group', { name: simCopy.tools.label })
     const control = screen.getByRole('button', { name: 'Full screen' })
     expect(group.contains(control)).toBe(false)
   })
@@ -87,7 +87,7 @@ describe('ToolRow', () => {
 
     const gear = screen.getByRole('button', { name: simCopy.settings.open })
     expect(gear.getAttribute('aria-haspopup')).toBe('dialog')
-    expect(screen.getByRole('group', { name: 'Tool' }).contains(gear)).toBe(false)
+    expect(screen.getByRole('group', { name: simCopy.tools.label }).contains(gear)).toBe(false)
   })
 
   it('asks for the settings when the gear is pressed', () => {
@@ -115,5 +115,35 @@ describe('ToolRow', () => {
     expect(
       screen.getByRole('button', { name: simCopy.settings.open }).getAttribute('aria-expanded')
     ).toBe('true')
+  })
+})
+
+describe('ToolRow on a phone', () => {
+  function asPhone() {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: true,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }))
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    cleanup()
+  })
+
+  it('hands the forces over and keeps only the view controls', () => {
+    // The page puts them on the material chip's line instead: choosing a tool and choosing a material are the
+    // same move, and two stacked rows for them was most of the room under the world.
+    asPhone()
+    renderTools()
+
+    expect(screen.queryByRole('group', { name: simCopy.tools.label })).toBeNull()
+    for (const { label } of TOOLS) {
+      expect(screen.queryByRole('button', { name: label })).toBeNull()
+    }
+    expect(screen.getByRole('button', { name: 'Full screen' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: simCopy.settings.open })).toBeTruthy()
   })
 })

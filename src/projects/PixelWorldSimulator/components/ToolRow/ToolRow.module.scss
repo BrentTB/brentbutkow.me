@@ -58,8 +58,8 @@
   }
 }
 
-// One shell with dividers, the same instrument the transport is built from: these six are a mode
-// selector, and a row of separate outlined buttons reads as six unrelated actions. Stacked beside the
+// One shell with dividers, the same instrument the transport is built from: these three are a mode
+// selector, and a row of separate outlined buttons reads as three unrelated actions. Stacked beside the
 // canvas rather than above the palette, so picking a tool and picking a material are different reaches.
 .tools {
   display: flex;
@@ -115,7 +115,7 @@
 
   // Off the page flow entirely and onto the world's own top-right corner, the way a video player holds its
   // controls. Stacked in the row they made the tool bar two buttons tall for no reason; beside the tools they
-  // ate width the six of them need. `.world` in the page module is the positioned ancestor.
+  // ate width the three of them need. `.world` in the page module is the positioned ancestor.
   .view {
     position: absolute;
     top: 12px;
@@ -139,7 +139,7 @@
 
   .tool {
     flex: 1;
-    padding: 8px 6px;
+    padding: 9px 12px;
     text-align: center;
   }
 }

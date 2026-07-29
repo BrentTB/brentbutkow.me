@@ -210,9 +210,9 @@ describe('air carrying material', () => {
   })
 
   it('leaves a pool alone in a draught, and only a device or a gale reaches it', () => {
-    // Water is no longer exempt outright, because a turbine that cannot stir a pool is a disappointment. What
+    // Water is no longer exempt outright, because a device that cannot stir a pool is a disappointment. What
     // keeps it in its basin is the density-scaled bar in `carry`: a draught strong enough to be worth drawing
-    // still does not touch it. A turbine deliberately clears that bar, which `reactions` covers.
+    // still does not touch it. A gale clears that bar, and so does a blast pushing air straight at it.
     const grid = openWorld()
     const at = cellIndex(grid, 20, grid.height - 2)
     placeMaterial(grid, at, MaterialId.water)

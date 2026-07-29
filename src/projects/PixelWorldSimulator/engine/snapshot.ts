@@ -9,7 +9,12 @@ import { asMaterial, clearGrid, markHotRow, placeMaterial } from './grid'
  * An old link read by a newer build is refused rather than misread: a snapshot is somebody else's world,
  * and a plausible-looking wrong answer is worse than a refusal they can understand.
  */
-export const VERSION = 1
+/**
+ * Bumped to 2 when the turbine was removed and the material ids above it renumbered. A world's cells are raw
+ * material bytes, so a link written before that decodes into different materials entirely; the version check is
+ * what turns that into a refusal the reader can understand instead of a scrambled world.
+ */
+export const VERSION = 2
 
 /** Bytes before the cell data: version, width, height, flags. */
 const HEADER_BYTES = 6

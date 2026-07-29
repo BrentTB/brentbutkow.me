@@ -8,6 +8,18 @@ import { TerminalLineKind, TerminalMode, useTerminal } from './useTerminal'
 
 const PROMPT = 'brent@butkow:~$'
 
+/**
+ * A computed length in pixels, or zero. `column-gap` reads back as `normal` when it has not been set, and
+ * `parseFloat` turns that into NaN, which then poisons every number downstream of it.
+ */
+function px(value: string): number {
+  const length = parseFloat(value)
+  return Number.isFinite(length) ? length : 0
+}
+
+/** Pixels kept clear past the end of the line, so the caret is never flush against the edge. */
+const CARET_ROOM = 2
+
 function isTypingTarget(target: EventTarget | null): boolean {
   return (
     target instanceof HTMLElement &&
@@ -18,6 +30,18 @@ function isTypingTarget(target: EventTarget | null): boolean {
 export function Terminal() {
   const sectionRef = useRef<HTMLElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  // The greyed completion is drawn in an overlay of its own, which has no reason to scroll on its own and
+  // every reason to scroll exactly as far as the input under it.
+  const ghostRef = useRef<HTMLSpanElement>(null)
+  const promptRef = useRef<HTMLSpanElement>(null)
+  const rowRef = useRef<HTMLDivElement>(null)
+  const wrapRef = useRef<HTMLDivElement>(null)
+  // Mirrors of the line, for measuring. The input's own `scrollWidth` cannot do this job: for text that fits it
+  // reports the box rather than the text, and the box is one this code has already widened — so the arithmetic
+  // fed on its own output and any shift held itself in place. Backspacing to an empty line left the prompt
+  // still clipped.
+  const mirrorRef = useRef<HTMLSpanElement>(null)
+  const mirrorGhostRef = useRef<HTMLSpanElement>(null)
   const logRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const matrixRef = useRef<HTMLDivElement>(null)
@@ -158,6 +182,57 @@ export function Terminal() {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight
   }, [lines, active, animation])
 
+  // Set before a state-driven value change (accept, recall, clear) whose scroll must wait for the render.
+  const scrollAfterAccept = useRef(false)
+  // Set while typing when the caret sits at the line's end, so the effect scrolls to it once the text renders.
+  const caretAtEnd = useRef(false)
+
+  /**
+   * Bring the end of the line into view, and take the completion overlay with it. The input reserves a few
+   * characters of room on its right, so this leaves the caret short of the edge with the suffix visible in the
+   * gap rather than flush against it with nowhere to draw.
+   *
+   * Every path that changes the value routes through the effect below so this runs against the rendered text.
+   * A path that skips it writes the new text into the reserved gap where it stays hidden — the command grows
+   * and the row looks untouched.
+   */
+  const keepEndInView = useCallback((moveCaret = true) => {
+    const field = inputRef.current
+    const row = rowRef.current
+    const prompt = promptRef.current
+    const wrap = wrapRef.current
+    const mirror = mirrorRef.current
+    if (!field || !row || !prompt || !wrap || !mirror) return
+
+    // Prompt, command and completion are one strip. Work out how far it has to travel to bring its end into
+    // view, and spend that on the prompt first: it is the part you already know, and the text only starts
+    // moving once the prompt has run out.
+    const rowStyle = getComputedStyle(row)
+    const room = row.clientWidth - px(rowStyle.paddingLeft) - px(rowStyle.paddingRight)
+    const promptRoom = prompt.offsetWidth + px(rowStyle.columnGap)
+    const suffix = mirrorGhostRef.current?.offsetWidth ?? 0
+    const strip = mirror.offsetWidth + CARET_ROOM
+
+    const travel = Math.max(0, promptRoom + strip - room)
+    const slide = Math.min(travel, promptRoom)
+
+    // The negative margin hands the width the prompt gave up over to the input, so the two halves of the strip
+    // stay joined instead of leaving a hole where the prompt was.
+    prompt.style.transform = `translateX(${-slide}px)`
+    wrap.style.marginLeft = `${-slide}px`
+
+    // An input cannot scroll past its own text, and the completion is drawn past the end of it, so the input
+    // carries exactly the completion's width as scroll room. Sized to the suffix and zero without one, or it
+    // costs the start of the command for nothing.
+    const reserve = `${suffix + CARET_ROOM}px`
+    field.style.paddingRight = reserve
+    if (ghostRef.current) ghostRef.current.style.paddingRight = reserve
+
+    if (!moveCaret) return
+    field.scrollLeft = travel - slide
+    if (ghostRef.current) ghostRef.current.scrollLeft = field.scrollLeft
+  }, [])
+
   const cancelCascade = useCallback(() => {
     clearTimeout(cascadeTimeout.current)
     setCascade(null)
@@ -176,6 +251,17 @@ export function Terminal() {
 
   useEffect(() => () => clearTimeout(cascadeTimeout.current), [])
 
+  // Every change that did not come from a keystroke: accepting a completion, recalling from history, and the
+  // clear that follows running a command. All of them arrive through state, so the scroll cannot happen at the
+  // call site — the input still holds the old text there. The prompt is brought back in step regardless, since
+  // it tracks the length of the line however the line got that way.
+  useEffect(() => {
+    const moveCaret = scrollAfterAccept.current || caretAtEnd.current
+    scrollAfterAccept.current = false
+    caretAtEnd.current = false
+    keepEndInView(moveCaret)
+  }, [input, keepEndInView])
+
   const onInputKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key !== 'Tab') cancelCascade() // any other key finalizes the reveal
     switch (event.key) {
@@ -186,16 +272,19 @@ export function Terminal() {
         event.preventDefault()
         const prefix = input
         const suffix = ghost
+        scrollAfterAccept.current = true
         acceptCompletion()
         startCascade(prefix, suffix)
         break
       }
       case 'ArrowUp':
         event.preventDefault()
+        scrollAfterAccept.current = true
         recallHistory(-1)
         break
       case 'ArrowDown':
         event.preventDefault()
+        scrollAfterAccept.current = true
         recallHistory(1)
         break
       case 'Escape':
@@ -278,13 +367,17 @@ export function Terminal() {
           </div>
         )}
         {mode !== TerminalMode.matrix && (
-          <div className={styles.promptRow}>
-            <span className={styles.prompt} aria-hidden="true">
+          <div className={styles.promptRow} ref={rowRef}>
+            <span ref={promptRef} className={styles.prompt} aria-hidden="true">
               {PROMPT}
             </span>
-            <div className={styles.inputWrap}>
+            <div className={styles.inputWrap} ref={wrapRef}>
+              <span ref={mirrorRef} className={styles.mirror} aria-hidden="true">
+                {input}
+                <span ref={mirrorGhostRef}>{ghost}</span>
+              </span>
               {ghost && !cascade && (
-                <span className={styles.ghost} aria-hidden="true">
+                <span ref={ghostRef} className={styles.ghost} aria-hidden="true">
                   <span className={styles.ghostTyped}>{input}</span>
                   {/* Touch stand-in for Tab: on mobile the greyed suffix is tappable to accept the
                       completion (pointer-events gated to mobile in CSS). Decorative for a11y — typing
@@ -297,6 +390,7 @@ export function Terminal() {
                     onClick={() => {
                       const prefix = input
                       const suffix = ghost
+                      scrollAfterAccept.current = true
                       acceptCompletion()
                       startCascade(prefix, suffix)
                       inputRef.current?.focus()
@@ -331,7 +425,13 @@ export function Terminal() {
                 value={input}
                 onChange={(event) => {
                   cancelCascade()
-                  setInput(event.target.value)
+                  const field = event.currentTarget
+                  // Scroll to the end only when the caret is at the end — a mid-line edit shouldn't yank the
+                  // view away. The scroll waits for the effect above, which re-measures the mirror after React
+                  // renders the new text; the prompt slide and padding update now regardless.
+                  caretAtEnd.current = field.selectionStart === field.value.length
+                  setInput(field.value)
+                  keepEndInView(false)
                 }}
                 onKeyDown={onInputKeyDown}
                 onFocus={() => setActive(true)}

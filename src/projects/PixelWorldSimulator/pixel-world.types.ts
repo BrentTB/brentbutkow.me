@@ -44,19 +44,21 @@ export const MaterialId = {
   slime: 42,
   meat: 43,
   ant: 44,
-  // Appended, never inserted: a snapshot stores raw material bytes, so renumbering anything above would
-  // turn every share link ever written into a different world.
+  // Append, never insert: a snapshot stores raw material bytes, so renumbering anything here turns every share
+  // link already written into a different world. Renumbered once, when the turbine was removed from between
+  // `blackHole` and `randomSource`, and only because `VERSION` in `snapshot.ts` went up in the same change —
+  // which makes an older link refuse cleanly instead of decoding into the wrong materials. Any future
+  // renumbering owes the same bump.
   pollen: 45,
   kernel: 46,
   popcorn: 47,
   blackHole: 48,
-  turbine: 49,
-  randomSource: 50,
-  corruption: 51,
-  glue: 52,
-  resin: 53,
-  firework: 54,
-  fireworkLit: 55,
+  randomSource: 49,
+  corruption: 50,
+  glue: 51,
+  resin: 52,
+  firework: 53,
+  fireworkLit: 54,
 } as const
 export type MaterialId = (typeof MaterialId)[keyof typeof MaterialId]
 
@@ -272,9 +274,7 @@ export type AntHeading = {
 /** What the pointer does to the world. Paint is the material brush; the rest write forces or heat. */
 export const Tool = {
   paint: 'paint',
-  attract: 'attract',
   blast: 'blast',
-  wind: 'wind',
   heat: 'heat',
   chill: 'chill',
 } as const

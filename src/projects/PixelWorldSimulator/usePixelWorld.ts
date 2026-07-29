@@ -14,7 +14,7 @@ import { stampLine } from './engine/brush'
 import { countMaterials } from './engine/census'
 import { MATERIALS } from './engine/materials'
 import { Preset, loadPreset } from './engine/presets'
-import { attract, blast, temper, wind } from './engine/forces'
+import { blast, temper } from './engine/forces'
 import { asMaterial, cellIndex, clearGrid, createGrid } from './engine/grid'
 import { Rng, createRng } from './engine/rng'
 import { tickWorld } from './engine/tick'
@@ -35,11 +35,8 @@ export type PixelWorldSim = {
   /** Wipes the world and builds a ready-made one, for trying something without drawing it first. */
   load(preset: Preset): void
   paintStroke(from: CellPoint, to: CellPoint, material: MaterialId, radius: number): void
-  /**
-   * Runs a force tool over the world. Takes both ends of the drag because wind blows the way you
-   * dragged; everything else only cares where the pointer ended up.
-   */
-  applyForce(tool: Tool, from: CellPoint, to: CellPoint, radius: number): void
+  /** Runs a force tool on the disc under `to`. */
+  applyForce(tool: Tool, to: CellPoint, radius: number): void
   /**
    * Follow a cell: `reading` then refreshes on its own while the world runs, so a temperature can be
    * watched changing without clicking. Pass null to stop.
@@ -186,14 +183,13 @@ export function usePixelWorld(canvasRef: RefObject<HTMLCanvasElement | null>): P
     []
   )
 
-  const applyForce = useCallback((tool: Tool, from: CellPoint, to: CellPoint, radius: number) => {
+  // Forces act on the disc under the pointer, so only the end cell is needed.
+  const applyForce = useCallback((tool: Tool, to: CellPoint, radius: number) => {
     const grid = gridRef.current
     // A force needs somewhere to reach even at the smallest brush, where the paint radius is 0.
     const reach = Math.max(4, radius)
 
-    if (tool === Tool.attract) attract(grid, to.x, to.y, reach)
-    else if (tool === Tool.blast) blast(grid, to.x, to.y, reach)
-    else if (tool === Tool.wind) wind(grid, to.x, to.y, reach, to.x - from.x, to.y - from.y)
+    if (tool === Tool.blast) blast(grid, to.x, to.y, reach)
     else if (tool === Tool.heat) temper(grid, to.x, to.y, reach, true)
     else if (tool === Tool.chill) temper(grid, to.x, to.y, reach, false)
   }, [])

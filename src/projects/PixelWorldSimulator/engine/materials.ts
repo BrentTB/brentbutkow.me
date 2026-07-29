@@ -928,18 +928,6 @@ export const MATERIALS: readonly Material[] = [
     acidProof: true,
   },
   {
-    id: MaterialId.turbine,
-    label: 'Turbine',
-    blurb: 'Spins the air around it, so loose things nearby get swept round.',
-    behavior: MaterialBehavior.static,
-    density: 1000,
-    color: [126, 148, 168],
-    jitter: 6,
-    dispersion: 0,
-    drag: 0,
-    conductivity: 0.4,
-  },
-  {
     id: MaterialId.randomSource,
     label: 'Wild source',
     blurb: 'Pours out something different every time. Never anything solid.',

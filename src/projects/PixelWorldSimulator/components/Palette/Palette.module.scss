@@ -168,3 +168,32 @@
   font-size: 0.6rem;
   color: var(--accent);
 }
+
+// The chip and the force buttons the page puts beside it, on one line. The chip takes whatever room is left so
+// the material name is never the thing that gets truncated, and the buttons keep the width they need.
+//
+// Wrapping is allowed rather than squeezed: on the narrowest phones the four forces and the chip genuinely do
+// not both fit, and a second line reads better than four buttons crushed to their initials.
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 8px;
+
+  > :first-child {
+    flex: 1 1 12ch;
+    min-width: 0;
+  }
+
+  > :last-child:not(:first-child) {
+    flex: 0 1 auto;
+  }
+}
+
+// Marked while the paint tool is in hand, using the accent the favourites already use for the material on the
+// brush. It goes quiet under a force tool, which ignores the material altogether: exactly one of the chip and
+// the tool dropdown beside it is ever the control doing the work, and marking both said nothing at all.
+.currentActive {
+  border-color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.16);
+}

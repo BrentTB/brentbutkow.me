@@ -59,7 +59,7 @@ const PERMEABLE = new Uint8Array(
  *
  * Liquids are in because a device that cannot stir a pool is a disappointment, and what keeps a pool in its
  * basin is the density-scaled bar in `carry` rather than a blanket exclusion — a breeze leaves water alone and
- * a turbine does not. Creatures are in for the same reason: they read as `static` only because they move
+ * a blast does not. Creatures are in for the same reason: they read as `static` only because they move
  * themselves in the life pass.
  *
  * **Gases stay out, and that one is about speed as much as looks.** A gas already follows the flow through
@@ -106,7 +106,7 @@ export function canAirEnter(material: number): boolean {
  * away again. Nothing here reads how material is moving — only its temperature and whether it is a wall.
  *
  * **Material never pushes air.** That is the one rule keeping this stable. Air pushes material and explicit
- * sources push air (the wind tool, a detonation, heat), but a cell being shoved along writes nothing back
+ * sources push air (a detonation, heat), but a cell being shoved along writes nothing back
  * into the field. The spec flagged the two-way version as able to add energy without bound, and it can: any
  * disagreement between the passes about who owed whom momentum compounds every tick.
  */
@@ -130,7 +130,7 @@ const AIR_GRAB = 1.2
  * The much higher bar for tearing a **settled** cell loose. Ground has to stay ground: an updraught off a
  * lava pool is a couple of cells per tick, and at the lower bar it plucked the dirt above it into the air a
  * grain at a time, over and over, which reads as the world twitching rather than as heat rising. Only a real
- * gale — a blast, or the wind tool held on something — clears this.
+ * gale, which in practice means a blast, clears this.
  *
  * Divided by how light the material is, so the bar means "a gale for gravel" rather than one absolute number.
  * Without that the lightest thing in the world needs the same wind as the heaviest, and pollen just sits there.

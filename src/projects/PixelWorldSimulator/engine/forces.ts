@@ -1,4 +1,4 @@
-import { Grid, MaterialId } from '../pixel-world.types'
+import { Grid, MaterialBehavior, MaterialId } from '../pixel-world.types'
 import { AMBIENT_TEMPERATURE, TEMPERATURE_LIMITS } from '../data'
 import { cellIndex, markHotRow, markHotRowBand, placeMaterial, transformCell } from './grid'
 import { MATERIALS, isMovable } from './materials'
@@ -7,24 +7,10 @@ import { Rng } from './rng'
 import { pushAir } from './air'
 
 /**
- * Cells per tick the attract tool adds at its strongest. It has to be a grab, not a nudge: at a third of
- * this, dragging a pile anywhere took slow, careful sweeps at the largest brush, which is irritating
- * rather than powerful.
- */
-const PULL_STRENGTH = 4.5
-/**
  * Cells per tick a blast writes at the centre. Deliberately violent: this is the tool people reach for to
  * throw a heap of gravel across the world.
  */
 const BLAST_STRENGTH = 9
-/** Cells per tick a held wind adds each tick, along the direction of the drag. */
-const WIND_STRENGTH = 2.4
-/**
- * Cells per tick the wind tool puts into the air itself, on top of the shove it gives material directly.
- * Comfortably over the speed the flow needs to pick anything up, so a held drag reads as a gust that lingers
- * rather than a hand pushing individual grains.
- */
-const WIND_AIR = 3.5
 /**
  * The smallest disc a force works over, whatever the brush is set to, and whatever a charge's own radius says.
  * Force falls off to nothing at the rim, so a brush-sized blast at the smallest setting had almost no room to
@@ -98,6 +84,36 @@ function massFactor(id: number): number {
 }
 
 /**
+ * Whether a cell of this material is worth aiming a blast at: something a throw would visibly move. Charges are
+ * out because they are about to stop existing, and gases are out because a puff of smoke flying across the
+ * world is not something anybody watches. Air and walls are out already, being immovable.
+ */
+const WORTH_THROWING = new Uint8Array(
+  MATERIALS.map(({ id, behavior, explodes }) =>
+    isMovable(id) && behavior !== MaterialBehavior.gas && explodes === undefined ? 1 : 0
+  )
+)
+
+/**
+ * Whether none of the eight cells around this one is worth throwing.
+ *
+ * Asking what there is to throw, rather than the tempting "are all my neighbours charges", is the point. A charge
+ * only goes off because heat reached it, so the neighbour that lit it has already gone off and reads as spent:
+ * every charge in a chain has a spent neighbour, and a test on charges is false essentially always.
+ */
+function nothingToThrowBeside(grid: Grid, x: number, y: number): boolean {
+  if (x < 1 || y < 1 || x >= grid.width - 1 || y >= grid.height - 1) return false
+
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      if (dx === 0 && dy === 0) continue
+      if (WORTH_THROWING[grid.material[cellIndex(grid, x + dx, y + dy)]] === 1) return false
+    }
+  }
+  return true
+}
+
+/**
  * Runs `apply` over every cell in a disc, handing it the offset from the centre and how strongly the
  * centre reaches it — full at the pointer, nothing at the rim. Every tool and every explosion is this
  * same walk with a different body, which is why the powers were cheap once momentum existed.
@@ -134,8 +150,8 @@ function overDisc(
 
 /**
  * Pulls every loose cell straight toward the centre — direction only, so a cell far out is still yanked in
- * rather than left to twitch, which is the opposite of a black hole. Strength and reach are the whole
- * difference between the attract tool's nudge and a black hole's grip.
+ * rather than left to twitch. The black hole is the only thing that does this now: the attract tool it was
+ * shared with is gone, having never been much fun to use.
  */
 function pullInward(grid: Grid, cx: number, cy: number, radius: number, strength: number): void {
   overDisc(grid, cx, cy, radius, (index, dx, dy, falloff, distance) => {
@@ -145,22 +161,9 @@ function pullInward(grid: Grid, cx: number, cy: number, radius: number, strength
   })
 }
 
-/** Pulls loose cells toward the pointer, black-hole style. */
-export function attract(grid: Grid, cx: number, cy: number, radius: number): void {
-  pullInward(grid, cx, cy, radius, PULL_STRENGTH)
-}
-
-/** How far a black hole reaches, and how hard. Stronger than the attract tool: it is not a nudge. */
+/** How far a black hole reaches, and how hard. A grab rather than a nudge. */
 const HOLE_REACH = 18
 const HOLE_STRENGTH = 6
-/**
- * Cells per tick of swirl a turbine writes into the air. Into the air rather than into material, so the flow
- * carries things round and the coupling rules decide what is light enough to go.
- *
- * Strong enough to clear water's own bar in `carry`, because a device that cannot stir a pool is a
- * disappointment. Everything lighter than water was already moving at half this.
- */
-const TURBINE_SWIRL = 15
 
 /**
  * Pulls everything loose inward. Eating what arrives is the caller's job, and it matters: a puller that only
@@ -169,26 +172,6 @@ const TURBINE_SWIRL = 15
  */
 export function swallow(grid: Grid, cx: number, cy: number): void {
   pullInward(grid, cx, cy, HOLE_REACH, HOLE_STRENGTH)
-}
-
-/**
- * Writes a rotation into the air around a point, so the flow sweeps things round rather than outward. The
- * direction at each cell is the offset turned a quarter turn, which is what makes a circle instead of a blast.
- */
-export function swirl(grid: Grid, cx: number, cy: number, radius: number): void {
-  overDisc(
-    grid,
-    cx,
-    cy,
-    radius,
-    (index, dx, dy, falloff, distance) => {
-      if (distance === 0) return
-      // Perpendicular to the line out from the middle: (dx, dy) turned ninety degrees.
-      const speed = TURBINE_SWIRL * falloff
-      pushAir(grid, index, (-dy / distance) * speed, (dx / distance) * speed)
-    },
-    radius
-  )
 }
 
 /** How far out a burst looks for somewhere to put each trail before giving up on that direction. */
@@ -245,32 +228,6 @@ export function blast(grid: Grid, cx: number, cy: number, radius: number): void 
   impulse(grid, cx, cy, radius, BLAST_STRENGTH, BLAST_HEAT)
 }
 
-/** Pushes along the drag direction while the pointer is held. */
-export function wind(
-  grid: Grid,
-  cx: number,
-  cy: number,
-  radius: number,
-  dx: number,
-  dy: number
-): void {
-  const length = Math.sqrt(dx * dx + dy * dy)
-  if (length === 0) return
-
-  const ux = dx / length
-  const uy = dy / length
-
-  overDisc(grid, cx, cy, radius, (index, _dx, _dy, falloff) => {
-    // Into the air first: the tool blows a draught, and the draught is what carries things. It keeps
-    // working after the pointer stops, and it bends around whatever is in the way.
-    pushAir(grid, index, ux * WIND_AIR * falloff, uy * WIND_AIR * falloff)
-
-    if (!isMovable(grid.material[index])) return
-    const speed = WIND_STRENGTH * falloff * massFactor(grid.material[index])
-    push(grid, index, ux * speed, uy * speed)
-  })
-}
-
 /** Raises or lowers the temperature under the brush, for melting and freezing without painting. */
 export function temper(grid: Grid, cx: number, cy: number, radius: number, warming: boolean): void {
   const direction = warming ? 1 : -1
@@ -298,7 +255,13 @@ function impulse(
   radius: number,
   strength: number,
   heat: number,
-  minReach = MIN_REACH
+  minReach = MIN_REACH,
+  /**
+   * Whether to stir the air as well. The draught is the expensive half of a blast by a wide margin — it walks a
+   * disc three times the radius, so nine times the cells — and it is the half worth dropping for a charge with
+   * nothing but other charges around it.
+   */
+  gust = true
 ): void {
   overDisc(
     grid,
@@ -329,7 +292,7 @@ function impulse(
 
   // The draught, over a much wider disc than the blast itself: this is what curls debris around and drags
   // smoke outward instead of leaving a still world with things flying through it.
-  if (strength > 0) {
+  if (gust && strength > 0) {
     const gustReach = Math.max(minReach, Math.floor(radius)) * AIR_REACH
     overDisc(
       grid,
@@ -338,8 +301,8 @@ function impulse(
       gustReach,
       (index, dx, dy, falloff, distance) => {
         if (distance === 0) return
-        const gust = strength * AIR_SHARE * falloff
-        pushAir(grid, index, (dx / distance) * gust, (dy / distance) * gust)
+        const push = strength * AIR_SHARE * falloff
+        pushAir(grid, index, (dx / distance) * push, (dy / distance) * push)
       },
       gustReach
     )
@@ -369,17 +332,27 @@ export function flashOver(grid: Grid, x: number, y: number): void {
  * Sets a charge off: it becomes whatever it leaves behind, then throws and heats everything around it.
  * The heat is what chains one charge into the next, so a buried line of TNT goes up as a line.
  *
- * Every charge blasts in full, including the ones going off inside another blast. That looks wasteful in a
- * packed field, and skipping them is much faster, but the overlapping impulses are the launch: it is what
- * makes a deep slab throw a sand bed instead of just scorching it.
+ * A charge walled in by other charges skips the wide air draught. The draught's job is curling loose debris and
+ * smoke around the blast, and there is none of that deep inside a packed mass — every cell it would stir is
+ * another charge about to stop existing or buried solid, so it buys nothing anybody can see and costs what a
+ * surface charge costs. Half a screen of gunpowder is almost all interior, which is why it crawled.
+ *
+ * The material throw and heat pulse still fire either way, and that part is not optional. Skipping enclosed
+ * charges outright is faster again and was tried and rejected: a deep slab then stops launching the bed above
+ * it, because the launch is many overlapping throws rather than the one at the top. Dropping only the draught
+ * keeps the overlap and gives up nothing but air nobody would have felt.
  */
 export function detonate(grid: Grid, index: number, x: number, y: number): void {
   const charge = MATERIALS[grid.material[index]].explodes
   if (charge === undefined) return
 
+  // Asked before the cell is spent, or it would count itself out of its own neighbourhood.
+  const packed = nothingToThrowBeside(grid, x, y)
+
   transformCell(grid, index, charge.into)
   grid.temperature[index] = charge.heat
   markHotRow(grid, index)
 
-  impulse(grid, x, y, charge.radius, charge.impulse, charge.heat)
+  // Full throw and full heat pulse either way. Only the draught goes.
+  impulse(grid, x, y, charge.radius, charge.impulse, charge.heat, MIN_REACH, !packed)
 }

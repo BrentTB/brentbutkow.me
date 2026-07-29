@@ -398,11 +398,11 @@ describe('usePixelWorld', () => {
     const cell = { x: 80, y: 60 }
     act(() => result.current.paintStroke(cell, cell, MaterialId.stone, 2))
 
-    act(() => result.current.applyForce(Tool.heat, cell, cell, 4))
+    act(() => result.current.applyForce(Tool.heat, cell, 4))
     const warmed = readingFor(result, cell).temperature
 
-    act(() => result.current.applyForce(Tool.chill, cell, cell, 4))
-    act(() => result.current.applyForce(Tool.chill, cell, cell, 4))
+    act(() => result.current.applyForce(Tool.chill, cell, 4))
+    act(() => result.current.applyForce(Tool.chill, cell, 4))
 
     expect(warmed).toBeGreaterThan(AMBIENT_TEMPERATURE)
     expect(readingFor(result, cell).temperature).toBeLessThan(AMBIENT_TEMPERATURE)
@@ -414,33 +414,13 @@ describe('usePixelWorld', () => {
     act(() => result.current.paintStroke(cell, cell, MaterialId.sand, 0))
     frame(0)
 
-    act(() => result.current.applyForce(Tool.blast, cell, cell, 6))
+    act(() => result.current.applyForce(Tool.blast, cell, 6))
     for (let i = 0; i < 4; i++) frame(MS_PER_TICK)
 
     // Sand alone would have fallen four rows by now; a blast under it sends it the other way.
     const row = sandRow(image, 90)
     expect(row).not.toBeNull()
     expect(row ?? 0).toBeLessThan(cell.y)
-  })
-
-  it('blows material sideways with the wind tool, along the drag', () => {
-    const { result, image } = mountSim()
-    const start = { x: 150, y: 100 }
-    act(() => result.current.paintStroke(start, start, MaterialId.sand, 0))
-    frame(0)
-
-    // A drag to the right, one pointer sample at a time — which is how the events actually arrive.
-    for (let gust = 0; gust < 3; gust++) {
-      act(() =>
-        result.current.applyForce(Tool.wind, start, { x: start.x + 1, y: start.y + gust }, 6)
-      )
-    }
-    for (let i = 0; i < 6; i++) frame(MS_PER_TICK)
-
-    expect(sandRow(image, start.x)).toBeNull()
-    expect(
-      countMaterial(image, MaterialId.sand, { x: start.x, y: 60, width: 60, height: 80 })
-    ).toBe(1)
   })
 
   it('drops a whole world in on request', () => {
@@ -533,7 +513,7 @@ describe('usePixelWorld', () => {
       act(() =>
         mounted.result.current.paintStroke({ x: 40, y: 40 }, { x: 40, y: 40 }, MaterialId.stone, 3)
       )
-      act(() => mounted.result.current.applyForce(Tool.heat, { x: 40, y: 40 }, { x: 40, y: 40 }, 3))
+      act(() => mounted.result.current.applyForce(Tool.heat, { x: 40, y: 40 }, 3))
       return mounted
     }
 
@@ -570,7 +550,7 @@ describe('usePixelWorld', () => {
       // The heat tool warms whatever is under it, open air included.
       act(() => {
         for (let press = 0; press < 6; press++)
-          result.current.applyForce(Tool.heat, { x: 90, y: 90 }, { x: 90, y: 90 }, 3)
+          result.current.applyForce(Tool.heat, { x: 90, y: 90 }, 3)
       })
 
       frame(MS_PER_TICK)

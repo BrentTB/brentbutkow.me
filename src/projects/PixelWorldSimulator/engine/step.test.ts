@@ -529,8 +529,8 @@ describe('a gas in a draught', () => {
   }
 
   it('drifts downwind while it climbs, not only when it is blocked', () => {
-    // The complaint this guards: a turbine had no effect on gases at all. Rising is tried before spreading and
-    // usually succeeds, so a plume that only leaned when it was *blocked* ignored the flow almost entirely.
+    // The complaint this guards: gases ignored the airflow entirely. Rising is tried before spreading and
+    // usually succeeds, so a plume that only leaned when it was *blocked* barely followed the flow at all.
     function rose(airX: number): number {
       const grid = createGrid(81, 41)
       const start = 40
