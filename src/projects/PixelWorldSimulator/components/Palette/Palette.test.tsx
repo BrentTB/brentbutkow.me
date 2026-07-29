@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest'
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import { MaterialId } from '../../pixel-world.types'
@@ -8,9 +9,9 @@ import { Palette } from './Palette'
 // The slots persist now, so a filled one would otherwise leak from one case into the next.
 beforeEach(() => localStorage.clear())
 
-function renderPalette(selected: MaterialId = MaterialId.sand) {
+function renderPalette(selected: MaterialId = MaterialId.sand, beside?: ReactNode) {
   const onSelect = vi.fn()
-  render(<Palette selected={selected} onSelect={onSelect} />)
+  render(<Palette selected={selected} onSelect={onSelect} beside={beside} />)
   return onSelect
 }
 
@@ -311,5 +312,70 @@ describe('the material sheet holds its shape', () => {
     const { container } = render(<Palette selected={MaterialId.sand} onSelect={vi.fn()} />)
 
     expect(container.querySelector('[class*=swatchRoom]')).toBeNull()
+  })
+})
+
+describe('Palette — marking the material chip', () => {
+  function asPhone() {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: true,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }))
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    cleanup()
+  })
+
+  function marked(materialActive: boolean) {
+    cleanup()
+    asPhone()
+    render(
+      <Palette selected={MaterialId.sand} onSelect={vi.fn()} materialActive={materialActive} />
+    )
+    const chip = screen.getByRole('button', { name: /Sand/ })
+    return [...chip.classList].some((name) => name.includes('currentActive'))
+  }
+
+  it('marks the chip with paint in hand and not with a force tool', () => {
+    expect(marked(true)).toBe(true)
+    expect(marked(false)).toBe(false)
+  })
+})
+
+describe('Palette — the forces beside the chip', () => {
+  function asPhone(matches = true) {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }))
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    cleanup()
+  })
+
+  it('puts them on the material chip’s own line', () => {
+    // Two stacked rows for the two choices that decide what the pointer does was most of the room under the
+    // world on a phone.
+    asPhone()
+    renderPalette(MaterialId.sand, <button type="button">Force stand-in</button>)
+
+    const chip = screen.getByRole('button', { name: /Sand/ })
+    const beside = screen.getByRole('button', { name: 'Force stand-in' })
+    expect(chip.parentElement).toBe(beside.parentElement)
+  })
+
+  it('leaves them out where the grid has the room, since the tool column has them', () => {
+    asPhone(false)
+    renderPalette(MaterialId.sand, <button type="button">Force stand-in</button>)
+
+    expect(screen.queryByRole('button', { name: 'Force stand-in' })).toBeNull()
   })
 })

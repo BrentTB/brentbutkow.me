@@ -272,7 +272,6 @@ export type AntHeading = {
 /** What the pointer does to the world. Paint is the material brush; the rest write forces or heat. */
 export const Tool = {
   paint: 'paint',
-  attract: 'attract',
   blast: 'blast',
   wind: 'wind',
   heat: 'heat',

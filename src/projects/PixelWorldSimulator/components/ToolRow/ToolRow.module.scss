@@ -143,3 +143,40 @@
     text-align: center;
   }
 }
+
+// The dropdown that stands in for the six buttons where there is no room for them. Matched to the material
+// chip it sits beside rather than to the tool list it replaces: on a phone the two are one row of controls,
+// and a pair that do the same job should look like a pair.
+.toolTrigger {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  background: var(--surface-strong);
+  border-color: var(--border-strong);
+}
+
+// Marked only while a force tool is in hand, which is when this is the control doing the work. Both marked at
+// once said nothing: exactly one of this and the material chip is ever the thing the pointer is using.
+.toolTriggerActive {
+  color: var(--text);
+  background: rgba(var(--accent-rgb), 0.16);
+  border-color: var(--accent);
+}
+
+// On the material chip's line the group runs across instead of down, and the dividers turn with it.
+@include compact-viewport {
+  .tools {
+    flex-direction: row;
+
+    > * + * {
+      border-top: 0;
+      border-left: 1px solid var(--border);
+    }
+  }
+
+  .tool {
+    padding: 9px 12px;
+    text-align: center;
+  }
+}

@@ -1,0 +1,147 @@
+// Reading matter, not another instrument: the panel deliberately drops the hairline-shell language the tool
+// column and the tally share, because this is the one part of the page you read rather than operate.
+.howItWorks {
+  width: 100%;
+}
+
+// Two columns of sections where there is room, rather than one narrow card in a wide page or one column of
+// full-width lines.
+//
+// Multi-column rather than a grid. A grid puts the sections in rows, and a row is only as short as its tallest
+// cell: the section carrying the density figure is twice the height of the one beside it, so it left a hole
+// the size of the figure in the other column. Sections here are independent, so nothing needs to line up and
+// they can simply flow. `break-inside` is what keeps a section whole, which is the one thing multi-column
+// would otherwise get wrong — a heading stranded at the foot of one column with its paragraph in the next.
+.body {
+  column-count: 1;
+  column-gap: 34px;
+}
+
+@media (min-width: 900px) {
+  .body {
+    column-count: 2;
+  }
+}
+
+// Multi-column ignores `gap` on the items, so the space between sections is the margin. `avoid` keeps each one
+// in a single column.
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 22px;
+  break-inside: avoid;
+}
+
+// Mono and small-caps, matching the section titles in the settings dialog: it is the same voice labelling a
+// group of things, so it should look like the same voice.
+.heading {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.paragraph {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+
+// The one figure in the panel, and the only place it earns colour: the material swatches are the same ones the
+// palette and the canvas use, so the ladder reads as the sim's own materials rather than as an illustration.
+.ladder {
+  margin: 6px 0 0;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.ladderCaption {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.rungs {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: none;
+}
+
+// Label, bar, number. The bar is the thing being compared, so it takes the flexible column and the other two
+// are fixed: the numbers line up in a column instead of drifting with the label lengths.
+.rung {
+  display: grid;
+  grid-template-columns: 10px 5.5rem 1fr 2.5rem;
+  align-items: center;
+  gap: 8px;
+}
+
+.swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.rungLabel {
+  font-size: 0.82rem;
+  color: var(--text);
+}
+
+.bar {
+  height: 6px;
+  min-width: 2px;
+  border-radius: 3px;
+  background: linear-gradient(
+    to right,
+    rgba(var(--accent-rgb), 0.5),
+    rgba(var(--accent-rgb), 0.16)
+  );
+}
+
+.density {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  text-align: right;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+// Narrow enough that a five-column grid pinches the bar to nothing. The label takes its own line and the bar
+// keeps the width it needs to still be a comparison.
+@media (max-width: 480px) {
+  .rung {
+    grid-template-columns: 10px 1fr 2.5rem;
+    grid-template-areas:
+      'swatch label label'
+      'swatch bar density';
+    row-gap: 3px;
+  }
+
+  .swatch {
+    grid-area: swatch;
+  }
+
+  .rungLabel {
+    grid-area: label;
+  }
+
+  .bar {
+    grid-area: bar;
+  }
+
+  .density {
+    grid-area: density;
+  }
+}

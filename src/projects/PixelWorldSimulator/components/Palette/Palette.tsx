@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { ReactNode, useState } from 'react'
 import { useMediaQuery } from '../../../../components/utils/useMediaQuery'
 import { MaterialId } from '../../pixel-world.types'
 import { PALETTE_SHEET_QUERY, simCopy } from '../../data'
@@ -13,9 +13,21 @@ import styles from './Palette.module.scss'
 type PaletteProps = {
   selected: MaterialId
   onSelect(material: MaterialId): void
+  /**
+   * Whether the material is what the pointer is currently laying down, which is true with the paint tool in
+   * hand and false with a force tool. It marks the chip, and exactly one of the chip and the tool dropdown
+   * beside it is ever marked: a force tool ignores the material entirely.
+   */
+  materialActive?: boolean
+  /**
+   * Rendered on the material chip's own line, where the palette is a sheet. The page puts the force buttons
+   * here: on a phone choosing a tool and choosing a material are the same move, and the two belong on one line
+   * rather than stacked. Nothing on a desktop, where the buttons sit in the tool column beside the world.
+   */
+  beside?: ReactNode
 }
 
-export function Palette({ selected, onSelect }: PaletteProps) {
+export function Palette({ selected, onSelect, materialActive = true, beside }: PaletteProps) {
   const { slots, assign } = useFavouriteSlots()
   const [waiting, setWaiting] = useState<number | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
@@ -36,24 +48,27 @@ export function Palette({ selected, onSelect }: PaletteProps) {
   return (
     <div className={styles.palette}>
       {asSheet ? (
-        <button
-          type="button"
-          className={styles.current}
-          aria-haspopup="dialog"
-          aria-expanded={sheetOpen}
-          aria-label={`${simCopy.picker.open}. ${MATERIALS[selected].label}`}
-          onClick={() => setSheetOpen(true)}
-        >
-          <span
-            className={styles.chip}
-            style={{ background: chipColour(selected) }}
-            aria-hidden="true"
-          />
-          <span className={styles.currentLabel}>{MATERIALS[selected].label}</span>
-          <span className={styles.caret} aria-hidden="true">
-            ▾
-          </span>
-        </button>
+        <div className={styles.chipRow}>
+          <button
+            type="button"
+            className={`${styles.current}${materialActive ? ` ${styles.currentActive}` : ''}`}
+            aria-haspopup="dialog"
+            aria-expanded={sheetOpen}
+            aria-label={`${simCopy.picker.open}. ${MATERIALS[selected].label}`}
+            onClick={() => setSheetOpen(true)}
+          >
+            <span
+              className={styles.chip}
+              style={{ background: chipColour(selected) }}
+              aria-hidden="true"
+            />
+            <span className={styles.currentLabel}>{MATERIALS[selected].label}</span>
+            <span className={styles.caret} aria-hidden="true">
+              ▾
+            </span>
+          </button>
+          {beside}
+        </div>
       ) : (
         <MaterialPicker selected={selected} onSelect={pick} />
       )}

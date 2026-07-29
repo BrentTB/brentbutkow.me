@@ -1,5 +1,7 @@
+import { useMediaQuery } from '../../../../components/utils/useMediaQuery'
 import { Tool } from '../../pixel-world.types'
-import { TOOLS, simCopy } from '../../data'
+import { PALETTE_SHEET_QUERY, simCopy } from '../../data'
+import { ToolButtons } from './ToolButtons'
 import styles from './ToolRow.module.scss'
 
 type ToolRowProps = {
@@ -23,6 +25,10 @@ export function ToolRow({
   isSettingsOpen,
   onOpenSettings,
 }: ToolRowProps) {
+  // On a phone the page puts the buttons on the material chip's line instead, so the column keeps only the two
+  // controls that act on the screen rather than on the world.
+  const besidePalette = useMediaQuery(PALETTE_SHEET_QUERY)
+
   return (
     <div className={styles.column}>
       {/* Two controls for the view rather than the world, so they share a row above the tools. */}
@@ -50,20 +56,7 @@ export function ToolRow({
         </button>
       </div>
 
-      <div className={styles.tools} role="group" aria-label="Tool">
-        {TOOLS.map(({ tool, label, title }) => (
-          <button
-            key={tool}
-            type="button"
-            className={styles.tool}
-            title={title}
-            aria-pressed={tool === selected}
-            onClick={() => onSelect(tool)}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      {!besidePalette && <ToolButtons selected={selected} onSelect={onSelect} />}
     </div>
   )
 }

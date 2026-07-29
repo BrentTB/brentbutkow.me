@@ -13,11 +13,13 @@ import { useShareLink } from './useShareLink'
 import { usePointerBrush } from './usePointerBrush'
 import { Palette } from './components/Palette/Palette'
 import { ToolRow } from './components/ToolRow/ToolRow'
+import { ToolButtons } from './components/ToolRow/ToolButtons'
 import { Census } from './components/Census/Census'
 import { Reading } from './components/Reading/Reading'
 import { SimControls } from './components/SimControls/SimControls'
 import { SettingsDialog } from './components/SettingsDialog/SettingsDialog'
 import { PausedOverlay } from './components/PausedOverlay/PausedOverlay'
+import { HowItWorks } from './components/HowItWorks/HowItWorks'
 import styles from './PixelWorldSimulator.module.scss'
 
 /** What to say when the pointer is off the canvas and there is no reading to show. */
@@ -146,6 +148,12 @@ export function PixelWorldSimulator() {
               setMaterial(picked)
               setTool(Tool.paint)
             }}
+            // Outlined while a material is what the pointer lays down, and quiet under a force tool. Exactly
+            // one of this and the tool row is ever the control doing the work.
+            materialActive={tool === Tool.paint}
+            // One line for the two choices that decide what the pointer does. The tool column keeps the view
+            // buttons; the forces come down here where the chip is.
+            beside={touchOnly ? <ToolButtons selected={tool} onSelect={setTool} /> : undefined}
           />
 
           <SimControls
@@ -184,6 +192,10 @@ export function PixelWorldSimulator() {
           />
         )}
       </div>
+
+      {/* Outside the element that goes full screen: reading matter has no business being there, and it would
+          sit under the world taking room the canvas wants. */}
+      <HowItWorks />
     </PageLayout>
   )
 }

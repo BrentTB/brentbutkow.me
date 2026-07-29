@@ -7,24 +7,31 @@ import { Rng } from './rng'
 import { pushAir } from './air'
 
 /**
- * Cells per tick the attract tool adds at its strongest. It has to be a grab, not a nudge: at a third of
- * this, dragging a pile anywhere took slow, careful sweeps at the largest brush, which is irritating
- * rather than powerful.
- */
-const PULL_STRENGTH = 4.5
-/**
  * Cells per tick a blast writes at the centre. Deliberately violent: this is the tool people reach for to
  * throw a heap of gravel across the world.
  */
 const BLAST_STRENGTH = 9
-/** Cells per tick a held wind adds each tick, along the direction of the drag. */
-const WIND_STRENGTH = 2.4
+/**
+ * Cells per tick a held wind adds each tick, along the direction of the drag. This and `WIND_AIR` were both
+ * raised by about two thirds because the tool felt weak, and measuring said why: a held drag across a hundred
+ * cells of sand relocated 47 of them and left the rest of the heap sitting there. Half a pile ignoring the
+ * pointer is what "lacking" was.
+ *
+ * Measured on that heap, cells relocated: sand 47 -> 61 and gravel 36 -> 47, with ash unchanged at 65 because
+ * the light stuff always went. Another two thirds on top bought gravel 59 and nothing else, which is a wind
+ * that shifts rubble as easily as sand — so it stops here, where heavy material is still work.
+ */
+const WIND_STRENGTH = 4
 /**
  * Cells per tick the wind tool puts into the air itself, on top of the shove it gives material directly.
  * Comfortably over the speed the flow needs to pick anything up, so a held drag reads as a gust that lingers
  * rather than a hand pushing individual grains.
+ *
+ * This is the half that does the most for sand, which the draught carries once it is loose; the direct shove
+ * above is what breaks a grain out of a heap in the first place. Raising one without the other moves only one
+ * kind of material.
  */
-const WIND_AIR = 3.5
+const WIND_AIR = 6
 /**
  * The smallest disc a force works over, whatever the brush is set to, and whatever a charge's own radius says.
  * Force falls off to nothing at the rim, so a brush-sized blast at the smallest setting had almost no room to
@@ -134,8 +141,8 @@ function overDisc(
 
 /**
  * Pulls every loose cell straight toward the centre — direction only, so a cell far out is still yanked in
- * rather than left to twitch, which is the opposite of a black hole. Strength and reach are the whole
- * difference between the attract tool's nudge and a black hole's grip.
+ * rather than left to twitch. The black hole is the only thing that does this now: the attract tool it was
+ * shared with is gone, having never been much fun to use.
  */
 function pullInward(grid: Grid, cx: number, cy: number, radius: number, strength: number): void {
   overDisc(grid, cx, cy, radius, (index, dx, dy, falloff, distance) => {
@@ -145,12 +152,7 @@ function pullInward(grid: Grid, cx: number, cy: number, radius: number, strength
   })
 }
 
-/** Pulls loose cells toward the pointer, black-hole style. */
-export function attract(grid: Grid, cx: number, cy: number, radius: number): void {
-  pullInward(grid, cx, cy, radius, PULL_STRENGTH)
-}
-
-/** How far a black hole reaches, and how hard. Stronger than the attract tool: it is not a nudge. */
+/** How far a black hole reaches, and how hard. A grab rather than a nudge. */
 const HOLE_REACH = 18
 const HOLE_STRENGTH = 6
 /**

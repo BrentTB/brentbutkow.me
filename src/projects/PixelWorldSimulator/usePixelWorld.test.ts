@@ -438,9 +438,21 @@ describe('usePixelWorld', () => {
     for (let i = 0; i < 6; i++) frame(MS_PER_TICK)
 
     expect(sandRow(image, start.x)).toBeNull()
+    // Everywhere downwind, rather than a fixed distance along it. What this is pinning down is that the grain
+    // went the way of the drag and is still in the world; how far a gust carries it is a tuning question, and
+    // the last time wind was strengthened a 60-cell box was the only thing that failed.
     expect(
-      countMaterial(image, MaterialId.sand, { x: start.x, y: 60, width: 60, height: 80 })
+      countMaterial(image, MaterialId.sand, {
+        x: 0,
+        y: 0,
+        width: GRID_WIDTH,
+        height: GRID_HEIGHT,
+      })
     ).toBe(1)
+    // ...and it went the way of the drag: nothing left upwind of where it started.
+    expect(
+      countMaterial(image, MaterialId.sand, { x: 0, y: 0, width: start.x, height: GRID_HEIGHT })
+    ).toBe(0)
   })
 
   it('drops a whole world in on request', () => {

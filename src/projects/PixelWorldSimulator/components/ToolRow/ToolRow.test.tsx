@@ -117,3 +117,33 @@ describe('ToolRow', () => {
     ).toBe('true')
   })
 })
+
+describe('ToolRow on a phone', () => {
+  function asPhone() {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: true,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }))
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    cleanup()
+  })
+
+  it('hands the forces over and keeps only the view controls', () => {
+    // The page puts them on the material chip's line instead: choosing a tool and choosing a material are the
+    // same move, and two stacked rows for them was most of the room under the world.
+    asPhone()
+    renderTools()
+
+    expect(screen.queryByRole('group', { name: simCopy.tools.label })).toBeNull()
+    for (const { label } of TOOLS) {
+      expect(screen.queryByRole('button', { name: label })).toBeNull()
+    }
+    expect(screen.getByRole('button', { name: 'Full screen' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: simCopy.settings.open })).toBeTruthy()
+  })
+})

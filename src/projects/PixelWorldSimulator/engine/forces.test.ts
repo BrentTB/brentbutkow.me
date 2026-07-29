@@ -2,61 +2,54 @@ import { describe, it, expect } from 'vitest'
 import { MaterialId } from '../pixel-world.types'
 import { AMBIENT_TEMPERATURE, TEMPERATURE_LIMITS } from '../data'
 import { cellIndex, createGrid, placeMaterial } from './grid'
-import {
-  attract,
-  blast,
-  detonate,
-  flashOver,
-  scatter,
-  swallow,
-  swirl,
-  temper,
-  wind,
-} from './forces'
+import { blast, detonate, flashOver, scatter, swallow, swirl, temper, wind } from './forces'
 import { MATERIALS } from './materials'
 import { createRng } from './rng'
 import { simulateHeat } from './heat'
 import { countMaterials } from './census'
 
-describe('attract', () => {
-  it('pulls loose cells toward the pointer from both sides', () => {
-    const grid = createGrid(21, 21)
-    const left = cellIndex(grid, 4, 10)
-    const right = cellIndex(grid, 16, 10)
+// The inward pull the attract tool used to share with the black hole. The tool is gone — it only ever nudged,
+// and it was not fun — so the behaviour is covered through the one thing left that does it.
+describe('the inward pull of a black hole', () => {
+  it('pulls loose cells toward the middle from both sides', () => {
+    const grid = createGrid(41, 41)
+    const left = cellIndex(grid, 8, 20)
+    const right = cellIndex(grid, 32, 20)
     placeMaterial(grid, left, MaterialId.sand)
     placeMaterial(grid, right, MaterialId.sand)
 
-    attract(grid, 10, 10, 8)
+    swallow(grid, 20, 20)
 
     expect(grid.velocity.get(left)?.vx).toBeGreaterThan(0)
     expect(grid.velocity.get(right)?.vx).toBeLessThan(0)
   })
 
   it('leaves the world you built alone, but throws rubber', () => {
-    const grid = createGrid(21, 21)
-    const wall = cellIndex(grid, 6, 10)
-    const ball = cellIndex(grid, 14, 10)
+    const grid = createGrid(41, 41)
+    const wall = cellIndex(grid, 12, 20)
+    const ball = cellIndex(grid, 28, 20)
     placeMaterial(grid, wall, MaterialId.stone)
     placeMaterial(grid, ball, MaterialId.rubber)
 
-    attract(grid, 10, 10, 8)
+    swallow(grid, 20, 20)
 
     // Static materials are the scaffolding; rubber is the deliberate exception that exists to be thrown.
     expect(grid.velocity.has(wall)).toBe(false)
     expect(grid.velocity.has(ball)).toBe(true)
   })
 
-  it('reaches further into the disc the closer a cell is', () => {
-    const grid = createGrid(41, 41)
-    const near = cellIndex(grid, 18, 20)
-    const far = cellIndex(grid, 8, 20)
+  it('pulls harder the closer a cell is', () => {
+    const grid = createGrid(61, 61)
+    const near = cellIndex(grid, 36, 30)
+    const far = cellIndex(grid, 44, 30)
     placeMaterial(grid, near, MaterialId.sand)
     placeMaterial(grid, far, MaterialId.sand)
 
-    attract(grid, 20, 20, 14)
+    swallow(grid, 30, 30)
 
-    const nearPull = grid.velocity.get(near)?.vx ?? 0
-    const farPull = grid.velocity.get(far)?.vx ?? 0
+    // Both are dragged left, so it is the size of the pull being compared rather than its direction.
+    const nearPull = Math.abs(grid.velocity.get(near)?.vx ?? 0)
+    const farPull = Math.abs(grid.velocity.get(far)?.vx ?? 0)
     expect(nearPull).toBeGreaterThan(farPull)
   })
 })

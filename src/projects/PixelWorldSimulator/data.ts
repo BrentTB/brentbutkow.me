@@ -232,12 +232,14 @@ export const MATERIAL_GROUPS: readonly {
 ]
 
 /**
- * The tools, in the order they sit above the palette. Paint leads because it is what the page opens on;
- * the forces follow, and heat/chill come last as the pair that changes a cell without replacing it.
+ * The forces, in the order they sit above the palette, with heat and chill last as the pair that changes a cell
+ * without replacing it.
+ *
+ * There is no Paint entry, deliberately: picking a material is what paints, so a button saying so could only
+ * ever restate what the palette had already done. Clicking the force in hand releases it, and picking a
+ * material releases it too.
  */
 export const TOOLS: readonly { tool: Tool; label: string; title: string }[] = [
-  { tool: Tool.paint, label: 'Paint', title: 'Draw the selected material' },
-  { tool: Tool.attract, label: 'Attract', title: 'Pull loose material toward you' },
   { tool: Tool.blast, label: 'Blast', title: 'Throw everything outward and heat it' },
   { tool: Tool.wind, label: 'Wind', title: 'Blow material whichever way you drag' },
   { tool: Tool.heat, label: 'Heat', title: 'Warm whatever is under the brush' },
@@ -292,11 +294,14 @@ export const simCopy = {
   hintTouch: 'Pick a material and draw.',
   /** Shown in place of the paint hint while a force tool is selected. */
   toolHints: {
-    [Tool.attract]: 'Drag to pull loose material toward you.',
     [Tool.blast]: 'Click to throw everything outward. Hold it down for a fountain.',
     [Tool.wind]: 'Material blows whichever way you drag.',
     [Tool.heat]: 'Hold to warm things up. Ice melts, wood catches fire.',
     [Tool.chill]: 'Hold to cool things down. Water freezes, lava sets.',
+  },
+  tools: {
+    /** On the group of force buttons. */
+    label: 'Tool',
   },
   /** A source that has not been fed yet has nothing to copy. */
   sourceEmpty: 'nothing yet',
@@ -306,6 +311,12 @@ export const simCopy = {
     empty: 'Nothing drawn yet.',
     /** On every row: the list re-sorts as counts change, so a marked row is one you can keep your eye on. */
     track: 'Mark this row to follow it as the list moves',
+  },
+  /** The collapsible panel of rules under the world. */
+  howItWorks: {
+    title: 'How this works',
+    /** Over the density figure, which is drawn from the material table rather than written out. */
+    ladderCaption: 'Density, and the order these settle in',
   },
   searchPlaceholder: 'Find a material',
   noMatch: 'Nothing by that name.',
@@ -471,3 +482,69 @@ export const MATERIAL_SLOTS = 3
  */
 export const PALETTE_SHEET_QUERY =
   '(max-width: 640px), (orientation: landscape) and (max-height: 600px)'
+
+/**
+ * A section of the how-it-works panel. `ladder` puts a figure of real densities under the prose, read from the
+ * material table rather than typed out, so the numbers cannot drift from the ones the sim actually runs on.
+ */
+export type HowItWorksSection = {
+  heading: string
+  body: readonly string[]
+  ladder?: readonly MaterialId[]
+}
+
+/**
+ * What the page cannot teach by being clicked. Every rule here is one you would otherwise have to infer from
+ * watching, and the two that matter most — density deciding who sinks, and temperature deciding what a cell
+ * turns into — explain most of what a visitor sees happen.
+ */
+export const HOW_IT_WORKS: readonly HowItWorksSection[] = [
+  {
+    heading: 'One number decides who sinks',
+    body: [
+      'Every material has a density. When two cells meet, the heavier one takes the lower spot and the lighter one is pushed up. Most of what you watch happen is that one rule playing out: sand sinks through water, and steam climbs up through both of them.',
+      'Walls are the exception. Stone, glass, metal and anything else solid never gets displaced, so a container holds whatever you pour into it.',
+    ],
+    ladder: [
+      MaterialId.steam,
+      MaterialId.oil,
+      MaterialId.water,
+      MaterialId.sand,
+      MaterialId.gravel,
+    ],
+  },
+  {
+    heading: 'Every cell has a temperature',
+    body: [
+      'Heat spreads between neighbours, and some materials hold their own: lava stays molten and ice stays frozen instead of drifting back to room temperature. Cross a threshold and a cell becomes something else. Water boils at 100°, and sand needs 1200° before it melts to glass. Stone holds out until 1500°.',
+      'Fire works the other way round. Wood catches at 250° and then burns on its own clock, throwing flame and smoke while it lasts and leaving ash behind. Point at anything to read its temperature.',
+    ],
+  },
+  {
+    heading: 'Reactions happen on contact',
+    body: [
+      'Materials that touch can change each other. Water on dirt makes mud, and a seed sitting on that mud will sprout. Salt dissolves into water and leaves salt water behind, which kills the plants that fresh water grows. None of it fires the instant two cells meet. Every rule has a chance per tick, so you can pour one material over another and watch it take, and a drop falling past a block of ice can still be caught on the way.',
+    ],
+  },
+  {
+    heading: 'Living things run on four rules',
+    body: [
+      'Move in the medium you belong to, eat whatever is next to you, split in two when you are full, and die when you run out of energy. A fish is one cell with a hidden store of energy, not a creature with a body.',
+      'A food chain comes out of that on its own. Algae grows on light, fish graze the algae, and a slime dropped in eats the fish.',
+    ],
+  },
+  {
+    heading: 'The air moves too',
+    body: [
+      'The air has a velocity of its own. Heat is what moves it most of the time: warm air rises and cooler air slides in underneath, so a fire or a pool of lava makes its own draught. The wind tool and any explosion shove it directly.',
+      'Whatever the air is doing, it carries what is light enough to go along. Heavier material barely notices. Smoke and embers ride a draught a long way, and pollen goes further still.',
+      'You can watch the flow itself under Settings, and turn the whole thing off there if you would rather have the frames.',
+    ],
+  },
+  {
+    heading: 'The same world runs the same way twice',
+    body: [
+      'Nothing here reads the clock or rolls an unseeded random number, so a world and a seed always play out identically. A share link is worth having because of it: whoever opens yours gets the world you were looking at, doing what it did for you.',
+    ],
+  },
+]
