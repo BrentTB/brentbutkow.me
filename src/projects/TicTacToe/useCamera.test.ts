@@ -79,6 +79,23 @@ describe('useCamera', () => {
       expect(result.current.camera.yaw).toBeGreaterThan(before)
     })
 
+    /**
+     * The flag only clears on the next press, so a drag followed by a keyboard activation would leave
+     * it stale and swallow the Enter. Reaching a cell by keyboard is never a drag.
+     */
+    it('never treats a keyboard activation as a drag, even right after one', () => {
+      const { result } = renderHook(() => useCamera(ViewMode.orbit))
+
+      act(() => {
+        result.current.beginPointer(at(0, 0))
+        result.current.movePointer(at(90, 0))
+        result.current.endPointer(1)
+      })
+
+      expect(result.current.consumedDrag()).toBe(true)
+      expect(result.current.consumedDrag(true)).toBe(false)
+    })
+
     it('clears the drag flag when the next press begins', () => {
       const { result } = renderHook(() => useCamera(ViewMode.orbit))
 
@@ -140,14 +157,28 @@ describe('useCamera', () => {
       act(() => result.current.endPointer(1))
     })
 
-    it('clamps zoom at both ends of the wheel', () => {
+    /** The wheel belongs to the page: hijacking it to zoom trapped anyone scrolling past the board. */
+    it('exposes no wheel-driven zoom at all', () => {
+      const { result } = renderHook(() => useCamera(ViewMode.orbit))
+      expect('zoomBy' in result.current).toBe(false)
+    })
+
+    it('clamps a pinch at both ends of the zoom range', () => {
       const { result } = renderHook(() => useCamera(ViewMode.orbit))
 
-      for (let step = 0; step < 60; step++) act(() => result.current.zoomBy(-1))
+      act(() => {
+        result.current.beginPointer(at(100, 100, 1))
+        result.current.beginPointer(at(120, 100, 2))
+      })
+      act(() => result.current.movePointer(at(4000, 100, 2)))
       expect(result.current.camera.zoom).toBe(ZOOM_RANGE.max)
 
-      for (let step = 0; step < 120; step++) act(() => result.current.zoomBy(1))
+      act(() => result.current.movePointer(at(101, 100, 2)))
       expect(result.current.camera.zoom).toBe(ZOOM_RANGE.min)
+      act(() => {
+        result.current.endPointer(1)
+        result.current.endPointer(2)
+      })
     })
   })
 
@@ -178,7 +209,6 @@ describe('useCamera', () => {
         result.current.beginPointer(at(0, 0))
         result.current.movePointer(at(200, 200))
         result.current.endPointer(1)
-        result.current.zoomBy(-1)
       })
 
       expect(result.current.orbitable).toBe(false)

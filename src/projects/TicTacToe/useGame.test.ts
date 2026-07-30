@@ -82,15 +82,141 @@ describe('useGame', () => {
     }
   })
 
-  it('clears the board, the winner, and the turn on reset', () => {
+  it('clears the board, the winner, and the turn on a new game', () => {
     const { result } = renderHook(() => useGame())
 
     act(() => result.current.playAt(0))
-    act(() => result.current.reset())
+    act(() => result.current.newGame())
 
     expect(result.current.board.every((cell) => cell === null)).toBe(true)
     expect(result.current.currentPlayer).toBe(Player.one)
     expect(result.current.win).toBeNull()
     expect(result.current.isDraw).toBe(false)
+  })
+})
+
+describe('useGame — undo and redo', () => {
+  it('has nothing to undo or redo on a fresh game', () => {
+    const { result } = renderHook(() => useGame())
+    expect(result.current.canUndo).toBe(false)
+    expect(result.current.canRedo).toBe(false)
+  })
+
+  it('takes back a move and hands the turn back', () => {
+    const { result } = renderHook(() => useGame())
+
+    act(() => result.current.playAt(5))
+    expect(result.current.currentPlayer).toBe(Player.two)
+
+    act(() => result.current.undo())
+    expect(result.current.board[5]).toBeNull()
+    expect(result.current.currentPlayer).toBe(Player.one)
+    expect(result.current.canRedo).toBe(true)
+  })
+
+  it('replays an undone move exactly', () => {
+    const { result } = renderHook(() => useGame())
+
+    act(() => result.current.playAt(5))
+    act(() => result.current.playAt(9))
+    act(() => result.current.undo())
+    act(() => result.current.undo())
+    expect(result.current.board[5]).toBeNull()
+
+    act(() => result.current.redo())
+    expect(result.current.board[5]).toBe(Player.one)
+    act(() => result.current.redo())
+    expect(result.current.board[9]).toBe(Player.two)
+    expect(result.current.canRedo).toBe(false)
+  })
+
+  it('takes back a win, so the board becomes playable again', () => {
+    const { result } = renderHook(() => useGame())
+
+    for (let layer = 0; layer < BOARD_SIZE; layer++) {
+      act(() => result.current.playAt(cellIndex(0, 0, layer)))
+      if (layer < BOARD_SIZE - 1) act(() => result.current.playAt(cellIndex(3, 3, layer)))
+    }
+    expect(result.current.win).not.toBeNull()
+
+    act(() => result.current.undo())
+    expect(result.current.win).toBeNull()
+
+    act(() => result.current.playAt(cellIndex(2, 2, 2)))
+    expect(result.current.board[cellIndex(2, 2, 2)]).toBe(Player.one)
+  })
+
+  /** The whole point of making New game a snapshot: a game abandoned by accident is recoverable. */
+  it('undoes a new game and restores the game that was abandoned', () => {
+    const { result } = renderHook(() => useGame())
+
+    act(() => result.current.playAt(1))
+    act(() => result.current.playAt(2))
+    act(() => result.current.newGame())
+    expect(result.current.board.every((cell) => cell === null)).toBe(true)
+
+    act(() => result.current.undo())
+    expect(result.current.board[1]).toBe(Player.one)
+    expect(result.current.board[2]).toBe(Player.two)
+    expect(result.current.currentPlayer).toBe(Player.one)
+  })
+
+  it('discards the redo branch once a different move is played', () => {
+    const { result } = renderHook(() => useGame())
+
+    act(() => result.current.playAt(5))
+    act(() => result.current.undo())
+    expect(result.current.canRedo).toBe(true)
+
+    act(() => result.current.playAt(7))
+    expect(result.current.canRedo).toBe(false)
+    expect(result.current.board[7]).toBe(Player.one)
+    expect(result.current.board[5]).toBeNull()
+  })
+
+  /** Guards the closure trap: reading the board from the render would collapse a batch into one move. */
+  it('applies every move when several land in the same batch', () => {
+    const { result } = renderHook(() => useGame())
+
+    act(() => {
+      result.current.playAt(0)
+      result.current.playAt(1)
+      result.current.playAt(2)
+    })
+
+    expect(result.current.board[0]).toBe(Player.one)
+    expect(result.current.board[1]).toBe(Player.two)
+    expect(result.current.board[2]).toBe(Player.one)
+  })
+
+  it('stops at the ends instead of running off either edge', () => {
+    const { result } = renderHook(() => useGame())
+
+    act(() => result.current.playAt(3))
+    act(() => {
+      result.current.undo()
+      result.current.undo()
+      result.current.undo()
+    })
+    expect(result.current.canUndo).toBe(false)
+    expect(result.current.board[3]).toBeNull()
+
+    act(() => {
+      result.current.redo()
+      result.current.redo()
+    })
+    expect(result.current.canRedo).toBe(false)
+    expect(result.current.board[3]).toBe(Player.one)
+  })
+
+  it('keeps an ignored move out of the history', () => {
+    const { result } = renderHook(() => useGame())
+
+    act(() => result.current.playAt(4))
+    act(() => result.current.playAt(4)) // already taken
+    act(() => result.current.undo())
+
+    expect(result.current.board[4]).toBeNull()
+    expect(result.current.canUndo).toBe(false)
   })
 })

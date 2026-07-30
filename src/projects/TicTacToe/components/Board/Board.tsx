@@ -1,4 +1,4 @@
-import { PointerEvent, ReactNode, RefObject, WheelEvent, useMemo } from 'react'
+import { PointerEvent, ReactNode, RefObject, useMemo } from 'react'
 import {
   Board as BoardState,
   Camera,
@@ -36,11 +36,10 @@ interface BoardProps {
   shift: number
   isDragging: boolean
   stageRef: RefObject<HTMLDivElement>
-  onPlay: (index: number) => void
+  onPlay: (index: number, fromKeyboard: boolean) => void
   onPointerDown: (event: PointerEvent<HTMLDivElement>) => void
   onPointerMove: (event: PointerEvent<HTMLDivElement>) => void
   onPointerEnd: (event: PointerEvent<HTMLDivElement>) => void
-  onWheel: (event: WheelEvent<HTMLDivElement>) => void
   /** Overlaid controls that need to sit above the scene, such as the layer rail. */
   children?: ReactNode
 }
@@ -60,7 +59,6 @@ export function Board({
   onPointerDown,
   onPointerMove,
   onPointerEnd,
-  onWheel,
   children,
 }: BoardProps) {
   const layout = VIEW_LAYOUTS[mode]
@@ -100,7 +98,6 @@ export function Board({
       onPointerMove={onPointerMove}
       onPointerUp={onPointerEnd}
       onPointerCancel={onPointerEnd}
-      onWheel={onWheel}
       data-orbitable={layout.orbitable || undefined}
       data-dragging={isDragging || undefined}
       style={cssVars({ '--perspective': `${layout.perspective}px` })}
@@ -172,7 +169,7 @@ export function Board({
               data-dim={dimmed || undefined}
               data-filled={owner ?? undefined}
               data-won={winCells.has(index) || undefined}
-              onClick={() => onPlay(index)}
+              onClick={(event) => onPlay(index, event.detail === 0)}
               style={cssVars({
                 '--cell-x': `${position.x}px`,
                 '--cell-y': `${position.y}px`,

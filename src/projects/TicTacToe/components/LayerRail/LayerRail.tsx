@@ -35,7 +35,7 @@ export function LayerRail({
   const middle = stageHeight / 2
 
   return (
-    <div className={styles.rail} ref={railRef} data-dragging={isDragging || undefined}>
+    <div className={styles.rail} ref={railRef} data-rail data-dragging={isDragging || undefined}>
       {Array.from({ length: BOARD_SIZE }, (_, layer) => {
         const isFocused = focusedLayer === layer
         return (

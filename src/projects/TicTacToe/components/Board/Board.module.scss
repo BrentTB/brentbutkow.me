@@ -250,7 +250,20 @@ $camera-duration: 700ms;
   }
 }
 
-/* The payoff: a lit rod skewering the four beads that ended it. */
+/**
+ * The payoff: a lit rod skewering the four beads that ended it. Built from two crossed planes like the
+ * column rods, so it keeps its thickness when you turn the board side-on instead of thinning to a line.
+ */
+.winBar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: inherit;
+  /* About the bar's own long axis, so the second plane stands perpendicular to the first. */
+  transform: rotateY(90deg);
+}
+
 .winBar {
   width: calc(var(--spacing) * 0.06);
   height: var(--bar-length);

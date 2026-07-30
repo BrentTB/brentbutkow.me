@@ -14,9 +14,6 @@ import { Vec3 } from './tic-tac-toe.types'
 const YAW_PER_PX = 0.42
 const PITCH_PER_PX = 0.32
 
-/** One notch of the wheel. */
-const ZOOM_STEP = 1.075
-
 /** A pointer position, in the units the caller already has. Keeps the hook free of DOM event types. */
 export type PointerSample = {
   pointerId: number
@@ -31,7 +28,11 @@ const cameraForMode = (mode: ViewMode): Camera => ({
 })
 
 /**
- * Orbiting, pinching, and zooming the board.
+ * Orbiting and pinching the board.
+ *
+ * There is deliberately no wheel handler: on a desktop the wheel belongs to the page, and hijacking
+ * it to zoom trapped anyone trying to scroll past the board. Pinch survives because a pinch is not a
+ * scroll, so nothing is being taken away from the touch user.
  *
  * Dragging past a small threshold marks the gesture as a drag, which the board checks before turning
  * a release into a move — otherwise every rotation would drop a bead where the finger landed.
@@ -126,14 +127,6 @@ export function useCamera(mode: ViewMode) {
     if (pointers.current.size === 0) setIsDragging(false)
   }, [])
 
-  const zoomBy = useCallback(
-    (direction: number) => {
-      if (!orbitable) return
-      move({ zoom: camera.zoom * (direction > 0 ? 1 / ZOOM_STEP : ZOOM_STEP) })
-    },
-    [camera.zoom, move, orbitable]
-  )
-
   const snap = useCallback(() => setCamera((current) => snapCamera(current)), [])
 
   /** Turns the board so a finished line reads at its widest. */
@@ -145,8 +138,16 @@ export function useCamera(mode: ViewMode) {
     [orbitable]
   )
 
-  /** Whether the gesture that just ended was a drag, and so should not place a bead. */
-  const consumedDrag = useCallback(() => draggedRef.current, [])
+  /**
+   * Whether the gesture that just ended was a drag, and so should not place a bead.
+   *
+   * A keyboard activation is never a drag. The flag only clears when the next press begins, so without
+   * this a stale drag from earlier would silently swallow an Enter on a focused cell.
+   */
+  const consumedDrag = useCallback(
+    (fromKeyboard = false) => !fromKeyboard && draggedRef.current,
+    []
+  )
 
   return {
     camera,
@@ -155,7 +156,6 @@ export function useCamera(mode: ViewMode) {
     beginPointer,
     movePointer,
     endPointer,
-    zoomBy,
     snap,
     faceLine,
     consumedDrag,

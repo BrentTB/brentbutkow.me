@@ -70,12 +70,12 @@ export const VIEW_LAYOUTS: Record<ViewMode, ViewLayout> = {
   [ViewMode.fanned]: {
     // Yaw stays at 0 so the plates read as axis-aligned rectangles, which is the point of the mode.
     yaw: 0,
-    pitch: 34,
-    gap: 3.6,
+    pitch: 30,
+    gap: 3.2,
     fan: 0.62,
     perspective: 9000,
-    widthUnits: 6.4,
-    heightUnits: 11.7,
+    widthUnits: 6.5,
+    heightUnits: 10.9,
     minSpacing: 24,
     orbitable: false,
   },

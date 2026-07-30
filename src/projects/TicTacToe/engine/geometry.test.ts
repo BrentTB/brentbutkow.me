@@ -65,7 +65,8 @@ describe('the fanned deck stays separated', () => {
   })
 
   it('leaves room for a bead on top of the plate height', () => {
-    expect(minFanGap(34)).toBeGreaterThan(4 * Math.tan((34 * Math.PI) / 180))
+    const { pitch } = VIEW_LAYOUTS[ViewMode.fanned]
+    expect(minFanGap(pitch)).toBeGreaterThan(4 * Math.tan((pitch * Math.PI) / 180))
   })
 })
 

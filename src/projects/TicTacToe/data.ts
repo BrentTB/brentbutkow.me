@@ -39,7 +39,10 @@ export const gameCopy = {
 
   straighten: 'Straighten',
   newGame: 'New game',
-  orbitHint: 'Drag to turn the board, scroll to zoom',
+  undo: 'Undo',
+  redo: 'Redo',
+  undoTitle: 'Step back one move, or undo starting a new game',
+  orbitHint: 'Drag to turn the board',
   orbitHintTouch: 'Drag to turn the board, pinch to zoom',
   fannedHint: 'Every layer at once, lowest first',
 
