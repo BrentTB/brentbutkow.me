@@ -2,33 +2,18 @@
  * The board is built from real DOM elements in a CSS 3D scene rather than a canvas: every lattice site
  * is a <button>, so hit-testing, focus, and screen readers come for free.
  *
- * Two rules hold the whole thing together:
+ * The camera snaps rather than eases. Easing it meant transitioning registered custom properties, since
+ * the beads counter-rotate off those same angles and have to travel with the scene; that transition
+ * stalled part-way and left the board rendering at an angle the state had already moved on from.
+ *
+ * Three rules hold the whole thing together:
  *  - `opacity` is a grouping property and flattens `preserve-3d`, so depth fog goes on an inner
  *    element and never on a node that has to stay in the 3D context.
  *  - the cube itself takes no pointer events. It is a transparent plane tilted through the middle of
  *    the scene, and it would swallow every click aimed at a cell behind it.
  */
 
-/* Registered so the camera can be transitioned: the beads counter-rotate off these same two angles,
-   so animating the variables keeps the discs facing the viewer for the whole swing. */
-@property --yaw {
-  syntax: '<angle>';
-  inherits: true;
-  initial-value: 0deg;
-}
-@property --pitch {
-  syntax: '<angle>';
-  inherits: true;
-  initial-value: 0deg;
-}
-@property --zoom {
-  syntax: '<number>';
-  inherits: true;
-  initial-value: 1;
-}
-
 $camera-ease: cubic-bezier(0.34, 1.56, 0.64, 1);
-$camera-duration: 700ms;
 
 .stage {
   position: relative;
@@ -37,6 +22,16 @@ $camera-duration: 700ms;
   perspective: var(--perspective, 1500px);
   perspective-origin: 50% 50%;
   touch-action: none;
+
+  /* A faint wash in the current player's colour, so a glance at the board tells you whose turn it is. */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(60% 50% at 50% 50%, rgba(var(--turn-rgb), 0.07), transparent 70%);
+    transition: background 300ms ease;
+  }
 
   &[data-orbitable] {
     cursor: grab;
@@ -54,14 +49,6 @@ $camera-duration: 700ms;
   transform-style: preserve-3d;
   transform: translateX(var(--shift, 0px)) scale(var(--zoom)) rotateX(var(--pitch))
     rotateY(var(--yaw));
-  transition:
-    --yaw $camera-duration $camera-ease,
-    --pitch $camera-duration $camera-ease,
-    --zoom $camera-duration $camera-ease;
-
-  &[data-dragging] {
-    transition: none;
-  }
 }
 
 .cell,
@@ -171,20 +158,20 @@ $camera-duration: 700ms;
   width: calc(var(--spacing) * var(--marker-ratio));
   height: calc(var(--spacing) * var(--marker-ratio));
   border-radius: 50%;
-  background: rgba(var(--accent-rgb), 0.45);
+  background: rgba(var(--turn-rgb), 0.5);
   transition:
     width 160ms ease,
     height 160ms ease,
-    background 160ms ease,
+    background 300ms ease,
     box-shadow 160ms ease;
 
   .cell:not(:disabled):hover &,
   .cell:focus-visible & {
     width: calc(var(--spacing) * var(--hit-ratio) * 0.74);
     height: calc(var(--spacing) * var(--hit-ratio) * 0.74);
-    border: 1px solid rgba(var(--accent-rgb), 0.9);
-    background: rgba(var(--accent-rgb), 0.16);
-    box-shadow: 0 0 16px rgba(var(--accent-rgb), 0.4);
+    border: 1px solid rgba(var(--turn-rgb), 0.9);
+    background: rgba(var(--turn-rgb), 0.18);
+    box-shadow: 0 0 16px rgba(var(--turn-rgb), 0.45);
   }
 
   .cell:focus-visible & {
@@ -292,7 +279,6 @@ $camera-duration: 700ms;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cube,
   .billboard,
   .marker,
   .plate {

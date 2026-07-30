@@ -37,7 +37,6 @@ export const gameCopy = {
   viewLabel: 'View',
   layerLabel: 'Layer',
 
-  straighten: 'Straighten',
   newGame: 'New game',
   undo: 'Undo',
   redo: 'Redo',

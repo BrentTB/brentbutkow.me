@@ -5,7 +5,6 @@ import {
   VIEW_LAYOUTS,
   clampPitch,
   clampZoom,
-  snapCamera,
   yawToFace,
 } from './engine/geometry'
 import { Vec3 } from './tic-tac-toe.types'
@@ -127,8 +126,6 @@ export function useCamera(mode: ViewMode) {
     if (pointers.current.size === 0) setIsDragging(false)
   }, [])
 
-  const snap = useCallback(() => setCamera((current) => snapCamera(current)), [])
-
   /** Turns the board so a finished line reads at its widest. */
   const faceLine = useCallback(
     (from: Vec3, to: Vec3) => {
@@ -156,7 +153,6 @@ export function useCamera(mode: ViewMode) {
     beginPointer,
     movePointer,
     endPointer,
-    snap,
     faceLine,
     consumedDrag,
   }

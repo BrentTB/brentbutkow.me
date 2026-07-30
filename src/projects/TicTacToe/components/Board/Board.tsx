@@ -34,6 +34,8 @@ interface BoardProps {
   spacing: number
   /** Sideways nudge that keeps the board clear of the layer rail. */
   shift: number
+  /** Colour of whoever is to move, so the board itself shows whose turn it is. */
+  turnRgb: string
   isDragging: boolean
   stageRef: RefObject<HTMLDivElement>
   onPlay: (index: number, fromKeyboard: boolean) => void
@@ -53,6 +55,7 @@ export function Board({
   camera,
   spacing,
   shift,
+  turnRgb,
   isDragging,
   stageRef,
   onPlay,
@@ -83,12 +86,21 @@ export function Board({
 
   const winCells = useMemo(() => new Set(win?.cells ?? []), [win])
 
-  const winBar = useMemo(() => {
-    if (!win) return null
-    const from = sites[win.cells[0]].position
-    const to = sites[win.cells[BOARD_SIZE - 1]].position
-    return winBarTransform(from, to)
-  }, [sites, win])
+  /**
+   * The rod is drawn as one length per pair of neighbouring beads, each stopping at the beads' surfaces
+   * rather than running the whole line. A single bar through the middle of a bead cannot sort correctly
+   * against it: half of the bar lands in front of the sphere it is supposed to be threaded through.
+   */
+  const winSegments = useMemo(() => {
+    if (!win) return []
+    const inset = spacing * BEAD_RATIO
+    return win.cells.slice(1).map((cell, index) => {
+      const from = sites[win.cells[index]].position
+      const to = sites[cell].position
+      const bar = winBarTransform(from, to)
+      return { key: `${win.cells[index]}-${cell}`, bar, length: Math.max(0, bar.length - inset) }
+    })
+  }, [sites, spacing, win])
 
   return (
     <div
@@ -100,11 +112,10 @@ export function Board({
       onPointerCancel={onPointerEnd}
       data-orbitable={layout.orbitable || undefined}
       data-dragging={isDragging || undefined}
-      style={cssVars({ '--perspective': `${layout.perspective}px` })}
+      style={cssVars({ '--perspective': `${layout.perspective}px`, '--turn-rgb': turnRgb })}
     >
       <div
         className={styles.cube}
-        data-dragging={isDragging || undefined}
         style={cssVars({
           '--yaw': `${camera.yaw}deg`,
           '--pitch': `${camera.pitch}deg`,
@@ -185,21 +196,23 @@ export function Board({
           )
         })}
 
-        {win && winBar && (
-          <div
-            className={styles.winBar}
-            style={cssVars({
-              '--bead-rgb': players[win.player].rgb,
-              '--bar-length': `${winBar.length}px`,
-              '--bar-x': `${winBar.midpoint.x}px`,
-              '--bar-y': `${winBar.midpoint.y}px`,
-              '--bar-z': `${winBar.midpoint.z}px`,
-              '--bar-axis-x': winBar.axisX,
-              '--bar-axis-z': winBar.axisZ,
-              '--bar-angle': `${winBar.angle}deg`,
-            })}
-          />
-        )}
+        {win &&
+          winSegments.map(({ key, bar, length }) => (
+            <div
+              key={key}
+              className={styles.winBar}
+              style={cssVars({
+                '--bead-rgb': players[win.player].rgb,
+                '--bar-length': `${length}px`,
+                '--bar-x': `${bar.midpoint.x}px`,
+                '--bar-y': `${bar.midpoint.y}px`,
+                '--bar-z': `${bar.midpoint.z}px`,
+                '--bar-axis-x': bar.axisX,
+                '--bar-axis-z': bar.axisZ,
+                '--bar-angle': `${bar.angle}deg`,
+              })}
+            />
+          ))}
       </div>
 
       {children}

@@ -70,12 +70,14 @@ export const VIEW_LAYOUTS: Record<ViewMode, ViewLayout> = {
   [ViewMode.fanned]: {
     // Yaw stays at 0 so the plates read as axis-aligned rectangles, which is the point of the mode.
     yaw: 0,
-    pitch: 30,
-    gap: 3.2,
+    /* A steeper pitch makes each plate taller on screen (4·sin(pitch) spacings rather than a shallow
+       sliver), and the gap is then set just past the overlap bound so the plates sit closer together. */
+    pitch: 40,
+    gap: 4.25,
     fan: 0.62,
     perspective: 9000,
     widthUnits: 6.5,
-    heightUnits: 10.9,
+    heightUnits: 13,
     minSpacing: 24,
     orbitable: false,
   },
@@ -103,6 +105,18 @@ export function spacingFor(mode: ViewMode, width: number, height: number): numbe
     layout.minSpacing,
     Math.min(width / layout.widthUnits, height / layout.heightUnits)
   )
+}
+
+/**
+ * Exactly the height the arrangement needs at this spacing, so its container has no band left over
+ * above or below it.
+ *
+ * The container's height is set from this and its width is never derived from it. Going the other way,
+ * sizing the container from a measurement of the container, is a feedback cycle: the ResizeObserver
+ * ends up chasing a box it is itself changing and stops delivering, freezing the board at its floor.
+ */
+export function deckHeight(mode: ViewMode, spacing: number): number {
+  return spacing * VIEW_LAYOUTS[mode].heightUnits
 }
 
 /** Where a lattice site sits in board space. Layer 1 is the bottom, so higher layers go up (−y). */
@@ -151,15 +165,6 @@ export function clampPitch(pitch: number): number {
 
 export function clampZoom(zoom: number): number {
   return Math.max(ZOOM_RANGE.min, Math.min(ZOOM_RANGE.max, zoom))
-}
-
-/** Tidies the camera to whole steps: 45° of yaw, 15° of pitch. */
-export function snapCamera(camera: Camera): Camera {
-  return {
-    ...camera,
-    yaw: Math.round(camera.yaw / 45) * 45,
-    pitch: clampPitch(Math.round(camera.pitch / 15) * 15),
-  }
 }
 
 /**

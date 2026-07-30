@@ -13,7 +13,6 @@ interface LayerRailProps {
   /** Height of the stage, so each button can be placed relative to its middle. */
   stageHeight: number
   railRef: RefObject<HTMLDivElement>
-  isDragging: boolean
   onFocusLayer: (layer: number) => void
 }
 
@@ -28,14 +27,13 @@ export function LayerRail({
   spacing,
   stageHeight,
   railRef,
-  isDragging,
   onFocusLayer,
 }: LayerRailProps) {
   const offsets = layerScreenOffsets(mode, spacing, camera)
   const middle = stageHeight / 2
 
   return (
-    <div className={styles.rail} ref={railRef} data-rail data-dragging={isDragging || undefined}>
+    <div className={styles.rail} ref={railRef} data-rail>
       {Array.from({ length: BOARD_SIZE }, (_, layer) => {
         const isFocused = focusedLayer === layer
         return (

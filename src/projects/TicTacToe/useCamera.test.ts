@@ -225,22 +225,6 @@ describe('useCamera', () => {
     })
   })
 
-  describe('snap', () => {
-    it('tidies the camera to whole steps', () => {
-      const { result } = renderHook(() => useCamera(ViewMode.orbit))
-
-      act(() => {
-        result.current.beginPointer(at(0, 0))
-        result.current.movePointer(at(53, 17))
-        result.current.endPointer(1)
-      })
-      act(() => result.current.snap())
-
-      expect(result.current.camera.yaw % 45).toBe(0)
-      expect(result.current.camera.pitch % 15).toBe(0)
-    })
-  })
-
   describe('faceLine', () => {
     it('turns the board so the line runs across the view', () => {
       const { result } = renderHook(() => useCamera(ViewMode.orbit))

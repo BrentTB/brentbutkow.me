@@ -4,10 +4,11 @@ import { PageHeader } from '../../components/PageFormatting/PageHeader'
 import { useFunMode } from '../../contexts/useFunMode'
 import { useElementSize } from '../../components/utils/useElementSize'
 import { useMediaQuery } from '../../components/utils/useMediaQuery'
+import { useViewportHeight } from '../../components/utils/useViewportHeight'
 import { Player, PlayerProfile, ViewMode } from './tic-tac-toe.types'
 import { cssVars } from './css-vars'
 import { DEFAULT_PLAYERS, VIEW_LABELS, gameCopy } from './data'
-import { spacingFor } from './engine/geometry'
+import { deckHeight, spacingFor } from './engine/geometry'
 import { describeLine } from './engine/lines'
 import { useCamera } from './useCamera'
 import { useGame } from './useGame'
@@ -15,6 +16,7 @@ import { useWinCamera } from './useWinCamera'
 import { Board } from './components/Board/Board'
 import { LayerRail } from './components/LayerRail/LayerRail'
 import { PlayerSetup } from './components/PlayerSetup/PlayerSetup'
+import { HistoryIcon } from './components/HistoryIcon'
 import styles from './TicTacToe.module.scss'
 
 /** Below this there is no hover, so the zoom hint has to name the gesture that exists. */
@@ -22,6 +24,12 @@ const TOUCH_QUERY = '(hover: none)'
 
 /** Gap between the layer rail and the board it labels. */
 const RAIL_GUTTER = 14
+
+/** Share of the window each view may take, and a ceiling so it stops growing on a big monitor. */
+const DECK_LIMITS: Record<ViewMode, { share: number; max: number }> = {
+  [ViewMode.orbit]: { share: 0.5, max: 600 },
+  [ViewMode.fanned]: { share: 0.8, max: 940 },
+}
 
 const VIEW_MODES: readonly ViewMode[] = [ViewMode.orbit, ViewMode.fanned]
 
@@ -33,6 +41,7 @@ function displayName(profile: PlayerProfile, slot: Player): string {
 export function TicTacToe() {
   const { isFunMode } = useFunMode()
   const isTouch = useMediaQuery(TOUCH_QUERY)
+  const viewportHeight = useViewportHeight()
 
   const [mode, setMode] = useState<ViewMode>(ViewMode.orbit)
   const [focusedLayer, setFocusedLayer] = useState<number | null>(null)
@@ -47,9 +56,20 @@ export function TicTacToe() {
   const stage = useElementSize(stageRef)
   const rail = useElementSize(railRef)
 
-  // The rail's buttons take pointer events, so the board must not sit underneath them.
+  /**
+   * The rail's buttons take pointer events, so the board must not sit underneath them.
+   *
+   * Spacing comes from the width left over and a cap taken from the window, never from the board's own
+   * measured height: its height is set from the spacing, and reading it back would close a loop.
+   */
   const reserved = rail.width + RAIL_GUTTER
-  const spacing = spacingFor(mode, Math.max(0, stage.width - reserved), stage.height)
+  const limits = DECK_LIMITS[mode]
+  const spacing = spacingFor(
+    mode,
+    Math.max(0, stage.width - reserved),
+    Math.min(viewportHeight * limits.share, limits.max)
+  )
+  const boardHeight = deckHeight(mode, spacing)
 
   useWinCamera(win, camera.faceLine)
 
@@ -158,7 +178,7 @@ export function TicTacToe() {
       </div>
 
       <div className={styles.play}>
-        <div className={styles.boardArea} data-mode={mode}>
+        <div className={styles.boardArea} data-mode={mode} style={{ height: `${boardHeight}px` }}>
           <Board
             board={board}
             win={win}
@@ -168,6 +188,7 @@ export function TicTacToe() {
             camera={camera.camera}
             spacing={spacing}
             shift={reserved / 2}
+            turnRgb={shown.rgb}
             isDragging={camera.isDragging}
             stageRef={stageRef}
             onPlay={handlePlay}
@@ -180,9 +201,8 @@ export function TicTacToe() {
               mode={mode}
               camera={camera.camera}
               spacing={spacing}
-              stageHeight={stage.height}
+              stageHeight={boardHeight}
               railRef={railRef}
-              isDragging={camera.isDragging}
               onFocusLayer={handleFocusLayer}
             />
           </Board>
@@ -212,17 +232,21 @@ export function TicTacToe() {
               onClick={undo}
               disabled={!canUndo}
               title={gameCopy.undoTitle}
+              aria-label={gameCopy.undo}
             >
-              {gameCopy.undo}
+              <HistoryIcon direction="back" />
+              <span className={styles.buttonWord}>{gameCopy.undo}</span>
             </button>
-            <button type="button" className={styles.button} onClick={redo} disabled={!canRedo}>
-              {gameCopy.redo}
+            <button
+              type="button"
+              className={styles.button}
+              onClick={redo}
+              disabled={!canRedo}
+              aria-label={gameCopy.redo}
+            >
+              <HistoryIcon direction="forward" />
+              <span className={styles.buttonWord}>{gameCopy.redo}</span>
             </button>
-            {camera.orbitable && (
-              <button type="button" className={styles.button} onClick={camera.snap}>
-                {gameCopy.straighten}
-              </button>
-            )}
             <button type="button" className={styles.button} onClick={handleNewGame}>
               {gameCopy.newGame}
             </button>

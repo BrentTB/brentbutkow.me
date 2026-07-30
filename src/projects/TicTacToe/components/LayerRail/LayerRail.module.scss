@@ -25,10 +25,8 @@
     cursor: pointer;
     pointer-events: auto;
     transform: translateY(-50%);
-    /* Matches the camera easing, so a label travels with its plate instead of jumping ahead of it. */
-    transition:
-      top 700ms cubic-bezier(0.34, 1.56, 0.64, 1),
-      color 160ms ease;
+    /* The camera snaps, so a label that eased into place would trail its own plate. */
+    transition: color 160ms ease;
 
     /* A short leader line ties the label to its plate without drawing a box around it. */
     &::after {

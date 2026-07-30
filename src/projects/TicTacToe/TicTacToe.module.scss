@@ -48,16 +48,12 @@
   margin: 8px 0 4px;
 }
 
+/* Height comes from JS as exactly what the arrangement needs (see `deckHeight`), so no band is left
+   over above or below the board. Setting it here in CSS is what left the dead space. */
 .boardArea {
   display: flex;
   min-width: 0;
-  height: clamp(360px, 50vh, 600px);
-
-  /* The fanned deck stacks four plates vertically, so it needs the height to keep them a usable size.
-     It does not fit one screen, which is the trade for plates you can actually aim at. */
-  &[data-mode='fanned'] {
-    height: clamp(520px, 78vh, 940px);
-  }
+  width: 100%;
 }
 
 .sidebar {
@@ -127,6 +123,9 @@
 }
 
 .button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 7px 15px;
   white-space: nowrap;
   border: 1px solid var(--border);
@@ -202,21 +201,28 @@
 }
 
 @media (max-width: 720px) {
-  .boardArea {
-    height: clamp(340px, 52vh, 560px);
-
-    /* Where the plates matter most: every bead has to be big enough to hit with a thumb. */
-    &[data-mode='fanned'] {
-      height: clamp(520px, 86vh, 900px);
-    }
-  }
-
   .hint {
     display: none;
   }
 
+  /* Everything on one line: the view switch and the history buttons belong together, not stacked. */
   .controls {
-    gap: 10px 14px;
+    flex-wrap: nowrap;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .groupLabel,
+  .buttonWord {
+    display: none;
+  }
+
+  .button {
+    padding: 8px 12px;
+  }
+
+  .segmented button {
+    padding: 6px 12px;
   }
 }
 

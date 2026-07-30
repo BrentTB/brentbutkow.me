@@ -9,6 +9,7 @@ import {
   ZOOM_RANGE,
   cellPosition,
   clampPitch,
+  deckHeight,
   clampZoom,
   columnScreenSpacing,
   fogFor,
@@ -16,7 +17,6 @@ import {
   minFanGap,
   plateCenter,
   rotateForCamera,
-  snapCamera,
   spacingFor,
   winBarTransform,
   yawToFace,
@@ -188,11 +188,6 @@ describe('camera limits', () => {
     expect(clampZoom(99)).toBe(ZOOM_RANGE.max)
     expect(clampZoom(0)).toBe(ZOOM_RANGE.min)
   })
-
-  it('snaps yaw to 45s and pitch to 15s, staying inside the pitch limit', () => {
-    expect(snapCamera(camera(59, 22))).toMatchObject({ yaw: 45, pitch: 15 })
-    expect(snapCamera(camera(0, 200)).pitch).toBe(PITCH_LIMIT)
-  })
 })
 
 describe('layerScreenOffsets', () => {
@@ -328,5 +323,29 @@ describe('yawToFace', () => {
 
   it('keeps the current yaw for a line up a rod, which looks the same from anywhere', () => {
     expect(yawToFace({ x: 0, y: 0, z: 0 }, { x: 0, y: -300, z: 0 }, 27)).toBe(27)
+  })
+})
+
+describe('deckHeight', () => {
+  /**
+   * Guards the dead-space bug: the container is sized to exactly what the arrangement needs, so nothing
+   * is left to pad above or below it. The spacing is limited by the usable width and a viewport cap,
+   * never by the container's own height, which is what made the measurement chase its own tail.
+   */
+  it('is exactly the height the arrangement occupies at that spacing', () => {
+    const usableWidth = 336 - 49
+    const viewportCap = 700
+    for (const mode of [ViewMode.orbit, ViewMode.fanned]) {
+      const spacing = spacingFor(mode, usableWidth, viewportCap)
+      const height = deckHeight(mode, spacing)
+      expect(height).toBeCloseTo(spacing * VIEW_LAYOUTS[mode].heightUnits, 5)
+      // Never taller than the cap it was given.
+      expect(height).toBeLessThanOrEqual(viewportCap + 1e-6)
+    }
+  })
+
+  it('grows with the spacing and gives the fanned deck the taller box', () => {
+    expect(deckHeight(ViewMode.fanned, 40)).toBeGreaterThan(deckHeight(ViewMode.fanned, 20))
+    expect(deckHeight(ViewMode.fanned, 40)).toBeGreaterThan(deckHeight(ViewMode.orbit, 40))
   })
 })
