@@ -74,16 +74,21 @@ export function useGame() {
 
   const newGame = useCallback(() => setHistory((past) => commit(past, freshGame())), [])
 
+  /**
+   * `steps` exists for the one-player game, where a single undo has to take back the computer's reply
+   * as well as your own move: stepping back one would just hand the turn straight back to it.
+   */
   const undo = useCallback(
-    () => setHistory((past) => ({ ...past, cursor: Math.max(0, past.cursor - 1) })),
+    (steps = 1) =>
+      setHistory((past) => ({ ...past, cursor: Math.max(0, past.cursor - Math.max(1, steps)) })),
     []
   )
 
   const redo = useCallback(
-    () =>
+    (steps = 1) =>
       setHistory((past) => ({
         ...past,
-        cursor: Math.min(past.snapshots.length - 1, past.cursor + 1),
+        cursor: Math.min(past.snapshots.length - 1, past.cursor + Math.max(1, steps)),
       })),
     []
   )

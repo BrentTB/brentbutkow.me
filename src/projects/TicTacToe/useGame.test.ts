@@ -220,3 +220,54 @@ describe('useGame — undo and redo', () => {
     expect(result.current.canUndo).toBe(false)
   })
 })
+
+describe('useGame — stepping back more than one move', () => {
+  /**
+   * The one-player case: a single undo has to take back the computer's reply as well as your own move,
+   * or the turn goes straight back to it and the undo appears to do nothing.
+   */
+  it('takes back a pair of moves in one go', () => {
+    const { result } = renderHook(() => useGame())
+
+    act(() => result.current.playAt(1))
+    act(() => result.current.playAt(2))
+    act(() => result.current.undo(2))
+
+    expect(result.current.board[1]).toBeNull()
+    expect(result.current.board[2]).toBeNull()
+    expect(result.current.currentPlayer).toBe(Player.one)
+  })
+
+  it('replays a pair of moves in one go', () => {
+    const { result } = renderHook(() => useGame())
+
+    act(() => result.current.playAt(1))
+    act(() => result.current.playAt(2))
+    act(() => result.current.undo(2))
+    act(() => result.current.redo(2))
+
+    expect(result.current.board[1]).toBe(Player.one)
+    expect(result.current.board[2]).toBe(Player.two)
+  })
+
+  it('stops at the start rather than overshooting', () => {
+    const { result } = renderHook(() => useGame())
+
+    act(() => result.current.playAt(1))
+    act(() => result.current.undo(10))
+
+    expect(result.current.canUndo).toBe(false)
+    expect(result.current.board.every((cell) => cell === null)).toBe(true)
+  })
+
+  it('treats a step of zero or less as a single step', () => {
+    const { result } = renderHook(() => useGame())
+
+    act(() => result.current.playAt(1))
+    act(() => result.current.playAt(2))
+    act(() => result.current.undo(0))
+
+    expect(result.current.board[2]).toBeNull()
+    expect(result.current.board[1]).toBe(Player.one)
+  })
+})

@@ -5,13 +5,15 @@ import styles from './PlayerSetup.module.scss'
 
 interface PlayerSetupProps {
   players: Record<Player, PlayerProfile>
+  /** Which seat the computer holds, if any: its name is fixed, but its colour is still yours to set. */
+  computer: Player | null
   onRename: (player: Player, name: string) => void
   onRecolour: (player: Player, rgb: string) => void
 }
 
 const SLOTS: readonly Player[] = [Player.one, Player.two]
 
-export function PlayerSetup({ players, onRename, onRecolour }: PlayerSetupProps) {
+export function PlayerSetup({ players, computer, onRename, onRecolour }: PlayerSetupProps) {
   return (
     <section className={styles.setup} aria-labelledby="players-heading">
       <h2 id="players-heading" className={styles.heading}>
@@ -21,6 +23,7 @@ export function PlayerSetup({ players, onRename, onRecolour }: PlayerSetupProps)
       {SLOTS.map((slot, index) => {
         const profile = players[slot]
         const takenByOther = players[SLOTS[1 - index]].rgb
+        const isComputer = slot === computer
 
         return (
           <div key={slot} className={styles.row}>
@@ -29,8 +32,9 @@ export function PlayerSetup({ players, onRename, onRecolour }: PlayerSetupProps)
               <input
                 id={`${slot}-name`}
                 type="text"
-                value={profile.name}
+                value={isComputer ? gameCopy.computerName : profile.name}
                 maxLength={MAX_NAME_LENGTH}
+                readOnly={isComputer}
                 onChange={(event) => onRename(slot, event.target.value)}
                 className={styles.input}
                 style={cssVars({ '--bead-rgb': profile.rgb })}
@@ -40,7 +44,7 @@ export function PlayerSetup({ players, onRename, onRecolour }: PlayerSetupProps)
             <div
               className={styles.colours}
               role="radiogroup"
-              aria-label={gameCopy.colourLabel(profile.name)}
+              aria-label={gameCopy.colourLabel(isComputer ? gameCopy.computerName : profile.name)}
             >
               {PLAYER_COLOURS.map((colour) => (
                 <button

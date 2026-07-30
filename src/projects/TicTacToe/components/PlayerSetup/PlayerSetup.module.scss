@@ -62,6 +62,12 @@
     outline: 2px solid rgba(var(--accent-rgb), 0.9);
     outline-offset: 1px;
   }
+
+  /* The computer's name is fixed, so the field reads as a label rather than an invitation to type. */
+  &[readonly] {
+    color: var(--text-secondary);
+    cursor: default;
+  }
 }
 
 .colours {

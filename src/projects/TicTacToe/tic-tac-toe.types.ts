@@ -22,6 +22,29 @@ export const ViewMode = {
 } as const
 export type ViewMode = (typeof ViewMode)[keyof typeof ViewMode]
 
+/** Who the second seat belongs to. */
+export const GameMode = {
+  onePlayer: 'onePlayer',
+  twoPlayer: 'twoPlayer',
+} as const
+export type GameMode = (typeof GameMode)[keyof typeof GameMode]
+
+/** How well the computer plays. */
+export const Difficulty = {
+  easy: 'easy',
+  medium: 'medium',
+  hard: 'hard',
+  godly: 'godly',
+} as const
+export type Difficulty = (typeof Difficulty)[keyof typeof Difficulty]
+
+/** Who takes the first move in a one-player game. */
+export const Starter = {
+  you: 'you',
+  computer: 'computer',
+} as const
+export type Starter = (typeof Starter)[keyof typeof Starter]
+
 /** An occupied cell holds a player; an empty one holds nothing. */
 type Cell = Player | null
 

@@ -1,4 +1,4 @@
-import { Player, PlayerProfile, ViewMode } from './tic-tac-toe.types'
+import { Difficulty, GameMode, Player, PlayerProfile, Starter, ViewMode } from './tic-tac-toe.types'
 
 /** Longest a player name can be. Keeps the turn line on one row on a phone. */
 export const MAX_NAME_LENGTH = 14
@@ -22,6 +22,33 @@ export type PlayerColour = {
 export const DEFAULT_PLAYERS: Record<Player, PlayerProfile> = {
   [Player.one]: { name: 'Player 1', rgb: PLAYER_COLOURS[0].rgb },
   [Player.two]: { name: 'Player 2', rgb: PLAYER_COLOURS[1].rgb },
+}
+
+export const MODE_LABELS: Record<GameMode, string> = {
+  [GameMode.onePlayer]: '1 player',
+  [GameMode.twoPlayer]: '2 players',
+}
+
+export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
+  [Difficulty.easy]: 'Easy',
+  [Difficulty.medium]: 'Medium',
+  [Difficulty.hard]: 'Hard',
+  [Difficulty.godly]: 'Godly',
+}
+
+/** What each setting actually does, so the choice is not a guess. */
+export const DIFFICULTY_BLURBS: Record<Difficulty, string> = {
+  [Difficulty.easy]: 'Plays flat. It never looks between layers, so rods go straight past it.',
+  [Difficulty.medium]:
+    'Takes its wins and blocks yours. The corner-to-corner diagonals still catch it out.',
+  [Difficulty.hard]:
+    'Counts how many ways to win run through each square, and plays for two at once.',
+  [Difficulty.godly]: 'Thinks several moves ahead, and plays the last few squares out in full.',
+}
+
+export const STARTER_LABELS: Record<Starter, string> = {
+  [Starter.you]: 'You',
+  [Starter.computer]: 'Computer',
 }
 
 export const VIEW_LABELS: Record<ViewMode, string> = {
@@ -48,6 +75,13 @@ export const gameCopy = {
   turn: (name: string) => `${name} to play`,
   wins: (name: string) => `${name} wins`,
   draw: 'Board full, nobody got four',
+
+  gameTitle: 'Game',
+  opponentLabel: 'Opponent',
+  difficultyLabel: 'Difficulty',
+  starterLabel: 'First move',
+  thinking: (name: string) => `${name} is thinking`,
+  computerName: 'Computer',
 
   playersTitle: 'Players',
   nameLabel: (slot: number) => `Player ${slot} name`,

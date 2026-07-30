@@ -6,9 +6,12 @@ import { useElementSize } from '../../components/utils/useElementSize'
 import { useMediaQuery } from '../../components/utils/useMediaQuery'
 import { useViewportHeight } from '../../components/utils/useViewportHeight'
 import { useScrollIntoViewOnChange } from '../../components/utils/useScrollIntoViewOnChange'
-import { Player, PlayerProfile, ViewMode } from './tic-tac-toe.types'
+import { Difficulty, GameMode, Player, PlayerProfile, Starter, ViewMode } from './tic-tac-toe.types'
 import { cssVars } from './css-vars'
 import { DEFAULT_PLAYERS, VIEW_LABELS, gameCopy } from './data'
+import { seededRng } from './engine/rng'
+import { useComputerTurn } from './useComputerTurn'
+import { GameSetup } from './components/GameSetup/GameSetup'
 import { deckHeight, spacingFor } from './engine/geometry'
 import { describeLine } from './engine/lines'
 import { useCamera } from './useCamera'
@@ -35,7 +38,8 @@ const DECK_LIMITS: Record<ViewMode, { share: number; max: number }> = {
 const VIEW_MODES: readonly ViewMode[] = [ViewMode.orbit, ViewMode.fanned]
 
 /** An emptied name field falls back to its default rather than leaving the turn line blank. */
-function displayName(profile: PlayerProfile, slot: Player): string {
+function displayName(profile: PlayerProfile, slot: Player, computer: Player | null): string {
+  if (slot === computer) return gameCopy.computerName
   return profile.name.trim() || DEFAULT_PLAYERS[slot].name
 }
 
@@ -45,6 +49,9 @@ export function TicTacToe() {
   const viewportHeight = useViewportHeight()
 
   const [mode, setMode] = useState<ViewMode>(ViewMode.orbit)
+  const [gameMode, setGameMode] = useState<GameMode>(GameMode.twoPlayer)
+  const [difficulty, setDifficulty] = useState<Difficulty>(Difficulty.medium)
+  const [starter, setStarter] = useState<Starter>(Starter.you)
   const [pickedLayer, setPickedLayer] = useState<number | null>(null)
   const [players, setPlayers] = useState<Record<Player, PlayerProfile>>(DEFAULT_PLAYERS)
 
@@ -53,6 +60,8 @@ export function TicTacToe() {
   const camera = useCamera(mode)
 
   const statusRef = useRef<HTMLDivElement>(null)
+  // One generator for the whole session, so the computer does not replay the same game every time.
+  const computerRng = useRef(seededRng(Math.floor(Math.random() * 2 ** 31)))
   const stageRef = useRef<HTMLDivElement>(null)
   const railRef = useRef<HTMLDivElement>(null)
   const stage = useElementSize(stageRef)
@@ -77,6 +86,25 @@ export function TicTacToe() {
      fanned deck already shows all four, so blanking three of them there just removes information. */
   const canFocusLayer = mode === ViewMode.orbit
   const focusedLayer = canFocusLayer ? pickedLayer : null
+
+  /* Which seat the computer holds. Whoever starts takes player one, so choosing "computer" hands it the
+     opening move, which on this board is a real advantage. */
+  const computer =
+    gameMode === GameMode.onePlayer
+      ? starter === Starter.computer
+        ? Player.one
+        : Player.two
+      : null
+
+  const { isThinking } = useComputerTurn({
+    board,
+    computer,
+    currentPlayer,
+    difficulty,
+    finished: win !== null || isDraw,
+    rng: computerRng.current,
+    play: playAt,
+  })
 
   useWinCamera(win, camera.faceLine)
 
@@ -161,13 +189,19 @@ export function TicTacToe() {
     setPlayers((current) => ({ ...current, [slot]: { ...current[slot], rgb } }))
   }, [])
 
+  /* One undo takes back the pair: your move and the reply to it. */
+  const historyStep = computer === null ? 1 : 2
+
   const shown = win ? players[win.player] : players[currentPlayer]
   const shownSlot = win ? win.player : currentPlayer
+  const shownName = displayName(shown, shownSlot, computer)
   const status = win
-    ? gameCopy.wins(displayName(shown, shownSlot))
+    ? gameCopy.wins(shownName)
     : isDraw
       ? gameCopy.draw
-      : gameCopy.turn(displayName(shown, shownSlot))
+      : isThinking
+        ? gameCopy.thinking(shownName)
+        : gameCopy.turn(shownName)
 
   const hint = camera.orbitable
     ? isTouch
@@ -196,6 +230,7 @@ export function TicTacToe() {
             win={win}
             focusedLayer={focusedLayer}
             players={players}
+            computer={computer}
             mode={mode}
             camera={camera.camera}
             spacing={spacing}
@@ -242,7 +277,7 @@ export function TicTacToe() {
             <button
               type="button"
               className={styles.button}
-              onClick={undo}
+              onClick={() => undo(historyStep)}
               disabled={!canUndo}
               title={gameCopy.undoTitle}
               aria-label={gameCopy.undo}
@@ -253,7 +288,7 @@ export function TicTacToe() {
             <button
               type="button"
               className={styles.button}
-              onClick={redo}
+              onClick={() => redo(historyStep)}
               disabled={!canRedo}
               aria-label={gameCopy.redo}
             >
@@ -269,7 +304,20 @@ export function TicTacToe() {
         </div>
 
         <aside className={styles.sidebar}>
-          <PlayerSetup players={players} onRename={rename} onRecolour={recolour} />
+          <GameSetup
+            mode={gameMode}
+            difficulty={difficulty}
+            starter={starter}
+            onModeChange={setGameMode}
+            onDifficultyChange={setDifficulty}
+            onStarterChange={setStarter}
+          />
+          <PlayerSetup
+            players={players}
+            computer={computer}
+            onRename={rename}
+            onRecolour={recolour}
+          />
         </aside>
       </div>
     </PageLayout>
