@@ -40,6 +40,11 @@ const PixelWorldSimulator = lazy(() =>
     default: module.PixelWorldSimulator,
   }))
 )
+const TicTacToe = lazy(() =>
+  import('../projects/TicTacToe/TicTacToe').then((module) => ({
+    default: module.TicTacToe,
+  }))
+)
 const AsciiArt = lazy(() =>
   import('../projects/AsciiArt/AsciiArt').then((module) => ({
     default: module.AsciiArt,
@@ -115,6 +120,12 @@ const funStuffRoutes: AppRoute[] = [
     element: <PixelWorldSimulator />,
     dontShowInNavbar: true,
     ...metaFor(`${gamesPath}${gamesSubRoutes.pixelWorldSimulator}`),
+  },
+  {
+    path: `${gamesPath}${gamesSubRoutes.ticTacToe}`,
+    element: <TicTacToe />,
+    dontShowInNavbar: true,
+    ...metaFor(`${gamesPath}${gamesSubRoutes.ticTacToe}`),
   },
   {
     path: `${routePaths.funStuff}${funStuffSubRoutes.asciiArt}`,

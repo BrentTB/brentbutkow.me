@@ -1,0 +1,158 @@
+.status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.swatch {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: rgb(var(--bead-rgb));
+  box-shadow: 0 0 12px rgba(var(--bead-rgb), 0.7);
+  flex-shrink: 0;
+}
+
+.statusText {
+  color: rgb(var(--bead-rgb));
+  font-family: var(--font-mono);
+  font-size: 0.84rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* How the winning line ran, which is the part a cube makes hard to see. */
+.shape {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+
+  &::before {
+    content: '·';
+    margin-right: 9px;
+  }
+}
+
+.boardArea {
+  display: flex;
+  height: clamp(400px, 64vh, 760px);
+  margin: 8px 0 4px;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 10px 20px;
+  flex-wrap: wrap;
+  padding-bottom: 20px;
+}
+
+.group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.groupLabel {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.segmented {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+
+  button {
+    padding: 6px 15px;
+    border: 0;
+    border-radius: 999px;
+    background: none;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: 0.84rem;
+    cursor: pointer;
+    transition:
+      background 160ms ease,
+      color 160ms ease;
+
+    &:hover {
+      color: var(--text);
+      background: var(--surface-strong);
+    }
+
+    &[aria-pressed='true'] {
+      color: var(--on-accent);
+      background: rgba(var(--accent-rgb), 0.92);
+      font-weight: 600;
+    }
+
+    &:focus-visible {
+      outline: 2px solid rgba(var(--accent-rgb), 0.9);
+      outline-offset: 2px;
+    }
+  }
+}
+
+.button {
+  padding: 7px 15px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.84rem;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    color 160ms ease;
+
+  &:hover {
+    color: var(--text);
+    background: var(--surface-strong);
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(var(--accent-rgb), 0.9);
+    outline-offset: 2px;
+  }
+}
+
+.hint {
+  margin: 0;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+}
+
+@media (max-width: 720px) {
+  .boardArea {
+    height: clamp(340px, 52vh, 560px);
+  }
+
+  .hint {
+    display: none;
+  }
+
+  .controls {
+    gap: 10px 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .segmented button,
+  .button {
+    transition-duration: 1ms;
+  }
+}

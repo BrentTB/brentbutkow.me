@@ -1,0 +1,76 @@
+.rail {
+  position: absolute;
+  left: 16px;
+  top: 0;
+  bottom: 0;
+  width: 4.6em;
+  pointer-events: none;
+  z-index: 2;
+
+  button {
+    position: absolute;
+    left: 0;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 4px 2px;
+    border: 0;
+    background: none;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    cursor: pointer;
+    pointer-events: auto;
+    transform: translateY(-50%);
+    /* Matches the camera easing, so a label travels with its plate instead of jumping ahead of it. */
+    transition:
+      top 700ms cubic-bezier(0.34, 1.56, 0.64, 1),
+      color 160ms ease;
+
+    /* A short leader line ties the label to its plate without drawing a box around it. */
+    &::after {
+      content: '';
+      width: 14px;
+      height: 1px;
+      background: currentColor;
+      opacity: 0.45;
+    }
+
+    &:hover,
+    &[aria-pressed='true'] {
+      color: rgba(var(--accent-rgb), 0.95);
+    }
+
+    &:focus-visible {
+      outline: 2px solid rgba(var(--accent-rgb), 0.9);
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+  }
+
+  /* Mid-drag the labels track the camera every frame; easing them would leave them trailing. */
+  &[data-dragging] button {
+    transition: color 160ms ease;
+  }
+}
+
+@media (max-width: 720px) {
+  /* Just the number: on a phone the rail has to earn its width against the board. */
+  .rail {
+    left: 8px;
+    width: 2.2em;
+  }
+
+  .word {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rail button {
+    transition-duration: 1ms;
+  }
+}
