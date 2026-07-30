@@ -38,12 +38,10 @@ export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
 
 /** What each setting actually does, so the choice is not a guess. */
 export const DIFFICULTY_BLURBS: Record<Difficulty, string> = {
-  [Difficulty.easy]: 'Plays flat. It never looks between layers, so rods go straight past it.',
-  [Difficulty.medium]:
-    'Takes its wins and blocks yours. The corner-to-corner diagonals still catch it out.',
-  [Difficulty.hard]:
-    'Counts how many ways to win run through each square, and plays for two at once.',
-  [Difficulty.godly]: 'Thinks several moves ahead, and plays the last few squares out in full.',
+  [Difficulty.easy]: 'A beginner, still working out where to look.',
+  [Difficulty.medium]: 'Knows what it is doing. Most of the time.',
+  [Difficulty.hard]: 'You will have to earn this one.',
+  [Difficulty.godly]: 'Is it even possible to beat this thing?',
 }
 
 export const STARTER_LABELS: Record<Starter, string> = {

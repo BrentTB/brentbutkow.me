@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
-import { THINKING_DELAY_MS, useComputerTurn } from './useComputerTurn'
+import { SEARCH_BUDGET_MS, THINKING_TIME_MS, useComputerTurn } from './useComputerTurn'
 import { applyMove, createBoard } from './engine/board'
 import { cellIndex } from './engine/lines'
 import { seededRng } from './engine/rng'
@@ -30,7 +30,7 @@ describe('useComputerTurn', () => {
     renderHook(() => useComputerTurn(props))
 
     expect(props.play).not.toHaveBeenCalled()
-    act(() => vi.advanceTimersByTime(THINKING_DELAY_MS))
+    act(() => vi.advanceTimersByTime(THINKING_TIME_MS))
     expect(props.play).toHaveBeenCalledTimes(1)
   })
 
@@ -39,7 +39,7 @@ describe('useComputerTurn', () => {
     const { result } = renderHook(() => useComputerTurn(props))
 
     expect(result.current.isThinking).toBe(true)
-    act(() => vi.advanceTimersByTime(THINKING_DELAY_MS))
+    act(() => vi.advanceTimersByTime(THINKING_TIME_MS))
     expect(result.current.isThinking).toBe(false)
   })
 
@@ -47,7 +47,7 @@ describe('useComputerTurn', () => {
     const props = base({ currentPlayer: Player.one })
     const { result } = renderHook(() => useComputerTurn(props))
 
-    act(() => vi.advanceTimersByTime(THINKING_DELAY_MS * 3))
+    act(() => vi.advanceTimersByTime(THINKING_TIME_MS * 3))
     expect(props.play).not.toHaveBeenCalled()
     expect(result.current.isThinking).toBe(false)
   })
@@ -56,7 +56,7 @@ describe('useComputerTurn', () => {
     const props = base({ computer: null })
     renderHook(() => useComputerTurn(props))
 
-    act(() => vi.advanceTimersByTime(THINKING_DELAY_MS * 3))
+    act(() => vi.advanceTimersByTime(THINKING_TIME_MS * 3))
     expect(props.play).not.toHaveBeenCalled()
   })
 
@@ -64,7 +64,7 @@ describe('useComputerTurn', () => {
     const props = base({ finished: true })
     renderHook(() => useComputerTurn(props))
 
-    act(() => vi.advanceTimersByTime(THINKING_DELAY_MS * 3))
+    act(() => vi.advanceTimersByTime(THINKING_TIME_MS * 3))
     expect(props.play).not.toHaveBeenCalled()
   })
 
@@ -73,7 +73,7 @@ describe('useComputerTurn', () => {
     const props = base({ board })
     renderHook(() => useComputerTurn(props))
 
-    act(() => vi.advanceTimersByTime(THINKING_DELAY_MS))
+    act(() => vi.advanceTimersByTime(THINKING_TIME_MS))
     const move = props.play.mock.calls[0][0]
     expect(board[move]).toBeNull()
   })
@@ -84,7 +84,7 @@ describe('useComputerTurn', () => {
     const props = base({ board, difficulty: 'hard' })
     renderHook(() => useComputerTurn(props))
 
-    act(() => vi.advanceTimersByTime(THINKING_DELAY_MS))
+    act(() => vi.advanceTimersByTime(THINKING_TIME_MS))
     expect(props.play).toHaveBeenCalledWith(cellIndex(3, 0, 0))
   })
 
@@ -98,11 +98,11 @@ describe('useComputerTurn', () => {
       initialProps: props,
     })
 
-    act(() => vi.advanceTimersByTime(THINKING_DELAY_MS / 2))
+    act(() => vi.advanceTimersByTime(THINKING_TIME_MS / 2))
     const undone: Board = applyMove(createBoard(), cellIndex(0, 0, 0), Player.one)
     rerender({ ...props, board: undone })
 
-    act(() => vi.advanceTimersByTime(THINKING_DELAY_MS))
+    act(() => vi.advanceTimersByTime(THINKING_TIME_MS))
     // Exactly one move for the new position, none left over from the old one.
     expect(props.play).toHaveBeenCalledTimes(1)
   })
@@ -111,9 +111,9 @@ describe('useComputerTurn', () => {
     const props = base()
     const { unmount } = renderHook(() => useComputerTurn(props))
 
-    act(() => vi.advanceTimersByTime(THINKING_DELAY_MS / 2))
+    act(() => vi.advanceTimersByTime(THINKING_TIME_MS / 2))
     unmount()
-    act(() => vi.advanceTimersByTime(THINKING_DELAY_MS * 2))
+    act(() => vi.advanceTimersByTime(THINKING_TIME_MS * 2))
     expect(props.play).not.toHaveBeenCalled()
   })
 
@@ -127,7 +127,7 @@ describe('useComputerTurn', () => {
     rerender({ ...props, currentPlayer: Player.one })
     expect(result.current.isThinking).toBe(false)
 
-    act(() => vi.advanceTimersByTime(THINKING_DELAY_MS * 2))
+    act(() => vi.advanceTimersByTime(THINKING_TIME_MS * 2))
     expect(props.play).not.toHaveBeenCalled()
   })
 
@@ -135,7 +135,76 @@ describe('useComputerTurn', () => {
     const props = base({ computer: Player.one, currentPlayer: Player.one })
     renderHook(() => useComputerTurn(props))
 
-    act(() => vi.advanceTimersByTime(THINKING_DELAY_MS))
+    act(() => vi.advanceTimersByTime(THINKING_TIME_MS))
     expect(props.play).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('useComputerTurn — every difficulty takes the same time', () => {
+  /**
+   * Only the strongest tier needs the thinking time. The rest wait for it anyway, so no opponent gives
+   * itself away by replying the instant you lift your finger.
+   */
+  const timeToMove = (difficulty: Difficulty) => {
+    const props = base({ difficulty })
+    renderHook(() => useComputerTurn(props))
+
+    let waited = 0
+    const step = 20
+    while (props.play.mock.calls.length === 0 && waited <= THINKING_TIME_MS * 3) {
+      act(() => vi.advanceTimersByTime(step))
+      waited += step
+    }
+    return { waited, moved: props.play.mock.calls.length }
+  }
+
+  it('has not moved before the thinking time is up, at any difficulty', () => {
+    for (const difficulty of ['easy', 'medium', 'hard'] as Difficulty[]) {
+      const props = base({ difficulty })
+      renderHook(() => useComputerTurn(props))
+
+      act(() => vi.advanceTimersByTime(THINKING_TIME_MS - 50))
+      expect(props.play).not.toHaveBeenCalled()
+    }
+  })
+
+  it('moves once the thinking time is up, at any difficulty', () => {
+    for (const difficulty of ['easy', 'medium', 'hard'] as Difficulty[]) {
+      const props = base({ difficulty })
+      renderHook(() => useComputerTurn(props))
+
+      act(() => vi.advanceTimersByTime(THINKING_TIME_MS + 50))
+      expect(props.play).toHaveBeenCalledTimes(1)
+    }
+  })
+
+  it('takes about the same wall time whichever tier is playing', () => {
+    const easy = timeToMove('easy')
+    const medium = timeToMove('medium')
+    expect(easy.moved).toBe(1)
+    expect(medium.moved).toBe(1)
+    expect(Math.abs(easy.waited - medium.waited)).toBeLessThanOrEqual(60)
+  })
+})
+
+describe('the search budget fills the thinking time', () => {
+  /**
+   * The wait happens whatever the difficulty, so any budget short of the window is search thrown away.
+   * Guards the two constants drifting apart again: they were 700 and 900, leaving 168ms doing nothing.
+   */
+  it('gives the search everything except the paint beat', () => {
+    expect(SEARCH_BUDGET_MS).toBeGreaterThan(0)
+    expect(SEARCH_BUDGET_MS).toBeLessThan(THINKING_TIME_MS)
+    // Whatever the paint beat is, nothing else is left over.
+    expect(THINKING_TIME_MS - SEARCH_BUDGET_MS).toBeLessThanOrEqual(50)
+  })
+
+  /**
+   * The strongest tier is deliberately not driven through the hook here. Its search stops on a wall
+   * clock, and fake timers freeze `Date.now`, so the deadline never arrives and it runs to its full
+   * depth ceiling instead of its budget. The engine's own tests cover the budget with an injected clock.
+   */
+  it('leaves the searching tier to the engine tests, which can control its clock', () => {
+    expect(SEARCH_BUDGET_MS).toBe(THINKING_TIME_MS - 32)
   })
 })

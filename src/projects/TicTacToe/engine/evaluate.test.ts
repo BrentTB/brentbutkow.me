@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { FORK_VALUE, liveLinesThrough, orderedMoves, scoreCell, scorePosition } from './evaluate'
+import {
+  DEFAULT_WEIGHTS,
+  FORK_VALUE,
+  liveLinesThrough,
+  orderedMoves,
+  scoreCell,
+  scorePosition,
+} from './evaluate'
 import { applyMove, createBoard } from './board'
 import { cellIndex } from './lines'
 import { Sight } from './threats'
@@ -226,18 +233,26 @@ describe('blocking is graded, not all-or-nothing', () => {
     expect(blockingCell([[0, 0, 0]])).toBeGreaterThan(bare)
   })
 
-  /** Blocking a three is close to compulsory, so it has to outrank every ordinary consideration. */
+  /**
+   * Blocking a three is close to compulsory, so it has to outrank every ordinary consideration. The
+   * exact ratio is a tuned quantity and moves with the weights, so this asserts a wide margin rather
+   * than a specific multiple.
+   */
   it('scores spoiling a three above spoiling a two by a wide margin', () => {
-    const spoilTwo = blockingCell([
-      [0, 0, 0],
-      [1, 0, 0],
-    ])
-    const spoilThree = blockingCell([
-      [0, 0, 0],
-      [1, 0, 0],
-      [2, 0, 0],
-    ])
-    expect(spoilThree).toBeGreaterThan(spoilTwo * 10)
+    const bare = scoreCell(createBoard(), cellIndex(3, 0, 0), Player.one)
+    const gainFromTwo =
+      blockingCell([
+        [0, 0, 0],
+        [1, 0, 0],
+      ]) - bare
+    const gainFromThree =
+      blockingCell([
+        [0, 0, 0],
+        [1, 0, 0],
+        [2, 0, 0],
+      ]) - bare
+
+    expect(gainFromThree).toBeGreaterThan(gainFromTwo * 5)
   })
 
   it('rates building my own two a little above spoiling theirs', () => {
@@ -329,5 +344,46 @@ describe('near-complete lines outrank the lines that led to them', () => {
       Player.one
     )
     expect(four).toBeGreaterThan(three)
+  })
+})
+
+describe('DEFAULT_WEIGHTS', () => {
+  /**
+   * These were tuned by self-play, so they are expected to move. What must not change is their shape:
+   * a retune that inverts any of these orderings has produced nonsense, however well it scored.
+   */
+  it('rises with the number of pieces already on a line', () => {
+    const { own } = DEFAULT_WEIGHTS
+    expect(own).toHaveLength(5)
+    for (let held = 1; held < own.length; held++) {
+      expect(own[held]).toBeGreaterThan(own[held - 1])
+    }
+  })
+
+  it('grades denial the same way, and never above completing my own line', () => {
+    const { deny, own } = DEFAULT_WEIGHTS
+    expect(deny[1]).toBeGreaterThan(0)
+    expect(deny[2]).toBeGreaterThan(deny[1])
+    expect(deny[3]).toBeGreaterThan(deny[2])
+    expect(deny[3]).toBeLessThan(own[4])
+  })
+
+  it('keeps spoiling a two below building a three, so offence still leads', () => {
+    expect(DEFAULT_WEIGHTS.deny[2]).toBeLessThan(DEFAULT_WEIGHTS.own[3])
+  })
+
+  it('puts an outright fork above every ordinary consideration', () => {
+    const { fork, own, deny, forkSetup } = DEFAULT_WEIGHTS
+    expect(fork).toBeGreaterThan(own[3])
+    expect(fork).toBeGreaterThan(deny[3])
+    expect(fork).toBeGreaterThan(forkSetup)
+  })
+
+  it('keeps the fork-setup nudge small enough not to swamp the line values', () => {
+    expect(DEFAULT_WEIGHTS.forkSetup).toBeLessThan(DEFAULT_WEIGHTS.own[3])
+  })
+
+  it('is what FORK_VALUE reports', () => {
+    expect(FORK_VALUE).toBe(DEFAULT_WEIGHTS.fork)
   })
 })

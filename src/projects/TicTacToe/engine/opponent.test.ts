@@ -338,6 +338,13 @@ describe('PERSONALITIES', () => {
     expect(PERSONALITIES.hard.sight).toBe(Sight.everything)
   })
 
+  /** Hard scores instead of taking the shortcut, which picks blindly among the cells it finds. */
+  it('leaves the build shortcut to the weaker tiers', () => {
+    expect(PERSONALITIES.easy.builds).toBeGreaterThan(0)
+    expect(PERSONALITIES.medium.builds).toBeGreaterThan(0)
+    expect(PERSONALITIES.hard.builds).toBe(0)
+  })
+
   it('only lets the top tier play for forks', () => {
     expect(PERSONALITIES.easy.seesForks).toBe(false)
     expect(PERSONALITIES.medium.seesForks).toBe(false)

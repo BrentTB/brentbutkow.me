@@ -1,6 +1,6 @@
 import { Board, Difficulty, Player } from '../tic-tac-toe.types'
 import { legalMoves, opponentOf } from './board'
-import { scoreCell } from './evaluate'
+import { Weights, scoreCell } from './evaluate'
 import { Rng, pickOne, pickWeighted } from './rng'
 import { findBestMove } from './search'
 import { Sight, threatCells, winningMoves } from './threats'
@@ -22,7 +22,10 @@ type Personality = {
   takesWin: number
   /** Chance of blocking a loss it can see. */
   blocks: number
-  /** Chance of extending a line it already has two of. */
+  /**
+   * Chance of taking the shortcut that extends a line it already has two of, picked at random from the
+   * cells that would. A blunt instrument for the weak tiers; the strong one scores instead.
+   */
   builds: number
   /** Whether it understands that two twos sharing a cell is worth playing for. */
   seesForks: boolean
@@ -56,13 +59,22 @@ export const PERSONALITIES: Record<Exclude<Difficulty, 'godly'>, Personality> = 
     sight: Sight.everything,
     takesWin: 1,
     blocks: 1,
-    builds: 1,
+    /**
+     * Nought on purpose. The shortcut grabs a random cell that extends a two, which would pre-empt the
+     * scoring on almost every move and pick blindly between the options it found. The score already
+     * rates making a three far above building a two, so it extends lines when that is genuinely best
+     * and weighs the alternatives when it is not.
+     */
+    builds: 0,
     seesForks: true,
     sharpness: 12,
   },
 }
 
-/** Milliseconds the strongest tier may spend searching. */
+/**
+ * Fallback search budget for callers that do not set one, such as the engine's own tests. The game
+ * passes its own, derived from how long the computer appears to think.
+ */
 const GODLY_BUDGET_MS = 700
 
 export type ChooseOptions = {
@@ -70,6 +82,8 @@ export type ChooseOptions = {
   /** Injected so a test can drive the search budget without a wall clock. */
   now?: () => number
   budgetMs?: number
+  /** Overrides the tuned positional weights. Used by the self-play tuner, not by the game. */
+  weights?: Weights
 }
 
 /**
@@ -83,7 +97,7 @@ export function chooseMove(
   board: Board,
   player: Player,
   difficulty: Difficulty,
-  { rng, now, budgetMs = GODLY_BUDGET_MS }: ChooseOptions
+  { rng, now, budgetMs = GODLY_BUDGET_MS, weights }: ChooseOptions
 ): number | null {
   const free = legalMoves(board)
   if (free.length === 0) return null
@@ -112,7 +126,7 @@ export function chooseMove(
     return pickOne(builds, rng) ?? free[0]
   }
 
-  return pickByScore(board, free, player, personality, rng)
+  return pickByScore(board, free, player, personality, rng, weights)
 }
 
 /**
@@ -125,11 +139,12 @@ function pickByScore(
   free: readonly number[],
   player: Player,
   { sight, seesForks, sharpness }: Personality,
-  rng: Rng
+  rng: Rng,
+  weights?: Weights
 ): number {
-  const scores = free.map((cell) => scoreCell(board, cell, player, { sight, seesForks }))
+  const scores = free.map((cell) => scoreCell(board, cell, player, { sight, seesForks, weights }))
   const lowest = Math.min(...scores)
   // Shift so the worst option still carries a little weight, then bias towards the better ones.
-  const weights = scores.map((score) => Math.pow(score - lowest + 1, sharpness))
-  return pickWeighted(free, weights, rng) ?? free[0]
+  const bias = scores.map((score) => Math.pow(score - lowest + 1, sharpness))
+  return pickWeighted(free, bias, rng) ?? free[0]
 }

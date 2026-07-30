@@ -21,28 +21,53 @@ import { WINNING_LINES } from './lines'
  */
 
 /**
- * What a line holding `held` of my pieces and none of the opponent's is worth, for `held` of 0 to 4.
- *
- * The jump at three is the point: a line one move from finishing forces a reply, which is worth far
- * more than the tidy two-in-a-row that led to it.
+ * The numbers the positional play is built from. Kept in one object so they can be swapped wholesale:
+ * they were tuned by self-play, and a future retune should be able to run without editing this file.
  */
-const OWN_LINE_VALUE = [0, 1, 6, 90, 900] as const
+export type Weights = {
+  /**
+   * What a line holding this many of my pieces and none of the opponent's is worth, indexed 0 to 4.
+   *
+   * The jump at three is the point: a line one move from finishing forces a reply, which is worth far
+   * more than the tidy two-in-a-row that led to it.
+   */
+  own: readonly number[]
+  /**
+   * What denying a line is worth, by how many of the opponent's pieces sit on it, indexed 0 to 4.
+   *
+   * Graded rather than flat. Spoiling a line they hold three of is close to compulsory. Spoiling one
+   * they hold two of is real value, and it stacks with whatever else the same cell does. Sitting on a
+   * line they have merely started counts for very little, but not for nothing.
+   */
+  deny: readonly number[]
+  /** A move that leaves two lines one short wins next turn unless the reply wins outright. */
+  fork: number
+  /** Leaving a cell that would become a fork is the position the strong difficulties play towards. */
+  forkSetup: number
+}
 
 /**
- * What denying a line is worth, by how many of the opponent's pieces sit on it, for 0 to 4.
+ * Tuned by self-play: coordinate descent over each knob, candidate against incumbent, both seats, many
+ * seeds. Two findings worth keeping:
  *
- * Graded rather than flat. Spoiling a line they hold three of is close to compulsory. Spoiling one they
- * hold two of is real value, a little under building a second of my own, and it stacks with whatever
- * else the same cell does. Sitting on a line they have merely started counts for very little, but not
- * for nothing: all else equal, take the square that is also in their way.
+ * Spoiling a line the opponent holds two of is worth nearly as much as building a second of my own.
+ * Dropping it to 8 lost heavily; raising it well past the old 22 kept winning.
+ *
+ * The fork-setup bonus was badly overweighted at 260. It was swamping the line values and pulling the
+ * play towards speculative shapes over solid ones.
+ *
+ * `deny[3]` and `fork` showed no sensitivity at any value, because a three on either side is already
+ * settled by the forced win and block checks before any scoring happens.
  */
-const DENY_LINE_VALUE = [0, 2, 22, 700, 0] as const
+export const DEFAULT_WEIGHTS: Weights = {
+  own: [0, 1, 12, 90, 900],
+  deny: [0, 2, 80, 700, 0],
+  fork: 4000,
+  forkSetup: 80,
+}
 
-/** A move that leaves two lines one short wins next turn unless the reply wins outright. */
-export const FORK_VALUE = 4000
-
-/** Leaving a cell that would become a fork is the position the strong difficulties play towards. */
-const FORK_SETUP_VALUE = 260
+/** Kept for callers that only need to know a fork outranks any ordinary placement. */
+export const FORK_VALUE = DEFAULT_WEIGHTS.fork
 
 /** Beyond any positional score: taking it ends the game. */
 export const WIN_VALUE = 1_000_000
@@ -79,6 +104,7 @@ export type EvaluateOptions = {
   sight?: Sight
   /** Whether to reward building towards a fork. The weaker difficulties cannot see that far. */
   seesForks?: boolean
+  weights?: Weights
 }
 
 /**
@@ -89,7 +115,7 @@ export function scoreCell(
   board: Board,
   cell: number,
   player: Player,
-  { sight = Sight.everything, seesForks = true }: EvaluateOptions = {}
+  { sight = Sight.everything, seesForks = true, weights = DEFAULT_WEIGHTS }: EvaluateOptions = {}
 ): number {
   const them = opponentOf(player)
   const visible = VISIBLE_LINES[sight]
@@ -110,18 +136,18 @@ export function scoreCell(
     // Contested lines are dead for both sides, whoever nominally owns the geometry.
     if (mine > 0 && theirs > 0) continue
     // Playing here adds one of mine, so the line is worth what it becomes, not what it was.
-    if (theirs === 0) score += OWN_LINE_VALUE[mine + 1]
-    else score += DENY_LINE_VALUE[theirs]
+    if (theirs === 0) score += weights.own[mine + 1]
+    else score += weights.deny[theirs]
   }
 
   if (!seesForks) return score
 
   const threats = threatsAfter(board, cell, player, sight)
-  if (threats >= 2) score += FORK_VALUE
+  if (threats >= 2) score += weights.fork
 
   // Two twos sharing a free cell: whoever takes the overlap makes two threes in one move.
   const after = applyMove(board, cell, player)
-  score += forkCells(after, player, sight).length * FORK_SETUP_VALUE
+  score += forkCells(after, player, sight).length * weights.forkSetup
 
   return score
 }
@@ -133,19 +159,20 @@ export function scoreCell(
 export function scorePosition(
   board: Board,
   player: Player,
-  sight: Sight = Sight.everything
+  sight: Sight = Sight.everything,
+  weights: Weights = DEFAULT_WEIGHTS
 ): number {
   const them = opponentOf(player)
   let score = 0
 
   for (const read of readLines(board, player, sight)) {
     if (read.mine > 0 && read.theirs > 0) continue
-    if (read.mine > 0) score += OWN_LINE_VALUE[read.mine]
-    else if (read.theirs > 0) score -= OWN_LINE_VALUE[read.theirs]
+    if (read.mine > 0) score += weights.own[read.mine]
+    else if (read.theirs > 0) score -= weights.own[read.theirs]
   }
 
-  score += forkCells(board, player, sight).length * FORK_SETUP_VALUE
-  score -= forkCells(board, them, sight).length * FORK_SETUP_VALUE
+  score += forkCells(board, player, sight).length * weights.forkSetup
+  score -= forkCells(board, them, sight).length * weights.forkSetup
   return score
 }
 

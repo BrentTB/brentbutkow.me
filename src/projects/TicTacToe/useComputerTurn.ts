@@ -3,8 +3,26 @@ import { Board, Difficulty, Player } from './tic-tac-toe.types'
 import { chooseMove } from './engine/opponent'
 import { Rng } from './engine/rng'
 
-/** Long enough that the computer's reply reads as a move rather than an instant echo of yours. */
-export const THINKING_DELAY_MS = 320
+/**
+ * How long the computer appears to think, whatever the difficulty.
+ *
+ * Only the strongest tier needs the time; the rest answer in under a millisecond. They wait anyway, so
+ * every opponent feels like it is considering the board rather than slapping down a reply the instant
+ * you lift your finger.
+ */
+export const THINKING_TIME_MS = 900
+
+/** A beat to let your own move paint before the search takes the thread. */
+const PAINT_DELAY_MS = 32
+
+/**
+ * What the strongest tier is allowed to spend searching: everything left of the thinking time once the
+ * paint beat is taken out.
+ *
+ * Derived rather than picked. The wait happens either way, so a search budget shorter than the window
+ * would just be time thrown away, and one longer would make that tier visibly slower than the rest.
+ */
+export const SEARCH_BUDGET_MS = THINKING_TIME_MS - PAINT_DELAY_MS
 
 export type ComputerTurnOptions = {
   board: Board
@@ -22,8 +40,10 @@ export type ComputerTurnOptions = {
  * Takes the computer's turn when it is its move.
  *
  * Keyed on the board itself rather than on a turn counter, so undo and redo cannot leave it convinced
- * it has already replied to a position it is now looking at again. The pause before it plays is there
- * to make the move legible: an instant reply reads as part of your own click.
+ * it has already replied to a position it is now looking at again.
+ *
+ * The move is chosen first and the wait padded afterwards, so the total comes out the same for every
+ * difficulty. Padding first and then searching would make the strong tier visibly slower than the rest.
  */
 export function useComputerTurn({
   board,
@@ -36,7 +56,7 @@ export function useComputerTurn({
 }: ComputerTurnOptions): { isThinking: boolean } {
   const [isThinking, setIsThinking] = useState(false)
 
-  // Kept in refs so a change of difficulty mid-think does not restart the timer.
+  // Kept in refs so a change of identity mid-think does not restart the timer.
   const playRef = useRef(play)
   playRef.current = play
   const rngRef = useRef(rng)
@@ -51,14 +71,28 @@ export function useComputerTurn({
     }
 
     setIsThinking(true)
-    const timer = setTimeout(() => {
-      const move = chooseMove(board, computer, difficulty, { rng: rngRef.current })
-      setIsThinking(false)
-      if (move !== null) playRef.current(move)
-    }, THINKING_DELAY_MS)
+    const startedAt = Date.now()
+    let settle: ReturnType<typeof setTimeout> | undefined
+
+    const think = setTimeout(() => {
+      const move = chooseMove(board, computer, difficulty, {
+        rng: rngRef.current,
+        budgetMs: SEARCH_BUDGET_MS,
+      })
+      const spent = Date.now() - startedAt
+
+      settle = setTimeout(
+        () => {
+          setIsThinking(false)
+          if (move !== null) playRef.current(move)
+        },
+        Math.max(0, THINKING_TIME_MS - spent)
+      )
+    }, PAINT_DELAY_MS)
 
     return () => {
-      clearTimeout(timer)
+      clearTimeout(think)
+      if (settle !== undefined) clearTimeout(settle)
       setIsThinking(false)
     }
   }, [board, computer, difficulty, itsTurn])
