@@ -1,4 +1,6 @@
+/* Clears the sticky navbar when a view switch scrolls this back into place. */
 .status {
+  scroll-margin-top: 106px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -171,8 +173,10 @@
    stack down the right, which is what lets the whole game sit on one screen. Must come after the base
    rules above, or those win on source order and the column layout silently loses. */
 @media (min-width: 1000px) {
+  /* The column is sized to the widest thing in it: the three history buttons on one line. At 270px they
+     wrapped, which read as the column being narrower than the space it had. */
   .play {
-    grid-template-columns: minmax(0, 1fr) 270px;
+    grid-template-columns: minmax(0, 1fr) 330px;
     grid-template-rows: auto 1fr;
     gap: 24px 32px;
     align-items: start;

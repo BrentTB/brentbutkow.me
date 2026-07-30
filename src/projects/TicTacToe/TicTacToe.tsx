@@ -5,6 +5,7 @@ import { useFunMode } from '../../contexts/useFunMode'
 import { useElementSize } from '../../components/utils/useElementSize'
 import { useMediaQuery } from '../../components/utils/useMediaQuery'
 import { useViewportHeight } from '../../components/utils/useViewportHeight'
+import { useScrollIntoViewOnChange } from '../../components/utils/useScrollIntoViewOnChange'
 import { Player, PlayerProfile, ViewMode } from './tic-tac-toe.types'
 import { cssVars } from './css-vars'
 import { DEFAULT_PLAYERS, VIEW_LABELS, gameCopy } from './data'
@@ -44,13 +45,14 @@ export function TicTacToe() {
   const viewportHeight = useViewportHeight()
 
   const [mode, setMode] = useState<ViewMode>(ViewMode.orbit)
-  const [focusedLayer, setFocusedLayer] = useState<number | null>(null)
+  const [pickedLayer, setPickedLayer] = useState<number | null>(null)
   const [players, setPlayers] = useState<Record<Player, PlayerProfile>>(DEFAULT_PLAYERS)
 
   const { board, currentPlayer, win, isDraw, playAt, newGame, undo, redo, canUndo, canRedo } =
     useGame()
   const camera = useCamera(mode)
 
+  const statusRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
   const railRef = useRef<HTMLDivElement>(null)
   const stage = useElementSize(stageRef)
@@ -71,7 +73,17 @@ export function TicTacToe() {
   )
   const boardHeight = deckHeight(mode, spacing)
 
+  /* Singling out a layer only earns its keep in the cube, where layers hide behind each other. The
+     fanned deck already shows all four, so blanking three of them there just removes information. */
+  const canFocusLayer = mode === ViewMode.orbit
+  const focusedLayer = canFocusLayer ? pickedLayer : null
+
   useWinCamera(win, camera.faceLine)
+
+  /* The two views differ a lot in height, so the scroll position that framed one frames the other
+     badly: switching left you below a short cube or above the deck's bottom layer. Anchoring on the
+     status rather than the board keeps the line saying whose turn it is on screen. */
+  useScrollIntoViewOnChange(statusRef, mode)
 
   const toPointer = (event: PointerEvent<HTMLDivElement>) => ({
     pointerId: event.pointerId,
@@ -132,13 +144,13 @@ export function TicTacToe() {
 
   // Focus isolates a layer without touching the camera: the viewpoint stays where it was put.
   const handleFocusLayer = useCallback(
-    (layer: number) => setFocusedLayer((current) => (current === layer ? null : layer)),
+    (layer: number) => setPickedLayer((current) => (current === layer ? null : layer)),
     []
   )
 
   const handleNewGame = useCallback(() => {
     newGame()
-    setFocusedLayer(null)
+    setPickedLayer(null)
   }, [newGame])
 
   const rename = useCallback((slot: Player, name: string) => {
@@ -169,7 +181,7 @@ export function TicTacToe() {
         {isFunMode ? gameCopy.taglineFun : gameCopy.tagline}
       </PageHeader>
 
-      <div className={styles.status} style={cssVars({ '--bead-rgb': shown.rgb })}>
+      <div className={styles.status} ref={statusRef} style={cssVars({ '--bead-rgb': shown.rgb })}>
         <span className={styles.swatch} aria-hidden="true" />
         <span className={styles.statusText} aria-live="polite">
           {status}
@@ -203,6 +215,7 @@ export function TicTacToe() {
               spacing={spacing}
               stageHeight={boardHeight}
               railRef={railRef}
+              selectable={canFocusLayer}
               onFocusLayer={handleFocusLayer}
             />
           </Board>

@@ -13,12 +13,15 @@ interface LayerRailProps {
   /** Height of the stage, so each button can be placed relative to its middle. */
   stageHeight: number
   railRef: RefObject<HTMLDivElement>
+  /** Whether a layer can be singled out. In the fanned deck every layer is already visible, so the
+   *  rail is labels only: hiding three of four plates there takes information away for nothing. */
+  selectable: boolean
   onFocusLayer: (layer: number) => void
 }
 
 /**
- * A button per layer, sitting level with the plate it selects. It doubles as the layer labels, so the
- * stacking order is named outright rather than inferred from the perspective.
+ * One entry per layer, sitting level with the plate it names, so the stacking order is stated outright
+ * rather than inferred from the perspective. In the cube each entry also singles that layer out.
  */
 export function LayerRail({
   focusedLayer,
@@ -27,6 +30,7 @@ export function LayerRail({
   spacing,
   stageHeight,
   railRef,
+  selectable,
   onFocusLayer,
 }: LayerRailProps) {
   const offsets = layerScreenOffsets(mode, spacing, camera)
@@ -36,6 +40,22 @@ export function LayerRail({
     <div className={styles.rail} ref={railRef} data-rail>
       {Array.from({ length: BOARD_SIZE }, (_, layer) => {
         const isFocused = focusedLayer === layer
+        const position = { top: `${middle + offsets[layer]}px` }
+        const content = (
+          <>
+            <span className={styles.word}>{gameCopy.layerLabel}</span>
+            <span>{layer + 1}</span>
+          </>
+        )
+
+        if (!selectable) {
+          return (
+            <span key={layer} className={styles.label} style={position}>
+              {content}
+            </span>
+          )
+        }
+
         return (
           <button
             key={layer}
@@ -46,11 +66,10 @@ export function LayerRail({
                 ? gameCopy.releaseFocusLabel(layer + 1)
                 : gameCopy.focusLayerLabel(layer + 1)
             }
-            style={{ top: `${middle + offsets[layer]}px` }}
+            style={position}
             onClick={() => onFocusLayer(layer)}
           >
-            <span className={styles.word}>{gameCopy.layerLabel}</span>
-            <span>{layer + 1}</span>
+            {content}
           </button>
         )
       })}

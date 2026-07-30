@@ -7,7 +7,8 @@
   pointer-events: none;
   z-index: 2;
 
-  button {
+  button,
+  .label {
     position: absolute;
     left: 0;
     display: flex;
@@ -22,13 +23,11 @@
     letter-spacing: 0.1em;
     text-transform: uppercase;
     white-space: nowrap;
-    cursor: pointer;
-    pointer-events: auto;
     transform: translateY(-50%);
-    /* The camera snaps, so a label that eased into place would trail its own plate. */
+    /* The camera snaps, so an entry that eased into place would trail its own plate. */
     transition: color 160ms ease;
 
-    /* A short leader line ties the label to its plate without drawing a box around it. */
+    /* A short leader line ties the entry to its plate without drawing a box around it. */
     &::after {
       content: '';
       width: 14px;
@@ -36,6 +35,11 @@
       background: currentColor;
       opacity: 0.45;
     }
+  }
+
+  button {
+    cursor: pointer;
+    pointer-events: auto;
 
     &:hover,
     &[aria-pressed='true'] {
@@ -47,11 +51,6 @@
       outline-offset: 2px;
       border-radius: 4px;
     }
-  }
-
-  /* Mid-drag the labels track the camera every frame; easing them would leave them trailing. */
-  &[data-dragging] button {
-    transition: color 160ms ease;
   }
 }
 

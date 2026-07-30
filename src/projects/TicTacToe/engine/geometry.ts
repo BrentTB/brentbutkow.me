@@ -35,6 +35,40 @@ export const FOG_FLOOR = 0.26
 /** Below this the rail's labels would collide, so it gives up tracking and spaces them evenly. */
 export const RAIL_MIN_SPACING_PX = 30
 
+/** Angle the fanned deck is viewed from. Steeper means each plate is taller on screen. */
+const FAN_PITCH = 40
+
+/** Visible gap between two fanned plates, as a fraction of a plate's own on-screen height. */
+export const PLATE_GAP_RATIO = 0.2
+
+/**
+ * Layer gap that lands the visible space between plates at `PLATE_GAP_RATIO` of a plate's height.
+ *
+ * A plate is 4·sin(pitch) spacings tall on screen and layers sit gap·cos(pitch) apart, so the space
+ * showing between them is gap·cos − 4·sin. Setting that to ratio·(4·sin) and solving gives the first
+ * term below.
+ *
+ * Floored at `minFanGap`, because a bead is a fixed size while the gap is a fraction of the plate: ask
+ * for a gap narrower than a bead and the beads on the front and back rows cross into the next plate's
+ * band. A tighter ratio than the floor allows needs a steeper pitch, which makes the plates taller and
+ * so makes the same fraction of them wider.
+ */
+export function fanGapFor(pitch: number, ratio = PLATE_GAP_RATIO): number {
+  return Math.max(4 * Math.tan(toRadians(pitch)) * (1 + ratio), minFanGap(pitch))
+}
+
+/**
+ * Spacings of height the fanned deck occupies: three layer gaps, one plate, and a bead's worth of
+ * overhang at each end. Derived rather than hand-tuned, so retuning the pitch or the gap cannot leave
+ * a stale figure behind and reintroduce dead space.
+ */
+export function fanHeightUnits(pitch: number, gap: number): number {
+  const radians = toRadians(pitch)
+  return 3 * gap * Math.cos(radians) + 4 * Math.sin(radians) + BEAD_RATIO
+}
+
+const FAN_GAP = fanGapFor(FAN_PITCH)
+
 export type ViewLayout = {
   /** Default camera angles for the mode. */
   yaw: number
@@ -51,6 +85,8 @@ export type ViewLayout = {
   minSpacing: number
   /** Whether the camera can be dragged in this mode. */
   orbitable: boolean
+  /** Whether beads fade with depth. Only worth it where they hide behind each other. */
+  depthFog: boolean
 }
 
 export const VIEW_LAYOUTS: Record<ViewMode, ViewLayout> = {
@@ -66,20 +102,22 @@ export const VIEW_LAYOUTS: Record<ViewMode, ViewLayout> = {
     heightUnits: 5.4,
     minSpacing: 34,
     orbitable: true,
+    depthFog: true,
   },
   [ViewMode.fanned]: {
     // Yaw stays at 0 so the plates read as axis-aligned rectangles, which is the point of the mode.
     yaw: 0,
-    /* A steeper pitch makes each plate taller on screen (4·sin(pitch) spacings rather than a shallow
-       sliver), and the gap is then set just past the overlap bound so the plates sit closer together. */
-    pitch: 40,
-    gap: 4.25,
+    pitch: FAN_PITCH,
+    gap: FAN_GAP,
     fan: 0.62,
     perspective: 9000,
     widthUnits: 6.5,
-    heightUnits: 13,
+    heightUnits: fanHeightUnits(FAN_PITCH, FAN_GAP),
     minSpacing: 24,
     orbitable: false,
+    /* Separated plates never occlude each other, and a bead dimmed for depth there just reads as one
+       sitting on a different layer. */
+    depthFog: false,
   },
 }
 

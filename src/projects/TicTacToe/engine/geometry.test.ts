@@ -9,7 +9,10 @@ import {
   ZOOM_RANGE,
   cellPosition,
   clampPitch,
+  PLATE_GAP_RATIO,
   deckHeight,
+  fanGapFor,
+  fanHeightUnits,
   clampZoom,
   columnScreenSpacing,
   fogFor,
@@ -55,9 +58,9 @@ describe('the fanned deck stays separated', () => {
    * only gap·cos(pitch) apart, so too small a gap makes the plates overlap and edge beads straddle
    * two of them. The shipped gap has to clear that bound.
    */
-  it('gives the fanned layers a gap wider than the plates themselves', () => {
+  it('gives the fanned layers a gap wide enough to clear the plates themselves', () => {
     const { gap, pitch } = VIEW_LAYOUTS[ViewMode.fanned]
-    expect(gap).toBeGreaterThan(minFanGap(pitch))
+    expect(gap).toBeGreaterThanOrEqual(minFanGap(pitch) - 1e-9)
   })
 
   it('reports a larger required gap as the view tips further down', () => {
@@ -347,5 +350,61 @@ describe('deckHeight', () => {
   it('grows with the spacing and gives the fanned deck the taller box', () => {
     expect(deckHeight(ViewMode.fanned, 40)).toBeGreaterThan(deckHeight(ViewMode.fanned, 20))
     expect(deckHeight(ViewMode.fanned, 40)).toBeGreaterThan(deckHeight(ViewMode.orbit, 40))
+  })
+})
+
+describe('depth fog per view', () => {
+  it('fades with depth in the cube, where beads hide behind each other', () => {
+    expect(VIEW_LAYOUTS[ViewMode.orbit].depthFog).toBe(true)
+  })
+
+  /** Separated plates never occlude, so a bead dimmed for depth there just reads as another layer. */
+  it('leaves the fanned deck at full strength', () => {
+    expect(VIEW_LAYOUTS[ViewMode.fanned].depthFog).toBe(false)
+  })
+})
+
+describe('the fanned plate gap', () => {
+  const { pitch, gap } = VIEW_LAYOUTS[ViewMode.fanned]
+  const radians = (pitch * Math.PI) / 180
+  const plateHeight = 4 * Math.sin(radians)
+  const visibleGap = gap * Math.cos(radians) - plateHeight
+
+  it('shows a gap of at least PLATE_GAP_RATIO of a plate height between plates', () => {
+    expect(visibleGap / plateHeight).toBeGreaterThanOrEqual(PLATE_GAP_RATIO)
+  })
+
+  /** A bead is a fixed size, so the gap can never be squeezed below one however small the ratio. */
+  it('never shows a gap narrower than a bead, whatever ratio is asked for', () => {
+    for (const ratio of [0, 0.05, 0.2, 0.5]) {
+      const asked = fanGapFor(pitch, ratio)
+      expect(asked * Math.cos(radians) - plateHeight).toBeGreaterThanOrEqual(BEAD_RATIO - 1e-9)
+    }
+  })
+
+  it('lands on the tightest safe ratio when a tighter one is asked for', () => {
+    // PLATE_GAP_RATIO of 0.2 is below the floor at this pitch, so the shipped gap is one bead wide.
+    expect(visibleGap).toBeCloseTo(BEAD_RATIO)
+    expect(visibleGap / plateHeight).toBeCloseTo(0.241, 2)
+  })
+
+  it('honours a ratio that is already wide enough, without inflating it', () => {
+    const generous = fanGapFor(pitch, 1)
+    expect(generous * Math.cos(radians) - plateHeight).toBeCloseTo(plateHeight)
+  })
+
+  /** The derived gap still has to clear the bound that stops edge beads straddling two plates. */
+  it('stays clear of the overlap bound', () => {
+    expect(gap).toBeGreaterThanOrEqual(minFanGap(pitch) - 1e-9)
+  })
+
+  it('follows the ratio it is given once past the floor', () => {
+    expect(fanGapFor(pitch, 1)).toBeGreaterThan(fanGapFor(pitch, 0.5))
+    expect(fanGapFor(pitch, 0)).toBeCloseTo(minFanGap(pitch))
+  })
+
+  it('derives a height that matches the space the deck actually needs', () => {
+    expect(VIEW_LAYOUTS[ViewMode.fanned].heightUnits).toBeCloseTo(fanHeightUnits(pitch, gap))
+    expect(fanHeightUnits(pitch, gap)).toBeGreaterThan(3 * gap * Math.cos(radians))
   })
 })

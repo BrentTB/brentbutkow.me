@@ -80,9 +80,9 @@ export function Board({
       index,
       coord: cellCoord(index),
       position,
-      fog: fogFor(depths[index], nearest, furthest),
+      fog: layout.depthFog ? fogFor(depths[index], nearest, furthest) : 1,
     }))
-  }, [camera.pitch, camera.yaw, mode, spacing])
+  }, [camera.pitch, camera.yaw, layout.depthFog, mode, spacing])
 
   const winCells = useMemo(() => new Set(win?.cells ?? []), [win])
 
@@ -95,12 +95,22 @@ export function Board({
     if (!win) return []
     const inset = spacing * BEAD_RATIO
     return win.cells.slice(1).map((cell, index) => {
-      const from = sites[win.cells[index]].position
+      const previous = win.cells[index]
+      const from = sites[previous].position
       const to = sites[cell].position
       const bar = winBarTransform(from, to)
-      return { key: `${win.cells[index]}-${cell}`, bar, length: Math.max(0, bar.length - inset) }
+      // A length is only shown when both of the beads it joins are, or it hangs in an empty layer.
+      const bothShown =
+        focusedLayer === null ||
+        (sites[previous].coord.layer === focusedLayer && sites[cell].coord.layer === focusedLayer)
+      return {
+        key: `${previous}-${cell}`,
+        bar,
+        length: Math.max(0, bar.length - inset),
+        dimmed: !bothShown,
+      }
     })
-  }, [sites, spacing, win])
+  }, [focusedLayer, sites, spacing, win])
 
   return (
     <div
@@ -197,10 +207,11 @@ export function Board({
         })}
 
         {win &&
-          winSegments.map(({ key, bar, length }) => (
+          winSegments.map(({ key, bar, length, dimmed }) => (
             <div
               key={key}
               className={styles.winBar}
+              data-dim={dimmed || undefined}
               style={cssVars({
                 '--bead-rgb': players[win.player].rgb,
                 '--bar-length': `${length}px`,
