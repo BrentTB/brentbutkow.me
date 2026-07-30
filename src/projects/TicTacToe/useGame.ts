@@ -7,6 +7,8 @@ type GameSnapshot = {
   board: Board
   currentPlayer: Player
   win: WinLine | null
+  /** The cell just played, so the board can mark it. Part of the snapshot, so undo restores it. */
+  lastMove: number | null
 }
 
 /**
@@ -25,6 +27,7 @@ const freshGame = (): GameSnapshot => ({
   board: createBoard(),
   currentPlayer: Player.one,
   win: null,
+  lastMove: null,
 })
 
 const initialHistory = (): GameHistory => ({ snapshots: [freshGame()], cursor: 0 })
@@ -66,8 +69,14 @@ export function useGame() {
               board,
               currentPlayer: game.currentPlayer,
               win: { player: game.currentPlayer, cells: line },
+              lastMove: index,
             }
-          : { board, currentPlayer: opponentOf(game.currentPlayer), win: null }
+          : {
+              board,
+              currentPlayer: opponentOf(game.currentPlayer),
+              win: null,
+              lastMove: index,
+            }
       )
     })
   }, [])
@@ -97,6 +106,7 @@ export function useGame() {
     board: current.board,
     currentPlayer: current.currentPlayer,
     win: current.win,
+    lastMove: current.lastMove,
     /** A full board with no line: the game is over and nobody got four. */
     isDraw: current.win === null && isBoardFull(current.board),
     playAt,

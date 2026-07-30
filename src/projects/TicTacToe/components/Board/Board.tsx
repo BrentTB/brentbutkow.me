@@ -28,9 +28,9 @@ interface BoardProps {
   win: WinLine | null
   /** Which layer is shown on its own, or null for all four. */
   focusedLayer: number | null
+  /** The cell just played, ringed so it can be found again at a glance. */
+  lastMove: number | null
   players: Record<Player, PlayerProfile>
-  /** Which seat the computer holds, so a screen reader names it rather than reading "Player 2". */
-  computer: Player | null
   mode: ViewMode
   camera: Camera
   spacing: number
@@ -52,8 +52,8 @@ export function Board({
   board,
   win,
   focusedLayer,
+  lastMove,
   players,
-  computer,
   mode,
   camera,
   spacing,
@@ -174,8 +174,7 @@ export function Board({
         {sites.map(({ index, coord, position, fog }) => {
           const owner = board[index]
           const dimmed = focusedLayer !== null && coord.layer !== focusedLayer
-          const ownerName =
-            owner === null ? null : owner === computer ? gameCopy.computerName : players[owner].name
+          const ownerName = owner === null ? null : players[owner].name
           const label = ownerName
             ? gameCopy.cellTakenLabel(coord.layer + 1, coord.x + 1, coord.y + 1, ownerName)
             : gameCopy.cellLabel(coord.layer + 1, coord.x + 1, coord.y + 1)
@@ -190,6 +189,7 @@ export function Board({
               data-dim={dimmed || undefined}
               data-filled={owner ?? undefined}
               data-won={winCells.has(index) || undefined}
+              data-last={index === lastMove || undefined}
               onClick={(event) => onPlay(index, event.detail === 0)}
               style={cssVars({
                 '--cell-x': `${position.x}px`,

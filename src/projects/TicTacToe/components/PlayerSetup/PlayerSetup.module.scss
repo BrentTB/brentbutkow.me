@@ -40,6 +40,17 @@
   text-transform: uppercase;
 }
 
+/* Marks which seat the computer holds, since the name itself is now free text. */
+.tag {
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--surface-strong);
+  color: var(--muted);
+  font-size: 0.9em;
+  letter-spacing: 0.06em;
+}
+
 .input {
   width: 11rem;
   max-width: 100%;
@@ -61,12 +72,6 @@
   &:focus-visible {
     outline: 2px solid rgba(var(--accent-rgb), 0.9);
     outline-offset: 1px;
-  }
-
-  /* The computer's name is fixed, so the field reads as a label rather than an invitation to type. */
-  &[readonly] {
-    color: var(--text-secondary);
-    cursor: default;
   }
 }
 

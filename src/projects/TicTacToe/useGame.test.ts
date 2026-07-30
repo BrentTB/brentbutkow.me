@@ -271,3 +271,68 @@ describe('useGame — stepping back more than one move', () => {
     expect(result.current.board[1]).toBe(Player.one)
   })
 })
+
+describe('useGame — marking the last move', () => {
+  it('has no last move on a fresh game', () => {
+    const { result } = renderHook(() => useGame())
+    expect(result.current.lastMove).toBeNull()
+  })
+
+  it('remembers the cell just played', () => {
+    const { result } = renderHook(() => useGame())
+
+    act(() => result.current.playAt(9))
+    expect(result.current.lastMove).toBe(9)
+
+    act(() => result.current.playAt(17))
+    expect(result.current.lastMove).toBe(17)
+  })
+
+  /** Part of the snapshot, so stepping back shows the move that was current then, not a stale one. */
+  it('restores the previous last move on undo, and the later one on redo', () => {
+    const { result } = renderHook(() => useGame())
+
+    act(() => result.current.playAt(4))
+    act(() => result.current.playAt(8))
+    act(() => result.current.undo())
+    expect(result.current.lastMove).toBe(4)
+
+    act(() => result.current.redo())
+    expect(result.current.lastMove).toBe(8)
+  })
+
+  it('clears back to nothing when undone to the start', () => {
+    const { result } = renderHook(() => useGame())
+
+    act(() => result.current.playAt(4))
+    act(() => result.current.undo())
+    expect(result.current.lastMove).toBeNull()
+  })
+
+  it('clears on a new game', () => {
+    const { result } = renderHook(() => useGame())
+
+    act(() => result.current.playAt(4))
+    act(() => result.current.newGame())
+    expect(result.current.lastMove).toBeNull()
+  })
+
+  it('keeps the winning move marked', () => {
+    const { result } = renderHook(() => useGame())
+
+    for (let layer = 0; layer < BOARD_SIZE; layer++) {
+      act(() => result.current.playAt(cellIndex(0, 0, layer)))
+      if (layer < BOARD_SIZE - 1) act(() => result.current.playAt(cellIndex(3, 3, layer)))
+    }
+    expect(result.current.win).not.toBeNull()
+    expect(result.current.lastMove).toBe(cellIndex(0, 0, BOARD_SIZE - 1))
+  })
+
+  it('does not move the marker when an illegal move is ignored', () => {
+    const { result } = renderHook(() => useGame())
+
+    act(() => result.current.playAt(4))
+    act(() => result.current.playAt(4))
+    expect(result.current.lastMove).toBe(4)
+  })
+})

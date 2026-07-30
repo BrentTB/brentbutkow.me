@@ -80,6 +80,7 @@ export const gameCopy = {
   starterLabel: 'First move',
   thinking: (name: string) => `${name} is thinking`,
   computerName: 'Computer',
+  computerTag: 'computer',
 
   playersTitle: 'Players',
   nameLabel: (slot: number) => `Player ${slot} name`,

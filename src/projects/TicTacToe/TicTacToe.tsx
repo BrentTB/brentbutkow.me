@@ -37,10 +37,42 @@ const DECK_LIMITS: Record<ViewMode, { share: number; max: number }> = {
 
 const VIEW_MODES: readonly ViewMode[] = [ViewMode.orbit, ViewMode.fanned]
 
+const SLOTS: readonly Player[] = [Player.one, Player.two]
+
+/**
+ * Which seat the computer holds. Whoever starts takes player one, so choosing "computer" hands it the
+ * opening move, which on this board is a real advantage.
+ */
+function computerSeat(mode: GameMode, starter: Starter): Player | null {
+  if (mode !== GameMode.onePlayer) return null
+  return starter === Starter.computer ? Player.one : Player.two
+}
+
 /** An emptied name field falls back to its default rather than leaving the turn line blank. */
-function displayName(profile: PlayerProfile, slot: Player, computer: Player | null): string {
-  if (slot === computer) return gameCopy.computerName
+function displayName(profile: PlayerProfile, slot: Player): string {
   return profile.name.trim() || DEFAULT_PLAYERS[slot].name
+}
+
+/**
+ * Names the computer's seat "Computer" and puts the slot name back when it hands the seat over.
+ *
+ * Only touches a name still sitting at its default, so anything you have typed yourself survives a
+ * switch between one and two players.
+ */
+function retitle(
+  players: Record<Player, PlayerProfile>,
+  computer: Player | null
+): Record<Player, PlayerProfile> {
+  const next = { ...players }
+  for (const slot of SLOTS) {
+    const slotDefault = DEFAULT_PLAYERS[slot].name
+    if (slot === computer && next[slot].name === slotDefault) {
+      next[slot] = { ...next[slot], name: gameCopy.computerName }
+    } else if (slot !== computer && next[slot].name === gameCopy.computerName) {
+      next[slot] = { ...next[slot], name: slotDefault }
+    }
+  }
+  return next
 }
 
 export function TicTacToe() {
@@ -55,8 +87,19 @@ export function TicTacToe() {
   const [pickedLayer, setPickedLayer] = useState<number | null>(null)
   const [players, setPlayers] = useState<Record<Player, PlayerProfile>>(DEFAULT_PLAYERS)
 
-  const { board, currentPlayer, win, isDraw, playAt, newGame, undo, redo, canUndo, canRedo } =
-    useGame()
+  const {
+    board,
+    currentPlayer,
+    win,
+    isDraw,
+    lastMove,
+    playAt,
+    newGame,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+  } = useGame()
   const camera = useCamera(mode)
 
   const statusRef = useRef<HTMLDivElement>(null)
@@ -87,14 +130,7 @@ export function TicTacToe() {
   const canFocusLayer = mode === ViewMode.orbit
   const focusedLayer = canFocusLayer ? pickedLayer : null
 
-  /* Which seat the computer holds. Whoever starts takes player one, so choosing "computer" hands it the
-     opening move, which on this board is a real advantage. */
-  const computer =
-    gameMode === GameMode.onePlayer
-      ? starter === Starter.computer
-        ? Player.one
-        : Player.two
-      : null
+  const computer = computerSeat(gameMode, starter)
 
   const { isThinking } = useComputerTurn({
     board,
@@ -185,6 +221,22 @@ export function TicTacToe() {
     setPlayers((current) => ({ ...current, [slot]: { ...current[slot], name } }))
   }, [])
 
+  const changeGameMode = useCallback(
+    (next: GameMode) => {
+      setGameMode(next)
+      setPlayers((current) => retitle(current, computerSeat(next, starter)))
+    },
+    [starter]
+  )
+
+  const changeStarter = useCallback(
+    (next: Starter) => {
+      setStarter(next)
+      setPlayers((current) => retitle(current, computerSeat(gameMode, next)))
+    },
+    [gameMode]
+  )
+
   const recolour = useCallback((slot: Player, rgb: string) => {
     setPlayers((current) => ({ ...current, [slot]: { ...current[slot], rgb } }))
   }, [])
@@ -194,7 +246,7 @@ export function TicTacToe() {
 
   const shown = win ? players[win.player] : players[currentPlayer]
   const shownSlot = win ? win.player : currentPlayer
-  const shownName = displayName(shown, shownSlot, computer)
+  const shownName = displayName(shown, shownSlot)
   const status = win
     ? gameCopy.wins(shownName)
     : isDraw
@@ -229,8 +281,8 @@ export function TicTacToe() {
             board={board}
             win={win}
             focusedLayer={focusedLayer}
+            lastMove={lastMove}
             players={players}
-            computer={computer}
             mode={mode}
             camera={camera.camera}
             spacing={spacing}
@@ -308,9 +360,9 @@ export function TicTacToe() {
             mode={gameMode}
             difficulty={difficulty}
             starter={starter}
-            onModeChange={setGameMode}
+            onModeChange={changeGameMode}
             onDifficultyChange={setDifficulty}
-            onStarterChange={setStarter}
+            onStarterChange={changeStarter}
           />
           <PlayerSetup
             players={players}
