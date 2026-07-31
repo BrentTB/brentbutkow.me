@@ -221,51 +221,91 @@ describe('useGame — undo and redo', () => {
   })
 })
 
-describe('useGame — stepping back more than one move', () => {
+describe('useGame — a computer holding a seat', () => {
   /**
-   * The one-player case: a single undo has to take back the computer's reply as well as your own move,
-   * or the turn goes straight back to it and the undo appears to do nothing.
+   * A single undo has to take back the computer's reply as well as your own move, or the turn goes
+   * straight back to it and the undo appears to do nothing.
    */
-  it('takes back a pair of moves in one go', () => {
-    const { result } = renderHook(() => useGame())
+  it('takes back the pair in one step', () => {
+    const { result } = renderHook(() => useGame(Player.two))
 
-    act(() => result.current.playAt(1))
-    act(() => result.current.playAt(2))
-    act(() => result.current.undo(2))
+    act(() => result.current.playAt(1)) // you
+    act(() => result.current.playAt(2)) // the computer's reply
+    act(() => result.current.undo())
 
     expect(result.current.board[1]).toBeNull()
     expect(result.current.board[2]).toBeNull()
     expect(result.current.currentPlayer).toBe(Player.one)
   })
 
-  it('replays a pair of moves in one go', () => {
-    const { result } = renderHook(() => useGame())
+  it('replays the pair in one step', () => {
+    const { result } = renderHook(() => useGame(Player.two))
 
     act(() => result.current.playAt(1))
     act(() => result.current.playAt(2))
-    act(() => result.current.undo(2))
-    act(() => result.current.redo(2))
+    act(() => result.current.undo())
+    act(() => result.current.redo())
 
     expect(result.current.board[1]).toBe(Player.one)
     expect(result.current.board[2]).toBe(Player.two)
   })
 
-  it('stops at the start rather than overshooting', () => {
-    const { result } = renderHook(() => useGame())
+  /**
+   * Regression: history must never rest where the computer is to move. Landing there starts its turn
+   * again, and the reply it lands drops every position ahead of the cursor — so the game the player
+   * was stepping back through is destroyed rather than restored, with nothing left to redo.
+   *
+   * The computer opening means the playable positions are the odd ones, which is where a plain
+   * "cursor > 0" test for undo goes wrong.
+   */
+  it('has nothing to undo when only the computer has moved', () => {
+    const { result } = renderHook(() => useGame(Player.one))
 
-    act(() => result.current.playAt(1))
-    act(() => result.current.undo(10))
+    act(() => result.current.playAt(1)) // the computer's opening
 
+    expect(result.current.currentPlayer).toBe(Player.two)
     expect(result.current.canUndo).toBe(false)
-    expect(result.current.board.every((cell) => cell === null)).toBe(true)
   })
 
-  it('treats a step of zero or less as a single step', () => {
+  it('steps back past the computer rather than onto its turn', () => {
+    const { result } = renderHook(() => useGame(Player.one))
+
+    act(() => result.current.playAt(1)) // computer opens
+    act(() => result.current.playAt(2)) // you
+    act(() => result.current.playAt(3)) // computer replies
+
+    act(() => result.current.undo())
+
+    expect(result.current.board[1]).toBe(Player.one)
+    expect(result.current.board[2]).toBeNull()
+    expect(result.current.board[3]).toBeNull()
+    expect(result.current.currentPlayer).toBe(Player.two)
+    expect(result.current.canUndo).toBe(false)
+    expect(result.current.canRedo).toBe(true)
+  })
+
+  it('can still redo into a finished game', () => {
+    const { result } = renderHook(() => useGame(Player.two))
+
+    for (let layer = 0; layer < BOARD_SIZE; layer++) {
+      act(() => result.current.playAt(cellIndex(0, 0, layer)))
+      if (layer < BOARD_SIZE - 1) act(() => result.current.playAt(cellIndex(3, 3, layer)))
+    }
+    expect(result.current.win).not.toBeNull()
+
+    act(() => result.current.undo())
+    expect(result.current.win).toBeNull()
+
+    act(() => result.current.redo())
+    expect(result.current.win).not.toBeNull()
+  })
+
+  it('steps one position at a time in a two-player game', () => {
     const { result } = renderHook(() => useGame())
 
     act(() => result.current.playAt(1))
     act(() => result.current.playAt(2))
-    act(() => result.current.undo(0))
+    act(() => result.current.undo())
 
     expect(result.current.board[2]).toBeNull()
     expect(result.current.board[1]).toBe(Player.one)

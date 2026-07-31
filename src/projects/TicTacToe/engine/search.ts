@@ -45,7 +45,7 @@ export type SearchResult = {
 }
 
 /** Forced replies on their own; otherwise the best-looking handful, to keep the branching in hand. */
-function candidates(board: Board, player: Player): number[] {
+export function candidates(board: Board, player: Player): number[] {
   const ordered = orderedMoves(board, player)
   if (ordered.length <= 1) return ordered
 
@@ -56,6 +56,28 @@ function candidates(board: Board, player: Player): number[] {
 
 const boardKey = (board: Board, player: Player) =>
   `${player}:${board.map((cell) => cell ?? '.').join(',')}`
+
+/**
+ * What a stored score actually says. Alpha-beta returns a bound, not a value: a node that cut off only
+ * proves the score is at least that much, and one where nothing beat the incoming alpha only proves it
+ * is at most that much. Storing either as the truth lets a later visit under a different window read
+ * back a score the search never established.
+ */
+const Bound = {
+  exact: 'exact',
+  atLeast: 'atLeast',
+  atMost: 'atMost',
+} as const
+type Bound = (typeof Bound)[keyof typeof Bound]
+
+type Entry = { score: number; bound: Bound }
+
+/** Whether a stored bound settles the question inside the window being asked about. */
+function answers(entry: Entry, alpha: number, beta: number): boolean {
+  if (entry.bound === Bound.exact) return true
+  if (entry.bound === Bound.atLeast) return entry.score >= beta
+  return entry.score <= alpha
+}
 
 /**
  * Best move for `player`, or null on a full board.
@@ -94,7 +116,7 @@ export function findBestMove(
   const exhaustive = free.length <= EXACT_SEARCH_CELLS
   const ceiling = exhaustive ? free.length : maxDepth
 
-  const table = new Map<string, { depth: number; score: number }>()
+  const table = new Map<string, Entry>()
   let nodes = 0
 
   /** Negamax with alpha-beta, scored from the point of view of whoever is to move. */
@@ -116,11 +138,16 @@ export function findBestMove(
 
     const key = `${boardKey(state, side)}|${depth}`
     const cached = table.get(key)
-    if (cached && cached.depth >= depth) return cached.score
+    if (cached && answers(cached, alphaIn, beta)) return cached.score
 
     let alpha = alphaIn
+    let cutoff = false
+    let truncated = false
     for (const move of candidates(state, side)) {
-      if (outOfTime()) break
+      if (outOfTime()) {
+        truncated = true
+        break
+      }
       const score = -search(
         applyMove(state, move, side),
         opponentOf(side),
@@ -129,10 +156,17 @@ export function findBestMove(
         -alpha
       )
       if (score > alpha) alpha = score
-      if (alpha >= beta) break
+      if (alpha >= beta) {
+        cutoff = true
+        break
+      }
     }
 
-    table.set(key, { depth, score: alpha })
+    // A node that ran out of time saw only part of its moves, so its alpha is not worth keeping.
+    if (!truncated) {
+      const bound = cutoff ? Bound.atLeast : alpha > alphaIn ? Bound.exact : Bound.atMost
+      table.set(key, { score: alpha, bound })
+    }
     return alpha
   }
 

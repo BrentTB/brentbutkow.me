@@ -50,10 +50,15 @@ export const PERSONALITIES: Record<Exclude<Difficulty, 'godly'>, Personality> = 
     // Sees everything except the four corner-to-corner body diagonals.
     sight: Sight.noBodyDiagonals,
     takesWin: 1,
-    blocks: 1,
+    /**
+     * Short of certain, so a straight race can be won against it. Blocking every three it can see
+     * leaves a fork or a body diagonal as the only way through, which put it uncomfortably close to
+     * hard; missing one in five reads as a player who looked away rather than one who cannot count.
+     */
+    blocks: 0.8,
     builds: 0.75,
     seesForks: false,
-    sharpness: 2.5,
+    sharpness: 1.5,
   },
   hard: {
     sight: Sight.everything,

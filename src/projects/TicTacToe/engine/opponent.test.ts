@@ -149,12 +149,19 @@ describe('medium', () => {
     }
   })
 
-  it('always blocks a loss it can see', () => {
-    for (let seed = 0; seed < 10; seed++) {
-      expect(chooseMove(flatWin(Player.one), Player.two, 'medium', { rng: seededRng(seed) })).toBe(
-        cellIndex(3, 0, 0)
-      )
+  /**
+   * Its block roll is short of certain, but the scoring backs it up: denying a line the opponent holds
+   * three of is worth more than almost anything else, so a failed roll usually lands on the same cell.
+   * It gives up a block only when another cell genuinely outscores it, not at random.
+   */
+  it('blocks a visible three at least as often as its personality promises', () => {
+    const runs = 400
+    let blocked = 0
+    for (let seed = 0; seed < runs; seed++) {
+      const move = chooseMove(flatWin(Player.one), Player.two, 'medium', { rng: seededRng(seed) })
+      if (move === cellIndex(3, 0, 0)) blocked++
     }
+    expect(blocked / runs).toBeGreaterThanOrEqual(PERSONALITIES.medium.blocks)
   })
 
   /** Unlike easy, it does watch the rods. */

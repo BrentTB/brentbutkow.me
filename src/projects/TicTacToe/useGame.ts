@@ -49,11 +49,38 @@ function commit(history: GameHistory, next: GameSnapshot): GameHistory {
  *
  * Every update is a function of the previous state, so several calls landing in one React batch each
  * see the board the one before it left behind.
+ *
+ * `computer` is the seat the computer holds, so history can skip the positions it would answer.
  */
-export function useGame() {
+export function useGame(computer: Player | null = null) {
   const [history, setHistory] = useState<GameHistory>(initialHistory)
 
   const current = history.snapshots[history.cursor]
+
+  /**
+   * Whether the history can come to rest on a position. Stopping where the computer is to move only
+   * starts its turn again, and the reply it lands drops every position ahead of the cursor — so the
+   * game the player was stepping through disappears instead of coming back.
+   */
+  const canRestOn = useCallback(
+    (game: GameSnapshot) =>
+      computer === null ||
+      game.win !== null ||
+      isBoardFull(game.board) ||
+      game.currentPlayer !== computer,
+    [computer]
+  )
+
+  /** Nearest position in `direction` the history can rest on, or null if there is none that way. */
+  const seek = useCallback(
+    (snapshots: GameSnapshot[], from: number, direction: 1 | -1): number | null => {
+      for (let at = from + direction; at >= 0 && at < snapshots.length; at += direction) {
+        if (canRestOn(snapshots[at])) return at
+      }
+      return null
+    },
+    [canRestOn]
+  )
 
   const playAt = useCallback((index: number) => {
     setHistory((past) => {
@@ -84,22 +111,25 @@ export function useGame() {
   const newGame = useCallback(() => setHistory((past) => commit(past, freshGame())), [])
 
   /**
-   * `steps` exists for the one-player game, where a single undo has to take back the computer's reply
-   * as well as your own move: stepping back one would just hand the turn straight back to it.
+   * Steps to the previous position the game can rest on. In a one-player game that is the pair — your
+   * move and the reply to it — since the position between them is the computer's to answer.
    */
   const undo = useCallback(
-    (steps = 1) =>
-      setHistory((past) => ({ ...past, cursor: Math.max(0, past.cursor - Math.max(1, steps)) })),
-    []
+    () =>
+      setHistory((past) => {
+        const target = seek(past.snapshots, past.cursor, -1)
+        return target === null ? past : { ...past, cursor: target }
+      }),
+    [seek]
   )
 
   const redo = useCallback(
-    (steps = 1) =>
-      setHistory((past) => ({
-        ...past,
-        cursor: Math.min(past.snapshots.length - 1, past.cursor + Math.max(1, steps)),
-      })),
-    []
+    () =>
+      setHistory((past) => {
+        const target = seek(past.snapshots, past.cursor, 1)
+        return target === null ? past : { ...past, cursor: target }
+      }),
+    [seek]
   )
 
   return {
@@ -113,7 +143,7 @@ export function useGame() {
     newGame,
     undo,
     redo,
-    canUndo: history.cursor > 0,
-    canRedo: history.cursor < history.snapshots.length - 1,
+    canUndo: seek(history.snapshots, history.cursor, -1) !== null,
+    canRedo: seek(history.snapshots, history.cursor, 1) !== null,
   }
 }

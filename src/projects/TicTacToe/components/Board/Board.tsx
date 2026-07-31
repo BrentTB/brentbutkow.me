@@ -26,6 +26,8 @@ import styles from './Board.module.scss'
 interface BoardProps {
   board: BoardState
   win: WinLine | null
+  /** Closes the board to input, for a turn that is not the player's to take. */
+  locked: boolean
   /** Which layer is shown on its own, or null for all four. */
   focusedLayer: number | null
   /** The cell just played, ringed so it can be found again at a glance. */
@@ -51,6 +53,7 @@ interface BoardProps {
 export function Board({
   board,
   win,
+  locked,
   focusedLayer,
   lastMove,
   players,
@@ -185,12 +188,20 @@ export function Board({
               type="button"
               className={styles.cell}
               aria-label={label}
-              disabled={owner !== null || win !== null}
+              /* A cell on a hidden layer is disabled, not merely click-through: left enabled it keeps
+                 its tab stop, and Enter drops a bead into a layer nobody can see. */
+              disabled={owner !== null || win !== null || dimmed}
+              /* The lock is a passing state, so it stays out of `disabled`: disabling the button the
+                 keyboard is holding blurs it, and focus would land back on the page every turn. */
+              aria-disabled={locked || undefined}
               data-dim={dimmed || undefined}
               data-filled={owner ?? undefined}
               data-won={winCells.has(index) || undefined}
               data-last={index === lastMove || undefined}
-              onClick={(event) => onPlay(index, event.detail === 0)}
+              onClick={(event) => {
+                if (locked) return
+                onPlay(index, event.detail === 0)
+              }}
               style={cssVars({
                 '--cell-x': `${position.x}px`,
                 '--cell-y': `${position.y}px`,

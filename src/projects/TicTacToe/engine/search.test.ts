@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { EXACT_SEARCH_CELLS, findBestMove } from './search'
-import { WIN_VALUE } from './evaluate'
-import { applyMove, createBoard, legalMoves } from './board'
+import { EXACT_SEARCH_CELLS, candidates, findBestMove } from './search'
+import { LOSS_VALUE, WIN_VALUE, scorePosition } from './evaluate'
+import { applyMove, createBoard, legalMoves, opponentOf } from './board'
 import { BOARD_SIZE, CELL_COUNT, cellIndex, findWinningLine } from './lines'
 import { Board, Player } from '../tic-tac-toe.types'
 
@@ -241,4 +241,52 @@ describe('search strength', () => {
       expect(findWinningLine(after, Player.one)).not.toBeNull()
     }
   })
+})
+
+/** Plain negamax over the same candidate sets, with no table and no clock: the value to beat. */
+function tableFreeValue(state: Board, side: Player, depth: number): number {
+  if (findWinningLine(state, opponentOf(side))) return LOSS_VALUE + depth
+  if (legalMoves(state).length === 0) return 0
+  if (depth === 0) return scorePosition(state, side)
+
+  let best = -Infinity
+  for (const move of candidates(state, side)) {
+    const score = -tableFreeValue(applyMove(state, move, side), opponentOf(side), depth - 1)
+    if (score > best) best = score
+  }
+  return best
+}
+
+const seat = (board: Board, cells: readonly number[], player: Player) =>
+  cells.reduce((next, cell) => applyMove(next, cell, player), board)
+
+/**
+ * Alpha-beta returns a bound, not a value: a node that cut off has only proved its score is at least
+ * that much, and one where nothing beat the incoming alpha has only proved it is at most that much.
+ * Storing either as exact lets a later visit under a different window read back a score the search
+ * never established — and the root narrows its window on every candidate, so those visits happen.
+ *
+ * These three positions are ones where it showed. Expected values come from a table-free negamax over
+ * the same candidate sets rather than from literals, so retuning the evaluation cannot make this stale.
+ */
+describe('findBestMove — the table only answers what the search proved', () => {
+  const DEPTH = 4
+
+  const positions: { one: number[]; two: number[] }[] = [
+    { one: [9, 16, 45, 53, 59, 60], two: [11, 12, 29, 33, 57, 61] },
+    { one: [4, 17, 20, 24, 39, 58], two: [5, 6, 7, 8, 28, 48] },
+    { one: [9, 11, 38, 45, 48, 63], two: [14, 28, 32, 37, 59, 62] },
+  ]
+
+  it.each(positions)(
+    'scores position %# as a table-free search does',
+    ({ one, two }) => {
+      const board = seat(seat(createBoard(), one, Player.one), two, Player.two)
+
+      const result = findBestMove(board, Player.one, { maxDepth: DEPTH, now: clock() })
+
+      expect(result?.score).toBe(tableFreeValue(board, Player.one, DEPTH))
+    },
+    30_000
+  )
 })

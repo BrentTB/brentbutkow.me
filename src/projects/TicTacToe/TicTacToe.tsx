@@ -87,6 +87,8 @@ export function TicTacToe() {
   const [pickedLayer, setPickedLayer] = useState<number | null>(null)
   const [players, setPlayers] = useState<Record<Player, PlayerProfile>>(DEFAULT_PLAYERS)
 
+  const computer = computerSeat(gameMode, starter)
+
   const {
     board,
     currentPlayer,
@@ -99,7 +101,7 @@ export function TicTacToe() {
     redo,
     canUndo,
     canRedo,
-  } = useGame()
+  } = useGame(computer)
   const camera = useCamera(mode)
 
   const statusRef = useRef<HTMLDivElement>(null)
@@ -129,8 +131,6 @@ export function TicTacToe() {
      fanned deck already shows all four, so blanking three of them there just removes information. */
   const canFocusLayer = mode === ViewMode.orbit
   const focusedLayer = canFocusLayer ? pickedLayer : null
-
-  const computer = computerSeat(gameMode, starter)
 
   const { isThinking } = useComputerTurn({
     board,
@@ -197,13 +197,21 @@ export function TicTacToe() {
     }
   }, [endPointer])
 
+  /**
+   * The board is locked while the seat belongs to the computer. Without this a tap during its think
+   * pause plays *its* move for it: the bead lands in the computer's colour, the turn comes straight
+   * back, and the reply it had already chosen is dropped along with the pending timer.
+   */
+  const locked = isThinking || (computer !== null && currentPlayer === computer)
+
   const handlePlay = useCallback(
     (index: number, fromKeyboard: boolean) => {
       // A release that turned the board is a camera move, not a move on the board.
       if (consumedDrag(fromKeyboard)) return
+      if (locked) return
       playAt(index)
     },
-    [consumedDrag, playAt]
+    [consumedDrag, locked, playAt]
   )
 
   // Focus isolates a layer without touching the camera: the viewpoint stays where it was put.
@@ -241,9 +249,6 @@ export function TicTacToe() {
     setPlayers((current) => ({ ...current, [slot]: { ...current[slot], rgb } }))
   }, [])
 
-  /* One undo takes back the pair: your move and the reply to it. */
-  const historyStep = computer === null ? 1 : 2
-
   const shown = win ? players[win.player] : players[currentPlayer]
   const shownSlot = win ? win.player : currentPlayer
   const shownName = displayName(shown, shownSlot)
@@ -280,6 +285,7 @@ export function TicTacToe() {
           <Board
             board={board}
             win={win}
+            locked={locked}
             focusedLayer={focusedLayer}
             lastMove={lastMove}
             players={players}
@@ -329,7 +335,7 @@ export function TicTacToe() {
             <button
               type="button"
               className={styles.button}
-              onClick={() => undo(historyStep)}
+              onClick={() => undo()}
               disabled={!canUndo}
               title={gameCopy.undoTitle}
               aria-label={gameCopy.undo}
@@ -340,7 +346,7 @@ export function TicTacToe() {
             <button
               type="button"
               className={styles.button}
-              onClick={() => redo(historyStep)}
+              onClick={() => redo()}
               disabled={!canRedo}
               aria-label={gameCopy.redo}
             >
