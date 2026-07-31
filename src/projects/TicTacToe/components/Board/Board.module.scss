@@ -1,0 +1,317 @@
+/**
+ * The board is built from real DOM elements in a CSS 3D scene rather than a canvas: every lattice site
+ * is a <button>, so hit-testing, focus, and screen readers come for free.
+ *
+ * The camera snaps rather than eases. Easing it meant transitioning registered custom properties, since
+ * the beads counter-rotate off those same angles and have to travel with the scene; that transition
+ * stalled part-way and left the board rendering at an angle the state had already moved on from.
+ *
+ * Three rules hold the whole thing together:
+ *  - `opacity` is a grouping property and flattens `preserve-3d`, so depth fog goes on an inner
+ *    element and never on a node that has to stay in the 3D context.
+ *  - the cube itself takes no pointer events. It is a transparent plane tilted through the middle of
+ *    the scene, and it would swallow every click aimed at a cell behind it.
+ */
+
+$camera-ease: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+.stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  perspective: var(--perspective, 1500px);
+  perspective-origin: 50% 50%;
+
+  /* A faint wash in the current player's colour, so a glance at the board tells you whose turn it is. */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(60% 50% at 50% 50%, rgba(var(--turn-rgb), 0.07), transparent 70%);
+    transition: background 300ms ease;
+  }
+
+  /* Only the cube claims the gesture. The fanned deck ignores drags, so swallowing touch there would
+     take the page's scroll and leave the settings below the board out of reach on a phone. */
+  &[data-orbitable] {
+    cursor: grab;
+    touch-action: none;
+  }
+
+  &[data-orbitable][data-dragging] {
+    cursor: grabbing;
+  }
+}
+
+.cube {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transform-style: preserve-3d;
+  transform: translateX(var(--shift, 0px)) scale(var(--zoom)) rotateX(var(--pitch))
+    rotateY(var(--yaw));
+}
+
+.cell,
+.rod,
+.plate,
+.winBar {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform-style: preserve-3d;
+}
+
+/* One faint quad per layer: the thing four separate flat grids never manage to say. */
+.plate {
+  width: calc(var(--spacing) * 4);
+  height: calc(var(--spacing) * 4);
+  margin: calc(var(--spacing) * -2);
+  transform: translate3d(var(--plate-x), var(--plate-y), 0) rotateX(90deg);
+  border: 1px solid rgba(var(--accent-rgb), 0.1);
+  background: rgba(var(--accent-rgb), 0.014);
+  pointer-events: none;
+  transition:
+    border-color 200ms ease,
+    background 200ms ease;
+
+  &[data-active] {
+    border-color: rgba(var(--accent-rgb), 0.42);
+    background: rgba(var(--accent-rgb), 0.05);
+  }
+}
+
+/* Two crossed planes, so a rod keeps its thickness from every viewing angle. */
+.rod,
+.rod::after {
+  width: 2px;
+  margin-left: -1px;
+  background: linear-gradient(
+    to bottom,
+    rgba(var(--accent-rgb), 0.03),
+    rgba(var(--accent-rgb), 0.17) 22%,
+    rgba(var(--accent-rgb), 0.17) 78%,
+    rgba(var(--accent-rgb), 0.03)
+  );
+}
+
+.rod {
+  height: var(--rod-length);
+  margin-top: calc(var(--rod-length) / -2);
+  transform: translate3d(var(--rod-x), 0, var(--rod-z));
+  pointer-events: none;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: rotateY(90deg);
+  }
+}
+
+/**
+ * Sized from CELL_HIT_RATIO, which the geometry tests hold below the on-screen gap between
+ * neighbouring sites: any wider and the near column's targets blanket the column behind it, and those
+ * cells cannot be clicked at all.
+ */
+.cell {
+  width: calc(var(--spacing) * var(--hit-ratio));
+  height: calc(var(--spacing) * var(--hit-ratio));
+  margin: calc(var(--spacing) * var(--hit-ratio) / -2);
+  transform: translate3d(var(--cell-x), var(--cell-y), var(--cell-z));
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  pointer-events: auto;
+
+  &:not(:disabled):not([aria-disabled='true']) {
+    cursor: pointer;
+  }
+
+  &[data-dim] {
+    pointer-events: none;
+  }
+
+  /* The ring sits on the hit box itself, outside the billboard, so depth fog cannot fade it away. It
+     lies in the layer's own plane, which reads as the site the keyboard is holding. */
+  &:focus-visible {
+    outline: 2px solid rgba(var(--accent-rgb), 0.9);
+    outline-offset: 1px;
+  }
+}
+
+/* Counter-rotates the camera so a flat disc always faces the viewer, and carries the depth fog. */
+.billboard {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  transform: rotateY(calc(-1 * var(--yaw))) rotateX(calc(-1 * var(--pitch)));
+  opacity: var(--fog, 1);
+  transition: opacity 200ms linear;
+
+  .cell[data-dim] & {
+    opacity: calc(var(--fog, 1) * 0.09);
+  }
+}
+
+/* An empty site is a marker, not content: 64 of them at bead weight turn the cube to soup. */
+.marker {
+  width: calc(var(--spacing) * var(--marker-ratio));
+  height: calc(var(--spacing) * var(--marker-ratio));
+  border-radius: 50%;
+  background: rgba(var(--turn-rgb), 0.5);
+  transition:
+    width 160ms ease,
+    height 160ms ease,
+    background 300ms ease,
+    box-shadow 160ms ease;
+
+  .cell:not(:disabled):not([aria-disabled='true']):hover &,
+  .cell:focus-visible & {
+    width: calc(var(--spacing) * var(--hit-ratio) * 0.74);
+    height: calc(var(--spacing) * var(--hit-ratio) * 0.74);
+    border: 1px solid rgba(var(--turn-rgb), 0.9);
+    background: rgba(var(--turn-rgb), 0.18);
+    box-shadow: 0 0 16px rgba(var(--turn-rgb), 0.45);
+  }
+
+  .cell:focus-visible & {
+    border-color: rgba(var(--accent-rgb), 0.9);
+  }
+}
+
+/* A billboarded disc with an off-centre highlight reads as a sphere for a fraction of the cost. */
+.bead {
+  position: relative;
+  width: calc(var(--spacing) * var(--bead-ratio));
+  height: calc(var(--spacing) * var(--bead-ratio));
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 30%, rgba(255, 255, 255, 0.85) 0%, transparent 38%),
+    radial-gradient(
+      circle at 50% 50%,
+      rgba(var(--bead-rgb), 1) 0%,
+      rgba(var(--bead-rgb), 0.72) 62%,
+      rgba(var(--bead-rgb), 0.3) 100%
+    );
+  box-shadow:
+    0 0 18px rgba(var(--bead-rgb), 0.45),
+    inset 0 -3px 8px rgba(0, 0, 0, 0.45);
+  /* Mounts fresh when a cell fills, so the drop plays once with no timer to clean up. */
+  animation: drop 380ms $camera-ease;
+
+  .cell[data-dim] & {
+    box-shadow: none;
+  }
+
+  /**
+   * A ring around the piece just played. Sitting outside the bead rather than tinting it keeps the
+   * player's own colour readable, which a wash over the top would muddy.
+   */
+  .cell[data-last] &::after {
+    content: '';
+    position: absolute;
+    inset: -22%;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.9);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.35);
+  }
+
+  .cell[data-won] & {
+    animation:
+      drop 380ms $camera-ease,
+      pulse 1.4s 380ms ease-in-out infinite alternate;
+  }
+
+  :global(html.fun-mode) & {
+    animation:
+      drop 380ms $camera-ease,
+      bob 3.2s ease-in-out infinite;
+  }
+}
+
+@keyframes drop {
+  from {
+    transform: scale(0.2);
+    opacity: 0;
+  }
+}
+
+@keyframes pulse {
+  to {
+    box-shadow:
+      0 0 34px rgba(var(--bead-rgb), 0.95),
+      inset 0 -3px 8px rgba(0, 0, 0, 0.45);
+  }
+}
+
+@keyframes bob {
+  50% {
+    transform: translateY(-6%) scale(1.04);
+  }
+}
+
+/**
+ * The payoff: a lit rod skewering the four beads that ended it. Built from two crossed planes like the
+ * column rods, so it keeps its thickness when you turn the board side-on instead of thinning to a line.
+ */
+.winBar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: inherit;
+  /* About the bar's own long axis, so the second plane stands perpendicular to the first. */
+  transform: rotateY(90deg);
+}
+
+.winBar {
+  width: calc(var(--spacing) * 0.06);
+  height: var(--bar-length);
+  margin-left: calc(var(--spacing) * -0.03);
+  margin-top: calc(var(--bar-length) / -2);
+  border-radius: 999px;
+  background: linear-gradient(
+    to bottom,
+    rgba(var(--bead-rgb), 0.55) 0%,
+    var(--text) 50%,
+    rgba(var(--bead-rgb), 0.55) 100%
+  );
+  box-shadow: 0 0 14px rgba(var(--bead-rgb), 0.85);
+  transform: translate3d(var(--bar-x), var(--bar-y), var(--bar-z))
+    rotate3d(var(--bar-axis-x), 0, var(--bar-axis-z), var(--bar-angle));
+  pointer-events: none;
+  animation: sheathe 520ms $camera-ease;
+
+  /* Ghosted with the beads it joins: a lit rod hanging between hidden beads reads as a stray artefact. */
+  &[data-dim] {
+    opacity: 0.09;
+  }
+}
+
+@keyframes sheathe {
+  from {
+    opacity: 0;
+    height: 0;
+    margin-top: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .billboard,
+  .marker,
+  .plate {
+    transition-duration: 1ms;
+  }
+
+  .bead,
+  .winBar,
+  .cell[data-won] .bead,
+  :global(html.fun-mode) .bead {
+    animation: none;
+  }
+}

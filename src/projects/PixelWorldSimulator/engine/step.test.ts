@@ -5,6 +5,7 @@ import { cellIndex, createGrid, placeMaterial } from './grid'
 import { createRng } from './rng'
 import { step } from './step'
 import { push } from './kinetic'
+import { skipSoaks } from '../test-env'
 
 function set(grid: Grid, x: number, y: number, material: MaterialId): void {
   placeMaterial(grid, cellIndex(grid, x, y), material)
@@ -41,6 +42,8 @@ function surfaceHeights(grid: Grid, material: MaterialId): (number | null)[] {
     return null
   })
 }
+
+const itSlow = it.skipIf(skipSoaks)
 
 describe('step', () => {
   it('reproduces a run exactly from the same seed', () => {
@@ -612,7 +615,7 @@ describe('a liquid sliding sideways', () => {
     expect(churn).toBe(0)
   })
 
-  it('still lets a poured column find its level across a wide floor', () => {
+  itSlow('still lets a poured column find its level across a wide floor', () => {
     // The other half, and the reason two earlier attempts at the jitter were thrown away: sliding sideways
     // into open space is how a pool levels itself, so the rule above has to leave that alone. A vessel only
     // forty cells wide is too small to catch a pool that gives up part-way, so this one is wide.

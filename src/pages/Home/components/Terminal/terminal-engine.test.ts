@@ -114,7 +114,8 @@ describe('execute — tree', () => {
     expect(output).toContain('│   └── recall-radar/') // leaf, still a folder
     expect(output).toContain('│   ├── games/')
     expect(output).toContain('│   │   ├── null-space/')
-    expect(output).toContain('│   │   └── pixel-world-simulator/')
+    expect(output).toContain('│   │   ├── pixel-world-simulator/')
+    expect(output).toContain('│   │   └── 4x4x4-tic-tac-toe/')
     expect(output).toContain('└── contact/')
   })
 
@@ -366,8 +367,9 @@ describe('completions', () => {
   })
 
   it('lists every game when the games directory itself is the prefix', () => {
-    // Two children now, so a Tab at the directory must offer both rather than silently one of them.
+    // A Tab at the directory offers every game, sorted, rather than silently one of them.
     expect(completions('cd fun-stuff/games/')).toEqual([
+      'cd fun-stuff/games/4x4x4-tic-tac-toe',
       'cd fun-stuff/games/null-space',
       'cd fun-stuff/games/pixel-world-simulator',
     ])

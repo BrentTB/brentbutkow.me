@@ -1,0 +1,79 @@
+.rail {
+  position: absolute;
+  left: 16px;
+  top: 0;
+  bottom: 0;
+  width: 4.6em;
+  pointer-events: none;
+  z-index: 2;
+
+  button,
+  .label {
+    position: absolute;
+    left: 0;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 4px 2px;
+    border: 0;
+    background: none;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    transform: translateY(-50%);
+    /* The camera snaps, so an entry that eased into place would trail its own plate. */
+    transition: color 160ms ease;
+
+    /* A short leader line ties the entry to its plate without drawing a box around it. */
+    &::after {
+      content: '';
+      width: 14px;
+      height: 1px;
+      background: currentColor;
+      opacity: 0.45;
+    }
+  }
+
+  button {
+    cursor: pointer;
+    pointer-events: auto;
+
+    &:hover,
+    &[aria-pressed='true'] {
+      color: rgba(var(--accent-rgb), 0.95);
+    }
+
+    &:focus-visible {
+      outline: 2px solid rgba(var(--accent-rgb), 0.9);
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+  }
+}
+
+@media (max-width: 720px) {
+  /* Just the number: on a phone the rail has to earn its width against the board. */
+  .rail {
+    left: 8px;
+    width: 2.2em;
+  }
+
+  /* Isolating a layer is touch-only work here, so the entries need a finger-sized box rather than the
+     height of their own text. `RAIL_MIN_SPACING_PX` keeps neighbouring plates far enough apart to fit. */
+  .rail button {
+    padding: 10px 2px;
+  }
+
+  .word {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rail button {
+    transition-duration: 1ms;
+  }
+}

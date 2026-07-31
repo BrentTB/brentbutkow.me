@@ -1,0 +1,192 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Camera, ViewMode } from './tic-tac-toe.types'
+import {
+  DRAG_THRESHOLD_PX,
+  VIEW_LAYOUTS,
+  clampPitch,
+  clampZoom,
+  normalizeYaw,
+  yawToFace,
+} from './engine/geometry'
+import { Vec3 } from './tic-tac-toe.types'
+
+/** Degrees of camera movement per pixel dragged. */
+const YAW_PER_PX = 0.42
+const PITCH_PER_PX = 0.32
+
+/** A pointer position, in the units the caller already has. Keeps the hook free of DOM event types. */
+type PointerSample = {
+  pointerId: number
+  x: number
+  y: number
+}
+
+const cameraForMode = (mode: ViewMode): Camera => ({
+  yaw: VIEW_LAYOUTS[mode].yaw,
+  pitch: VIEW_LAYOUTS[mode].pitch,
+  zoom: 1,
+})
+
+/**
+ * Orbiting and pinching the board.
+ *
+ * There is deliberately no wheel handler: on a desktop the wheel belongs to the page, so scrolling past
+ * the board keeps working. Pinch is fair game, since a pinch is not a scroll and nothing is being taken
+ * away from the touch user.
+ *
+ * Dragging past a small threshold marks the gesture as a drag, which the board checks before turning
+ * a release into a move — otherwise every rotation would drop a bead where the finger landed.
+ */
+export function useCamera(mode: ViewMode) {
+  const [camera, setCamera] = useState<Camera>(() => cameraForMode(mode))
+  const [isDragging, setIsDragging] = useState(false)
+
+  const pointers = useRef(new Map<number, { x: number; y: number }>())
+  const pinch = useRef<{ distance: number; zoom: number } | null>(null)
+  const draggedRef = useRef(false)
+
+  const orbitable = VIEW_LAYOUTS[mode].orbitable
+
+  /* Each mode has its own vantage point; switching goes back to it rather than keeping a stale angle. The
+     initial state is already that camera, so the first run has nothing to do and skips the extra render. */
+  const appliedMode = useRef(mode)
+  useEffect(() => {
+    if (appliedMode.current === mode) return
+    appliedMode.current = mode
+    setCamera(cameraForMode(mode))
+    pointers.current.clear()
+    pinch.current = null
+    draggedRef.current = false
+    setIsDragging(false)
+  }, [mode])
+
+  /** Applies a change to the camera, clamped. Takes the current camera, so no caller reads it first. */
+  const move = useCallback((change: (current: Camera) => Partial<Camera>) => {
+    setCamera((current) => {
+      const next = change(current)
+      return {
+        // Turning is unbounded, so the angle is folded back into one turn rather than growing forever.
+        yaw: normalizeYaw(next.yaw ?? current.yaw),
+        pitch: clampPitch(next.pitch ?? current.pitch),
+        zoom: clampZoom(next.zoom ?? current.zoom),
+      }
+    })
+  }, [])
+
+  /**
+   * Takes the pinch measurement from whichever two pointers are down now.
+   *
+   * Called whenever the set settles at two, not only when the second one arrives: lifting one finger of
+   * three leaves two down and a baseline measured between a different pair, and the next move would read
+   * that as a pinch the user never made.
+   */
+  const resetPinch = useCallback(() => {
+    const [first, second] = [...pointers.current.values()]
+    setCamera((current) => {
+      pinch.current = {
+        distance: Math.hypot(first.x - second.x, first.y - second.y),
+        zoom: current.zoom,
+      }
+      return current
+    })
+  }, [])
+
+  const beginPointer = useCallback(
+    (sample: PointerSample) => {
+      if (!orbitable) return
+      pointers.current.set(sample.pointerId, { x: sample.x, y: sample.y })
+
+      if (pointers.current.size === 1) {
+        draggedRef.current = false
+        return
+      }
+      if (pointers.current.size === 2) resetPinch()
+    },
+    [orbitable, resetPinch]
+  )
+
+  const movePointer = useCallback(
+    (sample: PointerSample) => {
+      if (!orbitable) return
+      const previous = pointers.current.get(sample.pointerId)
+      if (!previous) return
+      pointers.current.set(sample.pointerId, { x: sample.x, y: sample.y })
+
+      if (pointers.current.size >= 2 && pinch.current) {
+        const baseline = pinch.current
+        const [first, second] = [...pointers.current.values()]
+        const distance = Math.hypot(first.x - second.x, first.y - second.y)
+        if (distance > 0) {
+          move(() => ({ zoom: baseline.zoom * (distance / baseline.distance) }))
+        }
+        draggedRef.current = true
+        setIsDragging(true)
+        return
+      }
+
+      const dx = sample.x - previous.x
+      const dy = sample.y - previous.y
+      if (!draggedRef.current && Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) {
+        // Still within the threshold: put the origin back so a slow drag accumulates properly.
+        pointers.current.set(sample.pointerId, previous)
+        return
+      }
+
+      draggedRef.current = true
+      setIsDragging(true)
+      // Drag down and the board tips down with your finger, as if you had hold of the front face.
+      move((current) => ({
+        yaw: current.yaw + dx * YAW_PER_PX,
+        pitch: current.pitch - dy * PITCH_PER_PX,
+      }))
+    },
+    [move, orbitable]
+  )
+
+  const endPointer = useCallback(
+    (pointerId: number) => {
+      pointers.current.delete(pointerId)
+      if (pointers.current.size < 2) pinch.current = null
+      else if (pointers.current.size === 2) resetPinch()
+      if (pointers.current.size === 0) setIsDragging(false)
+    },
+    [resetPinch]
+  )
+
+  /**
+   * Turns the board so a finished line reads at its widest, and reports whether it did.
+   *
+   * The fanned deck has no camera to turn, so the answer there is no — and the caller needs to hear that,
+   * or it marks the line as framed and never comes back to it when the cube is on screen again.
+   */
+  const faceLine = useCallback(
+    (from: Vec3, to: Vec3): boolean => {
+      if (!orbitable) return false
+      move((current) => ({ yaw: yawToFace(from, to, current.yaw) }))
+      return true
+    },
+    [move, orbitable]
+  )
+
+  /**
+   * Whether the gesture that just ended was a drag, and so should not place a bead.
+   *
+   * A keyboard activation is never a drag. The flag only clears when the next press begins, so without
+   * this a stale drag from earlier would silently swallow an Enter on a focused cell.
+   */
+  const consumedDrag = useCallback(
+    (fromKeyboard = false) => !fromKeyboard && draggedRef.current,
+    []
+  )
+
+  return {
+    camera,
+    isDragging,
+    orbitable,
+    beginPointer,
+    movePointer,
+    endPointer,
+    faceLine,
+    consumedDrag,
+  }
+}

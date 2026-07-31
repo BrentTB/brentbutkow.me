@@ -1,0 +1,209 @@
+@use '../../styles/shared' as *;
+
+.status {
+  /* Clears the sticky navbar when the view switch scrolls the status line back into place. The bar is
+     sized by its padding rather than a fixed height, so this is the measured desktop figure. */
+  scroll-margin-top: 106px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.swatch {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: rgb(var(--bead-rgb));
+  box-shadow: 0 0 12px rgba(var(--bead-rgb), 0.7);
+  flex-shrink: 0;
+}
+
+.statusText {
+  color: rgb(var(--bead-rgb));
+  font-family: var(--font-mono);
+  font-size: 0.84rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* How the winning line ran, which is the part a cube makes hard to see. */
+.shape {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+
+  &::before {
+    content: '·';
+    margin-right: 9px;
+  }
+}
+
+/* Board and player settings side by side once there is width for it, so the whole game fits one
+   screen and the turn indicator stays visible without scrolling back up. */
+.play {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  margin: 8px 0 4px;
+}
+
+/* Height comes from JS as exactly what the arrangement needs (see `deckHeight`), so no band is left over
+   above or below the board. */
+.boardArea {
+  display: flex;
+  min-width: 0;
+  width: 100%;
+  /* Zoomed in, the scene runs past this box, and a cell's hit area would take taps meant for the controls
+     underneath. Safe to clip: the 3D perspective lives on the stage inside, so nothing is flattened. */
+  overflow: hidden;
+}
+
+.sidebar {
+  min-width: 0;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 10px 20px;
+  flex-wrap: wrap;
+  padding-bottom: 20px;
+}
+
+.group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.groupLabel {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.segmented {
+  @include segmented-pills(0.84rem, 6px 15px);
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 15px;
+  white-space: nowrap;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.84rem;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    color 160ms ease;
+
+  &:hover {
+    color: var(--text);
+    background: var(--surface-strong);
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(var(--accent-rgb), 0.9);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  &:disabled:hover {
+    color: var(--text-secondary);
+    background: var(--surface);
+  }
+}
+
+.hint {
+  margin: 0;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+}
+
+/* Wide enough for two columns: the board keeps the left to itself while the players and the controls
+   stack down the right, which is what lets the whole game sit on one screen. Must come after the base
+   rules above, or those win on source order and the column layout silently loses. */
+@media (min-width: 1000px) {
+  .play {
+    grid-template-columns: minmax(0, 1fr) 330px;
+    grid-template-rows: auto 1fr;
+    gap: 24px 32px;
+    align-items: start;
+  }
+
+  .boardArea {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  /* The controls belong to the board, under it; the settings column runs the full height beside them. */
+  .controls {
+    grid-column: 1;
+    grid-row: 2;
+    padding-bottom: 0;
+  }
+
+  .sidebar {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+}
+
+@media (max-width: 720px) {
+  /* The hint names the gesture, and a phone is where the gesture is least discoverable, so it stays —
+     just out of the controls' way, on its own line under them. */
+  .hint {
+    flex-basis: 100%;
+    text-align: center;
+  }
+
+  /* Everything on one line where it fits: the view switch and the history buttons belong together. Below
+     that it wraps rather than pushing the page wider than the screen. */
+  .controls {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .groupLabel,
+  .buttonWord {
+    display: none;
+  }
+
+  .button {
+    padding: 8px 12px;
+  }
+
+  .segmented button {
+    padding: 6px 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button {
+    transition-duration: 1ms;
+  }
+}

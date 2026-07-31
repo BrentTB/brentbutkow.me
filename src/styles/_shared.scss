@@ -28,6 +28,56 @@ $ease-shoot: cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 }
 
+/**
+ * A row of pills for a small single-select group: every option visible, one tap to switch. The selected
+ * one fills with the accent, which is the same signal the country tabs and the mode toggle use.
+ */
+@mixin segmented-pills($font-size: 0.8rem, $padding: 5px 12px) {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+
+  button {
+    padding: $padding;
+    border: 0;
+    border-radius: 999px;
+    background: none;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: $font-size;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      background 160ms ease,
+      color 160ms ease;
+
+    &:hover {
+      color: var(--text);
+      background: var(--surface-strong);
+    }
+
+    &[aria-checked='true'] {
+      color: var(--on-accent);
+      background: rgba(var(--accent-rgb), 0.92);
+      font-weight: 600;
+    }
+
+    &:focus-visible {
+      outline: 2px solid rgba(var(--accent-rgb), 0.9);
+      outline-offset: 2px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    button {
+      transition-duration: 1ms;
+    }
+  }
+}
+
 // Shared card base styles mixin
 @mixin card-base {
   border: 1px solid var(--border);

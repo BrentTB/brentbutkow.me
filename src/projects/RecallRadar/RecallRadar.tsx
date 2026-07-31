@@ -3,6 +3,7 @@ import { PageLayout } from '../../components/PageFormatting/PageLayout'
 import { PageHeader } from '../../components/PageFormatting/PageHeader'
 import { SafeLink } from '../../components/utils/SafeLink'
 import { getLinkArrow } from '../../components/utils/link-arrow'
+import { anchorScrollTop } from '../../components/utils/anchor-scroll'
 import { useFunMode } from '../../contexts/useFunMode'
 import { useDebouncedValue } from '../../api/useDebouncedValue'
 import { Breakdowns } from './components/Breakdowns'
@@ -215,8 +216,7 @@ export function RecallRadar() {
     const content = contentRef.current
     if (!content) return
     const clearance = 68 + (barRef.current?.offsetHeight ?? 110) + 12
-    const contentTop = content.getBoundingClientRect().top + window.scrollY
-    const target = Math.max(0, contentTop - clearance)
+    const target = anchorScrollTop(content, clearance)
     if (onlyIfBelow && window.scrollY <= target + 4) return
     window.scrollTo({ top: target })
   }
