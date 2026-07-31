@@ -5,6 +5,7 @@ import {
   VIEW_LAYOUTS,
   clampPitch,
   clampZoom,
+  normalizeYaw,
   yawToFace,
 } from './engine/geometry'
 import { Vec3 } from './tic-tac-toe.types'
@@ -14,7 +15,7 @@ const YAW_PER_PX = 0.42
 const PITCH_PER_PX = 0.32
 
 /** A pointer position, in the units the caller already has. Keeps the hook free of DOM event types. */
-export type PointerSample = {
+type PointerSample = {
   pointerId: number
   x: number
   y: number
@@ -29,9 +30,9 @@ const cameraForMode = (mode: ViewMode): Camera => ({
 /**
  * Orbiting and pinching the board.
  *
- * There is deliberately no wheel handler: on a desktop the wheel belongs to the page, and hijacking
- * it to zoom trapped anyone trying to scroll past the board. Pinch survives because a pinch is not a
- * scroll, so nothing is being taken away from the touch user.
+ * There is deliberately no wheel handler: on a desktop the wheel belongs to the page, so scrolling past
+ * the board keeps working. Pinch is fair game, since a pinch is not a scroll and nothing is being taken
+ * away from the touch user.
  *
  * Dragging past a small threshold marks the gesture as a drag, which the board checks before turning
  * a release into a move — otherwise every rotation would drop a bead where the finger landed.
@@ -46,8 +47,12 @@ export function useCamera(mode: ViewMode) {
 
   const orbitable = VIEW_LAYOUTS[mode].orbitable
 
-  // Each mode has its own vantage point; switching goes back to it rather than keeping a stale angle.
+  /* Each mode has its own vantage point; switching goes back to it rather than keeping a stale angle. The
+     initial state is already that camera, so the first run has nothing to do and skips the extra render. */
+  const appliedMode = useRef(mode)
   useEffect(() => {
+    if (appliedMode.current === mode) return
+    appliedMode.current = mode
     setCamera(cameraForMode(mode))
     pointers.current.clear()
     pinch.current = null
@@ -55,12 +60,35 @@ export function useCamera(mode: ViewMode) {
     setIsDragging(false)
   }, [mode])
 
-  const move = useCallback((next: Partial<Camera>) => {
-    setCamera((current) => ({
-      yaw: next.yaw ?? current.yaw,
-      pitch: clampPitch(next.pitch ?? current.pitch),
-      zoom: clampZoom(next.zoom ?? current.zoom),
-    }))
+  /** Applies a change to the camera, clamped. Takes the current camera, so no caller reads it first. */
+  const move = useCallback((change: (current: Camera) => Partial<Camera>) => {
+    setCamera((current) => {
+      const next = change(current)
+      return {
+        // Turning is unbounded, so the angle is folded back into one turn rather than growing forever.
+        yaw: normalizeYaw(next.yaw ?? current.yaw),
+        pitch: clampPitch(next.pitch ?? current.pitch),
+        zoom: clampZoom(next.zoom ?? current.zoom),
+      }
+    })
+  }, [])
+
+  /**
+   * Takes the pinch measurement from whichever two pointers are down now.
+   *
+   * Called whenever the set settles at two, not only when the second one arrives: lifting one finger of
+   * three leaves two down and a baseline measured between a different pair, and the next move would read
+   * that as a pinch the user never made.
+   */
+  const resetPinch = useCallback(() => {
+    const [first, second] = [...pointers.current.values()]
+    setCamera((current) => {
+      pinch.current = {
+        distance: Math.hypot(first.x - second.x, first.y - second.y),
+        zoom: current.zoom,
+      }
+      return current
+    })
   }, [])
 
   const beginPointer = useCallback(
@@ -72,15 +100,9 @@ export function useCamera(mode: ViewMode) {
         draggedRef.current = false
         return
       }
-      if (pointers.current.size === 2) {
-        const [first, second] = [...pointers.current.values()]
-        pinch.current = {
-          distance: Math.hypot(first.x - second.x, first.y - second.y),
-          zoom: camera.zoom,
-        }
-      }
+      if (pointers.current.size === 2) resetPinch()
     },
-    [camera.zoom, orbitable]
+    [orbitable, resetPinch]
   )
 
   const movePointer = useCallback(
@@ -91,10 +113,11 @@ export function useCamera(mode: ViewMode) {
       pointers.current.set(sample.pointerId, { x: sample.x, y: sample.y })
 
       if (pointers.current.size >= 2 && pinch.current) {
+        const baseline = pinch.current
         const [first, second] = [...pointers.current.values()]
         const distance = Math.hypot(first.x - second.x, first.y - second.y)
         if (distance > 0) {
-          move({ zoom: pinch.current.zoom * (distance / pinch.current.distance) })
+          move(() => ({ zoom: baseline.zoom * (distance / baseline.distance) }))
         }
         draggedRef.current = true
         setIsDragging(true)
@@ -112,27 +135,37 @@ export function useCamera(mode: ViewMode) {
       draggedRef.current = true
       setIsDragging(true)
       // Drag down and the board tips down with your finger, as if you had hold of the front face.
-      move({
-        yaw: camera.yaw + dx * YAW_PER_PX,
-        pitch: camera.pitch - dy * PITCH_PER_PX,
-      })
+      move((current) => ({
+        yaw: current.yaw + dx * YAW_PER_PX,
+        pitch: current.pitch - dy * PITCH_PER_PX,
+      }))
     },
-    [camera.pitch, camera.yaw, move, orbitable]
+    [move, orbitable]
   )
 
-  const endPointer = useCallback((pointerId: number) => {
-    pointers.current.delete(pointerId)
-    if (pointers.current.size < 2) pinch.current = null
-    if (pointers.current.size === 0) setIsDragging(false)
-  }, [])
-
-  /** Turns the board so a finished line reads at its widest. */
-  const faceLine = useCallback(
-    (from: Vec3, to: Vec3) => {
-      if (!orbitable) return
-      setCamera((current) => ({ ...current, yaw: yawToFace(from, to, current.yaw) }))
+  const endPointer = useCallback(
+    (pointerId: number) => {
+      pointers.current.delete(pointerId)
+      if (pointers.current.size < 2) pinch.current = null
+      else if (pointers.current.size === 2) resetPinch()
+      if (pointers.current.size === 0) setIsDragging(false)
     },
-    [orbitable]
+    [resetPinch]
+  )
+
+  /**
+   * Turns the board so a finished line reads at its widest, and reports whether it did.
+   *
+   * The fanned deck has no camera to turn, so the answer there is no — and the caller needs to hear that,
+   * or it marks the line as framed and never comes back to it when the cube is on screen again.
+   */
+  const faceLine = useCallback(
+    (from: Vec3, to: Vec3): boolean => {
+      if (!orbitable) return false
+      move((current) => ({ yaw: yawToFace(from, to, current.yaw) }))
+      return true
+    },
+    [move, orbitable]
   )
 
   /**

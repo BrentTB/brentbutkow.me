@@ -1,6 +1,11 @@
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
-import { SEARCH_BUDGET_MS, THINKING_TIME_MS, useComputerTurn } from './useComputerTurn'
+import {
+  PAINT_DELAY_MS,
+  SEARCH_BUDGET_MS,
+  THINKING_TIME_MS,
+  useComputerTurn,
+} from './useComputerTurn'
 import { applyMove, createBoard } from './engine/board'
 import { cellIndex } from './engine/lines'
 import { seededRng } from './engine/rng'
@@ -204,7 +209,7 @@ describe('the search budget fills the thinking time', () => {
    * clock, and fake timers freeze `Date.now`, so the deadline never arrives and it runs to its full
    * depth ceiling instead of its budget. The engine's own tests cover the budget with an injected clock.
    */
-  it('leaves the searching tier to the engine tests, which can control its clock', () => {
-    expect(SEARCH_BUDGET_MS).toBe(THINKING_TIME_MS - 32)
+  it('gives the search every millisecond except the paint beat', () => {
+    expect(SEARCH_BUDGET_MS).toBe(THINKING_TIME_MS - PAINT_DELAY_MS)
   })
 })

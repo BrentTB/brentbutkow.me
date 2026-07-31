@@ -14,7 +14,8 @@ import {
   fanGapFor,
   fanHeightUnits,
   clampZoom,
-  columnScreenSpacing,
+  siteScreenSpacing,
+  yawIsClickable,
   fogFor,
   layerScreenOffsets,
   minFanGap,
@@ -75,11 +76,20 @@ describe('the fanned deck stays separated', () => {
 
 describe('click targets do not blanket their neighbours', () => {
   /**
-   * Guards the unclickable-cell bug: at a hit width of 0.92 spacings the near column's targets
-   * covered the column behind it. The target has to stay inside the on-screen column gap.
+   * Guards the unclickable-cell bug: at a hit width of 0.92 spacings the near column's targets covered
+   * the column behind it. Both in-layer directions have to be checked, and the binding one changes with
+   * the yaw: rows separate as columns close up, and they swap over at 45°.
    */
-  it('keeps a cell target narrower than the gap between columns in orbit', () => {
-    expect(CELL_HIT_RATIO).toBeLessThan(columnScreenSpacing(VIEW_LAYOUTS[ViewMode.orbit].yaw))
+  it('keeps a cell target inside the on-screen gap at the starting yaw', () => {
+    expect(yawIsClickable(VIEW_LAYOUTS[ViewMode.orbit].yaw)).toBe(true)
+    expect(CELL_HIT_RATIO / 2).toBeLessThan(siteScreenSpacing(VIEW_LAYOUTS[ViewMode.orbit].yaw))
+  })
+
+  /** Square-on to one axis, the other lines up behind itself: the near site covers the far one. */
+  it('reports the axis-aligned yaws as unclickable', () => {
+    for (const yaw of [0, 90, 180, 270, -90]) {
+      expect(yawIsClickable(yaw)).toBe(false)
+    }
   })
 
   it('still leaves the target wider than the bead it has to cover', () => {
@@ -217,8 +227,7 @@ describe('layerScreenOffsets', () => {
   })
 
   it('spreads the lower plates further apart than the upper ones', () => {
-    const [bottom, second, , top] = layerScreenOffsets(ViewMode.orbit, SPACING, camera(34, 40))
-    const third = layerScreenOffsets(ViewMode.orbit, SPACING, camera(34, 40))[2]
+    const [bottom, second, third, top] = layerScreenOffsets(ViewMode.orbit, SPACING, camera(34, 40))
     expect(Math.abs(bottom - second)).toBeGreaterThan(Math.abs(third - top))
   })
 
@@ -295,9 +304,17 @@ describe('winBarTransform', () => {
     expect(bar.midpoint.y).toBeCloseTo((start.y + end.y) / 2)
   })
 
-  it('leaves a line straight up a rod unrotated', () => {
-    const bar = winBarTransform({ x: 0, y: 150, z: 0 }, { x: 0, y: -150, z: 0 })
-    expect(bar.angle).toBe(0)
+  /**
+   * A rod is parallel to the bar's own axis, so there is no rotation axis to compute — but the direction
+   * still matters. Layers stack upwards in −y, so a line read bottom-to-top points the bar's +y axis the
+   * other way and needs the half turn.
+   */
+  it('turns a bar that points down without looking for an axis', () => {
+    const upwards = winBarTransform({ x: 0, y: 150, z: 0 }, { x: 0, y: -150, z: 0 })
+    expect(upwards.angle).toBe(180)
+
+    const downwards = winBarTransform({ x: 0, y: -150, z: 0 }, { x: 0, y: 150, z: 0 })
+    expect(downwards.angle).toBe(0)
   })
 
   it('survives a degenerate zero-length line', () => {
@@ -327,6 +344,40 @@ describe('yawToFace', () => {
   it('keeps the current yaw for a line up a rod, which looks the same from anywhere', () => {
     expect(yawToFace({ x: 0, y: 0, z: 0 }, { x: 0, y: -300, z: 0 }, 27)).toBe(27)
   })
+
+  /**
+   * Regression: a line along one of the board's own axes is widest square-on, and square-on is where the
+   * other axis stacks up behind itself. The camera is left where a win put it, so that angle greeted the
+   * next game with three of every four columns hidden behind the front one.
+   */
+  it('never parks on a yaw where sites cover their neighbours', () => {
+    const inLayer: [number, number][] = [
+      [cellIndex(0, 0, 0), cellIndex(3, 0, 0)], // along x
+      [cellIndex(0, 0, 0), cellIndex(0, 3, 0)], // along y
+      [cellIndex(3, 0, 0), cellIndex(0, 0, 0)], // and the same two, reversed
+      [cellIndex(0, 3, 0), cellIndex(0, 0, 0)],
+    ]
+
+    for (const [from, to] of inLayer) {
+      const yaw = yawToFace(
+        cellPosition(cellCoord(from), ViewMode.orbit, SPACING),
+        cellPosition(cellCoord(to), ViewMode.orbit, SPACING),
+        VIEW_LAYOUTS[ViewMode.orbit].yaw
+      )
+      expect(yawIsClickable(yaw)).toBe(true)
+    }
+  })
+
+  /** The nudge is the smallest one that clears the overlap, so the line still reads nearly square-on. */
+  it('turns only just far enough off the axis', () => {
+    const yaw = yawToFace(
+      cellPosition({ x: 0, y: 0, layer: 0 }, ViewMode.orbit, SPACING),
+      cellPosition({ x: 3, y: 0, layer: 0 }, ViewMode.orbit, SPACING),
+      0
+    )
+    expect(Math.abs(yaw)).toBeLessThan(25)
+    expect(siteScreenSpacing(yaw)).toBeCloseTo(CELL_HIT_RATIO / 2)
+  })
 })
 
 describe('deckHeight', () => {
@@ -336,15 +387,27 @@ describe('deckHeight', () => {
    * never by the container's own height, which is what made the measurement chase its own tail.
    */
   it('is exactly the height the arrangement occupies at that spacing', () => {
+    // A phone-width stage less the layer rail, against a cap a phone viewport would actually give.
     const usableWidth = 336 - 49
-    const viewportCap = 700
+    const viewportCap = 420
+
     for (const mode of [ViewMode.orbit, ViewMode.fanned]) {
+      const layout = VIEW_LAYOUTS[mode]
       const spacing = spacingFor(mode, usableWidth, viewportCap)
       const height = deckHeight(mode, spacing)
-      expect(height).toBeCloseTo(spacing * VIEW_LAYOUTS[mode].heightUnits, 5)
-      // Never taller than the cap it was given.
-      expect(height).toBeLessThanOrEqual(viewportCap + 1e-6)
+
+      expect(height).toBeCloseTo(spacing * layout.heightUnits, 5)
+      /* Inside the cap, unless the minimum spacing had to win: a board too small to read is worse than
+         one that runs past its box, so the floor takes precedence over the cap by design. */
+      if (spacing > layout.minSpacing) expect(height).toBeLessThanOrEqual(viewportCap + 1e-6)
     }
+  })
+
+  /** The readable floor beats the cap, and says so rather than silently overflowing on a short viewport. */
+  it('lets the minimum spacing overrun a cap that would make the board unreadable', () => {
+    const tiny = spacingFor(ViewMode.orbit, 2000, 150)
+    expect(tiny).toBe(VIEW_LAYOUTS[ViewMode.orbit].minSpacing)
+    expect(deckHeight(ViewMode.orbit, tiny)).toBeGreaterThan(150)
   })
 
   it('grows with the spacing and gives the fanned deck the taller box', () => {

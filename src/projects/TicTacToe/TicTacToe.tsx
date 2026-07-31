@@ -1,26 +1,28 @@
-import { PointerEvent, useCallback, useEffect, useRef, useState } from 'react'
+import { PointerEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PageLayout } from '../../components/PageFormatting/PageLayout'
 import { PageHeader } from '../../components/PageFormatting/PageHeader'
 import { useFunMode } from '../../contexts/useFunMode'
 import { useElementSize } from '../../components/utils/useElementSize'
 import { useMediaQuery } from '../../components/utils/useMediaQuery'
 import { useViewportHeight } from '../../components/utils/useViewportHeight'
-import { useScrollIntoViewOnChange } from '../../components/utils/useScrollIntoViewOnChange'
+import { useScrollToOnChange } from '../../components/utils/useScrollToOnChange'
+import { useRovingRadio } from '../../components/utils/useRovingRadio'
 import { Difficulty, GameMode, Player, PlayerProfile, Starter, ViewMode } from './tic-tac-toe.types'
 import { cssVars } from './css-vars'
-import { DEFAULT_PLAYERS, VIEW_LABELS, gameCopy } from './data'
-import { seededRng } from './engine/rng'
+import { DEFAULT_PLAYERS, PLAYER_SLOTS, VIEW_LABELS, gameCopy } from './data'
+import { Rng, seededRng } from './engine/rng'
 import { useComputerTurn } from './useComputerTurn'
 import { GameSetup } from './components/GameSetup/GameSetup'
 import { deckHeight, spacingFor } from './engine/geometry'
-import { describeLine } from './engine/lines'
+import { lineShape } from './engine/lines'
 import { useCamera } from './useCamera'
 import { useGame } from './useGame'
 import { useWinCamera } from './useWinCamera'
 import { Board } from './components/Board/Board'
 import { LayerRail } from './components/LayerRail/LayerRail'
 import { PlayerSetup } from './components/PlayerSetup/PlayerSetup'
-import { HistoryIcon } from './components/HistoryIcon'
+import { HistoryDirection, HistoryIcon } from './components/HistoryIcon/HistoryIcon'
+import { NewGameIcon } from './components/NewGameIcon/NewGameIcon'
 import styles from './TicTacToe.module.scss'
 
 /** Below this there is no hover, so the zoom hint has to name the gesture that exists. */
@@ -35,9 +37,7 @@ const DECK_LIMITS: Record<ViewMode, { share: number; max: number }> = {
   [ViewMode.fanned]: { share: 0.8, max: 940 },
 }
 
-const VIEW_MODES: readonly ViewMode[] = [ViewMode.orbit, ViewMode.fanned]
-
-const SLOTS: readonly Player[] = [Player.one, Player.two]
+const VIEW_MODES = Object.values(ViewMode)
 
 /**
  * Which seat the computer holds. Whoever starts takes player one, so choosing "computer" hands it the
@@ -56,15 +56,15 @@ function displayName(profile: PlayerProfile, slot: Player): string {
 /**
  * Names the computer's seat "Computer" and puts the slot name back when it hands the seat over.
  *
- * Only touches a name still sitting at its default, so anything you have typed yourself survives a
- * switch between one and two players.
+ * Matches on the name rather than the seat, so a name you typed yourself survives a switch between one and
+ * two players — unless you typed "Computer" into your own field, which it will hand back to the default.
  */
 function retitle(
   players: Record<Player, PlayerProfile>,
   computer: Player | null
 ): Record<Player, PlayerProfile> {
   const next = { ...players }
-  for (const slot of SLOTS) {
+  for (const slot of PLAYER_SLOTS) {
     const slotDefault = DEFAULT_PLAYERS[slot].name
     if (slot === computer && next[slot].name === slotDefault) {
       next[slot] = { ...next[slot], name: gameCopy.computerName }
@@ -105,8 +105,10 @@ export function TicTacToe() {
   const camera = useCamera(mode)
 
   const statusRef = useRef<HTMLDivElement>(null)
-  // One generator for the whole session, so the computer does not replay the same game every time.
-  const computerRng = useRef(seededRng(Math.floor(Math.random() * 2 ** 31)))
+  /* One generator for the whole session, so the computer does not replay the same game every time. Seeded
+     lazily: passing the seed straight to `useRef` would draw a fresh one on every render and discard it. */
+  const computerRng = useRef<Rng>()
+  if (!computerRng.current) computerRng.current = seededRng(Math.floor(Math.random() * 2 ** 31))
   const stageRef = useRef<HTMLDivElement>(null)
   const railRef = useRef<HTMLDivElement>(null)
   const stage = useElementSize(stageRef)
@@ -147,7 +149,7 @@ export function TicTacToe() {
   /* The two views differ a lot in height, so the scroll position that framed one frames the other
      badly: switching left you below a short cube or above the deck's bottom layer. Anchoring on the
      status rather than the board keeps the line saying whose turn it is on screen. */
-  useScrollIntoViewOnChange(statusRef, mode)
+  useScrollToOnChange(statusRef, mode)
 
   const toPointer = (event: PointerEvent<HTMLDivElement>) => ({
     pointerId: event.pointerId,
@@ -249,9 +251,33 @@ export function TicTacToe() {
     setPlayers((current) => ({ ...current, [slot]: { ...current[slot], rgb } }))
   }, [])
 
-  const shown = win ? players[win.player] : players[currentPlayer]
-  const shownSlot = win ? win.player : currentPlayer
-  const shownName = displayName(shown, shownSlot)
+  /* One place the blank-name fallback happens, so the turn line, the cell labels, and the colour groups
+     cannot disagree about what a player is called. */
+  const displayNames = useMemo(
+    () =>
+      PLAYER_SLOTS.reduce(
+        (all, slot) => ({ ...all, [slot]: displayName(players[slot], slot) }),
+        {} as Record<Player, string>
+      ),
+    [players]
+  )
+  const namedPlayers = useMemo(
+    () =>
+      PLAYER_SLOTS.reduce(
+        (all, slot) => ({ ...all, [slot]: { ...players[slot], name: displayNames[slot] } }),
+        {} as Record<Player, PlayerProfile>
+      ),
+    [displayNames, players]
+  )
+
+  const viewKeys = useRovingRadio(VIEW_MODES, mode, setMode)
+
+  /* Whether there is a game to disturb. Changing who starts hands the seats over, so once pieces are down
+     the control says what it will do rather than doing it silently. */
+  const started = board.some((cell) => cell !== null)
+
+  const shown = namedPlayers[win ? win.player : currentPlayer]
+  const shownName = shown.name
   const status = win
     ? gameCopy.wins(shownName)
     : isDraw
@@ -272,23 +298,28 @@ export function TicTacToe() {
         {isFunMode ? gameCopy.taglineFun : gameCopy.tagline}
       </PageHeader>
 
-      <div className={styles.status} ref={statusRef} style={cssVars({ '--bead-rgb': shown.rgb })}>
+      {/* One live region over the whole line, so the shape of a win is announced with it rather than
+          silently appearing next to it. */}
+      <div
+        className={styles.status}
+        ref={statusRef}
+        style={cssVars({ '--bead-rgb': shown.rgb })}
+        aria-live="polite"
+      >
         <span className={styles.swatch} aria-hidden="true" />
-        <span className={styles.statusText} aria-live="polite">
-          {status}
-        </span>
-        {win && <span className={styles.shape}>{describeLine(win.cells)}</span>}
+        <span className={styles.statusText}>{status}</span>
+        {win && <span className={styles.shape}>{gameCopy.lineShape(lineShape(win.cells))}</span>}
       </div>
 
       <div className={styles.play}>
-        <div className={styles.boardArea} data-mode={mode} style={{ height: `${boardHeight}px` }}>
+        <div className={styles.boardArea} style={{ height: `${boardHeight}px` }}>
           <Board
             board={board}
             win={win}
             locked={locked}
             focusedLayer={focusedLayer}
             lastMove={lastMove}
-            players={players}
+            players={namedPlayers}
             mode={mode}
             camera={camera.camera}
             spacing={spacing}
@@ -316,14 +347,23 @@ export function TicTacToe() {
 
         <div className={styles.controls}>
           <div className={styles.group}>
-            <span className={styles.groupLabel}>{gameCopy.viewLabel}</span>
-            <div className={styles.segmented}>
-              {VIEW_MODES.map((option) => (
+            <span className={styles.groupLabel} id="view-label">
+              {gameCopy.viewLabel}
+            </span>
+            <div
+              className={styles.segmented}
+              role="radiogroup"
+              aria-label={gameCopy.viewLabel}
+              aria-labelledby="view-label"
+            >
+              {VIEW_MODES.map((option, index) => (
                 <button
                   key={option}
                   type="button"
-                  aria-pressed={mode === option}
+                  role="radio"
+                  aria-checked={mode === option}
                   onClick={() => setMode(option)}
+                  {...viewKeys(index)}
                 >
                   {VIEW_LABELS[option]}
                 </button>
@@ -337,10 +377,10 @@ export function TicTacToe() {
               className={styles.button}
               onClick={() => undo()}
               disabled={!canUndo}
-              title={gameCopy.undoTitle}
+              title={gameCopy.undoTitle(computer !== null)}
               aria-label={gameCopy.undo}
             >
-              <HistoryIcon direction="back" />
+              <HistoryIcon direction={HistoryDirection.back} />
               <span className={styles.buttonWord}>{gameCopy.undo}</span>
             </button>
             <button
@@ -348,13 +388,20 @@ export function TicTacToe() {
               className={styles.button}
               onClick={() => redo()}
               disabled={!canRedo}
+              title={gameCopy.redoTitle(computer !== null)}
               aria-label={gameCopy.redo}
             >
-              <HistoryIcon direction="forward" />
+              <HistoryIcon direction={HistoryDirection.forward} />
               <span className={styles.buttonWord}>{gameCopy.redo}</span>
             </button>
-            <button type="button" className={styles.button} onClick={handleNewGame}>
-              {gameCopy.newGame}
+            <button
+              type="button"
+              className={styles.button}
+              onClick={handleNewGame}
+              aria-label={gameCopy.newGame}
+            >
+              <NewGameIcon />
+              <span className={styles.buttonWord}>{gameCopy.newGame}</span>
             </button>
           </div>
 
@@ -364,6 +411,7 @@ export function TicTacToe() {
         <aside className={styles.sidebar}>
           <GameSetup
             mode={gameMode}
+            started={started}
             difficulty={difficulty}
             starter={starter}
             onModeChange={changeGameMode}
@@ -372,6 +420,7 @@ export function TicTacToe() {
           />
           <PlayerSetup
             players={players}
+            displayNames={displayNames}
             computer={computer}
             onRename={rename}
             onRecolour={recolour}

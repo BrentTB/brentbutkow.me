@@ -15,7 +15,7 @@ type GameSnapshot = {
  * How far back you can step. A game runs to 64 moves, so this only bites if someone leans on New
  * game, and dropping the oldest entries is a kinder failure than growing without bound.
  */
-const MAX_HISTORY = 200
+export const MAX_HISTORY = 200
 
 /** Every position reached, and where in that list we are currently looking. */
 type GameHistory = {

@@ -5,9 +5,10 @@ import {
   WINNING_LINES,
   cellCoord,
   cellIndex,
-  describeLine,
   findWinningLine,
+  lineShape,
 } from './lines'
+import { LineShape } from './lines'
 import { applyMove, createBoard } from './board'
 import { Player } from '../tic-tac-toe.types'
 
@@ -86,20 +87,25 @@ describe('findWinningLine', () => {
     expect(findWinningLine(createBoard(), Player.one)).toBeNull()
   })
 
-  it('finds a line up a single rod', () => {
+  it('finds a line up a single rod, and hands back that line', () => {
     let board = createBoard()
+    const rod: number[] = []
     for (let layer = 0; layer < BOARD_SIZE; layer++) {
+      rod.push(cellIndex(2, 1, layer))
       board = applyMove(board, cellIndex(2, 1, layer), Player.one)
     }
-    expect(findWinningLine(board, Player.one)).not.toBeNull()
+    // The cells matter, not just that something was found: they draw the win bar and name the shape.
+    expect([...(findWinningLine(board, Player.one) ?? [])].sort((a, b) => a - b)).toEqual(rod)
   })
 
-  it('finds the corner-to-corner diagonal', () => {
+  it('finds the corner-to-corner diagonal, and hands back that line', () => {
     let board = createBoard()
+    const diagonal: number[] = []
     for (let step = 0; step < BOARD_SIZE; step++) {
+      diagonal.push(cellIndex(step, step, step))
       board = applyMove(board, cellIndex(step, step, step), Player.one)
     }
-    expect(findWinningLine(board, Player.one)).not.toBeNull()
+    expect([...(findWinningLine(board, Player.one) ?? [])].sort((a, b) => a - b)).toEqual(diagonal)
   })
 
   it('ignores a line of four split between the two players', () => {
@@ -120,29 +126,44 @@ describe('findWinningLine', () => {
   })
 })
 
-describe('describeLine', () => {
+describe('lineShape', () => {
   const lineThrough = (from: [number, number, number], step: [number, number, number]) =>
     Array.from({ length: BOARD_SIZE }, (_, i) =>
       cellIndex(from[0] + i * step[0], from[1] + i * step[1], from[2] + i * step[2])
     )
 
   it('names a flat line by its layer, counting from one', () => {
-    expect(describeLine(lineThrough([0, 2, 2], [1, 0, 0]))).toBe('straight line in layer 3')
+    expect(lineShape(lineThrough([0, 2, 2], [1, 0, 0]))).toEqual({
+      shape: LineShape.flatRow,
+      layer: 3,
+    })
   })
 
   it('names a diagonal inside a single layer', () => {
-    expect(describeLine(lineThrough([0, 0, 0], [1, 1, 0]))).toBe('diagonal in layer 1')
+    expect(lineShape(lineThrough([0, 0, 0], [1, 1, 0]))).toEqual({
+      shape: LineShape.flatDiagonal,
+      layer: 1,
+    })
   })
 
   it('names a line up one rod', () => {
-    expect(describeLine(lineThrough([1, 1, 0], [0, 0, 1]))).toBe('straight up one rod')
+    expect(lineShape(lineThrough([1, 1, 0], [0, 0, 1]))).toEqual({
+      shape: LineShape.rod,
+      layer: null,
+    })
   })
 
   it('names the body diagonal', () => {
-    expect(describeLine(lineThrough([0, 0, 0], [1, 1, 1]))).toBe('corner to corner')
+    expect(lineShape(lineThrough([0, 0, 0], [1, 1, 1]))).toEqual({
+      shape: LineShape.bodyDiagonal,
+      layer: null,
+    })
   })
 
   it('names a diagonal that climbs layers along one axis only', () => {
-    expect(describeLine(lineThrough([0, 1, 0], [1, 0, 1]))).toBe('diagonal through all four layers')
+    expect(lineShape(lineThrough([0, 1, 0], [1, 0, 1]))).toEqual({
+      shape: LineShape.climbing,
+      layer: null,
+    })
   })
 })

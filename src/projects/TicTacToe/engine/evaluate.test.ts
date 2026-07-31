@@ -1,12 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  DEFAULT_WEIGHTS,
-  FORK_VALUE,
-  liveLinesThrough,
-  orderedMoves,
-  scoreCell,
-  scorePosition,
-} from './evaluate'
+import { DEFAULT_WEIGHTS, orderedMoves, scoreCell, scorePosition } from './evaluate'
 import { applyMove, createBoard } from './board'
 import { cellIndex } from './lines'
 import { Sight } from './threats'
@@ -32,12 +25,6 @@ describe('scoreCell', () => {
     expect(corner).toBeGreaterThan(plateMiddle)
   })
 
-  it('rates a fresh corner above a fresh middle by their live line counts', () => {
-    const board = createBoard()
-    expect(liveLinesThrough(board, cellIndex(0, 0, 0), Player.one)).toBe(7)
-    expect(liveLinesThrough(board, cellIndex(1, 1, 0), Player.one)).toBe(4)
-  })
-
   it('rewards a cell that builds on a line it already holds', () => {
     const board = mine([[0, 0, 0]])
     const building = scoreCell(board, cellIndex(1, 0, 0), Player.one)
@@ -53,7 +40,7 @@ describe('scoreCell', () => {
       [0, 2, 0],
     ])
     const fork = scoreCell(board, cellIndex(0, 0, 0), Player.one)
-    expect(fork).toBeGreaterThanOrEqual(FORK_VALUE)
+    expect(fork).toBeGreaterThanOrEqual(DEFAULT_WEIGHTS.fork)
   })
 
   it('ignores forks when the chooser cannot see that far', () => {
@@ -64,11 +51,11 @@ describe('scoreCell', () => {
       [0, 2, 0],
     ])
     const blind = scoreCell(board, cellIndex(0, 0, 0), Player.one, { seesForks: false })
-    expect(blind).toBeLessThan(FORK_VALUE)
+    expect(blind).toBeLessThan(DEFAULT_WEIGHTS.fork)
   })
 
   /** A layer-blind chooser cannot value the rod it is building. */
-  it('scores a vertical build at nothing under one-layer sight', () => {
+  it('scores a vertical build lower under one-layer sight', () => {
     const board = mine([
       [1, 1, 0],
       [1, 1, 1],
@@ -80,40 +67,44 @@ describe('scoreCell', () => {
   })
 })
 
-describe('liveLinesThrough', () => {
+describe('scoreCell — a line the opponent has touched', () => {
   /**
-   * Guards the discount that makes the scoring more than a lookup table: a corner nominally offering
-   * seven ways to win is worth what is left of them once the opponent has moved in.
+   * The rule that makes the scoring more than a lookup table, and the one the file header leads with: a
+   * line with pieces from both sides cannot be won by either, so it is worth nothing to me however many
+   * of mine sit on it. Without the skip a dead line still earns its `deny` value.
+   *
+   * Both boards are scored for the same cell, and the opponent's piece goes at the far end of the line
+   * being spoiled — two cells lie on at most one line together, so no other line through the scored cell
+   * changes. Forks are switched off to leave the line arithmetic on its own.
    */
-  it('drops a corner from seven ways to win to the ones still open', () => {
-    const corner = cellIndex(0, 0, 0)
-    expect(liveLinesThrough(createBoard(), corner, Player.one)).toBe(7)
+  it('is worth nothing, even holding two of it', () => {
+    const cell = cellIndex(0, 0, 0)
+    const clean = mine([
+      [1, 0, 0],
+      [2, 0, 0],
+    ])
+    const spoiled = theirs([[3, 0, 0]], clean)
 
-    // Spoil four of the corner's lines without touching the corner itself.
-    const spoiled = theirs(
-      [
-        [1, 0, 0],
-        [0, 1, 0],
-        [1, 1, 1],
-        [0, 0, 1],
-      ],
-      createBoard()
-    )
-    const live = liveLinesThrough(spoiled, corner, Player.one)
-    expect(live).toBeLessThan(7)
-    expect(live).toBe(3)
+    const withLine = scoreCell(clean, cell, Player.one, { seesForks: false })
+    const withoutLine = scoreCell(spoiled, cell, Player.one, { seesForks: false })
+
+    // Playing the cell would have made three of that line, and now it is worth exactly nothing.
+    expect(withLine - withoutLine).toBe(DEFAULT_WEIGHTS.own[3])
   })
 
-  it('counts a line my own pieces sit on as still live', () => {
+  it('counts a line only my own pieces sit on as still worth having', () => {
     const board = mine([[1, 0, 0]])
-    expect(liveLinesThrough(board, cellIndex(0, 0, 0), Player.one)).toBe(7)
+    const corner = scoreCell(board, cellIndex(0, 0, 0), Player.one, { seesForks: false })
+    const empty = scoreCell(createBoard(), cellIndex(0, 0, 0), Player.one, { seesForks: false })
+    expect(corner).toBeGreaterThan(empty)
   })
 
-  it('only counts lines the sight allows', () => {
+  it('counts fewer lines under a narrower sight', () => {
+    const corner = cellIndex(0, 0, 0)
     expect(
-      liveLinesThrough(createBoard(), cellIndex(0, 0, 0), Player.one, Sight.oneLayer)
+      scoreCell(createBoard(), corner, Player.one, { sight: Sight.oneLayer, seesForks: false })
     ).toBeLessThan(
-      liveLinesThrough(createBoard(), cellIndex(0, 0, 0), Player.one, Sight.everything)
+      scoreCell(createBoard(), corner, Player.one, { sight: Sight.everything, seesForks: false })
     )
   })
 })
@@ -262,8 +253,8 @@ describe('blocking is graded, not all-or-nothing', () => {
   })
 
   /**
-   * The point you raised: a cell that gets in their way *and* builds something of mine should beat one
-   * that only does the blocking. Scores sum across every line through the cell, so it does.
+   * A cell that gets in their way *and* builds something of mine beats one that only blocks. Scores sum
+   * across every line through the cell, so the two jobs add up rather than one overriding the other.
    */
   it('prefers a block that also builds something of its own', () => {
     // The opponent holds two of the row through (3,0,0); I hold two of the rod through it.
@@ -383,7 +374,8 @@ describe('DEFAULT_WEIGHTS', () => {
     expect(DEFAULT_WEIGHTS.forkSetup).toBeLessThan(DEFAULT_WEIGHTS.own[3])
   })
 
-  it('is what FORK_VALUE reports', () => {
-    expect(FORK_VALUE).toBe(DEFAULT_WEIGHTS.fork)
+  it('rates a fork above completing nothing else on the board', () => {
+    expect(DEFAULT_WEIGHTS.fork).toBeGreaterThan(DEFAULT_WEIGHTS.own[3])
+    expect(DEFAULT_WEIGHTS.fork).toBeGreaterThan(DEFAULT_WEIGHTS.deny[3])
   })
 })

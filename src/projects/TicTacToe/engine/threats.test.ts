@@ -6,6 +6,7 @@ import {
   forkCells,
   isFork,
   readLines,
+  threatCells,
   threatsAfter,
   winningMoves,
 } from './threats'
@@ -223,20 +224,74 @@ describe('forkCells', () => {
     expect(forkCells(board, Player.one)).toEqual([])
   })
 
+  /**
+   * The overlap only reads as a fork if both lines are counted, and both lines have to be twos for it
+   * to qualify at all — a third piece on either takes that line out of the running.
+   */
   it('only counts lines the sight allows', () => {
-    // A row in layer 1 crossed by a rod: the rod is invisible to a layer-blind player.
+    const overlap = cellIndex(1, 1, 0)
+    // A row in layer 0 and a rod crossing it at (1,1,0), each holding two. The rod climbs, so a
+    // layer-blind player cannot see it.
     const board = place(
       [
-        [1, 1, 0],
+        [0, 1, 0],
         [2, 1, 0],
         [1, 1, 1],
         [1, 1, 2],
       ],
       Player.one
     )
-    expect(forkCells(board, Player.one, Sight.oneLayer).length).toBeLessThanOrEqual(
-      forkCells(board, Player.one, Sight.everything).length
+
+    expect(forkCells(board, Player.one, Sight.everything)).toContain(overlap)
+    expect(forkCells(board, Player.one, Sight.oneLayer)).not.toContain(overlap)
+  })
+})
+
+describe('threatCells', () => {
+  /** The build move for the weaker tiers: the cells that would make three of a line. */
+  it('offers both free cells of a line holding two', () => {
+    const board = place(
+      [
+        [0, 0, 0],
+        [1, 0, 0],
+      ],
+      Player.one
     )
+    const cells = threatCells(board, Player.one)
+    expect(cells).toContain(cellIndex(2, 0, 0))
+    expect(cells).toContain(cellIndex(3, 0, 0))
+  })
+
+  it('leaves out a line the opponent has already touched', () => {
+    let board = place(
+      [
+        [0, 0, 0],
+        [1, 0, 0],
+      ],
+      Player.one
+    )
+    board = place([[3, 0, 0]], Player.two, board)
+
+    expect(threatCells(board, Player.one)).not.toContain(cellIndex(2, 0, 0))
+  })
+
+  /** Repeated per line it threatens, so the count is the number of threats a cell would make. */
+  it('repeats a cell that sits on two of my near-complete lines', () => {
+    const board = place(
+      [
+        [0, 1, 0],
+        [2, 1, 0],
+        [1, 1, 1],
+        [1, 1, 2],
+      ],
+      Player.one
+    )
+    const overlap = cellIndex(1, 1, 0)
+    expect(threatCells(board, Player.one).filter((cell) => cell === overlap).length).toBe(2)
+  })
+
+  it('finds nothing on an empty board', () => {
+    expect(threatCells(createBoard(), Player.one)).toEqual([])
   })
 })
 

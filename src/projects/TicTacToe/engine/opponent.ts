@@ -36,7 +36,7 @@ type Personality = {
   sharpness: number
 }
 
-export const PERSONALITIES: Record<Exclude<Difficulty, 'godly'>, Personality> = {
+export const PERSONALITIES: Record<Exclude<Difficulty, typeof Difficulty.godly>, Personality> = {
   easy: {
     // Blind to every line that climbs between layers: all the rods and all the 3D diagonals.
     sight: Sight.oneLayer,
@@ -76,18 +76,13 @@ export const PERSONALITIES: Record<Exclude<Difficulty, 'godly'>, Personality> = 
   },
 }
 
-/**
- * Fallback search budget for callers that do not set one, such as the engine's own tests. The game
- * passes its own, derived from how long the computer appears to think.
- */
-const GODLY_BUDGET_MS = 700
-
 export type ChooseOptions = {
   rng: Rng
   /** Injected so a test can drive the search budget without a wall clock. */
   now?: () => number
+  /** Left off by callers happy with the search's own default, such as the engine's tests. */
   budgetMs?: number
-  /** Overrides the tuned positional weights. Used by the self-play tuner, not by the game. */
+  /** Overrides the tuned positional weights, for the weighted tiers. */
   weights?: Weights
 }
 
@@ -102,12 +97,12 @@ export function chooseMove(
   board: Board,
   player: Player,
   difficulty: Difficulty,
-  { rng, now, budgetMs = GODLY_BUDGET_MS, weights }: ChooseOptions
+  { rng, now, budgetMs, weights }: ChooseOptions
 ): number | null {
   const free = legalMoves(board)
   if (free.length === 0) return null
 
-  if (difficulty === 'godly') {
+  if (difficulty === Difficulty.godly) {
     return findBestMove(board, player, { budgetMs, now })?.move ?? null
   }
 
@@ -126,7 +121,7 @@ export function chooseMove(
   }
 
   // Extending a line it already has two of: the obvious constructive move at this level.
-  const builds = threatCells(board, player, sight).filter((cell) => board[cell] === null)
+  const builds = threatCells(board, player, sight)
   if (builds.length > 0 && rng() < personality.builds) {
     return pickOne(builds, rng) ?? free[0]
   }

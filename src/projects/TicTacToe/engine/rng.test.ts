@@ -58,6 +58,16 @@ describe('pickWeighted', () => {
     }
   })
 
+  /**
+   * Regression: a draw of exactly zero left the running total at zero, which the `target <= 0` test read as
+   * a hit on whichever item came first — including one whose weight ruled it out. `Rng`'s contract is
+   * [0, 1), so zero is a legal draw, and `seededRng` happens never to produce it.
+   */
+  it('skips a zero-weight item even on a draw of exactly zero', () => {
+    expect(pickWeighted(['skip', 'take'], [0, 5], () => 0)).toBe('take')
+    expect(pickWeighted(['skip', 'also skip', 'take'], [0, 0, 1], () => 0)).toBe('take')
+  })
+
   it('ignores negative weights', () => {
     const rng = seededRng(4)
     for (let i = 0; i < 100; i++) {

@@ -1,8 +1,21 @@
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { useGame } from './useGame'
+import { MAX_HISTORY, useGame } from './useGame'
 import { BOARD_SIZE, CELL_COUNT, cellIndex } from './engine/lines'
 import { Player } from './tic-tac-toe.types'
+
+/**
+ * An order for filling all 64 cells that never completes a line for whoever is to move, so the board ends
+ * full with nobody winning.
+ *
+ * Found by search and pinned here rather than computed at test time: filling in index order wins on the
+ * thirteenth move, and hunting for a drawing order is far too slow to do on every run.
+ */
+const DRAWING_ORDER = [
+  8, 46, 36, 38, 21, 6, 33, 16, 20, 11, 18, 60, 29, 61, 31, 53, 63, 62, 12, 42, 23, 13, 24, 0, 41,
+  5, 32, 50, 44, 22, 45, 17, 56, 3, 14, 40, 4, 28, 2, 15, 59, 30, 49, 47, 39, 43, 9, 48, 51, 1, 54,
+  25, 57, 35, 19, 52, 10, 37, 34, 27, 7, 55, 26, 58,
+]
 
 describe('useGame', () => {
   it('starts empty with player one to move', () => {
@@ -63,23 +76,22 @@ describe('useGame', () => {
     expect(result.current.board).toBe(settled)
   })
 
-  /** A truthiness check for emptiness would report a full board as still in play. */
+  /**
+   * A truthiness check for emptiness would report a full board as still in play.
+   *
+   * Filling in index order does not reach a draw, so a known drawing order is used and the full board with
+   * no winner is asserted outright.
+   */
   it('reports a draw when the board fills with no line', () => {
     const { result } = renderHook(() => useGame())
 
-    // Fill every cell, letting whoever is to move take it. A line ends the game early, so this
-    // asserts the draw path only if no line forms; check the outcome either way.
     act(() => {
-      for (let index = 0; index < CELL_COUNT; index++) result.current.playAt(index)
+      for (const index of DRAWING_ORDER) result.current.playAt(index)
     })
 
-    const filled = result.current.board.filter((cell) => cell !== null).length
-    if (result.current.win) {
-      expect(result.current.isDraw).toBe(false)
-    } else {
-      expect(filled).toBe(CELL_COUNT)
-      expect(result.current.isDraw).toBe(true)
-    }
+    expect(result.current.board.filter((cell) => cell !== null)).toHaveLength(CELL_COUNT)
+    expect(result.current.win).toBeNull()
+    expect(result.current.isDraw).toBe(true)
   })
 
   it('clears the board, the winner, and the turn on a new game', () => {
@@ -207,6 +219,26 @@ describe('useGame — undo and redo', () => {
     })
     expect(result.current.canRedo).toBe(false)
     expect(result.current.board[3]).toBe(Player.one)
+  })
+
+  /** The cap only bites if someone leans on New game, and dropping the oldest is kinder than growing forever. */
+  it('drops the oldest positions once the history is full', () => {
+    const { result } = renderHook(() => useGame())
+
+    act(() => result.current.playAt(0))
+    act(() => {
+      for (let round = 0; round < MAX_HISTORY + 5; round++) result.current.newGame()
+    })
+
+    expect(result.current.board.every((cell) => cell === null)).toBe(true)
+    expect(result.current.canRedo).toBe(false)
+
+    // The first move is long gone, so stepping all the way back cannot reach it again.
+    act(() => {
+      for (let step = 0; step < MAX_HISTORY + 10; step++) result.current.undo()
+    })
+    expect(result.current.canUndo).toBe(false)
+    expect(result.current.board[0]).toBeNull()
   })
 
   it('keeps an ignored move out of the history', () => {

@@ -1,5 +1,8 @@
-/* Clears the sticky navbar when a view switch scrolls this back into place. */
+@use '../../styles/shared' as *;
+
 .status {
+  /* Clears the sticky navbar when the view switch scrolls the status line back into place. The bar is
+     sized by its padding rather than a fixed height, so this is the measured desktop figure. */
   scroll-margin-top: 106px;
   display: flex;
   align-items: center;
@@ -50,12 +53,15 @@
   margin: 8px 0 4px;
 }
 
-/* Height comes from JS as exactly what the arrangement needs (see `deckHeight`), so no band is left
-   over above or below the board. Setting it here in CSS is what left the dead space. */
+/* Height comes from JS as exactly what the arrangement needs (see `deckHeight`), so no band is left over
+   above or below the board. */
 .boardArea {
   display: flex;
   min-width: 0;
   width: 100%;
+  /* Zoomed in, the scene runs past this box, and a cell's hit area would take taps meant for the controls
+     underneath. Safe to clip: the 3D perspective lives on the stage inside, so nothing is flattened. */
+  overflow: hidden;
 }
 
 .sidebar {
@@ -86,42 +92,7 @@
 }
 
 .segmented {
-  display: flex;
-  gap: 2px;
-  padding: 3px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--surface);
-
-  button {
-    padding: 6px 15px;
-    border: 0;
-    border-radius: 999px;
-    background: none;
-    color: var(--text-secondary);
-    font: inherit;
-    font-size: 0.84rem;
-    cursor: pointer;
-    transition:
-      background 160ms ease,
-      color 160ms ease;
-
-    &:hover {
-      color: var(--text);
-      background: var(--surface-strong);
-    }
-
-    &[aria-pressed='true'] {
-      color: var(--on-accent);
-      background: rgba(var(--accent-rgb), 0.92);
-      font-weight: 600;
-    }
-
-    &:focus-visible {
-      outline: 2px solid rgba(var(--accent-rgb), 0.9);
-      outline-offset: 2px;
-    }
-  }
+  @include segmented-pills(0.84rem, 6px 15px);
 }
 
 .button {
@@ -202,13 +173,17 @@
 }
 
 @media (max-width: 720px) {
+  /* The hint names the gesture, and a phone is where the gesture is least discoverable, so it stays —
+     just out of the controls' way, on its own line under them. */
   .hint {
-    display: none;
+    flex-basis: 100%;
+    text-align: center;
   }
 
-  /* Everything on one line: the view switch and the history buttons belong together, not stacked. */
+  /* Everything on one line where it fits: the view switch and the history buttons belong together. Below
+     that it wraps rather than pushing the page wider than the screen. */
   .controls {
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     justify-content: center;
     gap: 8px;
   }
@@ -228,7 +203,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .segmented button,
   .button {
     transition-duration: 1ms;
   }

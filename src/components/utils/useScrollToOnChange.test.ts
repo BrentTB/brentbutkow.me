@@ -1,6 +1,6 @@
 import { renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { useScrollIntoViewOnChange } from './useScrollIntoViewOnChange'
+import { useScrollToOnChange } from './useScrollToOnChange'
 
 /** An element `top` pixels below the top of the viewport, with a sticky-header offset. */
 function elementAt(top: number, scrollMarginTop = '0px') {
@@ -34,15 +34,15 @@ afterEach(() => {
   document.body.innerHTML = ''
 })
 
-describe('useScrollIntoViewOnChange', () => {
+describe('useScrollToOnChange', () => {
   it('leaves the first render alone', () => {
-    renderHook(() => useScrollIntoViewOnChange({ current: elementAt(300) }, 'orbit'))
+    renderHook(() => useScrollToOnChange({ current: elementAt(300) }, 'orbit'))
     expect(scrollTo).not.toHaveBeenCalled()
   })
 
   it('stays put while the trigger holds steady', () => {
     const element = elementAt(300)
-    const { rerender } = renderHook(({ t }) => useScrollIntoViewOnChange({ current: element }, t), {
+    const { rerender } = renderHook(({ t }) => useScrollToOnChange({ current: element }, t), {
       initialProps: { t: 'orbit' },
     })
 
@@ -52,7 +52,7 @@ describe('useScrollIntoViewOnChange', () => {
 
   it('scrolls the element to the top of the view when the trigger changes', () => {
     const element = elementAt(300)
-    const { rerender } = renderHook(({ t }) => useScrollIntoViewOnChange({ current: element }, t), {
+    const { rerender } = renderHook(({ t }) => useScrollToOnChange({ current: element }, t), {
       initialProps: { t: 'orbit' },
     })
 
@@ -66,7 +66,7 @@ describe('useScrollIntoViewOnChange', () => {
    */
   it('still scrolls an element that is already on screen but in the wrong place', () => {
     const element = elementAt(263)
-    const { rerender } = renderHook(({ t }) => useScrollIntoViewOnChange({ current: element }, t), {
+    const { rerender } = renderHook(({ t }) => useScrollToOnChange({ current: element }, t), {
       initialProps: { t: 'orbit' },
     })
 
@@ -77,7 +77,7 @@ describe('useScrollIntoViewOnChange', () => {
 
   it('keeps the element clear of a sticky header via scroll-margin-top', () => {
     const element = elementAt(300, '106px')
-    const { rerender } = renderHook(({ t }) => useScrollIntoViewOnChange({ current: element }, t), {
+    const { rerender } = renderHook(({ t }) => useScrollToOnChange({ current: element }, t), {
       initialProps: { t: 'orbit' },
     })
 
@@ -88,7 +88,7 @@ describe('useScrollIntoViewOnChange', () => {
   it('accounts for how far the page is already scrolled', () => {
     window.scrollY = 500
     const element = elementAt(-200, '100px')
-    const { rerender } = renderHook(({ t }) => useScrollIntoViewOnChange({ current: element }, t), {
+    const { rerender } = renderHook(({ t }) => useScrollToOnChange({ current: element }, t), {
       initialProps: { t: 'orbit' },
     })
 
@@ -98,7 +98,7 @@ describe('useScrollIntoViewOnChange', () => {
 
   it('never asks for a negative scroll position', () => {
     const element = elementAt(10, '400px')
-    const { rerender } = renderHook(({ t }) => useScrollIntoViewOnChange({ current: element }, t), {
+    const { rerender } = renderHook(({ t }) => useScrollToOnChange({ current: element }, t), {
       initialProps: { t: 'orbit' },
     })
 
@@ -109,7 +109,7 @@ describe('useScrollIntoViewOnChange', () => {
   /** Smooth programmatic scrolling is quietly ignored in some environments, so it is never asked for. */
   it('always jumps, never asks for a smooth scroll', () => {
     const element = elementAt(300)
-    const { rerender } = renderHook(({ t }) => useScrollIntoViewOnChange({ current: element }, t), {
+    const { rerender } = renderHook(({ t }) => useScrollToOnChange({ current: element }, t), {
       initialProps: { t: 'orbit' },
     })
 
@@ -118,10 +118,34 @@ describe('useScrollIntoViewOnChange', () => {
   })
 
   it('does nothing when there is no element yet', () => {
-    const { rerender } = renderHook(({ t }) => useScrollIntoViewOnChange({ current: null }, t), {
+    const { rerender } = renderHook(({ t }) => useScrollToOnChange({ current: null }, t), {
       initialProps: { t: 'a' },
     })
     expect(() => rerender({ t: 'b' })).not.toThrow()
     expect(scrollTo).not.toHaveBeenCalled()
+  })
+
+  /**
+   * Regression: a change that arrived while the anchor was unmounted used to be marked as handled anyway,
+   * so it scrolled nothing and never came back to it — the element mounting a render later found its
+   * change already spent, and only a further change recovered the scroll.
+   */
+  it('scrolls once the anchor appears, for a change that arrived before it', () => {
+    const element = elementAt(300)
+    const ref: { current: HTMLElement | null } = { current: null }
+
+    const { rerender } = renderHook(({ t }) => useScrollToOnChange(ref, t), {
+      initialProps: { t: 'orbit' },
+    })
+
+    // The trigger changes while the anchor is still unmounted.
+    rerender({ t: 'fanned' })
+    expect(scrollTo).not.toHaveBeenCalled()
+
+    // It mounts on a later render, with the trigger unchanged since.
+    ref.current = element
+    rerender({ t: 'fanned' })
+
+    expect(scrollTo).toHaveBeenCalledWith({ top: 300, behavior: 'auto' })
   })
 })

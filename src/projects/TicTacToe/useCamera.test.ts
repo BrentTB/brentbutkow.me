@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { useCamera } from './useCamera'
 import { DRAG_THRESHOLD_PX, PITCH_LIMIT, VIEW_LAYOUTS, ZOOM_RANGE } from './engine/geometry'
 import { ViewMode } from './tic-tac-toe.types'
@@ -157,10 +157,27 @@ describe('useCamera', () => {
       act(() => result.current.endPointer(1))
     })
 
-    /** The wheel belongs to the page: hijacking it to zoom trapped anyone scrolling past the board. */
-    it('exposes no wheel-driven zoom at all', () => {
+    /** The wheel belongs to the page, so scrolling past the board keeps working. */
+    it('listens for no wheel events', () => {
+      const listen = vi.spyOn(window, 'addEventListener')
+      renderHook(() => useCamera(ViewMode.orbit))
+
+      expect(listen.mock.calls.map(([type]) => type)).not.toContain('wheel')
+      listen.mockRestore()
+    })
+
+    /** Turning has no limit, so the angle is folded back into one turn instead of growing forever. */
+    it('keeps the yaw inside a single turn however far the board is dragged', () => {
       const { result } = renderHook(() => useCamera(ViewMode.orbit))
-      expect('zoomBy' in result.current).toBe(false)
+
+      act(() => result.current.beginPointer(at(0, 0)))
+      for (let step = 1; step <= 40; step++) {
+        act(() => result.current.movePointer(at(step * 300, 0)))
+      }
+
+      expect(result.current.camera.yaw).toBeGreaterThan(-180)
+      expect(result.current.camera.yaw).toBeLessThanOrEqual(180)
+      act(() => result.current.endPointer(1))
     })
 
     it('clamps a pinch at both ends of the zoom range', () => {
@@ -196,6 +213,32 @@ describe('useCamera', () => {
       act(() => {
         result.current.endPointer(1)
         result.current.endPointer(2)
+      })
+    })
+
+    /**
+     * Regression: lifting one of three fingers leaves two down, but the baseline was measured between a
+     * different pair. Read against that stale distance, the next move snapped the zoom to a new value
+     * with nobody having moved a finger.
+     */
+    it('re-measures when a third finger lifts and leaves a different pair', () => {
+      const { result } = renderHook(() => useCamera(ViewMode.orbit))
+
+      act(() => {
+        result.current.beginPointer(at(100, 100, 1))
+        result.current.beginPointer(at(200, 100, 2))
+        result.current.beginPointer(at(400, 100, 3))
+      })
+      const beforeLift = result.current.camera.zoom
+
+      // Pointer 1 goes; 2 and 3 are 200 apart, against a 1-to-2 baseline of 100.
+      act(() => result.current.endPointer(1))
+      act(() => result.current.movePointer(at(400, 100, 3)))
+
+      expect(result.current.camera.zoom).toBeCloseTo(beforeLift)
+      act(() => {
+        result.current.endPointer(2)
+        result.current.endPointer(3)
       })
     })
   })

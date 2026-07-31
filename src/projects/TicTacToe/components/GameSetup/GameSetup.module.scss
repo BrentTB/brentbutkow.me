@@ -1,3 +1,5 @@
+@use '../../../../styles/shared' as *;
+
 .setup {
   display: flex;
   flex-direction: column;
@@ -34,43 +36,7 @@
 }
 
 .segmented {
-  display: flex;
-  gap: 2px;
-  padding: 3px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--surface);
-
-  button {
-    padding: 5px 12px;
-    border: 0;
-    border-radius: 999px;
-    background: none;
-    color: var(--text-secondary);
-    font: inherit;
-    font-size: 0.8rem;
-    white-space: nowrap;
-    cursor: pointer;
-    transition:
-      background 160ms ease,
-      color 160ms ease;
-
-    &:hover {
-      color: var(--text);
-      background: var(--surface-strong);
-    }
-
-    &[aria-pressed='true'] {
-      color: var(--on-accent);
-      background: rgba(var(--accent-rgb), 0.92);
-      font-weight: 600;
-    }
-
-    &:focus-visible {
-      outline: 2px solid rgba(var(--accent-rgb), 0.9);
-      outline-offset: 2px;
-    }
-  }
+  @include segmented-pills;
 }
 
 /* A ladder rather than a pill group: four rungs read as increasing, which is what they are. */
@@ -119,8 +85,16 @@
   line-height: 1.45;
 }
 
+/* Sits under the First move switch once the game is under way, where switching also trades the pieces. */
+.note {
+  margin: 0;
+  padding-top: 2px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .segmented button,
   .tier {
     transition-duration: 1ms;
   }

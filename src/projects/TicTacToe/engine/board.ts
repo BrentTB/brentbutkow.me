@@ -30,7 +30,7 @@ export function legalMoves(board: Board): number[] {
   return moves
 }
 
-/** Careful: player slots are strings, but an index-based check here would treat slot 0 as empty. */
+/** Careful: player slots are strings, but emptiness is `=== null`, not falsiness, so a future slot value that happens to be falsy still counts as taken. */
 export function isBoardFull(board: Board): boolean {
   return board.every((cell) => cell !== null)
 }

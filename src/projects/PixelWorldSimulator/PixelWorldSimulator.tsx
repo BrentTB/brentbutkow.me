@@ -5,7 +5,7 @@ import { useFunMode } from '../../contexts/useFunMode'
 import { CellPoint, MaterialId, SimSetting, Tool } from './pixel-world.types'
 import { BRUSH_RADIUS, DEFAULT_MATERIAL, PALETTE_SHEET_QUERY, SIDEBAR_GAP, simCopy } from './data'
 import { useMediaQuery } from '../../components/utils/useMediaQuery'
-import { useElementHeight } from './useElementHeight'
+import { useElementSize } from '../../components/utils/useElementSize'
 import { useFullscreen } from './useFullscreen'
 import { usePixelWorld } from './usePixelWorld'
 import { useSimSettings } from './useSimSettings'
@@ -50,8 +50,8 @@ export function PixelWorldSimulator() {
   // the world and leaves a column of dead space next to it.
   const stageRef = useRef<HTMLDivElement>(null)
   const toolsRef = useRef<HTMLDivElement>(null)
-  const stageHeight = useElementHeight(stageRef)
-  const toolsHeight = useElementHeight(toolsRef)
+  const stageHeight = useElementSize(stageRef).height
+  const toolsHeight = useElementSize(toolsRef).height
   const censusRoom = stageHeight === 0 ? 0 : Math.max(0, stageHeight - toolsHeight - SIDEBAR_GAP)
 
   const sim = usePixelWorld(canvasRef)

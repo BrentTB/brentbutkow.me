@@ -6,10 +6,19 @@ import { LINES_THROUGH_CELL, Sight } from './threats'
 import { seededRng } from './rng'
 import { Board, Difficulty, Player } from '../tic-tac-toe.types'
 
-const ALL: Difficulty[] = ['easy', 'medium', 'hard', 'godly']
+const ALL = Object.values(Difficulty)
 
 const put = (board: Board, moves: [number, number, number][], player: Player) =>
   moves.reduce((next, [x, y, layer]) => applyMove(next, cellIndex(x, y, layer), player), board)
+
+/**
+ * A clock that advances a fixed amount per reading, so a search budget is spent after a fixed number of
+ * checks rather than after however much work the machine got through.
+ */
+const steppingClock = (step = 1) => {
+  let time = 0
+  return () => (time += step)
+}
 
 /** Always takes the gated branch, so probability gates open. */
 const always = () => 0
@@ -78,11 +87,17 @@ describe('chooseMove — every difficulty', () => {
     }
   })
 
+  /**
+   * The clock is injected as well as the seed. Left on the wall clock, the searching tier finishes a
+   * different number of deepening passes depending on how loaded the machine is, so the same seed would
+   * give a different move and this would fail on a busy CI run rather than on a real regression.
+   */
   it('is reproducible for a given seed', () => {
     const board = put(createBoard(), [[1, 1, 1]], Player.one)
     for (const difficulty of ALL) {
-      const first = chooseMove(board, Player.two, difficulty, { rng: seededRng(42), budgetMs: 50 })
-      const second = chooseMove(board, Player.two, difficulty, { rng: seededRng(42), budgetMs: 50 })
+      const limits = { budgetMs: 50, now: steppingClock() }
+      const first = chooseMove(board, Player.two, difficulty, { rng: seededRng(42), ...limits })
+      const second = chooseMove(board, Player.two, difficulty, { rng: seededRng(42), ...limits })
       expect(first).toBe(second)
     }
   })
@@ -90,14 +105,14 @@ describe('chooseMove — every difficulty', () => {
 
 describe('easy', () => {
   it('takes a flat win when its dice allow', () => {
-    expect(chooseMove(flatWin(Player.two), Player.two, 'easy', { rng: always })).toBe(
+    expect(chooseMove(flatWin(Player.two), Player.two, Difficulty.easy, { rng: always })).toBe(
       cellIndex(3, 0, 0)
     )
   })
 
   /** Your spec: sometimes it just does not take the win. */
   it('passes up a win it can see when its dice say so', () => {
-    expect(chooseMove(flatWin(Player.two), Player.two, 'easy', { rng: never })).not.toBe(
+    expect(chooseMove(flatWin(Player.two), Player.two, Difficulty.easy, { rng: never })).not.toBe(
       cellIndex(3, 0, 0)
     )
   })
@@ -110,21 +125,21 @@ describe('easy', () => {
   it('cannot see a vertical win at all, however its dice fall', () => {
     const board = rodWin(Player.two)
     for (const rng of [always, never, seededRng(3)]) {
-      expect(chooseMove(board, Player.two, 'easy', { rng })).not.toBe(cellIndex(1, 1, 3))
+      expect(chooseMove(board, Player.two, Difficulty.easy, { rng })).not.toBe(cellIndex(1, 1, 3))
     }
   })
 
   it('cannot see a vertical loss coming either', () => {
     const board = rodWin(Player.one)
     for (let seed = 0; seed < 8; seed++) {
-      expect(chooseMove(board, Player.two, 'easy', { rng: seededRng(seed) })).not.toBe(
+      expect(chooseMove(board, Player.two, Difficulty.easy, { rng: seededRng(seed) })).not.toBe(
         cellIndex(1, 1, 3)
       )
     }
   })
 
   it('does block a flat loss when its dice allow', () => {
-    expect(chooseMove(flatWin(Player.one), Player.two, 'easy', { rng: always })).toBe(
+    expect(chooseMove(flatWin(Player.one), Player.two, Difficulty.easy, { rng: always })).toBe(
       cellIndex(3, 0, 0)
     )
   })
@@ -134,7 +149,7 @@ describe('easy', () => {
     const rng = seededRng(5)
     const seen = new Set<number | null>()
     for (let attempt = 0; attempt < 40; attempt++) {
-      seen.add(chooseMove(board, Player.two, 'easy', { rng }))
+      seen.add(chooseMove(board, Player.two, Difficulty.easy, { rng }))
     }
     expect(seen.size).toBeGreaterThan(3)
   })
@@ -143,9 +158,9 @@ describe('easy', () => {
 describe('medium', () => {
   it('always takes a win it can see', () => {
     for (let seed = 0; seed < 10; seed++) {
-      expect(chooseMove(flatWin(Player.two), Player.two, 'medium', { rng: seededRng(seed) })).toBe(
-        cellIndex(3, 0, 0)
-      )
+      expect(
+        chooseMove(flatWin(Player.two), Player.two, Difficulty.medium, { rng: seededRng(seed) })
+      ).toBe(cellIndex(3, 0, 0))
     }
   })
 
@@ -158,7 +173,9 @@ describe('medium', () => {
     const runs = 400
     let blocked = 0
     for (let seed = 0; seed < runs; seed++) {
-      const move = chooseMove(flatWin(Player.one), Player.two, 'medium', { rng: seededRng(seed) })
+      const move = chooseMove(flatWin(Player.one), Player.two, Difficulty.medium, {
+        rng: seededRng(seed),
+      })
       if (move === cellIndex(3, 0, 0)) blocked++
     }
     expect(blocked / runs).toBeGreaterThanOrEqual(PERSONALITIES.medium.blocks)
@@ -166,9 +183,9 @@ describe('medium', () => {
 
   /** Unlike easy, it does watch the rods. */
   it('sees a vertical win that easy misses', () => {
-    expect(chooseMove(rodWin(Player.two), Player.two, 'medium', { rng: seededRng(1) })).toBe(
-      cellIndex(1, 1, 3)
-    )
+    expect(
+      chooseMove(rodWin(Player.two), Player.two, Difficulty.medium, { rng: seededRng(1) })
+    ).toBe(cellIndex(1, 1, 3))
   })
 
   /** Its blind spot is narrower: only the four corner-to-corner diagonals. */
@@ -182,7 +199,7 @@ describe('medium', () => {
       ],
       Player.two
     )
-    expect(chooseMove(board, Player.two, 'medium', { rng: seededRng(2) })).not.toBe(
+    expect(chooseMove(board, Player.two, Difficulty.medium, { rng: seededRng(2) })).not.toBe(
       cellIndex(3, 3, 3)
     )
   })
@@ -197,7 +214,7 @@ describe('medium', () => {
       Player.two
     )
     expect([cellIndex(2, 0, 0), cellIndex(3, 0, 0)]).toContain(
-      chooseMove(board, Player.two, 'medium', { rng: always })
+      chooseMove(board, Player.two, Difficulty.medium, { rng: always })
     )
   })
 })
@@ -205,12 +222,12 @@ describe('medium', () => {
 describe('hard', () => {
   it('takes the win and the block without fail', () => {
     for (let seed = 0; seed < 6; seed++) {
-      expect(chooseMove(flatWin(Player.two), Player.two, 'hard', { rng: seededRng(seed) })).toBe(
-        cellIndex(3, 0, 0)
-      )
-      expect(chooseMove(flatWin(Player.one), Player.two, 'hard', { rng: seededRng(seed) })).toBe(
-        cellIndex(3, 0, 0)
-      )
+      expect(
+        chooseMove(flatWin(Player.two), Player.two, Difficulty.hard, { rng: seededRng(seed) })
+      ).toBe(cellIndex(3, 0, 0))
+      expect(
+        chooseMove(flatWin(Player.one), Player.two, Difficulty.hard, { rng: seededRng(seed) })
+      ).toBe(cellIndex(3, 0, 0))
     }
   })
 
@@ -224,7 +241,9 @@ describe('hard', () => {
       ],
       Player.two
     )
-    expect(chooseMove(board, Player.two, 'hard', { rng: seededRng(1) })).toBe(cellIndex(3, 3, 3))
+    expect(chooseMove(board, Player.two, Difficulty.hard, { rng: seededRng(1) })).toBe(
+      cellIndex(3, 3, 3)
+    )
   })
 
   /** Blocking a three beats setting up a fork, which is the priority you asked for. */
@@ -248,7 +267,9 @@ describe('hard', () => {
       ],
       Player.one
     )
-    expect(chooseMove(board, Player.two, 'hard', { rng: seededRng(1) })).toBe(cellIndex(3, 3, 3))
+    expect(chooseMove(board, Player.two, Difficulty.hard, { rng: seededRng(1) })).toBe(
+      cellIndex(3, 3, 3)
+    )
   })
 
   /**
@@ -258,7 +279,7 @@ describe('hard', () => {
   it('opens on a cell that seven lines run through', () => {
     const rng = seededRng(9)
     for (let attempt = 0; attempt < 25; attempt++) {
-      const move = chooseMove(createBoard(), Player.one, 'hard', { rng })
+      const move = chooseMove(createBoard(), Player.one, Difficulty.hard, { rng })
       expect(LINES_THROUGH_CELL[move ?? -1]).toHaveLength(7)
     }
   })
@@ -266,18 +287,18 @@ describe('hard', () => {
 
 describe('godly', () => {
   it('takes the win and the block', () => {
-    expect(chooseMove(flatWin(Player.two), Player.two, 'godly', { rng: seededRng(1) })).toBe(
-      cellIndex(3, 0, 0)
-    )
-    expect(chooseMove(flatWin(Player.one), Player.two, 'godly', { rng: seededRng(1) })).toBe(
-      cellIndex(3, 0, 0)
-    )
+    expect(
+      chooseMove(flatWin(Player.two), Player.two, Difficulty.godly, { rng: seededRng(1) })
+    ).toBe(cellIndex(3, 0, 0))
+    expect(
+      chooseMove(flatWin(Player.one), Player.two, Difficulty.godly, { rng: seededRng(1) })
+    ).toBe(cellIndex(3, 0, 0))
   })
 
   it('still answers when its budget is already spent', () => {
     let time = 0
     const now = () => (time += 10)
-    const move = chooseMove(createBoard(), Player.one, 'godly', {
+    const move = chooseMove(createBoard(), Player.one, Difficulty.godly, {
       rng: seededRng(1),
       now,
       budgetMs: 30,
@@ -311,7 +332,7 @@ describe('the difficulty ladder', () => {
   it('has medium beat easy more often than not', () => {
     let mediumWins = 0
     for (let seed = 0; seed < 6; seed++) {
-      if (playGame('medium', 'easy', seed) === Player.one) mediumWins++
+      if (playGame(Difficulty.medium, Difficulty.easy, seed) === Player.one) mediumWins++
     }
     expect(mediumWins).toBeGreaterThanOrEqual(4)
   }, 20_000)
@@ -319,16 +340,32 @@ describe('the difficulty ladder', () => {
   it('has hard beat easy nearly always', () => {
     let hardWins = 0
     for (let seed = 0; seed < 6; seed++) {
-      if (playGame('hard', 'easy', seed) === Player.one) hardWins++
+      if (playGame(Difficulty.hard, Difficulty.easy, seed) === Player.one) hardWins++
     }
     expect(hardWins).toBeGreaterThanOrEqual(5)
   }, 20_000)
 
   it('never lets easy beat hard from the stronger seat', () => {
     for (let seed = 0; seed < 4; seed++) {
-      expect(playGame('hard', 'easy', seed)).not.toBe(Player.two)
+      expect(playGame(Difficulty.hard, Difficulty.easy, seed)).not.toBe(Player.two)
     }
   }, 20_000)
+
+  /** The rung that was missing: hard has to be a step up from medium, not merely from easy. */
+  it('has hard beat medium more often than not', () => {
+    let hardWins = 0
+    for (let seed = 0; seed < 6; seed++) {
+      if (playGame(Difficulty.hard, Difficulty.medium, seed) === Player.one) hardWins++
+    }
+    expect(hardWins).toBeGreaterThanOrEqual(4)
+  }, 30_000)
+
+  /** And the top rung: the search is the whole reason the strongest tier exists. */
+  it('does not lose to hard', () => {
+    for (let seed = 0; seed < 4; seed++) {
+      expect(playGame(Difficulty.godly, Difficulty.hard, seed)).not.toBe(Player.two)
+    }
+  }, 60_000)
 })
 
 describe('PERSONALITIES', () => {

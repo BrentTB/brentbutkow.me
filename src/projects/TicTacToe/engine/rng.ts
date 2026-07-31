@@ -38,7 +38,11 @@ export function pickWeighted<T>(
 
   let target = rng() * total
   for (let index = 0; index < items.length; index++) {
-    target -= Math.max(0, weights[index])
+    const weight = Math.max(0, weights[index])
+    // Skipped before the subtraction: a draw of exactly zero lands on `target <= 0` immediately, and
+    // testing the weight afterwards would hand back an item that was supposed to be out of the running.
+    if (weight <= 0) continue
+    target -= weight
     if (target <= 0) return items[index]
   }
   return items[items.length - 1]

@@ -23,6 +23,9 @@ const renderGame = () =>
 
 const button = (name: string) => screen.getByRole('button', { name })
 
+/** The setup controls are radio groups: one tab stop, arrow keys between the options. */
+const option = (name: string) => screen.getByRole('radio', { name })
+
 const cell = (x: number, y: number, layer: number) =>
   button(gameCopy.cellLabel(layer + 1, x + 1, y + 1))
 
@@ -43,7 +46,7 @@ describe('TicTacToe — one player', () => {
     vi.useFakeTimers()
     renderGame()
 
-    fireEvent.click(button(MODE_LABELS[GameMode.onePlayer]))
+    fireEvent.click(option(MODE_LABELS[GameMode.onePlayer]))
     fireEvent.click(cell(0, 0, 0), { detail: 1 })
 
     expect(screen.getByText(gameCopy.thinking(gameCopy.computerName))).toBeTruthy()
@@ -62,7 +65,7 @@ describe('TicTacToe — one player', () => {
     vi.useFakeTimers()
     renderGame()
 
-    fireEvent.click(button(MODE_LABELS[GameMode.onePlayer]))
+    fireEvent.click(option(MODE_LABELS[GameMode.onePlayer]))
     fireEvent.click(cell(0, 0, 0), { detail: 1 })
     letTheComputerMove()
 
@@ -78,8 +81,8 @@ describe('TicTacToe — one player', () => {
     vi.useFakeTimers()
     renderGame()
 
-    fireEvent.click(button(MODE_LABELS[GameMode.onePlayer]))
-    fireEvent.click(button(STARTER_LABELS[Starter.computer]))
+    fireEvent.click(option(MODE_LABELS[GameMode.onePlayer]))
+    fireEvent.click(option(STARTER_LABELS[Starter.computer]))
     letTheComputerMove()
 
     expect(played()).toHaveLength(1)
@@ -90,7 +93,7 @@ describe('TicTacToe — one player', () => {
     vi.useFakeTimers()
     renderGame()
 
-    fireEvent.click(button(MODE_LABELS[GameMode.onePlayer]))
+    fireEvent.click(option(MODE_LABELS[GameMode.onePlayer]))
     fireEvent.click(cell(0, 0, 0), { detail: 1 })
     letTheComputerMove()
     expect(played()).toHaveLength(2)

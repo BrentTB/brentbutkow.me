@@ -61,6 +61,12 @@
     width: 2.2em;
   }
 
+  /* Isolating a layer is touch-only work here, so the entries need a finger-sized box rather than the
+     height of their own text. `RAIL_MIN_SPACING_PX` keeps neighbouring plates far enough apart to fit. */
+  .rail button {
+    padding: 10px 2px;
+  }
+
   .word {
     display: none;
   }

@@ -58,9 +58,9 @@ export function fanGapFor(pitch: number, ratio = PLATE_GAP_RATIO): number {
 }
 
 /**
- * Spacings of height the fanned deck occupies: three layer gaps, one plate, and a bead's worth of
- * overhang at each end. Derived rather than hand-tuned, so retuning the pitch or the gap cannot leave
- * a stale figure behind and reintroduce dead space.
+ * Spacings of height the fanned deck occupies: three layer gaps, one plate, and half a bead of overhang
+ * at each end, since `BEAD_RATIO` is a diameter. Derived rather than hand-tuned, so retuning the pitch or
+ * the gap cannot leave a stale figure behind and reintroduce dead space.
  */
 export function fanHeightUnits(pitch: number, gap: number): number {
   const radians = toRadians(pitch)
@@ -131,9 +131,25 @@ export function minFanGap(pitch: number, beadRatio = BEAD_RATIO): number {
   return 4 * Math.tan(radians) + beadRatio / Math.cos(radians)
 }
 
-/** On-screen gap between neighbouring columns, in spacings. The tightest gap a click target faces. */
-export function columnScreenSpacing(yaw: number): number {
-  return Math.abs(Math.cos(toRadians(yaw)))
+/**
+ * How far apart two neighbouring sites land on screen at this yaw, in spacings, taking the tighter of the
+ * two in-layer directions.
+ *
+ * A row step moves `sin(yaw)` sideways and a column step `cos(yaw)`, so one of them shrinks as the other
+ * grows and the binding one swaps over at 45°. Click targets are `CELL_HIT_RATIO` wide, so anything below
+ * half of that means the near site's target covers the one behind it.
+ */
+export function siteScreenSpacing(yaw: number): number {
+  const radians = toRadians(yaw)
+  return Math.min(Math.abs(Math.cos(radians)), Math.abs(Math.sin(radians)))
+}
+
+/**
+ * Whether every site keeps a clickable gap from its neighbours at this yaw. The tolerance is there for the
+ * yaw derived from this same bound, which `asin` and `sin` do not round-trip to the last bit.
+ */
+export function yawIsClickable(yaw: number, hitRatio = CELL_HIT_RATIO): boolean {
+  return siteScreenSpacing(yaw) >= hitRatio / 2 - 1e-9
 }
 
 /** Pixels per lattice step, chosen so the whole arrangement fits the stage. */
@@ -189,16 +205,29 @@ export function rotateForCamera(point: Vec3, yaw: number, pitch: number): Vec3 {
   }
 }
 
-/** Opacity for a bead at `depth`, given the depth range of the whole board. */
+/**
+ * Opacity for a bead at `depth`, given the depth range of the whole board. Clamped, so a depth from
+ * outside the range it was handed still comes back as an opacity rather than something CSS will ignore.
+ */
 export function fogFor(depth: number, nearest: number, furthest: number): number {
   const span = nearest - furthest
   if (span <= 0) return 1
-  const t = (depth - furthest) / span
+  const t = Math.max(0, Math.min(1, (depth - furthest) / span))
   return FOG_FLOOR + (1 - FOG_FLOOR) * t
 }
 
 export function clampPitch(pitch: number): number {
   return Math.max(-PITCH_LIMIT, Math.min(PITCH_LIMIT, pitch))
+}
+
+/**
+ * Yaw folded into a single turn. Turning has no limit the way pitch and zoom do, so without this it grows
+ * without bound as the board is dragged — harmless in a CSS rotation, but it is the one part of the camera
+ * with no invariant, and `yawToFace` reasons about where the angle sits.
+ */
+export function normalizeYaw(yaw: number): number {
+  const turned = yaw % 360
+  return turned <= -180 ? turned + 360 : turned > 180 ? turned - 360 : turned
 }
 
 export function clampZoom(zoom: number): number {
@@ -257,7 +286,11 @@ export function winBarTransform(from: Vec3, to: Vec3): WinBarTransform {
   const unit = { x: delta.x / length, y: delta.y / length, z: delta.z / length }
   const axis = { x: unit.z, z: -unit.x }
   const axisLength = Math.hypot(axis.x, axis.z)
-  if (axisLength < 1e-9) return { length, midpoint, axisX: 1, axisZ: 0, angle: 0 }
+  /* Straight up or down a rod: parallel to the bar's own axis, so there is no rotation axis to find and
+     any perpendicular will do. Pointing down still needs the half turn. */
+  if (axisLength < 1e-9) {
+    return { length, midpoint, axisX: 1, axisZ: 0, angle: unit.y < 0 ? 180 : 0 }
+  }
 
   return {
     length,
@@ -272,10 +305,23 @@ export function winBarTransform(from: Vec3, to: Vec3): WinBarTransform {
  * Yaw that shows a line at its widest. A direction's on-screen width is
  * `dx·cos(yaw) + dz·sin(yaw)`, widest at `atan2(dz, dx)`. A line up a rod looks the same from every
  * yaw, so the current one is kept.
+ *
+ * A line along one of the board's own axes is widest square-on, at 0° or 90° — which is exactly where the
+ * other axis lines up behind itself and its sites stop being clickable. The camera stays after a win, so
+ * that angle would be waiting at the start of the next game; the answer is turned off the axis by the
+ * smallest amount that keeps both directions apart.
  */
 export function yawToFace(from: Vec3, to: Vec3, currentYaw: number): number {
   const dx = to.x - from.x
   const dz = to.z - from.z
   if (Math.hypot(dx, dz) < 1e-9) return currentYaw
-  return (Math.atan2(dz, dx) * 180) / Math.PI
+
+  const widest = (Math.atan2(dz, dx) * 180) / Math.PI
+  if (yawIsClickable(widest)) return widest
+
+  const limit = (Math.asin(CELL_HIT_RATIO / 2) * 180) / Math.PI
+  const nearestAxis = Math.round(widest / 90) * 90
+  // Away from the axis in whichever direction the line was already leaning, so the swing stays short.
+  const lean = widest >= nearestAxis ? 1 : -1
+  return nearestAxis + lean * limit
 }

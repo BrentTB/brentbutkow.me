@@ -57,9 +57,9 @@ describe('isBoardFull', () => {
   })
 
   /**
-   * Guards a truthiness check standing in for an emptiness check. The prototype used
-   * `board.every(Boolean)`, which reports a full board as unfinished the moment any slot's value is
-   * falsy — a whole class of bug that a numeric player id would walk straight into.
+   * Guards a truthiness check standing in for an emptiness check: a cell is empty when it is `null`, not
+   * when it is falsy, so `board.every(Boolean)` would agree today and stop agreeing the moment a slot value
+   * is anything falsy.
    */
   it('is true once every cell is taken, whatever the slot values are', () => {
     let board = createBoard()

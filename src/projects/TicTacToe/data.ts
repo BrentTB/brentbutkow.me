@@ -1,4 +1,5 @@
 import { Difficulty, GameMode, Player, PlayerProfile, Starter, ViewMode } from './tic-tac-toe.types'
+import { BOARD_SIZE, LineDescription, LineShape } from './engine/lines'
 
 /** Longest a player name can be. Keeps the turn line on one row on a phone. */
 export const MAX_NAME_LENGTH = 14
@@ -13,11 +14,14 @@ export const PLAYER_COLOURS: readonly PlayerColour[] = [
   { id: 'sand', name: 'Sand', rgb: '214, 202, 170' },
 ]
 
-export type PlayerColour = {
+type PlayerColour = {
   id: string
   name: string
   rgb: string
 }
+
+/** The two seats, in the order they are shown and played. */
+export const PLAYER_SLOTS: readonly Player[] = [Player.one, Player.two]
 
 export const DEFAULT_PLAYERS: Record<Player, PlayerProfile> = {
   [Player.one]: { name: 'Player 1', rgb: PLAYER_COLOURS[0].rgb },
@@ -65,7 +69,13 @@ export const gameCopy = {
   newGame: 'New game',
   undo: 'Undo',
   redo: 'Redo',
-  undoTitle: 'Step back one move, or undo starting a new game',
+  /** What Undo actually takes back: on your own it is the pair, since one step would just hand the turn back. */
+  undoTitle: (pair: boolean) =>
+    pair
+      ? 'Take back your last move and the reply to it'
+      : 'Take back the last move, or the new game you just started',
+  redoTitle: (pair: boolean) =>
+    pair ? 'Replay your move and the reply to it' : 'Replay the last move',
   orbitHint: 'Drag to turn the board',
   orbitHintTouch: 'Drag to turn the board, pinch to zoom',
   fannedHint: 'Every layer at once, lowest first',
@@ -78,6 +88,8 @@ export const gameCopy = {
   opponentLabel: 'Opponent',
   difficultyLabel: 'Difficulty',
   starterLabel: 'First move',
+  /** Shown once there are pieces on the board, where switching hands your colour to the computer. */
+  starterSwapNote: 'Switch now and you trade colours with the computer, pieces and all.',
   thinking: (name: string) => `${name} is thinking`,
   computerName: 'Computer',
   computerTag: 'computer',
@@ -85,6 +97,23 @@ export const gameCopy = {
   playersTitle: 'Players',
   nameLabel: (slot: number) => `Player ${slot} name`,
   colourLabel: (name: string) => `Colour for ${name}`,
+  colourTakenLabel: (colour: string) => `${colour}, taken by the other player`,
+
+  /** How the winning line ran, since four beads in a cube do not read as a line on their own. */
+  lineShape: ({ shape, layer }: LineDescription) => {
+    switch (shape) {
+      case LineShape.flatRow:
+        return `straight line in layer ${layer}`
+      case LineShape.flatDiagonal:
+        return `diagonal in layer ${layer}`
+      case LineShape.rod:
+        return 'straight up one rod'
+      case LineShape.climbing:
+        return `diagonal through all ${BOARD_SIZE} layers`
+      case LineShape.bodyDiagonal:
+        return 'corner to corner'
+    }
+  },
 
   cellLabel: (layer: number, column: number, row: number) =>
     `Layer ${layer}, column ${column}, row ${row}`,

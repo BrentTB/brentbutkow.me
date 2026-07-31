@@ -53,7 +53,7 @@ const lineSpan = (lineIndex: number) => {
   }
 }
 
-/** The line indices a given sight takes in. */
+/** The line indices a given sight takes in, in board order, for walking every visible line. */
 export const VISIBLE_LINES: Record<Sight, readonly number[]> = (() => {
   const all = WINNING_LINES.map((_, index) => index)
   return {
@@ -65,6 +65,41 @@ export const VISIBLE_LINES: Record<Sight, readonly number[]> = (() => {
     }),
   }
 })()
+
+/**
+ * The same sets, for asking whether one line is visible. The scoring does that for every line through a
+ * cell for every candidate move, where scanning a 76-entry list is the bulk of the work.
+ */
+export const VISIBLE_LINE_SETS: Record<Sight, ReadonlySet<number>> = (() => {
+  const sets = {} as Record<Sight, ReadonlySet<number>>
+  for (const sight of Object.values(Sight)) sets[sight] = new Set(VISIBLE_LINES[sight])
+  return sets
+})()
+
+/**
+ * Walks every line the sight can see, handing each one's two counts to `visit`.
+ *
+ * The allocation-free path for the hot callers: `readLines` builds 76 objects and 76 arrays per call,
+ * and the search asks for this at every leaf and for every candidate it orders.
+ */
+export function forEachLine(
+  board: Board,
+  player: Player,
+  sight: Sight,
+  visit: (lineIndex: number, mine: number, theirs: number) => void
+): void {
+  const them = opponentOf(player)
+  for (const lineIndex of VISIBLE_LINES[sight]) {
+    let mine = 0
+    let theirs = 0
+    for (const cell of WINNING_LINES[lineIndex]) {
+      const owner = board[cell]
+      if (owner === player) mine++
+      else if (owner === them) theirs++
+    }
+    visit(lineIndex, mine, theirs)
+  }
+}
 
 /** How each side stands on every line the given sight can see. */
 export function readLines(
@@ -125,10 +160,11 @@ export function threatsAfter(
   sight: Sight = Sight.everything
 ): number {
   const them = opponentOf(player)
+  const visible = VISIBLE_LINE_SETS[sight]
   let threats = 0
 
   for (const lineIndex of LINES_THROUGH_CELL[cell]) {
-    if (!VISIBLE_LINES[sight].includes(lineIndex)) continue
+    if (!visible.has(lineIndex)) continue
     const line = WINNING_LINES[lineIndex]
     let mine = 1 // the piece just played
     let theirs = 0
@@ -164,12 +200,17 @@ export function isFork(
 export function forkCells(board: Board, player: Player, sight: Sight = Sight.everything): number[] {
   const nearlyTwo = new Map<number, number>()
 
-  for (const read of readLines(board, player, sight)) {
-    if (read.mine !== BOARD_SIZE - 2 || read.theirs !== 0) continue
-    for (const empty of read.empties) {
-      nearlyTwo.set(empty, (nearlyTwo.get(empty) ?? 0) + 1)
+  forEachLine(board, player, sight, (lineIndex, mine, theirs) => {
+    if (mine !== BOARD_SIZE - 2 || theirs !== 0) return
+    // Only the lines that qualify are walked a second time for their free cells.
+    for (const cell of WINNING_LINES[lineIndex]) {
+      if (board[cell] === null) nearlyTwo.set(cell, (nearlyTwo.get(cell) ?? 0) + 1)
     }
-  }
+  })
 
-  return [...nearlyTwo.entries()].filter(([, lines]) => lines >= 2).map(([cell]) => cell)
+  const cells: number[] = []
+  for (const [cell, lines] of nearlyTwo) {
+    if (lines >= 2) cells.push(cell)
+  }
+  return cells
 }

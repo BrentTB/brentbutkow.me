@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { EXACT_SEARCH_CELLS, candidates, findBestMove } from './search'
-import { LOSS_VALUE, WIN_VALUE, scorePosition } from './evaluate'
+import { LOSS_VALUE, WIN_VALUE, orderedMoves, scorePosition } from './evaluate'
 import { applyMove, createBoard, legalMoves, opponentOf } from './board'
 import { BOARD_SIZE, CELL_COUNT, cellIndex, findWinningLine } from './lines'
+import { winningMoves } from './threats'
 import { Board, Player } from '../tic-tac-toe.types'
 
 const put = (board: Board, moves: [number, number, number][], player: Player) =>
@@ -81,12 +82,51 @@ describe('findBestMove', () => {
     )
   })
 
-  /** With a budget of nothing it still has to hand back a legal move rather than nothing at all. */
-  it('always returns a legal move, even with no time to think', () => {
+  /**
+   * With a budget of nothing it still has to hand back a legal move. Not just any legal move: the move
+   * ordering has already ranked the cells, so the answer is the best-looking one rather than the lowest
+   * free index, which mid-game is an arbitrary corner of the board.
+   */
+  it('falls back to the best-ordered move when there is no time to think', () => {
     const board = put(createBoard(), [[1, 1, 1]], Player.two)
     const result = findBestMove(board, Player.one, { budgetMs: 0, now: clock(0, 1000) })
-    expect(result).not.toBeNull()
+
     expect(legalMoves(board)).toContain(result?.move)
+    expect(result?.move).toBe(orderedMoves(board, Player.one)[0])
+    expect(result?.depth).toBe(0)
+  })
+
+  /**
+   * Regression: a deadline landing inside the last candidate leaves the loop normally, so the pass used
+   * to look finished. Its scores are missing every move it never visited, which reads as better than the
+   * position is, and taking that as the answer plays on evidence the search does not have.
+   *
+   * The clock steps far enough per reading that time runs out during the pass, and `depth` is what tells
+   * on it: no pass ever completed, so there is nothing to report but the fallback.
+   */
+  it('does not report a pass that ran out of time part-way through', () => {
+    const board = put(createBoard(), [[1, 1, 1]], Player.two)
+    const result = findBestMove(board, Player.one, {
+      budgetMs: 10,
+      now: clock(0, 4),
+      maxDepth: 4,
+    })
+
+    expect(result?.depth).toBe(0)
+    expect(legalMoves(board)).toContain(result?.move)
+  })
+
+  it('answers a forced move without pretending to have scored it', () => {
+    let board = createBoard()
+    for (let index = 0; index < CELL_COUNT - 1; index++) {
+      board = applyMove(board, index, index % 2 === 0 ? Player.one : Player.two)
+    }
+    const [only] = legalMoves(board)
+
+    const result = findBestMove(board, Player.one, { budgetMs: 0, now: clock() })
+    expect(result?.move).toBe(only)
+    expect(result?.score).toBe(0)
+    expect(result?.exact).toBe(true)
   })
 
   it('searches deeper when given a longer budget', () => {
@@ -118,23 +158,36 @@ describe('findBestMove', () => {
     expect(result?.move).toBe(cellIndex(0, 0, 0))
   })
 
-  it('reports an exact result once few enough cells remain', () => {
-    // Fill all but a handful, leaving no completed line.
+  /**
+   * The tail of the game, where a mistake cannot be recovered from: with few enough cells left the whole
+   * remaining tree is searched rather than cut off at a depth. `nodes` is what proves the search ran —
+   * an immediate win or a forced block is answered before it, and reports `exact` on one node.
+   */
+  it('searches the whole remaining tree once few enough cells are free', () => {
+    // Fill all but a handful, leaving no completed line and no forced reply for either side.
     let board = createBoard()
     let filled = 0
     for (let index = 0; index < CELL_COUNT && filled < CELL_COUNT - EXACT_SEARCH_CELLS; index++) {
       const player = filled % 2 === 0 ? Player.one : Player.two
       const next = applyMove(board, index, player)
       if (findWinningLine(next, player)) continue
+      if (winningMoves(next, Player.one).length > 0) continue
+      if (winningMoves(next, Player.two).length > 0) continue
       board = next
       filled++
     }
 
     const free = legalMoves(board).length
     expect(free).toBeLessThanOrEqual(EXACT_SEARCH_CELLS)
+    expect(winningMoves(board, Player.one)).toEqual([])
+    expect(winningMoves(board, Player.two)).toEqual([])
 
-    const result = findBestMove(board, Player.one, { budgetMs: 5000 })
-    expect(result).not.toBeNull()
+    /* The depth cap is what the tail search overrides: asked for two plies on a board this empty it
+       would stop there, and the win three plies out would be invisible. */
+    const result = findBestMove(board, Player.one, { budgetMs: 5000, maxDepth: 2 })
+
+    expect(result?.nodes).toBeGreaterThan(1)
+    expect(result?.depth).toBeGreaterThan(2)
     expect(result?.exact).toBe(true)
   })
 
@@ -163,12 +216,17 @@ describe('findBestMove', () => {
     }
   })
 
-  /** The search must be deterministic: same position, same budget, same move. */
+  /**
+   * The search must be deterministic: same position, same budget, same move. The clock is injected, so a
+   * loaded machine cannot finish a different number of deepening passes between the two calls.
+   */
   it('gives the same answer twice for the same position', () => {
     const board = put(createBoard(), [[1, 1, 1]], Player.two)
-    const first = findBestMove(board, Player.one, { budgetMs: 2000, maxDepth: 3 })
-    const second = findBestMove(board, Player.one, { budgetMs: 2000, maxDepth: 3 })
+    const limits = { budgetMs: 2000, maxDepth: 3 }
+    const first = findBestMove(board, Player.one, { ...limits, now: clock() })
+    const second = findBestMove(board, Player.one, { ...limits, now: clock() })
     expect(first?.move).toBe(second?.move)
+    expect(first?.depth).toBe(second?.depth)
   })
 
   it('sees a win coming two moves out and does not walk into it', () => {
@@ -182,12 +240,14 @@ describe('findBestMove', () => {
       Player.two
     )
     const result = findBestMove(board, Player.one, { budgetMs: 3000, maxDepth: 4 })
-    // Whatever it plays, it must not hand the opponent a free run at the rod.
+
+    /* It has to take one of the two cells that keep the rod from being completed. Leaving both free
+       lets the opponent make three with the fourth still open, which cannot then be blocked. */
     const after = applyMove(board, result?.move ?? 0, Player.one)
-    const theirWins = [cellIndex(1, 1, 2), cellIndex(1, 1, 3)].filter(
+    const rodStillOpen = [cellIndex(1, 1, 2), cellIndex(1, 1, 3)].filter(
       (cell) => after[cell] === null
     )
-    expect(theirWins.length).toBeLessThanOrEqual(2)
+    expect(rodStillOpen).toHaveLength(1)
   })
 })
 
@@ -209,7 +269,8 @@ describe('search strength', () => {
       if (turn === Player.one) {
         move = findBestMove(board, turn, { budgetMs: 400, maxDepth: 4 })?.move ?? free[0]
       } else {
-        // A simple but not silly opponent: win if it can, block if it must, else take a live cell.
+        /* A simple but not silly opponent: with no time to search, `findBestMove` still answers wins and
+           forced blocks outright, and otherwise hands back the best-ordered cell. */
         const ownWin = findBestMove(board, turn, { budgetMs: 0, now: clock() })
         move = ownWin?.move ?? free[0]
       }

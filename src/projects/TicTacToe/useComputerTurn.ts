@@ -13,7 +13,7 @@ import { Rng } from './engine/rng'
 export const THINKING_TIME_MS = 900
 
 /** A beat to let your own move paint before the search takes the thread. */
-const PAINT_DELAY_MS = 32
+export const PAINT_DELAY_MS = 32
 
 /**
  * What the strongest tier is allowed to spend searching: everything left of the thinking time once the
@@ -24,7 +24,7 @@ const PAINT_DELAY_MS = 32
  */
 export const SEARCH_BUDGET_MS = THINKING_TIME_MS - PAINT_DELAY_MS
 
-export type ComputerTurnOptions = {
+type ComputerTurnOptions = {
   board: Board
   /** Which seat the computer holds, or null in a two-player game. */
   computer: Player | null

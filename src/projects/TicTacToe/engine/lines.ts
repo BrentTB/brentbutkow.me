@@ -80,21 +80,48 @@ export function findWinningLine(board: Board, player: Player): readonly number[]
   return WINNING_LINES.find((line) => line.every((cell) => board[cell] === player)) ?? null
 }
 
+/** The five ways a line can run on this board. */
+export const LineShape = {
+  /** A row or a column, inside one layer. */
+  flatRow: 'flatRow',
+  /** A plate's own diagonal, inside one layer. */
+  flatDiagonal: 'flatDiagonal',
+  /** Straight up one rod. */
+  rod: 'rod',
+  /** Climbing the layers while moving along a single axis. */
+  climbing: 'climbing',
+  /** Climbing the layers while moving along both: corner to corner through the cube. */
+  bodyDiagonal: 'bodyDiagonal',
+} as const
+export type LineShape = (typeof LineShape)[keyof typeof LineShape]
+
+/** How a line runs. `layer` is set only for the shapes that stay inside one, counted from 1. */
+export type LineDescription = {
+  shape: LineShape
+  layer: number | null
+}
+
 /**
- * How a line runs, in plain words. On a 4×4×4 board the shape of a win is the part that is hard to
- * read off the screen, so it gets said out loud.
+ * The shape of a line. On a 4×4×4 board this is the part that is hard to read off the screen, so the UI
+ * says it out loud; the words themselves live with the rest of the copy.
  */
-export function describeLine(line: readonly number[]): string {
+export function lineShape(line: readonly number[]): LineDescription {
   const start = cellCoord(line[0])
   const next = cellCoord(line[1])
   const stepX = next.x - start.x
   const stepY = next.y - start.y
   const stepLayer = next.layer - start.layer
+  const diagonalInPlate = stepX !== 0 && stepY !== 0
 
   if (stepLayer === 0) {
-    const flat = `layer ${start.layer + 1}`
-    return stepX !== 0 && stepY !== 0 ? `diagonal in ${flat}` : `straight line in ${flat}`
+    return {
+      shape: diagonalInPlate ? LineShape.flatDiagonal : LineShape.flatRow,
+      layer: start.layer + 1,
+    }
   }
-  if (stepX === 0 && stepY === 0) return 'straight up one rod'
-  return stepX !== 0 && stepY !== 0 ? 'corner to corner' : 'diagonal through all four layers'
+  if (stepX === 0 && stepY === 0) return { shape: LineShape.rod, layer: null }
+  return {
+    shape: diagonalInPlate ? LineShape.bodyDiagonal : LineShape.climbing,
+    layer: null,
+  }
 }

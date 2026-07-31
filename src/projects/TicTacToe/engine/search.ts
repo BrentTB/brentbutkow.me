@@ -14,8 +14,14 @@ import { winningMoves } from './threats'
  * which is when a mistake is least recoverable.
  */
 
-/** Once this few cells are free, the rest of the tree is small enough to settle exactly. */
-export const EXACT_SEARCH_CELLS = 10
+/**
+ * Once this few cells are free, the search plays out the rest of the tree instead of stopping at a depth.
+ *
+ * Set where the branch actually earns its keep. Lower down, an immediate win or a forced block is nearly
+ * always on the board and gets answered before any searching happens, so the exhaustive pass would never
+ * run. If it turns out not to fit the budget, the deepening passes underneath it still stand.
+ */
+export const EXACT_SEARCH_CELLS = 14
 
 /** Deepest the time-limited search will look. Past this the evaluation matters more than the depth. */
 const MAX_DEPTH = 8
@@ -39,7 +45,10 @@ export type SearchResult = {
   score: number
   /** How deep the search got before its budget ran out. */
   depth: number
-  /** Whether every remaining move was searched to the end rather than cut off. */
+  /**
+   * Whether the answer is settled rather than a best guess: either the rest of the tree was played out,
+   * or the score is a win or loss the search proved on the way.
+   */
   exact: boolean
   nodes: number
 }
@@ -54,8 +63,15 @@ export function candidates(board: Board, player: Player): number[] {
   return forced ? ordered : ordered.slice(0, BRANCHING_CAP)
 }
 
-const boardKey = (board: Board, player: Player) =>
-  `${player}:${board.map((cell) => cell ?? '.').join(',')}`
+/**
+ * One string per position. A character per cell rather than the player names joined: the search builds
+ * one of these at every node, and a 65-character key costs a third of what the spelled-out version does.
+ */
+function boardKey(board: Board, player: Player): string {
+  let key = player === Player.one ? 'x' : 'o'
+  for (const cell of board) key += cell === null ? '.' : cell === Player.one ? 'x' : 'o'
+  return key
+}
 
 /**
  * What a stored score actually says. Alpha-beta returns a bound, not a value: a node that cut off only
@@ -111,6 +127,11 @@ export function findBestMove(
     }
   }
 
+  // One cell left is a forced move: there is nothing to compare it against, so searching says nothing.
+  if (free.length === 1) {
+    return { move: free[0], score: 0, depth: 0, exact: true, nodes: 1 }
+  }
+
   const deadline = now() + budgetMs
   const outOfTime = () => now() >= deadline
   const exhaustive = free.length <= EXACT_SEARCH_CELLS
@@ -129,8 +150,10 @@ export function findBestMove(
   ): number => {
     nodes++
 
-    // Whoever moved last may have just won, which is a loss for the side now to move.
-    if (findWinningLine(state, opponentOf(side))) return LOSS_VALUE + depth
+    /* Whoever moved last may have just won, which is a loss for the side now to move. `depth` counts
+       plies still to look at, so subtracting it prefers the loss that takes longest to arrive — and,
+       through the negation on the way back up, the win that arrives soonest. */
+    if (findWinningLine(state, opponentOf(side))) return LOSS_VALUE - depth
 
     const remaining = legalMoves(state)
     if (remaining.length === 0) return 0
@@ -170,7 +193,9 @@ export function findBestMove(
     return alpha
   }
 
-  let best = { move: free[0], score: -UNBOUNDED, depth: 0 }
+  const ranked = candidates(board, player)
+  // Something playable before the first pass finishes, and the ordering already knows which cell that is.
+  let best = { move: ranked[0] ?? free[0], score: -UNBOUNDED, depth: 0 }
 
   /* Iterative deepening: each pass costs little next to the one after it, and it always leaves a usable
      answer behind when the budget runs out part-way through a pass. */
@@ -179,7 +204,7 @@ export function findBestMove(
     let bestThisPass = { move: best.move, score: -UNBOUNDED }
     let completed = true
 
-    for (const move of candidates(board, player)) {
+    for (const move of ranked) {
       if (outOfTime()) {
         completed = false
         break
@@ -189,6 +214,11 @@ export function findBestMove(
       if (score > alpha) alpha = score
     }
 
+    /* A deadline that lands inside the last candidate leaves the loop normally, so the pass looks
+       finished. Its scores are short of the moves that were never visited, which reads as better than
+       they are, and taking that as the answer plays a move on evidence the search does not have. */
+    if (outOfTime()) completed = false
+
     if (completed) {
       best = { ...bestThisPass, depth }
       // A forced win at this depth will not get better by looking further.
@@ -197,11 +227,14 @@ export function findBestMove(
     if (outOfTime()) break
   }
 
+  // A mate found at depth three needs no fourth pass: the result is proved, not merely the best so far.
+  const decided = Math.abs(best.score) >= WIN_VALUE - CELL_COUNT
+
   return {
     move: best.move,
     score: best.score,
     depth: best.depth,
-    exact: exhaustive && best.depth >= free.length,
+    exact: decided || (exhaustive && best.depth >= free.length),
     nodes,
   }
 }

@@ -195,7 +195,6 @@ export function Board({
                  keyboard is holding blurs it, and focus would land back on the page every turn. */
               aria-disabled={locked || undefined}
               data-dim={dimmed || undefined}
-              data-filled={owner ?? undefined}
               data-won={winCells.has(index) || undefined}
               data-last={index === lastMove || undefined}
               onClick={(event) => {
