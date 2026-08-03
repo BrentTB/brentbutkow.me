@@ -158,29 +158,51 @@ $camera-ease: cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 }
 
-/* An empty site is a marker, not content: 64 of them at bead weight turn the cube to soup. */
+/* How much of its hit box a marker fills once opened up. */
+$marker-open: 0.74;
+
+/* Opened to fill its hit box, so the site under the cursor or the keyboard reads as the target. */
+@mixin marker-open($ring-rgb) {
+  transform: none;
+  border-color: rgba($ring-rgb, 0.9);
+  background: rgba(var(--turn-rgb), 0.18);
+  box-shadow: 0 0 16px rgba(var(--turn-rgb), 0.45);
+}
+
+/**
+ * An empty site is a marker, not content: 64 of them at bead weight turn the cube to soup.
+ *
+ * Laid out at its opened size and scaled down to rest, so opening and closing it is a composited
+ * transform. Transitioning the box dimensions instead makes every frame relayout and repaint a subtree
+ * of a 3D scene, and a machine that drops one of those repaints leaves the site painted open on a board
+ * the cursor has already left.
+ */
 .marker {
-  width: calc(var(--spacing) * var(--marker-ratio));
-  height: calc(var(--spacing) * var(--marker-ratio));
+  width: calc(var(--spacing) * var(--hit-ratio) * #{$marker-open});
+  height: calc(var(--spacing) * var(--hit-ratio) * #{$marker-open});
   border-radius: 50%;
+  border: 1px solid transparent;
   background: rgba(var(--turn-rgb), 0.5);
+  box-shadow: 0 0 16px rgba(var(--turn-rgb), 0);
+  transform: scale(calc(var(--marker-ratio) / (var(--hit-ratio) * #{$marker-open})));
   transition:
-    width 160ms ease,
-    height 160ms ease,
+    transform 160ms ease,
+    border-color 160ms ease,
     background 300ms ease,
     box-shadow 160ms ease;
 
-  .cell:not(:disabled):not([aria-disabled='true']):hover &,
-  .cell:focus-visible & {
-    width: calc(var(--spacing) * var(--hit-ratio) * 0.74);
-    height: calc(var(--spacing) * var(--hit-ratio) * 0.74);
-    border: 1px solid rgba(var(--turn-rgb), 0.9);
-    background: rgba(var(--turn-rgb), 0.18);
-    box-shadow: 0 0 16px rgba(var(--turn-rgb), 0.45);
+  /**
+   * Gated on a real pointer. A touch latches `:hover` on whatever it last landed on and holds it until
+   * something else is tapped, which leaves a site sitting open long after the tap that opened it.
+   */
+  @media (hover: hover) {
+    .cell:not(:disabled):not([aria-disabled='true']):hover & {
+      @include marker-open(var(--turn-rgb));
+    }
   }
 
   .cell:focus-visible & {
-    border-color: rgba(var(--accent-rgb), 0.9);
+    @include marker-open(var(--accent-rgb));
   }
 }
 
