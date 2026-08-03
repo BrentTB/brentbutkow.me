@@ -2,6 +2,7 @@ import { Board, Player } from '../tic-tac-toe.types'
 import { applyMove, legalMoves, opponentOf } from './board'
 import { LOSS_VALUE, WIN_VALUE, orderedMoves, scorePosition } from './evaluate'
 import { CELL_COUNT, findWinningLine } from './lines'
+import { findForcedWin, hasForcedWin } from './forced-win'
 import { winningMoves } from './threats'
 
 /**
@@ -28,6 +29,16 @@ const MAX_DEPTH = 8
 
 /** Candidates considered per node when nothing is forced. Wider is stronger and slower. */
 const BRANCHING_CAP = 12
+
+/** Longest forced chain the threat-space search chases, counted in the mover's own moves. */
+export const FORCED_CHAIN_DEPTH = 14
+
+/**
+ * How much of the budget the threat-space passes may take before the ordinary search runs. Both passes
+ * exit early on a quiet board, so this is a ceiling for thickets of threats, not a routine spend.
+ */
+const FORCED_WIN_SLICE_MS = 260
+const FORCED_LOSS_SLICE_MS = 260
 
 /** Far enough outside any real score to open a window with. */
 const UNBOUNDED = WIN_VALUE * 2
@@ -61,6 +72,39 @@ export function candidates(board: Board, player: Player): number[] {
   const forced =
     winningMoves(board, player).length > 0 || winningMoves(board, opponentOf(player)).length > 0
   return forced ? ordered : ordered.slice(0, BRANCHING_CAP)
+}
+
+/**
+ * The root candidates, minus any move that hands the opponent a forced win. This is the mirror of the
+ * offensive threat-space pass: losing to a chain is a matter of walking into one, so a move the opponent
+ * can answer with a proved win is struck off before the ordinary search ever weighs it.
+ *
+ * If every move loses to a chain, the position is lost whatever is played, so the full list is kept and
+ * the search picks the longest resistance. Running out of budget leaves the list untouched for the same
+ * reason: a filter that half-ran would drop good moves on no evidence.
+ */
+function safeCandidates(
+  board: Board,
+  player: Player,
+  deadline: number,
+  now: () => number
+): number[] {
+  const ranked = candidates(board, player)
+  if (ranked.length <= 1) return ranked
+
+  const them = opponentOf(player)
+  const cutoff = Math.min(deadline, now() + FORCED_LOSS_SLICE_MS)
+  const safe: number[] = []
+  for (const move of ranked) {
+    if (now() >= cutoff) return ranked // unfinished filter proves nothing; trust the ordering instead
+    const forcedLoss = hasForcedWin(applyMove(board, move, player), them, {
+      now,
+      deadline: cutoff,
+      maxDepth: FORCED_CHAIN_DEPTH,
+    })
+    if (!forcedLoss) safe.push(move)
+  }
+  return safe.length > 0 ? safe : ranked
 }
 
 /**
@@ -135,6 +179,23 @@ export function findBestMove(
   const deadline = now() + budgetMs
   const outOfTime = () => now() >= deadline
   const exhaustive = free.length <= EXACT_SEARCH_CELLS
+
+  /* Threat-space search only earns its keep while the ordinary search is depth-limited. Once few enough
+     cells remain the rest of the tree is played out exactly, so every forced win and loss is already
+     seen. Above that, a proved chain beats any heuristic: look for the attacker's win, then strike off
+     any move that would hand the same to the opponent. Both exit at once on a board with no threats to
+     build from, which is most of them, so the common case pays almost nothing. */
+  if (!exhaustive) {
+    const forcedWin = findForcedWin(board, player, {
+      now,
+      deadline: Math.min(deadline, now() + FORCED_WIN_SLICE_MS),
+      maxDepth: FORCED_CHAIN_DEPTH,
+    })
+    if (forcedWin !== null) {
+      return { move: forcedWin, score: WIN_VALUE, depth: FORCED_CHAIN_DEPTH, exact: true, nodes: 1 }
+    }
+  }
+
   const ceiling = exhaustive ? free.length : maxDepth
 
   const table = new Map<string, Entry>()
@@ -193,7 +254,9 @@ export function findBestMove(
     return alpha
   }
 
-  const ranked = candidates(board, player)
+  const ranked = exhaustive
+    ? candidates(board, player)
+    : safeCandidates(board, player, deadline, now)
   // Something playable before the first pass finishes, and the ordering already knows which cell that is.
   let best = { move: ranked[0] ?? free[0], score: -UNBOUNDED, depth: 0 }
 

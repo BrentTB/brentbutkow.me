@@ -1,13 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { EXACT_SEARCH_CELLS, candidates, findBestMove } from './search'
+import { EXACT_SEARCH_CELLS, FORCED_CHAIN_DEPTH, candidates, findBestMove } from './search'
 import { LOSS_VALUE, WIN_VALUE, orderedMoves, scorePosition } from './evaluate'
 import { applyMove, createBoard, legalMoves, opponentOf } from './board'
 import { BOARD_SIZE, CELL_COUNT, cellIndex, findWinningLine } from './lines'
+import { findForcedWin, hasForcedWin } from './forced-win'
 import { winningMoves } from './threats'
 import { Board, Player } from '../tic-tac-toe.types'
 
 const put = (board: Board, moves: [number, number, number][], player: Player) =>
   moves.reduce((next, [x, y, layer]) => applyMove(next, cellIndex(x, y, layer), player), board)
+
+/** The threat-space budget findBestMove uses, made never-ending so a mirror sees the same verdict. */
+const forcedOpts = { now: () => 0, deadline: 1, maxDepth: FORCED_CHAIN_DEPTH }
 
 /** A fixed clock, so the budget is exercised without depending on how fast the machine is. */
 const clock = (start = 0, step = 0) => {
@@ -164,7 +168,8 @@ describe('findBestMove', () => {
    * an immediate win or a forced block is answered before it, and reports `exact` on one node.
    */
   it('searches the whole remaining tree once few enough cells are free', () => {
-    // Fill all but a handful, leaving no completed line and no forced reply for either side.
+    // Fill all but a handful, leaving no completed line and no forced reply for either side. In this
+    // exhaustive-tail regime the threat-space passes stand down, so the full search is what answers.
     let board = createBoard()
     let filled = 0
     for (let index = 0; index < CELL_COUNT && filled < CELL_COUNT - EXACT_SEARCH_CELLS; index++) {
@@ -251,6 +256,54 @@ describe('findBestMove', () => {
   })
 })
 
+describe('findBestMove — threat-space search', () => {
+  /** A proved forced win outranks any heuristic, so it is played at once and reported as exact. */
+  it('plays a proved forced win ahead of the ordinary search', () => {
+    // A row and a column two-long crossing at the empty (2,0,0): one move makes two threats.
+    const board = put(
+      createBoard(),
+      [
+        [0, 0, 0],
+        [1, 0, 0],
+        [2, 2, 0],
+        [2, 3, 0],
+      ],
+      Player.one
+    )
+    const result = findBestMove(board, Player.one, { budgetMs: 500 })
+    expect(result?.move).toBe(cellIndex(2, 0, 0))
+    expect(result?.score).toBe(WIN_VALUE)
+    expect(result?.exact).toBe(true)
+  })
+
+  /**
+   * The defensive mirror: the opponent can fork at (2,0,1), the overlap of two of their two-longs. A move
+   * that leaves that fork standing hands them a forced win, so the search must not choose one — even
+   * though nothing within its depth would show the loss.
+   */
+  it('refuses a move that leaves the opponent a forced win', () => {
+    let board = put(
+      createBoard(),
+      [
+        [0, 0, 1],
+        [1, 0, 1], // row: two-long, other empties (2,0,1) and (3,0,1)
+        [2, 2, 1],
+        [2, 3, 1], // column: two-long, other empties (2,0,1) and (2,1,1)
+      ],
+      Player.two
+    )
+    board = put(board, [[0, 3, 3]], Player.one) // a single P1 stone, so it has moves but no threat
+
+    // The trap is real: an idle move lets the opponent take the overlap and force the win.
+    const idle = applyMove(board, cellIndex(3, 3, 3), Player.one)
+    expect(hasForcedWin(idle, Player.two, forcedOpts)).toBe(true)
+
+    const result = findBestMove(board, Player.one, { budgetMs: 800, maxDepth: 2 })
+    const after = applyMove(board, result?.move ?? -1, Player.one)
+    expect(hasForcedWin(after, Player.two, forcedOpts)).toBe(false)
+  })
+})
+
 describe('search strength', () => {
   /**
    * The point of the strongest tier: it should not lose to a player that only ever takes wins and
@@ -318,6 +371,30 @@ function tableFreeValue(state: Board, side: Player, depth: number): number {
   return best
 }
 
+/**
+ * The score findBestMove should report, mirroring its two root layers without any table: a proved forced
+ * win short-circuits everything, and otherwise the root ranges over moves that do not hand the opponent a
+ * forced win. The deep values still come through the table-free negamax, so the table's soundness is what
+ * the comparison actually tests.
+ */
+function expectedRootScore(board: Board, side: Player, depth: number): number {
+  if (findForcedWin(board, side, forcedOpts) !== null) return WIN_VALUE
+
+  const them = opponentOf(side)
+  const ranked = candidates(board, side)
+  const safe = ranked.filter(
+    (move) => !hasForcedWin(applyMove(board, move, side), them, forcedOpts)
+  )
+  const roots = safe.length > 0 ? safe : ranked
+
+  let best = -Infinity
+  for (const move of roots) {
+    const score = -tableFreeValue(applyMove(board, move, side), them, depth - 1)
+    if (score > best) best = score
+  }
+  return best
+}
+
 const seat = (board: Board, cells: readonly number[], player: Player) =>
   cells.reduce((next, cell) => applyMove(next, cell, player), board)
 
@@ -346,7 +423,7 @@ describe('findBestMove — the table only answers what the search proved', () =>
 
       const result = findBestMove(board, Player.one, { maxDepth: DEPTH, now: clock() })
 
-      expect(result?.score).toBe(tableFreeValue(board, Player.one, DEPTH))
+      expect(result?.score).toBe(expectedRootScore(board, Player.one, DEPTH))
     },
     30_000
   )
