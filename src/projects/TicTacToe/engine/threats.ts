@@ -136,9 +136,36 @@ export function winningMoves(
   return [...cells]
 }
 
+/** A threat needs this many of mine on a line, with every other cell on it still free. */
+export const PIECES_FOR_THREAT = BOARD_SIZE - 2
+
+/**
+ * Empty cells that would give `player` three of a line with the fourth still free, each mapped to how many
+ * separate lines it threatens. One walk answers both questions the search asks of a position: a cell with
+ * any threats forces a reply, and a cell with two makes two threes at once, the fork nothing blocks.
+ *
+ * Built on `forEachLine`, and only the lines that qualify are walked a second time for their free cells.
+ */
+export function threatCellCounts(
+  board: Board,
+  player: Player,
+  sight: Sight = Sight.everything
+): Map<number, number> {
+  const counts = new Map<number, number>()
+
+  forEachLine(board, player, sight, (lineIndex, mine, theirs) => {
+    if (mine !== PIECES_FOR_THREAT || theirs !== 0) return
+    for (const cell of WINNING_LINES[lineIndex]) {
+      if (board[cell] === null) counts.set(cell, (counts.get(cell) ?? 0) + 1)
+    }
+  })
+
+  return counts
+}
+
 /**
  * Cells that would give `player` three of a line with the fourth still free: the move that forces a
- * reply. A cell may appear once per line it threatens, so the count is the number of threats made.
+ * reply. A cell appears once per line it threatens, so the count is the number of threats made.
  */
 export function threatCells(
   board: Board,
@@ -146,8 +173,8 @@ export function threatCells(
   sight: Sight = Sight.everything
 ): number[] {
   const cells: number[] = []
-  for (const read of readLines(board, player, sight)) {
-    if (read.mine === BOARD_SIZE - 2 && read.theirs === 0) cells.push(...read.empties)
+  for (const [cell, lines] of threatCellCounts(board, player, sight)) {
+    for (let line = 0; line < lines; line++) cells.push(cell)
   }
   return cells
 }
@@ -198,18 +225,8 @@ export function isFork(
  * cell means whoever takes the overlap makes two threes at once.
  */
 export function forkCells(board: Board, player: Player, sight: Sight = Sight.everything): number[] {
-  const nearlyTwo = new Map<number, number>()
-
-  forEachLine(board, player, sight, (lineIndex, mine, theirs) => {
-    if (mine !== BOARD_SIZE - 2 || theirs !== 0) return
-    // Only the lines that qualify are walked a second time for their free cells.
-    for (const cell of WINNING_LINES[lineIndex]) {
-      if (board[cell] === null) nearlyTwo.set(cell, (nearlyTwo.get(cell) ?? 0) + 1)
-    }
-  })
-
   const cells: number[] = []
-  for (const [cell, lines] of nearlyTwo) {
+  for (const [cell, lines] of threatCellCounts(board, player, sight)) {
     if (lines >= 2) cells.push(cell)
   }
   return cells

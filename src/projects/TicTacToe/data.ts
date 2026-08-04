@@ -7,6 +7,7 @@ import {
   Starter,
   ViewMode,
 } from './tic-tac-toe.types'
+import { Seat } from '../../multiplayer/multiplayer.types'
 import { BOARD_SIZE, LineDescription, LineShape } from './engine/lines'
 
 /** Longest a player name can be. Keeps the turn line on one row on a phone. */
@@ -63,17 +64,20 @@ export const STARTER_LABELS: Record<Starter, string> = {
 }
 
 /** Who opens an online game, from the point of view of whoever is setting the room up. */
-export const ONLINE_STARTERS = [
-  { seat: 0, label: 'You' },
-  { seat: 1, label: 'Them' },
-] as const
+export const ONLINE_STARTERS: readonly { seat: Seat; label: string }[] = [
+  { seat: Seat.first, label: 'You' },
+  { seat: Seat.second, label: 'Them' },
+]
+
+/** What no clock at all reads as, wherever a limit is shown. */
+export const NO_MOVE_LIMIT_LABEL = 'None'
 
 /**
  * How long a move may take. Unlimited stays first because it is the friendly default; the rest are
  * short enough to keep a game moving in one sitting.
  */
 export const MOVE_LIMITS: readonly { seconds: number | null; label: string }[] = [
-  { seconds: null, label: 'None' },
+  { seconds: null, label: NO_MOVE_LIMIT_LABEL },
   { seconds: 30, label: '30s' },
   { seconds: 60, label: '1 min' },
   { seconds: 180, label: '3 min' },
@@ -131,11 +135,13 @@ export const gameCopy = {
     /** Heads the two ways in, kept apart so opening a room is never confused with entering one. */
     createTitle: 'Create a room',
     joinTitle: 'Join an existing room',
-    create: 'Start a game',
+    /** Named for what pressing it does: it opens the settings, and the dialog's own button opens the room. */
+    create: 'Set up a room',
     join: 'Join a game',
     findGame: 'Find a game',
     /** Says what actually happens, since half the time it opens a room instead of joining one. */
-    findHint: 'Joins an existing open room if possible, else creates a new room.',
+    findHint:
+      'Drops you into a room that is waiting for a player. If nobody is waiting, you get a room of your own.',
     /** Explains the locked opponent control, so a disabled button is not a dead end. */
     modeLocked: 'Leave the room first',
     /** Heads the settings dialog, whether it is about to open a room or change one. */
@@ -159,11 +165,13 @@ export const gameCopy = {
     leave: 'Leave game',
     startGame: 'Start game',
     playAgain: 'Play again',
-    /** Sits under the start button, since the settings above stay live until it is pressed. */
-    startHint: 'The settings stay open until you start.',
+    /** Sits under the start button: the settings can still be changed right up until it is pressed. */
+    startHint: 'You can still change the settings above until you start.',
     /** For the player who joined: the start is the opener's call, so the wait is not a broken button. */
-    waitingToStart: 'Waiting for the other player to start.',
+    waitingToStart: 'Waiting for the other player to start',
     opponentLeft: (name: string) => `${name} left the room`,
+    /** For a player who walked out before typing a name, where "No name yet left the room" would read badly. */
+    opponentLeftUnnamed: 'The other player left the room',
     /** Stands in until a player types a name of their own. */
     unnamed: 'No name yet',
     youTag: '(you)',
@@ -173,7 +181,7 @@ export const gameCopy = {
 
     /** The local setting for whether a tap sends the move, shown only in an online game. */
     commitLabel: 'Tapping a cell',
-    commitHint: 'Double tap, or tap once and confirm, to play a move.',
+    commitHint: 'One press aims your move. Press the same cell again, or Confirm, to send it.',
     confirmMove: 'Confirm move',
     clearMove: 'Clear',
     /** Warns that aiming is not free when the room has a clock, which keeps running regardless. */

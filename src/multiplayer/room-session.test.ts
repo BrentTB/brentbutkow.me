@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { Seat } from './multiplayer.types'
-import { clearRoomSession, loadRoomSession, saveRoomSession } from './room-session'
+import {
+  MAX_TOKEN_LENGTH,
+  clearRoomSession,
+  loadRoomSession,
+  saveRoomSession,
+} from './room-session'
 
 const GAME = 'ttt'
 const SESSION = { code: 'AB2K9M', token: 'tok', seat: Seat.second }
@@ -42,6 +47,34 @@ describe('room-session', () => {
       'room-session:ttt',
       JSON.stringify({ code: 'AB2K9M', token: 'tok', seat: 7 })
     )
+    expect(loadRoomSession(GAME)).toBeNull()
+  })
+
+  it('rejects a code the server could not have minted', () => {
+    const stored = (code: string) =>
+      window.sessionStorage.setItem('room-session:ttt', JSON.stringify({ ...SESSION, code }))
+
+    stored('AB2K9')
+    expect(loadRoomSession(GAME)).toBeNull()
+    stored('AB2K9MM')
+    expect(loadRoomSession(GAME)).toBeNull()
+    stored('ABIK9M') // an excluded letter
+    expect(loadRoomSession(GAME)).toBeNull()
+    stored('AB-K9M')
+    expect(loadRoomSession(GAME)).toBeNull()
+  })
+
+  it('caps the token at the length the server issues', () => {
+    const withToken = (token: string) =>
+      window.sessionStorage.setItem('room-session:ttt', JSON.stringify({ ...SESSION, token }))
+
+    withToken('t'.repeat(MAX_TOKEN_LENGTH))
+    expect(loadRoomSession(GAME)?.token).toHaveLength(MAX_TOKEN_LENGTH)
+
+    withToken('t'.repeat(MAX_TOKEN_LENGTH + 1))
+    expect(loadRoomSession(GAME)).toBeNull()
+
+    withToken('')
     expect(loadRoomSession(GAME)).toBeNull()
   })
 })

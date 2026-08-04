@@ -260,6 +260,10 @@ $marker-open: 0.74;
   /**
    * A ring around the piece just played. Sitting outside the bead rather than tinting it keeps the
    * player's own colour readable, which a wash over the top would muddy.
+   *
+   * The inset below is the widest thing the board paints, so `MARKED_BEAD_RATIO` in `engine/geometry.ts`
+   * carries the same figure to size each view's box. Change one and change the other, or the ring is
+   * cropped off the top and bottom rows.
    */
   .cell[data-last] &::after {
     content: '';

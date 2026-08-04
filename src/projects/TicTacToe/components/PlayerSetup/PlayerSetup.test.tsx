@@ -102,3 +102,40 @@ describe('PlayerSetup', () => {
     expect(props.onRecolour).toHaveBeenCalledWith(Player.one, PLAYER_COLOURS[1].rgb)
   })
 })
+
+/** Online there is only your own row, and the colour to avoid is the opponent's rather than the row below. */
+describe('PlayerSetup — one seat of your own', () => {
+  it('shows only your row, under a label of its own', () => {
+    renderSetup({ ownSlot: Player.one, ownLabel: gameCopy.online.yourNameLabel })
+
+    expect(screen.getByLabelText(gameCopy.online.yourNameLabel)).toBeTruthy()
+    expect(screen.queryByLabelText(gameCopy.nameLabel(2))).toBeNull()
+  })
+
+  it('rules out the colour the opponent has taken', () => {
+    const theirs = PLAYER_COLOURS[4]
+    renderSetup({
+      ownSlot: Player.one,
+      ownLabel: gameCopy.online.yourNameLabel,
+      reservedColour: theirs.rgb,
+    })
+
+    expect(
+      swatchFor(NAMES.one, gameCopy.colourTakenLabel(theirs.name)).hasAttribute('disabled')
+    ).toBe(true)
+  })
+
+  /**
+   * Regression: with nobody in the other seat the fallback ruled out the second local row's colour, so one
+   * of the six was unreachable and announced as "taken by the other player" with no other player there.
+   */
+  it('leaves every colour open while you are waiting alone', () => {
+    renderSetup({ ownSlot: Player.one, ownLabel: gameCopy.online.yourNameLabel })
+
+    const group = screen.getByRole('radiogroup', { name: gameCopy.colourLabel(NAMES.one) })
+    const swatches = within(group).getAllByRole('radio')
+
+    expect(swatches).toHaveLength(PLAYER_COLOURS.length)
+    expect(swatches.some((swatch) => swatch.hasAttribute('disabled'))).toBe(false)
+  })
+})

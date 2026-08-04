@@ -1,4 +1,5 @@
 import { apiRoutes, apiUrl, fetchJson, postJsonFor } from '../api/api'
+import { isRecord } from '../utils/is-record'
 import {
   MoveResult,
   Outcome,
@@ -19,9 +20,6 @@ const roomPath = (code: string) => `${apiRoutes.rooms}/${encodeURIComponent(code
 /** Identifies the reader to the room, which is what keeps their seat counted as present. */
 const seatHeader = (token: string) => ({ 'X-Seat-Token': token })
 
-const isRecord = (raw: unknown): raw is Record<string, unknown> =>
-  typeof raw === 'object' && raw !== null
-
 const isStatus = (value: unknown): value is RoomStatus =>
   typeof value === 'string' && (Object.values(RoomStatus) as string[]).includes(value)
 
@@ -41,6 +39,10 @@ const isNumberOrNull = (value: unknown): value is number | null =>
 
 const isStringOrNull = (value: unknown): value is string | null =>
   value === null || typeof value === 'string'
+
+/** A field a server may leave out entirely, as opposed to one it sends as null. */
+const isMissingOrStringOrNull = (value: unknown): value is string | null | undefined =>
+  value === undefined || isStringOrNull(value)
 
 const isSeatInfo = (raw: unknown): raw is SeatInfo =>
   isRecord(raw) &&
@@ -83,7 +85,8 @@ const isMoveResult = (raw: unknown): raw is MoveResult =>
   isWireMoves(raw.moves) &&
   isStatus(raw.status) &&
   isOutcome(raw.outcome) &&
-  isSeatOrNull(raw.winnerSeat)
+  isSeatOrNull(raw.winnerSeat) &&
+  isMissingOrStringOrNull(raw.turnEndsAt)
 
 export function createRoom(
   gameId: string,
@@ -109,13 +112,14 @@ export function createRoom(
 /**
  * Joins whoever is waiting for this game, or opens a room and waits when nobody is.
  *
- * The options only take effect on the room it opens: joining somebody means playing by theirs.
+ * The options only take effect on the room it opens: joining somebody means playing by theirs. `isOpen`
+ * is not among them — a matchmade room is always open, which is the whole point of being found in one.
  */
 export function matchmake(
   gameId: string,
   profile: SeatProfile,
   cellCount: number,
-  options: RoomOptions = {}
+  options: Pick<RoomOptions, 'firstSeat' | 'moveLimitSeconds'> = {}
 ): Promise<RoomCredentials> {
   return postJsonFor(
     `${apiRoutes.rooms}/matchmake`,
@@ -162,25 +166,28 @@ export function leaveRoom(code: string, token: string): Promise<RoomState> {
  *
  * The server allows it only before the game starts and only from the seat that opened the room, so the
  * terms are not one side's to rewrite once both players are in.
+ *
+ * The endpoint replaces all three settings at once, so the whole triple is required: a partial object
+ * would quietly reset whatever it omitted.
  */
 export function updateSettings(
   code: string,
   token: string,
-  options: RoomOptions
+  options: Required<RoomOptions>
 ): Promise<RoomState> {
   return postJsonFor(
     `${roomPath(code)}/settings`,
     {
       token,
-      firstSeat: options.firstSeat ?? Seat.first,
-      isOpen: options.isOpen ?? false,
-      moveLimitSeconds: options.moveLimitSeconds ?? null,
+      firstSeat: options.firstSeat,
+      isOpen: options.isOpen,
+      moveLimitSeconds: options.moveLimitSeconds,
     },
     isRoomState
   )
 }
 
-/** Clears the board and begins play. Either player may, once both are present. */
+/** Clears the board and begins play. Only the player who opened the room may, once both are present. */
 export function startGame(code: string, token: string): Promise<RoomState> {
   return postJsonFor(`${roomPath(code)}/start`, { token }, isRoomState)
 }

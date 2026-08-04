@@ -44,6 +44,19 @@ describe('room-code', () => {
     expect(parse({ room: 'AB-K9M' })).toBeNull()
   })
 
+  it('rejects the letters and digits the server leaves out of its alphabet', () => {
+    // I/L/O/0/1 are the ones that get misread, so the server never mints them and a link carrying
+    // them was mistyped or made up.
+    expect(parse({ room: 'ILO011' })).toBeNull()
+    expect(parse({ room: 'ABIK9M' })).toBeNull()
+    expect(parse({ room: 'ABLK9M' })).toBeNull()
+    expect(parse({ room: 'ABOK9M' })).toBeNull()
+    expect(parse({ room: 'AB0K9M' })).toBeNull()
+    expect(parse({ room: 'AB1K9M' })).toBeNull()
+    // Lower case is fine — the field uppercases — but not as a way to smuggle an excluded letter in.
+    expect(parse({ room: 'abik9m' })).toBeNull()
+  })
+
   it('builds an absolute invite url carrying the code', () => {
     const url = roomInviteUrl(CODE)
     expect(url.startsWith(`${window.location.origin}${window.location.pathname}`)).toBe(true)

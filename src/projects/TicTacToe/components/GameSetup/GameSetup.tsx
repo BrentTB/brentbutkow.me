@@ -18,7 +18,7 @@ interface GameSetupProps {
   started: boolean
   /** Locks the opponent choice, for when switching away would walk out of a room mid-game. */
   modeLocked?: boolean
-  /** Says why the choice is locked, so a disabled control is not a dead end. */
+  /** Says why the choice is locked. Shown as text, so touch and screen readers get it too. */
   modeLockedReason?: string
   /** Whether a tap online plays the move or only aims it. This player's preference, not the room's. */
   commit: MoveCommit
@@ -50,7 +50,14 @@ export function GameSetup({
   const solo = mode === GameMode.onePlayer
   const online = mode === GameMode.online
 
-  const modeKeys = useRovingRadio(MODES, mode, onModeChange)
+  /* The lock travels into the keyboard handling as well as onto the buttons: arrow keys that selected a
+     locked option took the switch the mouse was refused, which online means walking out of a live game. */
+  const modeKeys = useRovingRadio(
+    MODES,
+    mode,
+    onModeChange,
+    (option) => modeLocked && option !== mode
+  )
   const difficultyKeys = useRovingRadio(DIFFICULTIES, difficulty, onDifficultyChange)
   const starterKeys = useRovingRadio(STARTERS, starter, onStarterChange)
   const commitKeys = useRovingRadio(COMMITS, commit, onCommitChange)
@@ -82,6 +89,12 @@ export function GameSetup({
           ))}
         </div>
       </div>
+
+      {/* The reason as text, not only as a tooltip: there is no hover on a phone, and a disabled button
+          is out of the accessibility tree, so the tooltip reached nobody who needed it. */}
+      {modeLocked && modeLockedReason !== undefined && (
+        <p className={styles.note}>{modeLockedReason}</p>
+      )}
 
       {/* Online has no undo, so a mis-tap is permanent. This is the way out of that, and it is yours
           alone: your opponent only ever sees a move you sent. */}

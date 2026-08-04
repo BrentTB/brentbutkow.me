@@ -1,4 +1,6 @@
+import { isRecord } from '../utils/is-record'
 import { Seat } from './multiplayer.types'
+import { ROOM_CODE_PATTERN } from './room-code'
 
 /**
  * The seat you are holding, kept so a reload puts you back in it.
@@ -19,15 +21,19 @@ export interface RoomSession {
 
 const key = (gameId: string) => `room-session:${gameId}`
 
-const isSession = (raw: unknown): raw is RoomSession => {
-  if (typeof raw !== 'object' || raw === null) return false
-  const value = raw as Record<string, unknown>
-  return (
-    typeof value.code === 'string' &&
-    typeof value.token === 'string' &&
-    (value.seat === Seat.first || value.seat === Seat.second)
-  )
-}
+/** The longest token the server issues. A longer one could not have come from it. */
+export const MAX_TOKEN_LENGTH = 128
+
+// Storage is untrusted input: another script on the origin can write anything here, so the restored
+// session is held to the same shape the server could have issued rather than to `string` alone.
+const isSession = (raw: unknown): raw is RoomSession =>
+  isRecord(raw) &&
+  typeof raw.code === 'string' &&
+  ROOM_CODE_PATTERN.test(raw.code) &&
+  typeof raw.token === 'string' &&
+  raw.token.length > 0 &&
+  raw.token.length <= MAX_TOKEN_LENGTH &&
+  (raw.seat === Seat.first || raw.seat === Seat.second)
 
 export function saveRoomSession(gameId: string, session: RoomSession): void {
   try {

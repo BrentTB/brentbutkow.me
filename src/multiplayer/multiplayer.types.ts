@@ -9,7 +9,14 @@ export const RoomStatus = {
 } as const
 export type RoomStatus = (typeof RoomStatus)[keyof typeof RoomStatus]
 
-/** How a finished game ended. The server decides a timeout or a forfeit; the client reports the rest. */
+/**
+ * How a finished game ended. The server decides a timeout or a forfeit; the client reports the rest.
+ *
+ * A win or a draw is therefore whatever a client claimed, unverified — the server does not know the
+ * game's rules. Fine for showing two players a result they both watched happen; never sound enough to
+ * stand behind a leaderboard, an unlock, or anything else a stranger could inflate. Same for
+ * `winnerSeat`.
+ */
 export const Outcome = {
   win: 'win',
   draw: 'draw',
@@ -45,12 +52,15 @@ export interface RoomOptions {
   firstSeat?: Seat
   /** Whether a stranger looking for a game may be dropped in here. */
   isOpen?: boolean
-  /** How long each move may take before that player loses on time. Omitted means no clock. */
+  /**
+   * How long each move may take before that player loses on time. Omitted or null means no clock.
+   * The server accepts 5 seconds to 86400 (a day) and rejects anything outside that window.
+   */
   moveLimitSeconds?: number | null
 }
 
-// A game's move as the wire integer the server exchanges, and back. The reserved value -1 is a pass,
-// for games that allow it; placement games never emit it.
+// A game's move as the wire integer the server exchanges, and back. The room bounds a wire move to
+// `[0, cellCount)`, so a codec maps onto a cell index rather than inventing sentinels.
 export interface MoveCodec<Move> {
   toWire(move: Move): number
   fromWire(wire: number): Move
@@ -93,4 +103,9 @@ export interface MoveResult {
   status: RoomStatus
   outcome: Outcome | null
   winnerSeat: Seat | null
+  /**
+   * The next player's deadline, so the clock restarts on the move rather than on the next poll.
+   * Null when no clock is running; absent from an older server that does not send it.
+   */
+  turnEndsAt?: string | null
 }

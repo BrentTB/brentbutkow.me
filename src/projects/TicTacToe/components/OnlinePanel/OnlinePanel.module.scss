@@ -24,15 +24,10 @@
 }
 
 .action {
-  padding: 8px 12px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  @include panel-button;
   background: rgba(var(--accent-rgb), 0.92);
   color: var(--on-accent);
-  font: inherit;
-  font-size: 0.82rem;
   font-weight: 600;
-  cursor: pointer;
   transition:
     background 160ms ease,
     opacity 160ms ease;
@@ -44,11 +39,6 @@
   &:disabled {
     opacity: 0.5;
     cursor: default;
-  }
-
-  &:focus-visible {
-    outline: 2px solid rgba(var(--accent-rgb), 0.9);
-    outline-offset: 2px;
   }
 }
 
@@ -78,14 +68,9 @@
 
 /* The quieter twin of .action: same shape, no fill, for the step beside the main one. */
 .secondary {
-  padding: 8px 12px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  @include panel-button;
   background: transparent;
   color: var(--text-secondary);
-  font: inherit;
-  font-size: 0.82rem;
-  cursor: pointer;
   transition:
     color 160ms ease,
     border-color 160ms ease;
@@ -94,81 +79,6 @@
     color: var(--text);
     border-color: var(--border-strong);
   }
-
-  &:focus-visible {
-    outline: 2px solid rgba(var(--accent-rgb), 0.9);
-    outline-offset: 2px;
-  }
-}
-
-/* The settings sit over the board rather than in the column: they are a question to answer and put
-   away, and half of them change how the next game plays. */
-.backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 70;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  background: rgba(4, 5, 8, 0.62);
-}
-
-.dialog {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  width: min(22rem, 100%);
-  padding: 16px 18px 18px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
-}
-
-.dialogActions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-/* Room settings: label on the left, choices on the right, matching the Game panel above. */
-.settingRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding: 7px 0;
-  border-top: 1px solid var(--border);
-}
-
-.segmented {
-  @include segmented-pills;
-}
-
-.toggleRow {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 7px 0;
-  border-top: 1px solid var(--border);
-  cursor: pointer;
-
-  input {
-    margin-top: 2px;
-    accent-color: rgba(var(--accent-rgb), 0.92);
-    cursor: pointer;
-  }
-}
-
-.toggleText {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  color: var(--text-secondary);
-  font-size: 0.8rem;
 }
 
 .hint {
@@ -187,7 +97,7 @@
   letter-spacing: 0.04em;
 
   &[data-low] {
-    color: rgb(var(--danger-rgb, 226, 122, 142));
+    color: rgb(var(--danger-rgb));
     font-weight: 600;
   }
 }
@@ -227,8 +137,7 @@
   text-transform: uppercase;
 
   &:focus-visible {
-    outline: 2px solid rgba(var(--accent-rgb), 0.9);
-    outline-offset: 1px;
+    @include focus-ring(1px);
   }
 }
 
@@ -245,31 +154,8 @@
 
 /* Small enough to sit on the code's line without competing with it, but still clearly a button. */
 .copy {
+  @include quiet-pill(0.74rem, 5px 10px);
   margin-left: auto;
-  padding: 5px 10px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--surface);
-  color: var(--text-secondary);
-  font: inherit;
-  font-size: 0.74rem;
-  white-space: nowrap;
-  cursor: pointer;
-  transition:
-    background 160ms ease,
-    color 160ms ease,
-    border-color 160ms ease;
-
-  &:hover {
-    color: var(--text);
-    border-color: var(--border-strong);
-    background: var(--surface-strong);
-  }
-
-  &:focus-visible {
-    outline: 2px solid rgba(var(--accent-rgb), 0.9);
-    outline-offset: 2px;
-  }
 }
 
 .code {
@@ -306,9 +192,12 @@
   box-shadow: 0 0 8px rgba(var(--seat-rgb), 0.45);
 }
 
+/* A name is a stranger's to choose, so it wraps inside the row rather than pushing the row wider. */
 .seatName {
+  min-width: 0;
   color: var(--text-secondary);
   font-size: 0.82rem;
+  overflow-wrap: anywhere;
 }
 
 /* A seat whose player has gone: dimmed, so the list shows who is actually here at a glance. */
@@ -340,46 +229,21 @@
  * muted text was easy to miss altogether, and had no focus ring for anyone using a keyboard.
  */
 .leave {
+  @include quiet-pill;
   align-self: flex-start;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   margin-top: 4px;
-  padding: 5px 12px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--surface);
-  color: var(--text-secondary);
-  font: inherit;
-  font-size: 0.76rem;
-  cursor: pointer;
-  transition:
-    background 160ms ease,
-    color 160ms ease,
-    border-color 160ms ease;
 
-  &:hover {
-    color: var(--text);
-    border-color: var(--border-strong);
-    background: var(--surface-strong);
+  svg {
+    flex: none;
   }
-
-  &:focus-visible {
-    outline: 2px solid rgba(var(--accent-rgb), 0.9);
-    outline-offset: 2px;
-  }
-}
-
-/* The door the label is talking about: an arrow leaving a bracket, at text size. */
-.leaveIcon {
-  width: 0.85em;
-  height: 0.85em;
-  flex: none;
 }
 
 .error {
   margin: 0;
-  color: rgba(var(--danger-rgb, 226, 122, 142), 1);
+  color: rgb(var(--danger-rgb));
   font-size: 0.76rem;
 }
 

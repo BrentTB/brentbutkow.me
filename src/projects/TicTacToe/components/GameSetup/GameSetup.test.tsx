@@ -104,6 +104,48 @@ describe('GameSetup', () => {
     expect(option(DIFFICULTY_LABELS[Difficulty.easy]).tabIndex).toBe(-1)
   })
 
+  /**
+   * Regression: while a room is open, every other opponent is locked, and the arrow keys used to take the
+   * switch anyway — the one action the disabled buttons exist to prevent. Online that leaves the room, and
+   * mid-game the server reads a leave as a forfeit.
+   */
+  it('refuses the arrow keys on a locked opponent choice', () => {
+    const props = renderSetup({
+      mode: GameMode.online,
+      modeLocked: true,
+      modeLockedReason: gameCopy.online.modeLocked,
+    })
+    const online = option(MODE_LABELS[GameMode.online])
+
+    fireEvent.keyDown(online, { key: 'ArrowLeft' })
+    fireEvent.keyDown(online, { key: 'ArrowRight' })
+    fireEvent.keyDown(online, { key: 'Home' })
+    fireEvent.keyDown(online, { key: 'End' })
+
+    expect(props.onModeChange).not.toHaveBeenCalled()
+  })
+
+  /**
+   * A tooltip on a disabled button reaches nobody: there is no hover on a phone, and a disabled control is
+   * out of the accessibility tree. The reason has to be on the page.
+   */
+  it('says why the opponent choice is locked, in text as well as the tooltip', () => {
+    renderSetup({ mode: GameMode.online })
+    expect(screen.queryByText(gameCopy.online.modeLocked)).toBeNull()
+
+    cleanup()
+    renderSetup({
+      mode: GameMode.online,
+      modeLocked: true,
+      modeLockedReason: gameCopy.online.modeLocked,
+    })
+
+    expect(screen.getByText(gameCopy.online.modeLocked)).toBeTruthy()
+    expect(option(MODE_LABELS[GameMode.onePlayer]).getAttribute('title')).toBe(
+      gameCopy.online.modeLocked
+    )
+  })
+
   it('moves the difficulty with the arrow keys', () => {
     const props = renderSetup({ difficulty: Difficulty.medium })
 

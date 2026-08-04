@@ -1,9 +1,9 @@
 import { RefObject, useEffect, useRef } from 'react'
 
-/** Anything a keyboard can land on inside a panel. Enough for dialogs that hold no links. */
-const FOCUSABLE = 'button, input, select, textarea, [tabindex]:not([tabindex="-1"])'
+/** Anything a keyboard can land on inside a panel. */
+const FOCUSABLE = 'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])'
 
-export type DialogChrome = {
+type DialogChrome = {
   /** Put this on the panel: the Tab trap reads its contents. */
   panelRef: RefObject<HTMLDivElement>
 }
@@ -13,9 +13,9 @@ export type DialogChrome = {
  * panel instead of wandering onto the world behind it, focus starts inside on open and goes back to
  * whatever opened it on close.
  *
- * `onClose` is read through a ref rather than depended on, because the page re-renders about ten times a
- * second as the readout ticks and hands down a fresh callback each time. Depending on it re-ran this effect
- * constantly and yanked focus back to the first control mid-interaction.
+ * `onClose` is read through a ref rather than depended on. A page behind a dialog may re-render many times
+ * a second — a ticking clock or readout is enough — handing down a fresh callback each time. Depending on
+ * it re-ran this effect constantly and yanked focus back to the first control mid-interaction.
  */
 export function useDialogChrome(
   onClose: () => void,

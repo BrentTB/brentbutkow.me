@@ -64,14 +64,21 @@ export type SearchResult = {
   nodes: number
 }
 
-/** Forced replies on their own; otherwise the best-looking handful, to keep the branching in hand. */
+/**
+ * Forced replies on their own; otherwise the best-looking handful, to keep the branching in hand.
+ *
+ * The cap lifts once the board is down to the cells the tail search plays out exhaustively. Capping there
+ * would make `exact` a lie: a forced win ranked past the cap would never be looked at, while the result
+ * still claimed the rest of the tree had been played out.
+ */
 export function candidates(board: Board, player: Player): number[] {
   const ordered = orderedMoves(board, player)
   if (ordered.length <= 1) return ordered
 
   const forced =
     winningMoves(board, player).length > 0 || winningMoves(board, opponentOf(player)).length > 0
-  return forced ? ordered : ordered.slice(0, BRANCHING_CAP)
+  if (forced || ordered.length <= EXACT_SEARCH_CELLS) return ordered
+  return ordered.slice(0, BRANCHING_CAP)
 }
 
 /**
@@ -80,8 +87,10 @@ export function candidates(board: Board, player: Player): number[] {
  * can answer with a proved win is struck off before the ordinary search ever weighs it.
  *
  * If every move loses to a chain, the position is lost whatever is played, so the full list is kept and
- * the search picks the longest resistance. Running out of budget leaves the list untouched for the same
- * reason: a filter that half-ran would drop good moves on no evidence.
+ * the search picks the longest resistance. Running out of budget part-way keeps what was proved safe plus
+ * everything not yet looked at, and drops only the moves already proved to lose: the moves it never
+ * reached have no evidence against them, but the ones it did are not worth reconsidering — the first of
+ * them is what gets played if the opening deepening pass never finishes.
  */
 function safeCandidates(
   board: Board,
@@ -95,14 +104,14 @@ function safeCandidates(
   const them = opponentOf(player)
   const cutoff = Math.min(deadline, now() + FORCED_LOSS_SLICE_MS)
   const safe: number[] = []
-  for (const move of ranked) {
-    if (now() >= cutoff) return ranked // unfinished filter proves nothing; trust the ordering instead
-    const forcedLoss = hasForcedWin(applyMove(board, move, player), them, {
+  for (let index = 0; index < ranked.length; index++) {
+    if (now() >= cutoff) return [...safe, ...ranked.slice(index)]
+    const forcedLoss = hasForcedWin(applyMove(board, ranked[index], player), them, {
       now,
       deadline: cutoff,
       maxDepth: FORCED_CHAIN_DEPTH,
     })
-    if (!forcedLoss) safe.push(move)
+    if (!forcedLoss) safe.push(ranked[index])
   }
   return safe.length > 0 ? safe : ranked
 }
@@ -181,10 +190,11 @@ export function findBestMove(
   const exhaustive = free.length <= EXACT_SEARCH_CELLS
 
   /* Threat-space search only earns its keep while the ordinary search is depth-limited. Once few enough
-     cells remain the rest of the tree is played out exactly, so every forced win and loss is already
-     seen. Above that, a proved chain beats any heuristic: look for the attacker's win, then strike off
-     any move that would hand the same to the opponent. Both exit at once on a board with no threats to
-     build from, which is most of them, so the common case pays almost nothing. */
+     cells remain the rest of the tree is played out to the end over an uncapped candidate list, so every
+     forced win and loss is already seen. Above that, a proved chain beats any heuristic: look for the
+     attacker's win, then strike off any move that would hand the same to the opponent. Both exit at once
+     on a board with no threats to build from, which is most of them, so the common case pays almost
+     nothing. */
   if (!exhaustive) {
     const forcedWin = findForcedWin(board, player, {
       now,
@@ -192,7 +202,9 @@ export function findBestMove(
       maxDepth: FORCED_CHAIN_DEPTH,
     })
     if (forcedWin !== null) {
-      return { move: forcedWin, score: WIN_VALUE, depth: FORCED_CHAIN_DEPTH, exact: true, nodes: 1 }
+      /* Zero rather than a figure invented for the shape of the result: the chain was proved by the
+         threat-space pass, which reports neither how long it turned out to be nor what it cost. */
+      return { move: forcedWin, score: WIN_VALUE, depth: 0, exact: true, nodes: 0 }
     }
   }
 

@@ -70,13 +70,14 @@ export function fanGapFor(pitch: number, ratio = PLATE_GAP_RATIO): number {
 }
 
 /**
- * Spacings of height the fanned deck occupies: three layer gaps, one plate, and half a bead of overhang
- * at each end, since `BEAD_RATIO` is a diameter. Derived rather than hand-tuned, so retuning the pitch or
- * the gap cannot leave a stale figure behind and reintroduce dead space.
+ * Spacings of height the fanned deck occupies: three layer gaps, one plate, and half of
+ * `MARKED_BEAD_RATIO` of overhang at each end, since that is a full width. The overhang is measured by the
+ * ringed bead because it is the widest thing the board draws and the deck is clipped to this height.
+ * Derived rather than hand-tuned, so retuning the pitch or the gap cannot leave a stale figure behind and
+ * reintroduce dead space.
  *
  * A plate spans the three steps between its four rows, not four of them: counting the extra step left a
- * band of empty space above the top plate, which is expensive in a mode whose whole point is height. The
- * overhang is the ringed bead, the widest thing the board draws, since the deck is clipped to this height.
+ * band of empty space above the top plate, which is expensive in a mode whose whole point is height.
  */
 export function fanHeightUnits(pitch: number, gap: number): number {
   const radians = toRadians(pitch)
@@ -84,24 +85,29 @@ export function fanHeightUnits(pitch: number, gap: number): number {
 }
 
 /**
- * Spacings of height the cube needs at any camera angle, so turning it cannot push a bead out of the box.
+ * How much of the worst-case extent the height budget actually books, below 1 on purpose.
+ *
+ * The worst case only shows up at extreme pitch: around 54° the cube needs about 6.49 spacings, while at
+ * the 16° default it needs about 5.35. Budgeting for the worst case would leave more than a bead of dead
+ * band above and below the cube at every angle anyone reads the board from, in a box whose height is the
+ * scarce dimension. So the budget is trimmed to sit above the ordinary angles and below the extremes: drag
+ * the cube to a near-vertical pitch and the outer beads crop slightly. That is the accepted trade — this
+ * is not headroom, and raising it past 1 buys back the crop by paying in dead space.
+ */
+const ORBIT_EXTENT_TRIM = 0.9
+
+/**
+ * Spacings of height the cube is given, across the camera angles it is read from.
  *
  * The board is dragged freely, and the vertical extent depends on where it is pointed: half the stack
  * (`gap` per layer) leans by cos(pitch) while half the depth leans by sin(pitch), and the depth is widest
  * at a 45° yaw, where the cube presents its diagonal. Maximised over pitch that sum is the hypotenuse of
- * the two, which is where the closed form below comes from. Zoom is left out on purpose: pinched in past
- * 1×, the scene is meant to run past its box.
- *
- * `PERSPECTIVE_HEADROOM` covers what the closed form cannot: perspective magnifies whichever row is
- * nearest, by an amount that depends on the angle, and the projection is not centred in the box at every
- * angle either. A generous flat allowance beats a formula here, since the cost of being wrong is a bead
- * sliced in half at some angle nobody thought to check.
+ * the two, which is the closed form below, trimmed by `ORBIT_EXTENT_TRIM`. Zoom is left out on purpose:
+ * pinched in past 1×, the scene is meant to run past its box.
  */
-const PERSPECTIVE_HEADROOM = 0.9
-
 export function orbitHeightUnits(gap: number, overhang = MARKED_BEAD_RATIO): number {
   const half = (BOARD_SIZE - 1) / 2
-  return 2 * Math.hypot(half * gap, half * Math.SQRT2) * PERSPECTIVE_HEADROOM + overhang
+  return 2 * Math.hypot(half * gap, half * Math.SQRT2) * ORBIT_EXTENT_TRIM + overhang
 }
 
 const FAN_GAP = fanGapFor(FAN_PITCH)
@@ -144,9 +150,9 @@ export const VIEW_LAYOUTS: Record<ViewMode, ViewLayout> = {
     gap: ORBIT_GAP,
     fan: 0,
     perspective: 1500,
-    /* Widest at a 45° yaw, where the cube presents its diagonal: 4·(cos+sin) plus a bead. Height is the
-       worst case over every angle the board can be dragged to, since a budget fitted to the default
-       camera clipped beads as soon as the cube was turned. */
+    /* Widest at a 45° yaw, where the cube presents its diagonal: 4·(cos+sin) plus a bead. Height covers
+       the angles the board is read from rather than the default camera alone, since a budget fitted to
+       the default clipped beads as soon as the cube was turned. */
     widthUnits: 6.2,
     heightUnits: orbitHeightUnits(ORBIT_GAP),
     lift: 0,

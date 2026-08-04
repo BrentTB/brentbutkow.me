@@ -36,7 +36,7 @@ import {
 } from './online'
 import { GameSetup } from './components/GameSetup/GameSetup'
 import { OnlinePanel } from './components/OnlinePanel/OnlinePanel'
-import { applyMove, isBoardFull } from './engine/board'
+import { applyMove, isBoardFull, opponentOf } from './engine/board'
 import { deckHeight, spacingFor } from './engine/geometry'
 import { findWinningLine, lineShape } from './engine/lines'
 import { useCamera } from './useCamera'
@@ -102,7 +102,15 @@ function retitle(
   return next
 }
 
-export function TicTacToe() {
+interface TicTacToeProps {
+  /**
+   * Seeds the computer's choices. Left out, a fresh seed is drawn per session so it does not replay the
+   * same game every time; a test pins it so the game it plays is the same one on every run.
+   */
+  computerSeed?: number
+}
+
+export function TicTacToe({ computerSeed }: TicTacToeProps = {}) {
   const { isFunMode } = useFunMode()
   const isTouch = useMediaQuery(TOUCH_QUERY)
   const viewportHeight = useViewportHeight()
@@ -153,6 +161,9 @@ export function TicTacToe() {
   const wasInRoomRef = useRef(false)
   if (room.connection === Connection.connected) wasInRoomRef.current = true
 
+  /* The room whose seat has already been settled into, so the effect below runs once per room. */
+  const adoptedRef = useRef<string | null>(null)
+
   /* A code prefilled from an invite link, and the switch into online mode that an invite implies. The
      link carries only the code: this page already says which game it is, and you pick your own colour.
 
@@ -182,6 +193,9 @@ export function TicTacToe() {
   useEffect(() => {
     if (!leftRoom) return
     wasInRoomRef.current = false
+    /* Rejoining is a fresh settlement, even of the same room: coming back into the other seat has to make
+       you that seat's player rather than leaving both screens showing Player 1. */
+    adoptedRef.current = null
     setInviteCode(null)
     /* A name and colour the room handed you belong to that room: the seat default and the colour picked
        around an opponent both go back, so a local game afterwards is Player 1 in Player 1's colour
@@ -205,7 +219,9 @@ export function TicTacToe() {
   /* One generator for the whole session, so the computer does not replay the same game every time. Seeded
      lazily: passing the seed straight to `useRef` would draw a fresh one on every render and discard it. */
   const computerRng = useRef<Rng>()
-  if (!computerRng.current) computerRng.current = seededRng(Math.floor(Math.random() * 2 ** 31))
+  if (!computerRng.current) {
+    computerRng.current = seededRng(computerSeed ?? Math.floor(Math.random() * 2 ** 31))
+  }
   const stageRef = useRef<HTMLDivElement>(null)
   const railRef = useRef<HTMLDivElement>(null)
   const stage = useElementSize(stageRef)
@@ -301,28 +317,38 @@ export function TicTacToe() {
    * pause plays *its* move for it: the bead lands in the computer's colour, the turn comes straight
    * back, and the reply it had already chosen is dropped along with the pending timer.
    */
+  /* A move already on its way out also closes the board. Without it a second tap during the round trip
+     sent the same turn twice, and the server's rejection of the second reads as "the board moved on". */
+  const [sending, setSending] = useState(false)
+
   const locked = isOnline
-    ? !room.isMyTurn
+    ? !room.isMyTurn || sending
     : isThinking || (computer !== null && currentPlayer === computer)
 
   /** Sends a move to the room. The server cannot judge the board, so a winning move says so itself. */
+  const submitMove = room.submit
   const sendMove = useCallback(
-    (index: number) => {
+    async (index: number) => {
       const after = applyMove(board, index, currentPlayer)
       const won = findWinningLine(after, currentPlayer) !== null
       setPending(null)
-      void room.submit(index, won || isBoardFull(after), won)
+      setSending(true)
+      try {
+        await submitMove(index, won || isBoardFull(after), won)
+      } finally {
+        setSending(false)
+      }
     },
-    [board, currentPlayer, room]
+    [board, currentPlayer, submitMove]
   )
 
   const confirming = isOnline && commit === MoveCommit.confirm
 
-  /* A pending move belongs to one turn on one board. Anything that ends that turn drops it: the move
-     landing, the opponent's reply, a game ending or starting, and switching the setting back off. */
+  /* A pending move belongs to one turn on one board, and everything that ends that turn shows up as the
+     board locking: the move landing, the opponent's reply, a game ending or starting. */
   useEffect(() => {
     if (!confirming || locked) setPending(null)
-  }, [confirming, locked, room.version, room.status])
+  }, [confirming, locked])
 
   const handlePlay = useCallback(
     (index: number, fromKeyboard: boolean) => {
@@ -335,11 +361,11 @@ export function TicTacToe() {
         // Confirming: the first press aims, a second press on the same cell sends it. Aiming elsewhere
         // just moves the ghost, so a mis-tap costs nothing.
         if (confirming) {
-          if (pending === index) sendMove(index)
+          if (pending === index) void sendMove(index)
           else setPending(index)
           return
         }
-        sendMove(index)
+        void sendMove(index)
         return
       }
       playAt(index)
@@ -362,8 +388,13 @@ export function TicTacToe() {
     setPlayers((current) => ({ ...current, [slot]: { ...current[slot], name } }))
   }, [])
 
+  /* Held in a room: switching away from online would leave it, which mid-game is a forfeit. The controls
+     say so as well, but the guard belongs here too — this is the one place the switch happens. */
+  const modeLocked = isOnline && room.connection !== Connection.idle
+
   const changeGameMode = useCallback(
     (next: GameMode) => {
+      if (modeLocked && next !== gameMode) return
       setGameMode(next)
       setPlayers((current) => retitle(current, computerSeat(next, starter)))
       // Entering online starts from a clean board; the room fills it from the server as moves confirm.
@@ -372,7 +403,7 @@ export function TicTacToe() {
         setPickedLayer(null)
       }
     },
-    [newGame, starter]
+    [gameMode, modeLocked, newGame, starter]
   )
 
   const changeStarter = useCallback(
@@ -409,11 +440,9 @@ export function TicTacToe() {
   /* Online you edit one identity, always held in the first local slot, whichever seat the room gives
      you. Tying it to the seat instead would throw away the name you typed before joining, the moment
      joining made you the second player. The board reads its colours from the room, not from here. */
-  const mySlot = Player.one
-
   const myProfile = useMemo(
-    () => ({ name: displayNames[mySlot], colour: players[mySlot].rgb }),
-    [displayNames, mySlot, players]
+    () => ({ name: displayNames[Player.one], colour: players[Player.one].rgb }),
+    [displayNames, players]
   )
 
   /* The opponent's colour, so the swatch list can rule it out. Theirs to choose, not yours to reuse. */
@@ -423,11 +452,10 @@ export function TicTacToe() {
      sets of beads, so the second seat moves off it. The replacement also avoids the other local slot's
      colour, so stepping back out of the room does not leave a local game in one colour. */
   useEffect(() => {
-    if (!isOnline || !yieldsColour(room.mySeat, players[mySlot].rgb, opponentColour)) return
-    const otherLocal = players[PLAYER_SLOTS[1 - PLAYER_SLOTS.indexOf(mySlot)]].rgb
-    const free = freeColour(PLAYER_COLOURS, [opponentColour, otherLocal])
-    if (free !== undefined) recolour(mySlot, free)
-  }, [isOnline, mySlot, opponentColour, players, recolour, room.mySeat])
+    if (!isOnline || !yieldsColour(room.mySeat, players[Player.one].rgb, opponentColour)) return
+    const free = freeColour(PLAYER_COLOURS, [opponentColour, players[Player.two].rgb])
+    if (free !== undefined) recolour(Player.one, free)
+  }, [isOnline, opponentColour, players, recolour, room.mySeat])
 
   /**
    * Settles who you are the moment you enter a room, in one place.
@@ -440,7 +468,6 @@ export function TicTacToe() {
    * Deliberately one effect: as two, the adopt half overwrote the seat-default half in the same commit,
    * and neither re-ran to settle it.
    */
-  const adoptedRef = useRef<string | null>(null)
   const mySeatEntry = room.seats.find((seat) => seat.seat === room.mySeat)
   useEffect(() => {
     if (!isOnline || room.code === null || room.mySeat === null) return
@@ -496,32 +523,46 @@ export function TicTacToe() {
      the control says what it will do rather than doing it silently. */
   const started = board.some((cell) => cell !== null)
 
+  /* The room decides who opens, and it can be changed while the board is still empty. `onReset` only
+     fires when a game actually begins, so an opening move handed to the other seat before the first one
+     has to re-open the local game here — otherwise this screen plays the opponent's beads in your colour
+     under your name, and credits the win to the wrong player. */
+  useEffect(() => {
+    if (isOnline && !started) newGame(openingPlayer(room.firstSeat))
+  }, [isOnline, started, room.firstSeat, newGame])
+
   /* An online game can end with nothing on the board to point at: the clock decides one, and walking
-     out decides another. Those verdicts come from the room, so the name is looked up by winning seat. */
-  const decidedOffBoard =
-    isOnline && (room.outcome === Outcome.timeout || room.outcome === Outcome.forfeit)
+     out decides another. Those verdicts come from the room, so the name is looked up by winning seat —
+     and with no winning seat there is nothing to say, since the player on turn is the one who just lost. */
   const winnerName =
     room.winnerSeat === null ? null : boardPlayers[playerForSeat(room.winnerSeat)].name
+  const decidedOffBoard =
+    isOnline &&
+    winnerName !== null &&
+    (room.outcome === Outcome.timeout || room.outcome === Outcome.forfeit)
 
   const shown = boardPlayers[win ? win.player : currentPlayer]
   const shownName = shown.name
+  const mySlot = room.mySeat === null ? Player.one : playerForSeat(room.mySeat)
+  const opponentName = boardPlayers[opponentOf(mySlot)].name
   const onlineWaiting =
     isOnline &&
     room.connection === Connection.connected &&
     !room.opponentPresent &&
     room.status !== RoomStatus.finished
-  const offBoardStatus =
-    room.outcome === Outcome.timeout
-      ? gameCopy.online.wonOnTime(winnerName ?? shownName)
-      : gameCopy.online.wonByDefault(winnerName ?? shownName)
   const status = decidedOffBoard
-    ? offBoardStatus
+    ? room.outcome === Outcome.timeout
+      ? gameCopy.online.wonOnTime(winnerName)
+      : gameCopy.online.wonByDefault(winnerName)
     : win
       ? gameCopy.wins(shownName)
       : isDraw
         ? gameCopy.draw
         : onlineWaiting
-          ? gameCopy.online.waiting
+          ? // An empty seat somebody walked out of is not a seat still waiting for its first player.
+            room.opponentLeft
+            ? gameCopy.online.opponentLeft(opponentName)
+            : gameCopy.online.waiting
           : isThinking
             ? gameCopy.thinking(shownName)
             : gameCopy.turn(shownName)
@@ -651,13 +692,14 @@ export function TicTacToe() {
           )}
 
           {/* The other half of confirming: a button for anyone who would rather press one than tap the
-              same cell twice, and the clock's warning where a room is running one. */}
-          {confirming && (
+              same cell twice, and the clock's warning where a room is running one. Both wait for a room:
+              with no game to aim a move at, the pair could only ever render greyed out. */}
+          {confirming && connected && (
             <div className={styles.group}>
               <button
                 type="button"
                 className={styles.button}
-                onClick={() => pending !== null && sendMove(pending)}
+                onClick={() => pending !== null && void sendMove(pending)}
                 disabled={pending === null || locked}
               >
                 <span className={styles.buttonWord}>{gameCopy.online.confirmMove}</span>
@@ -673,7 +715,7 @@ export function TicTacToe() {
             </div>
           )}
 
-          {confirming && room.moveLimitSeconds !== null && (
+          {confirming && connected && room.moveLimitSeconds !== null && (
             <p className={styles.hint}>{gameCopy.online.clockKeepsRunning}</p>
           )}
 
@@ -684,7 +726,7 @@ export function TicTacToe() {
           <GameSetup
             mode={gameMode}
             started={started}
-            modeLocked={isOnline && room.connection !== Connection.idle}
+            modeLocked={modeLocked}
             modeLockedReason={gameCopy.online.modeLocked}
             difficulty={difficulty}
             starter={starter}
@@ -701,7 +743,7 @@ export function TicTacToe() {
             players={players}
             displayNames={displayNames}
             computer={computer}
-            ownSlot={isOnline ? mySlot : null}
+            ownSlot={isOnline ? Player.one : null}
             ownLabel={isOnline ? gameCopy.online.yourNameLabel : undefined}
             reservedColour={isOnline ? opponentColour : undefined}
             onRename={rename}

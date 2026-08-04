@@ -1,3 +1,5 @@
+import { isRecord } from '../../utils/is-record'
+
 // Mirrors the backend DTOs. Derived enums — values double as runtime identifiers.
 export const RecallCategory = {
   allergen: 'allergen',
@@ -278,9 +280,6 @@ type Guard<T> = (value: unknown) => value is T
 const isString: Guard<string> = (value): value is string => typeof value === 'string'
 const isNumber: Guard<number> = (value): value is number => typeof value === 'number'
 const isBoolean: Guard<boolean> = (value): value is boolean => typeof value === 'boolean'
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null
-
 // Wrap a guard to admit null / undefined, lift it over arrays or string-keyed records, or check
 // membership in a const-object enum (its values, e.g. oneOf(RecallCategory)).
 const nullable =

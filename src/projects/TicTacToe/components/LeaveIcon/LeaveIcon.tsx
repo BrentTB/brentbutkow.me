@@ -1,13 +1,13 @@
 /**
  * An arrow stepping out through an open side: leaving the room rather than closing or deleting it. Sized
- * in `em` so it tracks whatever text it sits beside.
+ * in `em` so it tracks whatever text it sits beside, and a shade under it so the label leads.
  */
 export function LeaveIcon() {
   return (
     <svg
       viewBox="0 0 16 16"
-      width="1em"
-      height="1em"
+      width="0.85em"
+      height="0.85em"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.6"

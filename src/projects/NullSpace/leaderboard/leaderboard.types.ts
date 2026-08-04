@@ -1,3 +1,5 @@
+import { isRecord } from '../../../utils/is-record'
+
 // One row of the leaderboard. Mirrors the fields the server's ScoreOut exposes
 // that the UI actually renders.
 export type LeaderboardEntry = {
@@ -6,9 +8,6 @@ export type LeaderboardEntry = {
   score: number
   wave: number
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null
 
 // Validate the untrusted backend payload rather than casting (mirrors `isJokeType`).
 const isLeaderboardEntry = (value: unknown): value is LeaderboardEntry =>

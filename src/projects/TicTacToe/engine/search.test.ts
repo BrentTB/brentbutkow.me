@@ -23,6 +23,26 @@ const clock = (start = 0, step = 0) => {
   }
 }
 
+/**
+ * Fills the board down to about `freeCells` remaining, leaving no completed line and no forced reply for
+ * either side, so what the search does is down to the search rather than to an outright win on the board.
+ * A cell that would break that is skipped, so the count is a target rather than a promise.
+ */
+function boardWithFreeCells(freeCells: number): Board {
+  let board = createBoard()
+  let filled = 0
+  for (let index = 0; index < CELL_COUNT && filled < CELL_COUNT - freeCells; index++) {
+    const player = filled % 2 === 0 ? Player.one : Player.two
+    const next = applyMove(board, index, player)
+    if (findWinningLine(next, player)) continue
+    if (winningMoves(next, Player.one).length > 0) continue
+    if (winningMoves(next, Player.two).length > 0) continue
+    board = next
+    filled++
+  }
+  return board
+}
+
 describe('findBestMove', () => {
   it('returns nothing on a full board', () => {
     let board = createBoard()
@@ -168,19 +188,8 @@ describe('findBestMove', () => {
    * an immediate win or a forced block is answered before it, and reports `exact` on one node.
    */
   it('searches the whole remaining tree once few enough cells are free', () => {
-    // Fill all but a handful, leaving no completed line and no forced reply for either side. In this
-    // exhaustive-tail regime the threat-space passes stand down, so the full search is what answers.
-    let board = createBoard()
-    let filled = 0
-    for (let index = 0; index < CELL_COUNT && filled < CELL_COUNT - EXACT_SEARCH_CELLS; index++) {
-      const player = filled % 2 === 0 ? Player.one : Player.two
-      const next = applyMove(board, index, player)
-      if (findWinningLine(next, player)) continue
-      if (winningMoves(next, Player.one).length > 0) continue
-      if (winningMoves(next, Player.two).length > 0) continue
-      board = next
-      filled++
-    }
+    // In this exhaustive-tail regime the threat-space passes stand down, so the full search is what answers.
+    const board = boardWithFreeCells(EXACT_SEARCH_CELLS)
 
     const free = legalMoves(board).length
     expect(free).toBeLessThanOrEqual(EXACT_SEARCH_CELLS)
@@ -256,6 +265,51 @@ describe('findBestMove', () => {
   })
 })
 
+describe('candidates', () => {
+  /**
+   * Guards the cap against the exhaustive tail: down there the search plays the rest of the tree out and
+   * reports the answer as exact, which is only true if every move was on the list to begin with. A cap
+   * still biting at that point hides a forced win ranked past it behind a claim that nothing was missed.
+   */
+  it('offers every free cell once the tail is searched exhaustively', () => {
+    const board = boardWithFreeCells(EXACT_SEARCH_CELLS)
+    const free = legalMoves(board)
+
+    expect(free).toHaveLength(EXACT_SEARCH_CELLS)
+    expect(candidates(board, Player.one)).toHaveLength(free.length)
+  })
+
+  /** One cell above the tail the cap is back on, which is what it is for. */
+  it('keeps the branching capped above the exhaustive tail', () => {
+    const board = boardWithFreeCells(EXACT_SEARCH_CELLS + 1)
+    const free = legalMoves(board)
+
+    expect(free.length).toBeGreaterThan(EXACT_SEARCH_CELLS)
+    expect(candidates(board, Player.one).length).toBeLessThan(free.length)
+  })
+})
+
+/**
+ * Two fork traps for Player.two, one in each end layer: each is a two-long row and a two-long column
+ * crossing at a free cell, and no single move breaks both. Player.one has nothing on the board, so it
+ * cannot threaten its way out either.
+ */
+const doubleForkTrap = () =>
+  put(
+    createBoard(),
+    [
+      [0, 0, 0],
+      [1, 0, 0], // row in layer 0, crossing the column at (2,0,0)
+      [2, 2, 0],
+      [2, 3, 0],
+      [0, 0, 3],
+      [1, 0, 3], // the same shape in layer 3, crossing at (2,0,3)
+      [2, 2, 3],
+      [2, 3, 3],
+    ],
+    Player.two
+  )
+
 describe('findBestMove — threat-space search', () => {
   /** A proved forced win outranks any heuristic, so it is played at once and reported as exact. */
   it('plays a proved forced win ahead of the ordinary search', () => {
@@ -301,6 +355,45 @@ describe('findBestMove — threat-space search', () => {
     const result = findBestMove(board, Player.one, { budgetMs: 800, maxDepth: 2 })
     const after = applyMove(board, result?.move ?? -1, Player.one)
     expect(hasForcedWin(after, Player.two, forcedOpts)).toBe(false)
+  })
+
+  /**
+   * The product decision when the filter strikes off everything: a lost position is still played on, with
+   * the ordering picking the longest resistance, rather than the search being handed an empty list.
+   */
+  it('still plays a ranked move when every move loses to a chain', () => {
+    const board = doubleForkTrap()
+    const ranked = candidates(board, Player.one)
+
+    for (const move of ranked) {
+      expect(hasForcedWin(applyMove(board, move, Player.one), Player.two, forcedOpts)).toBe(true)
+    }
+
+    const result = findBestMove(board, Player.one, { budgetMs: 1500, maxDepth: 2 })
+    expect(ranked).toContain(result?.move)
+  })
+
+  /**
+   * Regression: a loss filter that ran out of time part-way used to hand back the whole ranked list,
+   * putting the moves it had just proved lose to a chain back in front of the search — and the first of
+   * them is exactly what gets played when no deepening pass finishes. It keeps the proved-safe moves and
+   * the tail it never examined, and only the proved losses are dropped.
+   *
+   * The clock steps fast enough that the filter's slice runs out mid-list while the deepening passes get
+   * nowhere, so the answer is the fallback and `depth` says so.
+   */
+  it('never falls back on a move it has already proved loses', () => {
+    const board = doubleForkTrap()
+    const ranked = candidates(board, Player.one)
+
+    const result = findBestMove(board, Player.one, { budgetMs: 280, now: clock(0, 8) })
+
+    expect(result?.depth).toBe(0)
+    const played = ranked.indexOf(result?.move ?? -1)
+    expect(played).toBeGreaterThan(0)
+    for (const dropped of ranked.slice(0, played)) {
+      expect(hasForcedWin(applyMove(board, dropped, Player.one), Player.two, forcedOpts)).toBe(true)
+    }
   })
 })
 

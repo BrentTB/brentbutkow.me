@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
   LINES_THROUGH_CELL,
+  PIECES_FOR_THREAT,
   Sight,
   VISIBLE_LINES,
   forkCells,
   isFork,
   readLines,
+  threatCellCounts,
   threatCells,
   threatsAfter,
   winningMoves,
@@ -190,6 +192,63 @@ describe('isFork', () => {
       Player.one
     )
     expect(isFork(board, cellIndex(2, 0, 0), Player.one)).toBe(false)
+  })
+})
+
+describe('threatCellCounts', () => {
+  /** The one walk both `threatCells` and `forkCells` are built on, so the two cannot drift apart. */
+  it('counts a cell once per near-complete line it sits on', () => {
+    const overlap = cellIndex(1, 1, 0)
+    // A row in layer 0 and a rod crossing it at the overlap, each holding two.
+    const board = place(
+      [
+        [0, 1, 0],
+        [2, 1, 0],
+        [1, 1, 1],
+        [1, 1, 2],
+      ],
+      Player.one
+    )
+
+    const counts = threatCellCounts(board, Player.one)
+    expect(counts.get(overlap)).toBe(2)
+    expect(counts.get(cellIndex(3, 1, 0))).toBe(1) // the row's other free cell threatens once
+    const ascending = (a: number, b: number) => a - b
+    expect([...counts.keys()].sort(ascending)).toEqual(
+      [...new Set(threatCells(board, Player.one))].sort(ascending)
+    )
+    expect([...counts.keys()].filter((cell) => (counts.get(cell) ?? 0) >= 2)).toEqual(
+      forkCells(board, Player.one)
+    )
+  })
+
+  it('leaves out lines the opponent has a piece on, and lines the sight cannot see', () => {
+    const overlap = cellIndex(1, 1, 0)
+    let board = place(
+      [
+        [0, 1, 0],
+        [2, 1, 0],
+        [1, 1, 1],
+        [1, 1, 2],
+      ],
+      Player.one
+    )
+    // The rod is the only line the layer-blind sight misses, so the overlap drops to a single threat.
+    expect(threatCellCounts(board, Player.one, Sight.oneLayer).get(overlap)).toBe(1)
+
+    board = place([[3, 1, 0]], Player.two, board)
+    expect(threatCellCounts(board, Player.one).get(overlap)).toBe(1) // the row is out of the running
+  })
+
+  it('finds nothing on an empty board', () => {
+    expect(threatCellCounts(createBoard(), Player.one).size).toBe(0)
+  })
+
+  /** The threshold is one short of a win, so a threat cell always leaves the line needing one more. */
+  it('counts a line only while it is one piece short of a threat', () => {
+    const board = place([[0, 0, 0]], Player.one)
+    expect(threatCellCounts(board, Player.one).size).toBe(0) // one piece is not yet PIECES_FOR_THREAT
+    expect(PIECES_FOR_THREAT).toBeLessThan(BOARD_SIZE - 1)
   })
 })
 

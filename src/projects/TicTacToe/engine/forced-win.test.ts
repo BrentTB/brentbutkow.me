@@ -1,15 +1,44 @@
 import { describe, expect, it } from 'vitest'
 import { findForcedWin, hasForcedWin } from './forced-win'
-import { applyMove, createBoard } from './board'
-import { cellIndex, findWinningLine } from './lines'
+import { applyMove, createBoard, legalMoves } from './board'
+import { CELL_COUNT, cellIndex, findWinningLine } from './lines'
 import { winningMoves } from './threats'
+import { FORCED_CHAIN_DEPTH } from './search'
 import { Board, Player } from '../tic-tac-toe.types'
 
 const put = (board: Board, moves: [number, number, number][], player: Player) =>
   moves.reduce((next, [x, y, layer]) => applyMove(next, cellIndex(x, y, layer), player), board)
 
 /** A budget that never runs out and never runs away: the searches here are all bounded by depth. */
-const generous = { now: () => 0, deadline: 1, maxDepth: 14 }
+const generous = { now: () => 0, deadline: 1, maxDepth: FORCED_CHAIN_DEPTH }
+
+/** A fixed clock, so the budget is exercised without depending on how fast the machine is. */
+const clock = (start = 0, step = 0) => {
+  let time = start
+  return () => {
+    const value = time
+    time += step
+    return value
+  }
+}
+
+/**
+ * A position whose win takes two of the attacker's moves: the row at y=0 makes (2,0,0) a forcing three,
+ * the block at (3,0,0) is compelled, and (2,0,0) meanwhile turns the x=2 column into one arm of a fork
+ * with the y=1 rod, which the second move takes at (2,1,0).
+ */
+const chainBoard = () =>
+  put(
+    createBoard(),
+    [
+      [0, 0, 0],
+      [1, 0, 0],
+      [2, 3, 0],
+      [2, 1, 2],
+      [2, 1, 3],
+    ],
+    Player.one
+  )
 
 /**
  * Plays out the chain the search claims, with the defender always taking the only reply that does not
@@ -65,17 +94,7 @@ describe('findForcedWin', () => {
    * opponent into blocking, and the blocking move clears the way to a fork.
    */
   it('finds a win that needs a forcing move first', () => {
-    const board = put(
-      createBoard(),
-      [
-        [0, 0, 0], // row at y=0: two of a line, so (2,0,0) forces a block at (3,0,0)
-        [1, 0, 0],
-        [2, 3, 0], // with (2,0,0) added, the x=2 column becomes the first arm of the fork
-        [2, 1, 2], // the y=1 rod is the second arm, meeting the column at (2,1,0)
-        [2, 1, 3],
-      ],
-      Player.one
-    )
+    const board = chainBoard()
 
     // Nothing is available in one move: no completed line and no square that forks outright.
     expect(winningMoves(board, Player.one)).toEqual([])
@@ -147,6 +166,71 @@ describe('findForcedWin', () => {
       ],
       Player.one
     )
-    expect(findForcedWin(board, Player.one, { now: () => 5, deadline: 1, maxDepth: 14 })).toBeNull()
+    expect(
+      findForcedWin(board, Player.one, {
+        now: () => 5,
+        deadline: 1,
+        maxDepth: FORCED_CHAIN_DEPTH,
+      })
+    ).toBeNull()
+  })
+
+  /**
+   * The other half of the budget: a deadline that lands part-way through, rather than before the first
+   * move. The chain is there and provable, so a null here can only come from the clock — and the search
+   * has to give up rather than report the unproven half of what it saw.
+   */
+  it('gives up when the deadline lands mid-search', () => {
+    const board = chainBoard()
+    expect(findForcedWin(board, Player.one, generous)).toBe(cellIndex(2, 0, 0))
+
+    // Enough readings to enter the recursion, not enough to finish it.
+    const cut = { now: clock(0, 1), deadline: 2, maxDepth: FORCED_CHAIN_DEPTH }
+    expect(findForcedWin(board, Player.one, cut)).toBeNull()
+    expect(hasForcedWin(board, Player.one, { ...cut, now: clock(0, 1) })).toBe(false)
+  })
+
+  /**
+   * The depth limit is the other stop, and it has to bite: the same chain needs two of the attacker's own
+   * moves, so a limit of one is short and must come back empty rather than reporting the first link.
+   */
+  it('reports nothing when the chain is longer than the depth allowed', () => {
+    const board = chainBoard()
+    expect(findForcedWin(board, Player.one, { ...generous, maxDepth: 1 })).toBeNull()
+    expect(hasForcedWin(board, Player.one, { ...generous, maxDepth: 1 })).toBe(false)
+    expect(findForcedWin(board, Player.one, { ...generous, maxDepth: 2 })).toBe(cellIndex(2, 0, 0))
+  })
+
+  /** No square to play means no chain to build, whatever else is on the board. */
+  it('reports nothing on a full board', () => {
+    let board = createBoard()
+    for (let index = 0; index < CELL_COUNT; index++) {
+      board = applyMove(board, index, index % 2 === 0 ? Player.one : Player.two)
+    }
+    expect(legalMoves(board)).toEqual([])
+
+    for (const player of [Player.one, Player.two]) {
+      expect(findForcedWin(board, player, generous)).toBeNull()
+      expect(hasForcedWin(board, player, generous)).toBe(false)
+    }
+  })
+
+  /**
+   * One cell left: there is no room for a chain, so the answer is that cell when it completes a line and
+   * nothing at all otherwise. Which of the two it is depends on the filled board, so the test asks.
+   */
+  it('answers a single free cell without looking for a chain', () => {
+    let board = createBoard()
+    for (let index = 0; index < CELL_COUNT - 1; index++) {
+      board = applyMove(board, index, index % 2 === 0 ? Player.one : Player.two)
+    }
+    const [gap] = legalMoves(board)
+    expect(legalMoves(board)).toHaveLength(1)
+
+    for (const player of [Player.one, Player.two]) {
+      const winsOutright = winningMoves(board, player).length > 0
+      expect(findForcedWin(board, player, generous)).toBe(winsOutright ? gap : null)
+      expect(hasForcedWin(board, player, generous)).toBe(winsOutright)
+    }
   })
 })

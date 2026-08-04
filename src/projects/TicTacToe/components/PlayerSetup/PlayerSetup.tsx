@@ -50,7 +50,10 @@ export function PlayerSetup({
             profile={players[slot]}
             displayName={displayNames[slot]}
             nameLabel={ownLabel ?? gameCopy.nameLabel(index + 1)}
-            takenByOther={reservedColour ?? players[PLAYER_SLOTS[1 - index]].rgb}
+            /* Whose colour is out depends on who the other player is. On your own it is the other row,
+               which is right here; online it is the opponent, and until one arrives nothing is taken —
+               falling back to the second local row there ruled out a colour nobody was using. */
+            takenByOther={ownSlot === null ? players[PLAYER_SLOTS[1 - index]].rgb : reservedColour}
             isComputer={slot === computer}
             onRename={onRename}
             onRecolour={onRecolour}
@@ -66,7 +69,8 @@ type PlayerRowProps = {
   profile: PlayerProfile
   displayName: string
   nameLabel: string
-  takenByOther: string
+  /** The other player's colour, or undefined when there is no other player to clash with. */
+  takenByOther?: string
   isComputer: boolean
   onRename: (player: Player, name: string) => void
   onRecolour: (player: Player, rgb: string) => void

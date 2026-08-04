@@ -51,6 +51,51 @@ describe('useTurnClock', () => {
     const { result } = renderHook(() => useTurnClock('not-a-date'))
     expect(result.current).toBeNull()
   })
+
+  it('goes back to nothing when the clock stops, which is how a game finishing looks', () => {
+    // The live transition: the room reports no deadline once nobody is on turn, and the countdown has
+    // to come off the screen rather than freeze on its last number.
+    const { result, rerender } = renderHook(
+      ({ ends }: { ends: string | null }) => useTurnClock(ends),
+      {
+        initialProps: { ends: inSeconds(30) as string | null },
+      }
+    )
+    expect(result.current).toBe(30)
+
+    rerender({ ends: null })
+    expect(result.current).toBeNull()
+  })
+
+  it('ticks on the deadline second rather than drifting off its own start', () => {
+    // Started 400ms into a second: an unaligned interval would show 30 at t=600 and again at t=1400,
+    // then skip 29 altogether.
+    vi.setSystemTime(NOW + 400)
+    const { result } = renderHook(() => useTurnClock(new Date(NOW + 30_400).toISOString()))
+    expect(result.current).toBe(30)
+
+    act(() => void vi.advanceTimersByTime(400))
+    expect(result.current).toBe(30)
+    act(() => void vi.advanceTimersByTime(1000))
+    expect(result.current).toBe(29)
+    act(() => void vi.advanceTimersByTime(1000))
+    expect(result.current).toBe(28)
+  })
+
+  it('stops ticking once there is nothing left to count', () => {
+    const { result } = renderHook(() => useTurnClock(inSeconds(2)))
+    act(() => void vi.advanceTimersByTime(2000))
+    expect(result.current).toBe(0)
+    // Nothing is still pending: the server decides the timeout from here.
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('leaves no timer running after it unmounts', () => {
+    const { unmount } = renderHook(() => useTurnClock(inSeconds(30)))
+    expect(vi.getTimerCount()).toBeGreaterThan(0)
+    unmount()
+    expect(vi.getTimerCount()).toBe(0)
+  })
 })
 
 describe('formatClock', () => {

@@ -7,8 +7,16 @@ afterEach(cleanup)
 const SIZES = ['small', 'medium', 'large'] as const
 type Size = (typeof SIZES)[number]
 
-function Group({ value, onChange }: { value: Size; onChange: (next: Size) => void }) {
-  const roving = useRovingRadio(SIZES, value, onChange)
+function Group({
+  value,
+  onChange,
+  isDisabled,
+}: {
+  value: Size
+  onChange: (next: Size) => void
+  isDisabled?: (option: Size) => boolean
+}) {
+  const roving = useRovingRadio(SIZES, value, onChange, isDisabled)
   return (
     <div role="radiogroup" aria-label="Size">
       {SIZES.map((size, index) => (
@@ -17,6 +25,7 @@ function Group({ value, onChange }: { value: Size; onChange: (next: Size) => voi
           type="button"
           role="radio"
           aria-checked={size === value}
+          disabled={isDisabled?.(size)}
           {...roving(index)}
         >
           {size}
@@ -96,6 +105,55 @@ describe('useRovingRadio', () => {
 
     fireEvent.keyDown(option('medium'), { key: 'ArrowRight' })
     expect(document.activeElement).toBe(option('large'))
+  })
+
+  /**
+   * Regression: the arrow keys used to select whatever they landed on, disabled or not — so a group whose
+   * other options were locked could be talked into taking an action the mouse was refused. In the game's
+   * online mode that switched away from a live room and forfeited it.
+   */
+  it('steps over a disabled option instead of selecting it', () => {
+    const onChange = vi.fn()
+    render(<Group value="small" onChange={onChange} isDisabled={(size) => size === 'medium'} />)
+
+    fireEvent.keyDown(option('small'), { key: 'ArrowRight' })
+
+    expect(onChange).toHaveBeenCalledTimes(1)
+    expect(onChange).toHaveBeenCalledWith('large')
+  })
+
+  it('selects nothing when every other option is disabled', () => {
+    const onChange = vi.fn()
+    render(<Group value="large" onChange={onChange} isDisabled={(size) => size !== 'large'} />)
+
+    fireEvent.keyDown(option('large'), { key: 'ArrowLeft' })
+    fireEvent.keyDown(option('large'), { key: 'Home' })
+
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
+  /** Home and End mean the first and last option that can actually be taken. */
+  it('lands Home and End on the nearest enabled option', () => {
+    const onChange = vi.fn()
+    render(<Group value="medium" onChange={onChange} isDisabled={(size) => size === 'small'} />)
+
+    // Home is already as far left as it can go, so it stays put rather than reaching the locked option.
+    fireEvent.keyDown(option('medium'), { key: 'Home' })
+    expect(onChange).not.toHaveBeenCalled()
+    expect(document.activeElement).toBe(option('medium'))
+
+    fireEvent.keyDown(option('medium'), { key: 'End' })
+    expect(onChange).toHaveBeenLastCalledWith('large')
+  })
+
+  /** The tab stop cannot sit on a locked option, or the group opens on a control that refuses to work. */
+  it('keeps the fallback tab stop off a disabled option', () => {
+    render(
+      <Group value={'huge' as Size} onChange={vi.fn()} isDisabled={(size) => size === 'small'} />
+    )
+
+    expect(option('small').tabIndex).toBe(-1)
+    expect(option('medium').tabIndex).toBe(0)
   })
 
   /** Anything else belongs to the page: swallowing it would break typing and shortcuts. */
