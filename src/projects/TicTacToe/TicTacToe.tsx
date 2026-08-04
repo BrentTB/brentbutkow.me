@@ -21,7 +21,9 @@ import {
   TIC_TAC_TOE_GAME_ID,
   cellCodec,
   openingPlayer,
+  freeColour,
   playerForSeat,
+  yieldsColour,
 } from './online'
 import { GameSetup } from './components/GameSetup/GameSetup'
 import { OnlinePanel } from './components/OnlinePanel/OnlinePanel'
@@ -381,18 +383,15 @@ export function TicTacToe() {
   /* The opponent's colour, so the swatch list can rule it out. Theirs to choose, not yours to reuse. */
   const opponentColour = room.seats.find((seat) => seat.seat !== room.mySeat)?.colour
 
-  /* Both players start on the same default colour, so whoever finds it already taken moves off it. The
-     board would be unreadable with two identical sets of beads. The replacement also avoids the other
-     local slot's colour, so stepping back out of the room does not leave a local game in one colour. */
+  /* Both players start on the same default colour, and the board would be unreadable with two identical
+     sets of beads, so the second seat moves off it. The replacement also avoids the other local slot's
+     colour, so stepping back out of the room does not leave a local game in one colour. */
   useEffect(() => {
-    if (!isOnline || opponentColour === undefined) return
-    if (players[mySlot].rgb !== opponentColour) return
+    if (!isOnline || !yieldsColour(room.mySeat, players[mySlot].rgb, opponentColour)) return
     const otherLocal = players[PLAYER_SLOTS[1 - PLAYER_SLOTS.indexOf(mySlot)]].rgb
-    const free = PLAYER_COLOURS.find(
-      (colour) => colour.rgb !== opponentColour && colour.rgb !== otherLocal
-    )
-    if (free) recolour(mySlot, free.rgb)
-  }, [isOnline, mySlot, opponentColour, players, recolour])
+    const free = freeColour(PLAYER_COLOURS, [opponentColour, otherLocal])
+    if (free !== undefined) recolour(mySlot, free)
+  }, [isOnline, mySlot, opponentColour, players, recolour, room.mySeat])
 
   /**
    * Settles who you are the moment you enter a room, in one place.

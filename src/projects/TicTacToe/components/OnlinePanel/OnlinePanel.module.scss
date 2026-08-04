@@ -232,13 +232,44 @@
   }
 }
 
+/* Space belongs to the hairline above, not to both sides: with padding underneath as well, the row's
+   own gap plus the next block's stacked up and the button sat high in its band. */
 .codeRow {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 8px 0;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 8px;
   border-top: 1px solid var(--border);
+}
+
+/* Small enough to sit on the code's line without competing with it, but still clearly a button. */
+.copy {
+  margin-left: auto;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.74rem;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    border-color 160ms ease;
+
+  &:hover {
+    color: var(--text);
+    border-color: var(--border-strong);
+    background: var(--surface-strong);
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(var(--accent-rgb), 0.9);
+    outline-offset: 2px;
+  }
 }
 
 .code {
@@ -254,7 +285,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin: 2px 0 0;
+  margin: 0;
   padding: 8px 0 0;
   border-top: 1px solid var(--border);
   list-style: none;

@@ -86,13 +86,14 @@ export function OnlinePanel({ room, profile, initialCode = '' }: OnlinePanelProp
         <h2 id="online-heading" className={styles.heading}>
           {copy.title}
         </h2>
+        {/* Code and the button that shares it on one line: they are the same errand. */}
         <div className={styles.codeRow}>
           <span className={styles.codeLabel}>{copy.yourCode}</span>
           <span className={styles.code}>{room.code}</span>
+          <button type="button" className={styles.copy} onClick={copyLink}>
+            {copied ? copy.copied : copy.copyLink}
+          </button>
         </div>
-        <button type="button" className={styles.action} onClick={copyLink}>
-          {copied ? copy.copied : copy.copyLink}
-        </button>
 
         {/* Both seats as the room knows them, so a colour or name change is visibly shared. */}
         <ul className={styles.seats}>
