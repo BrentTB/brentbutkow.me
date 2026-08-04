@@ -96,8 +96,8 @@ export const VIEW_LABELS: Record<ViewMode, string> = {
 
 export const gameCopy = {
   title: '4×4×4 Tic-Tac-Toe',
-  tagline: 'Four in a row on a 4×4 board, except the board is a cube four layers deep.',
-  taglineFun: 'My dad taught me this one. It ruins normal tic-tac-toe for you.',
+  tagline: 'Four in a row on a 4×4 board, except the board is a cube with four layers.',
+  taglineFun: 'My dad taught me this game. But be warned: It ruins normal tic-tac-toe for you.',
 
   viewLabel: 'View',
   layerLabel: 'Layer',
@@ -107,11 +107,9 @@ export const gameCopy = {
   redo: 'Redo',
   /** What Undo actually takes back: on your own it is the pair, since one step would just hand the turn back. */
   undoTitle: (pair: boolean) =>
-    pair
-      ? 'Take back your last move and the reply to it'
-      : 'Take back the last move, or the new game you just started',
+    pair ? "Take back your and the computers' last moves" : 'Take back the last move',
   redoTitle: (pair: boolean) =>
-    pair ? 'Replay your move and the reply to it' : 'Replay the last move',
+    pair ? "Replay your and the computer's last moves" : 'Replay the last move',
   orbitHint: 'Drag to turn the board',
   orbitHintTouch: 'Drag to turn the board, pinch to zoom',
   fannedHint: 'Every layer at once, lowest first',
@@ -125,7 +123,7 @@ export const gameCopy = {
   difficultyLabel: 'Difficulty',
   starterLabel: 'First move',
   /** Shown once there are pieces on the board, where switching hands your colour to the computer. */
-  starterSwapNote: 'Switch now and you trade colours with the computer, pieces and all.',
+  starterSwapNote: 'Switch now to trade colours and pieces with the computer.',
   thinking: (name: string) => `${name} is thinking`,
   computerName: 'Computer',
   computerTag: 'computer',
@@ -140,8 +138,7 @@ export const gameCopy = {
     join: 'Join a game',
     findGame: 'Find a game',
     /** Says what actually happens, since half the time it opens a room instead of joining one. */
-    findHint:
-      'Drops you into a room that is waiting for a player. If nobody is waiting, you get a room of your own.',
+    findHint: 'Joins an existing open room if possible, else, creates a new room.',
     /** Explains the locked opponent control, so a disabled button is not a dead end. */
     modeLocked: 'Leave the room first',
     /** Heads the settings dialog, whether it is about to open a room or change one. */
@@ -166,7 +163,7 @@ export const gameCopy = {
     startGame: 'Start game',
     playAgain: 'Play again',
     /** Sits under the start button: the settings can still be changed right up until it is pressed. */
-    startHint: 'You can still change the settings above until you start.',
+    startHint: 'You can change the settings above until you start.',
     /** For the player who joined: the start is the opener's call, so the wait is not a broken button. */
     waitingToStart: 'Waiting for the other player to start',
     opponentLeft: (name: string) => `${name} left the room`,
@@ -177,20 +174,18 @@ export const gameCopy = {
     youTag: '(you)',
     /** Replaces the numbered label: online you only set your own, whichever seat you end up in. */
     yourNameLabel: 'Your name',
-    intro: 'Share the code, take turns. No take-backs once a move is in.',
+    intro: 'Play a friend or a stranger online.',
 
     /** The local setting for whether a tap sends the move, shown only in an online game. */
     commitLabel: 'Tapping a cell',
-    commitHint: 'One press aims your move. Press the same cell again, or Confirm, to send it.',
+    commitHint: 'Double tap, or tap once and confirm, to play a move.',
     confirmMove: 'Confirm move',
     clearMove: 'Clear',
-    /** Warns that aiming is not free when the room has a clock, which keeps running regardless. */
-    clockKeepsRunning: 'The clock keeps running while you are deciding.',
     firstMoveLabel: 'Opening move',
     clockLabel: 'Move time limit',
     openLabel: 'Open to anyone',
     /** Explains what the open toggle does to a room that is waiting. */
-    openHint: 'Anyone looking for a game can drop straight into this room.',
+    openHint: 'Anyone looking for a game can join this room.',
     timeLeft: (clock: string) => `${clock} left`,
     /** The turn line once the clock decides it: nobody played, so there is no winning row to describe. */
     wonOnTime: (name: string) => `${name} wins, the clock ran out`,

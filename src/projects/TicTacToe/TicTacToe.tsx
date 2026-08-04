@@ -715,10 +715,6 @@ export function TicTacToe({ computerSeed }: TicTacToeProps = {}) {
             </div>
           )}
 
-          {confirming && connected && room.moveLimitSeconds !== null && (
-            <p className={styles.hint}>{gameCopy.online.clockKeepsRunning}</p>
-          )}
-
           <p className={styles.hint}>{hint}</p>
         </div>
 
