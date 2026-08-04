@@ -1,9 +1,10 @@
 import { useRovingRadio } from '../../../../components/utils/useRovingRadio'
-import { Difficulty, GameMode, Starter } from '../../tic-tac-toe.types'
+import { Difficulty, GameMode, MoveCommit, Starter } from '../../tic-tac-toe.types'
 import {
   DIFFICULTY_BLURBS,
   DIFFICULTY_LABELS,
   MODE_LABELS,
+  MOVE_COMMIT_LABELS,
   STARTER_LABELS,
   gameCopy,
 } from '../../data'
@@ -19,6 +20,9 @@ interface GameSetupProps {
   modeLocked?: boolean
   /** Says why the choice is locked, so a disabled control is not a dead end. */
   modeLockedReason?: string
+  /** Whether a tap online plays the move or only aims it. This player's preference, not the room's. */
+  commit: MoveCommit
+  onCommitChange: (commit: MoveCommit) => void
   onModeChange: (mode: GameMode) => void
   onDifficultyChange: (difficulty: Difficulty) => void
   onStarterChange: (starter: Starter) => void
@@ -27,6 +31,7 @@ interface GameSetupProps {
 const MODES = Object.values(GameMode)
 const DIFFICULTIES = Object.values(Difficulty)
 const STARTERS = Object.values(Starter)
+const COMMITS = Object.values(MoveCommit)
 
 /** Who you are playing, how well it plays, and who moves first. The last two only apply on your own. */
 export function GameSetup({
@@ -36,15 +41,19 @@ export function GameSetup({
   started,
   modeLocked = false,
   modeLockedReason,
+  commit,
+  onCommitChange,
   onModeChange,
   onDifficultyChange,
   onStarterChange,
 }: GameSetupProps) {
   const solo = mode === GameMode.onePlayer
+  const online = mode === GameMode.online
 
   const modeKeys = useRovingRadio(MODES, mode, onModeChange)
   const difficultyKeys = useRovingRadio(DIFFICULTIES, difficulty, onDifficultyChange)
   const starterKeys = useRovingRadio(STARTERS, starter, onStarterChange)
+  const commitKeys = useRovingRadio(COMMITS, commit, onCommitChange)
 
   return (
     <section className={styles.setup} aria-labelledby="game-heading">
@@ -73,6 +82,36 @@ export function GameSetup({
           ))}
         </div>
       </div>
+
+      {/* Online has no undo, so a mis-tap is permanent. This is the way out of that, and it is yours
+          alone: your opponent only ever sees a move you sent. */}
+      {online && (
+        <>
+          <div className={styles.row}>
+            <span className={styles.label} id="commit-label">
+              {gameCopy.online.commitLabel}
+            </span>
+            <div className={styles.segmented} role="radiogroup" aria-labelledby="commit-label">
+              {COMMITS.map((option, index) => (
+                <button
+                  key={option}
+                  type="button"
+                  role="radio"
+                  aria-checked={commit === option}
+                  onClick={() => onCommitChange(option)}
+                  {...commitKeys(index)}
+                >
+                  {MOVE_COMMIT_LABELS[option]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {commit === MoveCommit.confirm && (
+            <p className={styles.blurb}>{gameCopy.online.commitHint}</p>
+          )}
+        </>
+      )}
 
       {solo && (
         <>

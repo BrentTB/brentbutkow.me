@@ -47,6 +47,21 @@ export const Starter = {
 } as const
 export type Starter = (typeof Starter)[keyof typeof Starter]
 
+/**
+ * What a tap on an empty cell does online: play the move, or aim one that a second press commits.
+ *
+ * A local preference, since the opponent only ever sees committed moves. Confirming exists because a
+ * committed move online cannot be taken back, and the beads are small on a cube you can rotate.
+ */
+export const MoveCommit = {
+  instant: 'instant',
+  confirm: 'confirm',
+} as const
+export type MoveCommit = (typeof MoveCommit)[keyof typeof MoveCommit]
+
+export const isMoveCommit = (value: unknown): value is MoveCommit =>
+  value === MoveCommit.instant || value === MoveCommit.confirm
+
 /** An occupied cell holds a player; an empty one holds nothing. */
 type Cell = Player | null
 

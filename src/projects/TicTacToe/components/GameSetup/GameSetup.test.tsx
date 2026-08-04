@@ -5,10 +5,11 @@ import {
   DIFFICULTY_BLURBS,
   DIFFICULTY_LABELS,
   MODE_LABELS,
+  MOVE_COMMIT_LABELS,
   STARTER_LABELS,
   gameCopy,
 } from '../../data'
-import { Difficulty, GameMode, Starter } from '../../tic-tac-toe.types'
+import { Difficulty, GameMode, MoveCommit, Starter } from '../../tic-tac-toe.types'
 
 afterEach(cleanup)
 
@@ -18,6 +19,8 @@ function renderSetup(overrides: Partial<Parameters<typeof GameSetup>[0]> = {}) {
     difficulty: Difficulty.medium,
     starter: Starter.you,
     started: false,
+    commit: MoveCommit.instant,
+    onCommitChange: vi.fn(),
     onModeChange: vi.fn(),
     onDifficultyChange: vi.fn(),
     onStarterChange: vi.fn(),
@@ -36,6 +39,21 @@ describe('GameSetup', () => {
     expect(screen.queryByRole('radio', { name: DIFFICULTY_LABELS[Difficulty.medium] })).toBeNull()
     expect(screen.queryByRole('radio', { name: STARTER_LABELS[Starter.you] })).toBeNull()
     expect(option(MODE_LABELS[GameMode.twoPlayer])).toBeTruthy()
+  })
+
+  it('offers the confirm-moves choice only online, and explains it once chosen', () => {
+    renderSetup({ mode: GameMode.onePlayer })
+    expect(screen.queryByRole('radio', { name: MOVE_COMMIT_LABELS[MoveCommit.confirm] })).toBeNull()
+
+    cleanup()
+    const props = renderSetup({ mode: GameMode.online, commit: MoveCommit.instant })
+    expect(screen.queryByText(gameCopy.online.commitHint)).toBeNull()
+    fireEvent.click(option(MOVE_COMMIT_LABELS[MoveCommit.confirm]))
+    expect(props.onCommitChange).toHaveBeenCalledWith(MoveCommit.confirm)
+
+    cleanup()
+    renderSetup({ mode: GameMode.online, commit: MoveCommit.confirm })
+    expect(screen.getByText(gameCopy.online.commitHint)).toBeTruthy()
   })
 
   it('shows what the chosen difficulty actually plays like', () => {

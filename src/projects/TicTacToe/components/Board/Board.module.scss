@@ -206,6 +206,33 @@ $marker-open: 0.74;
   }
 }
 
+/**
+ * A move aimed but not sent: the bead's size and place, drawn as an outline in the mover's colour so it
+ * cannot be mistaken for a piece that is already down. Nothing about it says the server knows.
+ */
+.ghost {
+  width: calc(var(--spacing) * var(--bead-ratio));
+  height: calc(var(--spacing) * var(--bead-ratio));
+  border-radius: 50%;
+  border: 2px dashed rgba(var(--turn-rgb), 0.95);
+  background: rgba(var(--turn-rgb), 0.14);
+  box-shadow: 0 0 14px rgba(var(--turn-rgb), 0.3);
+  animation: breathe 1.6s ease-in-out infinite alternate;
+
+  .cell[data-dim] & {
+    box-shadow: none;
+  }
+}
+
+@keyframes breathe {
+  from {
+    opacity: 0.62;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 /* A billboarded disc with an off-centre highlight reads as a sphere for a fraction of the cost. */
 .bead {
   position: relative;
@@ -331,6 +358,7 @@ $marker-open: 0.74;
   }
 
   .bead,
+  .ghost,
   .winBar,
   .cell[data-won] .bead,
   :global(html.fun-mode) .bead {

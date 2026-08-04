@@ -1,4 +1,12 @@
-import { Difficulty, GameMode, Player, PlayerProfile, Starter, ViewMode } from './tic-tac-toe.types'
+import {
+  Difficulty,
+  GameMode,
+  MoveCommit,
+  Player,
+  PlayerProfile,
+  Starter,
+  ViewMode,
+} from './tic-tac-toe.types'
 import { BOARD_SIZE, LineDescription, LineShape } from './engine/lines'
 
 /** Longest a player name can be. Keeps the turn line on one row on a phone. */
@@ -70,6 +78,12 @@ export const MOVE_LIMITS: readonly { seconds: number | null; label: string }[] =
   { seconds: 60, label: '1 min' },
   { seconds: 180, label: '3 min' },
 ]
+
+/** How a tap behaves online, named by what happens rather than by the setting's mechanics. */
+export const MOVE_COMMIT_LABELS: Record<MoveCommit, string> = {
+  [MoveCommit.instant]: 'Play at once',
+  [MoveCommit.confirm]: 'Confirm first',
+}
 
 export const VIEW_LABELS: Record<ViewMode, string> = {
   [ViewMode.orbit]: 'Cube',
@@ -157,6 +171,13 @@ export const gameCopy = {
     yourNameLabel: 'Your name',
     intro: 'Share the code, take turns. No take-backs once a move is in.',
 
+    /** The local setting for whether a tap sends the move, shown only in an online game. */
+    commitLabel: 'Tapping a cell',
+    commitHint: 'Double tap, or tap once and confirm, to play a move.',
+    confirmMove: 'Confirm move',
+    clearMove: 'Clear',
+    /** Warns that aiming is not free when the room has a clock, which keeps running regardless. */
+    clockKeepsRunning: 'The clock keeps running while you are deciding.',
     firstMoveLabel: 'Opening move',
     clockLabel: 'Move time limit',
     openLabel: 'Open to anyone',
@@ -188,6 +209,9 @@ export const gameCopy = {
         return 'corner to corner'
     }
   },
+
+  cellPendingLabel: (layer: number, column: number, row: number) =>
+    `Layer ${layer}, column ${column}, row ${row}, your move, waiting to be confirmed`,
 
   cellLabel: (layer: number, column: number, row: number) =>
     `Layer ${layer}, column ${column}, row ${row}`,

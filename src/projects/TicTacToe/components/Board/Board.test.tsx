@@ -50,6 +50,18 @@ describe('Board', () => {
     expect(screen.getAllByRole('button')).toHaveLength(BOARD_SIZE ** 3)
   })
 
+  it('marks an aimed move as waiting to be confirmed, and leaves it playable', () => {
+    const aimed = cellIndex(1, 2, 0)
+    renderBoard({ pendingCell: aimed })
+
+    const button = screen.getByRole('button', { name: gameCopy.cellPendingLabel(1, 2, 3) })
+    // Still open: pressing it again is how the move is sent, so it must not be disabled.
+    expect(isDisabled(button)).toBe(false)
+    expect(button.dataset.pending).toBe('true')
+    // Every other cell is an ordinary empty site.
+    expect(screen.queryAllByRole('button', { name: /waiting to be confirmed/ })).toHaveLength(1)
+  })
+
   it('plays the cell that was clicked', () => {
     const { onPlay } = renderBoard()
 

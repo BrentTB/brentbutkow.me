@@ -7,11 +7,20 @@ import { useMediaQuery } from '../../components/utils/useMediaQuery'
 import { useViewportHeight } from '../../components/utils/useViewportHeight'
 import { useScrollToOnChange } from '../../components/utils/useScrollToOnChange'
 import { useRovingRadio } from '../../components/utils/useRovingRadio'
-import { Difficulty, GameMode, Player, PlayerProfile, Starter, ViewMode } from './tic-tac-toe.types'
+import {
+  Difficulty,
+  GameMode,
+  MoveCommit,
+  Player,
+  PlayerProfile,
+  Starter,
+  ViewMode,
+} from './tic-tac-toe.types'
 import { cssVars } from './css-vars'
 import { DEFAULT_PLAYERS, PLAYER_COLOURS, PLAYER_SLOTS, VIEW_LABELS, gameCopy } from './data'
 import { Rng, seededRng } from './engine/rng'
 import { useComputerTurn } from './useComputerTurn'
+import { useMoveCommit } from './useMoveCommit'
 import { Connection, useOnlineRoom } from '../../multiplayer/useOnlineRoom'
 import { parseRoomInvite } from '../../multiplayer/room-code'
 import { loadRoomSession } from '../../multiplayer/room-session'
@@ -104,6 +113,10 @@ export function TicTacToe() {
   const [starter, setStarter] = useState<Starter>(Starter.you)
   const [pickedLayer, setPickedLayer] = useState<number | null>(null)
   const [players, setPlayers] = useState<Record<Player, PlayerProfile>>(DEFAULT_PLAYERS)
+  /* A move aimed but not sent, when this player has asked to confirm their moves. Local to this screen:
+     the room hears nothing about it until it is committed. */
+  const [pending, setPending] = useState<number | null>(null)
+  const { commit, choose: chooseCommit } = useMoveCommit()
 
   const computer = computerSeat(gameMode, starter)
 
@@ -292,6 +305,25 @@ export function TicTacToe() {
     ? !room.isMyTurn
     : isThinking || (computer !== null && currentPlayer === computer)
 
+  /** Sends a move to the room. The server cannot judge the board, so a winning move says so itself. */
+  const sendMove = useCallback(
+    (index: number) => {
+      const after = applyMove(board, index, currentPlayer)
+      const won = findWinningLine(after, currentPlayer) !== null
+      setPending(null)
+      void room.submit(index, won || isBoardFull(after), won)
+    },
+    [board, currentPlayer, room]
+  )
+
+  const confirming = isOnline && commit === MoveCommit.confirm
+
+  /* A pending move belongs to one turn on one board. Anything that ends that turn drops it: the move
+     landing, the opponent's reply, a game ending or starting, and switching the setting back off. */
+  useEffect(() => {
+    if (!confirming || locked) setPending(null)
+  }, [confirming, locked, room.version, room.status])
+
   const handlePlay = useCallback(
     (index: number, fromKeyboard: boolean) => {
       // A release that turned the board is a camera move, not a move on the board.
@@ -300,15 +332,19 @@ export function TicTacToe() {
       // Online moves go to the server, which confirms them back through onRemoteMove; local games play
       // straight onto the board.
       if (isOnline) {
-        // The server cannot judge the board, so a winning move says so and it records who took it.
-        const after = applyMove(board, index, currentPlayer)
-        const won = findWinningLine(after, currentPlayer) !== null
-        void room.submit(index, won || isBoardFull(after), won)
+        // Confirming: the first press aims, a second press on the same cell sends it. Aiming elsewhere
+        // just moves the ghost, so a mis-tap costs nothing.
+        if (confirming) {
+          if (pending === index) sendMove(index)
+          else setPending(index)
+          return
+        }
+        sendMove(index)
         return
       }
       playAt(index)
     },
-    [consumedDrag, locked, isOnline, room, board, currentPlayer, playAt]
+    [consumedDrag, locked, isOnline, confirming, pending, sendMove, playAt]
   )
 
   // Focus isolates a layer without touching the camera: the viewpoint stays where it was put.
@@ -523,6 +559,7 @@ export function TicTacToe() {
             locked={locked}
             focusedLayer={focusedLayer}
             lastMove={lastMove}
+            pendingCell={pending}
             players={boardPlayers}
             mode={mode}
             camera={camera.camera}
@@ -613,6 +650,33 @@ export function TicTacToe() {
             </div>
           )}
 
+          {/* The other half of confirming: a button for anyone who would rather press one than tap the
+              same cell twice, and the clock's warning where a room is running one. */}
+          {confirming && (
+            <div className={styles.group}>
+              <button
+                type="button"
+                className={styles.button}
+                onClick={() => pending !== null && sendMove(pending)}
+                disabled={pending === null || locked}
+              >
+                <span className={styles.buttonWord}>{gameCopy.online.confirmMove}</span>
+              </button>
+              <button
+                type="button"
+                className={styles.button}
+                onClick={() => setPending(null)}
+                disabled={pending === null}
+              >
+                <span className={styles.buttonWord}>{gameCopy.online.clearMove}</span>
+              </button>
+            </div>
+          )}
+
+          {confirming && room.moveLimitSeconds !== null && (
+            <p className={styles.hint}>{gameCopy.online.clockKeepsRunning}</p>
+          )}
+
           <p className={styles.hint}>{hint}</p>
         </div>
 
@@ -624,6 +688,8 @@ export function TicTacToe() {
             modeLockedReason={gameCopy.online.modeLocked}
             difficulty={difficulty}
             starter={starter}
+            commit={commit}
+            onCommitChange={chooseCommit}
             onModeChange={changeGameMode}
             onDifficultyChange={setDifficulty}
             onStarterChange={changeStarter}
