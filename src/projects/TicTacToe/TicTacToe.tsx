@@ -16,7 +16,13 @@ import { Connection, useOnlineRoom } from '../../multiplayer/useOnlineRoom'
 import { parseRoomInvite } from '../../multiplayer/room-code'
 import { loadRoomSession } from '../../multiplayer/room-session'
 import { Outcome, RoomStatus } from '../../multiplayer/multiplayer.types'
-import { TIC_TAC_TOE_CELL_COUNT, TIC_TAC_TOE_GAME_ID, cellCodec, playerForSeat } from './online'
+import {
+  TIC_TAC_TOE_CELL_COUNT,
+  TIC_TAC_TOE_GAME_ID,
+  cellCodec,
+  openingPlayer,
+  playerForSeat,
+} from './online'
 import { GameSetup } from './components/GameSetup/GameSetup'
 import { OnlinePanel } from './components/OnlinePanel/OnlinePanel'
 import { applyMove, isBoardFull } from './engine/board'
@@ -123,7 +129,8 @@ export function TicTacToe() {
     cellCount: TIC_TAC_TOE_CELL_COUNT,
     codec: cellCodec,
     onRemoteMove: (cell) => playAt(cell),
-    onReset: newGame,
+    // The room decides who opens each game, so a cleared board starts with that seat's player.
+    onReset: (state) => newGame(openingPlayer(state.firstSeat)),
   })
 
   /* Whether a room has actually been entered here, which the effects below key off: it separates "not in
@@ -439,14 +446,14 @@ export function TicTacToe() {
     if (!isOnline) return namedPlayers
     const next: Record<Player, PlayerProfile> = { ...namedPlayers }
     for (const seat of room.seats) {
-      const slot = playerForSeat(seat.seat, room.firstSeat)
+      const slot = playerForSeat(seat.seat)
       next[slot] = {
         name: seat.name.trim() || DEFAULT_PLAYERS[slot].name,
         rgb: seat.colour,
       }
     }
     return next
-  }, [isOnline, namedPlayers, room.seats, room.firstSeat])
+  }, [isOnline, namedPlayers, room.seats])
 
   const viewKeys = useRovingRadio(VIEW_MODES, mode, setMode)
 
@@ -459,9 +466,7 @@ export function TicTacToe() {
   const decidedOffBoard =
     isOnline && (room.outcome === Outcome.timeout || room.outcome === Outcome.forfeit)
   const winnerName =
-    room.winnerSeat === null
-      ? null
-      : boardPlayers[playerForSeat(room.winnerSeat, room.firstSeat)].name
+    room.winnerSeat === null ? null : boardPlayers[playerForSeat(room.winnerSeat)].name
 
   const shown = boardPlayers[win ? win.player : currentPlayer]
   const shownName = shown.name

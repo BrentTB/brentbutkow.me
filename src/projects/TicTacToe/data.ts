@@ -114,20 +114,24 @@ export const gameCopy = {
 
   online: {
     title: 'Online game',
+    /** Heads the two ways in, kept apart so opening a room is never confused with entering one. */
+    createTitle: 'Create a room',
+    joinTitle: 'Join an existing room',
     create: 'Start a game',
     join: 'Join a game',
     findGame: 'Find a game',
     /** Says what actually happens, since half the time it opens a room instead of joining one. */
     findHint:
-      'Puts you in with whoever is waiting. If nobody is, you wait here until someone turns up.',
+      'Drops you in with whoever is waiting. If nobody is, you get a room of your own on the standard settings and wait here.',
     /** Explains the locked opponent control, so a disabled button is not a dead end. */
     modeLocked: 'Leave the room first',
-    /** Heads the settings on the setup form, and says plainly which of the buttons below they govern. */
-    setupTitle: 'Room settings',
-    setupHint: 'Start a game uses these. Find a game only does when nobody is waiting.',
-    /** Heads the same settings once you are in a room, where they describe it rather than propose it. */
-    roomSettingsTitle: 'This room',
-    yoursToChange: 'Yours to change until someone joins.',
+    /** Heads the settings dialog, whether it is about to open a room or change one. */
+    settingsTitle: 'Room settings',
+    editSettings: 'Edit room settings',
+    /** The dialog's confirm button, named for what pressing it does in each case. */
+    openRoom: 'Create the room',
+    saveSettings: 'Save settings',
+    cancel: 'Cancel',
     openYes: 'Anyone can join',
     openNo: 'Code only',
     codeLabel: 'Room code',
@@ -140,9 +144,12 @@ export const gameCopy = {
     yourTurn: 'Your move',
     theirTurn: 'Their move',
     leave: 'Leave game',
+    startGame: 'Start game',
     playAgain: 'Play again',
-    /** Shown after a game, since the opening move changes hands each time. */
-    playAgainHint: 'Same room, and the other player starts.',
+    /** Sits under the start button, since the settings above stay live until it is pressed. */
+    startHint: 'The settings stay open until you start.',
+    /** For the player who joined: the start is the opener's call, so the wait is not a broken button. */
+    waitingToStart: 'Waiting for the other player to start.',
     opponentLeft: (name: string) => `${name} left the room`,
     /** Stands in until a player types a name of their own. */
     unnamed: 'No name yet',
@@ -152,7 +159,7 @@ export const gameCopy = {
     intro: 'Share the code, take turns. No take-backs once a move is in.',
 
     firstMoveLabel: 'Opening move',
-    clockLabel: 'Move limit',
+    clockLabel: 'Move time limit',
     openLabel: 'Open to anyone',
     /** Explains what the open toggle does to a room that is waiting. */
     openHint: 'Anyone looking for a game can drop straight into this room.',

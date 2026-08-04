@@ -6,49 +6,59 @@ interface RoomSettingsProps {
   firstSeat: Seat
   moveLimitSeconds: number | null
   isOpen: boolean
-  /** False shows the same settings as plain text, for a player who cannot change them. */
-  editable: boolean
-  onChange: (options: RoomOptions) => void
+  /** Whose side of the table to describe the opening move from. Defaults to the seat that opened the room. */
+  mySeat?: Seat
 }
+
+const limitLabelFor = (seconds: number | null) =>
+  MOVE_LIMITS.find((option) => option.seconds === seconds)?.label ?? MOVE_LIMITS[0].label
 
 /**
  * The terms a room is played under: who opens, how long a move may take, and whether a stranger can
- * drop in.
- *
- * The same three settings whether you are setting a room up or looking at one you have joined, so
- * "what am I in?" is answered by the same rows that asked the question. Only the player who opened the
- * room can change them, and only before the game starts.
+ * drop in. Plain text, so a game you were matched into is never a mystery.
  */
 export function RoomSettings({
   firstSeat,
   moveLimitSeconds,
   isOpen,
-  editable,
-  onChange,
+  mySeat = Seat.first,
 }: RoomSettingsProps) {
   const copy = gameCopy.online
-  const limitLabel =
-    MOVE_LIMITS.find((option) => option.seconds === moveLimitSeconds)?.label ?? MOVE_LIMITS[0].label
-  const starterLabel = ONLINE_STARTERS.find((option) => option.seat === firstSeat)?.label
 
-  if (!editable) {
-    return (
-      <dl className={styles.readOnly}>
-        <div className={styles.readRow}>
-          <dt className={styles.codeLabel}>{copy.firstMoveLabel}</dt>
-          <dd className={styles.readValue}>{starterLabel}</dd>
-        </div>
-        <div className={styles.readRow}>
-          <dt className={styles.codeLabel}>{copy.clockLabel}</dt>
-          <dd className={styles.readValue}>{limitLabel}</dd>
-        </div>
-        <div className={styles.readRow}>
-          <dt className={styles.codeLabel}>{copy.openLabel}</dt>
-          <dd className={styles.readValue}>{isOpen ? copy.openYes : copy.openNo}</dd>
-        </div>
-      </dl>
-    )
-  }
+  return (
+    <dl className={styles.readOnly}>
+      <div className={styles.readRow}>
+        <dt className={styles.codeLabel}>{copy.firstMoveLabel}</dt>
+        {/* Named from the reader's seat, so the joiner isn't told "You" about the other player. */}
+        <dd className={styles.readValue}>
+          {firstSeat === mySeat ? ONLINE_STARTERS[0].label : ONLINE_STARTERS[1].label}
+        </dd>
+      </div>
+      <div className={styles.readRow}>
+        <dt className={styles.codeLabel}>{copy.clockLabel}</dt>
+        <dd className={styles.readValue}>{limitLabelFor(moveLimitSeconds)}</dd>
+      </div>
+      <div className={styles.readRow}>
+        <dt className={styles.codeLabel}>{copy.openLabel}</dt>
+        <dd className={styles.readValue}>{isOpen ? copy.openYes : copy.openNo}</dd>
+      </div>
+    </dl>
+  )
+}
+
+interface RoomSettingsFieldsProps extends Required<RoomOptions> {
+  /** Carries only the setting that moved, so two quick changes cannot undo each other. */
+  onChange: (change: RoomOptions) => void
+}
+
+/** The same three settings as controls, for the dialog that proposes a change to them. */
+export function RoomSettingsFields({
+  firstSeat,
+  moveLimitSeconds,
+  isOpen,
+  onChange,
+}: RoomSettingsFieldsProps) {
+  const copy = gameCopy.online
 
   return (
     <>
@@ -63,7 +73,7 @@ export function RoomSettings({
               type="button"
               role="radio"
               aria-checked={firstSeat === option.seat}
-              onClick={() => onChange({ firstSeat: option.seat, isOpen, moveLimitSeconds })}
+              onClick={() => onChange({ firstSeat: option.seat })}
             >
               {option.label}
             </button>
@@ -82,7 +92,7 @@ export function RoomSettings({
               type="button"
               role="radio"
               aria-checked={moveLimitSeconds === option.seconds}
-              onClick={() => onChange({ firstSeat, isOpen, moveLimitSeconds: option.seconds })}
+              onClick={() => onChange({ moveLimitSeconds: option.seconds })}
             >
               {option.label}
             </button>
@@ -94,9 +104,7 @@ export function RoomSettings({
         <input
           type="checkbox"
           checked={isOpen}
-          onChange={(event) =>
-            onChange({ firstSeat, moveLimitSeconds, isOpen: event.target.checked })
-          }
+          onChange={(event) => onChange({ isOpen: event.target.checked })}
         />
         <span className={styles.toggleText}>
           {copy.openLabel}

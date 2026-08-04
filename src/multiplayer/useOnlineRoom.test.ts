@@ -40,6 +40,7 @@ const state = (over: Partial<RoomState>): RoomState => ({
   version: 0,
   expiresAt: '',
   firstSeat: Seat.first,
+  ownerSeat: Seat.first,
   isOpen: false,
   moveLimitSeconds: null,
   turnEndsAt: null,
@@ -257,25 +258,82 @@ describe('useOnlineRoom', () => {
     onReset.mockClear()
     onRemoteMove.mockClear()
 
-    // A rematch empties the move list, which is how a fresh game announces itself.
-    mocked.rematch.mockResolvedValue(state({ moves: [], version: 0, firstSeat: Seat.second }))
+    // Starting a game empties the move list, which is how a fresh one announces itself.
+    mocked.startGame.mockResolvedValue(state({ moves: [], version: 0, firstSeat: Seat.second }))
     await act(async () => {
-      await view.result.current.playAgain()
+      await view.result.current.start()
     })
-    expect(mocked.rematch).toHaveBeenCalledWith('AB2K9M', 'tok')
+    expect(mocked.startGame).toHaveBeenCalledWith('AB2K9M', 'tok')
     expect(onReset).toHaveBeenCalled()
     expect(onRemoteMove).not.toHaveBeenCalled()
     expect(view.result.current.firstSeat).toBe(Seat.second)
   })
 
-  it('explains a rematch nobody is around for', async () => {
+  it('explains a start nobody is around for', async () => {
     const { view } = setup()
     await connect(view)
-    mocked.rematch.mockRejectedValueOnce(new HttpError(409))
+    mocked.startGame.mockRejectedValueOnce(new HttpError(409))
     await act(async () => {
-      await view.result.current.playAgain()
+      await view.result.current.start()
     })
-    expect(view.result.current.error).toMatch(/opponent/i)
+    expect(view.result.current.error).toMatch(/both players/i)
+  })
+
+  it('offers a start only while both are here and no game is running', async () => {
+    const { view } = setup()
+    // Alone in a fresh room: nothing to start yet.
+    await connect(
+      view,
+      state({ status: RoomStatus.waiting, seats: [seat(Seat.first, 'Ada', '1,2,3')] })
+    )
+    expect(view.result.current.canStart).toBe(false)
+
+    // Both present and nothing running: ready.
+    mocked.getRoom.mockResolvedValue(state({ status: RoomStatus.waiting }))
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000)
+    })
+    expect(view.result.current.canStart).toBe(true)
+    expect(view.result.current.canChangeSettings).toBe(true)
+
+    // Mid-game: neither starting nor re-settling the terms.
+    mocked.getRoom.mockResolvedValue(state({ status: RoomStatus.active }))
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000)
+    })
+    expect(view.result.current.canStart).toBe(false)
+    expect(view.result.current.canChangeSettings).toBe(false)
+
+    // Finished: the settings open back up and another game can be started.
+    mocked.getRoom.mockResolvedValue(
+      state({ status: RoomStatus.finished, outcome: Outcome.win, winnerSeat: Seat.first })
+    )
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000)
+    })
+    expect(view.result.current.canStart).toBe(true)
+    expect(view.result.current.canChangeSettings).toBe(true)
+  })
+
+  it('leaves the start to the player who owns the room', async () => {
+    const { view } = setup()
+    mocked.matchmake.mockResolvedValue(credentials({ seat: Seat.second, token: 'tok2' }))
+    mocked.getRoom.mockResolvedValue(state({ status: RoomStatus.waiting }))
+    await act(async () => {
+      await view.result.current.findGame(BO, {})
+    })
+    expect(view.result.current.mySeat).toBe(Seat.second)
+    // Both players are here, so the only thing withholding the start is the seat.
+    expect(view.result.current.opponentPresent).toBe(true)
+    expect(view.result.current.canStart).toBe(false)
+    expect(view.result.current.canChangeSettings).toBe(false)
+
+    // The owner walks out and the server hands the room over: the seat that stayed takes it on.
+    mocked.getRoom.mockResolvedValue(state({ status: RoomStatus.waiting, ownerSeat: Seat.second }))
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000)
+    })
+    expect(view.result.current.canChangeSettings).toBe(true)
   })
 
   it('finds a game against anyone', async () => {

@@ -12,10 +12,18 @@ import { cssVars } from '../../css-vars'
 import { gameCopy } from '../../data'
 import { LeaveIcon } from '../LeaveIcon/LeaveIcon'
 import { RoomSettings } from './RoomSettings'
+import { RoomSettingsDialog } from './RoomSettingsDialog'
 import styles from './OnlinePanel.module.scss'
 
 /** Where the countdown turns urgent, which is about when it starts affecting how you play. */
 const LOW_CLOCK_SECONDS = 10
+
+/** What a room opens on before anyone touches the settings: you first, no clock, code only. */
+const STANDARD_OPTIONS: Required<RoomOptions> = {
+  firstSeat: Seat.first,
+  isOpen: false,
+  moveLimitSeconds: null,
+}
 
 interface OnlinePanelProps {
   room: OnlineRoom<number>
@@ -29,13 +37,8 @@ interface OnlinePanelProps {
 export function OnlinePanel({ room, profile, initialCode = '' }: OnlinePanelProps) {
   const [code, setCode] = useState(initialCode)
   const [copied, setCopied] = useState(false)
-  /* What a room you open would be set to. Held here until it becomes a real room, then the room itself
-     is the source of truth and these follow it. */
-  const [draft, setDraft] = useState<Required<RoomOptions>>({
-    firstSeat: Seat.first,
-    isOpen: false,
-    moveLimitSeconds: null,
-  })
+  /* The settings dialog is the only place settings are edited: shut, nothing is pending anywhere. */
+  const [editing, setEditing] = useState(false)
   const copy = gameCopy.online
   const secondsLeft = useTurnClock(room.turnEndsAt)
 
@@ -63,7 +66,10 @@ export function OnlinePanel({ room, profile, initialCode = '' }: OnlinePanelProp
   }
 
   if (room.connection === Connection.connected) {
+    const running = room.status === RoomStatus.active
     const finished = room.status === RoomStatus.finished
+    // A room that has a game behind it says "play again" rather than "start".
+    const played = finished || room.version > 0
     const opponent = room.seats.find((seat) => seat.seat !== room.mySeat)
     /* Nothing to say about turns once a game is over: the result is on the status line above the board,
        and a finished room with an empty seat is not waiting for anyone to arrive. */
@@ -126,30 +132,52 @@ export function OnlinePanel({ room, profile, initialCode = '' }: OnlinePanelProp
           </p>
         )}
 
-        {/* The terms this room is actually running under, so a matched game is never a mystery. */}
-        {!finished && (
-          <div className={styles.setupHead}>
-            <span className={styles.codeLabel}>{copy.roomSettingsTitle}</span>
-            {room.canChangeSettings && <span className={styles.hint}>{copy.yoursToChange}</span>}
-          </div>
-        )}
-        {!finished && (
-          <RoomSettings
-            firstSeat={room.firstSeat}
-            moveLimitSeconds={room.moveLimitSeconds}
-            isOpen={room.isOpen}
-            editable={room.canChangeSettings}
-            onChange={(next) => void room.changeSettings(next)}
-          />
+        {/* The terms this room runs under, so a game you were matched into is never a mystery. Read-only
+            for both players: changing them goes through the dialog, on confirm. */}
+        {!running && (
+          <>
+            <RoomSettings
+              firstSeat={room.firstSeat}
+              moveLimitSeconds={room.moveLimitSeconds}
+              isOpen={room.isOpen}
+              mySeat={room.mySeat ?? undefined}
+            />
+            {room.canChangeSettings && (
+              <button type="button" className={styles.secondary} onClick={() => setEditing(true)}>
+                {copy.editSettings}
+              </button>
+            )}
+          </>
         )}
 
-        {finished && room.opponentPresent && (
+        {/* Nothing starts on its own: the same button opens the first game and every one after it. */}
+        {room.canStart && (
           <>
-            <button type="button" className={styles.action} onClick={() => void room.playAgain()}>
-              {copy.playAgain}
+            <button type="button" className={styles.action} onClick={() => void room.start()}>
+              {played ? copy.playAgain : copy.startGame}
             </button>
-            <p className={styles.hint}>{copy.playAgainHint}</p>
+            <p className={styles.hint}>{copy.startHint}</p>
           </>
+        )}
+
+        {!running && !room.canStart && room.opponentPresent && (
+          <p className={styles.hint}>{copy.waitingToStart}</p>
+        )}
+
+        {editing && (
+          <RoomSettingsDialog
+            options={{
+              firstSeat: room.firstSeat,
+              isOpen: room.isOpen,
+              moveLimitSeconds: room.moveLimitSeconds,
+            }}
+            confirmLabel={copy.saveSettings}
+            onCancel={() => setEditing(false)}
+            onConfirm={(next) => {
+              setEditing(false)
+              void room.changeSettings(next)
+            }}
+          />
         )}
 
         {room.error !== null && (
@@ -176,61 +204,61 @@ export function OnlinePanel({ room, profile, initialCode = '' }: OnlinePanelProp
         <p className={styles.status}>{copy.connecting}</p>
       ) : (
         <>
-          {/* Named so it is clear these are the room's settings, not the app's. */}
-          <div className={styles.setupHead}>
-            <span className={styles.codeLabel}>{copy.setupTitle}</span>
-            <span className={styles.hint}>{copy.setupHint}</span>
+          {/* Two ways in, kept apart: open a room of your own, or get into somebody else's. Opening one
+              asks about its settings first, in the dialog. */}
+          <div className={styles.block}>
+            <h3 className={styles.blockTitle}>{copy.createTitle}</h3>
+            <button type="button" className={styles.action} onClick={() => setEditing(true)}>
+              {copy.create}
+            </button>
           </div>
 
-          <RoomSettings
-            firstSeat={draft.firstSeat}
-            moveLimitSeconds={draft.moveLimitSeconds}
-            isOpen={draft.isOpen}
-            editable
-            onChange={(next) => setDraft({ ...draft, ...next })}
-          />
-
-          <button
-            type="button"
-            className={styles.action}
-            onClick={() => void room.create(profile, draft)}
-          >
-            {copy.create}
-          </button>
-
-          <div className={styles.findRow}>
+          <div className={styles.block}>
+            <h3 className={styles.blockTitle}>{copy.joinTitle}</h3>
             <button
               type="button"
               className={styles.action}
-              onClick={() => void room.findGame(profile, draft)}
+              onClick={() => void room.findGame(profile, STANDARD_OPTIONS)}
             >
               {copy.findGame}
             </button>
             <p className={styles.hint}>{copy.findHint}</p>
+
+            <form className={styles.joinRow} onSubmit={submitJoin}>
+              <label className={styles.codeLabel} htmlFor="room-code">
+                {copy.codeLabel}
+              </label>
+              <div className={styles.joinControls}>
+                <input
+                  id="room-code"
+                  className={styles.input}
+                  value={code}
+                  onChange={(event) => setCode(event.target.value)}
+                  placeholder={copy.codePlaceholder}
+                  maxLength={ROOM_CODE_LENGTH}
+                  autoCapitalize="characters"
+                  autoCorrect="off"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                <button type="submit" className={styles.action} disabled={!codeComplete}>
+                  {copy.join}
+                </button>
+              </div>
+            </form>
           </div>
 
-          <form className={styles.joinRow} onSubmit={submitJoin}>
-            <label className={styles.codeLabel} htmlFor="room-code">
-              {copy.codeLabel}
-            </label>
-            <div className={styles.joinControls}>
-              <input
-                id="room-code"
-                className={styles.input}
-                value={code}
-                onChange={(event) => setCode(event.target.value)}
-                placeholder={copy.codePlaceholder}
-                maxLength={ROOM_CODE_LENGTH}
-                autoCapitalize="characters"
-                autoCorrect="off"
-                autoComplete="off"
-                spellCheck={false}
-              />
-              <button type="submit" className={styles.action} disabled={!codeComplete}>
-                {copy.join}
-              </button>
-            </div>
-          </form>
+          {editing && (
+            <RoomSettingsDialog
+              options={STANDARD_OPTIONS}
+              confirmLabel={copy.openRoom}
+              onCancel={() => setEditing(false)}
+              onConfirm={(next) => {
+                setEditing(false)
+                void room.create(profile, next)
+              }}
+            />
+          )}
         </>
       )}
       {room.error !== null && (

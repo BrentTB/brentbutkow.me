@@ -23,14 +23,17 @@ type GameHistory = {
   cursor: number
 }
 
-const freshGame = (): GameSnapshot => ({
+const freshGame = (startsWith: Player): GameSnapshot => ({
   board: createBoard(),
-  currentPlayer: Player.one,
+  currentPlayer: startsWith,
   win: null,
   lastMove: null,
 })
 
-const initialHistory = (): GameHistory => ({ snapshots: [freshGame()], cursor: 0 })
+const initialHistory = (startsWith: Player) => (): GameHistory => ({
+  snapshots: [freshGame(startsWith)],
+  cursor: 0,
+})
 
 /** Appends a position, dropping any branch that had been undone. */
 function commit(history: GameHistory, next: GameSnapshot): GameHistory {
@@ -51,9 +54,13 @@ function commit(history: GameHistory, next: GameSnapshot): GameHistory {
  * see the board the one before it left behind.
  *
  * `computer` is the seat the computer holds, so history can skip the positions it would answer.
+ *
+ * `startsWith` is who opens. Local games always open with player one; an online room may hand the first
+ * move to either side, and saying so here keeps the two players' colours and names fixed to their seats
+ * rather than shuffling them to keep player one on the move.
  */
-export function useGame(computer: Player | null = null) {
-  const [history, setHistory] = useState<GameHistory>(initialHistory)
+export function useGame(computer: Player | null = null, startsWith: Player = Player.one) {
+  const [history, setHistory] = useState<GameHistory>(initialHistory(startsWith))
 
   const current = history.snapshots[history.cursor]
 
@@ -108,7 +115,11 @@ export function useGame(computer: Player | null = null) {
     })
   }, [])
 
-  const newGame = useCallback(() => setHistory((past) => commit(past, freshGame())), [])
+  /** Starts over. An online room says who opens each game, so a caller may name it outright. */
+  const newGame = useCallback(
+    (opensWith: Player = startsWith) => setHistory((past) => commit(past, freshGame(opensWith))),
+    [startsWith]
+  )
 
   /**
    * Steps to the previous position the game can rest on. In a one-player game that is the pair — your

@@ -1,7 +1,7 @@
 import { useRef } from 'react'
 import { SimSetting, SimSettings } from '../../pixel-world.types'
 import { SETTING_SECTIONS, simCopy } from '../../data'
-import { useDialogChrome } from '../../useDialogChrome'
+import { useDialogChrome } from '../../../../components/utils/useDialogChrome'
 import styles from './SettingsDialog.module.scss'
 
 type SettingsDialogProps = {

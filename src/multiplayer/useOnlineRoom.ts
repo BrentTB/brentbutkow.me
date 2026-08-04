@@ -7,7 +7,7 @@ import {
   joinRoom,
   leaveRoom,
   matchmake,
-  rematch,
+  startGame,
   submitMove,
   updateProfile,
   updateSettings,
@@ -46,8 +46,12 @@ export interface UseOnlineRoomOptions<Move> {
   codec: MoveCodec<Move>
   /** Called once per newly-confirmed move, in order, for both seats. `index` is its 0-based position. */
   onRemoteMove: (move: Move, index: number) => void
-  /** Called when a session or a fresh game begins, so the consumer can clear its board. */
-  onReset?: () => void
+  /**
+   * Called when a session or a fresh game begins, so the consumer can clear its board. Handed the room
+   * it is clearing for: this runs before the new state is committed, so the consumer cannot read it yet,
+   * and a game may open with either seat.
+   */
+  onReset?: (room: RoomState) => void
   pollMs?: number
 }
 
@@ -81,9 +85,11 @@ export interface OnlineRoom<Move> {
   submit: (move: Move, finished?: boolean, won?: boolean) => Promise<boolean>
   /** Publishes your own name and colour to the room, so the opponent's board shows them. */
   publishProfile: (profile: SeatProfile) => Promise<void>
-  /** Clears the board for another game in the same room, with the other seat opening. */
-  playAgain: () => Promise<void>
-  /** Changes the room's own settings. Only the opener can, and only before the game starts. */
+  /** Clears the board and begins play. Nothing starts on its own, first game or fifth. */
+  start: () => Promise<void>
+  /** Whether this seat may start a game: the owner's call, both players here, and none running. */
+  canStart: boolean
+  /** Changes the room's own settings. Only the owner can, and only before the game starts. */
   changeSettings: (options: RoomOptions) => Promise<void>
   /** Whether this seat may change them, so a control can be shown rather than guessed at. */
   canChangeSettings: boolean
@@ -155,7 +161,7 @@ export function useOnlineRoom<Move>({
   const reconcile = useCallback((next: RoomState) => {
     if (next.moves.length < appliedRef.current) {
       appliedRef.current = 0
-      onResetRef.current?.()
+      onResetRef.current?.(next)
     }
     for (let i = appliedRef.current; i < next.moves.length; i++) {
       onMoveRef.current(codecRef.current.fromWire(next.moves[i]), i)
@@ -203,7 +209,7 @@ export function useOnlineRoom<Move>({
     (session: Session, initial: RoomState) => {
       sessionRef.current = session
       appliedRef.current = 0
-      onResetRef.current?.()
+      onResetRef.current?.(initial)
       setMySeat(session.seat)
       reconcile(initial) // replays any moves already on the board (a mid-game join)
       setConnection(Connection.connected)
@@ -318,16 +324,16 @@ export function useOnlineRoom<Move>({
     [reconcile]
   )
 
-  const playAgain = useCallback(async () => {
+  const start = useCallback(async () => {
     const session = sessionRef.current
     if (session === null) return
     try {
-      reconcile(await rematch(session.code, session.token))
+      reconcile(await startGame(session.code, session.token))
     } catch (err) {
       setError(
         err instanceof HttpError && err.status === 409
-          ? 'Your opponent has to be here for another game.'
-          : 'Could not start another game.'
+          ? 'Both players have to be here to start.'
+          : 'Could not start the game.'
       )
     }
   }, [reconcile])
@@ -433,7 +439,10 @@ export function useOnlineRoom<Move>({
   useEffect(() => stopPolling, [stopPolling]) // stop the loop on unmount
 
   const seats = room?.seats ?? []
+  const opponentPresentNow = seats.filter((seat) => seat.joined).length >= 2
   const firstSeat = room?.firstSeat ?? Seat.first
+  /* The room is the owner's until they walk out, when the server hands it to whoever is left. */
+  const isOwner = mySeat !== null && mySeat === room?.ownerSeat
   const version = room?.version ?? 0
   const isMyTurn =
     mySeat !== null && room?.status === RoomStatus.active && (firstSeat + version) % 2 === mySeat
@@ -447,7 +456,7 @@ export function useOnlineRoom<Move>({
     seats,
     version,
     isMyTurn,
-    opponentPresent: seats.filter((seat) => seat.joined).length >= 2,
+    opponentPresent: opponentPresentNow,
     // A seat that exists but sits empty belongs to somebody who was here and went.
     opponentLeft: opponentSeat !== undefined && !opponentSeat.joined,
     firstSeat,
@@ -461,10 +470,11 @@ export function useOnlineRoom<Move>({
     findGame,
     submit,
     publishProfile,
-    playAgain,
+    start,
+    canStart: isOwner && opponentPresentNow && room?.status !== RoomStatus.active,
     changeSettings,
     // The opener sets the terms, and only while the room is still waiting for its second player.
-    canChangeSettings: mySeat === Seat.first && room?.status === RoomStatus.waiting,
+    canChangeSettings: isOwner && room?.status !== RoomStatus.active,
     isOpen: room?.isOpen ?? false,
     leave,
   }

@@ -70,6 +70,7 @@ const isRoomState = (raw: unknown): raw is RoomState =>
   typeof raw.version === 'number' &&
   typeof raw.expiresAt === 'string' &&
   isSeat(raw.firstSeat) &&
+  isSeat(raw.ownerSeat) &&
   typeof raw.isOpen === 'boolean' &&
   isNumberOrNull(raw.moveLimitSeconds) &&
   isStringOrNull(raw.turnEndsAt) &&
@@ -179,9 +180,9 @@ export function updateSettings(
   )
 }
 
-/** Clears the board for another game, handing the opening move to the other seat. */
-export function rematch(code: string, token: string): Promise<RoomState> {
-  return postJsonFor(`${roomPath(code)}/rematch`, { token }, isRoomState)
+/** Clears the board and begins play. Either player may, once both are present. */
+export function startGame(code: string, token: string): Promise<RoomState> {
+  return postJsonFor(`${roomPath(code)}/start`, { token }, isRoomState)
 }
 
 /**

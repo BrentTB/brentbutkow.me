@@ -400,6 +400,29 @@ describe('useGame — marking the last move', () => {
     expect(result.current.lastMove).toBe(cellIndex(0, 0, BOARD_SIZE - 1))
   })
 
+  it('opens with the player the caller names, and keeps doing so on a new game', () => {
+    const { result } = renderHook(() => useGame(null, Player.two))
+    expect(result.current.currentPlayer).toBe(Player.two)
+
+    act(() => result.current.playAt(0))
+    expect(result.current.board[0]).toBe(Player.two)
+
+    act(() => result.current.newGame())
+    expect(result.current.currentPlayer).toBe(Player.two)
+    expect(result.current.board.every((cell) => cell === null)).toBe(true)
+  })
+
+  it('lets a new game name its own opener, whatever the hook was set up with', () => {
+    // How an online room starts a game: the opener can change between games without a remount.
+    const { result } = renderHook(() => useGame(null, Player.one))
+
+    act(() => result.current.newGame(Player.two))
+    expect(result.current.currentPlayer).toBe(Player.two)
+
+    act(() => result.current.newGame(Player.one))
+    expect(result.current.currentPlayer).toBe(Player.one)
+  })
+
   it('does not move the marker when an illegal move is ignored', () => {
     const { result } = renderHook(() => useGame())
 

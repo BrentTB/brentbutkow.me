@@ -67,6 +67,8 @@ export interface RoomState {
   version: number
   expiresAt: string
   firstSeat: Seat
+  /** Whose room it is: the seat that may change the settings and start a game. */
+  ownerSeat: Seat
   isOpen: boolean
   moveLimitSeconds: number | null
   /** When the player on turn runs out of time, or null when no clock is running. */

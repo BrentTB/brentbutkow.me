@@ -1,6 +1,6 @@
 import { RefObject, useEffect, useRef } from 'react'
 
-/** Anything a keyboard can land on inside a panel. Enough for the sim's dialogs, which hold no links. */
+/** Anything a keyboard can land on inside a panel. Enough for dialogs that hold no links. */
 const FOCUSABLE = 'button, input, select, textarea, [tabindex]:not([tabindex="-1"])'
 
 export type DialogChrome = {
@@ -9,7 +9,7 @@ export type DialogChrome = {
 }
 
 /**
- * The keyboard side of a modal, shared by every dialog in the sim: Escape closes, Tab cycles inside the
+ * The keyboard side of a modal, shared by every dialog on the site: Escape closes, Tab cycles inside the
  * panel instead of wandering onto the world behind it, focus starts inside on open and goes back to
  * whatever opened it on close.
  *
@@ -30,8 +30,8 @@ export function useDialogChrome(
     const opener = document.activeElement
     const focusable = () => panelRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE)
 
-    // Settings opens on its Done button rather than on a toggle: the dialog is a thing you close, and
-    // landing on a switch invites flipping it by feel.
+    // A caller can name the landing control: a dialog whose first control is a switch invites flipping
+    // it by feel, so those point focus at the button that closes or confirms instead.
     const landing = initialFocusRef?.current ?? focusable()?.[0]
     landing?.focus()
 
