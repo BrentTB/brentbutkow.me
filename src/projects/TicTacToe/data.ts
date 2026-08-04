@@ -31,6 +31,7 @@ export const DEFAULT_PLAYERS: Record<Player, PlayerProfile> = {
 export const MODE_LABELS: Record<GameMode, string> = {
   [GameMode.onePlayer]: '1 player',
   [GameMode.twoPlayer]: '2 players',
+  [GameMode.online]: 'Online',
 }
 
 export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
@@ -93,6 +94,25 @@ export const gameCopy = {
   thinking: (name: string) => `${name} is thinking`,
   computerName: 'Computer',
   computerTag: 'computer',
+
+  online: {
+    title: 'Online game',
+    create: 'Start a game',
+    join: 'Join a game',
+    codeLabel: 'Room code',
+    codePlaceholder: 'Enter a code',
+    connecting: 'Connecting…',
+    yourCode: 'Your room code',
+    copyLink: 'Copy invite link',
+    copied: 'Link copied',
+    waiting: 'Waiting for someone to join',
+    yourTurn: 'Your move',
+    theirTurn: 'Their move',
+    leave: 'Leave game',
+    you: 'You',
+    opponent: 'Opponent',
+    intro: 'Share the code, take turns. No take-backs once a move is in.',
+  },
 
   playersTitle: 'Players',
   nameLabel: (slot: number) => `Player ${slot} name`,

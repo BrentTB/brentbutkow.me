@@ -26,6 +26,8 @@ export type ViewMode = (typeof ViewMode)[keyof typeof ViewMode]
 export const GameMode = {
   onePlayer: 'onePlayer',
   twoPlayer: 'twoPlayer',
+  /** A second person on another machine, joined by a room code. */
+  online: 'online',
 } as const
 export type GameMode = (typeof GameMode)[keyof typeof GameMode]
 

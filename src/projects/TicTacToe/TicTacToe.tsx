@@ -7,14 +7,27 @@ import { useMediaQuery } from '../../components/utils/useMediaQuery'
 import { useViewportHeight } from '../../components/utils/useViewportHeight'
 import { useScrollToOnChange } from '../../components/utils/useScrollToOnChange'
 import { useRovingRadio } from '../../components/utils/useRovingRadio'
-import { Difficulty, GameMode, Player, PlayerProfile, Starter, ViewMode } from './tic-tac-toe.types'
+import {
+  Board as BoardState,
+  Difficulty,
+  GameMode,
+  Player,
+  PlayerProfile,
+  Starter,
+  ViewMode,
+} from './tic-tac-toe.types'
 import { cssVars } from './css-vars'
 import { DEFAULT_PLAYERS, PLAYER_SLOTS, VIEW_LABELS, gameCopy } from './data'
 import { Rng, seededRng } from './engine/rng'
 import { useComputerTurn } from './useComputerTurn'
+import { Connection, useOnlineRoom } from '../../multiplayer/useOnlineRoom'
+import { parseRoomInvite } from '../../multiplayer/room-code'
+import { TIC_TAC_TOE_CELL_COUNT, TIC_TAC_TOE_GAME_ID, cellCodec, seatPlayer } from './online'
 import { GameSetup } from './components/GameSetup/GameSetup'
+import { OnlinePanel } from './components/OnlinePanel/OnlinePanel'
+import { applyMove, isBoardFull } from './engine/board'
 import { deckHeight, spacingFor } from './engine/geometry'
-import { lineShape } from './engine/lines'
+import { findWinningLine, lineShape } from './engine/lines'
 import { useCamera } from './useCamera'
 import { useGame } from './useGame'
 import { useWinCamera } from './useWinCamera'
@@ -46,6 +59,12 @@ const VIEW_MODES = Object.values(ViewMode)
 function computerSeat(mode: GameMode, starter: Starter): Player | null {
   if (mode !== GameMode.onePlayer) return null
   return starter === Starter.computer ? Player.one : Player.two
+}
+
+/** Whether playing `index` ends the game, so an online move can tell the server the room is finished. */
+function wouldFinish(board: BoardState, index: number, player: Player): boolean {
+  const next = applyMove(board, index, player)
+  return findWinningLine(next, player) !== null || isBoardFull(next)
 }
 
 /** An emptied name field falls back to its default rather than leaving the turn line blank. */
@@ -103,6 +122,34 @@ export function TicTacToe() {
     canRedo,
   } = useGame(computer)
   const camera = useCamera(mode)
+
+  const isOnline = gameMode === GameMode.online
+
+  // The generic room, fed the game's id and codec. Confirmed moves (mine, echoed back, and the
+  // opponent's) arrive through onRemoteMove and go onto the board like any other move.
+  const room = useOnlineRoom<number>({
+    gameId: TIC_TAC_TOE_GAME_ID,
+    cellCount: TIC_TAC_TOE_CELL_COUNT,
+    codec: cellCodec,
+    onRemoteMove: (cell) => playAt(cell),
+    onReset: newGame,
+  })
+
+  // A code prefilled from an invite link, and the switch into online mode that an invite implies.
+  const [inviteCode, setInviteCode] = useState<string | null>(null)
+  useEffect(() => {
+    const invite = parseRoomInvite(new URLSearchParams(window.location.search))
+    if (invite !== null && invite.gameId === TIC_TAC_TOE_GAME_ID) {
+      setGameMode(GameMode.online)
+      setInviteCode(invite.code)
+    }
+  }, [])
+
+  // Leaving online mode ends the session, so its poll loop can't keep dropping moves onto a local game.
+  const leaveRoom = room.leave
+  useEffect(() => {
+    if (!isOnline) leaveRoom()
+  }, [isOnline, leaveRoom])
 
   const statusRef = useRef<HTMLDivElement>(null)
   /* One generator for the whole session, so the computer does not replay the same game every time. Seeded
@@ -204,16 +251,24 @@ export function TicTacToe() {
    * pause plays *its* move for it: the bead lands in the computer's colour, the turn comes straight
    * back, and the reply it had already chosen is dropped along with the pending timer.
    */
-  const locked = isThinking || (computer !== null && currentPlayer === computer)
+  const locked = isOnline
+    ? !room.isMyTurn
+    : isThinking || (computer !== null && currentPlayer === computer)
 
   const handlePlay = useCallback(
     (index: number, fromKeyboard: boolean) => {
       // A release that turned the board is a camera move, not a move on the board.
       if (consumedDrag(fromKeyboard)) return
       if (locked) return
+      // Online moves go to the server, which confirms them back through onRemoteMove; local games play
+      // straight onto the board.
+      if (isOnline) {
+        void room.submit(index, wouldFinish(board, index, currentPlayer))
+        return
+      }
       playAt(index)
     },
-    [consumedDrag, locked, playAt]
+    [consumedDrag, locked, isOnline, room, board, currentPlayer, playAt]
   )
 
   // Focus isolates a layer without touching the camera: the viewpoint stays where it was put.
@@ -235,8 +290,13 @@ export function TicTacToe() {
     (next: GameMode) => {
       setGameMode(next)
       setPlayers((current) => retitle(current, computerSeat(next, starter)))
+      // Entering online starts from a clean board; the room fills it from the server as moves confirm.
+      if (next === GameMode.online) {
+        newGame()
+        setPickedLayer(null)
+      }
     },
-    [starter]
+    [newGame, starter]
   )
 
   const changeStarter = useCallback(
@@ -270,21 +330,39 @@ export function TicTacToe() {
     [displayNames, players]
   )
 
+  /* Online, the seats' colours come from the server so both screens agree, and the names read simply as
+     you and your opponent. Before anyone has joined the local profiles stand in. */
+  const boardPlayers = useMemo(() => {
+    if (!isOnline) return namedPlayers
+    const next: Record<Player, PlayerProfile> = { ...namedPlayers }
+    for (const seat of room.seats) {
+      next[seatPlayer(seat.seat)] = {
+        name: seat.seat === room.mySeat ? gameCopy.online.you : gameCopy.online.opponent,
+        rgb: seat.colour,
+      }
+    }
+    return next
+  }, [isOnline, namedPlayers, room.seats, room.mySeat])
+
   const viewKeys = useRovingRadio(VIEW_MODES, mode, setMode)
 
   /* Whether there is a game to disturb. Changing who starts hands the seats over, so once pieces are down
      the control says what it will do rather than doing it silently. */
   const started = board.some((cell) => cell !== null)
 
-  const shown = namedPlayers[win ? win.player : currentPlayer]
+  const shown = boardPlayers[win ? win.player : currentPlayer]
   const shownName = shown.name
+  const onlineWaiting =
+    isOnline && room.connection === Connection.connected && !room.opponentPresent
   const status = win
     ? gameCopy.wins(shownName)
     : isDraw
       ? gameCopy.draw
-      : isThinking
-        ? gameCopy.thinking(shownName)
-        : gameCopy.turn(shownName)
+      : onlineWaiting
+        ? gameCopy.online.waiting
+        : isThinking
+          ? gameCopy.thinking(shownName)
+          : gameCopy.turn(shownName)
 
   const hint = camera.orbitable
     ? isTouch
@@ -319,7 +397,7 @@ export function TicTacToe() {
             locked={locked}
             focusedLayer={focusedLayer}
             lastMove={lastMove}
-            players={namedPlayers}
+            players={boardPlayers}
             mode={mode}
             camera={camera.camera}
             spacing={spacing}
@@ -371,39 +449,43 @@ export function TicTacToe() {
             </div>
           </div>
 
-          <div className={styles.group}>
-            <button
-              type="button"
-              className={styles.button}
-              onClick={() => undo()}
-              disabled={!canUndo}
-              title={gameCopy.undoTitle(computer !== null)}
-              aria-label={gameCopy.undo}
-            >
-              <HistoryIcon direction={HistoryDirection.back} />
-              <span className={styles.buttonWord}>{gameCopy.undo}</span>
-            </button>
-            <button
-              type="button"
-              className={styles.button}
-              onClick={() => redo()}
-              disabled={!canRedo}
-              title={gameCopy.redoTitle(computer !== null)}
-              aria-label={gameCopy.redo}
-            >
-              <HistoryIcon direction={HistoryDirection.forward} />
-              <span className={styles.buttonWord}>{gameCopy.redo}</span>
-            </button>
-            <button
-              type="button"
-              className={styles.button}
-              onClick={handleNewGame}
-              aria-label={gameCopy.newGame}
-            >
-              <NewGameIcon />
-              <span className={styles.buttonWord}>{gameCopy.newGame}</span>
-            </button>
-          </div>
+          {/* No take-backs online: a committed move belongs to both players, so undo, redo, and a
+              unilateral new game all step out. Leaving the room is how you start over. */}
+          {!isOnline && (
+            <div className={styles.group}>
+              <button
+                type="button"
+                className={styles.button}
+                onClick={() => undo()}
+                disabled={!canUndo}
+                title={gameCopy.undoTitle(computer !== null)}
+                aria-label={gameCopy.undo}
+              >
+                <HistoryIcon direction={HistoryDirection.back} />
+                <span className={styles.buttonWord}>{gameCopy.undo}</span>
+              </button>
+              <button
+                type="button"
+                className={styles.button}
+                onClick={() => redo()}
+                disabled={!canRedo}
+                title={gameCopy.redoTitle(computer !== null)}
+                aria-label={gameCopy.redo}
+              >
+                <HistoryIcon direction={HistoryDirection.forward} />
+                <span className={styles.buttonWord}>{gameCopy.redo}</span>
+              </button>
+              <button
+                type="button"
+                className={styles.button}
+                onClick={handleNewGame}
+                aria-label={gameCopy.newGame}
+              >
+                <NewGameIcon />
+                <span className={styles.buttonWord}>{gameCopy.newGame}</span>
+              </button>
+            </div>
+          )}
 
           <p className={styles.hint}>{hint}</p>
         </div>
@@ -418,6 +500,13 @@ export function TicTacToe() {
             onDifficultyChange={setDifficulty}
             onStarterChange={changeStarter}
           />
+          {isOnline && (
+            <OnlinePanel
+              room={room}
+              colour={players[Player.one].rgb}
+              initialCode={inviteCode ?? undefined}
+            />
+          )}
           <PlayerSetup
             players={players}
             displayNames={displayNames}
