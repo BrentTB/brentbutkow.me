@@ -60,6 +60,80 @@
   border-top: 1px solid var(--border);
 }
 
+/* Room settings: label on the left, choices on the right, matching the Game panel above. */
+.settingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 7px 0;
+  border-top: 1px solid var(--border);
+}
+
+.segmented {
+  @include segmented-pills;
+}
+
+.toggleRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 7px 0;
+  border-top: 1px solid var(--border);
+  cursor: pointer;
+
+  input {
+    margin-top: 2px;
+    accent-color: rgba(var(--accent-rgb), 0.92);
+    cursor: pointer;
+  }
+}
+
+.toggleText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.findRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+
+.hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+/* Time on the current move. Turns urgent near the end, since that is when it starts mattering. */
+.clock {
+  margin: 0;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+
+  &[data-low] {
+    color: rgb(var(--danger-rgb, 226, 122, 142));
+    font-weight: 600;
+  }
+}
+
+/* Something that happened to the room rather than to the game: a player leaving, mostly. */
+.note {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+
 .joinControls {
   display: flex;
   gap: 6px;
@@ -141,6 +215,15 @@
   font-size: 0.82rem;
 }
 
+/* A seat whose player has gone: dimmed, so the list shows who is actually here at a glance. */
+.seat[data-away] {
+  opacity: 0.45;
+
+  .seatName {
+    text-decoration: line-through;
+  }
+}
+
 .mine {
   color: var(--muted);
   font-family: var(--font-mono);
@@ -155,21 +238,47 @@
   font-size: 0.8rem;
 }
 
+/**
+ * Deliberately quiet but unmistakably a button: bordered like the board's own controls so it reads as
+ * clickable, sized down and shrink-wrapped so it never competes with the actions above it. Underlined
+ * muted text was easy to miss altogether, and had no focus ring for anyone using a keyboard.
+ */
 .leave {
   align-self: flex-start;
-  margin-top: 2px;
-  padding: 4px 0;
-  border: 0;
-  background: none;
-  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-secondary);
   font: inherit;
   font-size: 0.76rem;
-  text-decoration: underline;
   cursor: pointer;
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    border-color 160ms ease;
 
   &:hover {
     color: var(--text);
+    border-color: var(--border-strong);
+    background: var(--surface-strong);
   }
+
+  &:focus-visible {
+    outline: 2px solid rgba(var(--accent-rgb), 0.9);
+    outline-offset: 2px;
+  }
+}
+
+/* The door the label is talking about: an arrow leaving a bracket, at text size. */
+.leaveIcon {
+  width: 0.85em;
+  height: 0.85em;
+  flex: none;
 }
 
 .error {
@@ -179,7 +288,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .action {
+  .action,
+  .leave {
     transition-duration: 1ms;
   }
 }

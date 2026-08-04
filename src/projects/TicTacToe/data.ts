@@ -54,6 +54,23 @@ export const STARTER_LABELS: Record<Starter, string> = {
   [Starter.computer]: 'Computer',
 }
 
+/** Who opens an online game, from the point of view of whoever is setting the room up. */
+export const ONLINE_STARTERS = [
+  { seat: 0, label: 'You' },
+  { seat: 1, label: 'Them' },
+] as const
+
+/**
+ * How long a move may take. Unlimited stays first because it is the friendly default; the rest are
+ * short enough to keep a game moving in one sitting.
+ */
+export const MOVE_LIMITS: readonly { seconds: number | null; label: string }[] = [
+  { seconds: null, label: 'None' },
+  { seconds: 30, label: '30s' },
+  { seconds: 60, label: '1 min' },
+  { seconds: 180, label: '3 min' },
+]
+
 export const VIEW_LABELS: Record<ViewMode, string> = {
   [ViewMode.orbit]: 'Cube',
   [ViewMode.fanned]: 'Layers',
@@ -99,6 +116,9 @@ export const gameCopy = {
     title: 'Online game',
     create: 'Start a game',
     join: 'Join a game',
+    findGame: 'Find a game',
+    /** Sits under the find button, since being matched with a stranger deserves a word of warning. */
+    findHint: 'Puts you against whoever else is looking.',
     codeLabel: 'Room code',
     codePlaceholder: 'Enter a code',
     connecting: 'Connecting…',
@@ -109,14 +129,26 @@ export const gameCopy = {
     yourTurn: 'Your move',
     theirTurn: 'Their move',
     leave: 'Leave game',
-    you: 'You',
-    opponent: 'Opponent',
+    playAgain: 'Play again',
+    /** Shown after a game, since the opening move changes hands each time. */
+    playAgainHint: 'Same room, and the other player starts.',
+    opponentLeft: (name: string) => `${name} left the room`,
     /** Stands in until a player types a name of their own. */
     unnamed: 'No name yet',
     youTag: '(you)',
     /** Replaces the numbered label: online you only set your own, whichever seat you end up in. */
     yourNameLabel: 'Your name',
     intro: 'Share the code, take turns. No take-backs once a move is in.',
+
+    firstMoveLabel: 'Opening move',
+    clockLabel: 'Move limit',
+    openLabel: 'Open to anyone',
+    /** Explains what the open toggle does to a room that is waiting. */
+    openHint: 'Anyone looking for a game can drop straight into this room.',
+    timeLeft: (clock: string) => `${clock} left`,
+    /** The turn line once the clock decides it: nobody played, so there is no winning row to describe. */
+    wonOnTime: (name: string) => `${name} wins, the clock ran out`,
+    wonByDefault: (name: string) => `${name} wins, the other player left`,
   },
 
   playersTitle: 'Players',

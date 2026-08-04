@@ -51,9 +51,10 @@ export class HttpError extends Error {
 export async function fetchJson<T>(
   path: string,
   signal?: AbortSignal,
-  validate?: (raw: unknown) => raw is T
+  validate?: (raw: unknown) => raw is T,
+  headers?: Record<string, string>
 ): Promise<T> {
-  const res = await fetch(apiUrl(path), { signal })
+  const res = await fetch(apiUrl(path), { signal, headers })
   if (!res.ok) throw new HttpError(res.status)
   const raw: unknown = await res.json()
   if (validate && !validate(raw)) throw new Error('Unexpected response shape')

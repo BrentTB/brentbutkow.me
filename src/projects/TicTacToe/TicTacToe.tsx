@@ -7,22 +7,15 @@ import { useMediaQuery } from '../../components/utils/useMediaQuery'
 import { useViewportHeight } from '../../components/utils/useViewportHeight'
 import { useScrollToOnChange } from '../../components/utils/useScrollToOnChange'
 import { useRovingRadio } from '../../components/utils/useRovingRadio'
-import {
-  Board as BoardState,
-  Difficulty,
-  GameMode,
-  Player,
-  PlayerProfile,
-  Starter,
-  ViewMode,
-} from './tic-tac-toe.types'
+import { Difficulty, GameMode, Player, PlayerProfile, Starter, ViewMode } from './tic-tac-toe.types'
 import { cssVars } from './css-vars'
 import { DEFAULT_PLAYERS, PLAYER_COLOURS, PLAYER_SLOTS, VIEW_LABELS, gameCopy } from './data'
 import { Rng, seededRng } from './engine/rng'
 import { useComputerTurn } from './useComputerTurn'
 import { Connection, useOnlineRoom } from '../../multiplayer/useOnlineRoom'
 import { parseRoomInvite } from '../../multiplayer/room-code'
-import { TIC_TAC_TOE_CELL_COUNT, TIC_TAC_TOE_GAME_ID, cellCodec, seatPlayer } from './online'
+import { Outcome, RoomStatus } from '../../multiplayer/multiplayer.types'
+import { TIC_TAC_TOE_CELL_COUNT, TIC_TAC_TOE_GAME_ID, cellCodec, playerForSeat } from './online'
 import { GameSetup } from './components/GameSetup/GameSetup'
 import { OnlinePanel } from './components/OnlinePanel/OnlinePanel'
 import { applyMove, isBoardFull } from './engine/board'
@@ -44,6 +37,9 @@ const TOUCH_QUERY = '(hover: none)'
 /** Gap between the layer rail and the board it labels. */
 const RAIL_GUTTER = 14
 
+/** How long typing settles before your name goes to the room, so a rename is one write and not ten. */
+const PROFILE_DEBOUNCE_MS = 400
+
 /** Share of the window each view may take, and a ceiling so it stops growing on a big monitor. */
 const DECK_LIMITS: Record<ViewMode, { share: number; max: number }> = {
   [ViewMode.orbit]: { share: 0.5, max: 600 },
@@ -59,12 +55,6 @@ const VIEW_MODES = Object.values(ViewMode)
 function computerSeat(mode: GameMode, starter: Starter): Player | null {
   if (mode !== GameMode.onePlayer) return null
   return starter === Starter.computer ? Player.one : Player.two
-}
-
-/** Whether playing `index` ends the game, so an online move can tell the server the room is finished. */
-function wouldFinish(board: BoardState, index: number, player: Player): boolean {
-  const next = applyMove(board, index, player)
-  return findWinningLine(next, player) !== null || isBoardFull(next)
 }
 
 /** An emptied name field falls back to its default rather than leaving the turn line blank. */
@@ -151,6 +141,18 @@ export function TicTacToe() {
   useEffect(() => {
     if (!isOnline) leaveRoom()
   }, [isOnline, leaveRoom])
+
+  /* The prefilled code belongs to the room you arrived for, so stepping out of a room empties the join
+     field rather than offering the same code back. Gated on having been in one: the connection starts
+     idle, and clearing then would wipe the code an invite link had just supplied. */
+  const wasInRoomRef = useRef(false)
+  if (room.connection === Connection.connected) wasInRoomRef.current = true
+  const leftRoom = wasInRoomRef.current && room.connection === Connection.idle
+  useEffect(() => {
+    if (!leftRoom) return
+    wasInRoomRef.current = false
+    setInviteCode(null)
+  }, [leftRoom])
 
   const statusRef = useRef<HTMLDivElement>(null)
   /* One generator for the whole session, so the computer does not replay the same game every time. Seeded
@@ -264,7 +266,10 @@ export function TicTacToe() {
       // Online moves go to the server, which confirms them back through onRemoteMove; local games play
       // straight onto the board.
       if (isOnline) {
-        void room.submit(index, wouldFinish(board, index, currentPlayer))
+        // The server cannot judge the board, so a winning move says so and it records who took it.
+        const after = applyMove(board, index, currentPlayer)
+        const won = findWinningLine(after, currentPlayer) !== null
+        void room.submit(index, won || isBoardFull(after), won)
         return
       }
       playAt(index)
@@ -354,11 +359,16 @@ export function TicTacToe() {
   }, [isOnline, mySlot, opponentColour, players, recolour])
 
   /* Publishes your name and colour to the room whenever you change them, so the opponent's board shows
-     the piece in your colour under your name rather than a stale default. */
+     the piece in your colour under your name rather than a stale default.
+
+     Debounced, because this fires on every keystroke in the name field and each one is a write the
+     opponent only needs the end of. */
   const { publishProfile } = room
   const connected = room.connection === Connection.connected
   useEffect(() => {
-    if (isOnline && connected) void publishProfile(myProfile)
+    if (!isOnline || !connected) return
+    const settle = window.setTimeout(() => void publishProfile(myProfile), PROFILE_DEBOUNCE_MS)
+    return () => window.clearTimeout(settle)
   }, [isOnline, connected, myProfile, publishProfile])
 
   /* Online, both seats' names and colours come from the room, so the two screens agree and the players
@@ -367,14 +377,14 @@ export function TicTacToe() {
     if (!isOnline) return namedPlayers
     const next: Record<Player, PlayerProfile> = { ...namedPlayers }
     for (const seat of room.seats) {
-      const slot = seatPlayer(seat.seat)
+      const slot = playerForSeat(seat.seat, room.firstSeat)
       next[slot] = {
         name: seat.name.trim() || DEFAULT_PLAYERS[slot].name,
         rgb: seat.colour,
       }
     }
     return next
-  }, [isOnline, namedPlayers, room.seats])
+  }, [isOnline, namedPlayers, room.seats, room.firstSeat])
 
   const viewKeys = useRovingRadio(VIEW_MODES, mode, setMode)
 
@@ -382,19 +392,37 @@ export function TicTacToe() {
      the control says what it will do rather than doing it silently. */
   const started = board.some((cell) => cell !== null)
 
+  /* An online game can end with nothing on the board to point at: the clock decides one, and walking
+     out decides another. Those verdicts come from the room, so the name is looked up by winning seat. */
+  const decidedOffBoard =
+    isOnline && (room.outcome === Outcome.timeout || room.outcome === Outcome.forfeit)
+  const winnerName =
+    room.winnerSeat === null
+      ? null
+      : boardPlayers[playerForSeat(room.winnerSeat, room.firstSeat)].name
+
   const shown = boardPlayers[win ? win.player : currentPlayer]
   const shownName = shown.name
   const onlineWaiting =
-    isOnline && room.connection === Connection.connected && !room.opponentPresent
-  const status = win
-    ? gameCopy.wins(shownName)
-    : isDraw
-      ? gameCopy.draw
-      : onlineWaiting
-        ? gameCopy.online.waiting
-        : isThinking
-          ? gameCopy.thinking(shownName)
-          : gameCopy.turn(shownName)
+    isOnline &&
+    room.connection === Connection.connected &&
+    !room.opponentPresent &&
+    room.status !== RoomStatus.finished
+  const offBoardStatus =
+    room.outcome === Outcome.timeout
+      ? gameCopy.online.wonOnTime(winnerName ?? shownName)
+      : gameCopy.online.wonByDefault(winnerName ?? shownName)
+  const status = decidedOffBoard
+    ? offBoardStatus
+    : win
+      ? gameCopy.wins(shownName)
+      : isDraw
+        ? gameCopy.draw
+        : onlineWaiting
+          ? gameCopy.online.waiting
+          : isThinking
+            ? gameCopy.thinking(shownName)
+            : gameCopy.turn(shownName)
 
   const hint = camera.orbitable
     ? isTouch

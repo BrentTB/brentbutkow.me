@@ -1,7 +1,9 @@
-import { apiRoutes, fetchJson, postJsonFor } from '../api/api'
+import { apiRoutes, apiUrl, fetchJson, postJsonFor } from '../api/api'
 import {
   MoveResult,
+  Outcome,
   RoomCredentials,
+  RoomOptions,
   RoomState,
   RoomStatus,
   Seat,
@@ -14,16 +16,31 @@ import {
 
 const roomPath = (code: string) => `${apiRoutes.rooms}/${encodeURIComponent(code)}`
 
+/** Identifies the reader to the room, which is what keeps their seat counted as present. */
+const seatHeader = (token: string) => ({ 'X-Seat-Token': token })
+
 const isRecord = (raw: unknown): raw is Record<string, unknown> =>
   typeof raw === 'object' && raw !== null
 
 const isStatus = (value: unknown): value is RoomStatus =>
   typeof value === 'string' && (Object.values(RoomStatus) as string[]).includes(value)
 
+const isOutcome = (value: unknown): value is Outcome | null =>
+  value === null ||
+  (typeof value === 'string' && (Object.values(Outcome) as string[]).includes(value))
+
 const isSeat = (value: unknown): value is Seat => value === Seat.first || value === Seat.second
+
+const isSeatOrNull = (value: unknown): value is Seat | null => value === null || isSeat(value)
 
 const isWireMoves = (value: unknown): value is number[] =>
   Array.isArray(value) && value.every((entry) => typeof entry === 'number')
+
+const isNumberOrNull = (value: unknown): value is number | null =>
+  value === null || typeof value === 'number'
+
+const isStringOrNull = (value: unknown): value is string | null =>
+  value === null || typeof value === 'string'
 
 const isSeatInfo = (raw: unknown): raw is SeatInfo =>
   isRecord(raw) &&
@@ -51,19 +68,53 @@ const isRoomState = (raw: unknown): raw is RoomState =>
   raw.seats.every(isSeatInfo) &&
   isStatus(raw.status) &&
   typeof raw.version === 'number' &&
-  typeof raw.expiresAt === 'string'
+  typeof raw.expiresAt === 'string' &&
+  isSeat(raw.firstSeat) &&
+  typeof raw.isOpen === 'boolean' &&
+  isNumberOrNull(raw.moveLimitSeconds) &&
+  isStringOrNull(raw.turnEndsAt) &&
+  isOutcome(raw.outcome) &&
+  isSeatOrNull(raw.winnerSeat)
 
 const isMoveResult = (raw: unknown): raw is MoveResult =>
-  isRecord(raw) && typeof raw.version === 'number' && isWireMoves(raw.moves) && isStatus(raw.status)
+  isRecord(raw) &&
+  typeof raw.version === 'number' &&
+  isWireMoves(raw.moves) &&
+  isStatus(raw.status) &&
+  isOutcome(raw.outcome) &&
+  isSeatOrNull(raw.winnerSeat)
 
 export function createRoom(
   gameId: string,
   profile: SeatProfile,
-  cellCount: number
+  cellCount: number,
+  options: RoomOptions = {}
 ): Promise<RoomCredentials> {
   return postJsonFor(
     apiRoutes.rooms,
-    { gameId, name: profile.name, colour: profile.colour, cellCount },
+    {
+      gameId,
+      name: profile.name,
+      colour: profile.colour,
+      cellCount,
+      firstSeat: options.firstSeat ?? Seat.first,
+      isOpen: options.isOpen ?? false,
+      moveLimitSeconds: options.moveLimitSeconds ?? null,
+    },
+    isRoomCredentials
+  )
+}
+
+/** Joins whoever is waiting for this game, or opens a room and waits when nobody is. */
+export function matchmake(
+  gameId: string,
+  profile: SeatProfile,
+  cellCount: number,
+  moveLimitSeconds: number | null = null
+): Promise<RoomCredentials> {
+  return postJsonFor(
+    `${apiRoutes.rooms}/matchmake`,
+    { gameId, name: profile.name, colour: profile.colour, cellCount, moveLimitSeconds },
     isRoomCredentials
   )
 }
@@ -89,8 +140,30 @@ export function updateProfile(
   )
 }
 
-export function getRoom(code: string, signal?: AbortSignal): Promise<RoomState> {
-  return fetchJson(roomPath(code), signal, isRoomState)
+/** Gives up your seat. Mid-game that hands the win to the other player. */
+export function leaveRoom(code: string, token: string): Promise<RoomState> {
+  return postJsonFor(`${roomPath(code)}/leave`, { token }, isRoomState)
+}
+
+/** Clears the board for another game, handing the opening move to the other seat. */
+export function rematch(code: string, token: string): Promise<RoomState> {
+  return postJsonFor(`${roomPath(code)}/rematch`, { token }, isRoomState)
+}
+
+/**
+ * Frees the seat as the page goes away.
+ *
+ * `sendBeacon` because a tab being closed will not wait for a normal request to finish. Nothing can be
+ * read back, so a failure here falls to the presence timeout instead.
+ */
+export function beaconLeave(code: string, token: string): void {
+  if (typeof navigator === 'undefined' || typeof navigator.sendBeacon !== 'function') return
+  const body = new Blob([JSON.stringify({ token })], { type: 'application/json' })
+  navigator.sendBeacon(apiUrl(`${roomPath(code)}/leave`), body)
+}
+
+export function getRoom(code: string, token?: string, signal?: AbortSignal): Promise<RoomState> {
+  return fetchJson(roomPath(code), signal, isRoomState, token ? seatHeader(token) : undefined)
 }
 
 export function submitMove(
@@ -98,11 +171,12 @@ export function submitMove(
   token: string,
   move: number,
   expectedVersion: number,
-  finished: boolean
+  finished: boolean,
+  won: boolean
 ): Promise<MoveResult> {
   return postJsonFor(
     `${roomPath(code)}/move`,
-    { token, move, expectedVersion, finished },
+    { token, move, expectedVersion, finished, won },
     isMoveResult
   )
 }

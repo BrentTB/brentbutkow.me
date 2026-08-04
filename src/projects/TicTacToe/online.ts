@@ -13,5 +13,13 @@ export const cellCodec: MoveCodec<number> = {
   fromWire: (wire) => wire,
 }
 
-/** Seat 0 opens the game as player one, seat 1 replies as player two. */
-export const seatPlayer = (seat: Seat): Player => (seat === Seat.first ? Player.one : Player.two)
+/**
+ * Which local player a seat plays as.
+ *
+ * The game itself always has player one moving first, so whichever seat the room says opens is player
+ * one and the other is player two. That keeps the engine's own rule intact while letting either seat
+ * start, and it flips cleanly when a rematch hands the opening move over. Colours and names live on
+ * the seat, so a player keeps their own even as their slot changes between games.
+ */
+export const playerForSeat = (seat: Seat, firstSeat: Seat): Player =>
+  seat === firstSeat ? Player.one : Player.two

@@ -1,7 +1,27 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { HttpError } from '../api/api'
-import { createRoom, getRoom, joinRoom, submitMove, updateProfile } from './rooms-api'
-import { MoveCodec, RoomState, RoomStatus, Seat, SeatInfo, SeatProfile } from './multiplayer.types'
+import {
+  beaconLeave,
+  createRoom,
+  getRoom,
+  joinRoom,
+  leaveRoom,
+  matchmake,
+  rematch,
+  submitMove,
+  updateProfile,
+} from './rooms-api'
+import { clearRoomFromUrl, showRoomInUrl } from './room-code'
+import {
+  MoveCodec,
+  Outcome,
+  RoomOptions,
+  RoomState,
+  RoomStatus,
+  Seat,
+  SeatInfo,
+  SeatProfile,
+} from './multiplayer.types'
 
 // A generic, turn-based online room. It coordinates two seats over short polling and knows no game's
 // rules: a game supplies its id, its board size, and a codec mapping its move to the wire integer the
@@ -24,7 +44,7 @@ export interface UseOnlineRoomOptions<Move> {
   codec: MoveCodec<Move>
   /** Called once per newly-confirmed move, in order, for both seats. `index` is its 0-based position. */
   onRemoteMove: (move: Move, index: number) => void
-  /** Called when a session begins, before any moves replay, so the consumer can clear its board. */
+  /** Called when a session or a fresh game begins, so the consumer can clear its board. */
   onReset?: () => void
   pollMs?: number
 }
@@ -38,13 +58,26 @@ export interface OnlineRoom<Move> {
   version: number
   isMyTurn: boolean
   opponentPresent: boolean
+  /** True once somebody took the other seat and then left, as opposed to never having arrived. */
+  opponentLeft: boolean
+  /** Which seat opens the current game, so a consumer can map seats onto its own players. */
+  firstSeat: Seat
+  outcome: Outcome | null
+  winnerSeat: Seat | null
+  /** When the player on turn runs out of time, or null when no clock is running. */
+  turnEndsAt: string | null
+  moveLimitSeconds: number | null
   error: string | null
-  create: (profile: SeatProfile) => Promise<void>
+  create: (profile: SeatProfile, options?: RoomOptions) => Promise<void>
   join: (code: string, profile: SeatProfile) => Promise<void>
+  /** Drops into whoever is waiting for this game, opening a room to wait in when nobody is. */
+  findGame: (profile: SeatProfile, moveLimitSeconds?: number | null) => Promise<void>
   /** Sends a move; resolves true once the server accepts it, false on rejection (with `error` set). */
-  submit: (move: Move, finished?: boolean) => Promise<boolean>
+  submit: (move: Move, finished?: boolean, won?: boolean) => Promise<boolean>
   /** Publishes your own name and colour to the room, so the opponent's board shows them. */
   publishProfile: (profile: SeatProfile) => Promise<void>
+  /** Clears the board for another game in the same room, with the other seat opening. */
+  playAgain: () => Promise<void>
   leave: () => void
 }
 
@@ -59,6 +92,14 @@ const rejectionMessage = (status: number): string => {
   if (status === 409) return 'The board moved on, try again.'
   if (status === 422) return 'That move is not allowed.'
   return 'Could not send your move.'
+}
+
+const joinFailure = (err: unknown): string => {
+  if (err instanceof HttpError && err.status === 409) return 'That room is already full.'
+  if (err instanceof HttpError && (err.status === 404 || err.status === 410)) {
+    return 'That room code was not found.'
+  }
+  return 'Could not join the room.'
 }
 
 export function useOnlineRoom<Move>({
@@ -94,24 +135,32 @@ export function useOnlineRoom<Move>({
     }
   }, [])
 
-  const reconcile = useCallback(
-    (next: RoomState) => {
-      for (let i = appliedRef.current; i < next.moves.length; i++) {
-        onMoveRef.current(codecRef.current.fromWire(next.moves[i]), i)
-      }
-      appliedRef.current = next.moves.length
-      roomRef.current = next
-      setRoom(next)
-      if (next.status === RoomStatus.finished || next.status === RoomStatus.abandoned) stopPolling()
-    },
-    [stopPolling]
-  )
+  /**
+   * Brings the local board in line with the room.
+   *
+   * Moves are handed over one at a time from wherever the last one left off. A move list shorter than
+   * the count already applied means another game has started in the same room, so the board is cleared
+   * and replayed from the beginning.
+   */
+  const reconcile = useCallback((next: RoomState) => {
+    if (next.moves.length < appliedRef.current) {
+      appliedRef.current = 0
+      onResetRef.current?.()
+    }
+    for (let i = appliedRef.current; i < next.moves.length; i++) {
+      onMoveRef.current(codecRef.current.fromWire(next.moves[i]), i)
+    }
+    appliedRef.current = next.moves.length
+    roomRef.current = next
+    setRoom(next)
+  }, [])
 
   const pollOnce = useCallback(async () => {
     const session = sessionRef.current
     if (session === null) return
     try {
-      reconcile(await getRoom(session.code))
+      // The poll carries the seat token, so reading the room is also how a seat stays counted present.
+      reconcile(await getRoom(session.code, session.token))
     } catch (err) {
       // A gone/expired room ends the session; a transient blip is ignored so it doesn't kill the game.
       if (err instanceof HttpError && (err.status === 404 || err.status === 410)) {
@@ -129,6 +178,9 @@ export function useOnlineRoom<Move>({
    * battery saving this would otherwise be hand-rolling. Skipping ticks of our own on top of that
    * multiplies with the throttle and leaves a backgrounded game minutes stale, so the pacing is left
    * to the browser. Coming back to the tab forces an immediate read either way.
+   *
+   * The loop keeps running once a game finishes: either player may start another one, and that only
+   * shows up on a read.
    */
   const startPolling = useCallback(() => {
     stopPolling()
@@ -146,37 +198,34 @@ export function useOnlineRoom<Move>({
       reconcile(initial) // replays any moves already on the board (a mid-game join)
       setConnection(Connection.connected)
       setError(null)
+      // The address bar becomes the invite, so the URL can be sent as-is without the copy button.
+      showRoomInUrl(session.code)
       startPolling()
     },
     [reconcile, startPolling]
   )
 
+  /** Turns fresh credentials into a live session, reading the room so both seats are known. */
+  const enter = useCallback(
+    async (creds: { code: string; token: string; seat: Seat }) => {
+      const state = await getRoom(creds.code, creds.token)
+      begin({ code: creds.code, token: creds.token, seat: creds.seat }, state)
+    },
+    [begin]
+  )
+
   const create = useCallback(
-    async (profile: SeatProfile) => {
+    async (profile: SeatProfile, options: RoomOptions = {}) => {
       setConnection(Connection.connecting)
       setError(null)
       try {
-        const creds = await createRoom(gameId, profile, cellCount)
-        begin(
-          { code: creds.code, token: creds.token, seat: creds.seat },
-          {
-            code: creds.code,
-            gameId,
-            cellCount,
-            moves: [],
-            // The creator's own seat, so their name and colour show before the first poll lands.
-            seats: [{ seat: creds.seat, name: profile.name, colour: profile.colour, joined: true }],
-            status: creds.status,
-            version: 0,
-            expiresAt: '',
-          }
-        )
+        await enter(await createRoom(gameId, profile, cellCount, options))
       } catch {
         setConnection(Connection.error)
         setError('Could not create the room.')
       }
     },
-    [begin, cellCount, gameId]
+    [cellCount, enter, gameId]
   )
 
   const join = useCallback(
@@ -184,22 +233,31 @@ export function useOnlineRoom<Move>({
       setConnection(Connection.connecting)
       setError(null)
       try {
-        const creds = await joinRoom(code, profile)
-        const state = await getRoom(creds.code)
-        begin({ code: creds.code, token: creds.token, seat: creds.seat }, state)
+        await enter(await joinRoom(code, profile))
       } catch (err) {
         setConnection(Connection.error)
-        if (err instanceof HttpError && err.status === 409) setError('That room is already full.')
-        else if (err instanceof HttpError && (err.status === 404 || err.status === 410))
-          setError('That room code was not found.')
-        else setError('Could not join the room.')
+        setError(joinFailure(err))
       }
     },
-    [begin]
+    [enter]
+  )
+
+  const findGame = useCallback(
+    async (profile: SeatProfile, moveLimitSeconds: number | null = null) => {
+      setConnection(Connection.connecting)
+      setError(null)
+      try {
+        await enter(await matchmake(gameId, profile, cellCount, moveLimitSeconds))
+      } catch {
+        setConnection(Connection.error)
+        setError('Could not find a game.')
+      }
+    },
+    [cellCount, enter, gameId]
   )
 
   const submit = useCallback(
-    async (move: Move, finished = false): Promise<boolean> => {
+    async (move: Move, finished = false, won = false): Promise<boolean> => {
       const session = sessionRef.current
       const current = roomRef.current
       if (session === null || current === null) return false
@@ -209,13 +267,16 @@ export function useOnlineRoom<Move>({
           session.token,
           codecRef.current.toWire(move),
           appliedRef.current,
-          finished
+          finished,
+          won
         )
         reconcile({
           ...current,
           moves: result.moves,
           status: result.status,
           version: result.version,
+          outcome: result.outcome,
+          winnerSeat: result.winnerSeat,
         })
         return true
       } catch (err) {
@@ -245,7 +306,22 @@ export function useOnlineRoom<Move>({
     [reconcile]
   )
 
-  const leave = useCallback(() => {
+  const playAgain = useCallback(async () => {
+    const session = sessionRef.current
+    if (session === null) return
+    try {
+      reconcile(await rematch(session.code, session.token))
+    } catch (err) {
+      setError(
+        err instanceof HttpError && err.status === 409
+          ? 'Your opponent has to be here for another game.'
+          : 'Could not start another game.'
+      )
+    }
+  }, [reconcile])
+
+  /** Wipes the local session. Split out so both a deliberate leave and an unmount can use it. */
+  const forget = useCallback(() => {
     stopPolling()
     sessionRef.current = null
     roomRef.current = null
@@ -254,7 +330,17 @@ export function useOnlineRoom<Move>({
     setMySeat(null)
     setConnection(Connection.idle)
     setError(null)
+    // Nothing left to invite anyone into, so the link comes back out of the address bar.
+    clearRoomFromUrl()
   }, [stopPolling])
+
+  const leave = useCallback(() => {
+    const session = sessionRef.current
+    // Told to the server as well as forgotten locally, so the opponent hears about it at once rather
+    // than waiting out the presence timeout.
+    if (session !== null) void leaveRoom(session.code, session.token).catch(() => undefined)
+    forget()
+  }, [forget])
 
   // A tab returning to the foreground catches up at once rather than waiting for the next interval.
   useEffect(() => {
@@ -265,11 +351,29 @@ export function useOnlineRoom<Move>({
     return () => document.removeEventListener('visibilitychange', onVisible)
   }, [pollOnce])
 
+  /**
+   * A closed tab gives up its seat too.
+   *
+   * `pagehide` rather than `beforeunload`: it fires on mobile backgrounding as well, and it is the one
+   * browsers still honour a beacon from.
+   */
+  useEffect(() => {
+    const onGone = () => {
+      const session = sessionRef.current
+      if (session !== null) beaconLeave(session.code, session.token)
+    }
+    window.addEventListener('pagehide', onGone)
+    return () => window.removeEventListener('pagehide', onGone)
+  }, [])
+
   useEffect(() => stopPolling, [stopPolling]) // stop the loop on unmount
 
   const seats = room?.seats ?? []
+  const firstSeat = room?.firstSeat ?? Seat.first
   const version = room?.version ?? 0
-  const isMyTurn = mySeat !== null && room?.status === RoomStatus.active && version % 2 === mySeat
+  const isMyTurn =
+    mySeat !== null && room?.status === RoomStatus.active && (firstSeat + version) % 2 === mySeat
+  const opponentSeat = seats.find((seat) => seat.seat !== mySeat)
 
   return {
     connection,
@@ -280,11 +384,20 @@ export function useOnlineRoom<Move>({
     version,
     isMyTurn,
     opponentPresent: seats.filter((seat) => seat.joined).length >= 2,
+    // A seat that exists but sits empty belongs to somebody who was here and went.
+    opponentLeft: opponentSeat !== undefined && !opponentSeat.joined,
+    firstSeat,
+    outcome: room?.outcome ?? null,
+    winnerSeat: room?.winnerSeat ?? null,
+    turnEndsAt: room?.turnEndsAt ?? null,
+    moveLimitSeconds: room?.moveLimitSeconds ?? null,
     error,
     create,
     join,
+    findGame,
     submit,
     publishProfile,
+    playAgain,
     leave,
   }
 }
