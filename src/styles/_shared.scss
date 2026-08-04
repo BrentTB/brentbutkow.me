@@ -28,12 +28,64 @@ $ease-shoot: cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 }
 
+/** The site's keyboard focus ring: the accent, held off the edge so it reads on a filled control. */
+@mixin focus-ring($offset: 2px) {
+  outline: 2px solid rgba(var(--accent-rgb), 0.9);
+  outline-offset: $offset;
+}
+
+/**
+ * A quiet pill button: bordered like the surface it sits on, brightening on hover. For the small
+ * secondary actions beside a heading or a value, where a filled button would shout over it.
+ */
+@mixin quiet-pill($font-size: 0.76rem, $padding: 5px 12px) {
+  padding: $padding;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: $font-size;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    border-color 160ms ease;
+
+  &:hover {
+    color: var(--text);
+    border-color: var(--border-strong);
+    background: var(--surface-strong);
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+/** The shape of a panel's main buttons. The fill is the caller's: it is what separates the two ranks. */
+@mixin panel-button($font-size: 0.82rem, $padding: 8px 12px) {
+  padding: $padding;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font: inherit;
+  font-size: $font-size;
+  cursor: pointer;
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
 /**
  * A row of pills for a small single-select group: every option visible, one tap to switch. The selected
  * one fills with the accent, which is the same signal the country tabs and the mode toggle use.
  */
 @mixin segmented-pills($font-size: 0.8rem, $padding: 5px 12px) {
   display: flex;
+  /* Four pills outgrow a narrow dialog on a small phone, where a row that cannot wrap runs off it. */
+  flex-wrap: wrap;
   gap: 2px;
   padding: 3px;
   border: 1px solid var(--border);
@@ -65,9 +117,21 @@ $ease-shoot: cubic-bezier(0.34, 1.56, 0.64, 1);
       font-weight: 600;
     }
 
+    /* An option that cannot be taken says so, rather than looking live and ignoring the click. */
+    &:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+
+      /* Scoped off the selected pill: unscoped, this stripped the fill from the one option still
+         showing which choice is in force, leaving the group looking like nothing was chosen. */
+      &:not([aria-checked='true']):hover {
+        color: var(--text-secondary);
+        background: none;
+      }
+    }
+
     &:focus-visible {
-      outline: 2px solid rgba(var(--accent-rgb), 0.9);
-      outline-offset: 2px;
+      @include focus-ring;
     }
   }
 

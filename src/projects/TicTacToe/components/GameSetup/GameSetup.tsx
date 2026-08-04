@@ -1,9 +1,10 @@
 import { useRovingRadio } from '../../../../components/utils/useRovingRadio'
-import { Difficulty, GameMode, Starter } from '../../tic-tac-toe.types'
+import { Difficulty, GameMode, MoveCommit, Starter } from '../../tic-tac-toe.types'
 import {
   DIFFICULTY_BLURBS,
   DIFFICULTY_LABELS,
   MODE_LABELS,
+  MOVE_COMMIT_LABELS,
   STARTER_LABELS,
   gameCopy,
 } from '../../data'
@@ -15,6 +16,13 @@ interface GameSetupProps {
   starter: Starter
   /** True once the game is under way, when changing who starts also swaps the pieces already played. */
   started: boolean
+  /** Locks the opponent choice, for when switching away would walk out of a room mid-game. */
+  modeLocked?: boolean
+  /** Says why the choice is locked. Shown as text, so touch and screen readers get it too. */
+  modeLockedReason?: string
+  /** Whether a tap online plays the move or only aims it. This player's preference, not the room's. */
+  commit: MoveCommit
+  onCommitChange: (commit: MoveCommit) => void
   onModeChange: (mode: GameMode) => void
   onDifficultyChange: (difficulty: Difficulty) => void
   onStarterChange: (starter: Starter) => void
@@ -23,6 +31,7 @@ interface GameSetupProps {
 const MODES = Object.values(GameMode)
 const DIFFICULTIES = Object.values(Difficulty)
 const STARTERS = Object.values(Starter)
+const COMMITS = Object.values(MoveCommit)
 
 /** Who you are playing, how well it plays, and who moves first. The last two only apply on your own. */
 export function GameSetup({
@@ -30,15 +39,28 @@ export function GameSetup({
   difficulty,
   starter,
   started,
+  modeLocked = false,
+  modeLockedReason,
+  commit,
+  onCommitChange,
   onModeChange,
   onDifficultyChange,
   onStarterChange,
 }: GameSetupProps) {
   const solo = mode === GameMode.onePlayer
+  const online = mode === GameMode.online
 
-  const modeKeys = useRovingRadio(MODES, mode, onModeChange)
+  /* The lock travels into the keyboard handling as well as onto the buttons: arrow keys that selected a
+     locked option took the switch the mouse was refused, which online means walking out of a live game. */
+  const modeKeys = useRovingRadio(
+    MODES,
+    mode,
+    onModeChange,
+    (option) => modeLocked && option !== mode
+  )
   const difficultyKeys = useRovingRadio(DIFFICULTIES, difficulty, onDifficultyChange)
   const starterKeys = useRovingRadio(STARTERS, starter, onStarterChange)
+  const commitKeys = useRovingRadio(COMMITS, commit, onCommitChange)
 
   return (
     <section className={styles.setup} aria-labelledby="game-heading">
@@ -57,6 +79,8 @@ export function GameSetup({
               type="button"
               role="radio"
               aria-checked={mode === option}
+              disabled={modeLocked && mode !== option}
+              title={modeLocked && mode !== option ? modeLockedReason : undefined}
               onClick={() => onModeChange(option)}
               {...modeKeys(index)}
             >
@@ -65,6 +89,42 @@ export function GameSetup({
           ))}
         </div>
       </div>
+
+      {/* The reason as text, not only as a tooltip: there is no hover on a phone, and a disabled button
+          is out of the accessibility tree, so the tooltip reached nobody who needed it. */}
+      {modeLocked && modeLockedReason !== undefined && (
+        <p className={styles.note}>{modeLockedReason}</p>
+      )}
+
+      {/* Online has no undo, so a mis-tap is permanent. This is the way out of that, and it is yours
+          alone: your opponent only ever sees a move you sent. */}
+      {online && (
+        <>
+          <div className={styles.row}>
+            <span className={styles.label} id="commit-label">
+              {gameCopy.online.commitLabel}
+            </span>
+            <div className={styles.segmented} role="radiogroup" aria-labelledby="commit-label">
+              {COMMITS.map((option, index) => (
+                <button
+                  key={option}
+                  type="button"
+                  role="radio"
+                  aria-checked={commit === option}
+                  onClick={() => onCommitChange(option)}
+                  {...commitKeys(index)}
+                >
+                  {MOVE_COMMIT_LABELS[option]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {commit === MoveCommit.confirm && (
+            <p className={styles.blurb}>{gameCopy.online.commitHint}</p>
+          )}
+        </>
+      )}
 
       {solo && (
         <>

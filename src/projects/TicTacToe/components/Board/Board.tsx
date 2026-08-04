@@ -32,6 +32,8 @@ interface BoardProps {
   focusedLayer: number | null
   /** The cell just played, ringed so it can be found again at a glance. */
   lastMove: number | null
+  /** A move aimed but not yet committed, drawn as a hollow bead in the mover's colour. */
+  pendingCell?: number | null
   players: Record<Player, PlayerProfile>
   mode: ViewMode
   camera: Camera
@@ -56,6 +58,7 @@ export function Board({
   locked,
   focusedLayer,
   lastMove,
+  pendingCell = null,
   players,
   mode,
   camera,
@@ -138,6 +141,7 @@ export function Board({
           '--zoom': camera.zoom,
           '--spacing': `${spacing}px`,
           '--shift': `${shift}px`,
+          '--lift': `${layout.lift * spacing}px`,
           '--hit-ratio': CELL_HIT_RATIO,
           '--bead-ratio': BEAD_RATIO,
           '--marker-ratio': EMPTY_MARKER_RATIO,
@@ -177,10 +181,13 @@ export function Board({
         {sites.map(({ index, coord, position, fog }) => {
           const owner = board[index]
           const dimmed = focusedLayer !== null && coord.layer !== focusedLayer
+          const pending = owner === null && index === pendingCell
           const ownerName = owner === null ? null : players[owner].name
           const label = ownerName
             ? gameCopy.cellTakenLabel(coord.layer + 1, coord.x + 1, coord.y + 1, ownerName)
-            : gameCopy.cellLabel(coord.layer + 1, coord.x + 1, coord.y + 1)
+            : pending
+              ? gameCopy.cellPendingLabel(coord.layer + 1, coord.x + 1, coord.y + 1)
+              : gameCopy.cellLabel(coord.layer + 1, coord.x + 1, coord.y + 1)
 
           return (
             <button
@@ -197,6 +204,7 @@ export function Board({
               data-dim={dimmed || undefined}
               data-won={winCells.has(index) || undefined}
               data-last={index === lastMove || undefined}
+              data-pending={pending || undefined}
               onClick={(event) => {
                 if (locked) return
                 onPlay(index, event.detail === 0)
@@ -210,7 +218,13 @@ export function Board({
               })}
             >
               <span className={styles.billboard}>
-                {owner ? <span className={styles.bead} /> : <span className={styles.marker} />}
+                {owner ? (
+                  <span className={styles.bead} />
+                ) : pending ? (
+                  <span className={styles.ghost} />
+                ) : (
+                  <span className={styles.marker} />
+                )}
               </span>
             </button>
           )

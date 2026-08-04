@@ -1,3 +1,5 @@
+import { isRecord } from '../../utils/is-record'
+
 // Subscription lifecycle states as the backend reports them. Values double as the
 // runtime identifiers (filter values, table labels) — no magic strings.
 export const SubscriptionAdminStatus = {
@@ -119,23 +121,19 @@ export type SubscriptionAdminOut = {
   lastDigestAt: string | null
 }
 
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
-}
-
 // Every listed key is present and numeric on `value`.
 function hasNumbers(value: unknown, keys: readonly string[]): boolean {
-  return isObject(value) && keys.every((key) => typeof value[key] === 'number')
+  return isRecord(value) && keys.every((key) => typeof value[key] === 'number')
 }
 
 // Light structural checks — enough to reject a malformed/foreign payload before render.
 // The backend is trusted; these guard against shape drift, not adversarial input.
 export function isAdminSession(value: unknown): value is AdminSession {
-  return isObject(value) && typeof value.token === 'string' && typeof value.expiresAt === 'string'
+  return isRecord(value) && typeof value.token === 'string' && typeof value.expiresAt === 'string'
 }
 
 export function isOverview(value: unknown): value is Overview {
-  if (!isObject(value)) return false
+  if (!isRecord(value)) return false
   // `ingest` is null until the first run; when present it carries fetched/upserted counts.
   const ingestOk =
     value.ingest === null || hasNumbers(value.ingest, ['fetchedCount', 'upsertedCount'])
@@ -156,7 +154,7 @@ export function isOverview(value: unknown): value is Overview {
 
 // All three admin lists share the { items, total } envelope; one guard covers them.
 function isPaginated(value: unknown): value is Paginated<unknown> {
-  return isObject(value) && Array.isArray(value.items) && typeof value.total === 'number'
+  return isRecord(value) && Array.isArray(value.items) && typeof value.total === 'number'
 }
 
 export function isMessagePage(value: unknown): value is Paginated<MessageOut> {
@@ -165,7 +163,7 @@ export function isMessagePage(value: unknown): value is Paginated<MessageOut> {
 
 // Single message — the shape a seen-toggle PATCH returns. Same light structural check as the lists.
 export function isMessageAdmin(value: unknown): value is MessageOut {
-  return isObject(value) && typeof value.id === 'number' && typeof value.seen === 'boolean'
+  return isRecord(value) && typeof value.id === 'number' && typeof value.seen === 'boolean'
 }
 
 export function isSubscriptionPage(value: unknown): value is Paginated<SubscriptionAdminOut> {
@@ -175,7 +173,7 @@ export function isSubscriptionPage(value: unknown): value is Paginated<Subscript
 // Single subscription — the shape a PATCH returns. Same light structural check as the lists.
 export function isSubscriptionAdmin(value: unknown): value is SubscriptionAdminOut {
   return (
-    isObject(value) &&
+    isRecord(value) &&
     typeof value.id === 'string' &&
     typeof value.email === 'string' &&
     typeof value.status === 'string'

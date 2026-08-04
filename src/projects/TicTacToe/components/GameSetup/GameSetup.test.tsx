@@ -5,10 +5,11 @@ import {
   DIFFICULTY_BLURBS,
   DIFFICULTY_LABELS,
   MODE_LABELS,
+  MOVE_COMMIT_LABELS,
   STARTER_LABELS,
   gameCopy,
 } from '../../data'
-import { Difficulty, GameMode, Starter } from '../../tic-tac-toe.types'
+import { Difficulty, GameMode, MoveCommit, Starter } from '../../tic-tac-toe.types'
 
 afterEach(cleanup)
 
@@ -18,6 +19,8 @@ function renderSetup(overrides: Partial<Parameters<typeof GameSetup>[0]> = {}) {
     difficulty: Difficulty.medium,
     starter: Starter.you,
     started: false,
+    commit: MoveCommit.instant,
+    onCommitChange: vi.fn(),
     onModeChange: vi.fn(),
     onDifficultyChange: vi.fn(),
     onStarterChange: vi.fn(),
@@ -36,6 +39,21 @@ describe('GameSetup', () => {
     expect(screen.queryByRole('radio', { name: DIFFICULTY_LABELS[Difficulty.medium] })).toBeNull()
     expect(screen.queryByRole('radio', { name: STARTER_LABELS[Starter.you] })).toBeNull()
     expect(option(MODE_LABELS[GameMode.twoPlayer])).toBeTruthy()
+  })
+
+  it('offers the confirm-moves choice only online, and explains it once chosen', () => {
+    renderSetup({ mode: GameMode.onePlayer })
+    expect(screen.queryByRole('radio', { name: MOVE_COMMIT_LABELS[MoveCommit.confirm] })).toBeNull()
+
+    cleanup()
+    const props = renderSetup({ mode: GameMode.online, commit: MoveCommit.instant })
+    expect(screen.queryByText(gameCopy.online.commitHint)).toBeNull()
+    fireEvent.click(option(MOVE_COMMIT_LABELS[MoveCommit.confirm]))
+    expect(props.onCommitChange).toHaveBeenCalledWith(MoveCommit.confirm)
+
+    cleanup()
+    renderSetup({ mode: GameMode.online, commit: MoveCommit.confirm })
+    expect(screen.getByText(gameCopy.online.commitHint)).toBeTruthy()
   })
 
   it('shows what the chosen difficulty actually plays like', () => {
@@ -84,6 +102,48 @@ describe('GameSetup', () => {
 
     expect(option(DIFFICULTY_LABELS[Difficulty.medium]).tabIndex).toBe(0)
     expect(option(DIFFICULTY_LABELS[Difficulty.easy]).tabIndex).toBe(-1)
+  })
+
+  /**
+   * Regression: while a room is open, every other opponent is locked, and the arrow keys used to take the
+   * switch anyway — the one action the disabled buttons exist to prevent. Online that leaves the room, and
+   * mid-game the server reads a leave as a forfeit.
+   */
+  it('refuses the arrow keys on a locked opponent choice', () => {
+    const props = renderSetup({
+      mode: GameMode.online,
+      modeLocked: true,
+      modeLockedReason: gameCopy.online.modeLocked,
+    })
+    const online = option(MODE_LABELS[GameMode.online])
+
+    fireEvent.keyDown(online, { key: 'ArrowLeft' })
+    fireEvent.keyDown(online, { key: 'ArrowRight' })
+    fireEvent.keyDown(online, { key: 'Home' })
+    fireEvent.keyDown(online, { key: 'End' })
+
+    expect(props.onModeChange).not.toHaveBeenCalled()
+  })
+
+  /**
+   * A tooltip on a disabled button reaches nobody: there is no hover on a phone, and a disabled control is
+   * out of the accessibility tree. The reason has to be on the page.
+   */
+  it('says why the opponent choice is locked, in text as well as the tooltip', () => {
+    renderSetup({ mode: GameMode.online })
+    expect(screen.queryByText(gameCopy.online.modeLocked)).toBeNull()
+
+    cleanup()
+    renderSetup({
+      mode: GameMode.online,
+      modeLocked: true,
+      modeLockedReason: gameCopy.online.modeLocked,
+    })
+
+    expect(screen.getByText(gameCopy.online.modeLocked)).toBeTruthy()
+    expect(option(MODE_LABELS[GameMode.onePlayer]).getAttribute('title')).toBe(
+      gameCopy.online.modeLocked
+    )
   })
 
   it('moves the difficulty with the arrow keys', () => {

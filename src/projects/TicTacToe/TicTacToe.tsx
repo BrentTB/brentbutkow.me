@@ -7,14 +7,38 @@ import { useMediaQuery } from '../../components/utils/useMediaQuery'
 import { useViewportHeight } from '../../components/utils/useViewportHeight'
 import { useScrollToOnChange } from '../../components/utils/useScrollToOnChange'
 import { useRovingRadio } from '../../components/utils/useRovingRadio'
-import { Difficulty, GameMode, Player, PlayerProfile, Starter, ViewMode } from './tic-tac-toe.types'
+import {
+  Difficulty,
+  GameMode,
+  MoveCommit,
+  Player,
+  PlayerProfile,
+  Starter,
+  ViewMode,
+} from './tic-tac-toe.types'
 import { cssVars } from './css-vars'
-import { DEFAULT_PLAYERS, PLAYER_SLOTS, VIEW_LABELS, gameCopy } from './data'
+import { DEFAULT_PLAYERS, PLAYER_COLOURS, PLAYER_SLOTS, VIEW_LABELS, gameCopy } from './data'
 import { Rng, seededRng } from './engine/rng'
 import { useComputerTurn } from './useComputerTurn'
+import { useMoveCommit } from './useMoveCommit'
+import { Connection, useOnlineRoom } from '../../multiplayer/useOnlineRoom'
+import { parseRoomInvite } from '../../multiplayer/room-code'
+import { loadRoomSession } from '../../multiplayer/room-session'
+import { Outcome, RoomStatus } from '../../multiplayer/multiplayer.types'
+import {
+  TIC_TAC_TOE_CELL_COUNT,
+  TIC_TAC_TOE_GAME_ID,
+  cellCodec,
+  openingPlayer,
+  freeColour,
+  playerForSeat,
+  yieldsColour,
+} from './online'
 import { GameSetup } from './components/GameSetup/GameSetup'
+import { OnlinePanel } from './components/OnlinePanel/OnlinePanel'
+import { applyMove, isBoardFull, opponentOf } from './engine/board'
 import { deckHeight, spacingFor } from './engine/geometry'
-import { lineShape } from './engine/lines'
+import { findWinningLine, lineShape } from './engine/lines'
 import { useCamera } from './useCamera'
 import { useGame } from './useGame'
 import { useWinCamera } from './useWinCamera'
@@ -31,10 +55,13 @@ const TOUCH_QUERY = '(hover: none)'
 /** Gap between the layer rail and the board it labels. */
 const RAIL_GUTTER = 14
 
+/** How long typing settles before your name goes to the room, so a rename is one write and not ten. */
+const PROFILE_DEBOUNCE_MS = 400
+
 /** Share of the window each view may take, and a ceiling so it stops growing on a big monitor. */
 const DECK_LIMITS: Record<ViewMode, { share: number; max: number }> = {
-  [ViewMode.orbit]: { share: 0.5, max: 600 },
-  [ViewMode.fanned]: { share: 0.8, max: 940 },
+  [ViewMode.orbit]: { share: 0.88, max: 1120 },
+  [ViewMode.fanned]: { share: 0.88, max: 1040 },
 }
 
 const VIEW_MODES = Object.values(ViewMode)
@@ -75,7 +102,15 @@ function retitle(
   return next
 }
 
-export function TicTacToe() {
+interface TicTacToeProps {
+  /**
+   * Seeds the computer's choices. Left out, a fresh seed is drawn per session so it does not replay the
+   * same game every time; a test pins it so the game it plays is the same one on every run.
+   */
+  computerSeed?: number
+}
+
+export function TicTacToe({ computerSeed }: TicTacToeProps = {}) {
   const { isFunMode } = useFunMode()
   const isTouch = useMediaQuery(TOUCH_QUERY)
   const viewportHeight = useViewportHeight()
@@ -86,6 +121,10 @@ export function TicTacToe() {
   const [starter, setStarter] = useState<Starter>(Starter.you)
   const [pickedLayer, setPickedLayer] = useState<number | null>(null)
   const [players, setPlayers] = useState<Record<Player, PlayerProfile>>(DEFAULT_PLAYERS)
+  /* A move aimed but not sent, when this player has asked to confirm their moves. Local to this screen:
+     the room hears nothing about it until it is committed. */
+  const [pending, setPending] = useState<number | null>(null)
+  const { commit, choose: chooseCommit } = useMoveCommit()
 
   const computer = computerSeat(gameMode, starter)
 
@@ -104,11 +143,85 @@ export function TicTacToe() {
   } = useGame(computer)
   const camera = useCamera(mode)
 
+  const isOnline = gameMode === GameMode.online
+
+  // The generic room, fed the game's id and codec. Confirmed moves (mine, echoed back, and the
+  // opponent's) arrive through onRemoteMove and go onto the board like any other move.
+  const room = useOnlineRoom<number>({
+    gameId: TIC_TAC_TOE_GAME_ID,
+    cellCount: TIC_TAC_TOE_CELL_COUNT,
+    codec: cellCodec,
+    onRemoteMove: (cell) => playAt(cell),
+    // The room decides who opens each game, so a cleared board starts with that seat's player.
+    onReset: (state) => newGame(openingPlayer(state.firstSeat)),
+  })
+
+  /* Whether a room has actually been entered here, which the effects below key off: it separates "not in
+     a room yet" from "stepped out of one". */
+  const wasInRoomRef = useRef(false)
+  if (room.connection === Connection.connected) wasInRoomRef.current = true
+
+  /* The room whose seat has already been settled into, so the effect below runs once per room. */
+  const adoptedRef = useRef<string | null>(null)
+
+  /* A code prefilled from an invite link, and the switch into online mode that an invite implies. The
+     link carries only the code: this page already says which game it is, and you pick your own colour.
+
+     A seat held in this tab counts too. A reload starts the page in its default mode, and the room only
+     shows in online mode, so the seat being resumed has to bring the mode with it. */
+  const [inviteCode, setInviteCode] = useState<string | null>(null)
+  useEffect(() => {
+    const code = parseRoomInvite(new URLSearchParams(window.location.search))
+    if (code !== null) setInviteCode(code)
+    if (code !== null || loadRoomSession(TIC_TAC_TOE_GAME_ID) !== null) {
+      setGameMode(GameMode.online)
+    }
+  }, [])
+
+  /* Leaving online mode ends the session, so its poll loop can't keep dropping moves onto a local game.
+     Gated on having been in a room: the page can start in a local mode while a seat from this tab is
+     still being resumed, and leaving then would throw that seat away before it comes back. */
+  const leaveRoom = room.leave
+  useEffect(() => {
+    if (!isOnline && wasInRoomRef.current) leaveRoom()
+  }, [isOnline, leaveRoom])
+
+  /* The prefilled code belongs to the room you arrived for, so stepping out of a room empties the join
+     field rather than offering the same code back. Gated on having been in one: the connection starts
+     idle, and clearing then would wipe the code an invite link had just supplied. */
+  const leftRoom = wasInRoomRef.current && room.connection === Connection.idle
+  useEffect(() => {
+    if (!leftRoom) return
+    wasInRoomRef.current = false
+    /* Rejoining is a fresh settlement, even of the same room: coming back into the other seat has to make
+       you that seat's player rather than leaving both screens showing Player 1. */
+    adoptedRef.current = null
+    setInviteCode(null)
+    /* A name and colour the room handed you belong to that room: the seat default and the colour picked
+       around an opponent both go back, so a local game afterwards is Player 1 in Player 1's colour
+       rather than a second Player 2. A name you typed yourself is left alone. */
+    setPlayers((current) => {
+      const mine = current[Player.one]
+      const wasGivenName = PLAYER_SLOTS.some((slot) => mine.name === DEFAULT_PLAYERS[slot].name)
+      const wasGivenColour = PLAYER_SLOTS.some((slot) => mine.rgb === DEFAULT_PLAYERS[slot].rgb)
+      if (!wasGivenName && !wasGivenColour) return current
+      return {
+        ...current,
+        [Player.one]: {
+          name: wasGivenName ? DEFAULT_PLAYERS[Player.one].name : mine.name,
+          rgb: wasGivenColour ? DEFAULT_PLAYERS[Player.one].rgb : mine.rgb,
+        },
+      }
+    })
+  }, [leftRoom])
+
   const statusRef = useRef<HTMLDivElement>(null)
   /* One generator for the whole session, so the computer does not replay the same game every time. Seeded
      lazily: passing the seed straight to `useRef` would draw a fresh one on every render and discard it. */
   const computerRng = useRef<Rng>()
-  if (!computerRng.current) computerRng.current = seededRng(Math.floor(Math.random() * 2 ** 31))
+  if (!computerRng.current) {
+    computerRng.current = seededRng(computerSeed ?? Math.floor(Math.random() * 2 ** 31))
+  }
   const stageRef = useRef<HTMLDivElement>(null)
   const railRef = useRef<HTMLDivElement>(null)
   const stage = useElementSize(stageRef)
@@ -204,16 +317,60 @@ export function TicTacToe() {
    * pause plays *its* move for it: the bead lands in the computer's colour, the turn comes straight
    * back, and the reply it had already chosen is dropped along with the pending timer.
    */
-  const locked = isThinking || (computer !== null && currentPlayer === computer)
+  /* A move already on its way out also closes the board. Without it a second tap during the round trip
+     sent the same turn twice, and the server's rejection of the second reads as "the board moved on". */
+  const [sending, setSending] = useState(false)
+
+  const locked = isOnline
+    ? !room.isMyTurn || sending
+    : isThinking || (computer !== null && currentPlayer === computer)
+
+  /** Sends a move to the room. The server cannot judge the board, so a winning move says so itself. */
+  const submitMove = room.submit
+  const sendMove = useCallback(
+    async (index: number) => {
+      const after = applyMove(board, index, currentPlayer)
+      const won = findWinningLine(after, currentPlayer) !== null
+      setPending(null)
+      setSending(true)
+      try {
+        await submitMove(index, won || isBoardFull(after), won)
+      } finally {
+        setSending(false)
+      }
+    },
+    [board, currentPlayer, submitMove]
+  )
+
+  const confirming = isOnline && commit === MoveCommit.confirm
+
+  /* A pending move belongs to one turn on one board, and everything that ends that turn shows up as the
+     board locking: the move landing, the opponent's reply, a game ending or starting. */
+  useEffect(() => {
+    if (!confirming || locked) setPending(null)
+  }, [confirming, locked])
 
   const handlePlay = useCallback(
     (index: number, fromKeyboard: boolean) => {
       // A release that turned the board is a camera move, not a move on the board.
       if (consumedDrag(fromKeyboard)) return
       if (locked) return
+      // Online moves go to the server, which confirms them back through onRemoteMove; local games play
+      // straight onto the board.
+      if (isOnline) {
+        // Confirming: the first press aims, a second press on the same cell sends it. Aiming elsewhere
+        // just moves the ghost, so a mis-tap costs nothing.
+        if (confirming) {
+          if (pending === index) void sendMove(index)
+          else setPending(index)
+          return
+        }
+        void sendMove(index)
+        return
+      }
       playAt(index)
     },
-    [consumedDrag, locked, playAt]
+    [consumedDrag, locked, isOnline, confirming, pending, sendMove, playAt]
   )
 
   // Focus isolates a layer without touching the camera: the viewpoint stays where it was put.
@@ -231,12 +388,22 @@ export function TicTacToe() {
     setPlayers((current) => ({ ...current, [slot]: { ...current[slot], name } }))
   }, [])
 
+  /* Held in a room: switching away from online would leave it, which mid-game is a forfeit. The controls
+     say so as well, but the guard belongs here too — this is the one place the switch happens. */
+  const modeLocked = isOnline && room.connection !== Connection.idle
+
   const changeGameMode = useCallback(
     (next: GameMode) => {
+      if (modeLocked && next !== gameMode) return
       setGameMode(next)
       setPlayers((current) => retitle(current, computerSeat(next, starter)))
+      // Entering online starts from a clean board; the room fills it from the server as moves confirm.
+      if (next === GameMode.online) {
+        newGame()
+        setPickedLayer(null)
+      }
     },
-    [starter]
+    [gameMode, modeLocked, newGame, starter]
   )
 
   const changeStarter = useCallback(
@@ -270,21 +437,135 @@ export function TicTacToe() {
     [displayNames, players]
   )
 
+  /* Online you edit one identity, always held in the first local slot, whichever seat the room gives
+     you. Tying it to the seat instead would throw away the name you typed before joining, the moment
+     joining made you the second player. The board reads its colours from the room, not from here. */
+  const myProfile = useMemo(
+    () => ({ name: displayNames[Player.one], colour: players[Player.one].rgb }),
+    [displayNames, players]
+  )
+
+  /* The opponent's colour, so the swatch list can rule it out. Theirs to choose, not yours to reuse. */
+  const opponentColour = room.seats.find((seat) => seat.seat !== room.mySeat)?.colour
+
+  /* Both players start on the same default colour, and the board would be unreadable with two identical
+     sets of beads, so the second seat moves off it. The replacement also avoids the other local slot's
+     colour, so stepping back out of the room does not leave a local game in one colour. */
+  useEffect(() => {
+    if (!isOnline || !yieldsColour(room.mySeat, players[Player.one].rgb, opponentColour)) return
+    const free = freeColour(PLAYER_COLOURS, [opponentColour, players[Player.two].rgb])
+    if (free !== undefined) recolour(Player.one, free)
+  }, [isOnline, opponentColour, players, recolour, room.mySeat])
+
+  /**
+   * Settles who you are the moment you enter a room, in one place.
+   *
+   * Two rules, in order. A name or colour somebody actually chose comes back with the seat, so resuming
+   * after a reload restores what you typed instead of letting a freshly-defaulted page publish over it.
+   * Anything still at a default follows the seat number instead, so joining makes you Player 2 in Player
+   * 2's colour rather than a second Player 1 in the same amber.
+   *
+   * Deliberately one effect: as two, the adopt half overwrote the seat-default half in the same commit,
+   * and neither re-ran to settle it.
+   */
+  const mySeatEntry = room.seats.find((seat) => seat.seat === room.mySeat)
+  useEffect(() => {
+    if (!isOnline || room.code === null || room.mySeat === null) return
+    if (mySeatEntry === undefined || adoptedRef.current === room.code) return
+    adoptedRef.current = room.code
+
+    const seatDefault = DEFAULT_PLAYERS[PLAYER_SLOTS[room.mySeat]]
+    const storedName = mySeatEntry.name.trim()
+    const storedColour = mySeatEntry.colour
+    const nameIsDefault = PLAYER_SLOTS.some((slot) => storedName === DEFAULT_PLAYERS[slot].name)
+    const colourIsDefault = PLAYER_SLOTS.some((slot) => storedColour === DEFAULT_PLAYERS[slot].rgb)
+
+    setPlayers((current) => ({
+      ...current,
+      [Player.one]: {
+        name: storedName && !nameIsDefault ? storedName : seatDefault.name,
+        rgb: storedColour && !colourIsDefault ? storedColour : seatDefault.rgb,
+      },
+    }))
+  }, [isOnline, room.code, room.mySeat, mySeatEntry])
+
+  /* Publishes your name and colour to the room whenever you change them, so the opponent's board shows
+     the piece in your colour under your name rather than a stale default.
+
+     Debounced, because this fires on every keystroke in the name field and each one is a write the
+     opponent only needs the end of. */
+  const { publishProfile } = room
+  const connected = room.connection === Connection.connected
+  useEffect(() => {
+    if (!isOnline || !connected) return
+    const settle = window.setTimeout(() => void publishProfile(myProfile), PROFILE_DEBOUNCE_MS)
+    return () => window.clearTimeout(settle)
+  }, [isOnline, connected, myProfile, publishProfile])
+
+  /* Online, both seats' names and colours come from the room, so the two screens agree and the players
+     never render alike. Seats the room has not filled yet fall back to the local profiles. */
+  const boardPlayers = useMemo(() => {
+    if (!isOnline) return namedPlayers
+    const next: Record<Player, PlayerProfile> = { ...namedPlayers }
+    for (const seat of room.seats) {
+      const slot = playerForSeat(seat.seat)
+      next[slot] = {
+        name: seat.name.trim() || DEFAULT_PLAYERS[slot].name,
+        rgb: seat.colour,
+      }
+    }
+    return next
+  }, [isOnline, namedPlayers, room.seats])
+
   const viewKeys = useRovingRadio(VIEW_MODES, mode, setMode)
 
   /* Whether there is a game to disturb. Changing who starts hands the seats over, so once pieces are down
      the control says what it will do rather than doing it silently. */
   const started = board.some((cell) => cell !== null)
 
-  const shown = namedPlayers[win ? win.player : currentPlayer]
+  /* The room decides who opens, and it can be changed while the board is still empty. `onReset` only
+     fires when a game actually begins, so an opening move handed to the other seat before the first one
+     has to re-open the local game here — otherwise this screen plays the opponent's beads in your colour
+     under your name, and credits the win to the wrong player. */
+  useEffect(() => {
+    if (isOnline && !started) newGame(openingPlayer(room.firstSeat))
+  }, [isOnline, started, room.firstSeat, newGame])
+
+  /* An online game can end with nothing on the board to point at: the clock decides one, and walking
+     out decides another. Those verdicts come from the room, so the name is looked up by winning seat —
+     and with no winning seat there is nothing to say, since the player on turn is the one who just lost. */
+  const winnerName =
+    room.winnerSeat === null ? null : boardPlayers[playerForSeat(room.winnerSeat)].name
+  const decidedOffBoard =
+    isOnline &&
+    winnerName !== null &&
+    (room.outcome === Outcome.timeout || room.outcome === Outcome.forfeit)
+
+  const shown = boardPlayers[win ? win.player : currentPlayer]
   const shownName = shown.name
-  const status = win
-    ? gameCopy.wins(shownName)
-    : isDraw
-      ? gameCopy.draw
-      : isThinking
-        ? gameCopy.thinking(shownName)
-        : gameCopy.turn(shownName)
+  const mySlot = room.mySeat === null ? Player.one : playerForSeat(room.mySeat)
+  const opponentName = boardPlayers[opponentOf(mySlot)].name
+  const onlineWaiting =
+    isOnline &&
+    room.connection === Connection.connected &&
+    !room.opponentPresent &&
+    room.status !== RoomStatus.finished
+  const status = decidedOffBoard
+    ? room.outcome === Outcome.timeout
+      ? gameCopy.online.wonOnTime(winnerName)
+      : gameCopy.online.wonByDefault(winnerName)
+    : win
+      ? gameCopy.wins(shownName)
+      : isDraw
+        ? gameCopy.draw
+        : onlineWaiting
+          ? // An empty seat somebody walked out of is not a seat still waiting for its first player.
+            room.opponentLeft
+            ? gameCopy.online.opponentLeft(opponentName)
+            : gameCopy.online.waiting
+          : isThinking
+            ? gameCopy.thinking(shownName)
+            : gameCopy.turn(shownName)
 
   const hint = camera.orbitable
     ? isTouch
@@ -319,7 +600,8 @@ export function TicTacToe() {
             locked={locked}
             focusedLayer={focusedLayer}
             lastMove={lastMove}
-            players={namedPlayers}
+            pendingCell={pending}
+            players={boardPlayers}
             mode={mode}
             camera={camera.camera}
             spacing={spacing}
@@ -371,39 +653,71 @@ export function TicTacToe() {
             </div>
           </div>
 
-          <div className={styles.group}>
-            <button
-              type="button"
-              className={styles.button}
-              onClick={() => undo()}
-              disabled={!canUndo}
-              title={gameCopy.undoTitle(computer !== null)}
-              aria-label={gameCopy.undo}
-            >
-              <HistoryIcon direction={HistoryDirection.back} />
-              <span className={styles.buttonWord}>{gameCopy.undo}</span>
-            </button>
-            <button
-              type="button"
-              className={styles.button}
-              onClick={() => redo()}
-              disabled={!canRedo}
-              title={gameCopy.redoTitle(computer !== null)}
-              aria-label={gameCopy.redo}
-            >
-              <HistoryIcon direction={HistoryDirection.forward} />
-              <span className={styles.buttonWord}>{gameCopy.redo}</span>
-            </button>
-            <button
-              type="button"
-              className={styles.button}
-              onClick={handleNewGame}
-              aria-label={gameCopy.newGame}
-            >
-              <NewGameIcon />
-              <span className={styles.buttonWord}>{gameCopy.newGame}</span>
-            </button>
-          </div>
+          {/* No take-backs online: a committed move belongs to both players, so undo, redo, and a
+              unilateral new game all step out. Leaving the room is how you start over. */}
+          {!isOnline && (
+            <div className={styles.group}>
+              <button
+                type="button"
+                className={styles.button}
+                onClick={() => undo()}
+                disabled={!canUndo}
+                title={gameCopy.undoTitle(computer !== null)}
+                aria-label={gameCopy.undo}
+              >
+                <HistoryIcon direction={HistoryDirection.back} />
+                <span className={styles.buttonWord}>{gameCopy.undo}</span>
+              </button>
+              <button
+                type="button"
+                className={styles.button}
+                onClick={() => redo()}
+                disabled={!canRedo}
+                title={gameCopy.redoTitle(computer !== null)}
+                aria-label={gameCopy.redo}
+              >
+                <HistoryIcon direction={HistoryDirection.forward} />
+                <span className={styles.buttonWord}>{gameCopy.redo}</span>
+              </button>
+              <button
+                type="button"
+                className={styles.button}
+                onClick={handleNewGame}
+                aria-label={gameCopy.newGame}
+              >
+                <NewGameIcon />
+                <span className={styles.buttonWord}>{gameCopy.newGame}</span>
+              </button>
+            </div>
+          )}
+
+          {/* The other half of confirming: a button for anyone who would rather press one than tap the
+              same cell twice, and the clock's warning where a room is running one. Both wait for a room:
+              with no game to aim a move at, the pair could only ever render greyed out. */}
+          {confirming && connected && (
+            <div className={styles.group}>
+              <button
+                type="button"
+                className={styles.button}
+                onClick={() => pending !== null && void sendMove(pending)}
+                disabled={pending === null || locked}
+              >
+                <span className={styles.buttonWord}>{gameCopy.online.confirmMove}</span>
+              </button>
+              <button
+                type="button"
+                className={styles.button}
+                onClick={() => setPending(null)}
+                disabled={pending === null}
+              >
+                <span className={styles.buttonWord}>{gameCopy.online.clearMove}</span>
+              </button>
+            </div>
+          )}
+
+          {confirming && connected && room.moveLimitSeconds !== null && (
+            <p className={styles.hint}>{gameCopy.online.clockKeepsRunning}</p>
+          )}
 
           <p className={styles.hint}>{hint}</p>
         </div>
@@ -412,16 +726,26 @@ export function TicTacToe() {
           <GameSetup
             mode={gameMode}
             started={started}
+            modeLocked={modeLocked}
+            modeLockedReason={gameCopy.online.modeLocked}
             difficulty={difficulty}
             starter={starter}
+            commit={commit}
+            onCommitChange={chooseCommit}
             onModeChange={changeGameMode}
             onDifficultyChange={setDifficulty}
             onStarterChange={changeStarter}
           />
+          {isOnline && (
+            <OnlinePanel room={room} profile={myProfile} initialCode={inviteCode ?? undefined} />
+          )}
           <PlayerSetup
             players={players}
             displayNames={displayNames}
             computer={computer}
+            ownSlot={isOnline ? Player.one : null}
+            ownLabel={isOnline ? gameCopy.online.yourNameLabel : undefined}
+            reservedColour={isOnline ? opponentColour : undefined}
             onRename={rename}
             onRecolour={recolour}
           />

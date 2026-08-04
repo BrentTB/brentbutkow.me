@@ -49,7 +49,7 @@ $camera-ease: cubic-bezier(0.34, 1.56, 0.64, 1);
   inset: 0;
   pointer-events: none;
   transform-style: preserve-3d;
-  transform: translateX(var(--shift, 0px)) scale(var(--zoom)) rotateX(var(--pitch))
+  transform: translate(var(--shift, 0px), var(--lift, 0px)) scale(var(--zoom)) rotateX(var(--pitch))
     rotateY(var(--yaw));
 }
 
@@ -158,29 +158,78 @@ $camera-ease: cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 }
 
-/* An empty site is a marker, not content: 64 of them at bead weight turn the cube to soup. */
+/* How much of its hit box a marker fills once opened up. */
+$marker-open: 0.74;
+
+/* Opened to fill its hit box, so the site under the cursor or the keyboard reads as the target. */
+@mixin marker-open($ring-rgb) {
+  transform: none;
+  border-color: rgba($ring-rgb, 0.9);
+  background: rgba(var(--turn-rgb), 0.18);
+  box-shadow: 0 0 16px rgba(var(--turn-rgb), 0.45);
+}
+
+/**
+ * An empty site is a marker, not content: 64 of them at bead weight turn the cube to soup.
+ *
+ * Laid out at its opened size and scaled down to rest, so opening and closing it is a composited
+ * transform. Transitioning the box dimensions instead makes every frame relayout and repaint a subtree
+ * of a 3D scene, and a machine that drops one of those repaints leaves the site painted open on a board
+ * the cursor has already left.
+ */
 .marker {
-  width: calc(var(--spacing) * var(--marker-ratio));
-  height: calc(var(--spacing) * var(--marker-ratio));
+  width: calc(var(--spacing) * var(--hit-ratio) * #{$marker-open});
+  height: calc(var(--spacing) * var(--hit-ratio) * #{$marker-open});
   border-radius: 50%;
+  border: 1px solid transparent;
   background: rgba(var(--turn-rgb), 0.5);
+  box-shadow: 0 0 16px rgba(var(--turn-rgb), 0);
+  transform: scale(calc(var(--marker-ratio) / (var(--hit-ratio) * #{$marker-open})));
   transition:
-    width 160ms ease,
-    height 160ms ease,
+    transform 160ms ease,
+    border-color 160ms ease,
     background 300ms ease,
     box-shadow 160ms ease;
 
-  .cell:not(:disabled):not([aria-disabled='true']):hover &,
-  .cell:focus-visible & {
-    width: calc(var(--spacing) * var(--hit-ratio) * 0.74);
-    height: calc(var(--spacing) * var(--hit-ratio) * 0.74);
-    border: 1px solid rgba(var(--turn-rgb), 0.9);
-    background: rgba(var(--turn-rgb), 0.18);
-    box-shadow: 0 0 16px rgba(var(--turn-rgb), 0.45);
+  /**
+   * Gated on a real pointer. A touch latches `:hover` on whatever it last landed on and holds it until
+   * something else is tapped, which leaves a site sitting open long after the tap that opened it.
+   */
+  @media (hover: hover) {
+    .cell:not(:disabled):not([aria-disabled='true']):hover & {
+      @include marker-open(var(--turn-rgb));
+    }
   }
 
   .cell:focus-visible & {
-    border-color: rgba(var(--accent-rgb), 0.9);
+    @include marker-open(var(--accent-rgb));
+  }
+}
+
+/**
+ * A move aimed but not sent: the bead's size and place, drawn as an outline in the mover's colour so it
+ * cannot be mistaken for a piece that is already down. Nothing about it says the server knows.
+ */
+.ghost {
+  width: calc(var(--spacing) * var(--bead-ratio));
+  height: calc(var(--spacing) * var(--bead-ratio));
+  border-radius: 50%;
+  border: 2px dashed rgba(var(--turn-rgb), 0.95);
+  background: rgba(var(--turn-rgb), 0.14);
+  box-shadow: 0 0 14px rgba(var(--turn-rgb), 0.3);
+  animation: breathe 1.6s ease-in-out infinite alternate;
+
+  .cell[data-dim] & {
+    box-shadow: none;
+  }
+}
+
+@keyframes breathe {
+  from {
+    opacity: 0.62;
+  }
+  to {
+    opacity: 1;
   }
 }
 
@@ -211,6 +260,10 @@ $camera-ease: cubic-bezier(0.34, 1.56, 0.64, 1);
   /**
    * A ring around the piece just played. Sitting outside the bead rather than tinting it keeps the
    * player's own colour readable, which a wash over the top would muddy.
+   *
+   * The inset below is the widest thing the board paints, so `MARKED_BEAD_RATIO` in `engine/geometry.ts`
+   * carries the same figure to size each view's box. Change one and change the other, or the ring is
+   * cropped off the top and bottom rows.
    */
   .cell[data-last] &::after {
     content: '';
@@ -309,6 +362,7 @@ $camera-ease: cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
   .bead,
+  .ghost,
   .winBar,
   .cell[data-won] .bead,
   :global(html.fun-mode) .bead {

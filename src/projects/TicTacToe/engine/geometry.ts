@@ -21,6 +21,18 @@ export const EMPTY_MARKER_RATIO = 0.13
  */
 export const CELL_HIT_RATIO = 0.68
 
+/**
+ * How wide the last move is once its ring and the ring's glow are counted, in spacings.
+ *
+ * The ring sits at `inset: -22%` of the bead in `Board.module.scss`, reaching 22% past it on every side,
+ * and casts a soft glow beyond that. This is the widest thing the board paints, and each mode is clipped
+ * to its box: measuring the overhang by the bare bead cropped the ring off the top and bottom rows.
+ *
+ * The glow's share is an allowance rather than a derivation, since a `box-shadow` is a fixed pixel blur
+ * while everything else here scales with the spacing.
+ */
+export const MARKED_BEAD_RATIO = BEAD_RATIO * 1.44 + 0.4
+
 /** How far a pointer may travel before a press counts as a drag rather than a move. */
 export const DRAG_THRESHOLD_PX = 7
 
@@ -58,16 +70,50 @@ export function fanGapFor(pitch: number, ratio = PLATE_GAP_RATIO): number {
 }
 
 /**
- * Spacings of height the fanned deck occupies: three layer gaps, one plate, and half a bead of overhang
- * at each end, since `BEAD_RATIO` is a diameter. Derived rather than hand-tuned, so retuning the pitch or
- * the gap cannot leave a stale figure behind and reintroduce dead space.
+ * Spacings of height the fanned deck occupies: three layer gaps, one plate, and half of
+ * `MARKED_BEAD_RATIO` of overhang at each end, since that is a full width. The overhang is measured by the
+ * ringed bead because it is the widest thing the board draws and the deck is clipped to this height.
+ * Derived rather than hand-tuned, so retuning the pitch or the gap cannot leave a stale figure behind and
+ * reintroduce dead space.
+ *
+ * A plate spans the three steps between its four rows, not four of them: counting the extra step left a
+ * band of empty space above the top plate, which is expensive in a mode whose whole point is height.
  */
 export function fanHeightUnits(pitch: number, gap: number): number {
   const radians = toRadians(pitch)
-  return 3 * gap * Math.cos(radians) + 4 * Math.sin(radians) + BEAD_RATIO
+  return 3 * gap * Math.cos(radians) + (BOARD_SIZE - 1) * Math.sin(radians) + MARKED_BEAD_RATIO
+}
+
+/**
+ * How much of the worst-case extent the height budget actually books, below 1 on purpose.
+ *
+ * The worst case only shows up at extreme pitch: around 54° the cube needs about 6.49 spacings, while at
+ * the 16° default it needs about 5.35. Budgeting for the worst case would leave more than a bead of dead
+ * band above and below the cube at every angle anyone reads the board from, in a box whose height is the
+ * scarce dimension. So the budget is trimmed to sit above the ordinary angles and below the extremes: drag
+ * the cube to a near-vertical pitch and the outer beads crop slightly. That is the accepted trade — this
+ * is not headroom, and raising it past 1 buys back the crop by paying in dead space.
+ */
+const ORBIT_EXTENT_TRIM = 0.9
+
+/**
+ * Spacings of height the cube is given, across the camera angles it is read from.
+ *
+ * The board is dragged freely, and the vertical extent depends on where it is pointed: half the stack
+ * (`gap` per layer) leans by cos(pitch) while half the depth leans by sin(pitch), and the depth is widest
+ * at a 45° yaw, where the cube presents its diagonal. Maximised over pitch that sum is the hypotenuse of
+ * the two, which is the closed form below, trimmed by `ORBIT_EXTENT_TRIM`. Zoom is left out on purpose:
+ * pinched in past 1×, the scene is meant to run past its box.
+ */
+export function orbitHeightUnits(gap: number, overhang = MARKED_BEAD_RATIO): number {
+  const half = (BOARD_SIZE - 1) / 2
+  return 2 * Math.hypot(half * gap, half * Math.SQRT2) * ORBIT_EXTENT_TRIM + overhang
 }
 
 const FAN_GAP = fanGapFor(FAN_PITCH)
+
+/** Layer gap in the cube, in spacings. Wide enough that the four plates read as separate heights. */
+const ORBIT_GAP = 1
 
 export type ViewLayout = {
   /** Default camera angles for the mode. */
@@ -82,6 +128,14 @@ export type ViewLayout = {
   /** How many spacings of width and height the arrangement needs. */
   widthUnits: number
   heightUnits: number
+  /**
+   * Downward nudge in spacings that centres the projected scene in its box.
+   *
+   * A tilted scene under perspective does not project symmetrically about the box's middle, so without
+   * this the arrangement sits off centre and one edge clips while the other keeps a dead band. Measured
+   * against the rendered board in each mode.
+   */
+  lift: number
   minSpacing: number
   /** Whether the camera can be dragged in this mode. */
   orbitable: boolean
@@ -93,13 +147,15 @@ export const VIEW_LAYOUTS: Record<ViewMode, ViewLayout> = {
   [ViewMode.orbit]: {
     yaw: 34,
     pitch: 16,
-    gap: 1.2,
+    gap: ORBIT_GAP,
     fan: 0,
     perspective: 1500,
-    /* Widest at a 45° yaw, where the cube presents its diagonal: 4·(cos+sin) plus a bead. Vertically it
-       only ever needs 3·gap·cos(pitch) + 4·sin(pitch), which peaks around 5.2 rather than the full 7. */
+    /* Widest at a 45° yaw, where the cube presents its diagonal: 4·(cos+sin) plus a bead. Height covers
+       the angles the board is read from rather than the default camera alone, since a budget fitted to
+       the default clipped beads as soon as the cube was turned. */
     widthUnits: 6.2,
-    heightUnits: 5.4,
+    heightUnits: orbitHeightUnits(ORBIT_GAP),
+    lift: 0,
     minSpacing: 34,
     orbitable: true,
     depthFog: true,
@@ -113,6 +169,7 @@ export const VIEW_LAYOUTS: Record<ViewMode, ViewLayout> = {
     perspective: 9000,
     widthUnits: 6.5,
     heightUnits: fanHeightUnits(FAN_PITCH, FAN_GAP),
+    lift: -0.13,
     minSpacing: 24,
     orbitable: false,
     /* Separated plates never occlude each other, and a bead dimmed for depth there just reads as one

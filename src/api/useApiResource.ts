@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { fetchJson } from './api'
+import { fetchJson, type Validate } from './api'
 
 export type ApiState<T> = {
   data: T | null
@@ -7,12 +7,10 @@ export type ApiState<T> = {
   error: string | null
 }
 
-// Generic GET-and-track hook: loading/error state plus in-flight cancellation on
-// path change / unmount. Pass `validate` to reject malformed payloads. Reused by every module's data hooks.
-export function useApiResource<T>(
-  path: string,
-  validate?: (raw: unknown) => raw is T
-): ApiState<T> {
+// Generic GET-and-track hook: loading/error state plus in-flight cancellation on path change /
+// unmount. `validate` rejects a malformed payload, so `data` is a checked `T`. Reused by every
+// module's data hooks.
+export function useApiResource<T>(path: string, validate: Validate<T>): ApiState<T> {
   const [state, setState] = useState<ApiState<T>>({ data: null, loading: true, error: null })
 
   useEffect(() => {

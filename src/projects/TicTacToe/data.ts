@@ -1,4 +1,13 @@
-import { Difficulty, GameMode, Player, PlayerProfile, Starter, ViewMode } from './tic-tac-toe.types'
+import {
+  Difficulty,
+  GameMode,
+  MoveCommit,
+  Player,
+  PlayerProfile,
+  Starter,
+  ViewMode,
+} from './tic-tac-toe.types'
+import { Seat } from '../../multiplayer/multiplayer.types'
 import { BOARD_SIZE, LineDescription, LineShape } from './engine/lines'
 
 /** Longest a player name can be. Keeps the turn line on one row on a phone. */
@@ -31,6 +40,7 @@ export const DEFAULT_PLAYERS: Record<Player, PlayerProfile> = {
 export const MODE_LABELS: Record<GameMode, string> = {
   [GameMode.onePlayer]: '1 player',
   [GameMode.twoPlayer]: '2 players',
+  [GameMode.online]: 'Online',
 }
 
 export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
@@ -51,6 +61,32 @@ export const DIFFICULTY_BLURBS: Record<Difficulty, string> = {
 export const STARTER_LABELS: Record<Starter, string> = {
   [Starter.you]: 'You',
   [Starter.computer]: 'Computer',
+}
+
+/** Who opens an online game, from the point of view of whoever is setting the room up. */
+export const ONLINE_STARTERS: readonly { seat: Seat; label: string }[] = [
+  { seat: Seat.first, label: 'You' },
+  { seat: Seat.second, label: 'Them' },
+]
+
+/** What no clock at all reads as, wherever a limit is shown. */
+export const NO_MOVE_LIMIT_LABEL = 'None'
+
+/**
+ * How long a move may take. Unlimited stays first because it is the friendly default; the rest are
+ * short enough to keep a game moving in one sitting.
+ */
+export const MOVE_LIMITS: readonly { seconds: number | null; label: string }[] = [
+  { seconds: null, label: NO_MOVE_LIMIT_LABEL },
+  { seconds: 30, label: '30s' },
+  { seconds: 60, label: '1 min' },
+  { seconds: 180, label: '3 min' },
+]
+
+/** How a tap behaves online, named by what happens rather than by the setting's mechanics. */
+export const MOVE_COMMIT_LABELS: Record<MoveCommit, string> = {
+  [MoveCommit.instant]: 'Play at once',
+  [MoveCommit.confirm]: 'Confirm first',
 }
 
 export const VIEW_LABELS: Record<ViewMode, string> = {
@@ -94,6 +130,73 @@ export const gameCopy = {
   computerName: 'Computer',
   computerTag: 'computer',
 
+  online: {
+    title: 'Online game',
+    /** Heads the two ways in, kept apart so opening a room is never confused with entering one. */
+    createTitle: 'Create a room',
+    joinTitle: 'Join an existing room',
+    /** Named for what pressing it does: it opens the settings, and the dialog's own button opens the room. */
+    create: 'Set up a room',
+    join: 'Join a game',
+    findGame: 'Find a game',
+    /** Says what actually happens, since half the time it opens a room instead of joining one. */
+    findHint:
+      'Drops you into a room that is waiting for a player. If nobody is waiting, you get a room of your own.',
+    /** Explains the locked opponent control, so a disabled button is not a dead end. */
+    modeLocked: 'Leave the room first',
+    /** Heads the settings dialog, whether it is about to open a room or change one. */
+    settingsTitle: 'Room settings',
+    editSettings: 'Edit room settings',
+    /** The dialog's confirm button, named for what pressing it does in each case. */
+    openRoom: 'Create the room',
+    saveSettings: 'Save settings',
+    cancel: 'Cancel',
+    openYes: 'Anyone can join',
+    openNo: 'Code only',
+    codeLabel: 'Room code',
+    codePlaceholder: 'Enter a code',
+    connecting: 'Connecting…',
+    yourCode: 'Your room code',
+    copyLink: 'Copy link',
+    copied: 'Copied',
+    waiting: 'Waiting for someone to join',
+    yourTurn: 'Your move',
+    theirTurn: 'Their move',
+    leave: 'Leave game',
+    startGame: 'Start game',
+    playAgain: 'Play again',
+    /** Sits under the start button: the settings can still be changed right up until it is pressed. */
+    startHint: 'You can still change the settings above until you start.',
+    /** For the player who joined: the start is the opener's call, so the wait is not a broken button. */
+    waitingToStart: 'Waiting for the other player to start',
+    opponentLeft: (name: string) => `${name} left the room`,
+    /** For a player who walked out before typing a name, where "No name yet left the room" would read badly. */
+    opponentLeftUnnamed: 'The other player left the room',
+    /** Stands in until a player types a name of their own. */
+    unnamed: 'No name yet',
+    youTag: '(you)',
+    /** Replaces the numbered label: online you only set your own, whichever seat you end up in. */
+    yourNameLabel: 'Your name',
+    intro: 'Share the code, take turns. No take-backs once a move is in.',
+
+    /** The local setting for whether a tap sends the move, shown only in an online game. */
+    commitLabel: 'Tapping a cell',
+    commitHint: 'One press aims your move. Press the same cell again, or Confirm, to send it.',
+    confirmMove: 'Confirm move',
+    clearMove: 'Clear',
+    /** Warns that aiming is not free when the room has a clock, which keeps running regardless. */
+    clockKeepsRunning: 'The clock keeps running while you are deciding.',
+    firstMoveLabel: 'Opening move',
+    clockLabel: 'Move time limit',
+    openLabel: 'Open to anyone',
+    /** Explains what the open toggle does to a room that is waiting. */
+    openHint: 'Anyone looking for a game can drop straight into this room.',
+    timeLeft: (clock: string) => `${clock} left`,
+    /** The turn line once the clock decides it: nobody played, so there is no winning row to describe. */
+    wonOnTime: (name: string) => `${name} wins, the clock ran out`,
+    wonByDefault: (name: string) => `${name} wins, the other player left`,
+  },
+
   playersTitle: 'Players',
   nameLabel: (slot: number) => `Player ${slot} name`,
   colourLabel: (name: string) => `Colour for ${name}`,
@@ -114,6 +217,9 @@ export const gameCopy = {
         return 'corner to corner'
     }
   },
+
+  cellPendingLabel: (layer: number, column: number, row: number) =>
+    `Layer ${layer}, column ${column}, row ${row}, your move, waiting to be confirmed`,
 
   cellLabel: (layer: number, column: number, row: number) =>
     `Layer ${layer}, column ${column}, row ${row}`,

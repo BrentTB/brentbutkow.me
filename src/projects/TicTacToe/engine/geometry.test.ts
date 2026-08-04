@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   BEAD_RATIO,
   CELL_HIT_RATIO,
+  MARKED_BEAD_RATIO,
   FOG_FLOOR,
   PITCH_LIMIT,
   RAIL_MIN_SPACING_PX,
@@ -19,6 +20,7 @@ import {
   fogFor,
   layerScreenOffsets,
   minFanGap,
+  orbitHeightUnits,
   plateCenter,
   rotateForCamera,
   spacingFor,
@@ -416,6 +418,62 @@ describe('deckHeight', () => {
   })
 })
 
+describe('the orbit height budget', () => {
+  const { gap, pitch, heightUnits } = VIEW_LAYOUTS[ViewMode.orbit]
+
+  /**
+   * Height the cube spans at a given pitch with the yaw at 45°, where the depth is at its widest: half the
+   * stack leaning by cos, half the diagonal leaning by sin, and the ringed bead on top.
+   */
+  const extentAt = (pitchDegrees: number) => {
+    const radians = (pitchDegrees * Math.PI) / 180
+    const half = (BOARD_SIZE - 1) / 2
+    return (
+      2 * (half * gap * Math.cos(radians) + half * Math.SQRT2 * Math.sin(radians)) +
+      MARKED_BEAD_RATIO
+    )
+  }
+
+  const worstCase = Math.max(
+    ...Array.from({ length: 2 * PITCH_LIMIT + 1 }, (_, index) => extentAt(index - PITCH_LIMIT))
+  )
+
+  it('is what orbitHeightUnits derives from the mode gap', () => {
+    expect(heightUnits).toBeCloseTo(orbitHeightUnits(gap))
+  })
+
+  it('adds exactly the overhang it is handed', () => {
+    expect(orbitHeightUnits(gap, 0)).toBeCloseTo(heightUnits - MARKED_BEAD_RATIO)
+  })
+
+  it('fits the whole cube at the angles the board is read from', () => {
+    expect(heightUnits).toBeGreaterThan(extentAt(pitch))
+  })
+
+  /**
+   * Pins the trade, so nobody "fixes" the trim back above 1 without reading it: the budget is deliberately
+   * short of the worst case, which only turns up at an extreme pitch. Honouring it would leave more than a
+   * bead of dead band above and below the cube at every angle anyone actually reads the board from. The
+   * cost is that beads crop slightly when the cube is dragged near vertical.
+   */
+  it('is deliberately below the worst case over every reachable pitch', () => {
+    expect(heightUnits).toBeLessThan(worstCase)
+    // And short by less than the overhang it books, so the crop stays a sliver rather than a whole bead.
+    expect(worstCase - heightUnits).toBeLessThan(MARKED_BEAD_RATIO)
+  })
+})
+
+describe('the vertical nudge that centres each mode', () => {
+  it('leaves the orbit cube alone, since it already projects centred', () => {
+    expect(VIEW_LAYOUTS[ViewMode.orbit].lift).toBe(0)
+  })
+
+  /** Fanned plates project low in their box, so the deck is pulled up rather than pushed down. */
+  it('raises the fanned deck', () => {
+    expect(VIEW_LAYOUTS[ViewMode.fanned].lift).toBeLessThan(0)
+  })
+})
+
 describe('depth fog per view', () => {
   it('fades with depth in the cube, where beads hide behind each other', () => {
     expect(VIEW_LAYOUTS[ViewMode.orbit].depthFog).toBe(true)
@@ -469,5 +527,19 @@ describe('the fanned plate gap', () => {
   it('derives a height that matches the space the deck actually needs', () => {
     expect(VIEW_LAYOUTS[ViewMode.fanned].heightUnits).toBeCloseTo(fanHeightUnits(pitch, gap))
     expect(fanHeightUnits(pitch, gap)).toBeGreaterThan(3 * gap * Math.cos(radians))
+  })
+
+  /**
+   * A plate covers the three steps between its four rows. Counting a fourth step left a band of empty
+   * space above the top plate, which is the whole budget in the mode built for height.
+   */
+  it('measures a plate by the steps between its rows, not by its row count', () => {
+    const stack = 3 * gap * Math.cos(radians)
+    const plate = (BOARD_SIZE - 1) * Math.sin(radians)
+    expect(fanHeightUnits(pitch, gap)).toBeCloseTo(stack + plate + MARKED_BEAD_RATIO)
+    // The old reckoning, one whole step taller at this pitch.
+    expect(fanHeightUnits(pitch, gap)).toBeLessThan(
+      stack + BOARD_SIZE * Math.sin(radians) + MARKED_BEAD_RATIO
+    )
   })
 })

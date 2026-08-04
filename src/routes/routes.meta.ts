@@ -164,7 +164,7 @@ export const routesMeta: Record<string, RouteMeta> = {
   [ticTacToePath]: {
     title: '4×4×4 Tic-Tac-Toe — Brent Butkow',
     description:
-      'Four in a row on a 4×4 board, except the board is a cube four layers deep. Turn the cube or spread the layers out, and play a friend or a computer opponent with four difficulty levels.',
+      'Four in a row on a 4×4 board, except the board is a cube four layers deep. Turn the cube or spread the layers out, then play a friend on the same screen, a friend online over a room code, or a computer opponent with four difficulty levels.',
     jsonLd: {
       '@context': 'https://schema.org',
       '@type': 'VideoGame',
@@ -174,7 +174,7 @@ export const routesMeta: Record<string, RouteMeta> = {
       gamePlatform: 'Web browser',
       playMode: ['SinglePlayer', 'MultiPlayer'],
       description:
-        'Four in a row on a 4×4 board, except the board is a cube four layers deep. A line can run along a row, up a rod, or corner to corner through the cube. Play a friend, or a computer opponent with four difficulty levels.',
+        'Four in a row on a 4×4 board, except the board is a cube four layers deep. A line can run along a row, up a rod, or corner to corner through the cube. Play a friend on the same screen, a friend online over a room code, or a computer opponent with four difficulty levels.',
       author: { '@type': 'Person', name: 'Brent Butkow', url: SITE_URL },
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     },

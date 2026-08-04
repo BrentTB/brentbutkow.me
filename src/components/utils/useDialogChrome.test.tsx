@@ -19,6 +19,18 @@ function Dialog({ onClose, landOnLast = false }: { onClose(): void; landOnLast?:
   )
 }
 
+/** A dialog whose last control is a link, which the Tab trap has to count as one. */
+function LinkDialog() {
+  const { panelRef } = useDialogChrome(() => undefined)
+
+  return (
+    <div ref={panelRef} role="dialog" aria-modal="true" aria-label="Links">
+      <button type="button">first</button>
+      <a href="#footnote">link</a>
+    </div>
+  )
+}
+
 afterEach(cleanup)
 
 describe('useDialogChrome', () => {
@@ -56,6 +68,21 @@ describe('useDialogChrome', () => {
     expect(document.activeElement).toBe(last)
   })
 
+  /**
+   * Regression: a link is a tab stop like any other control. Left out of the set the trap reads, a dialog
+   * ending in one had its cycle stop at the control above and Tab walked off onto the page behind.
+   */
+  it('wraps Tab off a link at the end of the panel', () => {
+    render(<LinkDialog />)
+    const first = screen.getByRole('button', { name: 'first' })
+    const link = screen.getByRole('link', { name: 'link' })
+
+    link.focus()
+    fireEvent.keyDown(window, { key: 'Tab' })
+
+    expect(document.activeElement).toBe(first)
+  })
+
   it('leaves Tab alone in the middle of the panel', () => {
     render(<Dialog onClose={vi.fn()} />)
     const middle = screen.getByLabelText('middle')
@@ -82,8 +109,8 @@ describe('useDialogChrome', () => {
   })
 
   it('does not move focus when the parent re-renders with a fresh onClose', () => {
-    // The page hands a new callback about ten times a second as the readout ticks. An effect that
-    // depended on it would drag focus back to the first control while somebody was mid-interaction.
+    // A page behind a dialog can hand down a new callback many times a second. An effect that depended
+    // on it would drag focus back to the first control while somebody was mid-interaction.
     const view = render(<Dialog onClose={vi.fn()} />)
     const middle = screen.getByLabelText('middle')
     middle.focus()

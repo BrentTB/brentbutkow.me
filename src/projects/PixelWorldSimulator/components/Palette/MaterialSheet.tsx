@@ -1,6 +1,6 @@
 import { MaterialId } from '../../pixel-world.types'
 import { simCopy } from '../../data'
-import { useDialogChrome } from '../../useDialogChrome'
+import { useDialogChrome } from '../../../../components/utils/useDialogChrome'
 import { MaterialPicker } from './MaterialPicker'
 import styles from './MaterialSheet.module.scss'
 
