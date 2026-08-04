@@ -121,8 +121,7 @@ export const gameCopy = {
     join: 'Join a game',
     findGame: 'Find a game',
     /** Says what actually happens, since half the time it opens a room instead of joining one. */
-    findHint:
-      'Drops you in with whoever is waiting. If nobody is, you get a room of your own on the standard settings and wait here.',
+    findHint: 'Joins an existing open room if possible, else creates a new room.',
     /** Explains the locked opponent control, so a disabled button is not a dead end. */
     modeLocked: 'Leave the room first',
     /** Heads the settings dialog, whether it is about to open a room or change one. */
