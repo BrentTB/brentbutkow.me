@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   BEAD_RATIO,
   CELL_HIT_RATIO,
+  MARKED_BEAD_RATIO,
   FOG_FLOOR,
   PITCH_LIMIT,
   RAIL_MIN_SPACING_PX,
@@ -469,5 +470,19 @@ describe('the fanned plate gap', () => {
   it('derives a height that matches the space the deck actually needs', () => {
     expect(VIEW_LAYOUTS[ViewMode.fanned].heightUnits).toBeCloseTo(fanHeightUnits(pitch, gap))
     expect(fanHeightUnits(pitch, gap)).toBeGreaterThan(3 * gap * Math.cos(radians))
+  })
+
+  /**
+   * A plate covers the three steps between its four rows. Counting a fourth step left a band of empty
+   * space above the top plate, which is the whole budget in the mode built for height.
+   */
+  it('measures a plate by the steps between its rows, not by its row count', () => {
+    const stack = 3 * gap * Math.cos(radians)
+    const plate = (BOARD_SIZE - 1) * Math.sin(radians)
+    expect(fanHeightUnits(pitch, gap)).toBeCloseTo(stack + plate + MARKED_BEAD_RATIO)
+    // The old reckoning, one whole step taller at this pitch.
+    expect(fanHeightUnits(pitch, gap)).toBeLessThan(
+      stack + BOARD_SIZE * Math.sin(radians) + MARKED_BEAD_RATIO
+    )
   })
 })

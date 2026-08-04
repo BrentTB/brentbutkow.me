@@ -141,6 +141,7 @@ export function Board({
           '--zoom': camera.zoom,
           '--spacing': `${spacing}px`,
           '--shift': `${shift}px`,
+          '--lift': `${layout.lift * spacing}px`,
           '--hit-ratio': CELL_HIT_RATIO,
           '--bead-ratio': BEAD_RATIO,
           '--marker-ratio': EMPTY_MARKER_RATIO,

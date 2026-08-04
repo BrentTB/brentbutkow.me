@@ -60,8 +60,8 @@ const PROFILE_DEBOUNCE_MS = 400
 
 /** Share of the window each view may take, and a ceiling so it stops growing on a big monitor. */
 const DECK_LIMITS: Record<ViewMode, { share: number; max: number }> = {
-  [ViewMode.orbit]: { share: 0.5, max: 600 },
-  [ViewMode.fanned]: { share: 0.8, max: 940 },
+  [ViewMode.orbit]: { share: 0.88, max: 1120 },
+  [ViewMode.fanned]: { share: 0.88, max: 1040 },
 }
 
 const VIEW_MODES = Object.values(ViewMode)
