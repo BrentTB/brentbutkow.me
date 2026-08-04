@@ -15,6 +15,10 @@ interface GameSetupProps {
   starter: Starter
   /** True once the game is under way, when changing who starts also swaps the pieces already played. */
   started: boolean
+  /** Locks the opponent choice, for when switching away would walk out of a room mid-game. */
+  modeLocked?: boolean
+  /** Says why the choice is locked, so a disabled control is not a dead end. */
+  modeLockedReason?: string
   onModeChange: (mode: GameMode) => void
   onDifficultyChange: (difficulty: Difficulty) => void
   onStarterChange: (starter: Starter) => void
@@ -30,6 +34,8 @@ export function GameSetup({
   difficulty,
   starter,
   started,
+  modeLocked = false,
+  modeLockedReason,
   onModeChange,
   onDifficultyChange,
   onStarterChange,
@@ -57,6 +63,8 @@ export function GameSetup({
               type="button"
               role="radio"
               aria-checked={mode === option}
+              disabled={modeLocked && mode !== option}
+              title={modeLocked && mode !== option ? modeLockedReason : undefined}
               onClick={() => onModeChange(option)}
               {...modeKeys(index)}
             >

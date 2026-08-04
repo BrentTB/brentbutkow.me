@@ -14,6 +14,7 @@ import { Rng, seededRng } from './engine/rng'
 import { useComputerTurn } from './useComputerTurn'
 import { Connection, useOnlineRoom } from '../../multiplayer/useOnlineRoom'
 import { parseRoomInvite } from '../../multiplayer/room-code'
+import { loadRoomSession } from '../../multiplayer/room-session'
 import { Outcome, RoomStatus } from '../../multiplayer/multiplayer.types'
 import { TIC_TAC_TOE_CELL_COUNT, TIC_TAC_TOE_GAME_ID, cellCodec, playerForSeat } from './online'
 import { GameSetup } from './components/GameSetup/GameSetup'
@@ -125,33 +126,57 @@ export function TicTacToe() {
     onReset: newGame,
   })
 
-  // A code prefilled from an invite link, and the switch into online mode that an invite implies. The
-  // link carries only the code: this page already says which game it is, and you pick your own colour.
+  /* Whether a room has actually been entered here, which the effects below key off: it separates "not in
+     a room yet" from "stepped out of one". */
+  const wasInRoomRef = useRef(false)
+  if (room.connection === Connection.connected) wasInRoomRef.current = true
+
+  /* A code prefilled from an invite link, and the switch into online mode that an invite implies. The
+     link carries only the code: this page already says which game it is, and you pick your own colour.
+
+     A seat held in this tab counts too. A reload starts the page in its default mode, and the room only
+     shows in online mode, so the seat being resumed has to bring the mode with it. */
   const [inviteCode, setInviteCode] = useState<string | null>(null)
   useEffect(() => {
     const code = parseRoomInvite(new URLSearchParams(window.location.search))
-    if (code !== null) {
+    if (code !== null) setInviteCode(code)
+    if (code !== null || loadRoomSession(TIC_TAC_TOE_GAME_ID) !== null) {
       setGameMode(GameMode.online)
-      setInviteCode(code)
     }
   }, [])
 
-  // Leaving online mode ends the session, so its poll loop can't keep dropping moves onto a local game.
+  /* Leaving online mode ends the session, so its poll loop can't keep dropping moves onto a local game.
+     Gated on having been in a room: the page can start in a local mode while a seat from this tab is
+     still being resumed, and leaving then would throw that seat away before it comes back. */
   const leaveRoom = room.leave
   useEffect(() => {
-    if (!isOnline) leaveRoom()
+    if (!isOnline && wasInRoomRef.current) leaveRoom()
   }, [isOnline, leaveRoom])
 
   /* The prefilled code belongs to the room you arrived for, so stepping out of a room empties the join
      field rather than offering the same code back. Gated on having been in one: the connection starts
      idle, and clearing then would wipe the code an invite link had just supplied. */
-  const wasInRoomRef = useRef(false)
-  if (room.connection === Connection.connected) wasInRoomRef.current = true
   const leftRoom = wasInRoomRef.current && room.connection === Connection.idle
   useEffect(() => {
     if (!leftRoom) return
     wasInRoomRef.current = false
     setInviteCode(null)
+    /* A name and colour the room handed you belong to that room: the seat default and the colour picked
+       around an opponent both go back, so a local game afterwards is Player 1 in Player 1's colour
+       rather than a second Player 2. A name you typed yourself is left alone. */
+    setPlayers((current) => {
+      const mine = current[Player.one]
+      const wasGivenName = PLAYER_SLOTS.some((slot) => mine.name === DEFAULT_PLAYERS[slot].name)
+      const wasGivenColour = PLAYER_SLOTS.some((slot) => mine.rgb === DEFAULT_PLAYERS[slot].rgb)
+      if (!wasGivenName && !wasGivenColour) return current
+      return {
+        ...current,
+        [Player.one]: {
+          name: wasGivenName ? DEFAULT_PLAYERS[Player.one].name : mine.name,
+          rgb: wasGivenColour ? DEFAULT_PLAYERS[Player.one].rgb : mine.rgb,
+        },
+      }
+    })
   }, [leftRoom])
 
   const statusRef = useRef<HTMLDivElement>(null)
@@ -350,13 +375,50 @@ export function TicTacToe() {
   const opponentColour = room.seats.find((seat) => seat.seat !== room.mySeat)?.colour
 
   /* Both players start on the same default colour, so whoever finds it already taken moves off it. The
-     board would be unreadable with two identical sets of beads. */
+     board would be unreadable with two identical sets of beads. The replacement also avoids the other
+     local slot's colour, so stepping back out of the room does not leave a local game in one colour. */
   useEffect(() => {
     if (!isOnline || opponentColour === undefined) return
     if (players[mySlot].rgb !== opponentColour) return
-    const free = PLAYER_COLOURS.find((colour) => colour.rgb !== opponentColour)
+    const otherLocal = players[PLAYER_SLOTS[1 - PLAYER_SLOTS.indexOf(mySlot)]].rgb
+    const free = PLAYER_COLOURS.find(
+      (colour) => colour.rgb !== opponentColour && colour.rgb !== otherLocal
+    )
     if (free) recolour(mySlot, free.rgb)
   }, [isOnline, mySlot, opponentColour, players, recolour])
+
+  /**
+   * Settles who you are the moment you enter a room, in one place.
+   *
+   * Two rules, in order. A name or colour somebody actually chose comes back with the seat, so resuming
+   * after a reload restores what you typed instead of letting a freshly-defaulted page publish over it.
+   * Anything still at a default follows the seat number instead, so joining makes you Player 2 in Player
+   * 2's colour rather than a second Player 1 in the same amber.
+   *
+   * Deliberately one effect: as two, the adopt half overwrote the seat-default half in the same commit,
+   * and neither re-ran to settle it.
+   */
+  const adoptedRef = useRef<string | null>(null)
+  const mySeatEntry = room.seats.find((seat) => seat.seat === room.mySeat)
+  useEffect(() => {
+    if (!isOnline || room.code === null || room.mySeat === null) return
+    if (mySeatEntry === undefined || adoptedRef.current === room.code) return
+    adoptedRef.current = room.code
+
+    const seatDefault = DEFAULT_PLAYERS[PLAYER_SLOTS[room.mySeat]]
+    const storedName = mySeatEntry.name.trim()
+    const storedColour = mySeatEntry.colour
+    const nameIsDefault = PLAYER_SLOTS.some((slot) => storedName === DEFAULT_PLAYERS[slot].name)
+    const colourIsDefault = PLAYER_SLOTS.some((slot) => storedColour === DEFAULT_PLAYERS[slot].rgb)
+
+    setPlayers((current) => ({
+      ...current,
+      [Player.one]: {
+        name: storedName && !nameIsDefault ? storedName : seatDefault.name,
+        rgb: storedColour && !colourIsDefault ? storedColour : seatDefault.rgb,
+      },
+    }))
+  }, [isOnline, room.code, room.mySeat, mySeatEntry])
 
   /* Publishes your name and colour to the room whenever you change them, so the opponent's board shows
      the piece in your colour under your name rather than a stale default.
@@ -554,6 +616,8 @@ export function TicTacToe() {
           <GameSetup
             mode={gameMode}
             started={started}
+            modeLocked={isOnline && room.connection !== Connection.idle}
+            modeLockedReason={gameCopy.online.modeLocked}
             difficulty={difficulty}
             starter={starter}
             onModeChange={changeGameMode}

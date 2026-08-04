@@ -117,8 +117,19 @@ export const gameCopy = {
     create: 'Start a game',
     join: 'Join a game',
     findGame: 'Find a game',
-    /** Sits under the find button, since being matched with a stranger deserves a word of warning. */
-    findHint: 'Puts you against whoever else is looking.',
+    /** Says what actually happens, since half the time it opens a room instead of joining one. */
+    findHint:
+      'Puts you in with whoever is waiting. If nobody is, you wait here until someone turns up.',
+    /** Explains the locked opponent control, so a disabled button is not a dead end. */
+    modeLocked: 'Leave the room first',
+    /** Heads the settings on the setup form, and says plainly which of the buttons below they govern. */
+    setupTitle: 'Room settings',
+    setupHint: 'Start a game uses these. Find a game only does when nobody is waiting.',
+    /** Heads the same settings once you are in a room, where they describe it rather than propose it. */
+    roomSettingsTitle: 'This room',
+    yoursToChange: 'Yours to change until someone joins.',
+    openYes: 'Anyone can join',
+    openNo: 'Code only',
     codeLabel: 'Room code',
     codePlaceholder: 'Enter a code',
     connecting: 'Connecting…',

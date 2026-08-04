@@ -283,9 +283,10 @@ describe('useOnlineRoom', () => {
     mocked.matchmake.mockResolvedValue(credentials({ seat: Seat.second, token: 'tok2' }))
     mocked.getRoom.mockResolvedValue(state({}))
     await act(async () => {
-      await view.result.current.findGame(BO, 60)
+      await view.result.current.findGame(BO, { moveLimitSeconds: 60 })
     })
-    expect(mocked.matchmake).toHaveBeenCalledWith('ttt', BO, 64, 60)
+    // The options only shape a room it opens; joining somebody plays by theirs.
+    expect(mocked.matchmake).toHaveBeenCalledWith('ttt', BO, 64, { moveLimitSeconds: 60 })
     expect(view.result.current.mySeat).toBe(Seat.second)
     expect(view.result.current.connection).toBe('connected')
   })

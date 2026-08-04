@@ -1,11 +1,17 @@
 import { FormEvent, useEffect, useState } from 'react'
 import { ROOM_CODE_LENGTH, roomInviteUrl } from '../../../../multiplayer/room-code'
-import { RoomStatus, Seat, SeatProfile } from '../../../../multiplayer/multiplayer.types'
+import {
+  RoomOptions,
+  RoomStatus,
+  Seat,
+  SeatProfile,
+} from '../../../../multiplayer/multiplayer.types'
 import { Connection, OnlineRoom } from '../../../../multiplayer/useOnlineRoom'
 import { formatClock, useTurnClock } from '../../../../multiplayer/useTurnClock'
 import { cssVars } from '../../css-vars'
-import { MOVE_LIMITS, ONLINE_STARTERS, gameCopy } from '../../data'
+import { gameCopy } from '../../data'
 import { LeaveIcon } from '../LeaveIcon/LeaveIcon'
+import { RoomSettings } from './RoomSettings'
 import styles from './OnlinePanel.module.scss'
 
 /** Where the countdown turns urgent, which is about when it starts affecting how you play. */
@@ -23,9 +29,13 @@ interface OnlinePanelProps {
 export function OnlinePanel({ room, profile, initialCode = '' }: OnlinePanelProps) {
   const [code, setCode] = useState(initialCode)
   const [copied, setCopied] = useState(false)
-  const [firstSeat, setFirstSeat] = useState<Seat>(Seat.first)
-  const [moveLimit, setMoveLimit] = useState<number | null>(null)
-  const [isOpen, setIsOpen] = useState(false)
+  /* What a room you open would be set to. Held here until it becomes a real room, then the room itself
+     is the source of truth and these follow it. */
+  const [draft, setDraft] = useState<Required<RoomOptions>>({
+    firstSeat: Seat.first,
+    isOpen: false,
+    moveLimitSeconds: null,
+  })
   const copy = gameCopy.online
   const secondsLeft = useTurnClock(room.turnEndsAt)
 
@@ -116,6 +126,23 @@ export function OnlinePanel({ room, profile, initialCode = '' }: OnlinePanelProp
           </p>
         )}
 
+        {/* The terms this room is actually running under, so a matched game is never a mystery. */}
+        {!finished && (
+          <div className={styles.setupHead}>
+            <span className={styles.codeLabel}>{copy.roomSettingsTitle}</span>
+            {room.canChangeSettings && <span className={styles.hint}>{copy.yoursToChange}</span>}
+          </div>
+        )}
+        {!finished && (
+          <RoomSettings
+            firstSeat={room.firstSeat}
+            moveLimitSeconds={room.moveLimitSeconds}
+            isOpen={room.isOpen}
+            editable={room.canChangeSettings}
+            onChange={(next) => void room.changeSettings(next)}
+          />
+        )}
+
         {finished && room.opponentPresent && (
           <>
             <button type="button" className={styles.action} onClick={() => void room.playAgain()}>
@@ -149,62 +176,24 @@ export function OnlinePanel({ room, profile, initialCode = '' }: OnlinePanelProp
         <p className={styles.status}>{copy.connecting}</p>
       ) : (
         <>
-          <div className={styles.settingRow}>
-            <span className={styles.codeLabel} id="first-move-label">
-              {copy.firstMoveLabel}
-            </span>
-            <div className={styles.segmented} role="radiogroup" aria-labelledby="first-move-label">
-              {ONLINE_STARTERS.map((option) => (
-                <button
-                  key={option.seat}
-                  type="button"
-                  role="radio"
-                  aria-checked={firstSeat === option.seat}
-                  onClick={() => setFirstSeat(option.seat as Seat)}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
+          {/* Named so it is clear these are the room's settings, not the app's. */}
+          <div className={styles.setupHead}>
+            <span className={styles.codeLabel}>{copy.setupTitle}</span>
+            <span className={styles.hint}>{copy.setupHint}</span>
           </div>
 
-          <div className={styles.settingRow}>
-            <span className={styles.codeLabel} id="clock-label">
-              {copy.clockLabel}
-            </span>
-            <div className={styles.segmented} role="radiogroup" aria-labelledby="clock-label">
-              {MOVE_LIMITS.map((option) => (
-                <button
-                  key={option.label}
-                  type="button"
-                  role="radio"
-                  aria-checked={moveLimit === option.seconds}
-                  onClick={() => setMoveLimit(option.seconds)}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <label className={styles.toggleRow}>
-            <input
-              type="checkbox"
-              checked={isOpen}
-              onChange={(event) => setIsOpen(event.target.checked)}
-            />
-            <span className={styles.toggleText}>
-              {copy.openLabel}
-              <span className={styles.hint}>{copy.openHint}</span>
-            </span>
-          </label>
+          <RoomSettings
+            firstSeat={draft.firstSeat}
+            moveLimitSeconds={draft.moveLimitSeconds}
+            isOpen={draft.isOpen}
+            editable
+            onChange={(next) => setDraft({ ...draft, ...next })}
+          />
 
           <button
             type="button"
             className={styles.action}
-            onClick={() =>
-              void room.create(profile, { firstSeat, isOpen, moveLimitSeconds: moveLimit })
-            }
+            onClick={() => void room.create(profile, draft)}
           >
             {copy.create}
           </button>
@@ -213,7 +202,7 @@ export function OnlinePanel({ room, profile, initialCode = '' }: OnlinePanelProp
             <button
               type="button"
               className={styles.action}
-              onClick={() => void room.findGame(profile, moveLimit)}
+              onClick={() => void room.findGame(profile, draft)}
             >
               {copy.findGame}
             </button>

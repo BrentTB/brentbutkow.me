@@ -10,8 +10,10 @@ import {
   rematch,
   submitMove,
   updateProfile,
+  updateSettings,
 } from './rooms-api'
 import { clearRoomFromUrl, showRoomInUrl } from './room-code'
+import { clearRoomSession, loadRoomSession, saveRoomSession } from './room-session'
 import {
   MoveCodec,
   Outcome,
@@ -70,14 +72,22 @@ export interface OnlineRoom<Move> {
   error: string | null
   create: (profile: SeatProfile, options?: RoomOptions) => Promise<void>
   join: (code: string, profile: SeatProfile) => Promise<void>
-  /** Drops into whoever is waiting for this game, opening a room to wait in when nobody is. */
-  findGame: (profile: SeatProfile, moveLimitSeconds?: number | null) => Promise<void>
+  /**
+   * Drops into whoever is waiting for this game, opening a room to wait in when nobody is. The
+   * options apply only to a room it opens; joining somebody plays by theirs.
+   */
+  findGame: (profile: SeatProfile, options?: RoomOptions) => Promise<void>
   /** Sends a move; resolves true once the server accepts it, false on rejection (with `error` set). */
   submit: (move: Move, finished?: boolean, won?: boolean) => Promise<boolean>
   /** Publishes your own name and colour to the room, so the opponent's board shows them. */
   publishProfile: (profile: SeatProfile) => Promise<void>
   /** Clears the board for another game in the same room, with the other seat opening. */
   playAgain: () => Promise<void>
+  /** Changes the room's own settings. Only the opener can, and only before the game starts. */
+  changeSettings: (options: RoomOptions) => Promise<void>
+  /** Whether this seat may change them, so a control can be shown rather than guessed at. */
+  canChangeSettings: boolean
+  isOpen: boolean
   leave: () => void
 }
 
@@ -200,9 +210,11 @@ export function useOnlineRoom<Move>({
       setError(null)
       // The address bar becomes the invite, so the URL can be sent as-is without the copy button.
       showRoomInUrl(session.code)
+      // Kept for this tab only, so reloading the page puts you back in the seat you are holding.
+      saveRoomSession(gameId, session)
       startPolling()
     },
-    [reconcile, startPolling]
+    [gameId, reconcile, startPolling]
   )
 
   /** Turns fresh credentials into a live session, reading the room so both seats are known. */
@@ -243,11 +255,11 @@ export function useOnlineRoom<Move>({
   )
 
   const findGame = useCallback(
-    async (profile: SeatProfile, moveLimitSeconds: number | null = null) => {
+    async (profile: SeatProfile, options: RoomOptions = {}) => {
       setConnection(Connection.connecting)
       setError(null)
       try {
-        await enter(await matchmake(gameId, profile, cellCount, moveLimitSeconds))
+        await enter(await matchmake(gameId, profile, cellCount, options))
       } catch {
         setConnection(Connection.error)
         setError('Could not find a game.')
@@ -320,6 +332,23 @@ export function useOnlineRoom<Move>({
     }
   }, [reconcile])
 
+  const changeSettings = useCallback(
+    async (options: RoomOptions) => {
+      const session = sessionRef.current
+      if (session === null) return
+      try {
+        reconcile(await updateSettings(session.code, session.token, options))
+      } catch (err) {
+        setError(
+          err instanceof HttpError && err.status === 409
+            ? 'The game has already started.'
+            : 'Could not change the settings.'
+        )
+      }
+    },
+    [reconcile]
+  )
+
   /** Wipes the local session. Split out so both a deliberate leave and an unmount can use it. */
   const forget = useCallback(() => {
     stopPolling()
@@ -332,7 +361,8 @@ export function useOnlineRoom<Move>({
     setError(null)
     // Nothing left to invite anyone into, so the link comes back out of the address bar.
     clearRoomFromUrl()
-  }, [stopPolling])
+    clearRoomSession(gameId)
+  }, [gameId, stopPolling])
 
   const leave = useCallback(() => {
     const session = sessionRef.current
@@ -341,6 +371,40 @@ export function useOnlineRoom<Move>({
     if (session !== null) void leaveRoom(session.code, session.token).catch(() => undefined)
     forget()
   }, [forget])
+
+  /**
+   * Puts you back in your seat after a reload.
+   *
+   * Resuming rather than rejoining: the seat is already yours, so the token stored for this tab is all it
+   * takes, and the name, colour and side you had come back with it.
+   *
+   * Guarded by a ref so a re-rendered callback cannot drag you back into a room you have left, and the
+   * guard is released on cleanup: React's development double-mount cancels the first attempt, and a guard
+   * that stayed set would leave the second mount skipping the resume altogether.
+   */
+  const resumingRef = useRef(false)
+  useEffect(() => {
+    if (resumingRef.current) return
+    resumingRef.current = true
+
+    const stored = loadRoomSession(gameId)
+    if (stored === null) return
+
+    let cancelled = false
+    void (async () => {
+      try {
+        const state = await getRoom(stored.code, stored.token)
+        if (!cancelled) begin(stored, state)
+      } catch {
+        // Gone, expired, or somebody else's seat: nothing to come back to, so drop it.
+        clearRoomSession(gameId)
+      }
+    })()
+    return () => {
+      cancelled = true
+      resumingRef.current = false
+    }
+  }, [begin, gameId])
 
   // A tab returning to the foreground catches up at once rather than waiting for the next interval.
   useEffect(() => {
@@ -398,6 +462,10 @@ export function useOnlineRoom<Move>({
     submit,
     publishProfile,
     playAgain,
+    changeSettings,
+    // The opener sets the terms, and only while the room is still waiting for its second player.
+    canChangeSettings: mySeat === Seat.first && room?.status === RoomStatus.waiting,
+    isOpen: room?.isOpen ?? false,
     leave,
   }
 }

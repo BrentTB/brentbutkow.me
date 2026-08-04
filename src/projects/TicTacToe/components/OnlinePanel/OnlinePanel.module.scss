@@ -60,6 +60,15 @@
   border-top: 1px solid var(--border);
 }
 
+/* Says who the settings below belong to, since joining somebody uses theirs instead. */
+.setupHead {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
 /* Room settings: label on the left, choices on the right, matching the Game panel above. */
 .settingRow {
   display: flex;
@@ -292,4 +301,25 @@
   .leave {
     transition-duration: 1ms;
   }
+}
+
+/* The room's settings as plain facts, for a player who cannot change them. */
+.readOnly {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 0;
+}
+
+.readRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.readValue {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
 }

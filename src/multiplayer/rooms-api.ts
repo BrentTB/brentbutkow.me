@@ -105,16 +105,27 @@ export function createRoom(
   )
 }
 
-/** Joins whoever is waiting for this game, or opens a room and waits when nobody is. */
+/**
+ * Joins whoever is waiting for this game, or opens a room and waits when nobody is.
+ *
+ * The options only take effect on the room it opens: joining somebody means playing by theirs.
+ */
 export function matchmake(
   gameId: string,
   profile: SeatProfile,
   cellCount: number,
-  moveLimitSeconds: number | null = null
+  options: RoomOptions = {}
 ): Promise<RoomCredentials> {
   return postJsonFor(
     `${apiRoutes.rooms}/matchmake`,
-    { gameId, name: profile.name, colour: profile.colour, cellCount, moveLimitSeconds },
+    {
+      gameId,
+      name: profile.name,
+      colour: profile.colour,
+      cellCount,
+      firstSeat: options.firstSeat ?? Seat.first,
+      moveLimitSeconds: options.moveLimitSeconds ?? null,
+    },
     isRoomCredentials
   )
 }
@@ -143,6 +154,29 @@ export function updateProfile(
 /** Gives up your seat. Mid-game that hands the win to the other player. */
 export function leaveRoom(code: string, token: string): Promise<RoomState> {
   return postJsonFor(`${roomPath(code)}/leave`, { token }, isRoomState)
+}
+
+/**
+ * Changes a waiting room's settings.
+ *
+ * The server allows it only before the game starts and only from the seat that opened the room, so the
+ * terms are not one side's to rewrite once both players are in.
+ */
+export function updateSettings(
+  code: string,
+  token: string,
+  options: RoomOptions
+): Promise<RoomState> {
+  return postJsonFor(
+    `${roomPath(code)}/settings`,
+    {
+      token,
+      firstSeat: options.firstSeat ?? Seat.first,
+      isOpen: options.isOpen ?? false,
+      moveLimitSeconds: options.moveLimitSeconds ?? null,
+    },
+    isRoomState
+  )
 }
 
 /** Clears the board for another game, handing the opening move to the other seat. */
