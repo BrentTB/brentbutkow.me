@@ -8,17 +8,26 @@ import { useOnlineRoom } from './useOnlineRoom'
 vi.mock('./rooms-api')
 const mocked = vi.mocked(api)
 
+// The two players' profiles, distinct so a test can prove the seats never render alike.
+const ADA = { name: 'Ada', colour: '1,2,3' }
+const BO = { name: 'Bo', colour: '4,5,6' }
+
 // A move is just its cell index on the wire, so the codec is the identity.
 const idCodec: MoveCodec<number> = { toWire: (m) => m, fromWire: (w) => w }
 
-const seat = (n: Seat, colour: string): SeatInfo => ({ seat: n, colour, joined: true })
+const seat = (n: Seat, name: string, colour: string): SeatInfo => ({
+  seat: n,
+  name,
+  colour,
+  joined: true,
+})
 
 const state = (over: Partial<RoomState>): RoomState => ({
   code: 'AB2K9M',
   gameId: 'ttt',
   cellCount: 64,
   moves: [],
-  seats: [seat(Seat.first, '1,2,3'), seat(Seat.second, '4,5,6')],
+  seats: [seat(Seat.first, 'Ada', '1,2,3'), seat(Seat.second, 'Bo', '4,5,6')],
   status: RoomStatus.active,
   version: 0,
   expiresAt: '',
@@ -53,9 +62,9 @@ describe('useOnlineRoom', () => {
   it('creates a room and connects as seat 0', async () => {
     const { view } = setup()
     await act(async () => {
-      await view.result.current.create('1,2,3')
+      await view.result.current.create(ADA)
     })
-    expect(mocked.createRoom).toHaveBeenCalledWith('ttt', '1,2,3', 64)
+    expect(mocked.createRoom).toHaveBeenCalledWith('ttt', ADA, 64)
     expect(view.result.current.connection).toBe('connected')
     expect(view.result.current.mySeat).toBe(Seat.first)
     expect(view.result.current.status).toBe(RoomStatus.waiting)
@@ -65,7 +74,7 @@ describe('useOnlineRoom', () => {
   it('applies the opponent move it sees on the next poll', async () => {
     const { view, onRemoteMove } = setup()
     await act(async () => {
-      await view.result.current.create('1,2,3')
+      await view.result.current.create(ADA)
     })
     // Opponent has joined and played cell 9; it becomes seat 0's turn again at version 1.
     mocked.getRoom.mockResolvedValue(state({ moves: [9], version: 1 }))
@@ -80,7 +89,7 @@ describe('useOnlineRoom', () => {
   it('submits a move and applies the confirmed result', async () => {
     const { view, onRemoteMove } = setup()
     await act(async () => {
-      await view.result.current.create('1,2,3')
+      await view.result.current.create(ADA)
     })
     // Both seats present, no moves yet: it is seat 0's turn.
     mocked.getRoom.mockResolvedValue(state({ moves: [], version: 0 }))
@@ -103,7 +112,7 @@ describe('useOnlineRoom', () => {
   it('reports a rejected move without applying it', async () => {
     const { view, onRemoteMove } = setup()
     await act(async () => {
-      await view.result.current.create('1,2,3')
+      await view.result.current.create(ADA)
     })
     mocked.getRoom.mockResolvedValue(state({ moves: [], version: 0 }))
     await act(async () => {
@@ -121,6 +130,26 @@ describe('useOnlineRoom', () => {
     expect(view.result.current.error).toMatch(/your turn/i)
   })
 
+  it('publishes a changed profile and takes the room back from the response', async () => {
+    const { view } = setup()
+    await act(async () => {
+      await view.result.current.create(ADA)
+    })
+    const renamed = { name: 'Ada L', colour: '7,7,7' }
+    mocked.updateProfile.mockResolvedValue(
+      state({
+        seats: [seat(Seat.first, renamed.name, renamed.colour), seat(Seat.second, 'Bo', '4,5,6')],
+      })
+    )
+    await act(async () => {
+      await view.result.current.publishProfile(renamed)
+    })
+    expect(mocked.updateProfile).toHaveBeenCalledWith('AB2K9M', 'tok', renamed)
+    // Both seats come back distinct, which is what keeps the two players' beads apart.
+    expect(view.result.current.seats.map((s) => s.colour)).toEqual(['7,7,7', '4,5,6'])
+    expect(view.result.current.seats[0].name).toBe('Ada L')
+  })
+
   it('replays the existing moves when joining a game in progress', async () => {
     mocked.joinRoom.mockResolvedValue({
       code: 'AB2K9M',
@@ -134,7 +163,7 @@ describe('useOnlineRoom', () => {
 
     const { view, onRemoteMove } = setup()
     await act(async () => {
-      await view.result.current.join('AB2K9M', '4,5,6')
+      await view.result.current.join('AB2K9M', BO)
     })
     expect(onRemoteMove).toHaveBeenNthCalledWith(1, 3, 0)
     expect(onRemoteMove).toHaveBeenNthCalledWith(2, 7, 1)

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { HttpError } from '../api/api'
-import { createRoom, getRoom, joinRoom, submitMove } from './rooms-api'
-import { MoveCodec, RoomState, RoomStatus, Seat, SeatInfo } from './multiplayer.types'
+import { createRoom, getRoom, joinRoom, submitMove, updateProfile } from './rooms-api'
+import { MoveCodec, RoomState, RoomStatus, Seat, SeatInfo, SeatProfile } from './multiplayer.types'
 
 // A generic, turn-based online room. It coordinates two seats over short polling and knows no game's
 // rules: a game supplies its id, its board size, and a codec mapping its move to the wire integer the
@@ -39,10 +39,12 @@ export interface OnlineRoom<Move> {
   isMyTurn: boolean
   opponentPresent: boolean
   error: string | null
-  create: (colour: string) => Promise<void>
-  join: (code: string, colour: string) => Promise<void>
+  create: (profile: SeatProfile) => Promise<void>
+  join: (code: string, profile: SeatProfile) => Promise<void>
   /** Sends a move; resolves true once the server accepts it, false on rejection (with `error` set). */
   submit: (move: Move, finished?: boolean) => Promise<boolean>
+  /** Publishes your own name and colour to the room, so the opponent's board shows them. */
+  publishProfile: (profile: SeatProfile) => Promise<void>
   leave: () => void
 }
 
@@ -107,7 +109,7 @@ export function useOnlineRoom<Move>({
 
   const pollOnce = useCallback(async () => {
     const session = sessionRef.current
-    if (session === null || (typeof document !== 'undefined' && document.hidden)) return
+    if (session === null) return
     try {
       reconcile(await getRoom(session.code))
     } catch (err) {
@@ -120,6 +122,14 @@ export function useOnlineRoom<Move>({
     }
   }, [reconcile, stopPolling])
 
+  /**
+   * Reads on every tick, background tabs included.
+   *
+   * Browsers already throttle interval timers in a hidden tab to roughly once a minute, which is the
+   * battery saving this would otherwise be hand-rolling. Skipping ticks of our own on top of that
+   * multiplies with the throttle and leaves a backgrounded game minutes stale, so the pacing is left
+   * to the browser. Coming back to the tab forces an immediate read either way.
+   */
   const startPolling = useCallback(() => {
     stopPolling()
     pollRef.current = setInterval(() => {
@@ -142,11 +152,11 @@ export function useOnlineRoom<Move>({
   )
 
   const create = useCallback(
-    async (colour: string) => {
+    async (profile: SeatProfile) => {
       setConnection(Connection.connecting)
       setError(null)
       try {
-        const creds = await createRoom(gameId, colour, cellCount)
+        const creds = await createRoom(gameId, profile, cellCount)
         begin(
           { code: creds.code, token: creds.token, seat: creds.seat },
           {
@@ -154,7 +164,8 @@ export function useOnlineRoom<Move>({
             gameId,
             cellCount,
             moves: [],
-            seats: [],
+            // The creator's own seat, so their name and colour show before the first poll lands.
+            seats: [{ seat: creds.seat, name: profile.name, colour: profile.colour, joined: true }],
             status: creds.status,
             version: 0,
             expiresAt: '',
@@ -169,11 +180,11 @@ export function useOnlineRoom<Move>({
   )
 
   const join = useCallback(
-    async (code: string, colour: string) => {
+    async (code: string, profile: SeatProfile) => {
       setConnection(Connection.connecting)
       setError(null)
       try {
-        const creds = await joinRoom(code, colour)
+        const creds = await joinRoom(code, profile)
         const state = await getRoom(creds.code)
         begin({ code: creds.code, token: creds.token, seat: creds.seat }, state)
       } catch (err) {
@@ -220,6 +231,20 @@ export function useOnlineRoom<Move>({
     [pollOnce, reconcile]
   )
 
+  const publishProfile = useCallback(
+    async (profile: SeatProfile) => {
+      const session = sessionRef.current
+      if (session === null) return
+      try {
+        // The response is the whole room, so the opponent's latest details arrive with the write.
+        reconcile(await updateProfile(session.code, session.token, profile))
+      } catch {
+        // Cosmetic: a failed rename leaves the old name showing, so it is not worth interrupting play.
+      }
+    },
+    [reconcile]
+  )
+
   const leave = useCallback(() => {
     stopPolling()
     sessionRef.current = null
@@ -259,6 +284,7 @@ export function useOnlineRoom<Move>({
     create,
     join,
     submit,
+    publishProfile,
     leave,
   }
 }

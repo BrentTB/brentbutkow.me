@@ -17,7 +17,7 @@ import {
   ViewMode,
 } from './tic-tac-toe.types'
 import { cssVars } from './css-vars'
-import { DEFAULT_PLAYERS, PLAYER_SLOTS, VIEW_LABELS, gameCopy } from './data'
+import { DEFAULT_PLAYERS, PLAYER_COLOURS, PLAYER_SLOTS, VIEW_LABELS, gameCopy } from './data'
 import { Rng, seededRng } from './engine/rng'
 import { useComputerTurn } from './useComputerTurn'
 import { Connection, useOnlineRoom } from '../../multiplayer/useOnlineRoom'
@@ -135,13 +135,14 @@ export function TicTacToe() {
     onReset: newGame,
   })
 
-  // A code prefilled from an invite link, and the switch into online mode that an invite implies.
+  // A code prefilled from an invite link, and the switch into online mode that an invite implies. The
+  // link carries only the code: this page already says which game it is, and you pick your own colour.
   const [inviteCode, setInviteCode] = useState<string | null>(null)
   useEffect(() => {
-    const invite = parseRoomInvite(new URLSearchParams(window.location.search))
-    if (invite !== null && invite.gameId === TIC_TAC_TOE_GAME_ID) {
+    const code = parseRoomInvite(new URLSearchParams(window.location.search))
+    if (code !== null) {
       setGameMode(GameMode.online)
-      setInviteCode(invite.code)
+      setInviteCode(code)
     }
   }, [])
 
@@ -330,19 +331,50 @@ export function TicTacToe() {
     [displayNames, players]
   )
 
-  /* Online, the seats' colours come from the server so both screens agree, and the names read simply as
-     you and your opponent. Before anyone has joined the local profiles stand in. */
+  /* Online you edit one identity, always held in the first local slot, whichever seat the room gives
+     you. Tying it to the seat instead would throw away the name you typed before joining, the moment
+     joining made you the second player. The board reads its colours from the room, not from here. */
+  const mySlot = Player.one
+
+  const myProfile = useMemo(
+    () => ({ name: displayNames[mySlot], colour: players[mySlot].rgb }),
+    [displayNames, mySlot, players]
+  )
+
+  /* The opponent's colour, so the swatch list can rule it out. Theirs to choose, not yours to reuse. */
+  const opponentColour = room.seats.find((seat) => seat.seat !== room.mySeat)?.colour
+
+  /* Both players start on the same default colour, so whoever finds it already taken moves off it. The
+     board would be unreadable with two identical sets of beads. */
+  useEffect(() => {
+    if (!isOnline || opponentColour === undefined) return
+    if (players[mySlot].rgb !== opponentColour) return
+    const free = PLAYER_COLOURS.find((colour) => colour.rgb !== opponentColour)
+    if (free) recolour(mySlot, free.rgb)
+  }, [isOnline, mySlot, opponentColour, players, recolour])
+
+  /* Publishes your name and colour to the room whenever you change them, so the opponent's board shows
+     the piece in your colour under your name rather than a stale default. */
+  const { publishProfile } = room
+  const connected = room.connection === Connection.connected
+  useEffect(() => {
+    if (isOnline && connected) void publishProfile(myProfile)
+  }, [isOnline, connected, myProfile, publishProfile])
+
+  /* Online, both seats' names and colours come from the room, so the two screens agree and the players
+     never render alike. Seats the room has not filled yet fall back to the local profiles. */
   const boardPlayers = useMemo(() => {
     if (!isOnline) return namedPlayers
     const next: Record<Player, PlayerProfile> = { ...namedPlayers }
     for (const seat of room.seats) {
-      next[seatPlayer(seat.seat)] = {
-        name: seat.seat === room.mySeat ? gameCopy.online.you : gameCopy.online.opponent,
+      const slot = seatPlayer(seat.seat)
+      next[slot] = {
+        name: seat.name.trim() || DEFAULT_PLAYERS[slot].name,
         rgb: seat.colour,
       }
     }
     return next
-  }, [isOnline, namedPlayers, room.seats, room.mySeat])
+  }, [isOnline, namedPlayers, room.seats])
 
   const viewKeys = useRovingRadio(VIEW_MODES, mode, setMode)
 
@@ -501,16 +533,15 @@ export function TicTacToe() {
             onStarterChange={changeStarter}
           />
           {isOnline && (
-            <OnlinePanel
-              room={room}
-              colour={players[Player.one].rgb}
-              initialCode={inviteCode ?? undefined}
-            />
+            <OnlinePanel room={room} profile={myProfile} initialCode={inviteCode ?? undefined} />
           )}
           <PlayerSetup
             players={players}
             displayNames={displayNames}
             computer={computer}
+            ownSlot={isOnline ? mySlot : null}
+            ownLabel={isOnline ? gameCopy.online.yourNameLabel : undefined}
+            reservedColour={isOnline ? opponentColour : undefined}
             onRename={rename}
             onRecolour={recolour}
           />

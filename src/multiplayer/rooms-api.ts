@@ -6,6 +6,7 @@ import {
   RoomStatus,
   Seat,
   SeatInfo,
+  SeatProfile,
 } from './multiplayer.types'
 
 // Typed client for the rooms endpoints. Every response is validated before use — the API is untrusted
@@ -27,6 +28,7 @@ const isWireMoves = (value: unknown): value is number[] =>
 const isSeatInfo = (raw: unknown): raw is SeatInfo =>
   isRecord(raw) &&
   isSeat(raw.seat) &&
+  typeof raw.name === 'string' &&
   typeof raw.colour === 'string' &&
   typeof raw.joined === 'boolean'
 
@@ -56,14 +58,35 @@ const isMoveResult = (raw: unknown): raw is MoveResult =>
 
 export function createRoom(
   gameId: string,
-  colour: string,
+  profile: SeatProfile,
   cellCount: number
 ): Promise<RoomCredentials> {
-  return postJsonFor(apiRoutes.rooms, { gameId, colour, cellCount }, isRoomCredentials)
+  return postJsonFor(
+    apiRoutes.rooms,
+    { gameId, name: profile.name, colour: profile.colour, cellCount },
+    isRoomCredentials
+  )
 }
 
-export function joinRoom(code: string, colour: string): Promise<RoomCredentials> {
-  return postJsonFor(`${roomPath(code)}/join`, { colour }, isRoomCredentials)
+export function joinRoom(code: string, profile: SeatProfile): Promise<RoomCredentials> {
+  return postJsonFor(
+    `${roomPath(code)}/join`,
+    { name: profile.name, colour: profile.colour },
+    isRoomCredentials
+  )
+}
+
+/** Change your own seat's name and colour; the opponent picks it up on their next poll. */
+export function updateProfile(
+  code: string,
+  token: string,
+  profile: SeatProfile
+): Promise<RoomState> {
+  return postJsonFor(
+    `${roomPath(code)}/profile`,
+    { token, name: profile.name, colour: profile.colour },
+    isRoomState
+  )
 }
 
 export function getRoom(code: string, signal?: AbortSignal): Promise<RoomState> {

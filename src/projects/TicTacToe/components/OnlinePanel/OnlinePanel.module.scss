@@ -110,6 +110,45 @@
   letter-spacing: 0.22em;
 }
 
+/* The two seats as the room knows them: the bead colour, the name, and which one is yours. */
+.seats {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 2px 0 0;
+  padding: 8px 0 0;
+  border-top: 1px solid var(--border);
+  list-style: none;
+}
+
+.seat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.swatch {
+  width: 11px;
+  height: 11px;
+  flex: none;
+  border-radius: 50%;
+  background: rgba(var(--seat-rgb), 0.95);
+  box-shadow: 0 0 8px rgba(var(--seat-rgb), 0.45);
+}
+
+.seatName {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+}
+
+.mine {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .status {
   margin: 0;
   color: var(--text-secondary);

@@ -111,6 +111,11 @@ export const gameCopy = {
     leave: 'Leave game',
     you: 'You',
     opponent: 'Opponent',
+    /** Stands in until a player types a name of their own. */
+    unnamed: 'No name yet',
+    youTag: '(you)',
+    /** Replaces the numbered label: online you only set your own, whichever seat you end up in. */
+    yourNameLabel: 'Your name',
     intro: 'Share the code, take turns. No take-backs once a move is in.',
   },
 

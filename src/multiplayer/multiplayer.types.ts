@@ -15,8 +15,16 @@ export type Seat = (typeof Seat)[keyof typeof Seat]
 
 export interface SeatInfo {
   seat: Seat
+  /** What that player calls themselves. Blank until they set one, so callers supply the fallback. */
+  name: string
   colour: string
   joined: boolean
+}
+
+/** How a player presents themselves in a room, shared with the opponent. */
+export interface SeatProfile {
+  name: string
+  colour: string
 }
 
 // A game's move as the wire integer the server exchanges, and back. The reserved value -1 is a pass,

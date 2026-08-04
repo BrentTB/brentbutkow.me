@@ -1,20 +1,21 @@
 import { FormEvent, useState } from 'react'
 import { encodeRoomInvite } from '../../../../multiplayer/room-code'
+import { SeatProfile } from '../../../../multiplayer/multiplayer.types'
 import { Connection, OnlineRoom } from '../../../../multiplayer/useOnlineRoom'
+import { cssVars } from '../../css-vars'
 import { gameCopy } from '../../data'
-import { TIC_TAC_TOE_GAME_ID } from '../../online'
 import styles from './OnlinePanel.module.scss'
 
 interface OnlinePanelProps {
   room: OnlineRoom<number>
-  /** The local player's chosen colour, sent when creating or joining. */
-  colour: string
+  /** The local player's name and colour, sent when creating or joining. */
+  profile: SeatProfile
   /** A code pulled from an invite link, prefilling the join field. */
   initialCode?: string
 }
 
 /** Create or join a room, then show the code, a copy-link, and whose move it is. */
-export function OnlinePanel({ room, colour, initialCode = '' }: OnlinePanelProps) {
+export function OnlinePanel({ room, profile, initialCode = '' }: OnlinePanelProps) {
   const [code, setCode] = useState(initialCode)
   const [copied, setCopied] = useState(false)
   const copy = gameCopy.online
@@ -22,14 +23,12 @@ export function OnlinePanel({ room, colour, initialCode = '' }: OnlinePanelProps
   const submitJoin = (event: FormEvent) => {
     event.preventDefault()
     const trimmed = code.trim().toUpperCase()
-    if (trimmed) void room.join(trimmed, colour)
+    if (trimmed) void room.join(trimmed, profile)
   }
 
   const copyLink = async () => {
     if (room.code === null) return
-    const params = new URLSearchParams(
-      encodeRoomInvite({ code: room.code, gameId: TIC_TAC_TOE_GAME_ID, colour })
-    )
+    const params = new URLSearchParams(encodeRoomInvite(room.code))
     const url = `${window.location.origin}${window.location.pathname}?${params}`
     try {
       await navigator.clipboard.writeText(url)
@@ -58,6 +57,22 @@ export function OnlinePanel({ room, colour, initialCode = '' }: OnlinePanelProps
         <button type="button" className={styles.action} onClick={copyLink}>
           {copied ? copy.copied : copy.copyLink}
         </button>
+        {/* Both seats as the room knows them, so a colour or name change is visibly shared. */}
+        <ul className={styles.seats}>
+          {room.seats.map((entry) => (
+            <li key={entry.seat} className={styles.seat}>
+              <span
+                className={styles.swatch}
+                style={cssVars({ '--seat-rgb': entry.colour })}
+                aria-hidden="true"
+              />
+              <span className={styles.seatName}>
+                {entry.name.trim() || copy.unnamed}
+                {entry.seat === room.mySeat && <span className={styles.mine}> {copy.youTag}</span>}
+              </span>
+            </li>
+          ))}
+        </ul>
         <p className={styles.status} aria-live="polite">
           {turn}
         </p>
@@ -78,7 +93,7 @@ export function OnlinePanel({ room, colour, initialCode = '' }: OnlinePanelProps
         <p className={styles.status}>{copy.connecting}</p>
       ) : (
         <>
-          <button type="button" className={styles.action} onClick={() => void room.create(colour)}>
+          <button type="button" className={styles.action} onClick={() => void room.create(profile)}>
             {copy.create}
           </button>
           <form className={styles.joinRow} onSubmit={submitJoin}>

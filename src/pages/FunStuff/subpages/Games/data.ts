@@ -22,7 +22,7 @@ export const games: FunItem[] = [
   {
     title: '4×4×4 Tic-Tac-Toe',
     description:
-      'A game my dad taught me: four in a row on a 4×4 board, except the board is a 3D cube with 4 layers. Play a friend or the computer',
+      'A game my dad taught me: Tic Tac Toe on a 4x4 board, except the board is a 3D cube with 4 layers, also known as Qubic. Play a friend in person or online, or play the computer',
     link: gamesSubRoutes.ticTacToe,
   },
 ]

@@ -11,6 +11,12 @@ interface PlayerSetupProps {
   displayNames: Record<Player, string>
   /** Which seat the computer holds, if any, so the row can say so. The name is still yours to change. */
   computer: Player | null
+  /** Online, the one seat that is yours: the other player's name and colour are theirs to set. */
+  ownSlot?: Player | null
+  /** Replaces the numbered name label, for when the row is yours rather than a numbered seat. */
+  ownLabel?: string
+  /** Colour already taken by the other player, when it is not held in `players` (an online opponent). */
+  reservedColour?: string
   onRename: (player: Player, name: string) => void
   onRecolour: (player: Player, rgb: string) => void
 }
@@ -21,37 +27,45 @@ export function PlayerSetup({
   players,
   displayNames,
   computer,
+  ownSlot = null,
+  ownLabel,
+  reservedColour,
   onRename,
   onRecolour,
 }: PlayerSetupProps) {
+  const shown = ownSlot === null ? PLAYER_SLOTS : [ownSlot]
+
   return (
     <section className={styles.setup} aria-labelledby="players-heading">
       <h2 id="players-heading" className={styles.heading}>
         {gameCopy.playersTitle}
       </h2>
 
-      {PLAYER_SLOTS.map((slot, index) => (
-        <PlayerRow
-          key={slot}
-          slot={slot}
-          index={index}
-          profile={players[slot]}
-          displayName={displayNames[slot]}
-          takenByOther={players[PLAYER_SLOTS[1 - index]].rgb}
-          isComputer={slot === computer}
-          onRename={onRename}
-          onRecolour={onRecolour}
-        />
-      ))}
+      {shown.map((slot) => {
+        const index = PLAYER_SLOTS.indexOf(slot)
+        return (
+          <PlayerRow
+            key={slot}
+            slot={slot}
+            profile={players[slot]}
+            displayName={displayNames[slot]}
+            nameLabel={ownLabel ?? gameCopy.nameLabel(index + 1)}
+            takenByOther={reservedColour ?? players[PLAYER_SLOTS[1 - index]].rgb}
+            isComputer={slot === computer}
+            onRename={onRename}
+            onRecolour={onRecolour}
+          />
+        )
+      })}
     </section>
   )
 }
 
 type PlayerRowProps = {
   slot: Player
-  index: number
   profile: PlayerProfile
   displayName: string
+  nameLabel: string
   takenByOther: string
   isComputer: boolean
   onRename: (player: Player, name: string) => void
@@ -61,9 +75,9 @@ type PlayerRowProps = {
 /** One seat: what it is called, and which colour it plays in. */
 function PlayerRow({
   slot,
-  index,
   profile,
   displayName,
+  nameLabel,
   takenByOther,
   isComputer,
   onRename,
@@ -75,7 +89,7 @@ function PlayerRow({
     <div className={styles.row}>
       <label className={styles.field} htmlFor={`${slot}-name`}>
         <span className={styles.label}>
-          {gameCopy.nameLabel(index + 1)}
+          {nameLabel}
           {isComputer && <span className={styles.tag}>{gameCopy.computerTag}</span>}
         </span>
         <input
