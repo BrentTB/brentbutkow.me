@@ -5,8 +5,8 @@ import * as api from './rooms-api'
 import {
   MoveCodec,
   Outcome,
+  RoomChange,
   RoomCredentials,
-  RoomOptions,
   RoomState,
   RoomStatus,
   Seat,
@@ -23,7 +23,7 @@ const ADA = { name: 'Ada', colour: '1,2,3' }
 const BO = { name: 'Bo', colour: '4,5,6' }
 
 /** What a room opens on: the creator first, private, no clock. The whole triple, as the endpoint wants. */
-const STANDARD: Required<RoomOptions> = {
+const STANDARD: RoomChange = {
   firstSeat: Seat.first,
   isOpen: false,
   moveLimitSeconds: null,

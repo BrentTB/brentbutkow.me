@@ -299,9 +299,11 @@ describe('OnlinePanel — in a room', () => {
 
 describe('OnlinePanel — the room settings', () => {
   it('reads the terms out, with no way to change them from the other seat', () => {
-    show(connectedRoom({ mySeat: Seat.second, moveLimitSeconds: 60, isOpen: true }))
+    // Any offered limit past "None": drive the room with its seconds and read back its label.
+    const limit = MOVE_LIMITS[2]
+    show(connectedRoom({ mySeat: Seat.second, moveLimitSeconds: limit.seconds, isOpen: true }))
 
-    expect(screen.getByText(MOVE_LIMITS[2].label)).toBeTruthy()
+    expect(screen.getByText(limit.label)).toBeTruthy()
     expect(screen.getByText(copy.openYes)).toBeTruthy()
     expect(screen.queryByRole('button', { name: copy.editSettings })).toBeNull()
   })
@@ -335,6 +337,44 @@ describe('OnlinePanel — the room settings', () => {
       isOpen: false,
       moveLimitSeconds: limit.seconds,
     })
+  })
+
+  it('offers the board sizes and sends the picked one for a game that can resize', () => {
+    const sizes = [
+      { value: 36, label: '6×6' },
+      { value: 64, label: '8×8' },
+      { value: 100, label: '10×10' },
+    ]
+    const room = connectedRoom({ canChangeSettings: true, cellCount: 64 })
+    render(
+      <OnlinePanel
+        room={room}
+        profile={PROFILE}
+        copy={{ ...copy, boardSizeLabel: 'Board size' }}
+        maxNameLength={MAX_NAME_LENGTH}
+        seatSwatchRgb={(entry) => entry.colour}
+        boardSizes={sizes}
+      />
+    )
+
+    fireEvent.click(button(copy.editSettings))
+    // The room's current size is the one shown as chosen.
+    expect(radio('8×8').getAttribute('aria-checked')).toBe('true')
+    fireEvent.click(radio('10×10'))
+    fireEvent.click(button(copy.saveSettings))
+
+    expect(room.changeSettings).toHaveBeenCalledWith({
+      firstSeat: Seat.first,
+      isOpen: false,
+      moveLimitSeconds: null,
+      cellCount: 100,
+    })
+  })
+
+  it('omits the board sizes for a game that has only one', () => {
+    show(connectedRoom({ canChangeSettings: true }))
+    fireEvent.click(button(copy.editSettings))
+    expect(screen.queryByRole('radio', { name: '8×8' })).toBeNull()
   })
 
   it('leaves the room alone when the dialog is cancelled', () => {

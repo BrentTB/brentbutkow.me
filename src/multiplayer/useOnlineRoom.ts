@@ -19,6 +19,7 @@ import {
   MoveCodec,
   Outcome,
   PASS_WIRE,
+  RoomChange,
   RoomCredentials,
   RoomOptions,
   RoomState,
@@ -111,7 +112,7 @@ export interface OnlineRoom<Move> {
    * Changes the room's own settings. Only the owner can, and only before the game starts. The whole
    * triple goes over: the endpoint replaces the settings rather than patching them.
    */
-  changeSettings: (options: Required<RoomOptions>) => Promise<void>
+  changeSettings: (settings: RoomChange) => Promise<void>
   /** Whether this seat may change them, so a control can be shown rather than guessed at. */
   canChangeSettings: boolean
   isOpen: boolean
@@ -399,7 +400,9 @@ export function useOnlineRoom<Move>({
       setConnection(Connection.connecting)
       setError(null)
       try {
-        await enter(createRoom(gameId, profile, cellCount, options))
+        // A game whose size can vary sets it in the dialog; otherwise the room opens at this client's.
+        const size = options.cellCount ?? cellCount
+        await enter(createRoom(gameId, profile, size, options))
       } catch (err) {
         setConnection(Connection.error)
         setError(entryFailure(err, 'Could not create the room.'))
@@ -526,12 +529,12 @@ export function useOnlineRoom<Move>({
   }, [reconcile])
 
   const changeSettings = useCallback(
-    async (options: Required<RoomOptions>) => {
+    async (settings: RoomChange) => {
       const session = sessionRef.current
       if (session === null) return
       const epoch = epochRef.current
       try {
-        const state = await updateSettings(session.code, session.token, options)
+        const state = await updateSettings(session.code, session.token, settings)
         if (epoch !== epochRef.current) return
         if (reconcile(state)) setError(null)
       } catch (err) {

@@ -15,7 +15,14 @@ import {
   PlayerProfile,
   Starter,
 } from './othello.types'
-import { DEFAULT_PLAYERS, MAX_NAME_LENGTH, PLAYER_SLOTS, gameCopy } from './data'
+import {
+  BOARD_SIZES,
+  BOARD_SIZE_LABELS,
+  DEFAULT_PLAYERS,
+  MAX_NAME_LENGTH,
+  PLAYER_SLOTS,
+  gameCopy,
+} from './data'
 import { Rng, seededRng } from './engine/rng'
 import { opponentOf } from './engine/board'
 import { useGame } from './useGame'
@@ -39,6 +46,12 @@ import { Board } from './components/Board/Board'
 import { GameSetup } from './components/GameSetup/GameSetup'
 import { ScoreBar } from './components/ScoreBar/ScoreBar'
 import styles from './Othello.module.scss'
+
+/** The board sizes the room-settings dialog offers, each as its cell count and label. */
+const BOARD_SIZE_OPTIONS = BOARD_SIZES.map((size) => ({
+  value: othelloCellCount(size),
+  label: BOARD_SIZE_LABELS[size],
+}))
 
 /** How long "X passes" stays on the status line before the forced pass is committed. */
 const PASS_NOTICE_MS = 750
@@ -321,15 +334,17 @@ export function Othello({ computerSeed }: OthelloProps = {}) {
     return () => window.clearTimeout(settle)
   }, [isOnline, connected, myProfile, publishProfile])
 
-  /* Follow the room's board size, so a guest matched into another size sees the right pill selected and
-     any later local game opens at that size. The board itself is already correct — `onReset` built it
-     from the room — so this only keeps the setup control and local state in step. */
+  /* Follow the room's board size: keep the setup pill in step, and rebuild the board when the size
+     changes while waiting (the host edited it in settings). A resize leaves the move list empty, so
+     `onReset` does not fire for it; without this the board would keep its old dimensions. */
   const roomCellCount = room.cellCount
   useEffect(() => {
     if (!isOnline || !connected) return
     const size = boardSizeFor(roomCellCount)
-    if (size !== null) setBoardSize(size)
-  }, [isOnline, connected, roomCellCount])
+    if (size === null) return
+    setBoardSize(size)
+    newGame(openingColour(), size)
+  }, [isOnline, connected, roomCellCount, newGame])
 
   /* The two colours' names. Local, they come from the setup fields; online, from the room's seats,
      mapped to colours the same way the server does (the opener is dark), so both screens agree. */
@@ -415,7 +430,9 @@ export function Othello({ computerSeed }: OthelloProps = {}) {
             pendingMove={confirming ? pending : null}
             interactive={interactive}
             flipSpeed={flipSpeed}
-            winner={outcome?.winner ?? null}
+            // The winning colour lights up its discs: from the board when it filled, or from the room
+            // when the clock or a walkout decided it, where there is no board-full outcome to read.
+            winner={outcome?.winner ?? winnerColour}
             onPlay={handlePlay}
             playerName={playerName}
           />
@@ -530,6 +547,7 @@ export function Othello({ computerSeed }: OthelloProps = {}) {
               maxNameLength={MAX_NAME_LENGTH}
               seatSwatchRgb={seatSwatchRgb}
               hideClockOnMobile
+              boardSizes={BOARD_SIZE_OPTIONS}
             />
           )}
         </div>

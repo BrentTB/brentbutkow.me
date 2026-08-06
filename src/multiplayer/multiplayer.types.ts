@@ -66,7 +66,19 @@ export interface RoomOptions {
    * The server accepts 5 seconds to 86400 (a day) and rejects anything outside that window.
    */
   moveLimitSeconds?: number | null
+  /**
+   * The board size, as a cell count, for a game whose size can change between games (Othello). Omitted
+   * leaves the room's current size. Changing it resets the board — a different size cannot keep the
+   * moves that were played on the old one.
+   */
+  cellCount?: number
 }
+
+/**
+ * A full settings write: every room-level term required, except the board size, which stays optional
+ * because most games have a single one and never send it.
+ */
+export type RoomChange = Required<Omit<RoomOptions, 'cellCount'>> & Pick<RoomOptions, 'cellCount'>
 
 // A game's move as the wire integer the server exchanges, and back. The room bounds a wire move to
 // `[0, cellCount)`, so a codec maps onto a cell index rather than inventing sentinels.

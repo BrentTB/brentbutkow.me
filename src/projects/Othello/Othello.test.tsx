@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { FunModeProvider } from '../../contexts/FunModeProvider'
-import { RoomStatus, Seat, SeatInfo } from '../../multiplayer/multiplayer.types'
+import { Outcome, RoomStatus, Seat, SeatInfo } from '../../multiplayer/multiplayer.types'
 import { Connection, OnlineRoom, UseOnlineRoomOptions } from '../../multiplayer/useOnlineRoom'
 import { saveRoomSession } from '../../multiplayer/room-session'
 import { Othello } from './Othello'
@@ -244,6 +244,23 @@ describe('Othello — online play', () => {
     expect(screen.queryByRole('button', { name: gameCopy.newGame })).toBeNull()
     expect(screen.queryByRole('button', { name: gameCopy.undo })).toBeNull()
     expect(screen.queryByRole('button', { name: gameCopy.redo })).toBeNull()
+  })
+
+  it('lights up the winner’s discs when the clock decides the game', () => {
+    holdASeat()
+    const { roomChanged } = renderGame()
+    // Dark (the opener) wins on time: there is no board-full outcome, so the glow comes off the room.
+    roomChanged(
+      activeRoom({
+        status: RoomStatus.finished,
+        outcome: Outcome.timeout,
+        winnerSeat: Seat.first,
+        seats: [seat(Seat.first, ''), seat(Seat.second, '')],
+      })
+    )
+    const won = screen.getAllByRole('button').filter((b) => b.hasAttribute('data-won'))
+    expect(won.length).toBeGreaterThan(0)
+    for (const disc of won) expect(disc.getAttribute('aria-label')).toMatch(/, Dark$/)
   })
 
   it('adopts the room’s board size when matched into a different one', () => {

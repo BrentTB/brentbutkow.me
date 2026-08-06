@@ -157,6 +157,7 @@ export const gameCopy = {
 
     /** The local setting for whether a tap sends the move, shown only in an online game. */
     commitLabel: 'Tapping a cell',
+    commitHintInstant: 'Tap once to play a move immediately.',
     commitHint: 'Double tap, or tap once and confirm, to play a move.',
     confirmMove: 'Confirm move',
     clearMove: 'Clear',

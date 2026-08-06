@@ -1,19 +1,28 @@
 import { useRef, useState } from 'react'
-import { RoomOptions, Seat } from '../multiplayer.types'
+import { RoomChange, RoomOptions, Seat } from '../multiplayer.types'
 import { MOVE_LIMITS, ONLINE_STARTERS } from '../room-options'
 import { OnlineCopy } from '../online-copy'
 import { useDialogChrome } from '../../components/utils/useDialogChrome'
 import { useRovingRadio } from '../../components/utils/useRovingRadio'
 import styles from './RoomSettingsDialog.module.scss'
 
+/** A board size the room can open at, for a game whose size can change. */
+export interface BoardSizeOption {
+  /** The cell count that stands for this size. */
+  value: number
+  label: string
+}
+
 interface RoomSettingsDialogProps {
   /** What the room is set to now, or what a new room would open with. */
-  options: Required<RoomOptions>
+  options: RoomChange
   /** Names the action the dialog leads to: opening a room, or saving a change to one. */
   confirmLabel: string
-  onConfirm: (options: Required<RoomOptions>) => void
+  onConfirm: (settings: RoomChange) => void
   onCancel: () => void
   copy: OnlineCopy
+  /** Board sizes to choose from, for a game whose size can change. Omitted hides the control. */
+  boardSizes?: readonly BoardSizeOption[]
 }
 
 /**
@@ -28,6 +37,7 @@ export function RoomSettingsDialog({
   onConfirm,
   onCancel,
   copy,
+  boardSizes,
 }: RoomSettingsDialogProps) {
   const [draft, setDraft] = useState(options)
   const confirmRef = useRef<HTMLButtonElement>(null)
@@ -61,6 +71,8 @@ export function RoomSettingsDialog({
           firstSeat={draft.firstSeat}
           moveLimitSeconds={draft.moveLimitSeconds}
           isOpen={draft.isOpen}
+          cellCount={draft.cellCount}
+          boardSizes={boardSizes}
           copy={copy}
           onChange={(change) => setDraft((prev) => ({ ...prev, ...change }))}
         />
@@ -83,24 +95,31 @@ export function RoomSettingsDialog({
   )
 }
 
-interface RoomSettingsFieldsProps extends Required<RoomOptions> {
+interface RoomSettingsFieldsProps extends RoomChange {
   copy: OnlineCopy
+  boardSizes?: readonly BoardSizeOption[]
   /** Carries only the setting that moved, so two quick changes cannot undo each other. */
   onChange: (change: RoomOptions) => void
 }
 
-// The values behind the two groups, so the keyboard handling has a list to walk.
+// The values behind the groups, so the keyboard handling has a list to walk.
 const STARTER_SEATS: readonly Seat[] = ONLINE_STARTERS.map((option) => option.seat)
 const LIMIT_SECONDS: readonly (number | null)[] = MOVE_LIMITS.map((option) => option.seconds)
 
-/** The same three settings as controls, for the dialog that proposes a change to them. */
+/** The room's settings as controls, for the dialog that proposes a change to them. */
 function RoomSettingsFields({
   firstSeat,
   moveLimitSeconds,
   isOpen,
+  cellCount,
+  boardSizes,
   copy,
   onChange,
 }: RoomSettingsFieldsProps) {
+  const sizeValues = boardSizes?.map((size) => size.value) ?? []
+  const sizeKeys = useRovingRadio(sizeValues, cellCount ?? null, (value) =>
+    onChange({ cellCount: value ?? undefined })
+  )
   const starterKeys = useRovingRadio(STARTER_SEATS, firstSeat, (seat) =>
     onChange({ firstSeat: seat })
   )
@@ -110,6 +129,28 @@ function RoomSettingsFields({
 
   return (
     <>
+      {boardSizes !== undefined && boardSizes.length > 0 && copy.boardSizeLabel !== undefined && (
+        <div className={styles.settingRow}>
+          <span className={styles.label} id="board-size-label">
+            {copy.boardSizeLabel}
+          </span>
+          <div className={styles.segmented} role="radiogroup" aria-labelledby="board-size-label">
+            {boardSizes.map((size, index) => (
+              <button
+                key={size.value}
+                type="button"
+                role="radio"
+                aria-checked={cellCount === size.value}
+                onClick={() => onChange({ cellCount: size.value })}
+                {...sizeKeys(index)}
+              >
+                {size.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className={styles.settingRow}>
         <span className={styles.label} id="first-move-label">
           {copy.firstMoveLabel}

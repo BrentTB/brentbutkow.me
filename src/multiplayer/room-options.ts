@@ -20,7 +20,9 @@ export const NO_MOVE_LIMIT_LABEL = 'None'
  */
 export const MOVE_LIMITS: readonly { seconds: number | null; label: string }[] = [
   { seconds: null, label: NO_MOVE_LIMIT_LABEL },
+  { seconds: 10, label: '10s' },
   { seconds: 30, label: '30s' },
   { seconds: 60, label: '1 min' },
   { seconds: 180, label: '3 min' },
+  { seconds: 300, label: '5 min' },
 ]

@@ -1,13 +1,13 @@
 import { FormEvent, useEffect, useRef, useState } from 'react'
 import { ROOM_CODE_LENGTH, roomInviteUrl } from '../room-code'
-import { RoomOptions, RoomStatus, Seat, SeatInfo, SeatProfile } from '../multiplayer.types'
+import { RoomChange, RoomStatus, Seat, SeatInfo, SeatProfile } from '../multiplayer.types'
 import { Connection, OnlineRoom } from '../useOnlineRoom'
 import { LOW_CLOCK_SECONDS, formatClock, useTurnClock } from '../useTurnClock'
 import { cssVars } from '../css-vars'
 import { OnlineCopy } from '../online-copy'
 import { LeaveIcon } from './LeaveIcon'
 import { RoomSettings } from './RoomSettings'
-import { RoomSettingsDialog } from './RoomSettingsDialog'
+import { BoardSizeOption, RoomSettingsDialog } from './RoomSettingsDialog'
 import styles from './OnlinePanel.module.scss'
 
 /** How long "Copied" stays on the button before it goes back to offering the link. */
@@ -20,7 +20,7 @@ const COPIED_FEEDBACK_MS = 2000
 const sanitiseCode = (raw: string) => raw.replace(/[^A-Za-z0-9]/g, '').toUpperCase()
 
 /** What a room opens on before anyone touches the settings: you first, no clock, code only. */
-const STANDARD_OPTIONS: Required<RoomOptions> = {
+const STANDARD_OPTIONS: RoomChange = {
   firstSeat: Seat.first,
   isOpen: false,
   moveLimitSeconds: null,
@@ -46,6 +46,8 @@ interface OnlinePanelProps {
    * shows the clock under the board there instead, so the two don't both appear. Off by default.
    */
   hideClockOnMobile?: boolean
+  /** Board sizes the settings dialog may pick from, for a game whose size can change. */
+  boardSizes?: readonly BoardSizeOption[]
 }
 
 /** Set up a room or join one, then show the code, both players, the clock, and whose move it is. */
@@ -57,6 +59,7 @@ export function OnlinePanel({
   maxNameLength,
   seatSwatchRgb,
   hideClockOnMobile = false,
+  boardSizes,
 }: OnlinePanelProps) {
   const [code, setCode] = useState(() => sanitiseCode(initialCode))
   const [copied, setCopied] = useState(false)
@@ -213,9 +216,12 @@ export function OnlinePanel({
               firstSeat: room.firstSeat,
               isOpen: room.isOpen,
               moveLimitSeconds: room.moveLimitSeconds,
+              // Only carry the size for a game that can change it, so others keep the plain triple.
+              ...(boardSizes ? { cellCount: room.cellCount } : {}),
             }}
             confirmLabel={copy.saveSettings}
             copy={copy}
+            boardSizes={boardSizes}
             onCancel={() => setEditing(false)}
             onConfirm={(next) => {
               setEditing(false)
@@ -294,9 +300,12 @@ export function OnlinePanel({
 
           {editing && (
             <RoomSettingsDialog
-              options={STANDARD_OPTIONS}
+              options={
+                boardSizes ? { ...STANDARD_OPTIONS, cellCount: room.cellCount } : STANDARD_OPTIONS
+              }
               confirmLabel={copy.openRoom}
               copy={copy}
+              boardSizes={boardSizes}
               onCancel={() => setEditing(false)}
               onConfirm={(next) => {
                 setEditing(false)

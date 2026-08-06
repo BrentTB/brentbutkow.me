@@ -17,7 +17,8 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  width: min(22rem, 100%);
+  /* Wide enough for the whole row of move-time-limit pills to sit on one line. */
+  width: min(23.4rem, 100%);
   padding: 16px 18px 18px;
   background: var(--bg-elevated);
   border: 1px solid var(--border-strong);

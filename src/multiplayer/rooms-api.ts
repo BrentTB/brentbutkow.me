@@ -3,6 +3,7 @@ import { isRecord } from '../utils/is-record'
 import {
   MoveResult,
   Outcome,
+  RoomChange,
   RoomCredentials,
   RoomOptions,
   RoomState,
@@ -167,21 +168,23 @@ export function leaveRoom(code: string, token: string): Promise<RoomState> {
  * The server allows it only before the game starts and only from the seat that opened the room, so the
  * terms are not one side's to rewrite once both players are in.
  *
- * The endpoint replaces all three settings at once, so the whole triple is required: a partial object
- * would quietly reset whatever it omitted.
+ * The endpoint replaces the three core settings at once, so the whole triple is required: a partial
+ * object would quietly reset whatever it omitted. `cellCount` (board size) is the exception — sent only
+ * by a game whose size can change, and left off keeps the room's current one.
  */
 export function updateSettings(
   code: string,
   token: string,
-  options: Required<RoomOptions>
+  settings: RoomChange
 ): Promise<RoomState> {
   return postJsonFor(
     `${roomPath(code)}/settings`,
     {
       token,
-      firstSeat: options.firstSeat,
-      isOpen: options.isOpen,
-      moveLimitSeconds: options.moveLimitSeconds,
+      firstSeat: settings.firstSeat,
+      isOpen: settings.isOpen,
+      moveLimitSeconds: settings.moveLimitSeconds,
+      cellCount: settings.cellCount,
     },
     isRoomState
   )

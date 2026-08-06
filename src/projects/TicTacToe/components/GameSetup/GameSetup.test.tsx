@@ -41,12 +41,14 @@ describe('GameSetup', () => {
     expect(option(MODE_LABELS[GameMode.twoPlayer])).toBeTruthy()
   })
 
-  it('offers the confirm-moves choice only online, and explains it once chosen', () => {
+  it('offers the confirm-moves choice only online, and explains whichever is chosen', () => {
     renderSetup({ mode: GameMode.onePlayer })
     expect(screen.queryByRole('radio', { name: MOVE_COMMIT_LABELS[MoveCommit.confirm] })).toBeNull()
 
     cleanup()
     const props = renderSetup({ mode: GameMode.online, commit: MoveCommit.instant })
+    // Playing at once is explained too, not just confirming.
+    expect(screen.getByText(gameCopy.online.commitHintInstant)).toBeTruthy()
     expect(screen.queryByText(gameCopy.online.commitHint)).toBeNull()
     fireEvent.click(option(MOVE_COMMIT_LABELS[MoveCommit.confirm]))
     expect(props.onCommitChange).toHaveBeenCalledWith(MoveCommit.confirm)
@@ -54,6 +56,7 @@ describe('GameSetup', () => {
     cleanup()
     renderSetup({ mode: GameMode.online, commit: MoveCommit.confirm })
     expect(screen.getByText(gameCopy.online.commitHint)).toBeTruthy()
+    expect(screen.queryByText(gameCopy.online.commitHintInstant)).toBeNull()
   })
 
   it('shows what the chosen difficulty actually plays like', () => {
