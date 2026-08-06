@@ -87,6 +87,30 @@ $disc-light: #e9e3d6; // warm off-white disc
       inset 0 0 0 1px rgba(0, 0, 0, 0.28),
       inset 0 0 0 2px rgba(var(--accent-rgb), 0.65);
   }
+
+  /* Every disc of the winning colour, once the game is over: a warm halo behind the piece, pulsing
+     gently, so the result reads off the board itself and not only the line above it. */
+  &[data-won]::before {
+    content: '';
+    position: absolute;
+    inset: 4%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(var(--accent-rgb), 0.55), transparent 70%);
+    z-index: 0;
+    animation: win-glow 1.4s ease-in-out infinite;
+  }
+}
+
+@keyframes win-glow {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
 }
 
 /* A ring where a legal move sits, filling in on hover so the cursor previews the disc it would drop. */
@@ -119,6 +143,9 @@ $disc-light: #e9e3d6; // warm off-white disc
   &[data-flipping] {
     transform: rotate3d(var(--ax), var(--ay), 0, 180deg);
     transition: transform var(--flip-duration) $flip-ease var(--flip-delay);
+    /* Promote to its own layer so the turn keeps animating on the compositor even when the main
+       thread is busy — e.g. the hard bot's search running right after your capturing move. */
+    will-change: transform;
   }
 
   /* The just-aimed disc in confirm-first play: present but clearly not committed. */
@@ -202,5 +229,11 @@ $disc-light: #e9e3d6; // warm off-white disc
   .hint {
     animation: none;
     transition-duration: 1ms;
+  }
+  /* The winning discs still stand out — a steady halo, held at its brightest rather than pulsing. */
+  .cell[data-won]::before {
+    animation: none;
+    opacity: 1;
+    transform: scale(1.05);
   }
 }

@@ -1,11 +1,19 @@
 import { useRovingRadio } from '../../../../components/utils/useRovingRadio'
-import { BoardSize, Difficulty, GameMode, MoveCommit, Starter } from '../../othello.types'
+import {
+  BoardSize,
+  Difficulty,
+  FlipSpeed,
+  GameMode,
+  MoveCommit,
+  Starter,
+} from '../../othello.types'
 import {
   BOARD_SIZES,
   BOARD_SIZE_BLURBS,
   BOARD_SIZE_LABELS,
   DIFFICULTY_BLURBS,
   DIFFICULTY_LABELS,
+  FLIP_SPEED_LABELS,
   MODE_LABELS,
   MOVE_COMMIT_LABELS,
   STARTER_LABELS,
@@ -27,6 +35,9 @@ interface GameSetupProps {
   /** Whether a tap online plays the move or only aims it. This player's preference, not the room's. */
   commit: MoveCommit
   onCommitChange: (commit: MoveCommit) => void
+  /** How fast captured discs turn over. This player's preference, shown in every game. */
+  flipSpeed: FlipSpeed
+  onFlipSpeedChange: (speed: FlipSpeed) => void
   onModeChange: (mode: GameMode) => void
   onDifficultyChange: (difficulty: Difficulty) => void
   onStarterChange: (starter: Starter) => void
@@ -37,6 +48,7 @@ const MODES = Object.values(GameMode)
 const DIFFICULTIES = Object.values(Difficulty)
 const STARTERS = Object.values(Starter)
 const COMMITS = Object.values(MoveCommit)
+const FLIP_SPEEDS = Object.values(FlipSpeed)
 
 /** Who you play, how big the board is, and — on your own — how well it plays and who opens. */
 export function GameSetup({
@@ -49,6 +61,8 @@ export function GameSetup({
   modeLockedReason,
   commit,
   onCommitChange,
+  flipSpeed,
+  onFlipSpeedChange,
   onModeChange,
   onDifficultyChange,
   onStarterChange,
@@ -66,6 +80,7 @@ export function GameSetup({
   const difficultyKeys = useRovingRadio(DIFFICULTIES, difficulty, onDifficultyChange)
   const starterKeys = useRovingRadio(STARTERS, starter, onStarterChange)
   const commitKeys = useRovingRadio(COMMITS, commit, onCommitChange)
+  const flipKeys = useRovingRadio(FLIP_SPEEDS, flipSpeed, onFlipSpeedChange)
   const sizeKeys = useRovingRadio(
     BOARD_SIZES,
     boardSize,
@@ -128,6 +143,26 @@ export function GameSetup({
       </div>
 
       <p className={styles.blurb}>{BOARD_SIZE_BLURBS[boardSize]}</p>
+
+      <div className={styles.row}>
+        <span className={styles.label} id="flip-label">
+          {gameCopy.flipSpeedLabel}
+        </span>
+        <div className={styles.segmented} role="radiogroup" aria-labelledby="flip-label">
+          {FLIP_SPEEDS.map((option, index) => (
+            <button
+              key={option}
+              type="button"
+              role="radio"
+              aria-checked={flipSpeed === option}
+              onClick={() => onFlipSpeedChange(option)}
+              {...flipKeys(index)}
+            >
+              {FLIP_SPEED_LABELS[option]}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {online && (
         <>

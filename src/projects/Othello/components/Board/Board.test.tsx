@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Board } from './Board'
-import { BoardSize, Player } from '../../othello.types'
+import { BoardSize, FlipSpeed, Player } from '../../othello.types'
 import { createBoard, idx, legalMoves } from '../../engine/board'
 import { gameCopy } from '../../data'
 
@@ -21,6 +21,7 @@ const renderBoard = (overrides = {}) => {
       lastMove={null}
       flipped={[]}
       interactive
+      flipSpeed={FlipSpeed.fast}
       onPlay={onPlay}
       playerName={name}
       {...overrides}

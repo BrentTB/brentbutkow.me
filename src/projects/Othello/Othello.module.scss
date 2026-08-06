@@ -14,6 +14,43 @@ $disc-light: #e9e3d6; // warm off-white disc
   padding: 14px 0;
   border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
+  transition:
+    background 240ms ease,
+    padding 240ms ease;
+
+  /* The result, not just another turn line: the whole bar lights up in the accent and the text grows,
+     so a finished game is unmistakable even before you count the discs. */
+  &[data-win] {
+    padding: 20px 0;
+    background: rgba(var(--accent-rgb), 0.1);
+    border-color: rgba(var(--accent-rgb), 0.4);
+    animation: win-banner 360ms $ease-shoot;
+
+    .statusText {
+      color: var(--accent-strong);
+      font-size: 1.05rem;
+      font-weight: 600;
+    }
+
+    .swatch {
+      width: 18px;
+      height: 18px;
+      box-shadow:
+        inset 0 1px 1px rgba(255, 255, 255, 0.2),
+        0 0 14px rgba(var(--accent-rgb), 0.6);
+    }
+  }
+}
+
+@keyframes win-banner {
+  from {
+    opacity: 0.4;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 /* A disc, not a coloured dot: the turn indicator is the same token as the board's pieces. */
@@ -173,5 +210,12 @@ $disc-light: #e9e3d6; // warm off-white disc
 @media (prefers-reduced-motion: reduce) {
   .button {
     transition-duration: 1ms;
+  }
+  .status {
+    transition-duration: 1ms;
+
+    &[data-win] {
+      animation: none;
+    }
   }
 }

@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react'
-import { RoomOptions, Seat } from '../../../../multiplayer/multiplayer.types'
-import { useDialogChrome } from '../../../../components/utils/useDialogChrome'
-import { useRovingRadio } from '../../../../components/utils/useRovingRadio'
-import { MOVE_LIMITS, ONLINE_STARTERS, gameCopy } from '../../data'
+import { RoomOptions, Seat } from '../multiplayer.types'
+import { MOVE_LIMITS, ONLINE_STARTERS } from '../room-options'
+import { OnlineCopy } from '../online-copy'
+import { useDialogChrome } from '../../components/utils/useDialogChrome'
+import { useRovingRadio } from '../../components/utils/useRovingRadio'
 import styles from './RoomSettingsDialog.module.scss'
 
 interface RoomSettingsDialogProps {
@@ -12,6 +13,7 @@ interface RoomSettingsDialogProps {
   confirmLabel: string
   onConfirm: (options: Required<RoomOptions>) => void
   onCancel: () => void
+  copy: OnlineCopy
 }
 
 /**
@@ -25,13 +27,13 @@ export function RoomSettingsDialog({
   confirmLabel,
   onConfirm,
   onCancel,
+  copy,
 }: RoomSettingsDialogProps) {
   const [draft, setDraft] = useState(options)
   const confirmRef = useRef<HTMLButtonElement>(null)
   const { panelRef } = useDialogChrome(onCancel, confirmRef)
   // A press that starts on a control and drifts onto the backdrop is still a press on the control.
   const pressedBackdrop = useRef(false)
-  const copy = gameCopy.online
 
   return (
     <div
@@ -59,6 +61,7 @@ export function RoomSettingsDialog({
           firstSeat={draft.firstSeat}
           moveLimitSeconds={draft.moveLimitSeconds}
           isOpen={draft.isOpen}
+          copy={copy}
           onChange={(change) => setDraft((prev) => ({ ...prev, ...change }))}
         />
 
@@ -81,6 +84,7 @@ export function RoomSettingsDialog({
 }
 
 interface RoomSettingsFieldsProps extends Required<RoomOptions> {
+  copy: OnlineCopy
   /** Carries only the setting that moved, so two quick changes cannot undo each other. */
   onChange: (change: RoomOptions) => void
 }
@@ -94,10 +98,9 @@ function RoomSettingsFields({
   firstSeat,
   moveLimitSeconds,
   isOpen,
+  copy,
   onChange,
 }: RoomSettingsFieldsProps) {
-  const copy = gameCopy.online
-
   const starterKeys = useRovingRadio(STARTER_SEATS, firstSeat, (seat) =>
     onChange({ firstSeat: seat })
   )

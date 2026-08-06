@@ -1,15 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
-import { Board as BoardModel, Player } from '../../othello.types'
+import { Board as BoardModel, FlipSpeed, Player } from '../../othello.types'
 import { coordOf } from '../../engine/board'
 import { cssVars } from '../../css-vars'
 import { gameCopy } from '../../data'
 import styles from './Board.module.scss'
 
-/** How long one disc takes to turn over. */
-const FLIP_DURATION_MS = 360
-
-/** Added delay per ring of distance from the placed disc, so the flip travels outward as a wave. */
-const FLIP_STEP_MS = 70
+/**
+ * How the cascade is timed at each speed: how long one disc takes to turn, and the extra delay per
+ * ring of distance from the placed disc so the flip travels outward as a wave. Fast is the snappy
+ * default; slow lets you watch the whole line go over.
+ */
+const FLIP_TIMING: Record<FlipSpeed, { durationMs: number; stepMs: number }> = {
+  [FlipSpeed.fast]: { durationMs: 360, stepMs: 70 },
+  [FlipSpeed.slow]: { durationMs: 720, stepMs: 150 },
+}
 
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' &&
@@ -27,6 +31,8 @@ type DiscProps = {
   player: Player
   /** How this disc flips when its colour changes. Absent for the four opening discs. */
   flip?: FlipMeta
+  /** How long the turn takes, from the flip-speed setting. */
+  durationMs: number
 }
 
 /**
@@ -38,7 +44,7 @@ type DiscProps = {
  * is tilted for perspective, so each disc carries its own `perspective` and cannot borrow the board's,
  * which would let both faces show through at once.
  */
-function Disc({ player, flip }: DiscProps) {
+function Disc({ player, flip, durationMs }: DiscProps) {
   const [shown, setShown] = useState(player)
   const [flipping, setFlipping] = useState(false)
   const previous = useRef(player)
@@ -61,9 +67,9 @@ function Disc({ player, flip }: DiscProps) {
         setShown(player)
         setFlipping(false)
       },
-      flip.delay + FLIP_DURATION_MS + 80
+      flip.delay + durationMs + 80
     )
-  }, [player, flip])
+  }, [player, flip, durationMs])
 
   useEffect(() => () => window.clearTimeout(bakeTimer.current), [])
 
@@ -84,7 +90,7 @@ function Disc({ player, flip }: DiscProps) {
         '--ax': flip?.ax ?? 0,
         '--ay': flip?.ay ?? 1,
         '--flip-delay': `${flip?.delay ?? 0}ms`,
-        '--flip-duration': `${FLIP_DURATION_MS}ms`,
+        '--flip-duration': `${durationMs}ms`,
       })}
       onTransitionEnd={(event) => {
         if (event.propertyName === 'transform') bake()
@@ -106,6 +112,10 @@ type BoardProps = {
   pendingMove?: number | null
   /** Whether the local player may play right now (their turn, game live, not mid-think). */
   interactive: boolean
+  /** How fast captured discs turn over. */
+  flipSpeed: FlipSpeed
+  /** Once the game is over, the winning colour, so its discs can be lit up. Null for a tie or mid-game. */
+  winner?: Player | null
   onPlay: (cell: number) => void
   playerName: (player: Player) => string
 }
@@ -116,7 +126,8 @@ const sign = (value: number) => (value > 0 ? 1 : value < 0 ? -1 : 0)
 function flipChoreography(
   flipped: readonly number[],
   lastMove: number | null,
-  size: number
+  size: number,
+  stepMs: number
 ): Map<number, FlipMeta> {
   const meta = new Map<number, FlipMeta>()
   if (lastMove === null) return meta
@@ -129,7 +140,7 @@ function flipChoreography(
     const ax = -sign(dr)
     const ay = sign(dc)
     const ring = Math.max(Math.abs(dr), Math.abs(dc))
-    meta.set(cell, { ax, ay, delay: (ring - 1) * FLIP_STEP_MS })
+    meta.set(cell, { ax, ay, delay: (ring - 1) * stepMs })
   }
   return meta
 }
@@ -143,12 +154,15 @@ export function Board({
   flipped,
   pendingMove = null,
   interactive,
+  flipSpeed,
+  winner = null,
   onPlay,
   playerName,
 }: BoardProps) {
   const { cells, size } = board
   const legal = new Set(legalCells)
-  const choreography = flipChoreography(flipped, lastMove, size)
+  const { durationMs, stepMs } = FLIP_TIMING[flipSpeed]
+  const choreography = flipChoreography(flipped, lastMove, size, stepMs)
 
   return (
     <div className={styles.stage}>
@@ -178,11 +192,14 @@ export function Board({
               data-legal={isLegal || undefined}
               data-occupied={cell !== null || undefined}
               data-last={lastMove === index || undefined}
+              data-won={(winner !== null && cell === winner) || undefined}
               aria-label={label}
               disabled={!canPlay}
               onClick={() => onPlay(index)}
             >
-              {cell !== null && <Disc player={cell} flip={choreography.get(index)} />}
+              {cell !== null && (
+                <Disc player={cell} flip={choreography.get(index)} durationMs={durationMs} />
+              )}
               {isPending && cell === null && (
                 <span className={styles.disc} data-ghost>
                   <span className={styles.face} data-player={currentPlayer} data-side="front" />

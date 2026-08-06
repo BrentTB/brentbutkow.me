@@ -7,7 +7,6 @@ import {
   Starter,
   ViewMode,
 } from './tic-tac-toe.types'
-import { Seat } from '../../multiplayer/multiplayer.types'
 import { BOARD_SIZE, LineDescription, LineShape } from './engine/lines'
 
 /** Longest a player name can be. Keeps the turn line on one row on a phone. */
@@ -62,26 +61,6 @@ export const STARTER_LABELS: Record<Starter, string> = {
   [Starter.you]: 'You',
   [Starter.computer]: 'Computer',
 }
-
-/** Who opens an online game, from the point of view of whoever is setting the room up. */
-export const ONLINE_STARTERS: readonly { seat: Seat; label: string }[] = [
-  { seat: Seat.first, label: 'You' },
-  { seat: Seat.second, label: 'Them' },
-]
-
-/** What no clock at all reads as, wherever a limit is shown. */
-export const NO_MOVE_LIMIT_LABEL = 'None'
-
-/**
- * How long a move may take. Unlimited stays first because it is the friendly default; the rest are
- * short enough to keep a game moving in one sitting.
- */
-export const MOVE_LIMITS: readonly { seconds: number | null; label: string }[] = [
-  { seconds: null, label: NO_MOVE_LIMIT_LABEL },
-  { seconds: 30, label: '30s' },
-  { seconds: 60, label: '1 min' },
-  { seconds: 180, label: '3 min' },
-]
 
 /** How a tap behaves online, named by what happens rather than by the setting's mechanics. */
 export const MOVE_COMMIT_LABELS: Record<MoveCommit, string> = {

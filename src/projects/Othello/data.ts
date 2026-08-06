@@ -1,13 +1,14 @@
 import {
   BoardSize,
   Difficulty,
+  FlipSpeed,
   GameMode,
   MoveCommit,
   Player,
   PlayerProfile,
   Starter,
+  isBoardSize,
 } from './othello.types'
-import { Seat } from '../../multiplayer/multiplayer.types'
 
 /** Longest a player name can be. Keeps the turn line on one row on a phone. */
 export const MAX_NAME_LENGTH = 14
@@ -32,11 +33,11 @@ export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
   [Difficulty.hard]: 'Hard',
 }
 
-/** What each setting actually does, so the choice is not a guess. */
+/** Who you are up against, so the choice is not a guess. */
 export const DIFFICULTY_BLURBS: Record<Difficulty, string> = {
-  [Difficulty.beginner]: 'Grabs whatever flips the most, and never sees the trap.',
-  [Difficulty.intermediate]: 'Plays for the corners and knows which squares to avoid.',
-  [Difficulty.hard]: 'Reads several moves ahead. Bring a plan.',
+  [Difficulty.beginner]: 'A beginner, still working out where the good squares are.',
+  [Difficulty.intermediate]: 'A fair fight, as long as you are paying attention.',
+  [Difficulty.hard]: 'This one will make you earn every disc.',
 }
 
 export const STARTER_LABELS: Record<Starter, string> = {
@@ -59,35 +60,21 @@ export const BOARD_SIZES: readonly BoardSize[] = [
 
 /** What each size is like to play, so the choice means something. */
 export const BOARD_SIZE_BLURBS: Record<BoardSize, string> = {
-  [BoardSize.small]: 'Quick and sharp. A corner is never far away.',
+  [BoardSize.small]: 'A quicker game on a smaller board.',
   [BoardSize.standard]: 'The real game.',
-  [BoardSize.large]: 'A longer game with more room to swing.',
+  [BoardSize.large]: 'A longer game, with more room to turn things around.',
 }
-
-/** Who opens an online game, from the point of view of whoever is setting the room up. */
-export const ONLINE_STARTERS: readonly { seat: Seat; label: string }[] = [
-  { seat: Seat.first, label: 'You' },
-  { seat: Seat.second, label: 'Them' },
-]
-
-/** What no clock at all reads as, wherever a limit is shown. */
-export const NO_MOVE_LIMIT_LABEL = 'None'
-
-/**
- * How long a move may take. Unlimited stays first because it is the friendly default; the rest are
- * short enough to keep a game moving in one sitting.
- */
-export const MOVE_LIMITS: readonly { seconds: number | null; label: string }[] = [
-  { seconds: null, label: NO_MOVE_LIMIT_LABEL },
-  { seconds: 30, label: '30s' },
-  { seconds: 60, label: '1 min' },
-  { seconds: 180, label: '3 min' },
-]
 
 /** How a tap behaves online, named by what happens rather than by the setting's mechanics. */
 export const MOVE_COMMIT_LABELS: Record<MoveCommit, string> = {
   [MoveCommit.instant]: 'Play at once',
   [MoveCommit.confirm]: 'Confirm first',
+}
+
+/** How fast captured discs turn over. */
+export const FLIP_SPEED_LABELS: Record<FlipSpeed, string> = {
+  [FlipSpeed.fast]: 'Fast',
+  [FlipSpeed.slow]: 'Slow',
 }
 
 export const gameCopy = {
@@ -97,6 +84,7 @@ export const gameCopy = {
   taglineFun: 'One move can turn half the board. So can theirs. Try not to gloat too early.',
 
   boardSizeLabel: 'Board',
+  flipSpeedLabel: 'Flip speed',
 
   newGame: 'New game',
   undo: 'Undo',
@@ -171,6 +159,11 @@ export const gameCopy = {
     firstMoveLabel: 'Opening move',
     clockLabel: 'Move time limit',
     boardSizeLabel: 'Board size',
+    /** The room's board size, read off its cell count, for the read-only settings a guest is shown. */
+    boardSizeSummary: (cellCount: number): string | null => {
+      const size = Math.round(Math.sqrt(cellCount))
+      return isBoardSize(size) ? BOARD_SIZE_LABELS[size] : null
+    },
     openLabel: 'Open to anyone',
     openHint: 'Anyone looking for a game can join this room.',
     timeLeft: (clock: string) => `${clock} left`,

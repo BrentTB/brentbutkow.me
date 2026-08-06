@@ -56,6 +56,7 @@ function idleRoom(): OnlineRoom<number> {
     connection: Connection.idle,
     status: null,
     code: null,
+    cellCount: 64,
     mySeat: null,
     seats: [],
     version: 0,

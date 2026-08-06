@@ -15,23 +15,27 @@ import {
   PlayerProfile,
   Starter,
 } from './othello.types'
-import { DEFAULT_PLAYERS, PLAYER_SLOTS, gameCopy } from './data'
+import { DEFAULT_PLAYERS, MAX_NAME_LENGTH, PLAYER_SLOTS, gameCopy } from './data'
 import { Rng, seededRng } from './engine/rng'
 import { opponentOf } from './engine/board'
 import { useGame } from './useGame'
 import { useComputerTurn } from './useComputerTurn'
 import { useMoveCommit } from './useMoveCommit'
+import { useFlipSpeed } from './useFlipSpeed'
 import {
   OTHELLO_GAME_ID,
   PASS_MOVE,
+  acceptsOthelloRoom,
+  boardSizeFor,
   cellCodec,
   colourForSeat,
   openingColour,
   othelloCellCount,
+  seatSwatchRgb,
 } from './online'
+import { OnlinePanel } from '../../multiplayer/OnlinePanel/OnlinePanel'
 import { Board } from './components/Board/Board'
 import { GameSetup } from './components/GameSetup/GameSetup'
-import { OnlinePanel } from './components/OnlinePanel/OnlinePanel'
 import { ScoreBar } from './components/ScoreBar/ScoreBar'
 import styles from './Othello.module.scss'
 
@@ -85,9 +89,14 @@ export function Othello({ computerSeed }: OthelloProps = {}) {
   const [starter, setStarter] = useState<Starter>(Starter.you)
   const [boardSize, setBoardSize] = useState<BoardSize>(BoardSize.standard)
   const [players, setPlayers] = useState<Record<Player, PlayerProfile>>(DEFAULT_PLAYERS)
+  /* Your name in an online room, separate from the local pair: online you set only your own, and a
+     blank one falls back to your disc colour, so two players who never type a name still read as
+     "Dark" and "Light" rather than both defaulting to the same thing. */
+  const [myName, setMyName] = useState('')
   const [pending, setPending] = useState<number | null>(null)
   const [sending, setSending] = useState(false)
   const { commit, choose: chooseCommit } = useMoveCommit()
+  const { flipSpeed, choose: chooseFlipSpeed } = useFlipSpeed()
 
   const computer = computerColour(gameMode, starter)
 
@@ -115,12 +124,15 @@ export function Othello({ computerSeed }: OthelloProps = {}) {
   const room = useOnlineRoom<number>({
     gameId: OTHELLO_GAME_ID,
     cellCount: othelloCellCount(boardSize),
+    // Matchmaking pairs across sizes, so a guest may land in a room of another size and adopt it.
+    acceptsRoom: acceptsOthelloRoom,
     codec: cellCodec,
     // A confirmed move — mine echoed back, or the opponent's — lands on the board like any other. A
     // pass (-1) advances the turn without a disc.
     onRemoteMove: (move) => (move === PASS_MOVE ? pass() : playAt(move)),
-    // The room opens each game with dark, on a fresh board of the room's size.
-    onReset: () => newGame(openingColour(), boardSize),
+    // The room opens each game with dark, on a fresh board of the room's own size — which, for a guest,
+    // may not be the size this client had picked, so it is read from the room rather than local state.
+    onReset: (state) => newGame(openingColour(), boardSizeFor(state.cellCount) ?? boardSize),
   })
 
   const wasInRoomRef = useRef(false)
@@ -272,24 +284,20 @@ export function Othello({ computerSeed }: OthelloProps = {}) {
     [players]
   )
 
-  const myProfile = useMemo(
-    () => ({ name: displayNames[Player.dark], colour: '0' }),
-    [displayNames]
-  )
+  /* What goes to the room: your typed name, or blank so the opponent's board falls back to your disc
+     colour. The colour field is unused — Othello discs are fixed — but the room requires one. */
+  const myProfile = useMemo(() => ({ name: myName.trim(), colour: '0' }), [myName])
 
-  /* Settle who you are on entering a room: a name you typed comes back with the seat on a reload, and a
-     seat still on its default follows the seat instead, so the two screens never render alike. */
+  /* Restore a name you had typed if you reload back into the seat. A blank or colour-default stored
+     name is left alone, so the field stays empty and the per-colour fallback keeps doing its job. */
   const mySeatEntry = room.seats.find((seat) => seat.seat === room.mySeat)
   useEffect(() => {
     if (!isOnline || room.code === null || room.mySeat === null || mySeatEntry === undefined) return
     if (adoptedRef.current === room.code) return
     adoptedRef.current = room.code
     const stored = mySeatEntry.name.trim()
-    const isDefault = PLAYER_SLOTS.some((slot) => stored === DEFAULT_PLAYERS[slot].name)
-    setPlayers((current) => ({
-      ...current,
-      [Player.dark]: { name: stored && !isDefault ? stored : DEFAULT_PLAYERS[Player.dark].name },
-    }))
+    const isColourDefault = PLAYER_SLOTS.some((slot) => stored === DEFAULT_PLAYERS[slot].name)
+    if (stored && !isColourDefault) setMyName(stored)
   }, [isOnline, room.code, room.mySeat, mySeatEntry])
 
   const { publishProfile } = room
@@ -299,6 +307,16 @@ export function Othello({ computerSeed }: OthelloProps = {}) {
     const settle = window.setTimeout(() => void publishProfile(myProfile), PROFILE_DEBOUNCE_MS)
     return () => window.clearTimeout(settle)
   }, [isOnline, connected, myProfile, publishProfile])
+
+  /* Follow the room's board size, so a guest matched into another size sees the right pill selected and
+     any later local game opens at that size. The board itself is already correct — `onReset` built it
+     from the room — so this only keeps the setup control and local state in step. */
+  const roomCellCount = room.cellCount
+  useEffect(() => {
+    if (!isOnline || !connected) return
+    const size = boardSizeFor(roomCellCount)
+    if (size !== null) setBoardSize(size)
+  }, [isOnline, connected, roomCellCount])
 
   /* The two colours' names. Local, they come from the setup fields; online, from the room's seats,
      mapped to colours the same way the server does (the opener is dark), so both screens agree. */
@@ -332,7 +350,10 @@ export function Othello({ computerSeed }: OthelloProps = {}) {
   const onlineWaiting =
     isOnline && connected && !room.opponentPresent && room.status !== RoomStatus.finished
 
-  const statusColour = outcome?.winner ?? currentPlayer
+  // The game is over, on the board or off it, so the status line becomes a result banner.
+  const gameFinished = outcome !== null || decidedOffBoard
+  // The disc beside the line: the winner once it is over (null on a tie), else whoever is to move.
+  const statusColour = gameFinished ? (outcome?.winner ?? winnerColour) : currentPlayer
   const status = decidedOffBoard
     ? room.outcome === Outcome.timeout
       ? gameCopy.online.wonOnTime(playerName(winnerColour))
@@ -357,8 +378,10 @@ export function Othello({ computerSeed }: OthelloProps = {}) {
         {isFunMode ? gameCopy.taglineFun : gameCopy.tagline}
       </PageHeader>
 
-      <div className={styles.status} aria-live="polite">
-        <span className={styles.swatch} data-player={statusColour} aria-hidden="true" />
+      <div className={styles.status} data-win={gameFinished || undefined} aria-live="polite">
+        {statusColour !== null && (
+          <span className={styles.swatch} data-player={statusColour} aria-hidden="true" />
+        )}
         <span className={styles.statusText}>{status}</span>
       </div>
 
@@ -379,6 +402,8 @@ export function Othello({ computerSeed }: OthelloProps = {}) {
             flipped={flipped}
             pendingMove={confirming ? pending : null}
             interactive={interactive}
+            flipSpeed={flipSpeed}
+            winner={outcome?.winner ?? null}
             onPlay={handlePlay}
             playerName={playerName}
           />
@@ -423,6 +448,8 @@ export function Othello({ computerSeed }: OthelloProps = {}) {
             modeLockedReason={gameCopy.online.modeLocked}
             commit={commit}
             onCommitChange={chooseCommit}
+            flipSpeed={flipSpeed}
+            onFlipSpeedChange={chooseFlipSpeed}
             onModeChange={changeGameMode}
             onDifficultyChange={setDifficulty}
             onStarterChange={changeStarter}
@@ -441,7 +468,7 @@ export function Othello({ computerSeed }: OthelloProps = {}) {
                   <input
                     className={styles.nameInput}
                     value={players[slot].name}
-                    maxLength={14}
+                    maxLength={MAX_NAME_LENGTH}
                     onChange={(event) => rename(slot, event.target.value)}
                     aria-label={gameCopy.nameLabel(index + 1)}
                   />
@@ -451,7 +478,35 @@ export function Othello({ computerSeed }: OthelloProps = {}) {
           )}
 
           {isOnline && (
-            <OnlinePanel room={room} profile={myProfile} initialCode={inviteCode ?? undefined} />
+            <section className={styles.players} aria-labelledby="online-name-heading">
+              <h2 id="online-name-heading" className={styles.playersHeading}>
+                {gameCopy.playersTitle}
+              </h2>
+              <label className={styles.nameRow}>
+                {/* The disc you play, so you can see which colour your name belongs to. */}
+                <span className={styles.swatch} data-player={mySlot} aria-hidden="true" />
+                <span className={styles.visuallyHidden}>{gameCopy.online.yourNameLabel}</span>
+                <input
+                  className={styles.nameInput}
+                  value={myName}
+                  maxLength={MAX_NAME_LENGTH}
+                  placeholder={gameCopy.online.yourNameLabel}
+                  onChange={(event) => setMyName(event.target.value)}
+                  aria-label={gameCopy.online.yourNameLabel}
+                />
+              </label>
+            </section>
+          )}
+
+          {isOnline && (
+            <OnlinePanel
+              room={room}
+              profile={myProfile}
+              initialCode={inviteCode ?? undefined}
+              copy={gameCopy.online}
+              maxNameLength={MAX_NAME_LENGTH}
+              seatSwatchRgb={seatSwatchRgb}
+            />
           )}
         </div>
       </div>

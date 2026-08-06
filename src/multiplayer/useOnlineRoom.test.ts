@@ -68,7 +68,11 @@ const credentials = (over: Partial<RoomCredentials> = {}): RoomCredentials => ({
   ...over,
 })
 
-const setup = (onRemoteMove = vi.fn(), onReset = vi.fn()) => {
+const setup = (
+  onRemoteMove = vi.fn(),
+  onReset = vi.fn(),
+  extra: Partial<Parameters<typeof useOnlineRoom>[0]> = {}
+) => {
   const view = renderHook(() =>
     useOnlineRoom({
       gameId: 'ttt',
@@ -77,6 +81,7 @@ const setup = (onRemoteMove = vi.fn(), onReset = vi.fn()) => {
       onRemoteMove,
       onReset,
       pollMs: 1000,
+      ...extra,
     })
   )
   return { view, onRemoteMove, onReset }
@@ -695,6 +700,22 @@ describe('useOnlineRoom', () => {
     })
     expect(onRemoteMove).not.toHaveBeenCalled()
     expect(view.result.current.connection).toBe(Connection.error)
+  })
+
+  it('joins a room of another size when acceptsRoom allows, bounding moves by the room', async () => {
+    const onRemoteMove = vi.fn()
+    const { view } = setup(onRemoteMove, vi.fn(), { acceptsRoom: (s) => s.cellCount === 100 })
+    await connect(view, state({ cellCount: 100 }))
+    expect(view.result.current.connection).toBe(Connection.connected)
+    onRemoteMove.mockClear()
+
+    // Cell 80 is off a 64-board but on this 100-board: bounding by the room's own size keeps it legal.
+    mocked.getRoom.mockResolvedValue(state({ cellCount: 100, moves: [80], version: 1 }))
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000)
+    })
+    expect(onRemoteMove).toHaveBeenCalledWith(80, 0)
+    expect(view.result.current.connection).toBe(Connection.connected)
   })
 
   it('accepts a pass (-1) as a move and hands it to the consumer', async () => {

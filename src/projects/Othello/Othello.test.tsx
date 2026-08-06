@@ -39,6 +39,7 @@ function idleRoom(): OnlineRoom<number> {
     connection: Connection.idle,
     status: null,
     code: null,
+    cellCount: 64,
     mySeat: null,
     seats: [],
     version: 0,
@@ -141,6 +142,34 @@ describe('Othello — local play', () => {
     expect(screen.getAllByRole('button', { name: /^Row \d/ }).length).toBe(BoardSize.small ** 2)
     expect(takenDiscs()).toHaveLength(4)
   })
+
+  it('ends with a result banner once the board is played out', () => {
+    vi.useFakeTimers()
+    try {
+      renderGame()
+      // A quick 6×6 hotseat game, playing the first legal move each turn until it is over.
+      act(() => {
+        fireEvent.click(screen.getByRole('radio', { name: BOARD_SIZE_LABELS[BoardSize.small] }))
+      })
+
+      const result = () => screen.queryByText(/wins$|level pegging/i)
+      for (let step = 0; step < 120 && result() === null; step++) {
+        const legal = screen.queryAllByRole('button', { name: /legal move for/ })
+        act(() => {
+          if (legal.length > 0) fireEvent.click(legal[0])
+          // A side with no move auto-passes after a short notice; let that timer fire.
+          else vi.advanceTimersByTime(1000)
+        })
+      }
+
+      const banner = result()
+      expect(banner).not.toBeNull()
+      // The whole status bar is flagged as a finished game, which is what the accent styling keys off.
+      expect(banner?.closest('[data-win]')).not.toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })
 
 describe('Othello — online play', () => {
@@ -166,5 +195,44 @@ describe('Othello — online play', () => {
     renderGame()
     expect(roomProps?.gameId).toBe(OTHELLO_GAME_ID)
     expect(roomProps?.cellCount).toBe(64)
+  })
+
+  it('shows two unnamed players as their disc colours, not both the same', () => {
+    holdASeat()
+    const { roomChanged } = renderGame()
+    // Both seats joined but neither has typed a name — the reported "both called Dark" case.
+    roomChanged(
+      activeRoom({ seats: [seat(Seat.first, ''), seat(Seat.second, '')], isMyTurn: true })
+    )
+    // The opener is dark, the other light: the opening discs read as one of each.
+    expect(screen.getAllByRole('button', { name: /, Dark$/ }).length).toBeGreaterThan(0)
+    expect(screen.getAllByRole('button', { name: /, Light$/ }).length).toBeGreaterThan(0)
+  })
+
+  it('does not claim a turn before the game has started', () => {
+    holdASeat()
+    const { roomChanged } = renderGame()
+    // Both players are in the room, but nobody has pressed start yet.
+    roomChanged(activeRoom({ status: RoomStatus.waiting, isMyTurn: false }))
+    expect(screen.queryByText(gameCopy.online.theirTurn)).toBeNull()
+    expect(screen.queryByText(gameCopy.online.yourTurn)).toBeNull()
+  })
+
+  it('adopts the room’s board size when matched into a different one', () => {
+    holdASeat()
+    const { roomChanged } = renderGame()
+    // Matched into a 10×10 room though this client defaulted to 8×8.
+    roomChanged(activeRoom({ cellCount: 100 }))
+    const largePill = screen.getByRole('radio', { name: BOARD_SIZE_LABELS[BoardSize.large] })
+    expect(largePill.getAttribute('aria-checked')).toBe('true')
+  })
+
+  it('lets you rename yourself in a room', () => {
+    holdASeat()
+    const { roomChanged } = renderGame()
+    roomChanged(activeRoom())
+    const field = screen.getByLabelText(gameCopy.online.yourNameLabel) as HTMLInputElement
+    fireEvent.change(field, { target: { value: 'Ada' } })
+    expect(field.value).toBe('Ada')
   })
 })

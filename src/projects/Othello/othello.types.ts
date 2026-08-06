@@ -54,6 +54,9 @@ export const BoardSize = {
 } as const
 export type BoardSize = (typeof BoardSize)[keyof typeof BoardSize]
 
+export const isBoardSize = (value: unknown): value is BoardSize =>
+  value === BoardSize.small || value === BoardSize.standard || value === BoardSize.large
+
 /**
  * What a tap on a legal cell does online: play the move, or aim one that a second press commits.
  *
@@ -68,6 +71,19 @@ export type MoveCommit = (typeof MoveCommit)[keyof typeof MoveCommit]
 
 export const isMoveCommit = (value: unknown): value is MoveCommit =>
   value === MoveCommit.instant || value === MoveCommit.confirm
+
+/**
+ * How quickly captured discs turn over. A player's own preference, kept in `localStorage`: some like
+ * the snap of the fast cascade, some want to watch the line flip.
+ */
+export const FlipSpeed = {
+  fast: 'fast',
+  slow: 'slow',
+} as const
+export type FlipSpeed = (typeof FlipSpeed)[keyof typeof FlipSpeed]
+
+export const isFlipSpeed = (value: unknown): value is FlipSpeed =>
+  value === FlipSpeed.fast || value === FlipSpeed.slow
 
 /** An occupied cell holds a player; an empty one holds nothing. */
 export type Cell = Player | null

@@ -17,7 +17,14 @@ import {
   ViewMode,
 } from './tic-tac-toe.types'
 import { cssVars } from './css-vars'
-import { DEFAULT_PLAYERS, PLAYER_COLOURS, PLAYER_SLOTS, VIEW_LABELS, gameCopy } from './data'
+import {
+  DEFAULT_PLAYERS,
+  MAX_NAME_LENGTH,
+  PLAYER_COLOURS,
+  PLAYER_SLOTS,
+  VIEW_LABELS,
+  gameCopy,
+} from './data'
 import { Rng, seededRng } from '../../utils/rng'
 import { useComputerTurn } from './useComputerTurn'
 import { useMoveCommit } from './useMoveCommit'
@@ -35,7 +42,7 @@ import {
   yieldsColour,
 } from './online'
 import { GameSetup } from './components/GameSetup/GameSetup'
-import { OnlinePanel } from './components/OnlinePanel/OnlinePanel'
+import { OnlinePanel } from '../../multiplayer/OnlinePanel/OnlinePanel'
 import { applyMove, isBoardFull, opponentOf } from './engine/board'
 import { deckHeight, spacingFor } from './engine/geometry'
 import { findWinningLine, lineShape } from './engine/lines'
@@ -733,7 +740,14 @@ export function TicTacToe({ computerSeed }: TicTacToeProps = {}) {
             onStarterChange={changeStarter}
           />
           {isOnline && (
-            <OnlinePanel room={room} profile={myProfile} initialCode={inviteCode ?? undefined} />
+            <OnlinePanel
+              room={room}
+              profile={myProfile}
+              initialCode={inviteCode ?? undefined}
+              copy={gameCopy.online}
+              maxNameLength={MAX_NAME_LENGTH}
+              seatSwatchRgb={(entry) => entry.colour}
+            />
           )}
           <PlayerSetup
             players={players}

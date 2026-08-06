@@ -35,6 +35,27 @@ describe('useComputerTurn', () => {
     expect(props.play).toHaveBeenCalledTimes(1)
   })
 
+  /**
+   * The search is gated behind real animation frames, not a bare timeout, so the player's capturing
+   * move (and its flip cascade) paints before the hard tier's synchronous search seizes the thread.
+   * Without the gate this requests no frame and would freeze the flip mid-turn.
+   */
+  it('waits for animation frames before searching, and cancels them on unmount', () => {
+    const rafSpy = vi.spyOn(window, 'requestAnimationFrame')
+    const cancelSpy = vi.spyOn(window, 'cancelAnimationFrame')
+    const props = base()
+    const { unmount } = renderHook(() => useComputerTurn(props))
+
+    expect(rafSpy).toHaveBeenCalled()
+    expect(props.play).not.toHaveBeenCalled()
+
+    unmount()
+    expect(cancelSpy).toHaveBeenCalled()
+
+    rafSpy.mockRestore()
+    cancelSpy.mockRestore()
+  })
+
   it('picks a legal cell', () => {
     const props = base()
     renderHook(() => useComputerTurn(props))

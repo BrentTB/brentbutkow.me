@@ -44,7 +44,15 @@ export type Connection = (typeof Connection)[keyof typeof Connection]
 
 export interface UseOnlineRoomOptions<Move> {
   gameId: string
+  /** The board size a room this client opens is created at, and the default size it will join. */
   cellCount: number
+  /**
+   * Whether a room this client lands in is one it can play, beyond the game id matching. Defaults to
+   * "same board size as `cellCount`". A game whose board size can vary (Othello) widens this to accept
+   * any size it understands and then adopts the room's own `cellCount` — see `reconcile`, which bounds
+   * moves by the room's size rather than this client's.
+   */
+  acceptsRoom?: (room: RoomState) => boolean
   codec: MoveCodec<Move>
   /** Called once per newly-confirmed move, in order, for both seats. `index` is its 0-based position. */
   onRemoteMove: (move: Move, index: number) => void
@@ -61,6 +69,8 @@ export interface OnlineRoom<Move> {
   connection: Connection
   status: RoomStatus | null
   code: string | null
+  /** The room's board size. For a game that accepts any size, this is the room's, not this client's. */
+  cellCount: number
   mySeat: Seat | null
   seats: SeatInfo[]
   version: number
@@ -137,6 +147,7 @@ const joinFailure = (err: unknown): string => {
 export function useOnlineRoom<Move>({
   gameId,
   cellCount,
+  acceptsRoom,
   codec,
   onRemoteMove,
   onReset,
@@ -171,6 +182,10 @@ export function useOnlineRoom<Move>({
   onResetRef.current = onReset
   const codecRef = useRef(codec)
   codecRef.current = codec
+  // Held in a ref so a fresh function identity each render can't churn `belongsHere` and re-fire the
+  // resume effect that depends on it.
+  const acceptsRoomRef = useRef(acceptsRoom)
+  acceptsRoomRef.current = acceptsRoom
 
   const stopPolling = useCallback(() => {
     if (pollRef.current !== null) {
@@ -229,12 +244,14 @@ export function useOnlineRoom<Move>({
    */
   const reconcile = useCallback(
     (next: RoomState): boolean => {
-      // A pass (`PASS_WIRE`) is a legal wire value for games that allow one; every other move is a
-      // cell index on the board. Passes ride in the list without filling a cell, so the length ceiling
-      // carries headroom for them rather than stopping dead at one move per cell.
+      // Bounds come from the room's own size, not this client's default: a game whose board size
+      // varies (Othello) may be sitting in a room of a different size, adopted on join. A pass
+      // (`PASS_WIRE`) is a legal wire value for games that allow one; every other move is a cell index.
+      // Passes ride in the list without filling a cell, so the length ceiling carries headroom.
+      const size = next.cellCount
       const playable = (wire: number) =>
-        wire === PASS_WIRE || (Number.isInteger(wire) && wire >= 0 && wire < cellCount)
-      if (next.moves.length > cellCount * 2 || !next.moves.every(playable)) {
+        wire === PASS_WIRE || (Number.isInteger(wire) && wire >= 0 && wire < size)
+      if (next.moves.length > size * 2 || !next.moves.every(playable)) {
         endSession('This game no longer matches the board. Start a new one.')
         return false
       }
@@ -252,7 +269,7 @@ export function useOnlineRoom<Move>({
       setRoom(next)
       return true
     },
-    [cellCount, endSession]
+    [endSession]
   )
 
   /**
@@ -345,7 +362,9 @@ export function useOnlineRoom<Move>({
    * a board resized between sessions all land you in a room whose moves mean something else entirely.
    */
   const belongsHere = useCallback(
-    (state: RoomState) => state.gameId === gameId && state.cellCount === cellCount,
+    (state: RoomState) =>
+      state.gameId === gameId &&
+      (acceptsRoomRef.current ? acceptsRoomRef.current(state) : state.cellCount === cellCount),
     [cellCount, gameId]
   )
 
@@ -618,6 +637,7 @@ export function useOnlineRoom<Move>({
     connection,
     status: room?.status ?? null,
     code: room?.code ?? null,
+    cellCount: room?.cellCount ?? cellCount,
     mySeat,
     seats,
     version,
