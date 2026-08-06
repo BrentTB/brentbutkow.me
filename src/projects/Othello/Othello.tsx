@@ -59,6 +59,10 @@ function displayName(profile: PlayerProfile, slot: Player): string {
   return profile.name.trim() || DEFAULT_PLAYERS[slot].name
 }
 
+/** Whether a name is one of the colour defaults ("Dark"/"Light") rather than one a player typed. */
+const isColourName = (name: string): boolean =>
+  PLAYER_SLOTS.some((slot) => name === DEFAULT_PLAYERS[slot].name)
+
 /** Names the computer's colour "Computer", and puts the default back when it hands the colour over. */
 function retitle(
   players: Record<Player, PlayerProfile>,
@@ -137,7 +141,6 @@ export function Othello({ computerSeed }: OthelloProps = {}) {
 
   const wasInRoomRef = useRef(false)
   if (room.connection === Connection.connected) wasInRoomRef.current = true
-  const adoptedRef = useRef<string | null>(null)
 
   const [inviteCode, setInviteCode] = useState<string | null>(null)
   useEffect(() => {
@@ -157,7 +160,6 @@ export function Othello({ computerSeed }: OthelloProps = {}) {
   useEffect(() => {
     if (!leftRoom) return
     wasInRoomRef.current = false
-    adoptedRef.current = null
     setInviteCode(null)
   }, [leftRoom])
 
@@ -284,21 +286,26 @@ export function Othello({ computerSeed }: OthelloProps = {}) {
     [players]
   )
 
-  /* What goes to the room: your typed name, or blank so the opponent's board falls back to your disc
-     colour. The colour field is unused — Othello discs are fixed — but the room requires one. */
+  /* What goes to the room: your name, and a colour field the room requires but Othello ignores. */
   const myProfile = useMemo(() => ({ name: myName.trim(), colour: '0' }), [myName])
 
-  /* Restore a name you had typed if you reload back into the seat. A blank or colour-default stored
-     name is left alone, so the field stays empty and the per-colour fallback keeps doing its job. */
+  /** The colour you play online: the opener (firstSeat) is dark, the other seat light. */
+  const mySlot = room.mySeat === null ? Player.dark : colourForSeat(room.mySeat, room.firstSeat)
   const mySeatEntry = room.seats.find((seat) => seat.seat === room.mySeat)
+  const storedName = mySeatEntry?.name.trim() ?? ''
+
+  /* Your name in a room starts as your disc colour — "Dark" or "Light" — and stays editable. Only a
+     name you actually typed is kept: yours locally, or one the server still has for your seat after a
+     reload. Otherwise the field follows your colour, so the two seats never both read as the same
+     default, and neither shows up nameless. */
   useEffect(() => {
-    if (!isOnline || room.code === null || room.mySeat === null || mySeatEntry === undefined) return
-    if (adoptedRef.current === room.code) return
-    adoptedRef.current = room.code
-    const stored = mySeatEntry.name.trim()
-    const isColourDefault = PLAYER_SLOTS.some((slot) => stored === DEFAULT_PLAYERS[slot].name)
-    if (stored && !isColourDefault) setMyName(stored)
-  }, [isOnline, room.code, room.mySeat, mySeatEntry])
+    if (!isOnline || room.mySeat === null) return
+    setMyName((current) => {
+      if (current !== '' && !isColourName(current)) return current
+      if (storedName !== '' && !isColourName(storedName)) return storedName
+      return DEFAULT_PLAYERS[mySlot].name
+    })
+  }, [isOnline, room.mySeat, mySlot, storedName])
 
   const { publishProfile } = room
   const connected = room.connection === Connection.connected
@@ -345,7 +352,6 @@ export function Othello({ computerSeed }: OthelloProps = {}) {
     winnerColour !== null &&
     (room.outcome === Outcome.timeout || room.outcome === Outcome.forfeit)
 
-  const mySlot = room.mySeat === null ? Player.dark : colourForSeat(room.mySeat, room.firstSeat)
   const opponentName = boardPlayers[opponentOf(mySlot)]
   const onlineWaiting =
     isOnline && connected && !room.opponentPresent && room.status !== RoomStatus.finished

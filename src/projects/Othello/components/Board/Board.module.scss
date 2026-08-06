@@ -148,13 +148,25 @@ $disc-light: #e9e3d6; // warm off-white disc
     will-change: transform;
   }
 
-  /* The just-aimed disc in confirm-first play: present but clearly not committed. */
-  &[data-ghost] {
-    opacity: 0.4;
-  }
-
   /* New disc dropping in — a short overshoot, not a bounce. */
   animation: place 260ms $ease-shoot;
+
+  /* The just-aimed disc in confirm-first play: present but clearly not committed. It fades straight
+     to its translucent state rather than popping in solid — the `place` pop ends fully opaque, which
+     read as a real disc appearing and then going see-through. */
+  &[data-ghost] {
+    opacity: 0.4;
+    animation: ghost-in 160ms ease;
+  }
+}
+
+@keyframes ghost-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 0.4;
+  }
 }
 
 .face {
@@ -222,7 +234,8 @@ $disc-light: #e9e3d6; // warm off-white disc
 
 @media (prefers-reduced-motion: reduce) {
   .disc,
-  .disc[data-flipping] {
+  .disc[data-flipping],
+  .disc[data-ghost] {
     transition-duration: 1ms;
     animation: none;
   }

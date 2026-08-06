@@ -227,12 +227,24 @@ describe('Othello — online play', () => {
     expect(largePill.getAttribute('aria-checked')).toBe('true')
   })
 
-  it('lets you rename yourself in a room', () => {
+  it('defaults your name to your disc colour, and lets you change it', () => {
     holdASeat()
     const { roomChanged } = renderGame()
-    roomChanged(activeRoom())
+    // A fresh room where neither seat has a name yet: your field starts as your colour, not empty.
+    roomChanged(activeRoom({ seats: [seat(Seat.first, ''), seat(Seat.second, '')] }))
     const field = screen.getByLabelText(gameCopy.online.yourNameLabel) as HTMLInputElement
-    fireEvent.change(field, { target: { value: 'Ada' } })
+    expect(field.value).toBe('Dark') // seat 0 opens, so it plays dark
+
+    fireEvent.change(field, { target: { value: 'Zed' } })
+    expect(field.value).toBe('Zed')
+  })
+
+  it('restores a name you had typed when you reload into the seat', () => {
+    holdASeat()
+    const { roomChanged } = renderGame()
+    // The server still has the name this seat published before the reload.
+    roomChanged(activeRoom({ seats: [seat(Seat.first, 'Ada'), seat(Seat.second, '')] }))
+    const field = screen.getByLabelText(gameCopy.online.yourNameLabel) as HTMLInputElement
     expect(field.value).toBe('Ada')
   })
 })
