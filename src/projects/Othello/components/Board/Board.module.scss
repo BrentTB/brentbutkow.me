@@ -88,15 +88,18 @@ $disc-light: #e9e3d6; // warm off-white disc
       inset 0 0 0 2px rgba(var(--accent-rgb), 0.65);
   }
 
-  /* Every disc of the winning colour, once the game is over: a warm halo behind the piece, pulsing
-     gently, so the result reads off the board itself and not only the line above it. */
+  /* Every disc of the winning colour, once the game is over: a warm halo that bleeds out past the
+     piece, pulsing gently, so the result reads off the board itself and not only the line above it.
+     The glow sits behind the disc (which covers its centre) and spreads well beyond the disc's edge,
+     so it reads as a ring of light around each winning piece rather than a sliver hidden underneath. */
   &[data-won]::before {
     content: '';
     position: absolute;
-    inset: 4%;
+    inset: -22%;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(var(--accent-rgb), 0.55), transparent 70%);
+    background: radial-gradient(circle, rgba(var(--accent-rgb), 0.8), transparent 62%);
     z-index: 0;
+    pointer-events: none;
     animation: win-glow 1.4s ease-in-out infinite;
   }
 }
@@ -104,12 +107,12 @@ $disc-light: #e9e3d6; // warm off-white disc
 @keyframes win-glow {
   0%,
   100% {
-    opacity: 0.35;
-    transform: scale(0.9);
+    opacity: 0.45;
+    transform: scale(0.92);
   }
   50% {
-    opacity: 1;
-    transform: scale(1.15);
+    opacity: 0.85;
+    transform: scale(1);
   }
 }
 
