@@ -2,16 +2,13 @@ import { FormEvent, useEffect, useRef, useState } from 'react'
 import { ROOM_CODE_LENGTH, roomInviteUrl } from '../room-code'
 import { RoomOptions, RoomStatus, Seat, SeatInfo, SeatProfile } from '../multiplayer.types'
 import { Connection, OnlineRoom } from '../useOnlineRoom'
-import { formatClock, useTurnClock } from '../useTurnClock'
+import { LOW_CLOCK_SECONDS, formatClock, useTurnClock } from '../useTurnClock'
 import { cssVars } from '../css-vars'
 import { OnlineCopy } from '../online-copy'
 import { LeaveIcon } from './LeaveIcon'
 import { RoomSettings } from './RoomSettings'
 import { RoomSettingsDialog } from './RoomSettingsDialog'
 import styles from './OnlinePanel.module.scss'
-
-/** Where the countdown turns urgent, which is about when it starts affecting how you play. */
-const LOW_CLOCK_SECONDS = 10
 
 /** How long "Copied" stays on the button before it goes back to offering the link. */
 const COPIED_FEEDBACK_MS = 2000
@@ -44,6 +41,11 @@ interface OnlinePanelProps {
    * the stored one; a game with fixed colours (Othello) derives it from the seat and who opens.
    */
   seatSwatchRgb: (entry: SeatInfo, firstSeat: Seat) => string
+  /**
+   * Hide the panel's clock once the layout stacks (the sidebar drops below the board), for a game that
+   * shows the clock under the board there instead, so the two don't both appear. Off by default.
+   */
+  hideClockOnMobile?: boolean
 }
 
 /** Set up a room or join one, then show the code, both players, the clock, and whose move it is. */
@@ -54,6 +56,7 @@ export function OnlinePanel({
   copy,
   maxNameLength,
   seatSwatchRgb,
+  hideClockOnMobile = false,
 }: OnlinePanelProps) {
   const [code, setCode] = useState(() => sanitiseCode(initialCode))
   const [copied, setCopied] = useState(false)
@@ -153,7 +156,11 @@ export function OnlinePanel({
             of any live region so it is not read aloud once a second; the turn line above carries the
             state that matters. */}
         {secondsLeft !== null && !finished && (
-          <p className={styles.clock} data-low={secondsLeft <= LOW_CLOCK_SECONDS || undefined}>
+          <p
+            className={styles.clock}
+            data-low={secondsLeft <= LOW_CLOCK_SECONDS || undefined}
+            data-hide-mobile={hideClockOnMobile || undefined}
+          >
             {copy.timeLeft(formatClock(secondsLeft))}
           </p>
         )}

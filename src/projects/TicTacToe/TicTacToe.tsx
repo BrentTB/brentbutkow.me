@@ -43,6 +43,7 @@ import {
 } from './online'
 import { GameSetup } from './components/GameSetup/GameSetup'
 import { OnlinePanel } from '../../multiplayer/OnlinePanel/OnlinePanel'
+import { BoardClock } from '../../multiplayer/BoardClock'
 import { applyMove, isBoardFull, opponentOf } from './engine/board'
 import { deckHeight, spacingFor } from './engine/geometry'
 import { findWinningLine, lineShape } from './engine/lines'
@@ -639,6 +640,16 @@ export function TicTacToe({ computerSeed }: TicTacToeProps = {}) {
           </Board>
         </div>
 
+        {/* On a phone the room panel sits well below the board, so the clock comes up here, directly
+            under it. On a wide layout the panel is beside the board and keeps its own — see the CSS. */}
+        {isOnline && (
+          <BoardClock
+            turnEndsAt={room.turnEndsAt}
+            label={gameCopy.online.timeLeft}
+            className={styles.boardClock}
+          />
+        )}
+
         <div className={styles.controls}>
           <div className={styles.group}>
             <span className={styles.groupLabel} id="view-label">
@@ -752,6 +763,7 @@ export function TicTacToe({ computerSeed }: TicTacToeProps = {}) {
               copy={gameCopy.online}
               maxNameLength={MAX_NAME_LENGTH}
               seatSwatchRgb={(entry) => entry.colour}
+              hideClockOnMobile
             />
           )}
           <PlayerSetup

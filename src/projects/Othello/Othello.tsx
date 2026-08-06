@@ -34,6 +34,7 @@ import {
   seatSwatchRgb,
 } from './online'
 import { OnlinePanel } from '../../multiplayer/OnlinePanel/OnlinePanel'
+import { BoardClock } from '../../multiplayer/BoardClock'
 import { Board } from './components/Board/Board'
 import { GameSetup } from './components/GameSetup/GameSetup'
 import { ScoreBar } from './components/ScoreBar/ScoreBar'
@@ -419,6 +420,16 @@ export function Othello({ computerSeed }: OthelloProps = {}) {
             playerName={playerName}
           />
 
+          {/* On a phone the room panel sits well below the board, so the clock comes up here, directly
+              under it. On a wide layout the panel is beside the board and keeps its own — see the CSS. */}
+          {isOnline && (
+            <BoardClock
+              turnEndsAt={room.turnEndsAt}
+              label={gameCopy.online.timeLeft}
+              className={styles.boardClock}
+            />
+          )}
+
           {/* Undo, redo and New game are local-only: online, starting a game is the room owner's call,
               handled by the panel's Start / Play again — a New game button here would reset only this
               screen and desync the two boards. */}
@@ -518,6 +529,7 @@ export function Othello({ computerSeed }: OthelloProps = {}) {
               copy={gameCopy.online}
               maxNameLength={MAX_NAME_LENGTH}
               seatSwatchRgb={seatSwatchRgb}
+              hideClockOnMobile
             />
           )}
         </div>

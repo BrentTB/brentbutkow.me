@@ -102,6 +102,27 @@ $disc-light: #e9e3d6; // warm off-white disc
   padding-bottom: 12px;
 }
 
+/* The online turn clock, directly under the board. Shown only once the layout stacks and the room
+   panel has dropped below the board; wider, the panel is beside the board and keeps its own clock. */
+.boardClock {
+  display: none;
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.92rem;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+
+  &[data-low] {
+    color: rgb(var(--danger-rgb));
+    font-weight: 600;
+  }
+
+  @media (max-width: 999px) {
+    display: block;
+  }
+}
+
 .button {
   display: inline-flex;
   align-items: center;
