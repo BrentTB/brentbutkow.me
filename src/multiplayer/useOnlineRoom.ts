@@ -17,6 +17,7 @@ import { RoomSession, clearRoomSession, loadRoomSession, saveRoomSession } from 
 import {
   MoveCodec,
   Outcome,
+  PASS_WIRE,
   RoomCredentials,
   RoomOptions,
   RoomState,
@@ -228,8 +229,12 @@ export function useOnlineRoom<Move>({
    */
   const reconcile = useCallback(
     (next: RoomState): boolean => {
-      const playable = (wire: number) => Number.isInteger(wire) && wire >= 0 && wire < cellCount
-      if (next.moves.length > cellCount || !next.moves.every(playable)) {
+      // A pass (`PASS_WIRE`) is a legal wire value for games that allow one; every other move is a
+      // cell index on the board. Passes ride in the list without filling a cell, so the length ceiling
+      // carries headroom for them rather than stopping dead at one move per cell.
+      const playable = (wire: number) =>
+        wire === PASS_WIRE || (Number.isInteger(wire) && wire >= 0 && wire < cellCount)
+      if (next.moves.length > cellCount * 2 || !next.moves.every(playable)) {
         endSession('This game no longer matches the board. Start a new one.')
         return false
       }

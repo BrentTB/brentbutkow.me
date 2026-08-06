@@ -8,7 +8,7 @@ import {
 } from './useComputerTurn'
 import { applyMove, createBoard } from './engine/board'
 import { cellIndex } from './engine/lines'
-import { seededRng } from './engine/rng'
+import { seededRng } from '../../utils/rng'
 import { Board, Difficulty, Player } from './tic-tac-toe.types'
 
 type Props = Parameters<typeof useComputerTurn>[0]

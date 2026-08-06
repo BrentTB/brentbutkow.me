@@ -680,19 +680,37 @@ describe('useOnlineRoom', () => {
     expect(view.result.current.error).toMatch(/board/i)
   })
 
-  it('refuses a snapshot with more moves than the board has cells', async () => {
+  it('refuses a snapshot with far more moves than the board could ever hold', async () => {
     const { view, onRemoteMove } = setup()
     await connect(view)
     onRemoteMove.mockClear()
 
+    // The ceiling carries headroom for passes (which ride in the list without filling a cell), so it
+    // is a multiple of the cell count rather than the count itself; well past it is still corruption.
     mocked.getRoom.mockResolvedValue(
-      state({ moves: Array.from({ length: 65 }, (_, i) => i % 64), version: 65 })
+      state({ moves: Array.from({ length: 129 }, (_, i) => i % 64), version: 129 })
     )
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1000)
     })
     expect(onRemoteMove).not.toHaveBeenCalled()
     expect(view.result.current.connection).toBe(Connection.error)
+  })
+
+  it('accepts a pass (-1) as a move and hands it to the consumer', async () => {
+    const { view, onRemoteMove } = setup()
+    await connect(view)
+    onRemoteMove.mockClear()
+
+    // A pass is a real turn in games like Othello: it rides in the list as -1 and must reach the
+    // consumer, not trip the board-range guard.
+    mocked.getRoom.mockResolvedValue(state({ moves: [19, -1], version: 2 }))
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000)
+    })
+    expect(onRemoteMove).toHaveBeenCalledWith(19, 0)
+    expect(onRemoteMove).toHaveBeenCalledWith(-1, 1)
+    expect(view.result.current.connection).toBe(Connection.connected)
   })
 
   it('throws away a read that a move of your own overtook', async () => {

@@ -3,7 +3,7 @@ import { PERSONALITIES, chooseMove } from './opponent'
 import { applyMove, createBoard, legalMoves } from './board'
 import { BOARD_SIZE, CELL_COUNT, cellIndex, findWinningLine } from './lines'
 import { LINES_THROUGH_CELL, Sight } from './threats'
-import { seededRng } from './rng'
+import { seededRng } from '../../../utils/rng'
 import { Board, Difficulty, Player } from '../tic-tac-toe.types'
 
 const ALL = Object.values(Difficulty)

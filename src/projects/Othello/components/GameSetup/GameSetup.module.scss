@@ -1,0 +1,101 @@
+@use '../../../../styles/shared' as *;
+
+.setup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.heading {
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* Row plus hairline, matching the players list below it. */
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+}
+
+.label {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.segmented {
+  @include segmented-pills;
+}
+
+/* A ladder rather than a pill group: four rungs read as increasing, which is what they are. */
+.tiers {
+  display: flex;
+  gap: 4px;
+}
+
+.tier {
+  padding: 5px 9px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    border-color 160ms ease;
+
+  &:hover {
+    color: var(--text);
+    border-color: var(--border-strong);
+  }
+
+  &[aria-checked='true'] {
+    color: var(--on-accent);
+    border-color: transparent;
+    background: rgba(var(--accent-rgb), 0.92);
+    font-weight: 600;
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(var(--accent-rgb), 0.9);
+    outline-offset: 2px;
+  }
+}
+
+.blurb {
+  margin: 0;
+  padding-bottom: 8px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+/* Sits under the First move switch once the game is under way, where switching also trades the pieces. */
+.note {
+  margin: 0;
+  padding-top: 2px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tier {
+    transition-duration: 1ms;
+  }
+}

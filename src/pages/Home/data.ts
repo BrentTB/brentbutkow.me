@@ -39,9 +39,14 @@ export const heroContent: HeroContent = {
       href: '/projects/recall-radar',
       variant: HeroActionVariant.primary,
     },
+    // {
+    //   label: 'Play Null Space (Beta)',
+    //   href: '/fun-stuff/games/null-space',
+    //   variant: HeroActionVariant.link,
+    // },
     {
-      label: 'Play Null Space (Beta)',
-      href: '/fun-stuff/games/null-space',
+      label: 'Play Games',
+      href: '/fun-stuff/games',
       variant: HeroActionVariant.link,
     },
     { label: 'Get in touch', href: '/contact', variant: HeroActionVariant.link },

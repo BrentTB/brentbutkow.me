@@ -18,7 +18,7 @@ import {
 } from './tic-tac-toe.types'
 import { cssVars } from './css-vars'
 import { DEFAULT_PLAYERS, PLAYER_COLOURS, PLAYER_SLOTS, VIEW_LABELS, gameCopy } from './data'
-import { Rng, seededRng } from './engine/rng'
+import { Rng, seededRng } from '../../utils/rng'
 import { useComputerTurn } from './useComputerTurn'
 import { useMoveCommit } from './useMoveCommit'
 import { Connection, useOnlineRoom } from '../../multiplayer/useOnlineRoom'

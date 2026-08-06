@@ -45,6 +45,11 @@ const TicTacToe = lazy(() =>
     default: module.TicTacToe,
   }))
 )
+const Othello = lazy(() =>
+  import('../projects/Othello/Othello').then((module) => ({
+    default: module.Othello,
+  }))
+)
 const AsciiArt = lazy(() =>
   import('../projects/AsciiArt/AsciiArt').then((module) => ({
     default: module.AsciiArt,
@@ -126,6 +131,12 @@ const funStuffRoutes: AppRoute[] = [
     element: <TicTacToe />,
     dontShowInNavbar: true,
     ...metaFor(`${gamesPath}${gamesSubRoutes.ticTacToe}`),
+  },
+  {
+    path: `${gamesPath}${gamesSubRoutes.othello}`,
+    element: <Othello />,
+    dontShowInNavbar: true,
+    ...metaFor(`${gamesPath}${gamesSubRoutes.othello}`),
   },
   {
     path: `${routePaths.funStuff}${funStuffSubRoutes.asciiArt}`,

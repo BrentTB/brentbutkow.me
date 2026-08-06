@@ -31,6 +31,15 @@ export type Outcome = (typeof Outcome)[keyof typeof Outcome]
 export const Seat = { first: 0, second: 1 } as const
 export type Seat = (typeof Seat)[keyof typeof Seat]
 
+/**
+ * The reserved wire value for a turn spent without placing anything — a pass.
+ *
+ * A pass still consumes a turn, so it rides in the move list and keeps the seat alternation honest.
+ * The server reserves the same sentinel (`_MIN_MOVE` in the backend's rooms schema); games without
+ * passes never send it, so this changes nothing for them.
+ */
+export const PASS_WIRE = -1
+
 export interface SeatInfo {
   seat: Seat
   /** What that player calls themselves. Blank until they set one, so callers supply the fallback. */

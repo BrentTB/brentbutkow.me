@@ -1,0 +1,276 @@
+@use '../../../../styles/shared' as *;
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.heading {
+  margin: 0;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.intro {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.action {
+  @include panel-button;
+  background: rgba(var(--accent-rgb), 0.92);
+  color: var(--on-accent);
+  font-weight: 600;
+  transition:
+    background 160ms ease,
+    opacity 160ms ease;
+
+  &:hover {
+    background: rgba(var(--accent-rgb), 1);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
+/* One way in per block, each under its own heading: the hairline is what separates them. */
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.blockTitle {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.joinRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+
+/* The quieter twin of .action: same shape, no fill, for the step beside the main one. */
+.secondary {
+  @include panel-button;
+  background: transparent;
+  color: var(--text-secondary);
+  transition:
+    color 160ms ease,
+    border-color 160ms ease;
+
+  &:hover {
+    color: var(--text);
+    border-color: var(--border-strong);
+  }
+}
+
+.hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+/* Time on the current move. Turns urgent near the end, since that is when it starts mattering. */
+.clock {
+  margin: 0;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+
+  &[data-low] {
+    color: rgb(var(--danger-rgb));
+    font-weight: 600;
+  }
+}
+
+/* Something that happened to the room rather than to the game: a player leaving, mostly. */
+.note {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+
+.joinControls {
+  display: flex;
+  gap: 6px;
+}
+
+.codeLabel {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+
+  &:focus-visible {
+    @include focus-ring(1px);
+  }
+}
+
+/* Space belongs to the hairline above, not to both sides: with padding underneath as well, the row's
+   own gap plus the next block's stacked up and the button sat high in its band. */
+.codeRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+/* Small enough to sit on the code's line without competing with it, but still clearly a button. */
+.copy {
+  @include quiet-pill(0.74rem, 5px 10px);
+  margin-left: auto;
+}
+
+.code {
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+}
+
+/* The two seats as the room knows them: the bead colour, the name, and which one is yours. */
+.seats {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 8px 0 0;
+  border-top: 1px solid var(--border);
+  list-style: none;
+}
+
+.seat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.swatch {
+  width: 11px;
+  height: 11px;
+  flex: none;
+  border-radius: 50%;
+  background: rgba(var(--seat-rgb), 0.95);
+  box-shadow: 0 0 8px rgba(var(--seat-rgb), 0.45);
+}
+
+/* A name is a stranger's to choose, so it wraps inside the row rather than pushing the row wider. */
+.seatName {
+  min-width: 0;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+
+/* A seat whose player has gone: dimmed, so the list shows who is actually here at a glance. */
+.seat[data-away] {
+  opacity: 0.45;
+
+  .seatName {
+    text-decoration: line-through;
+  }
+}
+
+.mine {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.status {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+/**
+ * Deliberately quiet but unmistakably a button: bordered like the board's own controls so it reads as
+ * clickable, sized down and shrink-wrapped so it never competes with the actions above it. Underlined
+ * muted text was easy to miss altogether, and had no focus ring for anyone using a keyboard.
+ */
+.leave {
+  @include quiet-pill;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+
+  svg {
+    flex: none;
+  }
+}
+
+.error {
+  margin: 0;
+  color: rgb(var(--danger-rgb));
+  font-size: 0.76rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .action,
+  .leave {
+    transition-duration: 1ms;
+  }
+}
+
+/* The room's settings as plain facts, for a player who cannot change them. */
+.readOnly {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 0;
+}
+
+.readRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.readValue {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}

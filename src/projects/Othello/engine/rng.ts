@@ -19,7 +19,7 @@ export function seededRng(seed: number): Rng {
 }
 
 /** One of `items`, chosen uniformly. Returns undefined only for an empty list. */
-export function pickOne<T>(items: readonly T[], rng: Rng): T | undefined {
+function pickOne<T>(items: readonly T[], rng: Rng): T | undefined {
   if (items.length === 0) return undefined
   return items[Math.min(items.length - 1, Math.floor(rng() * items.length))]
 }

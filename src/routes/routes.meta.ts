@@ -29,6 +29,7 @@ const gamesPath = `${routePaths.funStuff}${funStuffSubRoutes.games}`
 const nullSpacePath = `${gamesPath}${gamesSubRoutes.nullSpace}`
 const pixelWorldPath = `${gamesPath}${gamesSubRoutes.pixelWorldSimulator}`
 const ticTacToePath = `${gamesPath}${gamesSubRoutes.ticTacToe}`
+const othelloPath = `${gamesPath}${gamesSubRoutes.othello}`
 
 /** Looks up meta for a path, failing loudly at module-init if a route forgot its entry. */
 export function metaFor(path: string): RouteMeta {
@@ -175,6 +176,24 @@ export const routesMeta: Record<string, RouteMeta> = {
       playMode: ['SinglePlayer', 'MultiPlayer'],
       description:
         'Four in a row on a 4×4 board, except the board is a cube four layers deep. A line can run along a row, up a rod, or corner to corner through the cube. Play a friend on the same screen, a friend online over a room code, or a computer opponent with four difficulty levels.',
+      author: { '@type': 'Person', name: 'Brent Butkow', url: SITE_URL },
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    },
+  },
+  [othelloPath]: {
+    title: 'Othello — Brent Butkow',
+    description:
+      'Play Othello in your browser. Trap a line of your opponent’s discs and they flip to your colour; whoever holds the most when the board fills wins. Play a friend on the same screen, a friend online over a room code, or a computer opponent at three difficulty levels, on a 6×6, 8×8, or 10×10 board.',
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'VideoGame',
+      name: 'Othello',
+      url: `${SITE_URL}${othelloPath}`,
+      genre: 'Strategy',
+      gamePlatform: 'Web browser',
+      playMode: ['SinglePlayer', 'MultiPlayer'],
+      description:
+        'Othello (Reversi): trap a line of your opponent’s discs between two of yours and they all flip to your colour. Whoever holds the most discs when the board fills wins. Play a friend on the same screen, a friend online over a room code, or a computer opponent at three difficulty levels, on a 6×6, 8×8, or 10×10 board.',
       author: { '@type': 'Person', name: 'Brent Butkow', url: SITE_URL },
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     },
