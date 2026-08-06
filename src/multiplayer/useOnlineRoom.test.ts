@@ -718,6 +718,15 @@ describe('useOnlineRoom', () => {
     expect(view.result.current.connection).toBe(Connection.connected)
   })
 
+  it('sends an aimed move to the server, tagged with the current version', async () => {
+    const { view } = setup()
+    await connect(view, state({ moves: [1, 2], version: 2 }))
+    await act(async () => {
+      await view.result.current.aim(9)
+    })
+    expect(mocked.aimMove).toHaveBeenCalledWith('AB2K9M', 'tok', 9, 2)
+  })
+
   it('accepts a pass (-1) as a move and hands it to the consumer', async () => {
     const { view, onRemoteMove } = setup()
     await connect(view)

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { HttpError } from '../api/api'
 import {
+  aimMove,
   beaconLeave,
   createRoom,
   getRoom,
@@ -95,6 +96,11 @@ export interface OnlineRoom<Move> {
   findGame: (profile: SeatProfile, options?: RoomOptions) => Promise<void>
   /** Sends a move; resolves true once the server accepts it, false on rejection (with `error` set). */
   submit: (move: Move, finished?: boolean, won?: boolean) => Promise<boolean>
+  /**
+   * Records a move aimed but not committed, so the clock plays it instead of forfeiting on a timeout.
+   * Best-effort: a failure just means no auto-play, so it never surfaces an error or blocks play.
+   */
+  aim: (move: Move) => Promise<void>
   /** Publishes your own name and colour to the room, so the opponent's board shows them. */
   publishProfile: (profile: SeatProfile) => Promise<void>
   /** Clears the board and begins play. Nothing starts on its own, first game or fifth. */
@@ -473,6 +479,18 @@ export function useOnlineRoom<Move>({
     [pollOnce, reconcile]
   )
 
+  const aim = useCallback(async (move: Move): Promise<void> => {
+    const session = sessionRef.current
+    const current = roomRef.current
+    if (session === null || current === null) return
+    try {
+      await aimMove(session.code, session.token, codecRef.current.toWire(move), current.version)
+    } catch {
+      // Aiming is best-effort: a failure just means the clock forfeits rather than plays this move,
+      // which is the pre-existing behaviour, so it is not worth interrupting play with an error.
+    }
+  }, [])
+
   const publishProfile = useCallback(
     async (profile: SeatProfile) => {
       const session = sessionRef.current
@@ -655,6 +673,7 @@ export function useOnlineRoom<Move>({
     join,
     findGame,
     submit,
+    aim,
     publishProfile,
     start,
     canStart: isOwner && opponentPresentNow && room?.status !== RoomStatus.active,

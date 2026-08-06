@@ -222,3 +222,17 @@ export function submitMove(
     isMoveResult
   )
 }
+
+/**
+ * Records a move aimed but not committed, so the clock plays it rather than forfeiting on a timeout.
+ * Best-effort from the caller's side: the response is the room, but nothing has to be reconciled from
+ * it, since aiming does not change the move list.
+ */
+export function aimMove(
+  code: string,
+  token: string,
+  move: number,
+  expectedVersion: number
+): Promise<RoomState> {
+  return postJsonFor(`${roomPath(code)}/aim`, { token, move, expectedVersion }, isRoomState)
+}

@@ -56,6 +56,7 @@ function idleRoom(): OnlineRoom<number> {
     join: vi.fn(async () => undefined),
     findGame: vi.fn(async () => undefined),
     submit: vi.fn(async () => true),
+    aim: vi.fn(async () => undefined),
     publishProfile: vi.fn(async () => undefined),
     start: vi.fn(async () => undefined),
     canStart: false,
@@ -143,6 +144,11 @@ describe('Othello — local play', () => {
     expect(takenDiscs()).toHaveLength(4)
   })
 
+  it('offers New game in a local game', () => {
+    renderGame()
+    expect(screen.getByRole('button', { name: gameCopy.newGame })).toBeTruthy()
+  })
+
   it('ends with a result banner once the board is played out', () => {
     vi.useFakeTimers()
     try {
@@ -190,6 +196,17 @@ describe('Othello — online play', () => {
     expect(baseRoom.submit).toHaveBeenCalledWith(2 * 8 + 3) // idx(2,3) on the 8×8 board = 19
   })
 
+  it('aims the first tap in confirm mode, so a timeout plays it rather than forfeiting', () => {
+    localStorage.setItem('othello-move-commit', 'confirm')
+    holdASeat()
+    const { roomChanged } = renderGame()
+    roomChanged(activeRoom({ isMyTurn: true }))
+    fireEvent.click(screen.getByRole('button', { name: gameCopy.cellLegalLabel(3, 4, 'Ada') }))
+    // First tap aims (tells the server) rather than committing the move.
+    expect(baseRoom.aim).toHaveBeenCalledWith(2 * 8 + 3)
+    expect(baseRoom.submit).not.toHaveBeenCalled()
+  })
+
   it('wires the room to Othello’s id and board size', () => {
     holdASeat()
     renderGame()
@@ -216,6 +233,17 @@ describe('Othello — online play', () => {
     roomChanged(activeRoom({ status: RoomStatus.waiting, isMyTurn: false }))
     expect(screen.queryByText(gameCopy.online.theirTurn)).toBeNull()
     expect(screen.queryByText(gameCopy.online.yourTurn)).toBeNull()
+  })
+
+  it('hides the local undo/redo/New game controls in a room', () => {
+    holdASeat()
+    const { roomChanged } = renderGame()
+    // A joiner (not the owner) especially should not see a local New game button — resetting the
+    // board is the owner's call, through the room panel's Start / Play again.
+    roomChanged(activeRoom({ mySeat: Seat.second }))
+    expect(screen.queryByRole('button', { name: gameCopy.newGame })).toBeNull()
+    expect(screen.queryByRole('button', { name: gameCopy.undo })).toBeNull()
+    expect(screen.queryByRole('button', { name: gameCopy.redo })).toBeNull()
   })
 
   it('adopts the room’s board size when matched into a different one', () => {

@@ -334,6 +334,7 @@ export function TicTacToe({ computerSeed }: TicTacToeProps = {}) {
 
   /** Sends a move to the room. The server cannot judge the board, so a winning move says so itself. */
   const submitMove = room.submit
+  const aimMove = room.aim
   const sendMove = useCallback(
     async (index: number) => {
       const after = applyMove(board, index, currentPlayer)
@@ -369,7 +370,11 @@ export function TicTacToe({ computerSeed }: TicTacToeProps = {}) {
         // just moves the ghost, so a mis-tap costs nothing.
         if (confirming) {
           if (pending === index) void sendMove(index)
-          else setPending(index)
+          else {
+            // Aiming also tells the server, so a timeout plays this move instead of forfeiting.
+            setPending(index)
+            void aimMove(index)
+          }
           return
         }
         void sendMove(index)
@@ -377,7 +382,7 @@ export function TicTacToe({ computerSeed }: TicTacToeProps = {}) {
       }
       playAt(index)
     },
-    [consumedDrag, locked, isOnline, confirming, pending, sendMove, playAt]
+    [consumedDrag, locked, isOnline, confirming, pending, sendMove, playAt, aimMove]
   )
 
   // Focus isolates a layer without touching the camera: the viewpoint stays where it was put.

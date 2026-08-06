@@ -78,6 +78,7 @@ function fakeRoom(overrides: Partial<OnlineRoom<number>> = {}): OnlineRoom<numbe
     join: vi.fn(async () => undefined),
     findGame: vi.fn(async () => undefined),
     submit: vi.fn(async () => true),
+    aim: vi.fn(async () => undefined),
     publishProfile: vi.fn(async () => undefined),
     start: vi.fn(async () => undefined),
     canStart: false,

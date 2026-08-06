@@ -185,6 +185,7 @@ export function Othello({ computerSeed }: OthelloProps = {}) {
   const interactive = !locked && outcome === null
 
   const submitMove = room.submit
+  const aimMove = room.aim
   const sendMove = useCallback(
     async (move: number) => {
       setPending(null)
@@ -210,7 +211,11 @@ export function Othello({ computerSeed }: OthelloProps = {}) {
       if (isOnline) {
         if (confirming) {
           if (pending === index) void sendMove(index)
-          else setPending(index)
+          else {
+            // Aiming also tells the server, so a timeout plays this move instead of forfeiting.
+            setPending(index)
+            void aimMove(index)
+          }
           return
         }
         void sendMove(index)
@@ -218,7 +223,7 @@ export function Othello({ computerSeed }: OthelloProps = {}) {
       }
       playAt(index)
     },
-    [locked, isOnline, confirming, pending, sendMove, playAt]
+    [locked, isOnline, confirming, pending, sendMove, playAt, aimMove]
   )
 
   /* A forced pass a local human cannot click away: shown for a beat, then committed. The computer's
@@ -414,33 +419,34 @@ export function Othello({ computerSeed }: OthelloProps = {}) {
             playerName={playerName}
           />
 
-          <div className={styles.controls}>
-            {!isOnline && (
-              <>
-                <button
-                  type="button"
-                  className={styles.button}
-                  onClick={undo}
-                  disabled={!canUndo}
-                  title={gameCopy.undoTitle(computer !== null)}
-                >
-                  {gameCopy.undo}
-                </button>
-                <button
-                  type="button"
-                  className={styles.button}
-                  onClick={redo}
-                  disabled={!canRedo}
-                  title={gameCopy.redoTitle(computer !== null)}
-                >
-                  {gameCopy.redo}
-                </button>
-              </>
-            )}
-            <button type="button" className={styles.button} onClick={handleNewGame}>
-              {gameCopy.newGame}
-            </button>
-          </div>
+          {/* Undo, redo and New game are local-only: online, starting a game is the room owner's call,
+              handled by the panel's Start / Play again — a New game button here would reset only this
+              screen and desync the two boards. */}
+          {!isOnline && (
+            <div className={styles.controls}>
+              <button
+                type="button"
+                className={styles.button}
+                onClick={undo}
+                disabled={!canUndo}
+                title={gameCopy.undoTitle(computer !== null)}
+              >
+                {gameCopy.undo}
+              </button>
+              <button
+                type="button"
+                className={styles.button}
+                onClick={redo}
+                disabled={!canRedo}
+                title={gameCopy.redoTitle(computer !== null)}
+              >
+                {gameCopy.redo}
+              </button>
+              <button type="button" className={styles.button} onClick={handleNewGame}>
+                {gameCopy.newGame}
+              </button>
+            </div>
+          )}
         </div>
 
         <div className={styles.sidebar}>
