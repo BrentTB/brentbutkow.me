@@ -548,15 +548,19 @@
 
         if (variant.art === 'board') {
           const board = add('board', {})
-          // The opening four, the disc just played at the end of the line, and the three it caught —
-          // each one further through its turn than the next, so the flip travels along the row.
-          // Kept to the columns the mask leaves fully opaque, so the whole line is on the card.
-          const dark = new Set(['1,3', '2,4'])
-          const light = new Set(['2,3', '1,4', '4,5'])
+          /**
+           * A position that could actually happen, kept to the columns the mask leaves opaque. The opening
+           * four sit where they really do on an 8x8 board, at columns 3 and 4; light has just played (4,5),
+           * and the dark run between it and light's own disc at (1,5) is what turns. A flip needs the
+           * player's own discs at both ends of the line, which the arrangement here first shipped without.
+           */
+          const dark = new Set(['3,4', '4,3'])
+          const light = new Set(['3,3', '4,4', '1,5', '4,5'])
+          // Nearest the disc just played is furthest through its turn. Neither sits near side-on: a disc at
+          // the halfway point is a line rather than a disc, and reads as a rendering fault.
           const turning = new Map([
-            ['3,5', 0.78],
-            ['2,5', 0.44],
-            ['1,5', 0.2],
+            ['3,5', 0.86],
+            ['2,5', 0.24],
           ])
           for (let row = 0; row < 8; row++) {
             for (let column = 0; column < 8; column++) {
@@ -572,7 +576,7 @@
                   `disc ${face} turning`,
                   {
                     width:
-                      Math.max(4, Math.round(42 * Math.abs(Math.cos(through * Math.PI)))) + 'px',
+                      Math.max(16, Math.round(42 * Math.abs(Math.cos(through * Math.PI)))) + 'px',
                   },
                   square
                 )
