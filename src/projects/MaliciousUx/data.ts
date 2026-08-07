@@ -112,7 +112,7 @@ export const placards: Record<ExhibitId, ExhibitCopy> = {
   [ExhibitId.fakeClose]: {
     name: 'The X that is not',
     crime: 'Close the popup and meet the next one.',
-    why: 'The close button is the one control people press without reading anything first, so spending that trust on a second advert costs almost nothing. It works just as well the second time.',
+    why: 'The close button is the one control people press without reading anything first, so spending that trust on a second advert costs almost nothing. And unfortunately it works over and over again.',
     seenAt: 'News sites, mobile games, and anything trying to get you to install an app.',
   },
   [ExhibitId.paymentAddOn]: {
@@ -124,7 +124,7 @@ export const placards: Record<ExhibitId, ExhibitCopy> = {
   [ExhibitId.healingToggle]: {
     name: 'The setting that heals',
     crime: 'Turn it off, scroll away, and come back.',
-    why: 'Nobody goes back to double-check a switch they have already set, so putting it back while it is off screen costs nothing and gets the setting they wanted anyway.',
+    why: 'Nobody goes back to double-check a switch they have already set, so flipping it back while it is off screen costs them nothing and gets the setting they wanted anyway.',
     seenAt: 'Ad personalisation, usage-data sharing, and any setting that survives an update.',
   },
   [ExhibitId.immortalBanner]: {
@@ -141,7 +141,7 @@ export const placards: Record<ExhibitId, ExhibitCopy> = {
   },
   [ExhibitId.lateRules]: {
     name: 'The rules arrive late',
-    crime: 'Meet every requirement, but it will just think of another one.',
+    crime: 'Meet every requirement and it will think of another one.',
     why: 'The whole policy is sitting there in the code the entire time, and you only ever get shown the part of it you have already walked into. The only way to find out about a rule is to break it first.',
     seenAt: 'Bank signups, corporate SSO, and password resets at two in the morning.',
   },
@@ -160,13 +160,13 @@ export const placards: Record<ExhibitId, ExhibitCopy> = {
   [ExhibitId.birthdaySpinners]: {
     name: 'Date of birth, three spinners',
     crime: 'It starts at 1700, so get scrolling.',
-    why: 'Every extra second a form takes costs a share of the people filling it in, which is worth knowing if you would rather they gave up somewhere before the discount.',
+    why: 'Every extra second a form takes means fewer people finish it, which is the whole point if the site would rather you gave up before reaching the discount.',
     seenAt: 'Age gates, insurance quotes, and alcohol delivery.',
   },
   [ExhibitId.selfClearingForm]: {
     name: 'The self-clearing form',
     crime: 'One field was wrong, so all of them are gone.',
-    why: "Throwing away good input to report a bad one is a decision someone made on purpose. It also puts people off trying a second time, which makes the drop-off look like their choice rather than the form's.",
+    why: "Throwing away good input to report a bad one is a decision someone made on purpose. It also puts people off trying a second time, which makes the lack of submissions look like the users' choice, not the form's.",
     seenAt: 'Government portals, job applications, and anything built in 2004.',
   },
   [ExhibitId.patientReject]: {
@@ -184,7 +184,7 @@ export const placards: Record<ExhibitId, ExhibitCopy> = {
   [ExhibitId.popupGauntlet]: {
     name: 'The reading experience',
     crime: 'Scroll the article and something turns up every time you make progress.',
-    why: 'The interruptions are timed to your reading rather than to a clock, so the further into it you get, the harder the page works to stop you.',
+    why: 'The interruptions are timed to your reading rather than to a clock, so the further into the article you get, the more you have to fight the site itself.',
     seenAt: 'Recipe blogs, local news, and whatever a search result drops you on.',
   },
   [ExhibitId.stillThere]: {
@@ -209,7 +209,7 @@ export const placards: Record<ExhibitId, ExhibitCopy> = {
   [ExhibitId.invisibleUnsubscribe]: {
     name: 'The link that is technically there',
     crime: 'The unsubscribe link is on this page, somewhere.',
-    why: 'The rules tend to require that the link exists rather than that anybody can find it, and grey text on a white background at six pixels fulfils all the requirements. If you can’t find it, "tab" will be your best friend here.',
+    why: 'The rules tend to require that the link exists rather than that anybody can find it, and grey text on a white background at six pixels fulfils all the requirements. If you can\'t find it, "tab" will be your best friend here.',
     seenAt: 'The bottom of every marketing email ever sent.',
   },
   [ExhibitId.backButtonTrap]: {
