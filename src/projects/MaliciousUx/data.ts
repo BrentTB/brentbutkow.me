@@ -46,7 +46,7 @@ export const wingCopy: Record<Wing, { number: string; title: string; blurb: stri
   [Wing.exit]: {
     number: 'Wing V',
     title: 'Exits',
-    blurb: 'Signing up took one click, and getting out is going to take a while.',
+    blurb: 'Signing up took one click, but getting out is going to take a while.',
   },
 }
 
@@ -105,14 +105,14 @@ export const placards: Record<ExhibitId, ExhibitCopy> = {
   },
   [ExhibitId.doubleNegative]: {
     name: 'Neither of these sentences',
-    crime: 'Two options, and reading them twice will not help.',
+    crime: 'Two options, but reading them twice will not help.',
     why: 'A sentence you cannot untangle turns the choice into a guess, and the guess was written by the people who stand to gain from it. Stacking the negations also keeps the wording defensible if a regulator ever asks about it.',
     seenAt: 'Cookie preference centres, insurance add-ons, and charity signup pages.',
   },
   [ExhibitId.fakeClose]: {
     name: 'The X that is not',
     crime: 'Close the popup and meet the next one.',
-    why: 'The close button is the one control people press without reading anything first, and spending that trust on a second advert costs nothing (it also works more than once, which is the depressing part).',
+    why: 'The close button is the one control people press without reading anything first, so spending that trust on a second advert costs almost nothing. It works just as well the second time.',
     seenAt: 'News sites, mobile games, and anything trying to get you to install an app.',
   },
   [ExhibitId.paymentAddOn]: {
@@ -124,30 +124,30 @@ export const placards: Record<ExhibitId, ExhibitCopy> = {
   [ExhibitId.healingToggle]: {
     name: 'The setting that heals',
     crime: 'Turn it off, scroll away, and come back.',
-    why: 'Nobody goes back to double-check a switch they have already set, so putting it back while it is off screen costs nothing and wins the default all over again.',
+    why: 'Nobody goes back to double-check a switch they have already set, so putting it back while it is off screen costs nothing and gets the setting they wanted anyway.',
     seenAt: 'Ad personalisation, usage-data sharing, and any setting that survives an update.',
   },
   [ExhibitId.immortalBanner]: {
     name: 'The immortal banner',
     crime: 'Save your preferences, then wait.',
-    why: 'Saying no is supposed to be as easy as saying yes, otherwise no was never really on offer - and asking again every few seconds until you slip is how a no turns into a yes without anyone having to lie about it.',
+    why: 'Saying no is supposed to be as easy as saying yes, otherwise no was never really on offer - but if it asks often enough, sooner or later you will click the wrong thing.',
     seenAt: 'Cookie banners, notification prompts, and rate-this-app nags.',
   },
   [ExhibitId.pasteProofPassword]: {
     name: 'Paste-proof password',
-    crime: 'Type all 32 characters by hand, and you get one second to check them.',
+    crime: 'Type all 32 characters by hand, but you only get one second to check them.',
     why: 'Blocking paste stops a password manager rather than an attacker, which leaves the field safest for the people still reusing one password everywhere.',
-    seenAt: 'Banks, almost exclusively banks.',
+    seenAt: 'Banks. Almost exclusively banks.',
   },
   [ExhibitId.lateRules]: {
     name: 'The rules arrive late',
-    crime: 'Meet every requirement and it will think of another one.',
+    crime: 'Meet every requirement, but it will just think of another one.',
     why: 'The whole policy is sitting there in the code the entire time, and you only ever get shown the part of it you have already walked into. The only way to find out about a rule is to break it first.',
     seenAt: 'Bank signups, corporate SSO, and password resets at two in the morning.',
   },
   [ExhibitId.digitEater]: {
     name: 'The helpful phone field',
-    crime: 'It formats as you type, and it also gets hungry.',
+    crime: 'It formats as you type, but it also gets hungry.',
     why: 'A field that rewrites your input while you are looking down at the keyboard gets to hide its own mistakes, so the number ends up looking perfectly reasonable and reaching nobody.',
     seenAt: 'Checkouts and delivery forms.',
   },
@@ -166,56 +166,56 @@ export const placards: Record<ExhibitId, ExhibitCopy> = {
   [ExhibitId.selfClearingForm]: {
     name: 'The self-clearing form',
     crime: 'One field was wrong, so all of them are gone.',
-    why: 'Throwing away good input to report a bad one is a decision someone made on purpose. It also quietly puts people off trying again, which does wonders for the numbers.',
+    why: "Throwing away good input to report a bad one is a decision someone made on purpose. It also puts people off trying a second time, which makes the drop-off look like their choice rather than the form's.",
     seenAt: 'Government portals, job applications, and anything built in 2004.',
   },
   [ExhibitId.patientReject]: {
     name: 'Patient reject',
-    crime: 'Accepting is instant, and rejecting needs five seconds to think about it.',
-    why: 'There is no need to hide anything or word it strangely when only one of the two answers respects your time. On paper the options are identical, which is rather the point.',
+    crime: 'Accepting is instant, but rejecting needs five seconds to think about it.',
+    why: 'There is no need to hide anything or word it strangely when only one of the two answers respects your time. On paper the options are identical.',
     seenAt: 'Consent managers, "no thanks" links, and download pages.',
   },
   [ExhibitId.eagerAd]: {
     name: 'The eager advert',
     crime: 'It arrives exactly where you were about to click.',
-    why: 'Content that loads late and shoves the layout around gets clicked, and as far as every metric the advertiser checks is concerned that click was entirely genuine.',
+    why: 'Content that loads late and shoves the layout around gets clicked, and every metric the advertiser looks at will record that click as genuine.',
     seenAt: 'News articles, recipe blogs, and mobile everything.',
   },
   [ExhibitId.popupGauntlet]: {
     name: 'The reading experience',
     crime: 'Scroll the article and something turns up every time you make progress.',
-    why: 'The interruptions are timed to your reading rather than to a clock, so getting further into the piece is what summons the next one. It leaves the article feeling like it would rather you left.',
+    why: 'The interruptions are timed to your reading rather than to a clock, so the further into it you get, the harder the page works to stop you.',
     seenAt: 'Recipe blogs, local news, and whatever a search result drops you on.',
   },
   [ExhibitId.stillThere]: {
     name: 'Are you still there?',
-    crime: 'It asks, and answering starts the clock again.',
-    why: 'A dialog on a fixed timer teaches you to dismiss it without reading, which pays off nicely for whoever wrote it the one time it says something that mattered.',
+    crime: 'It asks, but answering only starts the clock again.',
+    why: 'A dialog on a fixed timer teaches you to dismiss it without reading, so the one time it says something that actually mattered, you will have already clicked past it.',
     seenAt: 'Streaming services, banking sessions, and online exams.',
   },
   [ExhibitId.unsubscribeFunnel]: {
     name: 'The unsubscribe funnel',
-    crime: 'Five screens stand between you and the door, and you are told about none of them.',
+    crime: 'Five screens stand between you and the exit, and you are told about none of them.',
     why: 'Each screen has a perfectly good excuse on its own - a confirmation, a survey, an offer - and stacked together they turn leaving into something you have to really mean.',
     seenAt: 'Gyms, streaming services, and anything with a retention team.',
   },
   [ExhibitId.unsubscribeSlog]: {
     name: 'One at a time, please',
-    crime: 'Nine subscriptions, nine clicks, and each one needs a moment to think.',
-    why: 'Nothing here refuses you anything, so none of it looks like a dark pattern at all. The entire cost is in the pacing, and getting back in is one button with no waiting attached to it.',
+    crime: 'Unsubscribing is easy, until you have to do it nine more times in a row.',
+    why: 'Nothing here refuses you anything, so none of it looks like a dark pattern at all. The entire cost is the time and effort required, while a single button can send you back to the start.',
     seenAt:
       'Retail newsletters, university mailing lists, and anything you handed an email to once.',
   },
   [ExhibitId.invisibleUnsubscribe]: {
     name: 'The link that is technically there',
     crime: 'The unsubscribe link is on this page, somewhere.',
-    why: 'The rules tend to require that the link exists rather than that anybody can find it, and grey on white at six pixels satisfies the first part beautifully. Try it with a keyboard (admittedly that is the bit they forgot about).',
+    why: 'The rules tend to require that the link exists rather than that anybody can find it, and grey text on a white background at six pixels fulfils all the requirements. If you can’t find it, "tab" will be your best friend here.',
     seenAt: 'The bottom of every marketing email ever sent.',
   },
   [ExhibitId.backButtonTrap]: {
     name: 'The back-button trap',
     crime: 'Leaving takes you back to where you already are.',
-    why: 'Back is a promise the browser makes rather than the site, so filling history with fake steps breaks the one escape route that never has to be explained to anyone. This one is only a drawing, incidentally, since breaking your actual back button would be going too far.',
+    why: 'Back is a promise the browser makes rather than the site, so filling history with fake steps breaks the one escape route that every user believes they have.',
     seenAt: 'Content farms, quiz sites, and paywalls.',
   },
 }
