@@ -159,8 +159,8 @@ export function scorePosition(board: Board, player: Player, weights = weightsFor
 }
 
 /**
- * Legal moves ordered best-first, so alpha-beta prunes hard: corners first, the squares that give a
- * corner away last, the rest by how many discs they flip. Ordering only, never a filter.
+ * Legal moves ordered best-first, so alpha-beta prunes hard: corners first, then everything else, with
+ * the squares that hand a corner away (X- and C-squares) sorted last. Ordering only, never a filter.
  */
 export function orderedMoves(board: Board, player: Player): number[] {
   const size = board.size

@@ -67,11 +67,14 @@ export function findBestMove(
   ): number => {
     const moves = orderedMoves(state, side)
     if (moves.length === 0) {
+      // Neither side able to move ends the game — score it regardless of remaining depth.
       if (!hasLegalMove(state, opponentOf(side))) return scorePosition(state, side)
-      // A pass: the turn goes to the opponent without a disc, and still costs a ply of the budget.
+      // A pass hands the turn over and costs a ply. At the horizon it stops like any other node; letting
+      // it recurse past the cap expands the whole remaining tree and blows the search.
+      if (depth <= 0) return scorePosition(state, side)
       return -search(state, opponentOf(side), depth - 1, -beta, -alphaIn)
     }
-    if (depth === 0) return scorePosition(state, side)
+    if (depth <= 0) return scorePosition(state, side)
 
     let alpha = alphaIn
     let best = -UNBOUNDED

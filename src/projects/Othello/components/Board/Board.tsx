@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Board as BoardModel, FlipSpeed, Player } from '../../othello.types'
 import { coordOf } from '../../engine/board'
-import { cssVars } from '../../css-vars'
+import { cssVars } from '../../../../utils/css-vars'
 import { gameCopy } from '../../data'
 import styles from './Board.module.scss'
 
@@ -169,7 +169,7 @@ export function Board({
       <div
         className={styles.board}
         role="group"
-        aria-label={`Othello board, ${size} by ${size}`}
+        aria-label={gameCopy.boardLabel(size)}
         style={cssVars({ '--size': size })}
       >
         {cells.map((cell, index) => {
@@ -180,9 +180,11 @@ export function Board({
           const label =
             cell !== null
               ? gameCopy.cellTakenLabel(row + 1, col + 1, playerName(cell))
-              : isLegal
-                ? gameCopy.cellLegalLabel(row + 1, col + 1, playerName(currentPlayer))
-                : gameCopy.cellLabel(row + 1, col + 1)
+              : isPending
+                ? gameCopy.cellPendingLabel(row + 1, col + 1)
+                : isLegal
+                  ? gameCopy.cellLegalLabel(row + 1, col + 1, playerName(currentPlayer))
+                  : gameCopy.cellLabel(row + 1, col + 1)
 
           return (
             <button
@@ -194,8 +196,15 @@ export function Board({
               data-last={lastMove === index || undefined}
               data-won={(winner !== null && cell === winner) || undefined}
               aria-label={label}
-              disabled={!canPlay}
-              onClick={() => onPlay(index)}
+              /* Only a legal cell is ever a move target, so the rest stay out of the tab order. The
+                 turn lock (thinking, the opponent's turn, a move in flight) is transient and goes in
+                 `aria-disabled`: disabling the button the keyboard holds would blur it every turn. */
+              disabled={!isLegal}
+              aria-disabled={(isLegal && !interactive) || undefined}
+              onClick={() => {
+                if (!canPlay) return
+                onPlay(index)
+              }}
             >
               {cell !== null && (
                 <Disc player={cell} flip={choreography.get(index)} durationMs={durationMs} />

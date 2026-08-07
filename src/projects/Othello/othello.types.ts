@@ -1,11 +1,3 @@
-import { CSSProperties } from 'react'
-
-/**
- * An inline style that may also carry CSS custom properties. React's own `CSSProperties` rejects
- * `--foo` keys, and the board passes its geometry (cell size, board dimension) to CSS that way.
- */
-export type StyleWithVars = CSSProperties & Record<`--${string}`, string | number>
-
 /**
  * The two disc colours. Dark opens, by Othello convention. Values double as runtime identifiers for
  * lookups and `data-` attributes.
@@ -101,8 +93,9 @@ export type Coord = {
 }
 
 /**
- * The result of playing a move: the board after it, and the indices of the discs that flipped, in the
- * order they were reached walking outward from the placed disc. The order drives the cascade animation.
+ * The result of playing a move: the board after it, and the indices of the discs that flipped, grouped
+ * by direction and outward within each. Undo replays them; the flip animation staggers by each disc's
+ * distance from the placed square (see `Board`), not by this array's order.
  */
 export type MoveResult = {
   board: Board

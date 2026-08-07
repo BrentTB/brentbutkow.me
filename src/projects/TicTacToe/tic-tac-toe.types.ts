@@ -1,11 +1,3 @@
-import { CSSProperties } from 'react'
-
-/**
- * An inline style that may also carry CSS custom properties. React's own `CSSProperties` rejects
- * `--foo` keys, and the board passes most of its geometry to CSS that way.
- */
-export type StyleWithVars = CSSProperties & Record<`--${string}`, string | number>
-
 /** A player's slot. Values double as runtime identifiers for lookups and data attributes. */
 export const Player = {
   one: 'one',

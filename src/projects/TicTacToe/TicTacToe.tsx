@@ -16,7 +16,7 @@ import {
   Starter,
   ViewMode,
 } from './tic-tac-toe.types'
-import { cssVars } from './css-vars'
+import { cssVars } from '../../utils/css-vars'
 import {
   DEFAULT_PLAYERS,
   MAX_NAME_LENGTH,
@@ -646,6 +646,7 @@ export function TicTacToe({ computerSeed }: TicTacToeProps = {}) {
           <BoardClock
             turnEndsAt={room.turnEndsAt}
             label={gameCopy.online.timeLeft}
+            finished={room.status === RoomStatus.finished}
             className={styles.boardClock}
           />
         )}

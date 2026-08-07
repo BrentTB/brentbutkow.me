@@ -1,5 +1,5 @@
 import { Board, Difficulty, Player } from '../othello.types'
-import { Rng, pickWeighted } from './rng'
+import { Rng, pickWeighted } from '../../../utils/rng'
 import { applyMove, getCapturesAt, legalMoves } from './board'
 import { Weights, scorePosition } from './evaluate'
 import { findBestMove } from './search'
@@ -76,8 +76,14 @@ export function chooseMove(
       : scorePosition(applyMove(board, move, player).board, player, weights)
   )
 
-  // Shift so the worst option still carries a little weight, then bias towards the better ones.
+  // Normalise to 0..1 before biasing, so one catastrophic option — a move into a lost endgame scores
+  // around -1e6 — cannot dwarf the shift and flatten the gaps between the moves actually in contention.
+  // The floor keeps the worst option barely possible; all-equal scores fall back to an even pick.
   const lowest = Math.min(...raw)
-  const bias = raw.map((score) => Math.pow(score - lowest + 1, sharpness))
+  const spread = Math.max(...raw) - lowest
+  const bias =
+    spread === 0
+      ? raw.map(() => 1)
+      : raw.map((score) => Math.pow((score - lowest) / spread + 0.05, sharpness))
   return pickWeighted(free, bias, rng) ?? free[0]
 }

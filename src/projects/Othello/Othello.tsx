@@ -23,7 +23,7 @@ import {
   PLAYER_SLOTS,
   gameCopy,
 } from './data'
-import { Rng, seededRng } from './engine/rng'
+import { Rng, seededRng } from '../../utils/rng'
 import { opponentOf } from './engine/board'
 import { useGame } from './useGame'
 import { useComputerTurn } from './useComputerTurn'
@@ -131,6 +131,7 @@ export function Othello({ computerSeed }: OthelloProps = {}) {
     playAt,
     pass,
     newGame,
+    resetGame,
     undo,
     redo,
     canUndo,
@@ -144,6 +145,8 @@ export function Othello({ computerSeed }: OthelloProps = {}) {
     cellCount: othelloCellCount(boardSize),
     // Matchmaking pairs across sizes, so a guest may land in a room of another size and adopt it.
     acceptsRoom: acceptsOthelloRoom,
+    // Othello passes a turn when a side has no move, riding the wire as -1.
+    allowsPass: true,
     codec: cellCodec,
     // A confirmed move — mine echoed back, or the opponent's — lands on the board like any other. A
     // pass (-1) advances the turn without a disc.
@@ -250,12 +253,17 @@ export function Othello({ computerSeed }: OthelloProps = {}) {
   }, [isOnline, outcome, mustPass, computer, currentPlayer, pass])
 
   /* Online, a side with no move must say so: the pass rides the wire as -1 to keep both clients on the
-     same turn. Only ever sent on your own turn, and once — the send flips `sending` until it lands. */
+     same turn. A rejected pass leaves the version unchanged, so gate on it: one attempt per turn, or the
+     effect re-fires the instant `sending` clears and hammers the server with no backoff. */
+  const passedAtVersionRef = useRef<number | null>(null)
+  const roomVersion = room.version
   useEffect(() => {
     if (!isOnline || outcome !== null || sending) return
     if (!room.isMyTurn || !mustPass) return
+    if (passedAtVersionRef.current === roomVersion) return
+    passedAtVersionRef.current = roomVersion
     void sendMove(PASS_MOVE)
-  }, [isOnline, outcome, sending, room.isMyTurn, mustPass, sendMove])
+  }, [isOnline, outcome, sending, room.isMyTurn, roomVersion, mustPass, sendMove])
 
   const rename = useCallback((slot: Player, name: string) => {
     setPlayers((current) => ({ ...current, [slot]: { name } }))
@@ -286,9 +294,11 @@ export function Othello({ computerSeed }: OthelloProps = {}) {
       if (modeLocked || next === boardSize) return
       setBoardSize(next)
       setPending(null)
-      newGame(openingColour(), next)
+      // A resize is a different game, not a move — so it clears the past rather than leaving an
+      // undo that would step back onto a board of the old size while the pill reads the new one.
+      resetGame(openingColour(), next)
     },
-    [modeLocked, boardSize, newGame]
+    [modeLocked, boardSize, resetGame]
   )
 
   const handleNewGame = useCallback(() => {
@@ -334,16 +344,24 @@ export function Othello({ computerSeed }: OthelloProps = {}) {
     return () => window.clearTimeout(settle)
   }, [isOnline, connected, myProfile, publishProfile])
 
-  /* Follow the room's board size: keep the setup pill in step, and rebuild the board when the size
-     changes while waiting (the host edited it in settings). A resize leaves the move list empty, so
-     `onReset` does not fire for it; without this the board would keep its old dimensions. */
+  /* Follow the room's board size: keep the setup pill in step, and rebuild the board when the host
+     resizes the room while waiting. Joining or reloading is handled by `onReset` plus the move replay,
+     so the first sync after connecting only adopts the size — it must not rebuild, or it would wipe a
+     board that was just replayed. A resize leaves the move list empty, so only this catches it. */
   const roomCellCount = room.cellCount
+  const adoptedCellCountRef = useRef<number | null>(null)
   useEffect(() => {
-    if (!isOnline || !connected) return
+    if (!isOnline || !connected) {
+      adoptedCellCountRef.current = null
+      return
+    }
     const size = boardSizeFor(roomCellCount)
     if (size === null) return
     setBoardSize(size)
-    newGame(openingColour(), size)
+    const changed =
+      adoptedCellCountRef.current !== null && adoptedCellCountRef.current !== roomCellCount
+    adoptedCellCountRef.current = roomCellCount
+    if (changed) newGame(openingColour(), size)
   }, [isOnline, connected, roomCellCount, newGame])
 
   /* The two colours' names. Local, they come from the setup fields; online, from the room's seats,
@@ -443,6 +461,7 @@ export function Othello({ computerSeed }: OthelloProps = {}) {
             <BoardClock
               turnEndsAt={room.turnEndsAt}
               label={gameCopy.online.timeLeft}
+              finished={room.status === RoomStatus.finished}
               className={styles.boardClock}
             />
           )}

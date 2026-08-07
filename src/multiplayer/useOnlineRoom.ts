@@ -55,6 +55,12 @@ export interface UseOnlineRoomOptions<Move> {
    * moves by the room's size rather than this client's.
    */
   acceptsRoom?: (room: RoomState) => boolean
+  /**
+   * Whether this game passes a turn (rides `PASS_WIRE` on the wire). Off by default, which keeps the
+   * corruption guard tight: a game with no passes rejects `PASS_WIRE` and caps the move list at one per
+   * cell. A game that does pass (Othello) accepts `PASS_WIRE` and doubles the ceiling for the headroom.
+   */
+  allowsPass?: boolean
   codec: MoveCodec<Move>
   /** Called once per newly-confirmed move, in order, for both seats. `index` is its 0-based position. */
   onRemoteMove: (move: Move, index: number) => void
@@ -155,6 +161,7 @@ export function useOnlineRoom<Move>({
   gameId,
   cellCount,
   acceptsRoom,
+  allowsPass = false,
   codec,
   onRemoteMove,
   onReset,
@@ -253,12 +260,13 @@ export function useOnlineRoom<Move>({
     (next: RoomState): boolean => {
       // Bounds come from the room's own size, not this client's default: a game whose board size
       // varies (Othello) may be sitting in a room of a different size, adopted on join. A pass
-      // (`PASS_WIRE`) is a legal wire value for games that allow one; every other move is a cell index.
-      // Passes ride in the list without filling a cell, so the length ceiling carries headroom.
+      // (`PASS_WIRE`) is only a legal wire value for a game that passes; a game with no passes rejects it
+      // and caps the list at one move per cell, so a corrupt list can't no-op its way to a desync.
       const size = next.cellCount
+      const ceiling = allowsPass ? size * 2 : size
       const playable = (wire: number) =>
-        wire === PASS_WIRE || (Number.isInteger(wire) && wire >= 0 && wire < size)
-      if (next.moves.length > size * 2 || !next.moves.every(playable)) {
+        (allowsPass && wire === PASS_WIRE) || (Number.isInteger(wire) && wire >= 0 && wire < size)
+      if (next.moves.length > ceiling || !next.moves.every(playable)) {
         endSession('This game no longer matches the board. Start a new one.')
         return false
       }
@@ -276,7 +284,7 @@ export function useOnlineRoom<Move>({
       setRoom(next)
       return true
     },
-    [endSession]
+    [allowsPass, endSession]
   )
 
   /**
@@ -430,7 +438,9 @@ export function useOnlineRoom<Move>({
       setConnection(Connection.connecting)
       setError(null)
       try {
-        await enter(matchmake(gameId, profile, cellCount, options))
+        // A room this opens waits at the picked size, matching `create`; joining someone plays by theirs.
+        const size = options.cellCount ?? cellCount
+        await enter(matchmake(gameId, profile, size, options))
       } catch (err) {
         setConnection(Connection.error)
         setError(entryFailure(err, 'Could not find a game.'))

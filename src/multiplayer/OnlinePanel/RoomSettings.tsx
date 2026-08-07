@@ -15,7 +15,7 @@ interface RoomSettingsProps {
 }
 
 /**
- * Any limit the room can be running, not only the four this page offers: a matchmade room may come back
+ * Any limit the room can be running, not only the ones this page offers: a matchmade room may come back
  * with something else, and reading that as "None" while a clock counts down is worse than no answer.
  */
 const limitLabelFor = (seconds: number | null): string => {

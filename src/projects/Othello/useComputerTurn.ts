@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Board, Difficulty, Player } from './othello.types'
-import { Rng } from './engine/rng'
+import { Rng } from '../../utils/rng'
 import { chooseMove } from './engine/opponent'
 
 /**

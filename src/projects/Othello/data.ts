@@ -7,8 +7,9 @@ import {
   Player,
   PlayerProfile,
   Starter,
-  isBoardSize,
 } from './othello.types'
+import { boardSizeFor } from './online'
+import { DEFAULT_ONLINE_COPY } from '../../multiplayer/online-copy'
 
 /** Longest a player name can be. Keeps the turn line on one row on a phone. */
 export const MAX_NAME_LENGTH = 14
@@ -99,7 +100,7 @@ export const gameCopy = {
   wins: (name: string) => `${name} wins`,
   tie: 'Board full, level pegging',
   /** When a side has no legal move and forfeits its turn. */
-  passed: (name: string) => `${name} has no move, ${name} passes`,
+  passed: (name: string) => `${name} has no move and passes`,
 
   gameTitle: 'Game',
   opponentLabel: 'Opponent',
@@ -109,65 +110,28 @@ export const gameCopy = {
   starterSwapNote: 'Switch now to trade colours with the computer.',
   thinking: (name: string) => `${name} is thinking`,
   computerName: 'Computer',
-  computerTag: 'computer',
 
   /** The live tally beside the board. */
   scoreLabel: (name: string, count: number) => `${name}: ${count}`,
 
   online: {
-    title: 'Online game',
-    createTitle: 'Create a room',
-    joinTitle: 'Join an existing room',
-    create: 'Set up a room',
-    join: 'Join a game',
-    findGame: 'Find a game',
-    findHint: 'Joins an existing open room if possible, otherwise creates a new room.',
+    // The room flow, seats, and clock read the same for every game — see DEFAULT_ONLINE_COPY.
+    ...DEFAULT_ONLINE_COPY,
+
     modeLocked: 'Leave the room first',
-    settingsTitle: 'Room settings',
-    editSettings: 'Edit room settings',
-    openRoom: 'Create the room',
-    saveSettings: 'Save settings',
-    cancel: 'Cancel',
-    openYes: 'Anyone can join',
-    openNo: 'Code only',
-    codeLabel: 'Room code',
-    codePlaceholder: 'Enter a code',
-    connecting: 'Connecting…',
-    yourCode: 'Your room code',
-    copyLink: 'Copy link',
-    copied: 'Copied',
-    waiting: 'Waiting for someone to join',
-    yourTurn: 'Your move',
-    theirTurn: 'Their move',
-    leave: 'Leave game',
-    startGame: 'Start game',
-    playAgain: 'Play again',
-    startHint: 'You can change the settings above until you start.',
-    waitingToStart: 'Waiting for the other player to start',
-    opponentLeft: (name: string) => `${name} left the room`,
-    opponentLeftUnnamed: 'The other player left the room',
-    unnamed: 'No name yet',
-    youTag: '(you)',
     yourNameLabel: 'Your name',
-    intro: 'Play a friend or a stranger online.',
+
+    boardSizeLabel: 'Board size',
+    /** The room's board size, read off its cell count, for the read-only settings a guest is shown. */
+    boardSizeSummary: (cellCount: number): string | null => {
+      const size = boardSizeFor(cellCount)
+      return size === null ? null : BOARD_SIZE_LABELS[size]
+    },
 
     /** The local setting for whether a tap sends the move, shown only in an online game. */
     commitLabel: 'Tapping a cell',
     commitHintInstant: 'Tap once to play a move immediately.',
-    commitHint: 'Double tap, or tap once and confirm, to play a move.',
-    confirmMove: 'Confirm move',
-    clearMove: 'Clear',
-    firstMoveLabel: 'Opening move',
-    clockLabel: 'Move time limit',
-    boardSizeLabel: 'Board size',
-    /** The room's board size, read off its cell count, for the read-only settings a guest is shown. */
-    boardSizeSummary: (cellCount: number): string | null => {
-      const size = Math.round(Math.sqrt(cellCount))
-      return isBoardSize(size) ? BOARD_SIZE_LABELS[size] : null
-    },
-    openLabel: 'Open to anyone',
-    openHint: 'Anyone looking for a game can join this room.',
-    timeLeft: (clock: string) => `${clock} left`,
+    commitHint: 'Tap a cell to aim, then tap it again to play it.',
     /** The turn line once the clock decides it, and when the other player walks out. */
     wonOnTime: (name: string) => `${name} wins, the clock ran out`,
     wonByDefault: (name: string) => `${name} wins, the other player left`,
@@ -176,11 +140,12 @@ export const gameCopy = {
   playersTitle: 'Players',
   nameLabel: (slot: number) => `Player ${slot} name`,
 
+  boardLabel: (size: number) => `Othello board, ${size} by ${size}`,
   cellLabel: (row: number, column: number) => `Row ${row}, column ${column}`,
   cellLegalLabel: (row: number, column: number, name: string) =>
     `Row ${row}, column ${column}, legal move for ${name}`,
   cellPendingLabel: (row: number, column: number) =>
-    `Row ${row}, column ${column}, your move, waiting to be confirmed`,
+    `Row ${row}, column ${column}, aimed, tap again to play`,
   cellTakenLabel: (row: number, column: number, name: string) =>
     `Row ${row}, column ${column}, ${name}`,
 }

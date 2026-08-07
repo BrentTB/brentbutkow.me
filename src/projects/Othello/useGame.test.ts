@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { BoardSize, Player } from './othello.types'
-import { useGame } from './useGame'
+import { MAX_HISTORY, useGame } from './useGame'
 import { idx, legalMoves } from './engine/board'
 
 describe('useGame', () => {
@@ -87,6 +87,52 @@ describe('useGame', () => {
     const outcome = result.current.outcome!
     const expectedWinner = dark > light ? Player.dark : light > dark ? Player.light : null
     expect(outcome.winner).toBe(expectedWinner)
+  })
+
+  it('names who passed, and clears it on the next real move', () => {
+    // The 8×8 first-legal-move game forces passes; each must mark the colour that had no move, and the
+    // following move must clear it so the status line does not keep saying "passes" for the rest of it.
+    const { result } = renderHook(() => useGame(BoardSize.standard, null, Player.dark))
+    let sawPass = false
+    let guard = 0
+    while (result.current.outcome === null && guard++ < 200) {
+      const mover = result.current.currentPlayer
+      const wasPass = result.current.mustPass
+      act(() => {
+        if (result.current.mustPass) result.current.pass()
+        else result.current.playAt(result.current.legalCells[0])
+      })
+      if (wasPass) {
+        expect(result.current.skipped).toBe(mover)
+        sawPass = true
+      } else {
+        expect(result.current.skipped).toBeNull()
+      }
+    }
+    expect(sawPass).toBe(true)
+  })
+
+  it('caps history at MAX_HISTORY and stays coherent past it', () => {
+    // Leaning on New game must not grow history unbounded or leave the cursor pointing off the array —
+    // `current` would be undefined and every render would throw.
+    const { result } = renderHook(() => useGame(BoardSize.standard))
+    act(() => {
+      for (let i = 0; i < MAX_HISTORY + 50; i++)
+        result.current.newGame(Player.dark, BoardSize.standard)
+    })
+    expect(result.current.counts).toEqual({ dark: 2, light: 2 })
+    expect(result.current.canUndo).toBe(true)
+    act(() => result.current.undo())
+    expect(result.current.counts).toEqual({ dark: 2, light: 2 })
+  })
+
+  it('resetGame starts fresh with nothing to undo into', () => {
+    const { result } = renderHook(() => useGame(BoardSize.standard))
+    act(() => result.current.playAt(idx(2, 3, BoardSize.standard)))
+    act(() => result.current.resetGame(Player.dark, BoardSize.large))
+    expect(result.current.board.size).toBe(BoardSize.large)
+    expect(result.current.counts).toEqual({ dark: 2, light: 2 })
+    expect(result.current.canUndo).toBe(false)
   })
 
   it('starts a new game, optionally at a different size', () => {

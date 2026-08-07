@@ -1,6 +1,6 @@
 import { useRovingRadio } from '../../../../components/utils/useRovingRadio'
 import { Player, PlayerProfile } from '../../tic-tac-toe.types'
-import { cssVars } from '../../css-vars'
+import { cssVars } from '../../../../utils/css-vars'
 import { MAX_NAME_LENGTH, PLAYER_COLOURS, PLAYER_SLOTS, gameCopy } from '../../data'
 import styles from './PlayerSetup.module.scss'
 

@@ -59,7 +59,7 @@ $disc-light: #e9e3d6; // warm off-white disc
     cursor: default;
   }
 
-  &[data-legal]:not(:disabled) {
+  &[data-legal]:not(:disabled):not([aria-disabled='true']) {
     cursor: pointer;
   }
 
@@ -128,7 +128,7 @@ $disc-light: #e9e3d6; // warm off-white disc
     background 140ms ease,
     transform 140ms $ease-shoot;
 
-  .cell[data-legal]:not(:disabled):hover &,
+  .cell[data-legal]:not(:disabled):not([aria-disabled='true']):hover &,
   .cell[data-legal]:not(:disabled):focus-visible & {
     background: rgba(var(--accent-rgb), 0.24);
     transform: scale(1.12);

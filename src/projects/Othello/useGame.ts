@@ -16,7 +16,7 @@ type GameSnapshot = {
   currentPlayer: Player
   /** The cell just played, or null for the opening position and for a pass. */
   lastMove: number | null
-  /** The discs the move flipped, in outward order, so the board can animate — and undo can replay it. */
+  /** The discs the move flipped, so the board can animate the turn — and undo can replay it. */
   flipped: number[]
   /** Who just passed to reach this position, for the status line. Null unless the last step was a pass. */
   skipped: Player | null
@@ -28,7 +28,7 @@ type GameSnapshot = {
  * How far back you can step. A game runs to at most a board's worth of moves, so this only bites if
  * someone leans on New game, and dropping the oldest entries is a kinder failure than growing unbounded.
  */
-const MAX_HISTORY = 300
+export const MAX_HISTORY = 300
 
 type GameHistory = {
   snapshots: GameSnapshot[]
@@ -144,6 +144,17 @@ export function useGame(
     [size, startsWith]
   )
 
+  /**
+   * Starts fresh and drops the past entirely, unlike `newGame` which appends an undoable position. Used
+   * when the board size changes: the previous game was played on a different board, so there is nothing
+   * coherent to undo back into.
+   */
+  const resetGame = useCallback(
+    (opensWith: Player = startsWith, nextSize: number = size) =>
+      setHistory(initialHistory(nextSize, opensWith)),
+    [size, startsWith]
+  )
+
   const undo = useCallback(
     () =>
       setHistory((past) => {
@@ -183,6 +194,7 @@ export function useGame(
     playAt,
     pass,
     newGame,
+    resetGame,
     undo,
     redo,
     canUndo: seek(history.snapshots, history.cursor, -1) !== null,

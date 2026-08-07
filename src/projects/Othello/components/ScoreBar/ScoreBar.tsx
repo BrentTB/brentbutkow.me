@@ -1,5 +1,5 @@
 import { Player } from '../../othello.types'
-import { cssVars } from '../../css-vars'
+import { cssVars } from '../../../../utils/css-vars'
 import { gameCopy } from '../../data'
 import styles from './ScoreBar.module.scss'
 

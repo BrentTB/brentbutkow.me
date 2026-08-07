@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vite
 import { THINKING_TIME_MS, useComputerTurn } from './useComputerTurn'
 import { Board, BoardSize, Difficulty, Player } from './othello.types'
 import { createBoard, legalMoves } from './engine/board'
-import { seededRng } from './engine/rng'
+import { seededRng } from '../../utils/rng'
 
 type Props = Parameters<typeof useComputerTurn>[0]
 type SpiedProps = Omit<Props, 'play' | 'pass'> & {
@@ -97,6 +97,29 @@ describe('useComputerTurn', () => {
     act(() => vi.advanceTimersByTime(THINKING_TIME_MS))
     expect(props.play).not.toHaveBeenCalled()
     expect(props.pass).toHaveBeenCalledTimes(1)
+  })
+
+  it('reports thinking while it deliberates, then stops once it plays', () => {
+    const props = base()
+    const { result } = renderHook(() => useComputerTurn(props))
+    expect(result.current.isThinking).toBe(true)
+    act(() => vi.advanceTimersByTime(THINKING_TIME_MS))
+    expect(result.current.isThinking).toBe(false)
+  })
+
+  it('stops thinking when the turn passes back mid-think (an undo)', () => {
+    // Undoing the human's move mid-deliberation hands the turn back before the computer replies. The
+    // board must not stay locked with "thinking" on screen.
+    const props = base()
+    const { result, rerender } = renderHook((p: SpiedProps) => useComputerTurn(p), {
+      initialProps: props,
+    })
+    expect(result.current.isThinking).toBe(true)
+    act(() => vi.advanceTimersByTime(THINKING_TIME_MS / 2))
+    act(() => rerender({ ...props, currentPlayer: Player.dark }))
+    expect(result.current.isThinking).toBe(false)
+    act(() => vi.advanceTimersByTime(THINKING_TIME_MS))
+    expect(props.play).not.toHaveBeenCalled()
   })
 
   it('cancels the pending move on unmount', () => {

@@ -376,6 +376,24 @@ describe('useOnlineRoom', () => {
     expect(view.result.current.connection).toBe('connected')
   })
 
+  it('opens create and find rooms at a dialog-picked board size', async () => {
+    // A game whose board size varies passes it through `cellCount`; both entry points must honour it,
+    // or a matchmade/opened room silently sits at this client's default instead.
+    const { view } = setup(vi.fn(), vi.fn(), { acceptsRoom: () => true })
+    mocked.getRoom.mockResolvedValue(state({ cellCount: 36 }))
+
+    await act(async () => {
+      await view.result.current.create(ADA, { cellCount: 36 })
+    })
+    expect(mocked.createRoom).toHaveBeenCalledWith('ttt', ADA, 36, { cellCount: 36 })
+
+    mocked.matchmake.mockResolvedValue(credentials({ seat: Seat.second, token: 'tok2' }))
+    await act(async () => {
+      await view.result.current.findGame(BO, { cellCount: 36 })
+    })
+    expect(mocked.matchmake).toHaveBeenCalledWith('ttt', BO, 36, { cellCount: 36 })
+  })
+
   it('tells the server when you leave, and forgets the room', async () => {
     const { view } = setup()
     await connect(view)
@@ -685,20 +703,45 @@ describe('useOnlineRoom', () => {
     expect(view.result.current.error).toMatch(/board/i)
   })
 
-  it('refuses a snapshot with far more moves than the board could ever hold', async () => {
+  it('caps a no-pass game at one move per cell', async () => {
+    // No passes means no headroom: a 65th move on a 64-cell board cannot be real, so it is refused
+    // rather than replayed into a desync.
     const { view, onRemoteMove } = setup()
     await connect(view)
     onRemoteMove.mockClear()
 
-    // The ceiling carries headroom for passes (which ride in the list without filling a cell), so it
-    // is a multiple of the cell count rather than the count itself; well past it is still corruption.
+    mocked.getRoom.mockResolvedValue(
+      state({ moves: Array.from({ length: 65 }, (_, i) => i % 64), version: 65 })
+    )
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000)
+    })
+    expect(onRemoteMove).not.toHaveBeenCalled()
+    expect(view.result.current.connection).toBe(Connection.error)
+  })
+
+  it('gives a pass-game headroom above the cell count but still caps it', async () => {
+    // Passes ride in the list without filling a cell, so the ceiling is a multiple of the cell count:
+    // 65 is fine on a 64-cell board, but well past the multiple is still corruption.
+    const { view, onRemoteMove } = setup(vi.fn(), vi.fn(), { allowsPass: true })
+    await connect(view)
+    onRemoteMove.mockClear()
+
+    mocked.getRoom.mockResolvedValue(
+      state({ moves: Array.from({ length: 65 }, (_, i) => i % 64), version: 65 })
+    )
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000)
+    })
+    expect(onRemoteMove).toHaveBeenCalledTimes(65)
+    expect(view.result.current.connection).toBe(Connection.connected)
+
     mocked.getRoom.mockResolvedValue(
       state({ moves: Array.from({ length: 129 }, (_, i) => i % 64), version: 129 })
     )
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1000)
     })
-    expect(onRemoteMove).not.toHaveBeenCalled()
     expect(view.result.current.connection).toBe(Connection.error)
   })
 
@@ -727,8 +770,8 @@ describe('useOnlineRoom', () => {
     expect(mocked.aimMove).toHaveBeenCalledWith('AB2K9M', 'tok', 9, 2)
   })
 
-  it('accepts a pass (-1) as a move and hands it to the consumer', async () => {
-    const { view, onRemoteMove } = setup()
+  it('accepts a pass (-1) as a move for a game that passes, and hands it to the consumer', async () => {
+    const { view, onRemoteMove } = setup(vi.fn(), vi.fn(), { allowsPass: true })
     await connect(view)
     onRemoteMove.mockClear()
 
@@ -741,6 +784,21 @@ describe('useOnlineRoom', () => {
     expect(onRemoteMove).toHaveBeenCalledWith(19, 0)
     expect(onRemoteMove).toHaveBeenCalledWith(-1, 1)
     expect(view.result.current.connection).toBe(Connection.connected)
+  })
+
+  it('rejects a pass (-1) for a game that never passes, ending the session', async () => {
+    // Default `allowsPass` is off: a stray -1 in a no-pass game is corruption, not a move. Accepting it
+    // would no-op in the engine while the version advanced, desyncing the two boards silently.
+    const { view, onRemoteMove } = setup()
+    await connect(view)
+    onRemoteMove.mockClear()
+
+    mocked.getRoom.mockResolvedValue(state({ moves: [19, -1], version: 2 }))
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000)
+    })
+    expect(onRemoteMove).not.toHaveBeenCalled()
+    expect(view.result.current.connection).toBe(Connection.error)
   })
 
   it('throws away a read that a move of your own overtook', async () => {

@@ -39,7 +39,7 @@
   @include segmented-pills;
 }
 
-/* A ladder rather than a pill group: four rungs read as increasing, which is what they are. */
+/* A ladder rather than a pill group: the rungs read as increasing difficulty, which is what they are. */
 .tiers {
   display: flex;
   gap: 4px;
@@ -85,7 +85,7 @@
   line-height: 1.45;
 }
 
-/* Sits under the First move switch once the game is under way, where switching also trades the pieces. */
+/* A muted footnote under a locked control or the First move switch, explaining what it does. */
 .note {
   margin: 0;
   padding-top: 2px;

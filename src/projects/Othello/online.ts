@@ -14,7 +14,7 @@ import { BoardSize, Player, isBoardSize } from './othello.types'
 export const OTHELLO_GAME_ID = 'othello'
 
 /** A square board has size² cells; the room is created with the size the host picked. */
-export const othelloCellCount = (size: number): number => size * size
+export const othelloCellCount = (size: BoardSize): number => size * size
 
 /** The board size a cell count decodes to, or null when it is not one Othello offers. */
 export const boardSizeFor = (cellCount: number): BoardSize | null => {

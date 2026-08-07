@@ -64,3 +64,50 @@ export interface OnlineCopy {
    */
   boardSizeSummary?: (cellCount: number) => string | null
 }
+
+/**
+ * The transport wording that reads the same for every game — the room flow, seats, and clock say the
+ * same thing whether you are playing Othello or tic-tac-toe. A game spreads this into its
+ * `gameCopy.online` and overrides only what is genuinely its own (a board-size line, a game-specific
+ * hint), so a fix here reaches every game at once.
+ */
+export const DEFAULT_ONLINE_COPY: OnlineCopy = {
+  title: 'Online game',
+  intro: 'Play a friend or a stranger online.',
+  connecting: 'Connecting…',
+  createTitle: 'Create a room',
+  create: 'Set up a room',
+  joinTitle: 'Join an existing room',
+  findGame: 'Find a game',
+  findHint: 'Joins an existing open room if possible, otherwise creates a new room.',
+  codeLabel: 'Room code',
+  codePlaceholder: 'Enter a code',
+  join: 'Join a game',
+  openRoom: 'Create the room',
+  yourCode: 'Your room code',
+  copyLink: 'Copy link',
+  copied: 'Copied',
+  waiting: 'Waiting for someone to join',
+  yourTurn: 'Your move',
+  theirTurn: 'Their move',
+  timeLeft: (clock: string) => `${clock} left`,
+  opponentLeft: (name: string) => `${name} left the room`,
+  opponentLeftUnnamed: 'The other player left the room',
+  unnamed: 'No name yet',
+  youTag: '(you)',
+  editSettings: 'Edit room settings',
+  saveSettings: 'Save settings',
+  settingsTitle: 'Room settings',
+  cancel: 'Cancel',
+  playAgain: 'Play again',
+  startGame: 'Start game',
+  startHint: 'You can change the settings above until you start.',
+  waitingToStart: 'Waiting for the other player to start',
+  leave: 'Leave game',
+  firstMoveLabel: 'Opening move',
+  clockLabel: 'Move time limit',
+  openLabel: 'Open to anyone',
+  openHint: 'Anyone looking for a game can join this room.',
+  openYes: 'Anyone can join',
+  openNo: 'Code only',
+}

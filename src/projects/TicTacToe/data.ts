@@ -8,6 +8,7 @@ import {
   ViewMode,
 } from './tic-tac-toe.types'
 import { BOARD_SIZE, LineDescription, LineShape } from './engine/lines'
+import { DEFAULT_ONLINE_COPY } from '../../multiplayer/online-copy'
 
 /** Longest a player name can be. Keeps the turn line on one row on a phone. */
 export const MAX_NAME_LENGTH = 14
@@ -108,52 +109,13 @@ export const gameCopy = {
   computerTag: 'computer',
 
   online: {
-    title: 'Online game',
-    /** Heads the two ways in, kept apart so opening a room is never confused with entering one. */
-    createTitle: 'Create a room',
-    joinTitle: 'Join an existing room',
-    /** Named for what pressing it does: it opens the settings, and the dialog's own button opens the room. */
-    create: 'Set up a room',
-    join: 'Join a game',
-    findGame: 'Find a game',
-    /** Says what actually happens, since half the time it opens a room instead of joining one. */
-    findHint: 'Joins an existing open room if possible, otherwise creates a new room.',
+    // The room flow, seats, and clock read the same for every game — see DEFAULT_ONLINE_COPY.
+    ...DEFAULT_ONLINE_COPY,
+
     /** Explains the locked opponent control, so a disabled button is not a dead end. */
     modeLocked: 'Leave the room first',
-    /** Heads the settings dialog, whether it is about to open a room or change one. */
-    settingsTitle: 'Room settings',
-    editSettings: 'Edit room settings',
-    /** The dialog's confirm button, named for what pressing it does in each case. */
-    openRoom: 'Create the room',
-    saveSettings: 'Save settings',
-    cancel: 'Cancel',
-    openYes: 'Anyone can join',
-    openNo: 'Code only',
-    codeLabel: 'Room code',
-    codePlaceholder: 'Enter a code',
-    connecting: 'Connecting…',
-    yourCode: 'Your room code',
-    copyLink: 'Copy link',
-    copied: 'Copied',
-    waiting: 'Waiting for someone to join',
-    yourTurn: 'Your move',
-    theirTurn: 'Their move',
-    leave: 'Leave game',
-    startGame: 'Start game',
-    playAgain: 'Play again',
-    /** Sits under the start button: the settings can still be changed right up until it is pressed. */
-    startHint: 'You can change the settings above until you start.',
-    /** For the player who joined: the start is the opener's call, so the wait is not a broken button. */
-    waitingToStart: 'Waiting for the other player to start',
-    opponentLeft: (name: string) => `${name} left the room`,
-    /** For a player who walked out before typing a name, where "No name yet left the room" would read badly. */
-    opponentLeftUnnamed: 'The other player left the room',
-    /** Stands in until a player types a name of their own. */
-    unnamed: 'No name yet',
-    youTag: '(you)',
     /** Replaces the numbered label: online you only set your own, whichever seat you end up in. */
     yourNameLabel: 'Your name',
-    intro: 'Play a friend or a stranger online.',
 
     /** The local setting for whether a tap sends the move, shown only in an online game. */
     commitLabel: 'Tapping a cell',
@@ -161,12 +123,6 @@ export const gameCopy = {
     commitHint: 'Double tap, or tap once and confirm, to play a move.',
     confirmMove: 'Confirm move',
     clearMove: 'Clear',
-    firstMoveLabel: 'Opening move',
-    clockLabel: 'Move time limit',
-    openLabel: 'Open to anyone',
-    /** Explains what the open toggle does to a room that is waiting. */
-    openHint: 'Anyone looking for a game can join this room.',
-    timeLeft: (clock: string) => `${clock} left`,
     /** The turn line once the clock decides it: nobody played, so there is no winning row to describe. */
     wonOnTime: (name: string) => `${name} wins, the clock ran out`,
     wonByDefault: (name: string) => `${name} wins, the other player left`,

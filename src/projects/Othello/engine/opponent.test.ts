@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Board, BoardSize, Difficulty, Player } from '../othello.types'
-import { seededRng } from './rng'
+import { seededRng } from '../../../utils/rng'
 import { createBoard, idx, legalMoves } from './board'
 import { chooseMove } from './opponent'
 import { findBestMove } from './search'
