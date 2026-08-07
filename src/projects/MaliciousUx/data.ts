@@ -13,6 +13,7 @@ export const pageCopy = {
   taglineFun:
     'Every interface in here was designed by somebody who hated you, and all of them work perfectly.',
   admission: (specimens: number) => `Admission free · ${specimens} specimens · touching encouraged`,
+  planTitle: 'Floor plan',
   promiseTitle: 'Accessibility notice',
   promise:
     'Nothing here fights a keyboard. Tab to any control, press Enter, and it does what its label says. The cursor is the only visitor being punished, and screen readers get the plain version.',
@@ -42,13 +43,18 @@ export const wingCopy: Record<Wing, { number: string; title: string; blurb: stri
     title: 'Time',
     blurb: 'Friction spent on your side of the transaction, never theirs.',
   },
+  [Wing.exit]: {
+    number: 'Wing V',
+    title: 'Exits',
+    blurb: 'Arriving took one click. Leaving is a project.',
+  },
 }
 
 export type Hostility = {
-  /** How close the cursor gets to a fleeing control before it bolts, in pixels. */
+  /** How close the cursor gets to a fleeing control before it hops, in pixels. */
   evadeRadius: number
-  /** Dodges before the fleeing button gives up and swaps places with the other one. */
-  dodgesBeforeSwap: number
+  /** How far one hop carries it, in pixels. Short enough that chasing it is a game you can win. */
+  hopDistance: number
   /** How long a dismissed banner stays dismissed. */
   bannerReviveMs: number
   /** How long the reject button thinks before it will accept a press. */
@@ -59,16 +65,16 @@ export type Hostility = {
 
 /** Tuning for the hostile behaviours. Fun mode turns everything up; the pattern stays the same. */
 export const HOSTILITY: Hostility = {
-  evadeRadius: 90,
-  dodgesBeforeSwap: 3,
+  evadeRadius: 78,
+  hopDistance: 64,
   bannerReviveMs: 15_000,
   rejectDelayMs: 5_000,
   nagIntervalMs: 20_000,
 }
 
 const HOSTILITY_FUN: Hostility = {
-  evadeRadius: 150,
-  dodgesBeforeSwap: 2,
+  evadeRadius: 110,
+  hopDistance: 96,
   bannerReviveMs: 8_000,
   rejectDelayMs: 8_000,
   nagIntervalMs: 9_000,
@@ -120,11 +126,29 @@ export const placards: Record<ExhibitId, ExhibitCopy> = {
     why: 'Refusing has to be as easy as accepting, or refusing is not really on offer. Asking again until somebody slips is how a no is converted to a yes.',
     seenAt: 'Cookie banners, notification prompts, rate-this-app nags.',
   },
+  [ExhibitId.doubleNegative]: {
+    name: 'Neither of these sentences',
+    crime: 'Two options. Read them twice and you will still not be sure.',
+    why: 'A choice you cannot parse is a coin toss, and the house wrote the coin. Stacked negations are how a form asks for consent while keeping the wording defensible to a regulator.',
+    seenAt: 'Cookie preference centres, insurance add-ons, charity signup pages.',
+  },
+  [ExhibitId.paymentAddOn]: {
+    name: 'The last-step extra',
+    crime: 'One box, already ticked, on the screen where you stopped reading.',
+    why: 'By the confirmation step the decision feels made, so attention drops and the total is skimmed rather than checked. Anything added here is added to somebody who has stopped looking.',
+    seenAt: 'Airline checkouts, ticket sites, domain registrars.',
+  },
   [ExhibitId.pasteProofPassword]: {
     name: 'Paste-proof password',
-    crime: 'For your security, type all 32 characters by hand.',
+    crime: 'Type all 32 characters by hand, and you get one second to check them.',
     why: 'Blocking paste stops a password manager, not an attacker. The field is safest for the people still reusing one password everywhere.',
     seenAt: 'Banks. Almost exclusively banks.',
+  },
+  [ExhibitId.lateRules]: {
+    name: 'The rules arrive late',
+    crime: 'Meet every requirement and it thinks of another one.',
+    why: 'The policy is knowable and it is never shown. You are told the part of it you have already run into, which means the only way to learn a requirement is to fail it first.',
+    seenAt: 'Bank signups, corporate SSO, password resets at 2am.',
   },
   [ExhibitId.digitEater]: {
     name: 'The helpful phone field',
@@ -162,11 +186,29 @@ export const placards: Record<ExhibitId, ExhibitCopy> = {
     why: 'Content that loads late and shifts the layout gets clicked, and by every metric the advertiser checks, the click was real.',
     seenAt: 'News articles, recipe blogs, mobile everything.',
   },
+  [ExhibitId.unsubscribeSlog]: {
+    name: 'One at a time, please',
+    crime: 'Nine subscriptions, nine clicks, and each one takes a moment to think.',
+    why: 'Nothing here is refused, so nothing looks like a dark pattern. The cost is entirely in the pacing: leaving is metered out one slow confirmation at a time, and coming back is a single instant button.',
+    seenAt: 'Retail newsletters, university mailing lists, anything you gave an email to once.',
+  },
+  [ExhibitId.invisibleUnsubscribe]: {
+    name: 'The link that is technically there',
+    crime: 'The unsubscribe link is on this page. Somewhere.',
+    why: 'The law tends to require that the link exists, not that anyone can see it. Grey on white at six pixels satisfies the letter of the rule and nothing else. Try it with the keyboard.',
+    seenAt: 'The bottom of every marketing email ever sent.',
+  },
   [ExhibitId.backButtonTrap]: {
     name: 'The back-button trap',
     crime: 'Leaving takes you to where you already are.',
     why: "Back is the browser's promise, not the site's. Stuffing history with fake steps breaks the one escape hatch nobody has to be taught.",
     seenAt: 'Content farms, quiz sites, paywalls.',
+  },
+  [ExhibitId.popupGauntlet]: {
+    name: 'The reading experience',
+    crime: 'Scroll the article. Something arrives every time you make progress.',
+    why: 'Interruptions are timed to your reading rather than to the clock, so getting further into the piece is what summons the next one. Progress is the trigger, which makes the article feel like it is defending itself.',
+    seenAt: 'Recipe blogs, local news, anything a search result took you to.',
   },
   [ExhibitId.stillThere]: {
     name: 'Are you still there?',

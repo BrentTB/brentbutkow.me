@@ -6,6 +6,7 @@ export const Wing = {
   state: 'state',
   input: 'input',
   time: 'time',
+  exit: 'exit',
 } as const
 export type Wing = (typeof Wing)[keyof typeof Wing]
 
@@ -17,15 +18,21 @@ export const ExhibitId = {
   fakeClose: 'fakeClose',
   healingToggle: 'healingToggle',
   immortalBanner: 'immortalBanner',
+  doubleNegative: 'doubleNegative',
+  paymentAddOn: 'paymentAddOn',
   pasteProofPassword: 'pasteProofPassword',
+  lateRules: 'lateRules',
   digitEater: 'digitEater',
   unsortedCountries: 'unsortedCountries',
   birthdaySpinners: 'birthdaySpinners',
   selfClearingForm: 'selfClearingForm',
   patientReject: 'patientReject',
   eagerAd: 'eagerAd',
-  backButtonTrap: 'backButtonTrap',
+  popupGauntlet: 'popupGauntlet',
   stillThere: 'stillThere',
+  unsubscribeSlog: 'unsubscribeSlog',
+  invisibleUnsubscribe: 'invisibleUnsubscribe',
+  backButtonTrap: 'backButtonTrap',
 } as const
 export type ExhibitId = (typeof ExhibitId)[keyof typeof ExhibitId]
 
@@ -48,6 +55,3 @@ export type Exhibit = {
   copy: ExhibitCopy
   component: ComponentType
 }
-
-/** Where a fleeing target currently sits, relative to its resting position. */
-export type Offset = { x: number; y: number }

@@ -57,14 +57,16 @@ Full HTML5 game with engine, systems, abilities, semver changelog. Lives at [src
 
 ## Malicious UX (museum of dark patterns)
 
-Sixteen deliberately hostile widgets, each in a "vitrine" beside a museum wall label. Lives at [src/projects/MaliciousUx/](src/projects/MaliciousUx/).
+Twenty-two deliberately hostile widgets across five wings, each in a "vitrine" beside a museum wall label. Lives at [src/projects/MaliciousUx/](src/projects/MaliciousUx/).
 
-- Add a specimen: component folder under `exhibits/` (`X.tsx` + `X.module.scss` + `data.ts` for its microcopy), a `placards` entry + `ExhibitId` in the project's `data.ts`/`malicious-ux.types.ts`, then a row in `exhibits/registry.ts`. `registry.test.ts` fails if any of those are missed.
+- Add a specimen: component folder under `exhibits/` (`X.tsx` + `X.module.scss` + `data.ts` for its microcopy), a `placards` entry + `ExhibitId` in the project's `data.ts`/`malicious-ux.types.ts`, then a `widgets` entry and a `catalogue` row in `exhibits/registry.ts`. `registry.test.ts` fails if any of those are missed.
+- `catalogue` in `registry.ts` is the walking order and the only place it is written down; `DP-###` accession codes are derived from position, so a specimen can be inserted mid-list without renumbering anything by hand.
 - **Keyboard-honesty contract**: hostility fires on pointer input only, gated by `usePointerIntent`. Tab + Enter always does what the label says. `exhibits/keyboard-honesty.test.tsx` is the guard — a new exhibit with a pointer trick belongs in it.
 - Shared behaviours: `useEvasiveTarget` (+ pure `engine/evade.ts`), `useOffscreenReset`, `useReturningPrompt`
 - Specimen palette (deliberately _not_ the site tokens — the widgets are meant to look foreign): `styles/_exhibit.scss`
 - Fun mode turns the dials up rather than changing the patterns: `hostilityFor()` in `data.ts`
-- The back-button trap never touches real `history` — the browser chrome is drawn
+- Scroll-triggered and scrolling exhibits own their own frame: nothing here drives the page's scrollbar, and the back-button trap never touches real `history` (its browser chrome is drawn)
+- The payment exhibit shows a saved card and totals only. It has no card fields, and a test asserts there are none
 
 ## Effects & atmosphere
 

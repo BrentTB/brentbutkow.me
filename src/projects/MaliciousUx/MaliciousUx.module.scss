@@ -7,6 +7,68 @@
   text-transform: uppercase;
 }
 
+/* The floor plan: five wings, laid out as a gallery guide rather than a table of contents. */
+.plan {
+  margin-bottom: 34px;
+}
+
+.planTitle {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.planList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.planLink {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 7px 13px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  transition:
+    border-color 160ms ease,
+    color 160ms ease;
+
+  &:hover {
+    border-color: rgba(var(--accent-rgb), 0.5);
+    color: var(--text);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+.planNumber {
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.planCount {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+}
+
 /* The one honest notice in the building, so it gets the accent rule rather than a card. */
 .promise {
   margin-bottom: 46px;
@@ -51,6 +113,8 @@
 .wingTitle {
   margin: 0;
   font-size: clamp(1.5rem, 4vw, 2rem);
+  /* Cleared for the fixed navbar, so a floor-plan jump does not land under it. */
+  scroll-margin-top: 96px;
 }
 
 .wingBlurb {

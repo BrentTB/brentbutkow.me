@@ -1,20 +1,28 @@
-import { useState } from 'react'
-import { checkPassword, PASSWORD_RULE_ORDER, passwordAccepted } from '../../engine/password-rules'
+import { useEffect, useState } from 'react'
 import styles from './PasteProofPassword.module.scss'
-import { copy } from './data'
+import { copy, REVEAL_MS } from './data'
 
 export function PasteProofPassword() {
   const [value, setValue] = useState('')
   const [blocked, setBlocked] = useState(0)
+  const [shown, setShown] = useState(false)
+  const [peeked, setPeeked] = useState(false)
 
-  const met = checkPassword(value)
-  const started = value.length > 0
+  // A look at what you typed, rationed. The one second is the whole feature.
+  useEffect(() => {
+    if (!shown) return
+    const hide = setTimeout(() => {
+      setShown(false)
+      setPeeked(true)
+    }, REVEAL_MS)
+    return () => clearTimeout(hide)
+  }, [shown])
 
   const status = () => {
     if (blocked > 0) return copy.blocked(blocked)
-    if (!started) return copy.quiet
-    if (passwordAccepted(value)) return copy.accepted
-    return copy.typed(value.length)
+    if (peeked && !shown) return copy.peeked
+    if (value.length > 0) return copy.typed(value.length)
+    return copy.quiet
   }
 
   return (
@@ -22,37 +30,32 @@ export function PasteProofPassword() {
       <label className={styles.label} htmlFor="paste-proof">
         {copy.label}
       </label>
-      <input
-        id="paste-proof"
-        className={styles.input}
-        type="password"
-        value={value}
-        autoComplete="new-password"
-        onChange={(event) => setValue(event.target.value)}
-        onPaste={(event) => {
-          event.preventDefault()
-          setBlocked((count) => count + 1)
-        }}
-      />
-      <p className={styles.hint}>{copy.hint}</p>
 
-      <p className={styles.rulesTitle}>{copy.rulesTitle}</p>
-      <ul className={styles.rules}>
-        {PASSWORD_RULE_ORDER.map((rule) => (
-          <li key={rule} className={`${styles.rule} ${started && met[rule] ? styles.isMet : ''}`}>
-            {/* An empty field leaves every rule neutral: all-green before a keystroke reads as a bug. */}
-            <span className={styles.mark} aria-hidden="true">
-              {!started ? '·' : met[rule] ? '✓' : '✗'}
-            </span>
-            {copy.rules[rule]}
-            {started && (
-              <span
-                className={styles.visuallyHidden}
-              >{` (${met[rule] ? copy.met : copy.unmet})`}</span>
-            )}
-          </li>
-        ))}
-      </ul>
+      <div className={styles.control}>
+        <input
+          id="paste-proof"
+          className={styles.input}
+          type={shown ? 'text' : 'password'}
+          value={value}
+          autoComplete="new-password"
+          onChange={(event) => setValue(event.target.value)}
+          onPaste={(event) => {
+            event.preventDefault()
+            setBlocked((count) => count + 1)
+          }}
+        />
+        <button
+          type="button"
+          className={styles.reveal}
+          aria-label={copy.revealLabel}
+          aria-pressed={shown}
+          onClick={() => setShown(true)}
+        >
+          {copy.reveal}
+        </button>
+      </div>
+
+      <p className={styles.hint}>{copy.hint}</p>
 
       <p className={styles.readout} aria-live="polite">
         {status()}

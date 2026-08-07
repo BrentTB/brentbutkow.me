@@ -7,7 +7,9 @@ import { exhibits, exhibitsInWing } from './exhibits/registry'
 import { Wing } from './malicious-ux.types'
 import styles from './MaliciousUx.module.scss'
 
-const wings: Wing[] = [Wing.consent, Wing.state, Wing.input, Wing.time]
+const wings: Wing[] = [Wing.consent, Wing.state, Wing.input, Wing.time, Wing.exit]
+
+const wingAnchor = (wing: Wing) => `wing-${wing}`
 
 export function MaliciousUx() {
   const { isFunMode } = useFunMode()
@@ -20,16 +22,31 @@ export function MaliciousUx() {
 
       <p className={styles.admission}>{pageCopy.admission(exhibits.length)}</p>
 
+      <nav className={styles.plan} aria-label={pageCopy.planTitle}>
+        <p className={styles.planTitle}>{pageCopy.planTitle}</p>
+        <ol className={styles.planList}>
+          {wings.map((wing) => (
+            <li key={wing}>
+              <a className={styles.planLink} href={`#${wingAnchor(wing)}`}>
+                <span className={styles.planNumber}>{wingCopy[wing].number}</span>
+                {wingCopy[wing].title}
+                <span className={styles.planCount}>{exhibitsInWing(wing).length}</span>
+              </a>
+            </li>
+          ))}
+        </ol>
+      </nav>
+
       <aside className={styles.promise}>
         <h2 className={styles.promiseTitle}>{pageCopy.promiseTitle}</h2>
         <p className={styles.promiseBody}>{pageCopy.promise}</p>
       </aside>
 
       {wings.map((wing) => (
-        <section className={styles.wing} key={wing} aria-labelledby={`wing-${wing}`}>
+        <section className={styles.wing} key={wing} aria-labelledby={wingAnchor(wing)}>
           <header className={styles.wingHead}>
             <p className={styles.wingNumber}>{wingCopy[wing].number}</p>
-            <h2 className={styles.wingTitle} id={`wing-${wing}`}>
+            <h2 className={styles.wingTitle} id={wingAnchor(wing)}>
               {wingCopy[wing].title}
             </h2>
             <p className={styles.wingBlurb}>{wingCopy[wing].blurb}</p>

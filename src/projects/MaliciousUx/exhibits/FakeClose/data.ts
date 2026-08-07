@@ -12,7 +12,7 @@ export const popups = [
 
 export const copy = {
   page: 'Twelve Ways To Use A Slow Cooker',
-  body: 'A slow cooker is a countertop appliance that cooks food at a low temperature over several hours. Before we get to the twelve ways, here is how my grandmother',
+  body: 'A slow cooker is a countertop appliance that cooks food at a low temperature over several hours. Before we get to the twelve ways, here is how my grandmother...',
   closeLabel: (index: number) => `Close popup ${index + 1} of ${popups.length}`,
   email: 'you@example.com',
   subscribe: 'Subscribe',

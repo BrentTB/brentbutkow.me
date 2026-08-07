@@ -1,0 +1,108 @@
+@use '../../styles/exhibit' as *;
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label {
+  @include spec-label;
+
+  margin-bottom: 0;
+}
+
+.input {
+  @include spec-field;
+}
+
+.knownTitle {
+  margin: 4px 0 0;
+  color: var(--spec-muted);
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.rules {
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--spec-muted);
+  font-size: 0.74rem;
+
+  li {
+    display: flex;
+    gap: 7px;
+    align-items: baseline;
+    margin-bottom: 2px;
+  }
+}
+
+.mark {
+  width: 0.8em;
+  flex-shrink: 0;
+}
+
+/**
+ * The form's own error will not say which clause you missed, so the list keeps score. Without this the
+ * only way to find out was to guess, which is hostile past the point of being a joke.
+ */
+.isMet {
+  color: var(--spec-ok);
+}
+
+.isBroken {
+  color: var(--spec-danger);
+}
+
+/* The clause that just appeared, marked so you can watch the goalposts move. */
+.newest {
+  color: var(--spec-ink);
+  font-weight: 600;
+  animation: ruleArrives 220ms ease-out;
+}
+
+@keyframes ruleArrives {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+}
+
+.submit,
+.again {
+  @include spec-button-primary;
+
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
+.again {
+  @include spec-button;
+}
+
+.readout {
+  @include spec-readout;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.errorText {
+  color: var(--spec-danger);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .newest {
+    animation: none;
+  }
+}

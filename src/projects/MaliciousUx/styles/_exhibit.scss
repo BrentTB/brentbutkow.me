@@ -14,6 +14,10 @@
   --spec-brand-hover: #2559d4;
   --spec-on-brand: #ffffff;
   --spec-danger: #c0392b;
+  /* Legal small print, set just above the threshold of being worth reading. */
+  --spec-fine-print: #b9bec6;
+  /* Text hidden by being almost exactly the page behind it. */
+  --spec-near-white: #f2f3f5;
   /* The green a validation checklist ticks over to. */
   --spec-ok: #1f8b4c;
   /* The grey an off switch goes, darker than a border so the track reads as a control. */

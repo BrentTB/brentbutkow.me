@@ -11,6 +11,8 @@ import { HealingToggle } from './HealingToggle/HealingToggle'
 import { copy as toggleCopy } from './HealingToggle/data'
 import { ImmortalBanner } from './ImmortalBanner/ImmortalBanner'
 import { copy as bannerCopy } from './ImmortalBanner/data'
+import { InvisibleUnsubscribe } from './InvisibleUnsubscribe/InvisibleUnsubscribe'
+import { copy as hiddenCopy } from './InvisibleUnsubscribe/data'
 import { PatientReject } from './PatientReject/PatientReject'
 import { copy as rejectCopy } from './PatientReject/data'
 import { SelfClearingForm } from './SelfClearingForm/SelfClearingForm'
@@ -205,6 +207,37 @@ describe('DP-015 the back-button trap', () => {
     clickWithPointer(screen.getByRole('button', { name: trapCopy.backLabel }))
 
     expect(window.history.length).toBe(before)
+  })
+})
+
+describe('the near-invisible unsubscribe', () => {
+  /**
+   * Hiding a control by contrast is the crime, but it stays a real labelled button, so focus reaches it
+   * and a screen reader announces it. That is the joke and the reason nobody is locked out.
+   */
+  it('keeps the link reachable and named, however invisible it is', () => {
+    show(<InvisibleUnsubscribe />)
+
+    const link = screen.getByRole('button', { name: hiddenCopy.unsubscribe })
+    link.focus()
+
+    expect(document.activeElement).toBe(link)
+  })
+
+  it('notices when the keyboard was what found it', () => {
+    show(<InvisibleUnsubscribe />)
+
+    clickWithKeyboard(screen.getByRole('button', { name: hiddenCopy.unsubscribe }))
+
+    expect(screen.getByText(hiddenCopy.keyboardFound)).toBeTruthy()
+  })
+
+  it('still works for anyone who manages to hit it with a cursor', () => {
+    show(<InvisibleUnsubscribe />)
+
+    clickWithPointer(screen.getByRole('button', { name: hiddenCopy.unsubscribe }))
+
+    expect(screen.getByText(hiddenCopy.found)).toBeTruthy()
   })
 })
 
