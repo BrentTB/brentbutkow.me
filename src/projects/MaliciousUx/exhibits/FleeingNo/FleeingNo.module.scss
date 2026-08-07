@@ -1,0 +1,53 @@
+@use '../../styles/exhibit' as *;
+
+.dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.question {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.row {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+}
+
+/* The pen the No is allowed to run around in. Tall enough to dodge, short enough to stay findable. */
+.pen {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-width: 140px;
+  min-height: 124px;
+  padding: 8px;
+  border: 1px dashed var(--spec-line);
+  border-radius: var(--spec-radius);
+}
+
+.yes {
+  @include spec-button-primary;
+
+  align-self: center;
+}
+
+.no {
+  @include spec-button;
+
+  will-change: transform;
+  transition: transform 160ms ease-out;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+.readout {
+  @include spec-readout;
+}

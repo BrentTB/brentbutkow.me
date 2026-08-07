@@ -208,6 +208,11 @@ export const routesMeta: Record<string, RouteMeta> = {
     description:
       'Image Encoder — hide a secret message inside a picture by nudging its pixel colors, optionally lock it with a key, and reveal it again. Steganography that runs entirely in your browser.',
   },
+  [`${routePaths.funStuff}${funStuffSubRoutes.maliciousUx}`]: {
+    title: 'Malicious UX — Brent Butkow',
+    description:
+      'A working museum of dark patterns and hostile interface design: a No button that runs from your cursor, a setting that switches itself back on, a phone field that eats digits, an unsubscribe five screens deep. Every exhibit is live, explained, and defeatable with a keyboard.',
+  },
   [`${routePaths.funStuff}${funStuffSubRoutes.gulagSort}`]: {
     title: 'Gulag Sort — Brent Butkow',
     description:

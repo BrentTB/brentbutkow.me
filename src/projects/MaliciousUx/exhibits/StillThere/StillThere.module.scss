@@ -1,0 +1,76 @@
+@use '../../styles/exhibit' as *;
+
+.player {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* The one dark rectangle in the museum's brightest room: a video player, mid-episode. */
+.screen {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 132px;
+  padding: 14px;
+  border-radius: var(--spec-radius);
+  background: var(--spec-video-bg);
+}
+
+.show {
+  margin: 0;
+  color: var(--spec-video-ink);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.playing {
+  margin: 3px 0 0;
+  color: var(--spec-video-muted);
+  font-size: 0.74rem;
+}
+
+.overlay {
+  @include spec-overlay;
+
+  border-radius: var(--spec-radius);
+  background: rgba(10, 11, 14, 0.78);
+}
+
+.panel {
+  @include spec-panel;
+
+  text-align: center;
+}
+
+.title {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.detail {
+  margin: 4px 0 12px;
+  color: var(--spec-muted);
+  font-size: 0.76rem;
+}
+
+.confirm {
+  @include spec-button-primary;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.readout {
+  @include spec-readout;
+}
+
+.reset {
+  @include spec-button;
+}

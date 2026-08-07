@@ -36,9 +36,9 @@ export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
 
 /** Who you are up against, so the choice is not a guess. */
 export const DIFFICULTY_BLURBS: Record<Difficulty, string> = {
-  [Difficulty.beginner]: 'A beginner, still working out where the good squares are.',
-  [Difficulty.intermediate]: 'A fair fight, as long as you are paying attention.',
-  [Difficulty.hard]: 'This one will make you earn every disc.',
+  [Difficulty.beginner]: 'A beginner, still learning the ropes.',
+  [Difficulty.intermediate]: 'Will give you a speed-walk for your money.',
+  [Difficulty.hard]: 'Don’t be shocked if you end up with nothing.',
 }
 
 export const STARTER_LABELS: Record<Starter, string> = {

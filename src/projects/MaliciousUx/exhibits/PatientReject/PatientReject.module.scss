@@ -1,0 +1,53 @@
+@use '../../styles/exhibit' as *;
+
+.consent {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.title {
+  margin: 0;
+  color: var(--spec-ink);
+  font-family: var(--spec-font);
+  font-size: 0.98rem;
+  font-weight: 600;
+}
+
+.detail {
+  margin: 0;
+  color: var(--spec-muted);
+  font-size: 0.8rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.accept {
+  @include spec-button-primary;
+}
+
+.reject {
+  @include spec-button;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* The wait, drawn as a ring that fills. It is the only thing on the panel that takes time. */
+.ring {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: conic-gradient(var(--spec-brand) var(--progress, 0deg), var(--spec-line) 0);
+}
+
+.readout {
+  @include spec-readout;
+}

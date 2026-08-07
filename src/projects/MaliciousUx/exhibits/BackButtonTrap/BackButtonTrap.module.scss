@@ -1,0 +1,94 @@
+@use '../../styles/exhibit' as *;
+
+.browser {
+  display: flex;
+  flex-direction: column;
+  min-height: 180px;
+}
+
+/* A drawing of browser chrome. The arrow belongs to this picture, not to the real one above it. */
+.chrome {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 1px solid var(--spec-line);
+  border-radius: var(--spec-radius) var(--spec-radius) 0 0;
+  background: var(--spec-panel);
+}
+
+.back {
+  padding: 1px 9px;
+  border: 1px solid var(--spec-line);
+  border-radius: 4px;
+  background: var(--spec-bg);
+  color: var(--spec-ink);
+  font: inherit;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--spec-brand);
+    outline-offset: 2px;
+  }
+}
+
+.url {
+  flex: 1;
+  overflow: hidden;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--spec-bg);
+  color: var(--spec-muted);
+  font-size: 0.72rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.viewport {
+  padding: 14px;
+  border: 1px solid var(--spec-line);
+  border-top: 0;
+  border-radius: 0 0 var(--spec-radius) var(--spec-radius);
+}
+
+.headline {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.filler {
+  margin: 6px 0 0;
+  color: var(--spec-muted);
+  font-size: 0.78rem;
+}
+
+.exit {
+  margin: 0;
+  color: var(--spec-muted);
+  font-size: 0.82rem;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: auto;
+  padding-top: 12px;
+}
+
+.readout {
+  @include spec-readout;
+}
+
+.again {
+  @include spec-button;
+}

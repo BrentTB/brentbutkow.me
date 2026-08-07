@@ -1,0 +1,55 @@
+@use '../../styles/exhibit' as *;
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.heading {
+  margin: 0;
+  color: var(--spec-ink);
+  font-family: var(--spec-font);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.label {
+  @include spec-label;
+
+  margin-bottom: 0;
+}
+
+.input {
+  @include spec-field;
+}
+
+.invalid {
+  border-color: var(--spec-danger);
+}
+
+.hint {
+  color: var(--spec-muted);
+  font-size: 0.72rem;
+}
+
+.submit {
+  @include spec-button-primary;
+
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
+.readout {
+  @include spec-readout;
+}
+
+.errorText {
+  color: var(--spec-danger);
+}

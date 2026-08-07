@@ -1,0 +1,83 @@
+.admission {
+  margin: -8px 0 30px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* The one honest notice in the building, so it gets the accent rule rather than a card. */
+.promise {
+  margin-bottom: 46px;
+  padding-left: 18px;
+  border-left: 2px solid var(--accent);
+}
+
+.promiseTitle {
+  margin: 0 0 6px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.promiseBody {
+  margin: 0;
+  max-width: 62ch;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+}
+
+.wing {
+  margin-bottom: 54px;
+}
+
+.wingHead {
+  margin-bottom: 6px;
+}
+
+.wingNumber {
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.wingTitle {
+  margin: 0;
+  font-size: clamp(1.5rem, 4vw, 2rem);
+}
+
+.wingBlurb {
+  margin: 6px 0 0;
+  max-width: 56ch;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+}
+
+.closing {
+  padding-top: 28px;
+  border-top: 1px solid var(--border);
+}
+
+.closingTitle {
+  margin: 0 0 8px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.closingBody {
+  margin: 0;
+  max-width: 62ch;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}

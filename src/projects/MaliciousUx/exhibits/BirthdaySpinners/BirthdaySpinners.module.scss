@@ -1,0 +1,51 @@
+@use '../../styles/exhibit' as *;
+
+.dob {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.legend {
+  @include spec-label;
+
+  padding: 0;
+  margin-bottom: 10px;
+}
+
+.spinners {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.spinner {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.label {
+  color: var(--spec-muted);
+  font-size: 0.7rem;
+}
+
+.select {
+  @include spec-field;
+
+  width: auto;
+  min-width: 84px;
+  appearance: auto;
+}
+
+.hint {
+  margin: 10px 0 0;
+  color: var(--spec-muted);
+  font-size: 0.74rem;
+}
+
+.readout {
+  @include spec-readout;
+
+  margin-top: 8px;
+}

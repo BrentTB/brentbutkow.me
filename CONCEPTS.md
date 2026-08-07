@@ -55,6 +55,17 @@ Full HTML5 game with engine, systems, abilities, semver changelog. Lives at [src
 - Changelog rule: update `CHANGELOG` + `GAME_VERSION` in `data.ts` per semver (major = breaking save, minor = feature, patch = balance/fix)
 - Reusable primitive example: `engine/math/homing.ts` (`homeTowardTarget`) — used by power orbs and clicked space metals
 
+## Malicious UX (museum of dark patterns)
+
+Sixteen deliberately hostile widgets, each in a "vitrine" beside a museum wall label. Lives at [src/projects/MaliciousUx/](src/projects/MaliciousUx/).
+
+- Add a specimen: component folder under `exhibits/` (`X.tsx` + `X.module.scss` + `data.ts` for its microcopy), a `placards` entry + `ExhibitId` in the project's `data.ts`/`malicious-ux.types.ts`, then a row in `exhibits/registry.ts`. `registry.test.ts` fails if any of those are missed.
+- **Keyboard-honesty contract**: hostility fires on pointer input only, gated by `usePointerIntent`. Tab + Enter always does what the label says. `exhibits/keyboard-honesty.test.tsx` is the guard — a new exhibit with a pointer trick belongs in it.
+- Shared behaviours: `useEvasiveTarget` (+ pure `engine/evade.ts`), `useOffscreenReset`, `useReturningPrompt`
+- Specimen palette (deliberately _not_ the site tokens — the widgets are meant to look foreign): `styles/_exhibit.scss`
+- Fun mode turns the dials up rather than changing the patterns: `hostilityFor()` in `data.ts`
+- The back-button trap never touches real `history` — the browser chrome is drawn
+
 ## Effects & atmosphere
 
 - Background water-ripple layer (mouse/touch reactive, Fun-mode only): [src/components/effects/WaterRipple.tsx](src/components/effects/WaterRipple.tsx)
