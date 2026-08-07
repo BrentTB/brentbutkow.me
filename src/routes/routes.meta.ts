@@ -211,7 +211,7 @@ export const routesMeta: Record<string, RouteMeta> = {
   [`${routePaths.funStuff}${funStuffSubRoutes.maliciousUx}`]: {
     title: 'Malicious UX — Brent Butkow',
     description:
-      'A working museum of dark patterns and hostile interface design: a No button that runs from your cursor, a setting that switches itself back on, a phone field that eats digits, an unsubscribe five screens deep. Every exhibit is live, explained, and defeatable with a keyboard.',
+      'A working collection of dark patterns and hostile interface design, with a No button that runs away from your cursor, a setting that switches itself back on when you look away, a phone field that eats digits, and an unsubscribe buried five screens deep. All of it is live, all of it is explained, and a keyboard beats every one of them.',
   },
   [`${routePaths.funStuff}${funStuffSubRoutes.gulagSort}`]: {
     title: 'Gulag Sort — Brent Butkow',
