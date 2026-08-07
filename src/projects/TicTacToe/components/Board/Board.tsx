@@ -7,7 +7,7 @@ import {
   ViewMode,
   WinLine,
 } from '../../tic-tac-toe.types'
-import { cssVars } from '../../css-vars'
+import { cssVars } from '../../../../utils/css-vars'
 import { BOARD_SIZE, CELL_COUNT, cellCoord } from '../../engine/lines'
 import {
   BEAD_RATIO,

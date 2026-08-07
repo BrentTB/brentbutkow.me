@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { HttpError } from '../api/api'
 import {
+  aimMove,
   beaconLeave,
   createRoom,
   getRoom,
@@ -17,6 +18,8 @@ import { RoomSession, clearRoomSession, loadRoomSession, saveRoomSession } from 
 import {
   MoveCodec,
   Outcome,
+  PASS_WIRE,
+  RoomChange,
   RoomCredentials,
   RoomOptions,
   RoomState,
@@ -43,7 +46,21 @@ export type Connection = (typeof Connection)[keyof typeof Connection]
 
 export interface UseOnlineRoomOptions<Move> {
   gameId: string
+  /** The board size a room this client opens is created at, and the default size it will join. */
   cellCount: number
+  /**
+   * Whether a room this client lands in is one it can play, beyond the game id matching. Defaults to
+   * "same board size as `cellCount`". A game whose board size can vary (Othello) widens this to accept
+   * any size it understands and then adopts the room's own `cellCount` — see `reconcile`, which bounds
+   * moves by the room's size rather than this client's.
+   */
+  acceptsRoom?: (room: RoomState) => boolean
+  /**
+   * Whether this game passes a turn (rides `PASS_WIRE` on the wire). Off by default, which keeps the
+   * corruption guard tight: a game with no passes rejects `PASS_WIRE` and caps the move list at one per
+   * cell. A game that does pass (Othello) accepts `PASS_WIRE` and doubles the ceiling for the headroom.
+   */
+  allowsPass?: boolean
   codec: MoveCodec<Move>
   /** Called once per newly-confirmed move, in order, for both seats. `index` is its 0-based position. */
   onRemoteMove: (move: Move, index: number) => void
@@ -60,6 +77,8 @@ export interface OnlineRoom<Move> {
   connection: Connection
   status: RoomStatus | null
   code: string | null
+  /** The room's board size. For a game that accepts any size, this is the room's, not this client's. */
+  cellCount: number
   mySeat: Seat | null
   seats: SeatInfo[]
   version: number
@@ -84,6 +103,11 @@ export interface OnlineRoom<Move> {
   findGame: (profile: SeatProfile, options?: RoomOptions) => Promise<void>
   /** Sends a move; resolves true once the server accepts it, false on rejection (with `error` set). */
   submit: (move: Move, finished?: boolean, won?: boolean) => Promise<boolean>
+  /**
+   * Records a move aimed but not committed, so the clock plays it instead of forfeiting on a timeout.
+   * Best-effort: a failure just means no auto-play, so it never surfaces an error or blocks play.
+   */
+  aim: (move: Move) => Promise<void>
   /** Publishes your own name and colour to the room, so the opponent's board shows them. */
   publishProfile: (profile: SeatProfile) => Promise<void>
   /** Clears the board and begins play. Nothing starts on its own, first game or fifth. */
@@ -94,7 +118,7 @@ export interface OnlineRoom<Move> {
    * Changes the room's own settings. Only the owner can, and only before the game starts. The whole
    * triple goes over: the endpoint replaces the settings rather than patching them.
    */
-  changeSettings: (options: Required<RoomOptions>) => Promise<void>
+  changeSettings: (settings: RoomChange) => Promise<void>
   /** Whether this seat may change them, so a control can be shown rather than guessed at. */
   canChangeSettings: boolean
   isOpen: boolean
@@ -136,6 +160,8 @@ const joinFailure = (err: unknown): string => {
 export function useOnlineRoom<Move>({
   gameId,
   cellCount,
+  acceptsRoom,
+  allowsPass = false,
   codec,
   onRemoteMove,
   onReset,
@@ -170,6 +196,10 @@ export function useOnlineRoom<Move>({
   onResetRef.current = onReset
   const codecRef = useRef(codec)
   codecRef.current = codec
+  // Held in a ref so a fresh function identity each render can't churn `belongsHere` and re-fire the
+  // resume effect that depends on it.
+  const acceptsRoomRef = useRef(acceptsRoom)
+  acceptsRoomRef.current = acceptsRoom
 
   const stopPolling = useCallback(() => {
     if (pollRef.current !== null) {
@@ -228,8 +258,15 @@ export function useOnlineRoom<Move>({
    */
   const reconcile = useCallback(
     (next: RoomState): boolean => {
-      const playable = (wire: number) => Number.isInteger(wire) && wire >= 0 && wire < cellCount
-      if (next.moves.length > cellCount || !next.moves.every(playable)) {
+      // Bounds come from the room's own size, not this client's default: a game whose board size
+      // varies (Othello) may be sitting in a room of a different size, adopted on join. A pass
+      // (`PASS_WIRE`) is only a legal wire value for a game that passes; a game with no passes rejects it
+      // and caps the list at one move per cell, so a corrupt list can't no-op its way to a desync.
+      const size = next.cellCount
+      const ceiling = allowsPass ? size * 2 : size
+      const playable = (wire: number) =>
+        (allowsPass && wire === PASS_WIRE) || (Number.isInteger(wire) && wire >= 0 && wire < size)
+      if (next.moves.length > ceiling || !next.moves.every(playable)) {
         endSession('This game no longer matches the board. Start a new one.')
         return false
       }
@@ -247,7 +284,7 @@ export function useOnlineRoom<Move>({
       setRoom(next)
       return true
     },
-    [cellCount, endSession]
+    [allowsPass, endSession]
   )
 
   /**
@@ -340,7 +377,9 @@ export function useOnlineRoom<Move>({
    * a board resized between sessions all land you in a room whose moves mean something else entirely.
    */
   const belongsHere = useCallback(
-    (state: RoomState) => state.gameId === gameId && state.cellCount === cellCount,
+    (state: RoomState) =>
+      state.gameId === gameId &&
+      (acceptsRoomRef.current ? acceptsRoomRef.current(state) : state.cellCount === cellCount),
     [cellCount, gameId]
   )
 
@@ -369,7 +408,9 @@ export function useOnlineRoom<Move>({
       setConnection(Connection.connecting)
       setError(null)
       try {
-        await enter(createRoom(gameId, profile, cellCount, options))
+        // A game whose size can vary sets it in the dialog; otherwise the room opens at this client's.
+        const size = options.cellCount ?? cellCount
+        await enter(createRoom(gameId, profile, size, options))
       } catch (err) {
         setConnection(Connection.error)
         setError(entryFailure(err, 'Could not create the room.'))
@@ -397,7 +438,9 @@ export function useOnlineRoom<Move>({
       setConnection(Connection.connecting)
       setError(null)
       try {
-        await enter(matchmake(gameId, profile, cellCount, options))
+        // A room this opens waits at the picked size, matching `create`; joining someone plays by theirs.
+        const size = options.cellCount ?? cellCount
+        await enter(matchmake(gameId, profile, size, options))
       } catch (err) {
         setConnection(Connection.error)
         setError(entryFailure(err, 'Could not find a game.'))
@@ -449,6 +492,18 @@ export function useOnlineRoom<Move>({
     [pollOnce, reconcile]
   )
 
+  const aim = useCallback(async (move: Move): Promise<void> => {
+    const session = sessionRef.current
+    const current = roomRef.current
+    if (session === null || current === null) return
+    try {
+      await aimMove(session.code, session.token, codecRef.current.toWire(move), current.version)
+    } catch {
+      // Aiming is best-effort: a failure just means the clock forfeits rather than plays this move,
+      // which is the pre-existing behaviour, so it is not worth interrupting play with an error.
+    }
+  }, [])
+
   const publishProfile = useCallback(
     async (profile: SeatProfile) => {
       const session = sessionRef.current
@@ -484,12 +539,12 @@ export function useOnlineRoom<Move>({
   }, [reconcile])
 
   const changeSettings = useCallback(
-    async (options: Required<RoomOptions>) => {
+    async (settings: RoomChange) => {
       const session = sessionRef.current
       if (session === null) return
       const epoch = epochRef.current
       try {
-        const state = await updateSettings(session.code, session.token, options)
+        const state = await updateSettings(session.code, session.token, settings)
         if (epoch !== epochRef.current) return
         if (reconcile(state)) setError(null)
       } catch (err) {
@@ -613,6 +668,7 @@ export function useOnlineRoom<Move>({
     connection,
     status: room?.status ?? null,
     code: room?.code ?? null,
+    cellCount: room?.cellCount ?? cellCount,
     mySeat,
     seats,
     version,
@@ -630,6 +686,7 @@ export function useOnlineRoom<Move>({
     join,
     findGame,
     submit,
+    aim,
     publishProfile,
     start,
     canStart: isOwner && opponentPresentNow && room?.status !== RoomStatus.active,

@@ -56,6 +56,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://brentbutkow.me/fun-stuff/games/othello</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://brentbutkow.me/fun-stuff/ascii-art</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>

@@ -1,8 +1,8 @@
 /**
- * A seeded generator, so the computer's choices are reproducible and its tests are not flaky.
+ * A seeded generator, so a game's computer choices are reproducible and its tests are not flaky.
  *
- * The engine never reaches for `Math.random` itself: every chooser takes an `Rng` and a test can hand
- * it a stub that walks a known sequence.
+ * The engines never reach for `Math.random` themselves: every chooser takes an `Rng` and a test can
+ * hand it a stub that walks a known sequence. Shared by the games under `src/projects/` that need it.
  */
 export type Rng = () => number
 

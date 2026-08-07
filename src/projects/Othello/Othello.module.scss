@@ -1,0 +1,242 @@
+@use '../../styles/shared' as *;
+
+// Disc palette, matching the board: matte near-black and warm off-white, off the site tokens.
+$disc-dark: #16171c; // near-black disc
+$disc-light: #e9e3d6; // warm off-white disc
+
+.status {
+  scroll-margin-top: 106px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  transition:
+    background 240ms ease,
+    padding 240ms ease;
+
+  /* The result, not just another turn line: the whole bar lights up in the accent and the text grows,
+     so a finished game is unmistakable even before you count the discs. */
+  &[data-win] {
+    padding: 20px 0;
+    background: rgba(var(--accent-rgb), 0.1);
+    border-color: rgba(var(--accent-rgb), 0.4);
+    animation: win-banner 360ms $ease-shoot;
+
+    .statusText {
+      color: var(--accent-strong);
+      font-size: 1.05rem;
+      font-weight: 600;
+    }
+
+    .swatch {
+      width: 18px;
+      height: 18px;
+      box-shadow:
+        inset 0 1px 1px rgba(255, 255, 255, 0.2),
+        0 0 14px rgba(var(--accent-rgb), 0.6);
+    }
+  }
+}
+
+@keyframes win-banner {
+  from {
+    opacity: 0.4;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* A disc, not a coloured dot: the turn indicator is the same token as the board's pieces. */
+.swatch {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  flex-shrink: 0;
+
+  &[data-player='dark'] {
+    background: $disc-dark;
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.14);
+  }
+  &[data-player='light'] {
+    background: $disc-light;
+    box-shadow: inset 0 -1px 1px rgba(0, 0, 0, 0.3);
+  }
+}
+
+.statusText {
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.84rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.play {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  margin: 8px 0 4px;
+}
+
+.boardArea {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  width: 100%;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-bottom: 12px;
+}
+
+/* The online turn clock, directly under the board. Shown only once the layout stacks and the room
+   panel has dropped below the board; wider, the panel is beside the board and keeps its own clock. */
+.boardClock {
+  display: none;
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.92rem;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+
+  &[data-low] {
+    color: rgb(var(--danger-rgb));
+    font-weight: 600;
+  }
+
+  @media (max-width: 999px) {
+    display: block;
+  }
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  white-space: nowrap;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.84rem;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    color 160ms ease;
+
+  &:hover {
+    color: var(--text);
+    background: var(--surface-strong);
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  &:disabled:hover {
+    color: var(--text-secondary);
+    background: var(--surface);
+  }
+}
+
+.sidebar {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.players {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.playersHeading {
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.nameRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+
+.nameInput {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.86rem;
+
+  &:focus-visible {
+    @include focus-ring(0);
+    border-color: transparent;
+  }
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (min-width: 1000px) {
+  .play {
+    grid-template-columns: minmax(0, 1fr) 330px;
+    gap: 24px 32px;
+    align-items: start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button {
+    transition-duration: 1ms;
+  }
+  .status {
+    transition-duration: 1ms;
+
+    &[data-win] {
+      animation: none;
+    }
+  }
+}

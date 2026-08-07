@@ -1,4 +1,4 @@
-@use '../../../../styles/shared' as *;
+@use '../../styles/shared' as *;
 
 .panel {
   display: flex;
@@ -99,6 +99,14 @@
   &[data-low] {
     color: rgb(var(--danger-rgb));
     font-weight: 600;
+  }
+
+  /* When the layout stacks, the panel drops below the board; a game that opts in shows the clock
+     under the board instead, so the panel's copy of it comes off to avoid two on the page. */
+  &[data-hide-mobile] {
+    @media (max-width: 999px) {
+      display: none;
+    }
   }
 }
 

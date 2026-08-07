@@ -1,14 +1,57 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { RoomStatus, Seat, SeatInfo, SeatProfile } from '../../../../multiplayer/multiplayer.types'
-import { Connection, OnlineRoom } from '../../../../multiplayer/useOnlineRoom'
-import { ROOM_CODE_LENGTH } from '../../../../multiplayer/room-code'
-import { MAX_NAME_LENGTH, MOVE_LIMITS, ONLINE_STARTERS, gameCopy } from '../../data'
+import { RoomStatus, Seat, SeatInfo, SeatProfile } from '../multiplayer.types'
+import { Connection, OnlineRoom } from '../useOnlineRoom'
+import { ROOM_CODE_LENGTH } from '../room-code'
+import { MOVE_LIMITS, ONLINE_STARTERS } from '../room-options'
+import { OnlineCopy } from '../online-copy'
 import { OnlinePanel } from './OnlinePanel'
 
 afterEach(cleanup)
 
-const copy = gameCopy.online
+const MAX_NAME_LENGTH = 14
+
+/** A self-contained copy fixture, so the shared panel's test does not lean on any one game's wording. */
+const copy: OnlineCopy = {
+  title: 'Online game',
+  intro: 'Play a friend or a stranger online.',
+  connecting: 'Connecting…',
+  createTitle: 'Create a room',
+  create: 'Set up a room',
+  joinTitle: 'Join an existing room',
+  findGame: 'Find a game',
+  findHint: 'Joins an existing open room if possible, otherwise creates a new room.',
+  codeLabel: 'Room code',
+  codePlaceholder: 'Enter a code',
+  join: 'Join a game',
+  openRoom: 'Create the room',
+  yourCode: 'Your room code',
+  copyLink: 'Copy link',
+  copied: 'Copied',
+  waiting: 'Waiting for someone to join',
+  yourTurn: 'Your move',
+  theirTurn: 'Their move',
+  timeLeft: (clock: string) => `${clock} left`,
+  opponentLeft: (name: string) => `${name} left the room`,
+  opponentLeftUnnamed: 'The other player left the room',
+  unnamed: 'No name yet',
+  youTag: '(you)',
+  editSettings: 'Edit room settings',
+  saveSettings: 'Save settings',
+  settingsTitle: 'Room settings',
+  cancel: 'Cancel',
+  playAgain: 'Play again',
+  startGame: 'Start game',
+  startHint: 'You can change the settings above until you start.',
+  waitingToStart: 'Waiting for the other player to start',
+  leave: 'Leave game',
+  firstMoveLabel: 'Opening move',
+  clockLabel: 'Move time limit',
+  openLabel: 'Open to anyone',
+  openHint: 'Anyone looking for a game can join this room.',
+  openYes: 'Anyone can join',
+  openNo: 'Code only',
+}
 
 const PROFILE: SeatProfile = { name: 'Ada', colour: '233, 164, 84' }
 
@@ -18,6 +61,7 @@ function fakeRoom(overrides: Partial<OnlineRoom<number>> = {}): OnlineRoom<numbe
     connection: Connection.idle,
     status: null,
     code: null,
+    cellCount: 64,
     mySeat: null,
     seats: [],
     version: 0,
@@ -34,6 +78,7 @@ function fakeRoom(overrides: Partial<OnlineRoom<number>> = {}): OnlineRoom<numbe
     join: vi.fn(async () => undefined),
     findGame: vi.fn(async () => undefined),
     submit: vi.fn(async () => true),
+    aim: vi.fn(async () => undefined),
     publishProfile: vi.fn(async () => undefined),
     start: vi.fn(async () => undefined),
     canStart: false,
@@ -66,7 +111,16 @@ const seat = (which: Seat, name: string, joined = true): SeatInfo => ({
 })
 
 const show = (room: OnlineRoom<number>, initialCode?: string) => {
-  render(<OnlinePanel room={room} profile={PROFILE} initialCode={initialCode} />)
+  render(
+    <OnlinePanel
+      room={room}
+      profile={PROFILE}
+      initialCode={initialCode}
+      copy={copy}
+      maxNameLength={MAX_NAME_LENGTH}
+      seatSwatchRgb={(entry) => entry.colour}
+    />
+  )
   return room
 }
 
@@ -88,11 +142,6 @@ describe('OnlinePanel — getting into a game', () => {
     expect('AB2K9M'.length).toBe(ROOM_CODE_LENGTH)
   })
 
-  /**
-   * Regression: the field only trimmed on read, so a pasted " AB2K9M" was clipped to six raw characters by
-   * the field's own limit and then trimmed to five — a full-looking field that refused both Join and any
-   * further typing. Sanitising as it is typed also matches the upper case the field displays.
-   */
   it('keeps the field to the characters a room code is made of', () => {
     const room = show(fakeRoom())
     const field = screen.getByLabelText(copy.codeLabel) as HTMLInputElement
@@ -121,7 +170,6 @@ describe('OnlinePanel — getting into a game', () => {
     })
   })
 
-  /** Opening a room asks about its terms first: the button leads to the dialog and creates nothing. */
   it('opens the settings before creating anything', () => {
     const room = show(fakeRoom())
 
@@ -182,7 +230,6 @@ describe('OnlinePanel — in a room', () => {
     expect(screen.getByText(copy.youTag)).toBeTruthy()
   })
 
-  /** A name comes from the other player's client, so the row is not obliged to render all of it. */
   it('caps an opponent name at the length a seat row is built for', () => {
     const long = 'X'.repeat(MAX_NAME_LENGTH + 40)
     show(connectedRoom({ seats: [seat(Seat.first, 'Ada'), seat(Seat.second, long)] }))
@@ -196,7 +243,7 @@ describe('OnlinePanel — in a room', () => {
     expect(screen.getByText(copy.unnamed)).toBeTruthy()
   })
 
-  it('says whose move it is, in all three states', () => {
+  it('says whose move it is while a game is running, and who is waited on before one', () => {
     show(connectedRoom({ status: RoomStatus.active, isMyTurn: true }))
     expect(screen.getByText(copy.yourTurn)).toBeTruthy()
 
@@ -209,7 +256,13 @@ describe('OnlinePanel — in a room', () => {
     expect(screen.getByText(copy.waiting)).toBeTruthy()
   })
 
-  /** A finished game has its result on the status line above the board; a turn line would contradict it. */
+  /** Both players in, nobody has started: neither is "on turn", so the turn line stays quiet. */
+  it('claims no turn before the first game has started', () => {
+    show(connectedRoom({ status: RoomStatus.waiting, isMyTurn: false }))
+    expect(screen.queryByText(copy.theirTurn)).toBeNull()
+    expect(screen.queryByText(copy.yourTurn)).toBeNull()
+  })
+
   it('says nothing about turns once the game is over', () => {
     show(connectedRoom({ status: RoomStatus.finished }))
 
@@ -228,11 +281,9 @@ describe('OnlinePanel — in a room', () => {
     )
 
     expect(screen.getByRole('status').textContent).toBe(copy.opponentLeft('Linus'))
-    // A seat somebody walked out of is not a seat still waiting for its first player.
     expect(screen.queryByText(copy.waiting)).toBeNull()
   })
 
-  /** "No name yet left the room" is not a sentence, so a nameless leaver gets its own wording. */
   it('rewords the walkout when the opponent never named themselves', () => {
     show(
       connectedRoom({
@@ -248,14 +299,15 @@ describe('OnlinePanel — in a room', () => {
 
 describe('OnlinePanel — the room settings', () => {
   it('reads the terms out, with no way to change them from the other seat', () => {
-    show(connectedRoom({ mySeat: Seat.second, moveLimitSeconds: 60, isOpen: true }))
+    // Any offered limit past "None": drive the room with its seconds and read back its label.
+    const limit = MOVE_LIMITS[2]
+    show(connectedRoom({ mySeat: Seat.second, moveLimitSeconds: limit.seconds, isOpen: true }))
 
-    expect(screen.getByText(MOVE_LIMITS[2].label)).toBeTruthy()
+    expect(screen.getByText(limit.label)).toBeTruthy()
     expect(screen.getByText(copy.openYes)).toBeTruthy()
     expect(screen.queryByRole('button', { name: copy.editSettings })).toBeNull()
   })
 
-  /** Named from the reader's own seat: the joiner is never told "You" about the other player. */
   it('describes the opening move from the reader’s side of the table', () => {
     show(connectedRoom({ mySeat: Seat.second, firstSeat: Seat.first }))
     expect(screen.getByText(ONLINE_STARTERS[1].label)).toBeTruthy()
@@ -265,10 +317,6 @@ describe('OnlinePanel — the room settings', () => {
     expect(screen.getByText(ONLINE_STARTERS[0].label)).toBeTruthy()
   })
 
-  /**
-   * A matchmade room can be running a limit this page does not offer. Read as "None" while the clock counts
-   * down, that is worse than no answer at all.
-   */
   it('shows a limit it does not offer rather than calling it none', () => {
     show(connectedRoom({ moveLimitSeconds: 45 }))
 
@@ -291,6 +339,44 @@ describe('OnlinePanel — the room settings', () => {
     })
   })
 
+  it('offers the board sizes and sends the picked one for a game that can resize', () => {
+    const sizes = [
+      { value: 36, label: '6×6' },
+      { value: 64, label: '8×8' },
+      { value: 100, label: '10×10' },
+    ]
+    const room = connectedRoom({ canChangeSettings: true, cellCount: 64 })
+    render(
+      <OnlinePanel
+        room={room}
+        profile={PROFILE}
+        copy={{ ...copy, boardSizeLabel: 'Board size' }}
+        maxNameLength={MAX_NAME_LENGTH}
+        seatSwatchRgb={(entry) => entry.colour}
+        boardSizes={sizes}
+      />
+    )
+
+    fireEvent.click(button(copy.editSettings))
+    // The room's current size is the one shown as chosen.
+    expect(radio('8×8').getAttribute('aria-checked')).toBe('true')
+    fireEvent.click(radio('10×10'))
+    fireEvent.click(button(copy.saveSettings))
+
+    expect(room.changeSettings).toHaveBeenCalledWith({
+      firstSeat: Seat.first,
+      isOpen: false,
+      moveLimitSeconds: null,
+      cellCount: 100,
+    })
+  })
+
+  it('omits the board sizes for a game that has only one', () => {
+    show(connectedRoom({ canChangeSettings: true }))
+    fireEvent.click(button(copy.editSettings))
+    expect(screen.queryByRole('radio', { name: '8×8' })).toBeNull()
+  })
+
   it('leaves the room alone when the dialog is cancelled', () => {
     const room = show(connectedRoom({ canChangeSettings: true }))
 
@@ -301,7 +387,6 @@ describe('OnlinePanel — the room settings', () => {
     expect(room.changeSettings).not.toHaveBeenCalled()
   })
 
-  /** Both groups are radio groups, so they owe one tab stop and working arrow keys. */
   it('gives each group in the dialog one tab stop and arrow keys', () => {
     show(connectedRoom({ canChangeSettings: true }))
     fireEvent.click(button(copy.editSettings))
@@ -318,7 +403,6 @@ describe('OnlinePanel — the room settings', () => {
     )
   })
 
-  /** The terms are only a question while a game is not running, so they come off the panel mid-game. */
   it('puts the settings away once a game is under way', () => {
     show(connectedRoom({ status: RoomStatus.active, canChangeSettings: true }))
 
@@ -348,7 +432,6 @@ describe('OnlinePanel — starting a game', () => {
     expect(screen.getByRole('button', { name: copy.playAgain })).toBeTruthy()
   })
 
-  /** From the other seat the start is somebody else's to press, so the wait is explained. */
   it('explains the wait to the player who cannot start', () => {
     show(connectedRoom({ canStart: false }))
 

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Board, Difficulty, Player } from './tic-tac-toe.types'
 import { chooseMove } from './engine/opponent'
-import { Rng } from './engine/rng'
+import { Rng } from '../../utils/rng'
 
 /**
  * How long the computer appears to think, whatever the difficulty.

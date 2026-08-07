@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 
+/** Where the countdown turns urgent, which is about when it starts affecting how you play. */
+export const LOW_CLOCK_SECONDS = 10
+
 /**
  * Seconds left on the current turn, or null when no clock is running.
  *

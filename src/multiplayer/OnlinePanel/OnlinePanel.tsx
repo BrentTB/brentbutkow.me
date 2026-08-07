@@ -1,22 +1,14 @@
 import { FormEvent, useEffect, useRef, useState } from 'react'
-import { ROOM_CODE_LENGTH, roomInviteUrl } from '../../../../multiplayer/room-code'
-import {
-  RoomOptions,
-  RoomStatus,
-  Seat,
-  SeatProfile,
-} from '../../../../multiplayer/multiplayer.types'
-import { Connection, OnlineRoom } from '../../../../multiplayer/useOnlineRoom'
-import { formatClock, useTurnClock } from '../../../../multiplayer/useTurnClock'
-import { cssVars } from '../../css-vars'
-import { MAX_NAME_LENGTH, gameCopy } from '../../data'
-import { LeaveIcon } from '../LeaveIcon/LeaveIcon'
+import { ROOM_CODE_LENGTH, roomInviteUrl } from '../room-code'
+import { RoomChange, RoomStatus, Seat, SeatInfo, SeatProfile } from '../multiplayer.types'
+import { Connection, OnlineRoom } from '../useOnlineRoom'
+import { LOW_CLOCK_SECONDS, formatClock, useTurnClock } from '../useTurnClock'
+import { cssVars } from '../../utils/css-vars'
+import { OnlineCopy } from '../online-copy'
+import { LeaveIcon } from './LeaveIcon'
 import { RoomSettings } from './RoomSettings'
-import { RoomSettingsDialog } from './RoomSettingsDialog'
+import { BoardSizeOption, RoomSettingsDialog } from './RoomSettingsDialog'
 import styles from './OnlinePanel.module.scss'
-
-/** Where the countdown turns urgent, which is about when it starts affecting how you play. */
-const LOW_CLOCK_SECONDS = 10
 
 /** How long "Copied" stays on the button before it goes back to offering the link. */
 const COPIED_FEEDBACK_MS = 2000
@@ -28,7 +20,7 @@ const COPIED_FEEDBACK_MS = 2000
 const sanitiseCode = (raw: string) => raw.replace(/[^A-Za-z0-9]/g, '').toUpperCase()
 
 /** What a room opens on before anyone touches the settings: you first, no clock, code only. */
-const STANDARD_OPTIONS: Required<RoomOptions> = {
+const STANDARD_OPTIONS: RoomChange = {
   firstSeat: Seat.first,
   isOpen: false,
   moveLimitSeconds: null,
@@ -40,15 +32,39 @@ interface OnlinePanelProps {
   profile: SeatProfile
   /** A code pulled from an invite link, prefilling the join field. */
   initialCode?: string
+  /** The game's wording, so the shared panel reads in the game's own voice. */
+  copy: OnlineCopy
+  /** Longest a name may be, capped again here since the opponent's name arrives from the server. */
+  maxNameLength: number
+  /**
+   * The swatch colour for a seat, as comma-separated rgb. A game where players pick a colour returns
+   * the stored one; a game with fixed colours (Othello) derives it from the seat and who opens.
+   */
+  seatSwatchRgb: (entry: SeatInfo, firstSeat: Seat) => string
+  /**
+   * Hide the panel's clock once the layout stacks (the sidebar drops below the board), for a game that
+   * shows the clock under the board there instead, so the two don't both appear. Off by default.
+   */
+  hideClockOnMobile?: boolean
+  /** Board sizes the settings dialog may pick from, for a game whose size can change. */
+  boardSizes?: readonly BoardSizeOption[]
 }
 
 /** Set up a room or join one, then show the code, both players, the clock, and whose move it is. */
-export function OnlinePanel({ room, profile, initialCode = '' }: OnlinePanelProps) {
+export function OnlinePanel({
+  room,
+  profile,
+  initialCode = '',
+  copy,
+  maxNameLength,
+  seatSwatchRgb,
+  hideClockOnMobile = false,
+  boardSizes,
+}: OnlinePanelProps) {
   const [code, setCode] = useState(() => sanitiseCode(initialCode))
   const [copied, setCopied] = useState(false)
   /* The settings dialog is the only place settings are edited: shut, nothing is pending anywhere. */
   const [editing, setEditing] = useState(false)
-  const copy = gameCopy.online
   const secondsLeft = useTurnClock(room.turnEndsAt)
 
   // Follows the code the page supplies, so an invite fills the field and leaving a room empties it.
@@ -84,18 +100,21 @@ export function OnlinePanel({ room, profile, initialCode = '' }: OnlinePanelProp
     // A room that has a game behind it says "play again" rather than "start".
     const played = finished || room.version > 0
     const opponent = room.seats.find((seat) => seat.seat !== room.mySeat)
-    const opponentName = (opponent?.name.trim() ?? '').slice(0, MAX_NAME_LENGTH)
-    /* Nothing to say about turns once a game is over: the result is on the status line above the board,
-       and a finished room with an empty seat is not waiting for anyone to arrive. A seat somebody walked
-       out of is not waiting either — the note below says what happened to it. */
+    const opponentName = (opponent?.name.trim() ?? '').slice(0, maxNameLength)
+    /* Whose turn it is, but only once a game is actually running. Before the first move — both players
+       here, nobody has pressed start — neither side is "on turn", so saying "their move" reads as a game
+       already under way. A finished room says nothing here either: the result is on the status line above
+       the board, and a seat somebody walked out of has its own note below. */
     const turn =
       finished || room.opponentLeft
         ? null
         : !room.opponentPresent
           ? copy.waiting
-          : room.isMyTurn
-            ? copy.yourTurn
-            : copy.theirTurn
+          : !running
+            ? null
+            : room.isMyTurn
+              ? copy.yourTurn
+              : copy.theirTurn
 
     return (
       <section className={styles.panel} aria-labelledby="online-heading">
@@ -117,13 +136,13 @@ export function OnlinePanel({ room, profile, initialCode = '' }: OnlinePanelProp
             <li key={entry.seat} className={styles.seat} data-away={!entry.joined || undefined}>
               <span
                 className={styles.swatch}
-                style={cssVars({ '--seat-rgb': entry.colour })}
+                style={cssVars({ '--seat-rgb': seatSwatchRgb(entry, room.firstSeat) })}
                 aria-hidden="true"
               />
               <span className={styles.seatName}>
                 {/* Capped here as well as in the field: the name arrives from the server, and the other
                     player's client is not something this row can take at its word. */}
-                {entry.name.trim().slice(0, MAX_NAME_LENGTH) || copy.unnamed}
+                {entry.name.trim().slice(0, maxNameLength) || copy.unnamed}
                 {entry.seat === room.mySeat && <span className={styles.mine}> {copy.youTag}</span>}
               </span>
             </li>
@@ -140,7 +159,11 @@ export function OnlinePanel({ room, profile, initialCode = '' }: OnlinePanelProp
             of any live region so it is not read aloud once a second; the turn line above carries the
             state that matters. */}
         {secondsLeft !== null && !finished && (
-          <p className={styles.clock} data-low={secondsLeft <= LOW_CLOCK_SECONDS || undefined}>
+          <p
+            className={styles.clock}
+            data-low={secondsLeft <= LOW_CLOCK_SECONDS || undefined}
+            data-hide-mobile={hideClockOnMobile || undefined}
+          >
             {copy.timeLeft(formatClock(secondsLeft))}
           </p>
         )}
@@ -161,7 +184,9 @@ export function OnlinePanel({ room, profile, initialCode = '' }: OnlinePanelProp
               firstSeat={room.firstSeat}
               moveLimitSeconds={room.moveLimitSeconds}
               isOpen={room.isOpen}
+              cellCount={room.cellCount}
               mySeat={room.mySeat ?? undefined}
+              copy={copy}
             />
             {room.canChangeSettings && (
               <button type="button" className={styles.secondary} onClick={() => setEditing(true)}>
@@ -191,8 +216,12 @@ export function OnlinePanel({ room, profile, initialCode = '' }: OnlinePanelProp
               firstSeat: room.firstSeat,
               isOpen: room.isOpen,
               moveLimitSeconds: room.moveLimitSeconds,
+              // Only carry the size for a game that can change it, so others keep the plain triple.
+              ...(boardSizes ? { cellCount: room.cellCount } : {}),
             }}
             confirmLabel={copy.saveSettings}
+            copy={copy}
+            boardSizes={boardSizes}
             onCancel={() => setEditing(false)}
             onConfirm={(next) => {
               setEditing(false)
@@ -271,8 +300,12 @@ export function OnlinePanel({ room, profile, initialCode = '' }: OnlinePanelProp
 
           {editing && (
             <RoomSettingsDialog
-              options={STANDARD_OPTIONS}
+              options={
+                boardSizes ? { ...STANDARD_OPTIONS, cellCount: room.cellCount } : STANDARD_OPTIONS
+              }
               confirmLabel={copy.openRoom}
+              copy={copy}
+              boardSizes={boardSizes}
               onCancel={() => setEditing(false)}
               onConfirm={(next) => {
                 setEditing(false)

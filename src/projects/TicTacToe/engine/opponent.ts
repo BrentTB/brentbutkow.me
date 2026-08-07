@@ -1,7 +1,7 @@
 import { Board, Difficulty, Player } from '../tic-tac-toe.types'
 import { legalMoves, opponentOf } from './board'
 import { Weights, scoreCell } from './evaluate'
-import { Rng, pickOne, pickWeighted } from './rng'
+import { Rng, pickOne, pickWeighted } from '../../../utils/rng'
 import { findBestMove } from './search'
 import { Sight, threatCells, winningMoves } from './threats'
 

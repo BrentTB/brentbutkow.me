@@ -115,7 +115,8 @@ describe('execute — tree', () => {
     expect(output).toContain('│   ├── games/')
     expect(output).toContain('│   │   ├── null-space/')
     expect(output).toContain('│   │   ├── pixel-world-simulator/')
-    expect(output).toContain('│   │   └── 4x4x4-tic-tac-toe/')
+    expect(output).toContain('│   │   ├── 4x4x4-tic-tac-toe/')
+    expect(output).toContain('│   │   └── othello/')
     expect(output).toContain('└── contact/')
   })
 
@@ -371,6 +372,7 @@ describe('completions', () => {
     expect(completions('cd fun-stuff/games/')).toEqual([
       'cd fun-stuff/games/4x4x4-tic-tac-toe',
       'cd fun-stuff/games/null-space',
+      'cd fun-stuff/games/othello',
       'cd fun-stuff/games/pixel-world-simulator',
     ])
   })

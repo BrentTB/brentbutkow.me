@@ -120,9 +120,11 @@ export function GameSetup({
             </div>
           </div>
 
-          {commit === MoveCommit.confirm && (
-            <p className={styles.blurb}>{gameCopy.online.commitHint}</p>
-          )}
+          <p className={styles.blurb}>
+            {commit === MoveCommit.confirm
+              ? gameCopy.online.commitHint
+              : gameCopy.online.commitHintInstant}
+          </p>
         </>
       )}
 

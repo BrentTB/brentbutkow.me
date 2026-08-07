@@ -16,9 +16,16 @@ import {
   Starter,
   ViewMode,
 } from './tic-tac-toe.types'
-import { cssVars } from './css-vars'
-import { DEFAULT_PLAYERS, PLAYER_COLOURS, PLAYER_SLOTS, VIEW_LABELS, gameCopy } from './data'
-import { Rng, seededRng } from './engine/rng'
+import { cssVars } from '../../utils/css-vars'
+import {
+  DEFAULT_PLAYERS,
+  MAX_NAME_LENGTH,
+  PLAYER_COLOURS,
+  PLAYER_SLOTS,
+  VIEW_LABELS,
+  gameCopy,
+} from './data'
+import { Rng, seededRng } from '../../utils/rng'
 import { useComputerTurn } from './useComputerTurn'
 import { useMoveCommit } from './useMoveCommit'
 import { Connection, useOnlineRoom } from '../../multiplayer/useOnlineRoom'
@@ -35,7 +42,8 @@ import {
   yieldsColour,
 } from './online'
 import { GameSetup } from './components/GameSetup/GameSetup'
-import { OnlinePanel } from './components/OnlinePanel/OnlinePanel'
+import { OnlinePanel } from '../../multiplayer/OnlinePanel/OnlinePanel'
+import { BoardClock } from '../../multiplayer/BoardClock'
 import { applyMove, isBoardFull, opponentOf } from './engine/board'
 import { deckHeight, spacingFor } from './engine/geometry'
 import { findWinningLine, lineShape } from './engine/lines'
@@ -327,6 +335,7 @@ export function TicTacToe({ computerSeed }: TicTacToeProps = {}) {
 
   /** Sends a move to the room. The server cannot judge the board, so a winning move says so itself. */
   const submitMove = room.submit
+  const aimMove = room.aim
   const sendMove = useCallback(
     async (index: number) => {
       const after = applyMove(board, index, currentPlayer)
@@ -362,7 +371,11 @@ export function TicTacToe({ computerSeed }: TicTacToeProps = {}) {
         // just moves the ghost, so a mis-tap costs nothing.
         if (confirming) {
           if (pending === index) void sendMove(index)
-          else setPending(index)
+          else {
+            // Aiming also tells the server, so a timeout plays this move instead of forfeiting.
+            setPending(index)
+            void aimMove(index)
+          }
           return
         }
         void sendMove(index)
@@ -370,7 +383,7 @@ export function TicTacToe({ computerSeed }: TicTacToeProps = {}) {
       }
       playAt(index)
     },
-    [consumedDrag, locked, isOnline, confirming, pending, sendMove, playAt]
+    [consumedDrag, locked, isOnline, confirming, pending, sendMove, playAt, aimMove]
   )
 
   // Focus isolates a layer without touching the camera: the viewpoint stays where it was put.
@@ -627,6 +640,17 @@ export function TicTacToe({ computerSeed }: TicTacToeProps = {}) {
           </Board>
         </div>
 
+        {/* On a phone the room panel sits well below the board, so the clock comes up here, directly
+            under it. On a wide layout the panel is beside the board and keeps its own — see the CSS. */}
+        {isOnline && (
+          <BoardClock
+            turnEndsAt={room.turnEndsAt}
+            label={gameCopy.online.timeLeft}
+            finished={room.status === RoomStatus.finished}
+            className={styles.boardClock}
+          />
+        )}
+
         <div className={styles.controls}>
           <div className={styles.group}>
             <span className={styles.groupLabel} id="view-label">
@@ -733,7 +757,15 @@ export function TicTacToe({ computerSeed }: TicTacToeProps = {}) {
             onStarterChange={changeStarter}
           />
           {isOnline && (
-            <OnlinePanel room={room} profile={myProfile} initialCode={inviteCode ?? undefined} />
+            <OnlinePanel
+              room={room}
+              profile={myProfile}
+              initialCode={inviteCode ?? undefined}
+              copy={gameCopy.online}
+              maxNameLength={MAX_NAME_LENGTH}
+              seatSwatchRgb={(entry) => entry.colour}
+              hideClockOnMobile
+            />
           )}
           <PlayerSetup
             players={players}

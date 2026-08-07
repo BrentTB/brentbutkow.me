@@ -31,6 +31,15 @@ export type Outcome = (typeof Outcome)[keyof typeof Outcome]
 export const Seat = { first: 0, second: 1 } as const
 export type Seat = (typeof Seat)[keyof typeof Seat]
 
+/**
+ * The reserved wire value for a turn spent without placing anything — a pass.
+ *
+ * A pass still consumes a turn, so it rides in the move list and keeps the seat alternation honest.
+ * The server reserves the same sentinel (`_MIN_MOVE` in the backend's rooms schema); games without
+ * passes never send it, so this changes nothing for them.
+ */
+export const PASS_WIRE = -1
+
 export interface SeatInfo {
   seat: Seat
   /** What that player calls themselves. Blank until they set one, so callers supply the fallback. */
@@ -57,7 +66,19 @@ export interface RoomOptions {
    * The server accepts 5 seconds to 86400 (a day) and rejects anything outside that window.
    */
   moveLimitSeconds?: number | null
+  /**
+   * The board size, as a cell count, for a game whose size can change between games (Othello). Omitted
+   * leaves the room's current size. Changing it resets the board — a different size cannot keep the
+   * moves that were played on the old one.
+   */
+  cellCount?: number
 }
+
+/**
+ * A full settings write: every room-level term required, except the board size, which stays optional
+ * because most games have a single one and never send it.
+ */
+export type RoomChange = Required<Omit<RoomOptions, 'cellCount'>> & Pick<RoomOptions, 'cellCount'>
 
 // A game's move as the wire integer the server exchanges, and back. The room bounds a wire move to
 // `[0, cellCount)`, so a codec maps onto a cell index rather than inventing sentinels.
