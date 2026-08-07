@@ -166,6 +166,7 @@ export const routesMeta: Record<string, RouteMeta> = {
     title: '4×4×4 Tic-Tac-Toe — Brent Butkow',
     description:
       'Four in a row on a 4×4 board, except the board is a cube four layers deep. Turn the cube or spread the layers out, then play a friend on the same screen, a friend online over a room code, or a computer opponent with four difficulty levels.',
+    ogImage: '/og/4x4x4-tic-tac-toe.png',
     jsonLd: {
       '@context': 'https://schema.org',
       '@type': 'VideoGame',
@@ -184,6 +185,7 @@ export const routesMeta: Record<string, RouteMeta> = {
     title: 'Othello — Brent Butkow',
     description:
       'Play Othello in your browser. Trap a line of your opponent’s discs and they flip to your colour; whoever holds the most when the board fills wins. Play a friend on the same screen, a friend online over a room code, or a computer opponent at three difficulty levels, on a 6×6, 8×8, or 10×10 board.',
+    ogImage: '/og/othello.png',
     jsonLd: {
       '@context': 'https://schema.org',
       '@type': 'VideoGame',
@@ -212,6 +214,7 @@ export const routesMeta: Record<string, RouteMeta> = {
     title: 'Malicious UX — Brent Butkow',
     description:
       'A working collection of dark patterns and hostile interface design, with a No button that runs away from your cursor, a setting that switches itself back on when you look away, a phone field that eats digits, and an unsubscribe buried five screens deep. All of it is live, all of it is explained, and a keyboard beats every one of them.',
+    ogImage: '/og/malicious-ux.png',
   },
   [`${routePaths.funStuff}${funStuffSubRoutes.gulagSort}`]: {
     title: 'Gulag Sort — Brent Butkow',

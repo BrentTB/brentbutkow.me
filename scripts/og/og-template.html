@@ -1,6 +1,7 @@
 <!doctype html>
 <!-- 1200x630 Open Graph card template. Rendered to PNG by scripts/generate-og.mjs via headless
-     Chrome; pick a variant with ?v=home|recall-radar|null-space|pixel-world-simulator. Mirrors the site's design
+     Chrome; pick a variant with ?v=home|recall-radar|null-space|pixel-world-simulator|malicious-ux|othello|tic-tac-toe.
+     Mirrors the site's design
      tokens (ink bg, warm gold accent, IBM Plex) and the terminal ~/ path motif. -->
 <html lang="en">
   <head>
@@ -148,6 +149,155 @@
         -webkit-mask-image: linear-gradient(to right, transparent, #000 90px);
         mask-image: linear-gradient(to right, transparent, #000 90px);
       }
+      /* The right-hand column the later cards put their signature in, faded off at its inner edge so the
+         text never runs into hard art. Same footprint as the pixel world's slab. */
+      .edgeArt {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 380px;
+        height: 630px;
+        -webkit-mask-image: linear-gradient(to right, transparent, #000 110px);
+        mask-image: linear-gradient(to right, transparent, #000 110px);
+      }
+      /* With art down the right-hand edge the text column stops at 620px, so a long title wraps rather
+         than running under it. */
+      .card.hasEdgeArt .title {
+        max-width: 620px;
+        font-size: 82px;
+      }
+      .card.hasEdgeArt .subtitle {
+        max-width: 19em;
+      }
+
+      /* Malicious UX: a scrap of somebody else's bright, hostile website in its case, with the No button
+         caught mid-hop and the cursor still back where it started. */
+      .specimen {
+        position: absolute;
+        top: 128px;
+        left: 74px;
+        right: -60px;
+        bottom: 128px;
+        background: #ffffff;
+        border-radius: 12px;
+      }
+      .specimenLine {
+        position: absolute;
+        left: 34px;
+        height: 12px;
+        border-radius: 6px;
+        background: #d8dce2;
+      }
+      .specimenBtn {
+        position: absolute;
+        border-radius: 8px;
+        font-family: 'IBM Plex Sans', sans-serif;
+        font-size: 20px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .specimenBtn.yes {
+        background: #2f6df6;
+        color: #ffffff;
+      }
+      .specimenBtn.no {
+        background: #ffffff;
+        color: #1b1f24;
+        border: 1px solid #d8dce2;
+      }
+      /* Where it was standing a moment ago, and the arc it took to get out of the way. */
+      .specimenGhost {
+        position: absolute;
+        border: 1px dashed #c3c8d0;
+        border-radius: 8px;
+      }
+      .hop {
+        position: absolute;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #c3c8d0;
+      }
+      .cursor {
+        position: absolute;
+        width: 26px;
+        height: 34px;
+        background: #1b1f24;
+        clip-path: polygon(0 0, 0 78%, 27% 58%, 47% 100%, 66% 88%, 47% 50%, 100% 44%);
+      }
+
+      /* Othello: the board mid-move, with a line of discs caught halfway through flipping colour. */
+      .board {
+        position: absolute;
+        top: 96px;
+        left: 60px;
+        display: grid;
+        grid-template-columns: repeat(8, 54px);
+        grid-template-rows: repeat(8, 54px);
+        gap: 3px;
+        padding: 10px;
+        border-radius: 10px;
+        background: #17503a;
+      }
+      .square {
+        background: #1f6b4a;
+        border-radius: 3px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .disc {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+      }
+      .disc.dark {
+        background: #14161b;
+      }
+      .disc.light {
+        background: #f3efe7;
+      }
+      /**
+       * A disc mid-flip, seen edge-on: it narrows towards the halfway point and shows whichever face is
+       * still turned outwards, so the colour switches over rather than blending. Each one in the line is a
+       * little further through than the last, which is what makes it read as a flip in progress.
+       */
+      .disc.turning {
+        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
+      }
+
+      /* 4x4x4: the four layers, stacked back to front, with a line running corner to corner through them. */
+      .layers {
+        position: absolute;
+        inset: 0;
+      }
+      /**
+       * Each layer is opaque, so the one in front of it hides everything but its top row. Four transparent
+       * grids stacked on each other read as noise; a solid front plate with three edges behind it reads as
+       * depth. Painted back to front, and dimmed with distance rather than with opacity — opacity on the
+       * layer would make its own background see-through and give the occlusion away.
+       */
+      .layer {
+        position: absolute;
+        display: grid;
+        grid-template-columns: repeat(4, 48px);
+        grid-template-rows: repeat(4, 48px);
+        gap: 5px;
+        padding: 9px;
+        border-radius: 9px;
+        background: var(--bg);
+        box-shadow: 0 -1px 0 rgba(243, 239, 231, 0.16);
+      }
+      .cell {
+        border: 1px solid var(--cellEdge);
+        border-radius: 4px;
+      }
+      .cell.taken {
+        border-color: var(--takenEdge);
+        background: var(--takenFill);
+      }
     </style>
   </head>
   <body>
@@ -156,6 +306,7 @@
       <div class="stars" id="stars"></div>
       <canvas class="strata" id="strata" width="38" height="63"></canvas>
       <div class="blast" id="blast" hidden></div>
+      <div class="edgeArt" id="edgeArt"></div>
       <div class="path" id="path"></div>
       <div class="title" id="title"></div>
       <div class="subtitle" id="subtitle"></div>
@@ -197,6 +348,34 @@
           tags: ['Playable in your browser'],
           stars: true,
         },
+        'malicious-ux': {
+          path: '~/fun-stuff/malicious-ux',
+          title: 'Malicious UX',
+          subtitle:
+            'An exhibition of actively hostile interface design, including buttons that dodge your cursor and settings that undo themselves.',
+          tags: ['Every exhibit is live'],
+          // Three lines, not four: the fourth drove the tag into the brand line pinned to the bottom. The
+          // specimen's left edge is already faded out by 894px, so the text can run wider than the default.
+          subtitleWidth: '22em',
+          art: 'specimen',
+        },
+        othello: {
+          path: '~/fun-stuff/games/othello',
+          title: 'Othello',
+          subtitle:
+            "The classic game, also called Reversi, where you trap a line of your opponent's discs and they all flip to your colour.",
+          tags: ['Three board sizes'],
+          art: 'board',
+        },
+        'tic-tac-toe': {
+          path: '~/fun-stuff/games/4x4x4-tic-tac-toe',
+          title: '4×4×4 Tic-Tac-Toe',
+          subtitle: 'Four in a row on a 4×4 board, except the board is a cube four layers deep.',
+          tags: ['Tic-tac-toe just got a big upgrade'],
+          // One line at 64px; at the shared 82px it broke mid-word as "Tic-Tac-" / "Toe".
+          titleSize: '64px',
+          art: 'layers',
+        },
       }
 
       const variant = variants[new URLSearchParams(location.search).get('v')] ?? variants.home
@@ -207,6 +386,10 @@
         document.getElementById('path').appendChild(caret)
       }
       document.getElementById('title').textContent = variant.title
+      if (variant.titleSize) document.getElementById('title').style.fontSize = variant.titleSize
+      if (variant.subtitleWidth) {
+        document.getElementById('subtitle').style.maxWidth = variant.subtitleWidth
+      }
       document.getElementById('subtitle').textContent = variant.subtitle
       for (const label of variant.tags) {
         const tag = document.createElement('span')
@@ -308,6 +491,122 @@
         }
 
         document.getElementById('blast').hidden = false
+      }
+
+      if (variant.art) {
+        document.querySelector('.card').classList.add('hasEdgeArt')
+        const edge = document.getElementById('edgeArt')
+        const add = (className, style, parent = edge) => {
+          const node = document.createElement('div')
+          node.className = className
+          Object.assign(node.style, style)
+          parent.appendChild(node)
+          return node
+        }
+
+        if (variant.art === 'specimen') {
+          const panel = add('specimen', {})
+          add('specimenLine', { top: '44px', width: '250px' }, panel)
+          add('specimenLine', { top: '72px', width: '180px' }, panel)
+          // The pen it is confined to, the spot it left, and the hops that got it clear of the cursor.
+          add(
+            'specimenGhost',
+            { left: '34px', top: '150px', width: '108px', height: '44px' },
+            panel
+          )
+          add('cursor', { left: '58px', top: '176px' }, panel)
+          for (const [left, top] of [
+            [150, 168],
+            [186, 190],
+            [214, 160],
+          ]) {
+            add('hop', { left: left + 'px', top: top + 'px' }, panel)
+          }
+          const no = add(
+            'specimenBtn no',
+            {
+              left: '238px',
+              top: '124px',
+              width: '84px',
+              height: '44px',
+            },
+            panel
+          )
+          no.textContent = 'No'
+          const yes = add(
+            'specimenBtn yes',
+            {
+              left: '34px',
+              top: '260px',
+              width: '184px',
+              height: '48px',
+            },
+            panel
+          )
+          yes.textContent = 'Yes, I consent'
+        }
+
+        if (variant.art === 'board') {
+          const board = add('board', {})
+          // The opening four, the disc just played at the end of the line, and the three it caught —
+          // each one further through its turn than the next, so the flip travels along the row.
+          // Kept to the columns the mask leaves fully opaque, so the whole line is on the card.
+          const dark = new Set(['1,3', '2,4'])
+          const light = new Set(['2,3', '1,4', '4,5'])
+          const turning = new Map([
+            ['3,5', 0.78],
+            ['2,5', 0.44],
+            ['1,5', 0.2],
+          ])
+          for (let row = 0; row < 8; row++) {
+            for (let column = 0; column < 8; column++) {
+              const square = add('square', {}, board)
+              const at = `${column},${row}`
+              if (dark.has(at)) add('disc dark', {}, square)
+              else if (light.has(at)) add('disc light', {}, square)
+              else if (turning.has(at)) {
+                const through = turning.get(at)
+                // Past halfway the far face has come round, so the disc is already the new colour.
+                const face = through > 0.5 ? 'light' : 'dark'
+                add(
+                  `disc ${face} turning`,
+                  {
+                    width:
+                      Math.max(4, Math.round(42 * Math.abs(Math.cos(through * Math.PI)))) + 'px',
+                  },
+                  square
+                )
+              }
+            }
+          }
+        }
+
+        if (variant.art === 'layers') {
+          const layers = add('layers', {})
+          // A rod straight through the cube, one cell per layer along the depth axis — the one winning
+          // line that stays visible in every layer's exposed top row.
+          for (let depth = 0; depth < 4; depth++) {
+            const layer = add(
+              'layer',
+              {
+                left: 64 + depth * 12 + 'px',
+                // Stepped by less than one cell, so each layer behind shows only its top row.
+                top: 108 + depth * 46 + 'px',
+                zIndex: String(depth),
+              },
+              layers
+            )
+            const distance = 3 - depth
+            layer.style.setProperty('--cellEdge', `rgba(243, 239, 231, ${0.3 - distance * 0.06})`)
+            layer.style.setProperty('--takenEdge', `rgba(233, 184, 114, ${0.9 - distance * 0.16})`)
+            layer.style.setProperty('--takenFill', `rgba(233, 184, 114, ${0.3 - distance * 0.06})`)
+            for (let row = 0; row < 4; row++) {
+              for (let column = 0; column < 4; column++) {
+                add(column === depth && row === 0 ? 'cell taken' : 'cell', {}, layer)
+              }
+            }
+          }
+        }
       }
 
       if (variant.stars) {
