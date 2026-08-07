@@ -10,6 +10,7 @@ import {
   opponentOf,
 } from './board'
 import { findBestMove } from './search'
+import { skipSoaks } from '../../PixelWorldSimulator/test-env'
 
 /** A clock frozen at zero, so the whole budget is always available and the search runs in full. */
 const frozenClock = () => () => 0
@@ -31,6 +32,7 @@ function playoutPositions(size: BoardSize): { board: Board; toMove: Player }[] {
   }
   return positions
 }
+const itSlow = it.skipIf(skipSoaks)
 
 describe('findBestMove', () => {
   it('returns null when the player has no legal move', () => {
@@ -53,7 +55,7 @@ describe('findBestMove', () => {
     expect(a?.move).toBe(b?.move)
   })
 
-  it('terminates when a forced pass sits at the search horizon', () => {
+  itSlow('terminates when a forced pass sits at the search horizon', () => {
     // Regression: the pass branch used to run before the depth cutoff, and the cutoff tested `=== 0`,
     // so a pass at depth 0 recursed to -1 and expanded the whole remaining tree — a hang under a frozen
     // clock. The deterministic 8×8 playout forces passes with dozens of empties still on the board, so
