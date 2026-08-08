@@ -1,0 +1,55 @@
+@use '../../styles/exhibit' as *;
+
+.terms {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.heading {
+  margin: 0;
+  color: var(--spec-ink);
+  font-family: var(--spec-font);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+/* The box you are expected to skim: short enough to look optional, long enough to hide a decision. */
+.scroll {
+  max-height: 190px;
+  overflow-y: auto;
+  padding: 12px;
+  border: 1px solid var(--spec-line);
+  border-radius: var(--spec-radius);
+  background: var(--spec-panel);
+
+  &:focus-visible {
+    outline: 2px solid var(--spec-brand);
+    outline-offset: 1px;
+  }
+}
+
+.paragraph {
+  margin: 0 0 12px;
+  color: var(--spec-muted);
+  font-size: 0.76rem;
+}
+
+.check {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  margin-top: 10px;
+  font-size: 0.8rem;
+  cursor: pointer;
+
+  input {
+    margin: 2px 0 0;
+    accent-color: var(--spec-brand);
+    flex-shrink: 0;
+  }
+}
+
+.readout {
+  @include spec-readout;
+}

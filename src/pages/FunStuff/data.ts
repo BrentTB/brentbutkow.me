@@ -6,6 +6,7 @@ export const funStuffSubRoutes = {
   games: '/games',
   asciiArt: '/ascii-art',
   imageEncoder: '/image-encoder',
+  maliciousUx: '/malicious-ux',
 }
 
 export const funStuff: FunItem[] = [
@@ -25,6 +26,12 @@ export const funStuff: FunItem[] = [
     description:
       'Hide a secret message inside a picture by changing its pixel colors, lock it with a key, and reveal it again. It all runs in your browser',
     link: funStuffSubRoutes.imageEncoder,
+  },
+  {
+    title: 'Malicious UX',
+    description:
+      'A collection of deliberately hostile interface design, with buttons that run away from your cursor, a setting that switches itself back on when you look away, and a form that quietly eats what you typed. All of it is live, and a keyboard beats every single one',
+    link: funStuffSubRoutes.maliciousUx,
   },
   {
     title: 'Gulag Sort',

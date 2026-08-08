@@ -1,0 +1,102 @@
+@use '../../styles/exhibit' as *;
+
+.article {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 178px;
+}
+
+.heading {
+  margin: 0;
+  color: var(--spec-ink);
+  font-family: var(--spec-font);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.body {
+  margin: 0;
+  color: var(--spec-muted);
+  font-size: 0.8rem;
+}
+
+.overlay {
+  @include spec-overlay;
+}
+
+.panel {
+  @include spec-panel;
+
+  position: relative;
+  text-align: center;
+}
+
+.close {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  padding: 2px 7px;
+  border: 0;
+  background: none;
+  color: var(--spec-muted);
+  font: inherit;
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--spec-ink);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--spec-brand);
+    outline-offset: 2px;
+  }
+}
+
+.popupHeading {
+  margin: 4px 0 6px;
+  color: var(--spec-ink);
+  font-family: var(--spec-font);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.popupBody {
+  margin: 0 0 12px;
+  color: var(--spec-muted);
+  font-size: 0.78rem;
+}
+
+.signup {
+  display: flex;
+  gap: 8px;
+}
+
+.email {
+  @include spec-field;
+}
+
+.subscribe {
+  @include spec-button-primary;
+
+  white-space: nowrap;
+}
+
+.done {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: auto;
+}
+
+.readout {
+  @include spec-readout;
+}
+
+.reopen {
+  @include spec-button;
+}

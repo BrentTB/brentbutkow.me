@@ -1,0 +1,107 @@
+@use '../../styles/exhibit' as *;
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.heading {
+  margin: 0;
+  color: var(--spec-ink);
+  font-family: var(--spec-font);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.detail {
+  margin: 0;
+  color: var(--spec-muted);
+  font-size: 0.78rem;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--spec-line);
+  border-radius: var(--spec-radius);
+  overflow: hidden;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 12px;
+  font-size: 0.8rem;
+
+  & + & {
+    border-top: 1px solid var(--spec-line);
+  }
+
+  &:nth-child(odd) {
+    background: var(--spec-panel);
+  }
+}
+
+.name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/**
+ * The button and the text that replaces it occupy an identical box. Letting the shorter text collapse
+ * the row shifted every subscription below it up the page on each press.
+ */
+.leave,
+.gone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: 112px;
+  height: 28px;
+  font-size: 0.76rem;
+}
+
+.leave {
+  @include spec-button;
+
+  padding: 0 12px;
+
+  &:disabled {
+    color: var(--spec-muted);
+    cursor: progress;
+  }
+}
+
+/* Once it is done, the control goes away entirely: there is nothing left to press, only to undo. */
+.gone {
+  /* Matches the button's border so the row keeps its exact height without drawing a second box. */
+  border: 1px solid transparent;
+  color: var(--spec-muted);
+}
+
+/* Height reserved for the resubscribe button, which only appears once something has gone. Letting it
+   arrive into a shorter row pushed the whole page down on the first press. */
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 38px;
+}
+
+.readout {
+  @include spec-readout;
+}
+
+/* The way back: filled, instant, and the only control on the panel that does everything at once. */
+.rejoin {
+  @include spec-button-primary;
+}

@@ -1,0 +1,85 @@
+@use '../../styles/exhibit' as *;
+
+.article {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 190px;
+}
+
+.page {
+  margin: 0;
+  color: var(--spec-ink);
+  font-family: var(--spec-font);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.body {
+  margin: 0;
+  color: var(--spec-muted);
+  font-size: 0.8rem;
+}
+
+/* Arrives late, takes up space, and pushes everything below it down by exactly one button. */
+.ad {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--spec-ad-line);
+  border-radius: var(--spec-radius);
+  background: var(--spec-ad-bg);
+  animation: dropIn 140ms ease-out;
+}
+
+@keyframes dropIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+.adText {
+  margin: 0;
+  color: var(--spec-ad-ink);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.adButton {
+  @include spec-button;
+
+  border-color: var(--spec-ad-line);
+  background: var(--spec-bg);
+}
+
+.action {
+  @include spec-button-primary;
+
+  align-self: flex-start;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: auto;
+}
+
+.readout {
+  @include spec-readout;
+}
+
+.reset {
+  @include spec-button;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ad {
+    animation: none;
+  }
+}

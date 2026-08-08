@@ -1,0 +1,58 @@
+@use '../../styles/exhibit' as *;
+
+.funnel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 150px;
+}
+
+.heading {
+  margin: 0;
+  color: var(--spec-ink);
+  font-family: var(--spec-font);
+  font-size: 0.98rem;
+  font-weight: 600;
+}
+
+.detail {
+  margin: 0;
+  color: var(--spec-muted);
+  font-size: 0.8rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: auto;
+}
+
+/* Staying is one press and it is the loudest thing on the panel. */
+.stay {
+  @include spec-button-primary;
+}
+
+/* Leaving is one press, four more times. */
+.leave {
+  @include spec-button-quiet;
+}
+
+.outcome {
+  margin: 0;
+  color: var(--spec-ink);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.again {
+  @include spec-button;
+
+  align-self: flex-start;
+  margin-top: auto;
+}
+
+.readout {
+  @include spec-readout;
+}

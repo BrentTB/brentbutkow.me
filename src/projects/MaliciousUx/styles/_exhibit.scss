@@ -1,0 +1,160 @@
+/**
+ * The specimens are meant to look like they were cut out of somebody else's website: bright, boxy,
+ * system-font, generic SaaS blue. That foreignness against the site's dark editorial palette is the
+ * point of the vitrine, so these are deliberately not the site tokens — they are declared once here and
+ * every exhibit inherits them from the case it sits in.
+ */
+@mixin specimen-palette {
+  --spec-bg: #ffffff;
+  --spec-panel: #f6f7f9;
+  --spec-ink: #1b1f24;
+  --spec-muted: #6b7280;
+  --spec-line: #d8dce2;
+  --spec-brand: #2f6df6;
+  --spec-brand-hover: #2559d4;
+  --spec-on-brand: #ffffff;
+  --spec-danger: #c0392b;
+  /* Legal small print, set just above the threshold of being worth reading. */
+  --spec-fine-print: #b9bec6;
+  /* Text hidden by being almost exactly the page behind it. */
+  --spec-near-white: #f2f3f5;
+  /* The green a validation checklist ticks over to. */
+  --spec-ok: #1f8b4c;
+  /* The grey an off switch goes, darker than a border so the track reads as a control. */
+  --spec-switch-off: #c3c8d0;
+  /* The sponsored-content yellow every ad slot on the web seems to have agreed on. */
+  --spec-ad-bg: #fdf6e6;
+  --spec-ad-line: #f0d9a8;
+  --spec-ad-ink: #7a5b12;
+  /* A video player's own chrome — the one dark rectangle a bright product page allows itself. */
+  --spec-video-bg: #14161b;
+  --spec-video-ink: #f2f2f3;
+  --spec-video-muted: #9aa0a8;
+  --spec-radius: 6px;
+  --spec-font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+/** The white page the widget lives on. */
+@mixin specimen-surface {
+  background: var(--spec-bg);
+  color: var(--spec-ink);
+  font-family: var(--spec-font);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+@mixin spec-button {
+  padding: 9px 18px;
+  border: 1px solid var(--spec-line);
+  border-radius: var(--spec-radius);
+  background: var(--spec-bg);
+  color: var(--spec-ink);
+  font: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: background 140ms ease;
+
+  &:hover {
+    background: var(--spec-panel);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--spec-brand);
+    outline-offset: 2px;
+  }
+}
+
+/** The one the site wants you to press: bigger, filled, impossible to mistake for the other one. */
+@mixin spec-button-primary {
+  @include spec-button;
+  border-color: transparent;
+  background: var(--spec-brand);
+  color: var(--spec-on-brand);
+  font-weight: 600;
+
+  &:hover {
+    background: var(--spec-brand-hover);
+  }
+}
+
+/** The one it would rather you didn't: quiet, grey, easy to skip. */
+@mixin spec-button-quiet {
+  @include spec-button;
+  border-color: transparent;
+  background: none;
+  color: var(--spec-muted);
+  font-size: 0.78rem;
+  text-decoration: underline;
+
+  &:hover {
+    background: none;
+    color: var(--spec-ink);
+  }
+}
+
+@mixin spec-field {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--spec-line);
+  border-radius: var(--spec-radius);
+  background: var(--spec-bg);
+  color: var(--spec-ink);
+  font: inherit;
+  font-size: 0.88rem;
+
+  &:focus-visible {
+    outline: 2px solid var(--spec-brand);
+    outline-offset: 1px;
+  }
+}
+
+@mixin spec-label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--spec-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/** A modal that only covers its own exhibit — the museum never takes over the whole page. */
+@mixin spec-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(12, 14, 18, 0.45);
+}
+
+@mixin spec-panel {
+  width: min(340px, 100%);
+  padding: 18px;
+  border-radius: var(--spec-radius);
+  background: var(--spec-bg);
+  box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.6);
+}
+
+/** The line under a widget that reports what it actually did, in the museum's voice rather than the site's. */
+@mixin spec-readout {
+  margin: 0;
+  color: var(--spec-muted);
+  font-size: 0.74rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/** Off-screen but readable: text present for a screen reader and gone for everyone else. */
+@mixin spec-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

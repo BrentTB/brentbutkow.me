@@ -60,6 +60,11 @@ const ImageEncoder = lazy(() =>
     default: module.ImageEncoder,
   }))
 )
+const MaliciousUx = lazy(() =>
+  import('../projects/MaliciousUx/MaliciousUx').then((module) => ({
+    default: module.MaliciousUx,
+  }))
+)
 const RecallRadar = lazy(() =>
   import('../projects/RecallRadar/RecallRadar').then((module) => ({
     default: module.RecallRadar,
@@ -149,6 +154,12 @@ const funStuffRoutes: AppRoute[] = [
     element: <ImageEncoder />,
     dontShowInNavbar: true,
     ...metaFor(`${routePaths.funStuff}${funStuffSubRoutes.imageEncoder}`),
+  },
+  {
+    path: `${routePaths.funStuff}${funStuffSubRoutes.maliciousUx}`,
+    element: <MaliciousUx />,
+    dontShowInNavbar: true,
+    ...metaFor(`${routePaths.funStuff}${funStuffSubRoutes.maliciousUx}`),
   },
   {
     path: `${routePaths.funStuff}${funStuffSubRoutes.gulagSort}`,

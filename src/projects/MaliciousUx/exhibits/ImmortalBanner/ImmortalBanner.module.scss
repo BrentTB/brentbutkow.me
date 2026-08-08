@@ -1,0 +1,90 @@
+@use '../../styles/exhibit' as *;
+
+.site {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 172px;
+}
+
+.page {
+  margin: 0;
+  color: var(--spec-ink);
+  font-family: var(--spec-font);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.body {
+  margin: 0;
+  color: var(--spec-muted);
+  font-size: 0.8rem;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: auto;
+}
+
+.readout {
+  @include spec-readout;
+}
+
+.reset {
+  @include spec-button;
+}
+
+/* Anchored to the bottom of its own exhibit, the way it would sit on a real page. */
+.banner {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--spec-line);
+  background: var(--spec-panel);
+  box-shadow: 0 -8px 24px -18px rgba(0, 0, 0, 0.7);
+}
+
+.text {
+  flex: 1 1 190px;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.detail {
+  margin: 2px 0 0;
+  color: var(--spec-muted);
+  font-size: 0.72rem;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Refusing is a text link. Accepting is a button. That asymmetry is the whole exhibit. */
+.save {
+  @include spec-button-quiet;
+}
+
+.accept {
+  @include spec-button-primary;
+
+  white-space: nowrap;
+}

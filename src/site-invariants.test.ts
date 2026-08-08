@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { browsableRoutePaths, SITE_URL } from './routes/routes.meta'
+import { browsableRoutePaths, DEFAULT_OG_IMAGE, routesMeta, SITE_URL } from './routes/routes.meta'
 
 // Repo-wide invariants that have each shipped broken at least once:
 
@@ -70,6 +70,53 @@ describe('site invariants', () => {
     expect(
       missing,
       `indexable routes missing from public/sitemap.xml:\n${missing.join('\n')}`
+    ).toEqual([])
+  })
+
+  it('every social card a route asks for is one the generator knows how to draw', () => {
+    // A route can name an ogImage that generate-og.mjs has no card for, and nothing else catches it:
+    // the asset check above only fires once someone has already run the generator and committed a file.
+    // Without this, a declared-but-never-drawn card ships as a 404 preview on every share.
+    const generator = readFileSync(join(rootDir, 'scripts/generate-og.mjs'), 'utf8')
+    const drawn = new Set(
+      [...generator.matchAll(/out:\s*'public(\/[\w\-/.]+\.png)'/g)].map((match) => match[1])
+    )
+    expect(drawn.size).toBeGreaterThan(0)
+
+    const asked = [
+      DEFAULT_OG_IMAGE,
+      ...Object.values(routesMeta)
+        .map((meta) => meta.ogImage)
+        .filter((image): image is string => image !== undefined),
+    ]
+    const undrawn = [...new Set(asked)].filter((image) => !drawn.has(image))
+    expect(
+      undrawn,
+      `ogImage paths with no card in scripts/generate-og.mjs:\n${undrawn.join('\n')}`
+    ).toEqual([])
+  })
+
+  it('every card the generator renders maps to a variant the template defines', () => {
+    // generate-og.mjs passes ?v=<variant> to the template; a variant the template has no entry for
+    // used to fall back to the home card, silently overwriting a project PNG with the wrong image.
+    const generator = readFileSync(join(rootDir, 'scripts/generate-og.mjs'), 'utf8')
+    const template = readFileSync(join(rootDir, 'scripts/og/og-template.html'), 'utf8')
+
+    const requested = [...generator.matchAll(/variant:\s*'([\w-]+)'/g)].map((match) => match[1])
+    expect(requested.length).toBeGreaterThan(0)
+
+    // Each variant object leads with a `path:` field, which nested config objects never do.
+    const defined = new Set(
+      [...template.matchAll(/(?:'([\w-]+)'|(\w+)):\s*\{\s*[\r\n]+\s*path:/g)].map(
+        (match) => match[1] ?? match[2]
+      )
+    )
+    expect(defined.size).toBeGreaterThan(0)
+
+    const missing = requested.filter((variant) => !defined.has(variant))
+    expect(
+      missing,
+      `generate-og variants with no matching template entry:\n${missing.join('\n')}`
     ).toEqual([])
   })
 

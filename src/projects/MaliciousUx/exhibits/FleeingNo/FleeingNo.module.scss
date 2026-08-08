@@ -1,0 +1,57 @@
+@use '../../styles/exhibit' as *;
+
+.dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.question {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.row {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.yes {
+  @include spec-button-primary;
+
+  align-self: center;
+}
+
+/**
+ * The pen the No ricochets around. Tall enough for a real chase, and the No sits on its own layer inside
+ * it, so hopping never moves the Yes, the pen, or the exhibit around it.
+ */
+.pen {
+  position: relative;
+  flex: 1;
+  min-width: 150px;
+  min-height: 168px;
+  border: 1px dashed var(--spec-line);
+  border-radius: var(--spec-radius);
+}
+
+.no {
+  @include spec-button;
+
+  position: absolute;
+  will-change: left, top;
+  /* Quick enough to feel like it darted, slow enough to follow with your eye. */
+  transition:
+    left 90ms ease-out,
+    top 90ms ease-out;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+.readout {
+  @include spec-readout;
+}

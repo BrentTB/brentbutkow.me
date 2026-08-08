@@ -1,0 +1,71 @@
+@use '../../styles/exhibit' as *;
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.heading {
+  margin: 0;
+  color: var(--spec-ink);
+  font-family: var(--spec-font);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.detail {
+  margin: 0;
+  color: var(--spec-muted);
+  font-size: 0.78rem;
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--spec-line);
+  border-radius: var(--spec-radius);
+  background: var(--spec-panel);
+}
+
+.option {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  font-size: 0.8rem;
+  cursor: pointer;
+
+  input {
+    margin: 3px 0 0;
+    flex-shrink: 0;
+    accent-color: var(--spec-brand);
+  }
+}
+
+.confirm {
+  @include spec-button-primary;
+
+  align-self: flex-start;
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+.readout {
+  @include spec-readout;
+}
+
+/* The plain-English gloss the form owed you before you pressed anything. */
+.translateLabel {
+  color: var(--spec-ink);
+  font-weight: 600;
+}
+
+.visuallyHidden {
+  @include spec-visually-hidden;
+}

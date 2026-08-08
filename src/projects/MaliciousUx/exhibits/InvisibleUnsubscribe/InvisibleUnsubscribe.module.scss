@@ -1,0 +1,74 @@
+@use '../../styles/exhibit' as *;
+
+.email {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.subject {
+  margin: 0;
+  color: var(--spec-ink);
+  font-family: var(--spec-font);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.body {
+  margin: 0;
+  color: var(--spec-ink);
+  font-size: 0.8rem;
+}
+
+.footer {
+  padding-top: 10px;
+  border-top: 1px solid var(--spec-line);
+}
+
+.smallPrint {
+  margin: 0 0 6px;
+  color: var(--spec-fine-print);
+  font-size: 0.62rem;
+  line-height: 1.45;
+}
+
+/**
+ * The link, hidden in plain sight: six pixels of near-white text with no underline. It stays a real
+ * button with a real label, so focus reaches it and a screen reader reads it out — which is the joke,
+ * and also the reason this exhibit does not lock anybody out.
+ */
+.hidden {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--spec-near-white);
+  font: inherit;
+  font-size: 6px;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--spec-brand);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--spec-brand);
+    outline-offset: 2px;
+    color: var(--spec-brand);
+    font-size: 0.76rem;
+  }
+}
+
+.readoutRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.readout {
+  @include spec-readout;
+}
+
+.again {
+  @include spec-button;
+}

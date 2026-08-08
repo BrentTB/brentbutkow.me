@@ -1,0 +1,98 @@
+@use '../../styles/exhibit' as *;
+
+.checkout {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 178px;
+}
+
+.heading {
+  margin: 0;
+  color: var(--spec-ink);
+  font-family: var(--spec-font);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.card {
+  margin: 0;
+  color: var(--spec-muted);
+  font-size: 0.76rem;
+}
+
+.line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.82rem;
+}
+
+.price {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Sits in the run of line items rather than apart from them, so it reads as part of the order. */
+.addOn {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  cursor: pointer;
+
+  input {
+    margin: 3px 0 0;
+    flex-shrink: 0;
+    accent-color: var(--spec-brand);
+  }
+}
+
+.addOnText {
+  flex: 1;
+  color: var(--spec-muted);
+  font-size: 0.76rem;
+}
+
+/* The charge, kept at footnote size beside the description rather than lining up with the real totals. */
+.addOnPrice {
+  align-self: flex-end;
+  color: var(--spec-muted);
+  font-size: 0.66rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.totalLine {
+  padding-top: 8px;
+  border-top: 1px solid var(--spec-line);
+  font-weight: 700;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.primary {
+  @include spec-button-primary;
+
+  align-self: flex-start;
+}
+
+.quiet {
+  @include spec-button-quiet;
+}
+
+.again {
+  @include spec-button;
+
+  align-self: flex-start;
+  margin-top: auto;
+}
+
+.readout {
+  @include spec-readout;
+}

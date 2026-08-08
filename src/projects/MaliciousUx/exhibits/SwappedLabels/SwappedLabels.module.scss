@@ -1,0 +1,42 @@
+@use '../../styles/exhibit' as *;
+
+.dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.question {
+  margin: 0;
+  color: var(--spec-ink);
+  font-family: var(--spec-font);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.detail {
+  margin: 0;
+  color: var(--spec-muted);
+  font-size: 0.8rem;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+/* Filled and confident — the shape of a safe default everywhere else on the web. */
+.destructive {
+  @include spec-button-primary;
+}
+
+/* The one that keeps your account, wearing the clothes of a throwaway link. */
+.safe {
+  @include spec-button-quiet;
+}
+
+.readout {
+  @include spec-readout;
+}
