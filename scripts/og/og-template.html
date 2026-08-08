@@ -228,10 +228,12 @@
         clip-path: polygon(0 0, 0 78%, 27% 58%, 47% 100%, 66% 88%, 47% 50%, 100% 44%);
       }
 
-      /* Othello: the board mid-move, with a line of discs caught halfway through flipping colour. */
+      /* Othello: the board mid-move, with the discs the last play caught still turning over. */
       .board {
         position: absolute;
         top: 96px;
+        /* The board's own left edge clears the mask's fade, and the far column runs off the card mid-square
+           rather than landing flush with it. */
         left: 60px;
         display: grid;
         grid-template-columns: repeat(8, 54px);
@@ -266,6 +268,16 @@
        */
       .disc.turning {
         box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
+      }
+      /* The cues the game itself draws: where the next player may legally move, and the disc just laid. */
+      .hint {
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(233, 184, 114, 0.5);
+        border-radius: 50%;
+      }
+      .square.lastMove {
+        box-shadow: inset 0 0 0 2px rgba(233, 184, 114, 0.75);
       }
 
       /* 4x4x4: the four layers, stacked back to front, with a line running corner to corner through them. */
@@ -553,24 +565,43 @@
         if (variant.art === 'board') {
           const board = add('board', {})
           /**
-           * A position that could actually happen, kept to the columns the mask leaves opaque. The opening
-           * four sit where they really do on an 8x8 board, at columns 3 and 4; light has just played (4,5),
-           * and the dark run between it and light's own disc at (1,5) is what turns. A flip needs the
-           * player's own discs at both ends of the line, which the arrangement here first shipped without.
+           * A position reached by playing it out, rather than one arranged to look tidy: from the opening
+           * four, black (3,4), white (4,4), black (4,3), and white has just played (4,2), which catches
+           * (3,2) and (4,3) from two directions at once.
+           *
+           * Arranging discs by eye does not work here. Every legal position descends from the opening four
+           * by flipping, and a play must flip something, so those four squares are the most churned on the
+           * board — leaving them pristine under a tidy line below is a position no game can produce.
+           *
+           * The cluster sits two squares in from the top and left, which is what the crop needs: the card
+           * shows the board's top-left corner, and further in left the run of empty rows above it too long.
            */
-          const dark = new Set(['3,4', '4,3'])
-          const light = new Set(['3,3', '4,4', '1,5', '4,5'])
-          // Nearest the disc just played is furthest through its turn. Neither sits near side-on: a disc at
-          // the halfway point is a line rather than a disc, and reads as a rendering fault.
+          const dark = new Set(['2,3', '3,3', '3,4'])
+          const light = new Set(['2,2', '4,4'])
+          const lastMove = '4,2'
+          /**
+           * Both were caught by the same play, so both are going the same way: black to white. They are
+           * staggered, but both past the halfway point, because that is where white's face has come round.
+           * One still showing black read as two unrelated things happening rather than one flip.
+           *
+           * Neither sits near side-on either: a disc at exactly halfway is a line rather than a disc, and
+           * reads as a rendering fault.
+           */
           const turning = new Map([
-            ['3,5', 0.86],
-            ['2,5', 0.24],
+            ['3,2', 0.88],
+            ['4,3', 0.68],
           ])
+          // Where black may legally answer. Both of these are sandwiches against discs that have already
+          // settled, so they hold whether or not the turning pair has finished.
+          const hints = new Set(['2,1', '1,1'])
           for (let row = 0; row < 8; row++) {
             for (let column = 0; column < 8; column++) {
               const square = add('square', {}, board)
               const at = `${column},${row}`
-              if (dark.has(at)) add('disc dark', {}, square)
+              if (at === lastMove) square.classList.add('lastMove')
+              if (hints.has(at)) add('hint', {}, square)
+              else if (at === lastMove) add('disc light', {}, square)
+              else if (dark.has(at)) add('disc dark', {}, square)
               else if (light.has(at)) add('disc light', {}, square)
               else if (turning.has(at)) {
                 const through = turning.get(at)
