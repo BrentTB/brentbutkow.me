@@ -1,5 +1,6 @@
 import { useFunMode } from '../../../../contexts/useFunMode'
 import { hostilityFor } from '../../data'
+import { useFocusWhen } from '../../useFocusWhen'
 import { usePointerIntent } from '../../usePointerIntent'
 import { useReturningPrompt } from '../../useReturningPrompt'
 import styles from './StillThere.module.scss'
@@ -10,6 +11,8 @@ export function StillThere() {
   const { nagIntervalMs } = hostilityFor(isFunMode)
   const { visible, gone, returns, secondsLeft, dismiss, reset } = useReturningPrompt(nagIntervalMs)
   const { viaPointer, intentProps } = usePointerIntent()
+  // Answering with the keyboard removes the dialog; carry focus to the reset it leaves behind.
+  const resetRef = useFocusWhen<HTMLButtonElement>(gone)
 
   const status = () => {
     if (gone) return copy.keyboardGone
@@ -47,7 +50,7 @@ export function StillThere() {
           {status()}
         </p>
         {gone && (
-          <button type="button" className={styles.reset} onClick={reset}>
+          <button type="button" ref={resetRef} className={styles.reset} onClick={reset}>
             {copy.reset}
           </button>
         )}

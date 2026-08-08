@@ -145,3 +145,16 @@
   font-size: 0.74rem;
   font-variant-numeric: tabular-nums;
 }
+
+/** Off-screen but readable: text present for a screen reader and gone for everyone else. */
+@mixin spec-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

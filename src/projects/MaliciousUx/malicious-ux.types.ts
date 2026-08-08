@@ -1,6 +1,6 @@
 import { ComponentType } from 'react'
 
-/** The four wings of the museum, in the order a visitor walks them. */
+/** The five wings of the museum, in the order a visitor walks them. */
 export const Wing = {
   consent: 'consent',
   state: 'state',

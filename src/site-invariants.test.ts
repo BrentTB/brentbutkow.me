@@ -96,6 +96,30 @@ describe('site invariants', () => {
     ).toEqual([])
   })
 
+  it('every card the generator renders maps to a variant the template defines', () => {
+    // generate-og.mjs passes ?v=<variant> to the template; a variant the template has no entry for
+    // used to fall back to the home card, silently overwriting a project PNG with the wrong image.
+    const generator = readFileSync(join(rootDir, 'scripts/generate-og.mjs'), 'utf8')
+    const template = readFileSync(join(rootDir, 'scripts/og/og-template.html'), 'utf8')
+
+    const requested = [...generator.matchAll(/variant:\s*'([\w-]+)'/g)].map((match) => match[1])
+    expect(requested.length).toBeGreaterThan(0)
+
+    // Each variant object leads with a `path:` field, which nested config objects never do.
+    const defined = new Set(
+      [...template.matchAll(/(?:'([\w-]+)'|(\w+)):\s*\{\s*[\r\n]+\s*path:/g)].map(
+        (match) => match[1] ?? match[2]
+      )
+    )
+    expect(defined.size).toBeGreaterThan(0)
+
+    const missing = requested.filter((variant) => !defined.has(variant))
+    expect(
+      missing,
+      `generate-og variants with no matching template entry:\n${missing.join('\n')}`
+    ).toEqual([])
+  })
+
   it('every hex color in a SCSS module is justified by a nearby comment (else use a token)', () => {
     // Colors come from the design tokens in index.scss (or a scoped palette like the Null Space
     // --ns-* block). A literal hex is allowed only with a justification comment on its line or

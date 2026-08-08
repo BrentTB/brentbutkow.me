@@ -6,7 +6,8 @@ export const copy = {
   quiet: 'Both buttons work. One of them works now.',
   preparing: (seconds: string) => `Preparing your choices… ${seconds}s`,
   ready: 'Reject is ready. Press it again.',
-  accepted: 'Accepted. That took one press.',
+  accepted: (presses: number) =>
+    presses === 1 ? 'Accepted. That took one press.' : `Accepted. That took ${presses} presses.`,
   rejected: (presses: number) =>
     presses === 1 ? 'Rejected. That took one press.' : `Rejected. That took ${presses} presses.`,
 }

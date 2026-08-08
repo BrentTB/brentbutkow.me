@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useFocusWhen } from '../../useFocusWhen'
 import { usePointerIntent } from '../../usePointerIntent'
 import styles from './FakeClose.module.scss'
 import { copy, popups } from './data'
@@ -8,6 +9,9 @@ export function FakeClose() {
   const [keyboardEscape, setKeyboardEscape] = useState(false)
   const { viaPointer, intentProps } = usePointerIntent()
   const popup = popups[index]
+  // Focus follows the swap between the × and the "reopen" button so the keyboard never lands on body.
+  const reopenRef = useFocusWhen<HTMLButtonElement>(popup === undefined)
+  const closeRef = useFocusWhen<HTMLButtonElement>(popup !== undefined)
 
   // Clicking the × buys you the next one; pressing it with the keyboard clears the stack.
   const onClose = () => {
@@ -34,7 +38,7 @@ export function FakeClose() {
           <p className={styles.readout} aria-live="polite">
             {keyboardEscape ? copy.keyboardCleared : copy.cleared}
           </p>
-          <button type="button" className={styles.reopen} onClick={reopen}>
+          <button type="button" ref={reopenRef} className={styles.reopen} onClick={reopen}>
             {copy.reopen}
           </button>
         </div>
@@ -43,6 +47,7 @@ export function FakeClose() {
           <div className={styles.panel} role="dialog" aria-label={popup.heading}>
             <button
               type="button"
+              ref={closeRef}
               className={styles.close}
               aria-label={copy.closeLabel(index)}
               onClick={onClose}

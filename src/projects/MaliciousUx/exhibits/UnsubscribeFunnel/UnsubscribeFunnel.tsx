@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import {
   advanceFunnel,
+  FUNNEL_ORDER,
   FunnelAnswer,
+  FunnelQuestionStep,
   FunnelStep,
   questionsRemaining,
 } from '../../engine/unsubscribe-funnel'
@@ -10,7 +12,7 @@ import { copy } from './data'
 
 type Question = { heading: string; detail: string; leave: string; stay: string }
 
-const questions: Record<string, Question> = {
+const questions: Record<FunnelQuestionStep, Question> = {
   [FunnelStep.start]: {
     heading: 'Unsubscribe from the Acme newsletter?',
     detail: 'You are subscribed to 3 mailings.',
@@ -45,18 +47,21 @@ const questions: Record<string, Question> = {
 
 export function UnsubscribeFunnel() {
   const [step, setStep] = useState<FunnelStep>(FunnelStep.start)
-  const question = questions[step]
 
-  if (question === undefined) {
+  if (step === FunnelStep.gone || step === FunnelStep.kept) {
     return (
       <div className={styles.funnel}>
-        <p className={styles.outcome}>{step === FunnelStep.gone ? copy.gone : copy.kept}</p>
+        <p className={styles.outcome}>
+          {step === FunnelStep.gone ? copy.gone(FUNNEL_ORDER.length) : copy.kept}
+        </p>
         <button type="button" className={styles.again} onClick={() => setStep(FunnelStep.start)}>
           {copy.again}
         </button>
       </div>
     )
   }
+
+  const question = questions[step]
 
   return (
     <div className={styles.funnel}>

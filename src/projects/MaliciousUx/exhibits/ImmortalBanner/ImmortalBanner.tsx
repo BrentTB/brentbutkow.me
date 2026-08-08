@@ -1,5 +1,6 @@
 import { useFunMode } from '../../../../contexts/useFunMode'
 import { hostilityFor } from '../../data'
+import { useFocusWhen } from '../../useFocusWhen'
 import { usePointerIntent } from '../../usePointerIntent'
 import { useReturningPrompt } from '../../useReturningPrompt'
 import styles from './ImmortalBanner.module.scss'
@@ -10,6 +11,8 @@ export function ImmortalBanner() {
   const { bannerReviveMs } = hostilityFor(isFunMode)
   const { visible, gone, returns, secondsLeft, dismiss, reset } = useReturningPrompt(bannerReviveMs)
   const { viaPointer, intentProps } = usePointerIntent()
+  // When the keyboard sends the banner away for good, carry focus to the reset control it leaves behind.
+  const resetRef = useFocusWhen<HTMLButtonElement>(gone)
 
   // A mouse gets thirty seconds of quiet; the keyboard gets what the button promised.
   const onDismiss = () => dismiss(!viaPointer.current)
@@ -31,7 +34,7 @@ export function ImmortalBanner() {
           {status()}
         </p>
         {gone && (
-          <button type="button" className={styles.reset} onClick={reset}>
+          <button type="button" ref={resetRef} className={styles.reset} onClick={reset}>
             {copy.reset}
           </button>
         )}

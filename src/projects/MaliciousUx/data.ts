@@ -12,7 +12,8 @@ export const pageCopy = {
     'A collection of interfaces that were built to work against you. All of them are live, so feel free to poke at them.',
   taglineFun:
     'Every interface in here was put together by someone who did not like you very much, and they all work exactly as intended.',
-  admission: (specimens: number) => `Free entry · ${specimens} specimens · please touch them`,
+  admission: (specimens: number) =>
+    `Free entry · ${specimens} ${specimens === 1 ? 'specimen' : 'specimens'} · please touch them`,
   planTitle: 'Floor plan',
   promiseTitle: 'Accessibility notice',
   promise:
@@ -99,7 +100,7 @@ export const placards: Record<ExhibitId, ExhibitCopy> = {
   [ExhibitId.swappedLabels]: {
     name: 'Cancel means confirm',
     crime:
-      'The safe button is dressed up as the dangerous one, and they trade places as you reach.',
+      'The dangerous button is dressed up as the safe default, and they trade places as you reach.',
     why: 'People aim at shape and colour long before they read the word, so swapping the two lets the muscle memory from every honest dialog you have ever used do the work.',
     seenAt: 'Cancellation flows, uninstallers, and any screen trying to hang onto your discount.',
   },
@@ -171,7 +172,7 @@ export const placards: Record<ExhibitId, ExhibitCopy> = {
   },
   [ExhibitId.patientReject]: {
     name: 'Patient reject',
-    crime: 'Accepting is instant, but rejecting needs five seconds to think about it.',
+    crime: 'Accepting is instant, but rejecting has to sit and think about it first.',
     why: 'There is no need to hide anything or word it strangely when only one of the two answers respects your time. On paper the options are identical.',
     seenAt: 'Consent managers, "no thanks" links, and download pages.',
   },
@@ -201,7 +202,7 @@ export const placards: Record<ExhibitId, ExhibitCopy> = {
   },
   [ExhibitId.unsubscribeSlog]: {
     name: 'One at a time, please',
-    crime: 'Unsubscribing is easy, until you have to do it nine more times in a row.',
+    crime: 'Unsubscribing is easy, until you have to do it nine times in a row.',
     why: 'Nothing here refuses you anything, so none of it looks like a dark pattern at all. The entire cost is the time and effort required, while a single button can send you back to the start.',
     seenAt:
       'Retail newsletters, university mailing lists, and anything you handed an email to once.',

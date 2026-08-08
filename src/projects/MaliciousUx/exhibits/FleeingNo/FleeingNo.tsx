@@ -37,7 +37,9 @@ export function FleeingNo() {
         </div>
       </div>
 
-      <p className={styles.readout} aria-live="polite">
+      {/* The dodge counter changes on every pointer move, so it must not announce; only the settled
+          answer speaks, or a screen-reader user drowns under a running count they cannot outrun. */}
+      <p className={styles.readout} aria-live={answer === null ? 'off' : 'polite'}>
         {answer === null ? copy.chasing(dodges) : copy[answer]}
       </p>
     </div>

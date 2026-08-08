@@ -5,6 +5,7 @@ import {
   LATE_RULE_ORDER,
   RULES_KNOWN_UP_FRONT,
 } from '../../engine/late-rules'
+import { useFocusWhen } from '../../useFocusWhen'
 import styles from './LateRules.module.scss'
 import { copy } from './data'
 
@@ -57,6 +58,9 @@ export function LateRules() {
   }
 
   const done = status === Status.accepted
+  // Acceptance swaps submit for "start over" and restart swaps back; keep focus on whichever shows.
+  const againRef = useFocusWhen<HTMLButtonElement>(done)
+  const submitRef = useFocusWhen<HTMLButtonElement>(!done)
 
   return (
     <form className={styles.field} onSubmit={onSubmit}>
@@ -101,11 +105,11 @@ export function LateRules() {
       </ul>
 
       {done ? (
-        <button type="button" className={styles.again} onClick={restart}>
+        <button type="button" ref={againRef} className={styles.again} onClick={restart}>
           {copy.again}
         </button>
       ) : (
-        <button type="submit" className={styles.submit}>
+        <button type="submit" ref={submitRef} className={styles.submit}>
           {copy.submit}
         </button>
       )}

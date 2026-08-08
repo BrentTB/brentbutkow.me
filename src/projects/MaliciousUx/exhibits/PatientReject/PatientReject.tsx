@@ -19,21 +19,24 @@ export function PatientReject() {
   const { viaPointer, intentProps } = usePointerIntent()
   const [phase, setPhase] = useState<Phase>(Phase.idle)
   const [msLeft, setMsLeft] = useState(rejectDelayMs)
+  // The delay the current wait began with, so toggling Fun mode mid-wait can't skew the ring.
+  const [startDelay, setStartDelay] = useState(rejectDelayMs)
   const [presses, setPresses] = useState(0)
   const [outcome, setOutcome] = useState<Outcome | null>(null)
 
   useEffect(() => {
-    if (phase !== Phase.waiting) return
+    if (phase !== Phase.waiting || outcome !== null) return
     const tick = setInterval(() => setMsLeft((left) => Math.max(0, left - TICK_MS)), TICK_MS)
     return () => clearInterval(tick)
-  }, [phase])
+  }, [phase, outcome])
 
   useEffect(() => {
-    if (phase === Phase.waiting && msLeft === 0) setPhase(Phase.ready)
-  }, [phase, msLeft])
+    if (phase === Phase.waiting && msLeft === 0 && outcome === null) setPhase(Phase.ready)
+  }, [phase, msLeft, outcome])
 
   const onReject = () => {
-    setPresses((count) => count + 1)
+    const pressCount = presses + 1
+    setPresses(pressCount)
     // Waiting is a thing done to a cursor. Reached by Tab, the button rejects on the first press.
     if (!viaPointer.current || phase === Phase.ready) {
       setOutcome(Outcome.rejected)
@@ -41,19 +44,20 @@ export function PatientReject() {
     }
     if (phase === Phase.idle) {
       setMsLeft(rejectDelayMs)
+      setStartDelay(rejectDelayMs)
       setPhase(Phase.waiting)
     }
   }
 
   const status = () => {
-    if (outcome === Outcome.accepted) return copy.accepted
+    if (outcome === Outcome.accepted) return copy.accepted(presses)
     if (outcome === Outcome.rejected) return copy.rejected(presses)
     if (phase === Phase.waiting) return copy.preparing((msLeft / 1000).toFixed(1))
     if (phase === Phase.ready) return copy.ready
     return copy.quiet
   }
 
-  const progress = phase === Phase.idle ? 0 : 1 - msLeft / rejectDelayMs
+  const progress = phase === Phase.idle ? 0 : 1 - msLeft / startDelay
 
   return (
     <div className={styles.consent}>

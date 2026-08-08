@@ -9,5 +9,5 @@ export const copy = {
   year: 'Year',
   quiet: `Years start at ${FIRST_YEAR} and count up. Scroll.`,
   chosen: (day: string, month: string, year: string, scrolled: number) =>
-    `${day} ${month} ${year}, after scrolling past ${scrolled} years.`,
+    `${day} ${month} ${year}, after scrolling past ${scrolled} ${scrolled === 1 ? 'year' : 'years'}.`,
 }

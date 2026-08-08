@@ -378,7 +378,11 @@
         },
       }
 
-      const variant = variants[new URLSearchParams(location.search).get('v')] ?? variants.home
+      const requested = new URLSearchParams(location.search).get('v')
+      // No ?v= means the home card; a ?v= that names nothing is a mistake worth failing on, not a
+      // silent home card written over some other project's file.
+      const variant = requested === null ? variants.home : variants[requested]
+      if (!variant) throw new Error(`og-template: unknown variant "${requested}"`)
       document.getElementById('path').textContent = variant.path
       if (variant.caret) {
         const caret = document.createElement('span')
@@ -587,8 +591,8 @@
 
         if (variant.art === 'layers') {
           const layers = add('layers', {})
-          // A rod straight through the cube, one cell per layer along the depth axis — the one winning
-          // line that stays visible in every layer's exposed top row.
+          // A diagonal through the cube: one cell per layer, stepping across a column each layer down
+          // — a winning line that stays visible in every layer's exposed top row.
           for (let depth = 0; depth < 4; depth++) {
             const layer = add(
               'layer',

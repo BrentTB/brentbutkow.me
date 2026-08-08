@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useFocusWhen } from '../../useFocusWhen'
 import { usePointerIntent } from '../../usePointerIntent'
 import styles from './BackButtonTrap.module.scss'
 import { copy } from './data'
@@ -21,6 +22,10 @@ export function BackButtonTrap() {
   const [escaped, setEscaped] = useState(false)
   const [byKeyboard, setByKeyboard] = useState(false)
   const { viaPointer, intentProps } = usePointerIntent()
+  // Escaping disables the Back button and mounts "go back in"; restarting does the reverse. Move focus
+  // with the control that appears so a keyboard user is never dropped onto the body.
+  const againRef = useFocusWhen<HTMLButtonElement>(escaped)
+  const backRef = useFocusWhen<HTMLButtonElement>(!escaped)
 
   const page = DEAD_ENDS[Math.min(presses, DEAD_ENDS.length - 1)]
 
@@ -52,6 +57,7 @@ export function BackButtonTrap() {
       <div className={styles.chrome}>
         <button
           type="button"
+          ref={backRef}
           className={styles.back}
           onClick={onBack}
           disabled={escaped}
@@ -79,7 +85,7 @@ export function BackButtonTrap() {
           {status()}
         </p>
         {escaped && (
-          <button type="button" className={styles.again} onClick={restart}>
+          <button type="button" ref={againRef} className={styles.again} onClick={restart}>
             {copy.again}
           </button>
         )}

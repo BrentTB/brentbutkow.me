@@ -23,6 +23,9 @@ export const copy = {
     count === 1
       ? 'Almost. One more requirement, which we can now share with you.'
       : `Almost. ${count} more requirements, which we can now share with you.`,
-  accepted: (attempts: number) => `Password accepted after ${attempts} attempts.`,
+  accepted: (attempts: number) =>
+    attempts === 1
+      ? 'Password accepted after one attempt.'
+      : `Password accepted after ${attempts} attempts.`,
   again: 'Start over',
 }

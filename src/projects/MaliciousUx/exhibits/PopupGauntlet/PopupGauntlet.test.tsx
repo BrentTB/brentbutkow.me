@@ -102,6 +102,24 @@ describe('PopupGauntlet', () => {
     expect(screen.getByText(copy.finished(INTERRUPTIONS.length))).toBeTruthy()
   })
 
+  it('reports the end even when the last interruption fires at the very bottom', () => {
+    render(<PopupGauntlet />)
+
+    scrollTo(INTERRUPTION_DEPTHS[0])
+    dismiss(0)
+    scrollTo(INTERRUPTION_DEPTHS[1])
+    dismiss(1)
+    // Fling straight to the bottom: the final interruption and the end land on one scroll event.
+    scrollTo(1)
+    dismiss(2)
+
+    expect(screen.getByText(copy.finished(INTERRUPTIONS.length))).toBeTruthy()
+  })
+
+  it('has one popup defined for every interruption depth', () => {
+    expect(INTERRUPTIONS.length).toBe(INTERRUPTION_DEPTHS.length)
+  })
+
   it('starts the article over, back at the top', () => {
     render(<PopupGauntlet />)
     INTERRUPTION_DEPTHS.forEach((depth, index) => {

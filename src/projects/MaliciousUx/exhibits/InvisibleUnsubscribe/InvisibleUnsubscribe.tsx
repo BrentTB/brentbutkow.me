@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useFocusWhen } from '../../useFocusWhen'
 import { usePointerIntent } from '../../usePointerIntent'
 import styles from './InvisibleUnsubscribe.module.scss'
 import { copy } from './data'
@@ -7,6 +8,9 @@ export function InvisibleUnsubscribe() {
   const [gone, setGone] = useState(false)
   const [byKeyboard, setByKeyboard] = useState(false)
   const { viaPointer, intentProps } = usePointerIntent()
+  // Unsubscribing swaps the hidden link for "put it back" and back again; focus rides along.
+  const againRef = useFocusWhen<HTMLButtonElement>(gone)
+  const linkRef = useFocusWhen<HTMLButtonElement>(!gone)
 
   const onUnsubscribe = () => {
     setByKeyboard(!viaPointer.current)
@@ -31,7 +35,13 @@ export function InvisibleUnsubscribe() {
         ))}
         {/* Present, labelled, and focusable. Just not visible, which is the part the law forgot. */}
         {!gone && (
-          <button type="button" className={styles.hidden} onClick={onUnsubscribe} {...intentProps}>
+          <button
+            type="button"
+            ref={linkRef}
+            className={styles.hidden}
+            onClick={onUnsubscribe}
+            {...intentProps}
+          >
             {copy.unsubscribe}
           </button>
         )}
@@ -42,7 +52,12 @@ export function InvisibleUnsubscribe() {
           {status()}
         </p>
         {gone && (
-          <button type="button" className={styles.again} onClick={() => setGone(false)}>
+          <button
+            type="button"
+            ref={againRef}
+            className={styles.again}
+            onClick={() => setGone(false)}
+          >
             {copy.again}
           </button>
         )}

@@ -15,6 +15,12 @@ export const FunnelStep = {
 } as const
 export type FunnelStep = (typeof FunnelStep)[keyof typeof FunnelStep]
 
+/** The steps that ask a question, i.e. every step that is not an ending. */
+export type FunnelQuestionStep = Exclude<
+  FunnelStep,
+  typeof FunnelStep.gone | typeof FunnelStep.kept
+>
+
 /** Questions in the order they are asked; `gone` and `kept` are endings, not steps. */
 export const FUNNEL_ORDER: readonly FunnelStep[] = [
   FunnelStep.start,
@@ -27,7 +33,7 @@ export const FUNNEL_ORDER: readonly FunnelStep[] = [
 export const FunnelAnswer = { leave: 'leave', stay: 'stay' } as const
 export type FunnelAnswer = (typeof FunnelAnswer)[keyof typeof FunnelAnswer]
 
-const nextAfter: Record<string, FunnelStep> = {
+const nextAfter: Record<FunnelQuestionStep, FunnelStep> = {
   [FunnelStep.start]: FunnelStep.guilt,
   [FunnelStep.guilt]: FunnelStep.bargain,
   [FunnelStep.bargain]: FunnelStep.survey,
@@ -38,10 +44,11 @@ const nextAfter: Record<string, FunnelStep> = {
 /** One press of one of the two buttons. Saying you want to leave advances; anything else drops you out. */
 export function advanceFunnel(step: FunnelStep, answer: FunnelAnswer): FunnelStep {
   if (answer === FunnelAnswer.stay) return FunnelStep.kept
-  return nextAfter[step] ?? FunnelStep.gone
+  if (step === FunnelStep.gone || step === FunnelStep.kept) return FunnelStep.gone
+  return nextAfter[step]
 }
 
-/** How many more questions stand between this step and the exit — the number the page never shows you. */
+/** How many questions remain, counting the one on screen — the number the page never shows you. */
 export function questionsRemaining(step: FunnelStep): number {
   const index = FUNNEL_ORDER.indexOf(step)
   return index === -1 ? 0 : FUNNEL_ORDER.length - index

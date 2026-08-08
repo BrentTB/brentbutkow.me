@@ -35,6 +35,11 @@ export function SelfClearingForm() {
 
   const onSubmit = (event: FormEvent) => {
     event.preventDefault()
+    // Consume the intent: a pointer submit sets it afresh on the button before this runs, so pressing
+    // Enter inside a field (which never touches the button) reads as the keyboard press it is.
+    const byPointer = viaPointer.current
+    viaPointer.current = false
+
     const complaint = firstComplaint(form)
     setRejected(complaint)
 
@@ -45,7 +50,7 @@ export function SelfClearingForm() {
     }
 
     // The punishment for one bad field: a mouse loses the other three, a keyboard keeps them.
-    if (viaPointer.current) {
+    if (byPointer) {
       setForm(emptyForm)
       setStatus(Status.error)
       return

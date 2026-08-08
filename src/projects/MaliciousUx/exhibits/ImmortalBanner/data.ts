@@ -6,7 +6,7 @@ export const copy = {
     'We and 812 partners store and access information on your device to personalise content and measure adverts.',
   accept: 'Accept all',
   save: 'Save preferences',
-  quiet: 'Preferences saved. Nothing was saved.',
+  quiet: 'Dismiss the banner. See how long that lasts.',
   waiting: (seconds: number) => `Back in ${seconds}s.`,
   returned: (times: number) =>
     times === 1 ? 'It came back once.' : `It came back ${times} times.`,

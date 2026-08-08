@@ -29,8 +29,8 @@ export function HealingToggle() {
   }
 
   const status = () => {
-    if (heals > 0) return copy.healed(heals)
     if (keyboardHeld && !on) return copy.keyboardHeld
+    if (heals > 0) return copy.healed(heals)
     return copy.quiet
   }
 

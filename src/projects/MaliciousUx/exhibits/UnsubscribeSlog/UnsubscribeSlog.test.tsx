@@ -82,7 +82,19 @@ describe('UnsubscribeSlog', () => {
 
     expect(leaveButtons()).toHaveLength(MAILINGS.length)
     expect(screen.getByText(copy.restored)).toBeTruthy()
-    expect(vi.getTimerCount()).toBe(0)
+    // Nothing is still queued: letting any timer run must not undo the restore or re-take a mailing.
+    act(() => vi.runOnlyPendingTimers())
+    expect(screen.getByText(copy.restored)).toBeTruthy()
+    expect(leaveButtons()).toHaveLength(MAILINGS.length)
+  })
+
+  it('keeps keyboard focus in the panel after an unsubscribe settles', () => {
+    render(<UnsubscribeSlog />)
+
+    fireEvent.click(leaveButtons()[0])
+    settle()
+
+    expect(leaveButtons()).toContain(document.activeElement)
   })
 
   it('clears pending timers on unmount', () => {

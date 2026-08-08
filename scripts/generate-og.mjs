@@ -3,7 +3,7 @@
 // Outputs are committed to public/ — generation is not part of the build.
 
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdirSync } from 'node:fs'
+import { existsSync, mkdirSync, statSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -57,5 +57,13 @@ for (const { variant, out } of cards) {
     ],
     { stdio: 'pipe' }
   )
-  console.log(`generate-og: wrote ${out}`)
+  // Headless Chrome exits 0 even when the page throws, so a blank or text-only card would slip
+  // through. A real card is hundreds of KB; anything tiny means the render failed.
+  const { size } = statSync(outPath)
+  const MIN_BYTES = 50_000
+  if (size < MIN_BYTES) {
+    console.error(`generate-og: ${out} is only ${size} bytes — the render failed, not writing on.`)
+    process.exit(1)
+  }
+  console.log(`generate-og: wrote ${out} (${Math.round(size / 1024)} KB)`)
 }

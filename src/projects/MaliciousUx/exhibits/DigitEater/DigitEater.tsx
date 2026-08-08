@@ -10,12 +10,25 @@ export function DigitEater() {
   const [typed, setTyped] = useState(0)
 
   const onChange = (next: string) => {
-    // Only additions count as typing; a backspace should not read as another digit entered.
-    const added = digitsIn(next) > digitsIn(value)
-    const count = added ? typed + 1 : typed
+    const before = digitsIn(value)
+    const after = digitsIn(next)
 
+    // A backspace or non-digit edit counts as nothing typed and eats nothing.
+    if (after <= before) {
+      setValue(hostileFormatPhone(next, 0).value)
+      return
+    }
+
+    // Each added digit is its own bite, so a paste is eaten in the same proportion as typing it out.
+    const incoming = next.replace(/\D/g, '')
+    let running = value
+    let count = typed
+    for (let index = before; index < after; index += 1) {
+      count += 1
+      running = hostileFormatPhone(running + incoming[index], count).value
+    }
     setTyped(count)
-    setValue(hostileFormatPhone(next, count).value)
+    setValue(running)
   }
 
   return (

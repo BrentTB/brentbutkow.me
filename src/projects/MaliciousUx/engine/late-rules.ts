@@ -20,7 +20,7 @@ export type LateRule = (typeof LateRule)[keyof typeof LateRule]
 
 export const LATE_MIN_LENGTH = 8
 /** The only two symbols the policy will accept, disclosed long after it demands one. */
-export const APPROVED_SYMBOLS = ['&', '%']
+export const APPROVED_SYMBOLS: readonly string[] = ['&', '%']
 /** The word the policy will not hear, whatever case you try it in. */
 export const BANNED_WORD = 'password'
 

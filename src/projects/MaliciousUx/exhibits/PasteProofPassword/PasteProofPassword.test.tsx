@@ -22,6 +22,27 @@ describe('PasteProofPassword', () => {
     expect(screen.getByText(copy.blocked(1))).toBeTruthy()
   })
 
+  it('refuses a drop the same way it refuses a paste', () => {
+    render(<PasteProofPassword />)
+
+    const blocked = !fireEvent.drop(field())
+
+    expect(blocked).toBe(true)
+    expect(screen.getByText(copy.blocked(1))).toBeTruthy()
+  })
+
+  it('moves the readout back to the live count after a peek', () => {
+    render(<PasteProofPassword />)
+    fireEvent.change(field(), { target: { value: 'hunter2' } })
+    fireEvent.click(revealButton())
+    act(() => vi.advanceTimersByTime(REVEAL_MS))
+    expect(screen.getByText(copy.peeked)).toBeTruthy()
+
+    fireEvent.change(field(), { target: { value: 'hunter22' } })
+
+    expect(screen.getByText(copy.typed('hunter22'.length))).toBeTruthy()
+  })
+
   it('still lets you type the thing out by hand', () => {
     render(<PasteProofPassword />)
 

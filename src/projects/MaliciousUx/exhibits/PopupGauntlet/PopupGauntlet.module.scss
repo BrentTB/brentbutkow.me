@@ -74,15 +74,8 @@
 
 /* Covers the article's whole box and nothing outside it, at any scroll position. */
 .overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 14px;
+  @include spec-overlay;
   border-radius: var(--spec-radius);
-  background: rgba(12, 14, 18, 0.5);
 }
 
 .panel {

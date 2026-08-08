@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { PointerEvent, useEffect, useRef, useState } from 'react'
 import styles from './EagerAd.module.scss'
 import { copy } from './data'
 
 /** How long the advert waits after the cursor arrives — long enough to look like a slow network. */
-const ARRIVAL_MS = 450
+export const ARRIVAL_MS = 450
+/** How close the cursor must get to the button before the advert decides to pounce, in pixels. */
+const ARRIVAL_RADIUS = 120
 
 const Landed = { article: 'article', advert: 'advert' } as const
 type Landed = (typeof Landed)[keyof typeof Landed]
@@ -11,13 +13,18 @@ type Landed = (typeof Landed)[keyof typeof Landed]
 export function EagerAd() {
   const [adShown, setAdShown] = useState(false)
   const [landed, setLanded] = useState<Landed | null>(null)
+  const actionRef = useRef<HTMLButtonElement>(null)
   const arrival = useRef<number | undefined>(undefined)
 
   useEffect(() => () => window.clearTimeout(arrival.current), [])
 
-  // The advert loads when a cursor approaches, and lands above the button so the layout shifts under it.
-  const onPointerNear = () => {
-    if (adShown || arrival.current !== undefined) return
+  // The advert loads once the cursor nears the button, and lands above it so the layout shifts under it.
+  const onPointerNear = (event: PointerEvent) => {
+    if (adShown || arrival.current !== undefined || actionRef.current === null) return
+    const rect = actionRef.current.getBoundingClientRect()
+    const dx = Math.max(rect.left - event.clientX, 0, event.clientX - rect.right)
+    const dy = Math.max(rect.top - event.clientY, 0, event.clientY - rect.bottom)
+    if (Math.hypot(dx, dy) > ARRIVAL_RADIUS) return
     arrival.current = window.setTimeout(() => setAdShown(true), ARRIVAL_MS)
   }
 
@@ -46,7 +53,12 @@ export function EagerAd() {
         </div>
       )}
 
-      <button type="button" className={styles.action} onClick={() => setLanded(Landed.article)}>
+      <button
+        type="button"
+        ref={actionRef}
+        className={styles.action}
+        onClick={() => setLanded(Landed.article)}
+      >
         {copy.action}
       </button>
 

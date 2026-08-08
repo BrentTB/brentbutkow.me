@@ -7,7 +7,8 @@ import { exhibits, exhibitsInWing } from './exhibits/registry'
 import { Wing } from './malicious-ux.types'
 import styles from './MaliciousUx.module.scss'
 
-const wings: Wing[] = [Wing.consent, Wing.state, Wing.input, Wing.time, Wing.exit]
+// The one place wing order is written down; the floor plan and the sections both walk this.
+const wings = Object.values(Wing)
 
 const wingAnchor = (wing: Wing) => `wing-${wing}`
 
@@ -22,18 +23,27 @@ export function MaliciousUx() {
 
       <p className={styles.admission}>{pageCopy.admission(exhibits.length)}</p>
 
-      <nav className={styles.plan} aria-label={pageCopy.planTitle}>
-        <p className={styles.planTitle}>{pageCopy.planTitle}</p>
+      <nav className={styles.plan} aria-labelledby="malicious-ux-plan-title">
+        <p className={styles.planTitle} id="malicious-ux-plan-title">
+          {pageCopy.planTitle}
+        </p>
         <ol className={styles.planList}>
-          {wings.map((wing) => (
-            <li key={wing}>
-              <a className={styles.planLink} href={`#${wingAnchor(wing)}`}>
-                <span className={styles.planNumber}>{wingCopy[wing].number}</span>
-                {wingCopy[wing].title}
-                <span className={styles.planCount}>{exhibitsInWing(wing).length}</span>
-              </a>
-            </li>
-          ))}
+          {wings.map((wing) => {
+            const count = exhibitsInWing(wing).length
+            return (
+              <li key={wing}>
+                <a
+                  className={styles.planLink}
+                  href={`#${wingAnchor(wing)}`}
+                  aria-label={`${wingCopy[wing].number}: ${wingCopy[wing].title}, ${count} specimens`}
+                >
+                  <span className={styles.planNumber}>{wingCopy[wing].number}</span>
+                  {wingCopy[wing].title}
+                  <span className={styles.planCount}>{count}</span>
+                </a>
+              </li>
+            )
+          })}
         </ol>
       </nav>
 

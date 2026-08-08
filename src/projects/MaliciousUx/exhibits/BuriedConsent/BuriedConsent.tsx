@@ -27,12 +27,12 @@ export function BuriedConsent() {
           </p>
         ))}
 
-        <label className={styles.check}>
+        {/* Intent lives on the label so a press on the text counts the same as a press on the box. */}
+        <label className={styles.check} {...intentProps}>
           <input
             type="checkbox"
             checked={marketing}
             onChange={(event) => onMarketingChange(event.target.checked)}
-            {...intentProps}
           />
           <span>{copy.marketing}</span>
         </label>

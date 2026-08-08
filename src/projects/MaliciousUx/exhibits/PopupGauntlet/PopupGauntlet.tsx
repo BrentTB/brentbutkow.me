@@ -15,14 +15,17 @@ export function PopupGauntlet() {
   const onScroll = (event: UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = event.currentTarget
     const depth = scrollDepth(scrollTop, scrollHeight, clientHeight)
-    // The end only counts once every interruption has been paid for. Flinging the scrollbar to the
-    // bottom skips past the triggers, and claiming the article was finished then would be a lie.
-    if (depth >= 1 && fired >= INTERRUPTION_DEPTHS.length) setReachedEnd(true)
 
     const due = dueInterruption(depth, fired)
-    if (due === null) return
-    setFired(due + 1)
-    setShowing(due)
+    const nextFired = due === null ? fired : due + 1
+    if (due !== null) {
+      setFired(nextFired)
+      setShowing(due)
+    }
+    // The end only counts once every interruption has been paid for. Flinging the scrollbar to the
+    // bottom skips past the triggers, and claiming the article was finished then would be a lie.
+    // Counting nextFired, not fired, so the last interruption landing at the bottom still counts.
+    if (depth >= 1 && nextFired >= INTERRUPTION_DEPTHS.length) setReachedEnd(true)
   }
 
   const restart = () => {
@@ -32,7 +35,7 @@ export function PopupGauntlet() {
     if (article.current !== null) article.current.scrollTop = 0
   }
 
-  const interruption = showing === null ? null : INTERRUPTIONS[showing]
+  const interruption = showing === null ? null : (INTERRUPTIONS[showing] ?? null)
   const adShown = fired >= AD_AFTER_INTERRUPTIONS
 
   const status = () => {
