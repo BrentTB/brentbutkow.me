@@ -25,7 +25,9 @@ export function PopupGauntlet() {
     // The end only counts once every interruption has been paid for. Flinging the scrollbar to the
     // bottom skips past the triggers, and claiming the article was finished then would be a lie.
     // Counting nextFired, not fired, so the last interruption landing at the bottom still counts.
-    if (depth >= 1 && nextFired >= INTERRUPTION_DEPTHS.length) setReachedEnd(true)
+    // Browsers rarely let scrollTop reach the exact maximum, so allow a couple of pixels of slack.
+    const atBottom = scrollHeight - clientHeight - scrollTop <= 2
+    if (atBottom && nextFired >= INTERRUPTION_DEPTHS.length) setReachedEnd(true)
   }
 
   const restart = () => {

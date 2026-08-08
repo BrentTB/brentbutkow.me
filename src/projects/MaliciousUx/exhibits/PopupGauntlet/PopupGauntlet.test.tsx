@@ -116,6 +116,18 @@ describe('PopupGauntlet', () => {
     expect(screen.getByText(copy.finished(INTERRUPTIONS.length))).toBeTruthy()
   })
 
+  it('reaches the end even when the scrollbar stops a hair short of the bottom', () => {
+    render(<PopupGauntlet />)
+    INTERRUPTION_DEPTHS.forEach((depth, index) => {
+      scrollTo(depth)
+      dismiss(index)
+    })
+    // Real browsers rarely land scrollTop on the exact maximum, so depth never quite reaches 1.
+    scrollTo(0.998)
+
+    expect(screen.getByText(copy.finished(INTERRUPTIONS.length))).toBeTruthy()
+  })
+
   it('has one popup defined for every interruption depth', () => {
     expect(INTERRUPTIONS.length).toBe(INTERRUPTION_DEPTHS.length)
   })
