@@ -16,7 +16,8 @@ $disc-light: #e9e3d6; // warm off-white disc
 
 .stage {
   /* The board's perspective lives here, on an ancestor that itself never transforms, so the tilt
-     reads as a fixed camera. Each disc carries its own perspective for the flip — see `.cell`. */
+     reads as a fixed camera. This is the only standing 3D context on the board; a turning disc gets
+     its own camera for as long as the turn lasts — see `.cell` and `.disc[data-flipping]`. */
   perspective: 1100px;
   display: flex;
   justify-content: center;
@@ -57,9 +58,18 @@ $disc-light: #e9e3d6; // warm off-white disc
   box-shadow:
     inset 0 0 0 1px rgba(0, 0, 0, 0.28),
     inset 0 1px 1px rgba(0, 0, 0, 0.22);
-  /* Each cell is the disc's 3D camera, independent of the board's tilt — otherwise the tilt bleeds
-     into the flip and both faces of a turning disc show through at once. */
-  perspective: 620px;
+  /**
+   * Deliberately no `perspective` here.
+   *
+   * A turning disc does need a 3D camera of its own, independent of the board's tilt — otherwise the
+   * tilt bleeds into the flip and both faces show through at once — but it needs it for the second the
+   * turn lasts, and it now carries one in its own transform (see `.disc[data-flipping]`). Left on the
+   * cell it stood permanently: sixty-four nested 3D rendering contexts inside the board's already
+   * perspective-projected surface. Each one is a separate render surface to the compositor, and any
+   * repaint that touched them — a legal-move ring growing under the cursor was enough — left hairline
+   * cracks lying across the discs, in the colour of whatever was behind them, until the next scroll
+   * re-rasterised the board. At rest the discs are now flat painted circles with nothing to crack.
+   */
   cursor: default;
 
   &:disabled {
@@ -139,9 +149,12 @@ $disc-light: #e9e3d6; // warm off-white disc
   border: 2px solid rgba(var(--hint-rgb), 0.8);
   background: rgba(var(--hint-rgb), 0.16);
   z-index: 1;
+  /* The ring grows by widening, not by `transform: scale()`. A transform transition here was the thing
+     that set the compositor cracks off — see the note on `.cell` — and this is one small absolutely
+     positioned circle, so there is nothing below it for a change of size to disturb. */
   transition:
     background 140ms ease,
-    transform 140ms $ease-shoot;
+    inset 140ms $ease-shoot;
 
   &[data-player='dark'] {
     --hint-rgb: #{channels($disc-dark)};
@@ -158,20 +171,24 @@ $disc-light: #e9e3d6; // warm off-white disc
   .cell[data-legal]:not(:disabled):not([aria-disabled='true']):hover &,
   .cell[data-legal]:not(:disabled):focus-visible & {
     background: rgba(var(--hint-rgb), 0.5);
-    transform: scale(1.12);
+    /* 33% → 31% is the same 1.12× the scale gave: the ring is 34% of the cell, and 38% is 1.12 of that. */
+    inset: 31%;
   }
 }
 
 .disc {
   position: absolute;
   inset: 8%;
-  transform-style: preserve-3d;
   z-index: 1;
-  /* Baked state: identity, no transition, so resetting after a flip snaps invisibly. */
+  /* Baked state: identity, no transition, and flat — no 3D context of its own, so resetting after a
+     flip snaps invisibly and a settled disc is nothing more than a painted circle. */
   transform: none;
 
   &[data-flipping] {
-    transform: rotate3d(var(--ax), var(--ay), 0, 180deg);
+    /* The camera for the turn rides in the transform, so it lasts exactly as long as the turn does
+       rather than standing on every cell forever — see the note on `.cell`. */
+    transform: perspective(620px) rotate3d(var(--ax), var(--ay), 0, 180deg);
+    transform-style: preserve-3d;
     transition: transform var(--flip-duration) $flip-ease var(--flip-delay);
     /* Promote to its own layer so the turn keeps animating on the compositor even when the main
        thread is busy — e.g. the hard bot's search running right after your capturing move. */
@@ -228,6 +245,19 @@ $disc-light: #e9e3d6; // warm off-white disc
       inset 0 -3px 5px rgba(0, 0, 0, 0.22),
       0 0 0 1px rgba(0, 0, 0, 0.28);
   }
+}
+
+/**
+ * A hair in front of the reverse, for the duration of the turn, so the two are never exactly coplanar.
+ *
+ * `backface-visibility` decides which face is *pointing* at you; it does not settle which of two circles
+ * at the same depth gets drawn, and the two coincide at both ends of the turn. 1px against the disc's
+ * 620px camera is a 0.06px difference in size, invisible, and enough to give the depth test an answer.
+ * The order it produces is the right one at both ends: the front wins while the disc is unturned, and
+ * once the turn lands at 180° the reverse — carrying the new colour — is the nearer of the two.
+ */
+.disc[data-flipping] > .face[data-side='front'] {
+  transform: translateZ(1px);
 }
 
 @keyframes place {

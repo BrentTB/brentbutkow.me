@@ -98,6 +98,41 @@ describe('Board', () => {
     expect(screen.getByRole('button', { name: gameCopy.cellPendingLabel(3, 4) })).toBeTruthy()
   })
 
+  /**
+   * Regression: every disc carried both of its faces at all times, two circles at one depth, and the
+   * compositor did not always pick a winner — a thin line of the reverse colour struck through discs at
+   * rest until a scroll forced a repaint. A face is only drawn when there is a turn to show it in.
+   */
+  it('gives a resting disc one face, and its reverse only while it turns', () => {
+    const board = createBoard(BoardSize.standard)
+    const turning = idx(3, 3, BoardSize.standard)
+    const capturedFrom = idx(2, 3, BoardSize.standard)
+    const props = {
+      legalCells: [],
+      currentPlayer: Player.dark,
+      interactive: false,
+      flipSpeed: FlipSpeed.fast,
+      onPlay: vi.fn(),
+      playerName: name,
+    }
+    const backs = () => document.querySelectorAll('[data-side="back"]')
+
+    const { rerender } = render(<Board board={board} lastMove={null} flipped={[]} {...props} />)
+
+    // The four opening discs are down and settled: four faces between them, no reverses.
+    expect(document.querySelectorAll('[data-side]')).toHaveLength(4)
+    expect(backs()).toHaveLength(0)
+
+    const captured = {
+      ...board,
+      cells: board.cells.map((cell, index) => (index === turning ? Player.dark : cell)),
+    }
+    rerender(<Board board={captured} lastMove={capturedFrom} flipped={[turning]} {...props} />)
+
+    expect(backs()).toHaveLength(1)
+    expect(backs()[0].getAttribute('data-player')).toBe(Player.dark)
+  })
+
   it('marks the last move and the winner on the board', () => {
     const board = createBoard(BoardSize.standard)
     const centre = idx(3, 3, BoardSize.standard)
