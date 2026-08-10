@@ -30,7 +30,7 @@ export const funStuff: FunItem[] = [
   {
     title: 'Malicious UX',
     description:
-      'A collection of deliberately hostile interface design, with buttons that run away from your cursor, a setting that switches itself back on when you look away, and a form that quietly eats what you typed. All of it is live, and a keyboard beats every single one',
+      'A collection of deliberately hostile interface design, with buttons that run away from your cursor, a setting that switches itself back on when you look away, and a form that quietly eats what you typed',
     link: funStuffSubRoutes.maliciousUx,
   },
   {
