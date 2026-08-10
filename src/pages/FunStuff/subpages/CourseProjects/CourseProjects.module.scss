@@ -1,19 +1,5 @@
+/* Flush hairline rows, matching Fun Stuff and Games — the row atom draws its own dividers and padding. */
 .container {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-}
-
-.title {
-  font-size: 1rem;
-  font-weight: 600;
-  margin: 0;
-  color: var(--text);
-}
-
-.description {
-  font-size: 0.95rem;
-  margin: 0;
-  color: var(--text-secondary);
-  line-height: 1.5;
 }

@@ -59,6 +59,10 @@ export type Education = {
 export type FunItem = {
   title: string
   description: string
+  /** What kind of thing this is, for the row's left rail: `Tool`, `Board`, `Source`. Shown uppercased. */
+  label: string
+  /** Set on a row that opens onto a list of its own, e.g. `4 games`. Renders emphasised, with the count. */
+  hub?: string
   link?: string
   image?: string
 }

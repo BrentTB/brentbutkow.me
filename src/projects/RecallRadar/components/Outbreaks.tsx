@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { EventSort, type EventOut } from '../recall.types'
-import { formatDate, pluralize } from '../chart-format'
+import { pluralize } from '../../../utils/pluralize'
+import { formatDate } from '../chart-format'
 import { SegmentedToggle } from '../../../components/inputs/SegmentedToggle'
 import { useMediaQuery } from '../../../components/utils/useMediaQuery'
 import { ShowMoreToggle } from './ShowMoreToggle'

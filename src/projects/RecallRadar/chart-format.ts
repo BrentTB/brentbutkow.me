@@ -1,3 +1,4 @@
+import { pluralize } from '../../utils/pluralize'
 import type { MonthCount } from './recall.types'
 
 // Fixed locale keeps formatting deterministic across environments (and tests).
@@ -13,11 +14,6 @@ export function formatMonthLabel(month: string): string {
 
 export function formatNumber(value: number): string {
   return new Intl.NumberFormat(LOCALE).format(value)
-}
-
-// `${count} <unit>` with the plural form picked by count: pluralize(2, 'company', 'companies') → '2 companies'.
-export function pluralize(count: number, singular: string, plural: string): string {
-  return `${count} ${count === 1 ? singular : plural}`
 }
 
 // Largest count in a chart series, floored at 1 so an all-zero series divides safely.
