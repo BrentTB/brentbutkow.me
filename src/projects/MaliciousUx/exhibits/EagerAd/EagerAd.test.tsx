@@ -46,6 +46,54 @@ describe('EagerAd', () => {
     expect(screen.getByText(copy.quiet)).toBeTruthy()
   })
 
+  /**
+   * Regression: the whole trick hung off a cursor's approach, so on a phone — where there is no
+   * approach and no cursor — the advert never loaded and the exhibit demonstrated nothing at all.
+   */
+  it('lets the advert take the tap on a touch screen', () => {
+    render(<EagerAd />)
+
+    fireEvent.pointerDown(action(), { pointerType: 'touch' })
+    expect(screen.getByText(copy.ad)).toBeTruthy()
+
+    fireEvent.click(action())
+    expect(screen.getByText(copy.advert)).toBeTruthy()
+  })
+
+  it('gives the article the next tap, once the advert is already sitting there', () => {
+    render(<EagerAd />)
+    fireEvent.pointerDown(action(), { pointerType: 'touch' })
+    fireEvent.click(action())
+
+    fireEvent.pointerDown(action(), { pointerType: 'touch' })
+    fireEvent.click(action())
+
+    expect(screen.getByText(copy.article)).toBeTruthy()
+  })
+
+  it('drops the claim when the finger slides off instead of releasing', () => {
+    render(<EagerAd />)
+    // The advert arrives, then the press is abandoned: no click, so nothing lands.
+    fireEvent.pointerDown(action(), { pointerType: 'touch' })
+    fireEvent.click(screen.getByRole('button', { name: copy.reset }))
+
+    fireEvent.pointerDown(action(), { pointerType: 'touch' })
+    fireEvent.pointerDown(action(), { pointerType: 'touch' })
+    fireEvent.click(action())
+
+    expect(screen.getByText(copy.article)).toBeTruthy()
+  })
+
+  it('leaves a mouse press to the cursor path, which steals no clicks', () => {
+    render(<EagerAd />)
+
+    fireEvent.pointerDown(action(), { pointerType: 'mouse' })
+    expect(screen.queryByText(copy.ad)).toBeNull()
+
+    fireEvent.click(action())
+    expect(screen.getByText(copy.article)).toBeTruthy()
+  })
+
   it('clears the pending arrival timer on unmount', () => {
     const { unmount } = render(<EagerAd />)
     nudge(4, 4)

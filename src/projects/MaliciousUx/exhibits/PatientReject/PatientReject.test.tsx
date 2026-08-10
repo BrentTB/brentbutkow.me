@@ -50,6 +50,27 @@ describe('PatientReject', () => {
     expect(screen.getByText(copy.accepted(2))).toBeTruthy()
   })
 
+  /**
+   * Regression: accepting and then thinking better of it left the "accepted" line in place, so the
+   * countdown the press had started was invisible — the Reject button looked broken rather than slow.
+   */
+  it('starts the wait over when a mind is changed after accepting', () => {
+    show()
+
+    fireEvent.click(accept())
+    expect(screen.getByText(copy.accepted(1))).toBeTruthy()
+
+    pressWithPointer(reject())
+    expect(
+      screen.getByText(copy.preparing((HOSTILITY.rejectDelayMs / 1000).toFixed(1)))
+    ).toBeTruthy()
+
+    act(() => vi.advanceTimersByTime(HOSTILITY.rejectDelayMs))
+    pressWithPointer(reject())
+
+    expect(screen.getByText(copy.rejected(3))).toBeTruthy()
+  })
+
   it('stops the countdown once a decision is made', () => {
     show()
 

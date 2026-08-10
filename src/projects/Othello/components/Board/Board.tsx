@@ -215,8 +215,10 @@ export function Board({
                   <span className={styles.face} data-player={currentPlayer} data-side="back" />
                 </span>
               )}
+              {/* The ring carries the colour to move, so the board itself answers "whose turn is it,
+                  and which one am I?" without a trip to the score line or the last disc played. */}
               {isLegal && cell === null && !isPending && (
-                <span className={styles.hint} aria-hidden="true" />
+                <span className={styles.hint} data-player={currentPlayer} aria-hidden="true" />
               )}
             </button>
           )

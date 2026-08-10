@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { cssVars } from '../../../../utils/css-vars'
 import styles from './UnsubscribeSlog.module.scss'
-import { copy, imposedWaitSeconds, MAILINGS, UNSUBSCRIBE_MS } from './data'
+import { copy, imposedWaitSeconds, longestStatus, MAILINGS, UNSUBSCRIBE_MS } from './data'
 
 export function UnsubscribeSlog() {
   const [gone, setGone] = useState<string[]>([])
@@ -83,9 +84,16 @@ export function UnsubscribeSlog() {
       </ul>
 
       <div className={styles.footer}>
-        <p className={styles.readout} aria-live="polite">
-          {status()}
-        </p>
+        {/* The longest line the readout can show, handed to the CSS to reserve room for. It goes in as
+            a property rather than an element so it is never read out, matched, or selectable. */}
+        <div
+          className={styles.readoutBox}
+          style={cssVars({ '--longest-line': JSON.stringify(longestStatus()) })}
+        >
+          <p className={styles.readout} aria-live="polite">
+            {status()}
+          </p>
+        </div>
         {anyGone && (
           <button type="button" ref={rejoinRef} className={styles.rejoin} onClick={rejoin}>
             {copy.resubscribe}

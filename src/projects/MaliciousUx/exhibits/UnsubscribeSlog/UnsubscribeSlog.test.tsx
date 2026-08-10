@@ -1,6 +1,6 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { copy, imposedWaitSeconds, MAILINGS, UNSUBSCRIBE_MS } from './data'
+import { copy, imposedWaitSeconds, longestStatus, MAILINGS, UNSUBSCRIBE_MS } from './data'
 import { UnsubscribeSlog } from './UnsubscribeSlog'
 
 const leaveButtons = () => screen.getAllByRole('button', { name: copy.unsubscribe })
@@ -19,6 +19,24 @@ describe('UnsubscribeSlog', () => {
   afterEach(() => {
     cleanup()
     vi.useRealTimers()
+  })
+
+  /**
+   * The panel reserves room for this line so the footer cannot change size when the readout changes —
+   * on a phone the long "processing" line wrapped, bumped the resubscribe button onto its own row, and
+   * shifted the page on every press. A line longer than the reservation would bring that straight back.
+   */
+  it('reserves room for the longest line the readout can reach', () => {
+    const everyLine = [
+      copy.quiet(MAILINGS.length),
+      copy.waiting,
+      copy.progress(1),
+      copy.progress(MAILINGS.length),
+      copy.cleared(imposedWaitSeconds(MAILINGS.length)),
+      copy.restored,
+    ]
+
+    everyLine.forEach((line) => expect(longestStatus().length).toBeGreaterThanOrEqual(line.length))
   })
 
   it('offers one control per subscription', () => {

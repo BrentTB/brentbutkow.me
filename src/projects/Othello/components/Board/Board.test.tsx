@@ -66,6 +66,32 @@ describe('Board', () => {
     expect(isDisabled(screen.getByRole('button', { name: gameCopy.cellLabel(1, 1) }))).toBe(true)
   })
 
+  /**
+   * The rings are what you are looking at while you decide, so they carry the colour to move: the
+   * board itself says whose turn it is, and against the computer, which colour you are.
+   */
+  it('names the colour to move on every legal-move ring', () => {
+    const board = createBoard(BoardSize.standard)
+    const legalCells = legalMoves(board, Player.light)
+    render(
+      <Board
+        board={board}
+        legalCells={legalCells}
+        currentPlayer={Player.light}
+        lastMove={null}
+        flipped={[]}
+        interactive
+        flipSpeed={FlipSpeed.fast}
+        onPlay={vi.fn()}
+        playerName={name}
+      />
+    )
+
+    const rings = document.querySelectorAll('[aria-hidden="true"][data-player]')
+    expect(rings).toHaveLength(legalCells.length)
+    rings.forEach((ring) => expect(ring.getAttribute('data-player')).toBe(Player.light))
+  })
+
   it('announces an aimed cell as pending', () => {
     const legal = idx(2, 3, BoardSize.standard)
     renderBoard({ pendingMove: legal })

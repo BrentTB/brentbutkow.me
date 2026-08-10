@@ -1,3 +1,4 @@
+@use 'sass:color';
 @use '../../../../styles/shared' as *;
 
 /* The disc turn: quick to leave, easing into its landing so it settles rather than snapping. */
@@ -6,6 +7,12 @@ $flip-ease: cubic-bezier(0.34, 1.1, 0.5, 1);
 // The game's palette, off the site tokens: matte discs that read as Othello on the dark ink page.
 $disc-dark: #16171c; // near-black disc
 $disc-light: #e9e3d6; // warm off-white disc
+
+/* The channel triple behind a colour, for a custom property that an rgba() alpha is applied to.
+   Derived rather than written out again, so a change to a disc colour carries to the rings with it. */
+@function channels($colour) {
+  @return '#{color.channel($colour, "red", $space: rgb)}, #{color.channel($colour, "green", $space: rgb)}, #{color.channel($colour, "blue", $space: rgb)}';
+}
 
 .stage {
   /* The board's perspective lives here, on an ancestor that itself never transforms, so the tilt
@@ -116,21 +123,41 @@ $disc-light: #e9e3d6; // warm off-white disc
   }
 }
 
-/* A ring where a legal move sits, filling in on hover so the cursor previews the disc it would drop. */
+/**
+ * A ring where a legal move sits, filling in on hover so the cursor previews the disc it would drop.
+ *
+ * It is drawn in the colour to move rather than the site accent: the rings are the one thing on the
+ * board you are already looking at, so tinting them is what tells you whose turn it is — and, playing
+ * the computer, which colour you are. Falls back to the accent if no colour is named.
+ */
 .hint {
+  --hint-rgb: var(--accent-rgb);
+
   position: absolute;
   inset: 33%;
   border-radius: 50%;
-  border: 2px solid rgba(var(--accent-rgb), 0.55);
-  background: rgba(var(--accent-rgb), 0.04);
+  border: 2px solid rgba(var(--hint-rgb), 0.8);
+  background: rgba(var(--hint-rgb), 0.16);
   z-index: 1;
   transition:
     background 140ms ease,
     transform 140ms $ease-shoot;
 
+  &[data-player='dark'] {
+    --hint-rgb: #{channels($disc-dark)};
+
+    /* Near-black on dark felt needs an edge of its own to read; the off-white disc does not. Outline
+       rather than box-shadow, which fun mode's pulse is already using for its glow. */
+    outline: 1px solid rgba(255, 255, 255, 0.24);
+  }
+
+  &[data-player='light'] {
+    --hint-rgb: #{channels($disc-light)};
+  }
+
   .cell[data-legal]:not(:disabled):not([aria-disabled='true']):hover &,
   .cell[data-legal]:not(:disabled):focus-visible & {
-    background: rgba(var(--accent-rgb), 0.24);
+    background: rgba(var(--hint-rgb), 0.5);
     transform: scale(1.12);
   }
 }
@@ -231,7 +258,7 @@ $disc-light: #e9e3d6; // warm off-white disc
   }
   50% {
     opacity: 1;
-    box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.4);
+    box-shadow: 0 0 10px rgba(var(--hint-rgb), 0.4);
   }
 }
 

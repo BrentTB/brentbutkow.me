@@ -42,7 +42,11 @@ export function PatientReject() {
       setOutcome(Outcome.rejected)
       return
     }
-    if (phase === Phase.idle) {
+    /* Changing your mind after accepting starts the wait from the top — the delay is on rejecting,
+       whenever the rejecting happens. Without clearing the outcome the ring and the countdown both
+       stayed frozen behind the "accepted" line, so pressing Reject appeared to do nothing at all. */
+    if (phase === Phase.idle || outcome !== null) {
+      setOutcome(null)
       setMsLeft(rejectDelayMs)
       setStartDelay(rejectDelayMs)
       setPhase(Phase.waiting)

@@ -33,7 +33,10 @@ $camera-ease: cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
   /* Only the cube claims the gesture. The fanned deck ignores drags, so swallowing touch there would
-     take the page's scroll and leave the settings below the board out of reach on a phone. */
+     take the page's scroll and leave the settings below the board out of reach on a phone.
+
+     This is the declaration; a native non-passive `touchmove` listener in TicTacToe.tsx enforces it.
+     On its own it let a drag scroll the page some of the time — see the comment on that effect. */
   &[data-orbitable] {
     cursor: grab;
     touch-action: none;
