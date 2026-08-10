@@ -61,7 +61,9 @@ describe('useRouteMeta', () => {
       'https://brentbutkow.me/og/recall-radar.png'
     )
 
-    renderHook(() => useRouteMeta(), { wrapper: wrapperFor('/experience') })
+    // Every indexable page now has a card of its own, enforced by site-invariants. The fallback is for
+    // the routes that will never have one: a dynamic detail page cannot be drawn ahead of time.
+    renderHook(() => useRouteMeta(), { wrapper: wrapperFor('/projects/recall-radar/fda/F-1234-5') })
     expect(headContent('meta[property="og:image"]', 'content')).toBe(
       'https://brentbutkow.me/og-image.png'
     )

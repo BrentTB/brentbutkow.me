@@ -228,6 +228,96 @@
         clip-path: polygon(0 0, 0 78%, 27% 58%, 47% 100%, 66% 88%, 47% 50%, 100% 44%);
       }
 
+      /**
+       * ASCII Art Studio: a column of characters resolving out of noise into a shape, which is the whole
+       * trick of the tool. Set in the mono face at a fixed line height so the glyphs form a grid.
+       */
+      .ascii {
+        position: absolute;
+        top: 0;
+        left: 40px;
+        right: -40px;
+        bottom: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 21px;
+        line-height: 21px;
+        letter-spacing: 3px;
+        white-space: pre;
+      }
+      .asciiRow {
+        color: rgba(243, 239, 231, 0.34);
+      }
+
+      /**
+       * Image Encoder: a block of pixels with one square pulled out and magnified, where the carried bits
+       * live. The point is that the change is invisible at size and obvious under the loupe.
+       */
+      .pixels {
+        position: absolute;
+        top: 150px;
+        left: 60px;
+        display: grid;
+        grid-template-columns: repeat(10, 26px);
+        grid-template-rows: repeat(10, 26px);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .pixel {
+        width: 26px;
+        height: 26px;
+      }
+      .loupe {
+        position: absolute;
+        top: 236px;
+        /* Far enough in that all three columns stay on the card: at 232px the last one ran off it. */
+        left: 196px;
+        display: grid;
+        grid-template-columns: repeat(3, 52px);
+        grid-template-rows: repeat(3, 52px);
+        border: 2px solid rgba(233, 184, 114, 0.85);
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 18px 40px -16px rgba(0, 0, 0, 0.8);
+      }
+      .loupeCell {
+        width: 52px;
+        height: 52px;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 17px;
+        color: rgba(255, 255, 255, 0.9);
+      }
+
+      /**
+       * Gulag Sort: the bars it kept, and the gaps where the ones out of order used to be. A sort that
+       * removes rather than rearranges should be drawn by what is missing.
+       */
+      .bars {
+        position: absolute;
+        bottom: 96px;
+        left: 34px;
+        display: flex;
+        align-items: flex-end;
+        gap: 12px;
+        height: 380px;
+      }
+      .bar {
+        width: 30px;
+        border-radius: 4px 4px 0 0;
+        background: rgba(233, 184, 114, 0.75);
+      }
+      /* What is left of a value that fell out of order: its footprint, and nothing standing on it. */
+      .bar.culled {
+        background: none;
+        border: 1px dashed rgba(243, 239, 231, 0.18);
+        border-bottom: 0;
+      }
+
       /* Othello: the board mid-move, with the discs the last play caught still turning over. */
       .board {
         position: absolute;
@@ -359,6 +449,85 @@
             'A browser space-defense game where you bend space itself — sling meteors, open black holes, protect your ship.',
           tags: ['Playable in your browser'],
           stars: true,
+        },
+        experience: {
+          path: '~/experience',
+          title: 'Experience',
+          subtitle:
+            'Full-stack and cloud engineering roles, what the work involved, and what actually shipped.',
+          tags: [],
+        },
+        education: {
+          path: '~/education',
+          title: 'Education',
+          subtitle:
+            'An information engineering degree at Wits, and the courses that turned out to matter.',
+          tags: [],
+        },
+        achievements: {
+          path: '~/achievements',
+          title: 'Achievements',
+          subtitle: 'Awards and recognition picked up along the way, from university and since.',
+          tags: [],
+        },
+        projects: {
+          path: '~/projects',
+          title: 'Projects',
+          subtitle:
+            'Things built to be used by somebody, including Recall Radar, which tracks food recalls across five regions.',
+          tags: [],
+        },
+        'fun-stuff': {
+          path: '~/fun-stuff',
+          title: 'Fun Stuff',
+          subtitle:
+            'Experiments and side projects with no particular justification. Browser games, odd tools, and a joke sorting algorithm.',
+          tags: [],
+        },
+        games: {
+          path: '~/fun-stuff/games',
+          title: 'Games',
+          subtitle:
+            'Games that run in the browser with nothing to install, playable against a friend or the computer.',
+          tags: ['Four to choose from'],
+        },
+        'course-projects': {
+          path: '~/fun-stuff/course-projects',
+          title: 'Course Projects',
+          subtitle:
+            'What school and university had me build, kept on GitHub rather than tidied away.',
+          tags: [],
+        },
+        contact: {
+          path: '~/contact',
+          title: 'Contact',
+          subtitle:
+            'Email, GitHub, LinkedIn. Happy to hear about work, or about a bug on this site.',
+          tags: [],
+        },
+        'ascii-art': {
+          path: '~/fun-stuff/ascii-art',
+          title: 'ASCII Art Studio',
+          subtitle:
+            'Point it at a photo, a video, or your webcam, and watch the whole thing come back as characters.',
+          tags: ['Runs in the browser'],
+          art: 'ascii',
+        },
+        'image-encoder': {
+          path: '~/fun-stuff/image-encoder',
+          title: 'Image Encoder',
+          subtitle:
+            'Hide a message inside a picture by nudging its pixels, lock it with a key, and read it back out later.',
+          tags: ['Nothing leaves your machine'],
+          art: 'pixels',
+        },
+        'gulag-sort': {
+          path: '~/fun-stuff/gulag-sort',
+          title: 'Gulag Sort',
+          subtitle:
+            'A sorting algorithm that does not rearrange anything. Whatever is out of order simply stops being in the list.',
+          tags: ['Runs in O(n)'],
+          art: 'bars',
         },
         'malicious-ux': {
           path: '~/fun-stuff/malicious-ux',
@@ -560,6 +729,61 @@
             panel
           )
           yes.textContent = 'Yes, I consent'
+        }
+
+        if (variant.art === 'ascii') {
+          const holder = add('ascii', {})
+          // Deterministic, so the same card comes back every time it is regenerated.
+          let seed = 8675309
+          const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647
+          const RAMP = ' .:-=+*#%@'
+          const COLUMNS = 26
+          const ROWS = 22
+          // A soft shape in the middle of the frame: brightness falls off with distance from its centre,
+          // so the ramp resolves into a form near the middle and dissolves into speckle at the edges.
+          for (let row = 0; row < ROWS; row++) {
+            let line = ''
+            for (let column = 0; column < COLUMNS; column++) {
+              const dx = (column - COLUMNS * 0.52) / (COLUMNS * 0.42)
+              const dy = (row - ROWS * 0.5) / (ROWS * 0.46)
+              const away = Math.sqrt(dx * dx + dy * dy)
+              const light = Math.max(0, 1 - away) + (rand() - 0.5) * 0.22
+              const step = Math.round(Math.min(1, Math.max(0, light)) * (RAMP.length - 1))
+              line += RAMP[step]
+            }
+            add('asciiRow', {}, holder).textContent = line
+          }
+        }
+
+        if (variant.art === 'pixels') {
+          const grid = add('pixels', {})
+          let seed = 20250807
+          const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647
+          // A picture worth hiding something in, then the same three squares again under the loupe with
+          // the low bits that carry the message called out.
+          const shade = () => {
+            const base = 40 + Math.round(rand() * 60)
+            return `rgb(${base + 30} ${base + 70} ${base + 110})`
+          }
+          for (let cell = 0; cell < 100; cell++) add('pixel', { background: shade() }, grid)
+
+          const loupe = add('loupe', {})
+          for (let cell = 0; cell < 9; cell++) {
+            const node = add('loupeCell', { background: shade() }, loupe)
+            node.textContent = rand() < 0.5 ? '0' : '1'
+          }
+        }
+
+        if (variant.art === 'bars') {
+          const row = add('bars', {})
+          // A run that only ever climbs, because everything that dipped has been removed. The gaps are the
+          // values it deleted, still in their original places.
+          // Eight columns is what fits before the card edge; fourteen ran off it and lost the peak.
+          const heights = [58, 0, 118, 0, 186, 244, 0, 316]
+          for (const height of heights) {
+            const culled = height === 0
+            add(culled ? 'bar culled' : 'bar', { height: (culled ? 74 : height) + 'px' }, row)
+          }
         }
 
         if (variant.art === 'board') {

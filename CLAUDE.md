@@ -43,6 +43,7 @@ Step-by-step runbooks for the recurring multi-file workflows — each was verifi
 it end-to-end. Invoke before improvising:
 
 - **new-page** — add a route (paths → meta → page → config → sitemap → fun-mode).
+- **og-card** — the social card a page previews as when shared (variant → copy → art → generate → commit).
 - **null-space-change** — change the game safely (determinism, round-trip test, changelog).
 - **recall-radar-country** — add a country/source (config records + the copy that enumerates countries).
 - **visual-verify** — see a UI change actually working in the browser (the miss class no test catches).

@@ -3,6 +3,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { browsableRoutePaths, DEFAULT_OG_IMAGE, routesMeta, SITE_URL } from './routes/routes.meta'
+import { routePaths } from './routes/routes.paths'
 
 // Repo-wide invariants that have each shipped broken at least once:
 
@@ -70,6 +71,23 @@ describe('site invariants', () => {
     expect(
       missing,
       `indexable routes missing from public/sitemap.xml:\n${missing.join('\n')}`
+    ).toEqual([])
+  })
+
+  it('every indexable route has a social card of its own', () => {
+    /**
+     * Without its own card a page falls back to the home one, which says "Brent Butkow — Full-stack
+     * engineer". On a page about Brent that is merely vague; on a tool it is wrong, and sharing the ASCII
+     * art studio previewed as somebody's job title for months before anyone noticed.
+     *
+     * Home is the exception: it is what DEFAULT_OG_IMAGE draws.
+     */
+    const missing = browsableRoutePaths.filter(
+      (path) => path !== routePaths.home && routesMeta[path].ogImage === undefined
+    )
+    expect(
+      missing,
+      `indexable routes with no ogImage of their own (they fall back to the home card):\n${missing.join('\n')}`
     ).toEqual([])
   })
 
