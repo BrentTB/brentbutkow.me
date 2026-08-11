@@ -6,7 +6,7 @@
   align-items: start;
 }
 
-/* What kind of thing the row is — a tool, a board game, source. Classification, so it earns the rail. */
+/* How the list classifies the row — a tool, a board game, a school year. Classification earns the rail. */
 .label {
   padding-top: 7px;
   font-family: var(--font-mono);
@@ -17,9 +17,10 @@
   transition: color 200ms ease;
 }
 
-/* Follows the row's own hover accent, so the rail and the arrow light up together. */
-a:hover .label,
-a:focus-visible .label {
+/* Follows the row's own hover accent, so the rail and the arrow light up together. The child combinator
+   keeps it to the card's own anchor: any link further up the page must not light this rail. */
+a:hover > .row .label,
+a:focus-visible > .row .label {
   color: var(--accent);
 }
 

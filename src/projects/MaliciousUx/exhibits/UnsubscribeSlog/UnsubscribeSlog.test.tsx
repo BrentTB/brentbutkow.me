@@ -37,6 +37,12 @@ describe('UnsubscribeSlog', () => {
     ]
 
     everyLine.forEach((line) => expect(longestStatus().length).toBeGreaterThanOrEqual(line.length))
+
+    // The candidates are listed by hand in both places, so a new line of copy has to reach them both.
+    expect(
+      Object.keys(copy),
+      'copy gained or lost a line — check longestStatus() still covers every line the readout shows'
+    ).toHaveLength(11)
   })
 
   it('offers one control per subscription', () => {

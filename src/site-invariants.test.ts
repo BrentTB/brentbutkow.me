@@ -114,6 +114,22 @@ describe('site invariants', () => {
     ).toEqual([])
   })
 
+  it('every social card committed to public/og is one a route still asks for', () => {
+    // The inverse of the check above. A renamed or deleted route leaves its card behind, and a half-MB
+    // PNG nothing references is invisible to every other check in this file.
+    const generator = readFileSync(join(rootDir, 'scripts/generate-og.mjs'), 'utf8')
+    const drawn = new Set(
+      [...generator.matchAll(/out:\s*'public(\/[\w\-/.]+\.png)'/g)].map((match) => match[1])
+    )
+    const orphaned = readdirSync(join(publicDir, 'og'))
+      .map((file) => `/og/${file}`)
+      .filter((image) => !drawn.has(image))
+    expect(
+      orphaned,
+      `cards in public/og that no card in generate-og.mjs writes:\n${orphaned.join('\n')}`
+    ).toEqual([])
+  })
+
   it('every card the generator renders maps to a variant the template defines', () => {
     // generate-og.mjs passes ?v=<variant> to the template; a variant the template has no entry for
     // used to fall back to the home card, silently overwriting a project PNG with the wrong image.

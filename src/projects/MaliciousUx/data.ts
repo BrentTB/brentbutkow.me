@@ -1,3 +1,4 @@
+import { pluralize } from '../../utils/pluralize'
 import { ExhibitCopy, ExhibitId, Wing } from './malicious-ux.types'
 
 /**
@@ -13,7 +14,7 @@ export const pageCopy = {
   taglineFun:
     'Every interface in here was put together by someone who did not like you very much, and they all work exactly as intended.',
   admission: (specimens: number) =>
-    `Free entry · ${specimens} ${specimens === 1 ? 'specimen' : 'specimens'} · please touch them`,
+    `Free entry · ${pluralize(specimens, 'specimen', 'specimens')} · please touch them`,
   planTitle: 'Floor plan',
   promiseTitle: 'Accessibility notice',
   promise:

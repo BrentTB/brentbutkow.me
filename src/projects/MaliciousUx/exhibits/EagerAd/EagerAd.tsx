@@ -1,5 +1,6 @@
 import { PointerEvent, useEffect, useRef, useState } from 'react'
 import { useMediaQuery } from '../../../../components/utils/useMediaQuery'
+import { usePointerIntent } from '../../usePointerIntent'
 import styles from './EagerAd.module.scss'
 import { copy } from './data'
 
@@ -19,6 +20,7 @@ type Landed = (typeof Landed)[keyof typeof Landed]
 
 export function EagerAd() {
   const isTouch = useMediaQuery(TOUCH_QUERY)
+  const { viaPointer, intentProps } = usePointerIntent()
   const [adShown, setAdShown] = useState(false)
   const [landed, setLanded] = useState<Landed | null>(null)
   const actionRef = useRef<HTMLButtonElement>(null)
@@ -30,6 +32,8 @@ export function EagerAd() {
 
   // The advert loads once the cursor nears the button, and lands above it so the layout shifts under it.
   const onPointerNear = (event: PointerEvent) => {
+    // A finger dragging past counts as no approach: letting it arm the advert spends the touch trick early.
+    if (isTouchPress(event.pointerType)) return
     if (adShown || arrival.current !== undefined || actionRef.current === null) return
     const rect = actionRef.current.getBoundingClientRect()
     const dx = Math.max(rect.left - event.clientX, 0, event.clientX - rect.right)
@@ -45,18 +49,23 @@ export function EagerAd() {
    * Left to the cursor code alone the exhibit simply did nothing on a phone.
    */
   const onActionPress = (event: PointerEvent) => {
+    intentProps.onPointerDown()
     /* A press owns the tap only if the advert lands during that press. Clearing first means a press
        abandoned by dragging off the button cannot leave the flag set and steal a later click. */
     tapTaken.current = false
     if (!isTouchPress(event.pointerType) || adShown || landed !== null) return
     window.clearTimeout(arrival.current)
     arrival.current = undefined
+    /* The advert lands above the button and pushes it down under the finger. Capturing the pointer
+       keeps the release on the button, so the tap still counts instead of falling into the advert. */
+    event.currentTarget.setPointerCapture?.(event.pointerId)
     setAdShown(true)
     tapTaken.current = true
   }
 
   const onActionRelease = () => {
-    if (!tapTaken.current) {
+    // Reached by Tab there was no press to steal, so the button does what its label says.
+    if (!viaPointer.current || !tapTaken.current) {
       setLanded(Landed.article)
       return
     }
@@ -95,6 +104,7 @@ export function EagerAd() {
         ref={actionRef}
         className={styles.action}
         onPointerDown={onActionPress}
+        onKeyDown={intentProps.onKeyDown}
         onClick={onActionRelease}
       >
         {copy.action}

@@ -59,16 +59,12 @@ $disc-light: #e9e3d6; // warm off-white disc
     inset 0 0 0 1px rgba(0, 0, 0, 0.28),
     inset 0 1px 1px rgba(0, 0, 0, 0.22);
   /**
-   * Deliberately no `perspective` here.
+   * No `perspective` here. A standing 3D context per cell means sixty-four render surfaces nested
+   * inside the board's already perspective-projected one, and any repaint that touches them — a
+   * legal-move ring growing under the cursor is enough — cracks hairlines across the discs.
    *
-   * A turning disc does need a 3D camera of its own, independent of the board's tilt — otherwise the
-   * tilt bleeds into the flip and both faces show through at once — but it needs it for the second the
-   * turn lasts, and it now carries one in its own transform (see `.disc[data-flipping]`). Left on the
-   * cell it stood permanently: sixty-four nested 3D rendering contexts inside the board's already
-   * perspective-projected surface. Each one is a separate render surface to the compositor, and any
-   * repaint that touched them — a legal-move ring growing under the cursor was enough — left hairline
-   * cracks lying across the discs, in the colour of whatever was behind them, until the next scroll
-   * re-rasterised the board. At rest the discs are now flat painted circles with nothing to crack.
+   * The camera a turning disc needs rides in `.disc[data-flipping]`'s own transform instead, for the
+   * second the turn lasts. At rest the discs are flat painted circles with nothing to crack.
    */
   cursor: default;
 
@@ -138,9 +134,10 @@ $disc-light: #e9e3d6; // warm off-white disc
  *
  * It is drawn in the colour to move rather than the site accent: the rings are the one thing on the
  * board you are already looking at, so tinting them is what tells you whose turn it is — and, playing
- * the computer, which colour you are. Falls back to the accent if no colour is named.
+ * the computer, which colour you are.
  */
 .hint {
+  /* The base the two colour rules below override, and what the pulse reads while neither has landed. */
   --hint-rgb: var(--accent-rgb);
 
   position: absolute;
@@ -149,9 +146,9 @@ $disc-light: #e9e3d6; // warm off-white disc
   border: 2px solid rgba(var(--hint-rgb), 0.8);
   background: rgba(var(--hint-rgb), 0.16);
   z-index: 1;
-  /* The ring grows by widening, not by `transform: scale()`. A transform transition here was the thing
-     that set the compositor cracks off — see the note on `.cell` — and this is one small absolutely
-     positioned circle, so there is nothing below it for a change of size to disturb. */
+  /* The ring grows by widening, not by `transform: scale()`: a transform transition here is what sets
+     the compositor cracks off — see the note on `.cell`. This is one small absolutely positioned
+     circle, so there is nothing below it for a change of size to disturb. */
   transition:
     background 140ms ease,
     inset 140ms $ease-shoot;

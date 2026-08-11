@@ -18,14 +18,14 @@ export const courseProjects: FunItem[] = [
   },
   {
     title: 'Chess PAT',
-    label: 'Grd 11',
+    label: 'Grade 11',
     description:
       'For my grade 11 PAT (Practical Assessment Task), I created a chess game in Java with an AI opponent that you could play against. The project included a GUI and a simple minimax algorithm for the AI',
     link: 'https://github.com/BrentTB/chess_PAT',
   },
   {
     title: 'Space Math',
-    label: 'Grd 11',
+    label: 'Grade 11',
     description:
       'For a grade 11 project, I created a space-themed math game in Java. The user had to quickly solve math problems, or they would lose health. The user could unlock different skins, backgrounds, and effects, and there was a built in (local) leaderboard',
     link: 'https://github.com/BrentTB/space_math',

@@ -17,7 +17,8 @@ describe('ProjectsPage', () => {
     )
 
     for (const project of projects) {
-      const row = screen.getByRole('link', { name: new RegExp(project.name) })
+      // Substring match, not a RegExp: a name with `+` or brackets in it would be read as syntax.
+      const row = screen.getByRole('link', { name: (label) => label.includes(project.name) })
       expect(row.getAttribute('href')).toBe(project.href)
     }
   })
@@ -29,8 +30,9 @@ describe('ProjectsPage', () => {
       </MemoryRouter>
     )
 
+    // getAllByText: two projects are free to share a label, and one day two of them will.
     for (const project of projects) {
-      expect(screen.getByText(project.label)).toBeTruthy()
+      expect(screen.getAllByText(project.label).length).toBeGreaterThan(0)
     }
   })
 })

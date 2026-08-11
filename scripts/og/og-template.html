@@ -1,8 +1,8 @@
 <!doctype html>
 <!-- 1200x630 Open Graph card template. Rendered to PNG by scripts/generate-og.mjs via headless
-     Chrome; pick a variant with ?v=home|recall-radar|null-space|pixel-world-simulator|malicious-ux|othello|tic-tac-toe.
-     Mirrors the site's design
-     tokens (ink bg, warm gold accent, IBM Plex) and the terminal ~/ path motif. -->
+     Chrome; pick a card with ?v=<key>, where the keys are those of the `variants` object below.
+     Mirrors the site's design tokens (ink bg, warm gold accent, IBM Plex) and the terminal ~/ path
+     motif. -->
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -83,6 +83,10 @@
         display: flex;
         gap: 14px;
         margin-top: 34px;
+      }
+      /* `display: flex` outranks the `hidden` attribute, so an empty row keeps its margin without this. */
+      .tags[hidden] {
+        display: none;
       }
       .tag {
         font-family: 'IBM Plex Mono', monospace;
@@ -235,8 +239,9 @@
       .ascii {
         position: absolute;
         top: 0;
-        left: 40px;
-        right: -40px;
+        /* The grid is measured to land inside the card: 22 columns at 21px plus 3px of tracking. */
+        left: 20px;
+        right: 0;
         bottom: 0;
         display: flex;
         flex-direction: column;
@@ -506,8 +511,7 @@
         contact: {
           path: '~/contact',
           title: 'Contact',
-          subtitle:
-            'Contact me via Email, GitHub and LinkedIn - for work, for fun, or just to say hi.',
+          subtitle: 'Reach me by email, GitHub or LinkedIn — for work, for fun, or just to say hi.',
           tags: [],
         },
         'ascii-art': {
@@ -590,11 +594,14 @@
       } else {
         subtitleEl.textContent = variant.subtitle
       }
+      // A card with no tags drops the row entirely, so its text block sits where a tagged card's does.
+      const tagsEl = document.getElementById('tags')
+      if (variant.tags.length === 0) tagsEl.hidden = true
       for (const label of variant.tags) {
         const tag = document.createElement('span')
         tag.className = 'tag'
         tag.textContent = label
-        document.getElementById('tags').appendChild(tag)
+        tagsEl.appendChild(tag)
       }
       if (variant.strata) {
         // The material colours come from the sim's own table (engine/materials.ts). Copied rather than
@@ -751,7 +758,7 @@
           let seed = 8675309
           const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647
           const RAMP = ' .:-=+*#%@'
-          const COLUMNS = 26
+          const COLUMNS = 22
           const ROWS = 22
           // A soft shape in the middle of the frame: brightness falls off with distance from its centre,
           // so the ramp resolves into a form near the middle and dissolves into speckle at the edges.
@@ -773,8 +780,8 @@
           const grid = add('pixels', {})
           let seed = 20250807
           const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647
-          // A picture worth hiding something in, then the same three squares again under the loupe with
-          // the low bits that carry the message called out.
+          // A picture worth hiding something in, then a magnified read-out beside it — its own cells, not
+          // the grid's — showing the low bits that carry the message.
           const shade = () => {
             const base = 40 + Math.round(rand() * 60)
             return `rgb(${base + 30} ${base + 70} ${base + 110})`

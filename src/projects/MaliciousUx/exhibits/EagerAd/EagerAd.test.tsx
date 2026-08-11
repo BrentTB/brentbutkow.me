@@ -73,15 +73,44 @@ describe('EagerAd', () => {
 
   it('drops the claim when the finger slides off instead of releasing', () => {
     render(<EagerAd />)
-    // The advert arrives, then the press is abandoned: no click, so nothing lands.
-    fireEvent.pointerDown(action(), { pointerType: 'touch' })
-    fireEvent.click(screen.getByRole('button', { name: copy.reset }))
 
+    // The advert arrives on the first press, which is then abandoned: no click, so nothing lands.
     fireEvent.pointerDown(action(), { pointerType: 'touch' })
     fireEvent.pointerDown(action(), { pointerType: 'touch' })
     fireEvent.click(action())
 
     expect(screen.getByText(copy.article)).toBeTruthy()
+  })
+
+  /**
+   * Regression: an abandoned touch press left the claim on the advert, and the next Enter cashed it in —
+   * breaking the museum's one promise, that a control reached by Tab does what its label says.
+   */
+  it('gives Enter the article even when a touch press was abandoned mid-tap', () => {
+    render(<EagerAd />)
+
+    fireEvent.pointerDown(action(), { pointerType: 'touch' })
+    expect(screen.getByText(copy.ad)).toBeTruthy()
+
+    fireEvent.keyDown(action(), { key: 'Enter' })
+    fireEvent.click(action())
+
+    expect(screen.getByText(copy.article)).toBeTruthy()
+  })
+
+  it('spells out the tap on a touch screen, where there is no cursor to watch', () => {
+    const matchMedia = vi.fn((query: string) => ({
+      matches: query === '(hover: none)',
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }))
+    vi.stubGlobal('matchMedia', matchMedia)
+
+    render(<EagerAd />)
+    expect(screen.getByText(copy.quietTouch)).toBeTruthy()
+
+    vi.unstubAllGlobals()
   })
 
   it('leaves a mouse press to the cursor path, which steals no clicks', () => {

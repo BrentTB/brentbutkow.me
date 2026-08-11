@@ -71,6 +71,26 @@ describe('PatientReject', () => {
     expect(screen.getByText(copy.rejected(3))).toBeTruthy()
   })
 
+  /**
+   * Regression: restarting the wait for any outcome, not just an acceptance, meant a rejection already
+   * granted by the keyboard was taken back by the next mouse press and replaced with a fresh countdown.
+   */
+  it('leaves a rejection alone once it has been granted', () => {
+    show()
+
+    pressWithPointer(reject())
+    fireEvent.keyDown(reject())
+    fireEvent.click(reject())
+    expect(screen.getByText(copy.rejected(2))).toBeTruthy()
+
+    pressWithPointer(reject())
+
+    expect(screen.getByText(copy.rejected(3))).toBeTruthy()
+    expect(
+      screen.queryByText(copy.preparing((HOSTILITY.rejectDelayMs / 1000).toFixed(1)))
+    ).toBeNull()
+  })
+
   it('stops the countdown once a decision is made', () => {
     show()
 

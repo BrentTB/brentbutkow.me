@@ -133,10 +133,10 @@ $rejoin-height: 41px;
   }
 }
 
+/* The live line, inheriting the box's type so the reservation and the text measure the same. */
 .readout {
-  @include spec-readout;
-
   grid-area: 1 / 1;
+  margin: 0;
 }
 
 /* The way back: filled, instant, and the only control on the panel that does everything at once. */

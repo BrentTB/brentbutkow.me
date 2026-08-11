@@ -249,8 +249,17 @@ describe('TicTacToe — turning the cube with a finger', () => {
 
     fireEvent.click(option(VIEW_LABELS[ViewMode.fanned]))
 
+    expect(stage.isConnected).toBe(true)
     expect(stage.hasAttribute('data-orbitable')).toBe(false)
     expect(fireEvent.touchMove(stage, { touches: [] })).toBe(true)
+  })
+
+  /** The rail is exempt from the orbit gesture, so it has to stay exempt from the pan refusal too. */
+  it('leaves the page its scroll on the layer rail, which starts no turn', () => {
+    renderGame()
+    const rail = document.querySelector('[data-rail] button') as HTMLElement
+
+    expect(fireEvent.touchMove(rail, { touches: [] })).toBe(true)
   })
 })
 

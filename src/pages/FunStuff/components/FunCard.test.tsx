@@ -5,6 +5,7 @@ import { FunItem } from '../../../data/data.types'
 import { FunCard } from './FunCard'
 import { funStuff } from '../data'
 import { games } from '../subpages/Games/data'
+import { pluralize } from '../../../utils/pluralize'
 
 afterEach(cleanup)
 
@@ -52,10 +53,11 @@ describe('FunCard', () => {
 
   it('counts the games the Games row actually leads to', () => {
     // Reads the shipped copy against the shipped list, so adding a game has to move the count with it.
+    const count = pluralize(games.length, 'game', 'games')
     const gamesRow = funStuff.find((item) => item.title === 'Games')
-    expect(gamesRow?.hub).toBe(`${games.length} games`)
+    expect(gamesRow?.hub).toBe(count)
 
     renderCard(gamesRow as FunItem)
-    expect(screen.getByRole('link').textContent).toContain(`${games.length} games`)
+    expect(screen.getByRole('link').textContent).toContain(count)
   })
 })

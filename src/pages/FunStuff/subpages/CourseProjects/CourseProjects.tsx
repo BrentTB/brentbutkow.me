@@ -10,7 +10,7 @@ export function CourseProjects() {
       <PageHeader title="Course Projects" />
       <div className={styles.container}>
         {courseProjects.map((project) => (
-          <FunCard key={project.link} item={project} />
+          <FunCard key={`${project.title}-${project.link ?? ''}`} item={project} />
         ))}
       </div>
     </PageLayout>

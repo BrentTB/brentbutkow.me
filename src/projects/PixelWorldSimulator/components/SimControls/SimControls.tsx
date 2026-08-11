@@ -1,6 +1,7 @@
 import { Preset } from '../../engine/presets'
 import { ShareOutcome } from '../../useShareLink'
 import { BRUSH_RADIUS, PRESETS, SIM_SPEEDS, simCopy } from '../../data'
+import { pluralize } from '../../../../utils/pluralize'
 import { Select } from '../../../../components/inputs/Select'
 import type { SelectOption } from '../../../../components/inputs/option.types'
 import styles from './SimControls.module.scss'
@@ -127,9 +128,7 @@ export function SimControls({
           value={radius}
           onChange={(event) => onRadius(Number(event.target.value))}
         />
-        <span className={styles.readout}>
-          {brushCells} {brushCells === 1 ? 'cell' : 'cells'}
-        </span>
+        <span className={styles.readout}>{pluralize(brushCells, 'cell', 'cells')}</span>
       </label>
 
       {/* Off on its own at the far end: it throws the world away, and against the transport a miss while

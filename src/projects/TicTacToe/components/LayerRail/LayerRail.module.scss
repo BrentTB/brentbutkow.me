@@ -40,6 +40,8 @@
   button {
     cursor: pointer;
     pointer-events: auto;
+    /* The stage refuses pans while the cube can turn. The rail takes no drags, so it hands scrolling back. */
+    touch-action: auto;
 
     &:hover,
     &[aria-pressed='true'] {

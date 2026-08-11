@@ -85,7 +85,9 @@ export function Outbreaks({ events, activeEvent, onSelect, sort, onSortChange }:
                     </span>
                     <span className={styles.entity}>{event.dominantEntity ?? 'Outbreak'}</span>
                   </span>
-                  <span className={styles.count}>{event.recallCount} recalls</span>
+                  <span className={styles.count}>
+                    {pluralize(event.recallCount, 'recall', 'recalls')}
+                  </span>
                 </span>
                 {metaParts.length > 0 && (
                   <span className={styles.meta}>{metaParts.join(' · ')}</span>

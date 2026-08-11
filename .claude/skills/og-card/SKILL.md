@@ -18,15 +18,15 @@ which reads "Brent Butkow — Full-stack engineer" — vague on a page about Bre
 [scripts/og/og-template.html](../../../scripts/og/og-template.html) — add an entry to `variants`. The
 card is 1200x630 and has five parts, all optional except path and title:
 
-| Field           | What it is                                                                      |
-| --------------- | ------------------------------------------------------------------------------- |
-| `path`          | The terminal-style route, e.g. `~/fun-stuff/ascii-art`. Mirrors the breadcrumb. |
-| `title`         | The page name alone. No "— Brent Butkow"; the brand line already says it.       |
-| `subtitle`      | The page's pitch. See below.                                                    |
-| `tags`          | Zero or one short mono pill. Two is usually clutter.                            |
-| `art`           | A key handled in the `variant.art` block, only if the page earns it.            |
-| `titleSize`     | Override when the default size breaks the title badly.                          |
-| `subtitleWidth` | Override when the default column forces an extra line.                          |
+| Field           | What it is                                                                                                       |
+| --------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `path`          | The terminal-style route, e.g. `~/fun-stuff/ascii-art`. Mirrors the breadcrumb.                                  |
+| `title`         | The page name alone. No "— Brent Butkow"; the brand line already says it.                                        |
+| `subtitle`      | The page's pitch. See below. An array breaks the lines by hand; a string wraps.                                  |
+| `tags`          | Zero or one short mono pill of prose. A row of source or agency codes may run longer — `recall-radar` lists six. |
+| `art`           | A key handled in the `variant.art` block, only if the page earns it.                                             |
+| `titleSize`     | Override when the default size breaks the title badly.                                                           |
+| `subtitleWidth` | Override when the default column forces an extra line.                                                           |
 
 ## 2. Write the copy
 
