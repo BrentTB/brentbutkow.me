@@ -1,5 +1,9 @@
 @use '../../styles/exhibit' as *;
 
+/* The resubscribe button's own height: 0.88rem text at line-height 1.5, plus its 9px padding and
+   hairline border. Room is kept for it from the start, so the press that summons it moves nothing. */
+$rejoin-height: 41px;
+
 .panel {
   display: flex;
   flex-direction: column;
@@ -94,11 +98,45 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  min-height: 38px;
+  min-height: $rejoin-height;
+
+  /* On a phone there is no width to share: beside the button the readout was down to a ten-character
+     column. Stacked instead, it keeps the full width — and the button's row is an explicit track, so it
+     is reserved before the button exists and its arrival on the first unsubscribe moves nothing. */
+  @media (max-width: 560px) {
+    display: grid;
+    grid-template-rows: auto minmax($rejoin-height, auto);
+    justify-items: start;
+  }
 }
 
-.readout {
+/**
+ * The readout's lines are very different lengths, and on a phone the long "processing" one wrapped: that
+ * took the width the resubscribe button needed, dropped the button onto a row of its own, and shifted the
+ * page on every press. Two things stop it. The box takes the width left over and may shrink, so it never
+ * crowds the button off the row; and it holds itself at the height of the longest line the readout can
+ * show, so a change of line moves nothing either. Both share one grid cell, stacked.
+ */
+.readoutBox {
   @include spec-readout;
+
+  display: grid;
+  flex: 1;
+  min-width: 0;
+
+  /* The reservation. Pseudo-element content rather than a real node, so the duplicate line is never
+     announced, matched, or selectable; the string itself still comes from data.ts. */
+  &::before {
+    content: var(--longest-line);
+    grid-area: 1 / 1;
+    visibility: hidden;
+  }
+}
+
+/* The live line, inheriting the box's type so the reservation and the text measure the same. */
+.readout {
+  grid-area: 1 / 1;
+  margin: 0;
 }
 
 /* The way back: filled, instant, and the only control on the panel that does everything at once. */

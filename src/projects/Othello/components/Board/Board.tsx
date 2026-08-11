@@ -97,7 +97,10 @@ function Disc({ player, flip, durationMs }: DiscProps) {
       }}
     >
       <span className={styles.face} data-player={shown} data-side="front" />
-      <span className={styles.face} data-player={back} data-side="back" />
+      {/* The reverse exists only for the duration of a turn. A resting disc has nothing to show on its
+          far side, and two circles held at one depth is what let a line of the wrong colour strike
+          through it — see the note on `.face` in the stylesheet. */}
+      {flipping && <span className={styles.face} data-player={back} data-side="back" />}
     </span>
   )
 }
@@ -211,12 +214,14 @@ export function Board({
               )}
               {isPending && cell === null && (
                 <span className={styles.disc} data-ghost>
+                  {/* One face: an aimed disc is never turned over, so it has no reverse to carry. */}
                   <span className={styles.face} data-player={currentPlayer} data-side="front" />
-                  <span className={styles.face} data-player={currentPlayer} data-side="back" />
                 </span>
               )}
+              {/* The ring carries the colour to move, so the board itself answers "whose turn is it,
+                  and which one am I?" without a trip to the score line or the last disc played. */}
               {isLegal && cell === null && !isPending && (
-                <span className={styles.hint} aria-hidden="true" />
+                <span className={styles.hint} data-player={currentPlayer} aria-hidden="true" />
               )}
             </button>
           )

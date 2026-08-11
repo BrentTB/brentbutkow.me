@@ -21,10 +21,14 @@ steps in order; each names its exact file.
 
 [src/routes/routes.meta.ts](../../../src/routes/routes.meta.ts) — add a `routesMeta` entry
 keyed by the path. `title` + `description` are required (`metaFor` throws at module init if
-missing, and `routes.config.test.ts` asserts them). Optional: `ogImage` (path under
-`public/`, regenerate via `npm run generate:og`), `jsonLd`, `noindex: true` for
+missing, and `routes.config.test.ts` asserts them). Optional: `jsonLd`, `noindex: true` for
 non-indexable routes. The prerender plugin reads this file at build time — keep it free of
 component imports.
+
+**`ogImage` is required for anything indexable** — a `site-invariants` test fails without it, because a
+page with no card of its own previews as the home card ("Brent Butkow — Full-stack engineer") wherever it
+is shared. Follow the **og-card** skill: it covers the template variant, the copy shape, whether the page
+earns bespoke art, and the generate-and-commit flow.
 
 ## 3. Create the page
 

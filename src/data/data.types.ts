@@ -59,6 +59,10 @@ export type Education = {
 export type FunItem = {
   title: string
   description: string
+  /** How the list classifies this row — a kind (`Tool`, `Board`) or an era (`3rd Year`). Shown uppercased. */
+  label: string
+  /** Set on a row that opens onto a list of its own, e.g. `4 games`. Renders emphasised, with the count. */
+  hub?: string
   link?: string
   image?: string
 }

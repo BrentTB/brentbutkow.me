@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { EventSort, type EventOut } from '../recall.types'
-import { formatDate, pluralize } from '../chart-format'
+import { pluralize } from '../../../utils/pluralize'
+import { formatDate } from '../chart-format'
 import { SegmentedToggle } from '../../../components/inputs/SegmentedToggle'
 import { useMediaQuery } from '../../../components/utils/useMediaQuery'
 import { ShowMoreToggle } from './ShowMoreToggle'
@@ -84,7 +85,9 @@ export function Outbreaks({ events, activeEvent, onSelect, sort, onSortChange }:
                     </span>
                     <span className={styles.entity}>{event.dominantEntity ?? 'Outbreak'}</span>
                   </span>
-                  <span className={styles.count}>{event.recallCount} recalls</span>
+                  <span className={styles.count}>
+                    {pluralize(event.recallCount, 'recall', 'recalls')}
+                  </span>
                 </span>
                 {metaParts.length > 0 && (
                   <span className={styles.meta}>{metaParts.join(' · ')}</span>

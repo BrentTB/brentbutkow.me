@@ -3,6 +3,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { browsableRoutePaths, DEFAULT_OG_IMAGE, routesMeta, SITE_URL } from './routes/routes.meta'
+import { routePaths } from './routes/routes.paths'
 
 // Repo-wide invariants that have each shipped broken at least once:
 
@@ -73,6 +74,23 @@ describe('site invariants', () => {
     ).toEqual([])
   })
 
+  it('every indexable route has a social card of its own', () => {
+    /**
+     * Without its own card a page falls back to the home one, which says "Brent Butkow — Full-stack
+     * engineer". On a page about Brent that is merely vague; on a tool it is wrong, and sharing the ASCII
+     * art studio previewed as somebody's job title for months before anyone noticed.
+     *
+     * Home is the exception: it is what DEFAULT_OG_IMAGE draws.
+     */
+    const missing = browsableRoutePaths.filter(
+      (path) => path !== routePaths.home && routesMeta[path].ogImage === undefined
+    )
+    expect(
+      missing,
+      `indexable routes with no ogImage of their own (they fall back to the home card):\n${missing.join('\n')}`
+    ).toEqual([])
+  })
+
   it('every social card a route asks for is one the generator knows how to draw', () => {
     // A route can name an ogImage that generate-og.mjs has no card for, and nothing else catches it:
     // the asset check above only fires once someone has already run the generator and committed a file.
@@ -93,6 +111,22 @@ describe('site invariants', () => {
     expect(
       undrawn,
       `ogImage paths with no card in scripts/generate-og.mjs:\n${undrawn.join('\n')}`
+    ).toEqual([])
+  })
+
+  it('every social card committed to public/og is one a route still asks for', () => {
+    // The inverse of the check above. A renamed or deleted route leaves its card behind, and a half-MB
+    // PNG nothing references is invisible to every other check in this file.
+    const generator = readFileSync(join(rootDir, 'scripts/generate-og.mjs'), 'utf8')
+    const drawn = new Set(
+      [...generator.matchAll(/out:\s*'public(\/[\w\-/.]+\.png)'/g)].map((match) => match[1])
+    )
+    const orphaned = readdirSync(join(publicDir, 'og'))
+      .map((file) => `/og/${file}`)
+      .filter((image) => !drawn.has(image))
+    expect(
+      orphaned,
+      `cards in public/og that no card in generate-og.mjs writes:\n${orphaned.join('\n')}`
     ).toEqual([])
   })
 

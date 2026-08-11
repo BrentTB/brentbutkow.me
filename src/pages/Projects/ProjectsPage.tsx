@@ -1,4 +1,4 @@
-import { ArticleOrLinkCard } from '../../components/cards/ArticleOrLinkCard'
+import { LabelledRow } from '../../components/cards/LabelledRow'
 import { PageLayout } from '../../components/PageFormatting/PageLayout'
 import { PageHeader } from '../../components/PageFormatting/PageHeader'
 import { projects } from './data'
@@ -10,12 +10,14 @@ export function ProjectsPage() {
       <PageHeader title="Projects" />
       <div className={styles.list}>
         {projects.map((project) => (
-          <ArticleOrLinkCard key={project.href} href={project.href} internal>
-            <div className={styles.row}>
-              <span className={styles.name}>{project.name}</span>
-              <span className={styles.blurb}>{project.blurb}</span>
-            </div>
-          </ArticleOrLinkCard>
+          <LabelledRow
+            key={project.href}
+            label={project.label}
+            title={project.name}
+            description={project.blurb}
+            href={project.href}
+            internal
+          />
         ))}
       </div>
     </PageLayout>

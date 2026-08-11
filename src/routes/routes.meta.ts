@@ -59,21 +59,25 @@ export const routesMeta: Record<string, RouteMeta> = {
     title: 'Experience — Brent Butkow',
     description:
       'The professional experience of Brent Butkow — full-stack and cloud engineering roles, the stacks used, and what was shipped.',
+    ogImage: '/og/experience.png',
   },
   [routePaths.education]: {
     title: 'Education — Brent Butkow',
     description:
       'The education and academic background of Brent Butkow in software and engineering.',
+    ogImage: '/og/education.png',
   },
   [routePaths.achievements]: {
     title: 'Achievements — Brent Butkow',
     description:
       'Awards, recognition, and standout achievements from the studies and career of Brent Butkow.',
+    ogImage: '/og/achievements.png',
   },
   [routePaths.projects]: {
     title: 'Projects — Brent Butkow',
     description:
       'Software projects built by Brent Butkow, including Recall Radar, a live US, Canada, UK, EU and SA food-recall dashboard.',
+    ogImage: '/og/projects.png',
   },
   [routePaths.recallRadar]: {
     title: 'Food Recall Tracker — US, Canada, UK, EU & SA | Recall Radar — Brent Butkow',
@@ -118,11 +122,13 @@ export const routesMeta: Record<string, RouteMeta> = {
     title: 'Fun Stuff — Brent Butkow',
     description:
       'Side projects, experiments, and playful builds by Brent Butkow — browser games, a joke sorting algorithm, and more.',
+    ogImage: '/og/fun-stuff.png',
   },
   [gamesPath]: {
     title: 'Games — Brent Butkow',
     description:
       'Browser games and interactive experiments by Brent Butkow, playable right in your browser.',
+    ogImage: '/og/games.png',
   },
   [nullSpacePath]: {
     title: 'Null Space — Brent Butkow',
@@ -204,31 +210,36 @@ export const routesMeta: Record<string, RouteMeta> = {
     title: 'ASCII Art Studio — Brent Butkow',
     description:
       'ASCII Art Studio — turn a photo, video, or your webcam into live ASCII art entirely in your browser. A TypeScript port of Brent Butkow’s Python vidToAscii tool.',
+    ogImage: '/og/ascii-art.png',
   },
   [`${routePaths.funStuff}${funStuffSubRoutes.imageEncoder}`]: {
     title: 'Image Encoder — Brent Butkow',
     description:
       'Image Encoder — hide a secret message inside a picture by nudging its pixel colors, optionally lock it with a key, and reveal it again. Steganography that runs entirely in your browser.',
+    ogImage: '/og/image-encoder.png',
   },
   [`${routePaths.funStuff}${funStuffSubRoutes.maliciousUx}`]: {
     title: 'Malicious UX — Brent Butkow',
     description:
-      'A working collection of dark patterns and hostile interface design, with a No button that runs away from your cursor, a setting that switches itself back on when you look away, a phone field that eats digits, and an unsubscribe buried five screens deep. All of it is live, all of it is explained, and a keyboard beats every one of them.',
+      'A working collection of dark patterns and hostile interface design, with a No button that runs away from your cursor, a setting that switches itself back on when you look away, a phone field that eats digits, and an unsubscribe buried five screens deep.',
     ogImage: '/og/malicious-ux.png',
   },
   [`${routePaths.funStuff}${funStuffSubRoutes.gulagSort}`]: {
     title: 'Gulag Sort — Brent Butkow',
     description:
       'Gulag Sort — a self-developed sorting algorithm by Brent Butkow, riffing on the joke Stalin sort.',
+    ogImage: '/og/gulag-sort.png',
   },
   [`${routePaths.funStuff}${funStuffSubRoutes.courseProjects}`]: {
     title: 'Course Projects — Brent Butkow',
     description:
       'A collection of software projects Brent Butkow built during school and university.',
+    ogImage: '/og/course-projects.png',
   },
   [routePaths.contact]: {
     title: 'Contact — Brent Butkow',
     description: 'Get in touch with Brent Butkow — email, GitHub, LinkedIn, and more.',
+    ogImage: '/og/contact.png',
   },
   [routePaths.admin]: {
     title: 'Admin — Brent Butkow',

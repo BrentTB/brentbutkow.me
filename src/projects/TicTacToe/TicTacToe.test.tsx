@@ -12,12 +12,13 @@ import {
   MOVE_COMMIT_LABELS,
   PLAYER_COLOURS,
   STARTER_LABELS,
+  VIEW_LABELS,
   gameCopy,
 } from './data'
 import { MOVE_COMMIT_KEY } from './useMoveCommit'
 import { TIC_TAC_TOE_GAME_ID } from './online'
 import { THINKING_TIME_MS } from './useComputerTurn'
-import { GameMode, MoveCommit, Player, Starter } from './tic-tac-toe.types'
+import { GameMode, MoveCommit, Player, Starter, ViewMode } from './tic-tac-toe.types'
 
 /**
  * The room is faked wholesale rather than stubbing the network under it: these tests are about what the
@@ -225,6 +226,40 @@ describe('TicTacToe — one player', () => {
 
     fireEvent.click(button(gameCopy.undo))
     expect(screen.queryAllByRole('button', { name: /taken by/ })).toHaveLength(0)
+  })
+})
+
+describe('TicTacToe — turning the cube with a finger', () => {
+  /**
+   * Regression: the same drag rotated the cube some of the time and scrolled the page the rest.
+   * `touch-action: none` is not enough on its own — React registers `touchmove` passively, so nothing
+   * handed to the JSX can refuse the pan — and CSS is invisible to this test besides. The listener that
+   * does the refusing is native and non-passive, which is what `defaultPrevented` here sees.
+   */
+  it('refuses the page its scroll while the cube is the view', () => {
+    renderGame()
+
+    // `false` back from fireEvent means a handler called preventDefault.
+    expect(fireEvent.touchMove(cell(0, 0, 0), { touches: [] })).toBe(false)
+  })
+
+  it('leaves the page its scroll on the fanned deck, which takes no drags', () => {
+    renderGame()
+    const stage = cell(0, 0, 0).closest('[data-orbitable]') as HTMLElement
+
+    fireEvent.click(option(VIEW_LABELS[ViewMode.fanned]))
+
+    expect(stage.isConnected).toBe(true)
+    expect(stage.hasAttribute('data-orbitable')).toBe(false)
+    expect(fireEvent.touchMove(stage, { touches: [] })).toBe(true)
+  })
+
+  /** The rail is exempt from the orbit gesture, so it has to stay exempt from the pan refusal too. */
+  it('leaves the page its scroll on the layer rail, which starts no turn', () => {
+    renderGame()
+    const rail = document.querySelector('[data-rail] button') as HTMLElement
+
+    expect(fireEvent.touchMove(rail, { touches: [] })).toBe(true)
   })
 })
 

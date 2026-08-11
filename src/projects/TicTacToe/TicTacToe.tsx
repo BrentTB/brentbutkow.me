@@ -321,6 +321,29 @@ export function TicTacToe({ computerSeed }: TicTacToeProps = {}) {
   }, [endPointer])
 
   /**
+   * Holds the page still while the cube is being turned with a finger.
+   *
+   * `touch-action: none` on the stage says as much declaratively, and it needs enforcing twice over:
+   * React registers `touchmove` passively, so nothing handed to the JSX can refuse a pan, and a touch
+   * landing while the page still glides from an earlier flick counts as a continuation of that scroll
+   * rather than a fresh gesture. A native non-passive listener refuses the pan in both cases.
+   *
+   * Only while the view is orbitable, and never over the layer rail — the fanned deck and the rail take
+   * no drags, so swallowing touch there would leave the settings below the board out of reach on a phone.
+   */
+  const { orbitable } = camera
+  useEffect(() => {
+    const node = stageRef.current
+    if (node === null || !orbitable) return
+    const holdPage = (event: TouchEvent) => {
+      if (event.target instanceof Element && event.target.closest('[data-rail]') !== null) return
+      if (event.cancelable) event.preventDefault()
+    }
+    node.addEventListener('touchmove', holdPage, { passive: false })
+    return () => node.removeEventListener('touchmove', holdPage)
+  }, [orbitable])
+
+  /**
    * The board is locked while the seat belongs to the computer. Without this a tap during its think
    * pause plays *its* move for it: the bead lands in the computer's colour, the turn comes straight
    * back, and the reply it had already chosen is dropped along with the pending timer.
@@ -580,7 +603,7 @@ export function TicTacToe({ computerSeed }: TicTacToeProps = {}) {
             ? gameCopy.thinking(shownName)
             : gameCopy.turn(shownName)
 
-  const hint = camera.orbitable
+  const hint = orbitable
     ? isTouch
       ? gameCopy.orbitHintTouch
       : gameCopy.orbitHint

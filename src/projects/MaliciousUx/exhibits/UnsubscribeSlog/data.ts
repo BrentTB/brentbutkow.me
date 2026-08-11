@@ -33,3 +33,22 @@ export const copy = {
   cleared: (seconds: string) => `All clear. That took ${seconds} seconds.`,
   restored: 'Resubscribed to everything. That took one click and no waiting.',
 }
+
+/**
+ * The longest line the readout can ever show, for the invisible copy that holds its box at full size.
+ *
+ * The lines differ enough in length that the long "processing" one wrapped on a phone, which pushed the
+ * resubscribe button onto its own row and jumped the whole page on every unsubscribe.
+ *
+ * It reads the copy rather than naming a line, so rewording one is safe; the candidates are listed by
+ * hand, so a *new* readout line has to be added here too. A test counts the copy keys to say so.
+ * Length here is a stand-in for width, which is fair while the lines are all ordinary prose.
+ */
+export const longestStatus = (): string =>
+  [
+    copy.quiet(MAILINGS.length),
+    copy.waiting,
+    copy.progress(MAILINGS.length),
+    copy.cleared(imposedWaitSeconds(MAILINGS.length)),
+    copy.restored,
+  ].reduce((longest, line) => (line.length > longest.length ? line : longest))

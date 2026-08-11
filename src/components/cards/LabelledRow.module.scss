@@ -1,0 +1,83 @@
+/* Kind rail + body, echoing the date rail on DetailCard so the site's two row types scan the same way. */
+.row {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+/* How the list classifies the row — a tool, a board game, a school year. Classification earns the rail. */
+.label {
+  padding-top: 7px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  transition: color 200ms ease;
+}
+
+/* Follows the row's own hover accent, so the rail and the arrow light up together. The child combinator
+   keeps it to the card's own anchor: any link further up the page must not light this rail. */
+a:hover > .row .label,
+a:focus-visible > .row .label {
+  color: var(--accent);
+}
+
+.body {
+  min-width: 0;
+}
+
+.title {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0 0 6px;
+  font-size: 1.3rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.description {
+  margin: 0;
+  color: var(--text-secondary);
+  max-width: 80ch;
+}
+
+/* A row that opens onto its own list: louder title and a count, so it reads as a way in, not a leaf. */
+.hubRow .title {
+  font-size: 1.55rem;
+}
+
+.hubRow .label {
+  color: var(--accent);
+}
+
+.hubCount {
+  padding: 3px 9px;
+  border: 1px solid rgba(var(--accent-rgb), 0.4);
+  border-radius: 999px;
+  background: rgba(var(--accent-rgb), 0.07);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+@media (max-width: 720px) {
+  .row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .label {
+    padding-top: 0;
+  }
+
+  .hubRow .title {
+    font-size: 1.4rem;
+  }
+}
