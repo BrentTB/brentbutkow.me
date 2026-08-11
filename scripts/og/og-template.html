@@ -428,8 +428,13 @@
         'recall-radar': {
           path: '~/projects/recall-radar',
           title: 'Recall Radar',
-          subtitle:
-            'Food-recall tracker across the US, Canada, UK, EU and South Africa. Updated daily, with severity ratings and free email alerts.',
+          subtitle: [
+            'Food-recall tracker across the US, Canada,',
+            'UK, EU and South Africa. Updated daily,',
+            'with severity ratings and free email alerts.',
+          ],
+          // The chosen breaks run past the shared 21em column.
+          subtitleWidth: '24em',
           tags: ['FDA', 'USDA', 'CFIA', 'FSA', 'RASFF', 'NCC'],
         },
         'pixel-world-simulator': {
@@ -446,7 +451,7 @@
           path: '~/fun-stuff/games/null-space',
           title: 'Null Space',
           subtitle:
-            'A browser space-defense game where you bend space itself — sling meteors, open black holes, protect your ship.',
+            'A browser space-defense game where you bend space itself: sling meteors, open black holes, protect your ship.',
           tags: ['Playable in your browser'],
           stars: true,
         },
@@ -467,8 +472,7 @@
         achievements: {
           path: '~/achievements',
           title: 'Achievements',
-          subtitle:
-            'Academic awards, olympiad results and hackathon placings, listed by year from 2020 to 2025.',
+          subtitle: 'Academic awards, olympiad results and hackathon placings, listed by year.',
           tags: [],
         },
         projects: {
@@ -482,7 +486,7 @@
           path: '~/fun-stuff',
           title: 'Fun Stuff',
           subtitle:
-            'Four browser games, an ASCII art studio, an image encoder, an exhibit of hostile interfaces, and a joke sorting algorithm.',
+            'Includes four browser games, an image encoder, an ASCII art studio, and a joke sorting algorithm.',
           tags: [],
         },
         games: {
@@ -490,7 +494,7 @@
           title: 'Games',
           subtitle:
             'Games that run in the browser with nothing to install, playable against a friend or the computer.',
-          tags: ['Four to choose from'],
+          tags: ['Null Space', 'Pixel World Simulator', '4×4×4 Tic-Tac-Toe', 'Othello'],
         },
         'course-projects': {
           path: '~/fun-stuff/course-projects',
@@ -576,7 +580,16 @@
       if (variant.subtitleWidth) {
         document.getElementById('subtitle').style.maxWidth = variant.subtitleWidth
       }
-      document.getElementById('subtitle').textContent = variant.subtitle
+      const subtitleEl = document.getElementById('subtitle')
+      // An array subtitle picks its own wrap points; a string leaves them to the measurer.
+      if (Array.isArray(variant.subtitle)) {
+        variant.subtitle.forEach((line, i) => {
+          if (i > 0) subtitleEl.appendChild(document.createElement('br'))
+          subtitleEl.appendChild(document.createTextNode(line))
+        })
+      } else {
+        subtitleEl.textContent = variant.subtitle
+      }
       for (const label of variant.tags) {
         const tag = document.createElement('span')
         tag.className = 'tag'
