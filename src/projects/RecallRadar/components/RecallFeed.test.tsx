@@ -63,7 +63,6 @@ describe('RecallFeed', () => {
     expect(screen.getByText('Test cookies')).toBeTruthy()
     expect(screen.getByLabelText('Severity: Severe')).toBeTruthy() // color-graded severity dot
     // fields revealed in the expandable detail panel
-    expect(screen.getByText('92%')).toBeTruthy() // classifier confidence
     expect(screen.getByText('Acme Foods')).toBeTruthy() // company
     expect(screen.getByText('F-1234')).toBeTruthy()
     expect(screen.getByText('Nationwide')).toBeTruthy()

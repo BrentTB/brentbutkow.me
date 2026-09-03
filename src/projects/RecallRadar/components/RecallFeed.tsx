@@ -46,7 +46,6 @@ function detailRows(recall: Recall): DetailRow[] {
     value: `${severityLabels[recall.severityLabel]} (${recall.severityScore}/100)`,
   })
   rows.push({ term: 'Cause', value: categoryLabels[recall.category] })
-  rows.push({ term: 'Confidence', value: `${Math.round(recall.categoryConfidence * 100)}%` })
   rows.push({ term: 'Source', value: sourceLabels[recall.source] })
   rows.push({ term: 'Recall number', value: recall.recallNumber })
   if (recall.status) rows.push({ term: 'Status', value: recall.status })
