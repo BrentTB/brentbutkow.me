@@ -152,10 +152,6 @@ function RecallDetailBody({ recall }: { recall: Recall }) {
           <Fact term="Initiated" value={formatDate(recall.recallInitiationDate)} />
         )}
         <Fact term="Reported" value={formatDate(recall.reportDate)} />
-        <Fact
-          term="Classifier confidence"
-          value={`${Math.round(recall.categoryConfidence * 100)}%`}
-        />
       </dl>
 
       {recall.sourceUrl && (

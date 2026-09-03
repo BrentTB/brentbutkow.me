@@ -233,7 +233,6 @@ describe('RecallRadar page', () => {
     await waitFor(() => expect(screen.getByText('Test cookies')).toBeTruthy())
     expect(screen.getByText('Acme Foods')).toBeTruthy()
     expect(screen.getByText('Nationwide')).toBeTruthy()
-    expect(screen.getByText('100%')).toBeTruthy() // per-recall classifier confidence
     expect(screen.getByText('⚠ Outbreak')).toBeTruthy() // the per-recall badge
 
     // About tab — the tech-stack write-up + methodology, tucked behind its own tab.
