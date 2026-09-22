@@ -1,4 +1,5 @@
 import { routePaths } from '../../../../routes/routes.paths'
+import { projects } from '../../../Projects/data'
 import { browsableRoutePaths, routesMeta } from '../../../../routes/routes.meta'
 import { STEAM_LOCOMOTIVE, cowsay } from './ascii'
 
@@ -10,6 +11,7 @@ import { STEAM_LOCOMOTIVE, cowsay } from './ascii'
 //   tree                 the full page tree · -a adds hidden files
 //   cd [page]            navigate — relative paths, ~, .., and `cd -` (back); aliases: open, goto
 //   cat [page]           the page's one-line description (from routes.meta) · cat cv.pdf downloads the CV
+//                        a project on its own domain is a .url link file: cat reads it, cd follows it
 //   pwd                  where you are
 //   joke                 a dad joke — shuffled round-robin; racier ones stay out of professional mode
 //   clear / exit         wipe the log / close the terminal
@@ -76,6 +78,35 @@ function buildTree(paths: string[]): TerminalPage[] {
 }
 
 const terminalPages: TerminalPage[] = buildTree(browsablePaths)
+
+// A project hosted on its own domain has no route, so it hangs off the projects page as a link
+// file: `cat` reads it, `cd` follows it into a new tab. Name, URL and blurb come from the projects
+// page's own data, so the terminal never carries a second copy of them.
+type LinkFile = { name: string; url: string; blurb: string }
+
+const linkFileParent = routePaths.projects.split('/').filter(Boolean)
+
+const linkFiles: LinkFile[] = projects
+  .filter((project) => project.external)
+  .map((project) => ({
+    name: `${project.name.toLowerCase().replace(/\s+/g, '-')}.url`,
+    url: project.href,
+    blurb: project.blurb,
+  }))
+
+// Link files live in one folder, so a bare name anywhere else resolves to nothing.
+function linkFilesAt(segments: string[]): LinkFile[] {
+  const isParent =
+    segments.length === linkFileParent.length &&
+    linkFileParent.every((segment, index) => segments[index] === segment)
+  return isParent ? linkFiles : []
+}
+
+function findLinkFile(segments: string[]): LinkFile | null {
+  if (segments.length === 0) return null
+  const name = segments[segments.length - 1]
+  return linkFilesAt(segments.slice(0, -1)).find((file) => file.name === name) ?? null
+}
 
 const TerminalCommand = {
   help: 'help',
@@ -228,6 +259,7 @@ function toSegments(rawPath: string): string[] | null {
 function listPages(pathArg: string | undefined, showHidden: boolean): string[] {
   let children = terminalPages
   let atRoot = true
+  let listed: string[] = []
   if (pathArg) {
     // The hidden folder has no contents — listing it just echoes its own name, like any leaf page.
     if (isNotFoundDir(pathArg)) return [HIDDEN_DIR]
@@ -241,11 +273,13 @@ function listPages(pathArg: string | undefined, showHidden: boolean): string[] {
       return [node.name]
     } else {
       children = node.children
+      listed = segments ?? []
       atRoot = false
     }
   }
-  // Every page is a place you can cd into, so all render as folders; only dotfiles are files.
+  // Every page is a place you can cd into, so all render as folders; only files render bare.
   const names = children.map((page) => `${page.name}/`)
+  names.push(...linkFilesAt(listed).map((file) => file.name))
   // Hidden entries live at the site root only — the '.404/' folder plus the cat-able dotfiles.
   if (showHidden && atRoot) names.unshift(`${HIDDEN_DIR}/`, ...hiddenFiles)
   return [names.join('  ')]
@@ -261,9 +295,20 @@ function renderTree(pages: TreeEntry[], prefix: string, lines: string[]): void {
   })
 }
 
+// Pages render as folders; the link files of a folder render as files beside its pages.
+function treeEntriesFor(pages: TerminalPage[], segments: string[]): TreeEntry[] {
+  return [
+    ...pages.map((page) => ({
+      name: page.name,
+      children: treeEntriesFor(page.children, [...segments, page.name]),
+    })),
+    ...linkFilesAt(segments).map((file) => ({ name: file.name, children: [], isFile: true })),
+  ]
+}
+
 // `scope` narrows the tree to a subtree (`ls -R [page]` / `tree [page]`); omit for the full tree.
 function treePages(showHidden: boolean, scope?: { pathArg: string; cmd: string }): string[] {
-  let pages: TreeEntry[] = terminalPages
+  let pages: TreeEntry[] = treeEntriesFor(terminalPages, [])
   let rootLabel = '.'
   let atRoot = true
   if (scope) {
@@ -276,7 +321,7 @@ function treePages(showHidden: boolean, scope?: { pathArg: string; cmd: string }
     } else if (!node) {
       return [`${scope.cmd}: ${scope.pathArg}: no such page`]
     } else {
-      pages = node.children
+      pages = treeEntriesFor(node.children, segments ?? [])
       rootLabel = `${node.name}/`
       atRoot = false
     }
@@ -309,6 +354,13 @@ function changePage(pathArg: string | undefined): TerminalResult {
   }
   if (!segments) {
     return { output: ['cd: already at the top level'], action: none }
+  }
+  const linkFile = findLinkFile(segments)
+  if (linkFile) {
+    return {
+      output: [`opening ${linkFile.url}…`],
+      action: { type: TerminalActionType.openExternal, path: linkFile.url },
+    }
   }
   const node = findPage(segments)
   if (!node) {
@@ -353,6 +405,14 @@ function catFile(fileArg: string | undefined, ctx: TerminalContext): TerminalRes
   const description = page ? routesMeta[page.path]?.description : undefined
   if (description) {
     return { output: [description], action: none }
+  }
+  // A link file reads as its blurb, and tells you the command that follows it.
+  const linkFile = segments ? findLinkFile(segments) : null
+  if (linkFile) {
+    return {
+      output: [linkFile.blurb, `${linkFile.url} · open it with: cd ${fileArg}`],
+      action: none,
+    }
   }
   return { output: [`cat: ${fileArg}: no such file`], action: none }
 }
@@ -558,6 +618,13 @@ export function completions(input: string): string[] {
           .map((name) => `${base}${name}`)
       : []
 
+  // Link files complete for the commands that read or follow one, not for the folder commands.
+  const linkMatches = dirsOnly
+    ? []
+    : linkFilesAt(parentSegments)
+        .filter((file) => file.name.startsWith(partial) && file.name !== partial)
+        .map((file) => `${base}${file.name}`)
+
   // The hidden folder completes for every path command (cd/ls/tree/cat), but stays buried: it's
   // offered only once you commit past the bare '.' (so `cd .`/`cat .` don't surface it, `.4` does).
   const hiddenDirMatch =
@@ -569,5 +636,5 @@ export function completions(input: string): string[] {
       ? [`${base}${HIDDEN_DIR}`]
       : []
 
-  return [...pageMatches, ...fileMatches, ...hiddenDirMatch].sort()
+  return [...pageMatches, ...fileMatches, ...linkMatches, ...hiddenDirMatch].sort()
 }

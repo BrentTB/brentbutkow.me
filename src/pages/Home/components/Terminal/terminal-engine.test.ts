@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { completions, execute, TerminalActionType, TerminalContext } from './terminal-engine'
 import { routePaths } from '../../../../routes/routes.paths'
 import { browsableRoutePaths, routesMeta } from '../../../../routes/routes.meta'
+import { projects } from '../../../Projects/data'
 
 const ctx: TerminalContext = {
   isFunMode: false,
@@ -10,6 +11,45 @@ const ctx: TerminalContext = {
 }
 
 const funCtx: TerminalContext = { ...ctx, isFunMode: true }
+
+// The one project that lives on its own domain, hung off the projects page as a .url link file.
+const linkProject = projects.find((project) => project.external)!
+const linkFilePath = `projects/${linkProject.name.toLowerCase().replace(/\s+/g, '-')}.url`
+
+describe('link files — a project on its own domain', () => {
+  it('lists the link file beside the pages of the projects folder', () => {
+    const output = execute('ls projects', ctx).output[0]
+    expect(output).toContain('recall-radar/')
+    expect(output).toContain(linkFilePath.replace('projects/', ''))
+  })
+
+  it('cat reads the project blurb and names the command that follows it', () => {
+    const output = execute(`cat ${linkFilePath}`, ctx).output
+    expect(output[0]).toBe(linkProject.blurb)
+    expect(output[1]).toContain(linkProject.href)
+  })
+
+  it('cd follows the link file into a new tab rather than routing to a page', () => {
+    const result = execute(`cd ${linkFilePath}`, ctx)
+    expect(result.action).toEqual({
+      type: TerminalActionType.openExternal,
+      path: linkProject.href,
+    })
+  })
+
+  it('completes the link file for cat and cd, but not for the folder commands', () => {
+    expect(completions('cd projects/nimb')).toEqual([`cd ${linkFilePath}`])
+    expect(completions('cat projects/nimb')).toEqual([`cat ${linkFilePath}`])
+    expect(completions('ls projects/nimb')).toEqual([])
+    expect(completions('tree projects/nimb')).toEqual([])
+  })
+
+  it('resolves the link file only inside its own folder', () => {
+    const bareName = linkFilePath.replace('projects/', '')
+    expect(execute(`cat ${bareName}`, ctx).output[0]).toMatch(/no such file/)
+    expect(execute(`cd ${bareName}`, ctx).output[0]).toMatch(/no such page/)
+  })
+})
 
 describe('execute — navigation commands', () => {
   it('cd navigates to a top-level page', () => {
@@ -111,7 +151,8 @@ describe('execute — tree', () => {
     const output = execute('tree', ctx).output
     expect(output[0]).toBe('.')
     expect(output).toContain('├── projects/')
-    expect(output).toContain('│   └── recall-radar/') // leaf, still a folder
+    expect(output).toContain('│   ├── recall-radar/') // leaf page, still a folder
+    expect(output).toContain('│   └── nimble-toolbox.url') // link file, rendered bare
     expect(output).toContain('│   ├── games/')
     expect(output).toContain('│   │   ├── null-space/')
     expect(output).toContain('│   │   ├── pixel-world-simulator/')
@@ -416,7 +457,10 @@ describe('completions', () => {
 
   it('cat completes pages and digs into them like cd', () => {
     expect(completions('cat proj')).toEqual(['cat projects/'])
-    expect(completions('cat projects/')).toEqual(['cat projects/recall-radar'])
+    expect(completions('cat projects/')).toEqual([
+      'cat projects/nimble-toolbox.url',
+      'cat projects/recall-radar',
+    ])
   })
 
   it('cat completes its root files, hiding dotfiles until a dot is typed', () => {

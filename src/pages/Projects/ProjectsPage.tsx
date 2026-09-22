@@ -16,7 +16,7 @@ export function ProjectsPage() {
             title={project.name}
             description={project.blurb}
             href={project.href}
-            internal
+            internal={!project.external}
           />
         ))}
       </div>
