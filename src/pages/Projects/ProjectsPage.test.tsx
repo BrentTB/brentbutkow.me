@@ -23,6 +23,24 @@ describe('ProjectsPage', () => {
     }
   })
 
+  it('opens a project on its own domain in a new tab, and keeps the rest routing in place', () => {
+    render(
+      <MemoryRouter initialEntries={['/projects']}>
+        <ProjectsPage />
+      </MemoryRouter>
+    )
+
+    for (const project of projects) {
+      const row = screen.getByRole('link', { name: (label) => label.includes(project.name) })
+      if (project.external) {
+        expect(row.getAttribute('target')).toBe('_blank')
+        expect(row.getAttribute('rel')).toBe('noopener noreferrer')
+      } else {
+        expect(row.getAttribute('target')).toBeNull()
+      }
+    }
+  })
+
   it('gives every project a kind label in the rail', () => {
     render(
       <MemoryRouter initialEntries={['/projects']}>
