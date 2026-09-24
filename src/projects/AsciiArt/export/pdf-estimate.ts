@@ -15,6 +15,9 @@ const PER_FRAME_MS = 120
 const PER_SOURCE_SECOND_MS = 150
 // Fixed bytes for the decoder, PDF structure, and glyph alphabet.
 const OVERHEAD_BYTES = 1600
+// Share of the frame data left after the script stream is deflated. A real clip
+// kept ~23%; rounded up, since frame-to-frame change varies from clip to clip.
+const DEFLATE_RATIO = 0.3
 
 export type EstimateInput = {
   srcWidth: number
@@ -39,7 +42,7 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
 
 // Predicts the frame count, file size, and encode time for a PDF export without
 // running it, so the dialog can show live figures as the user picks fps/length.
-// Size mirrors the index-encoded layout: ~1 byte per cell plus fixed overhead.
+// Size mirrors the index-encoded layout: ~1 byte per cell, deflated, plus fixed overhead.
 export function estimateAsciiPdf({
   srcWidth,
   srcHeight,
@@ -51,7 +54,7 @@ export function estimateAsciiPdf({
   const cols = clamp(gridCols(rows, srcWidth, srcHeight), MIN_COLS, MAX_COLS)
   const ideal = Math.max(1, Math.round(fps * duration))
   const frames = Math.min(maxFrames, ideal)
-  const bytes = frames * (cols * rows + 3) + OVERHEAD_BYTES
+  const bytes = Math.round(frames * (cols * rows + 3) * DEFLATE_RATIO) + OVERHEAD_BYTES
   const encodeMs = frames * PER_FRAME_MS + duration * PER_SOURCE_SECOND_MS
   return { cols, rows, frames, bytes, encodeMs, capped: ideal > maxFrames }
 }

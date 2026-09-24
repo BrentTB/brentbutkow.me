@@ -514,7 +514,7 @@ export function useAsciiArt(
       setPdfProgress(null)
 
       if (extracted.frames.length) {
-        const pdf = buildAsciiPdf(extracted.frames, {
+        const pdf = await buildAsciiPdf(extracted.frames, {
           cols: extracted.cols,
           rows: extracted.rows,
           fps: extracted.fps,

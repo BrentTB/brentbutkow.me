@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, afterEach, vi } from 'vitest'
 import { buildAsciiPdf, isRampPdfSafe } from './ascii-pdf'
 
 // Byte-accurate view of the blob so xref offsets (byte counts) line up with
@@ -8,6 +8,16 @@ async function readBytes(blob: Blob): Promise<string> {
   let out = ''
   for (const b of buf) out += String.fromCharCode(b)
   return out
+}
+
+// The boot script, inflated when the stream is Flate-compressed.
+async function bootScript(pdf: string): Promise<string> {
+  const head = pdf.match(/10 0 obj\n<< \/Length (\d+)( \/Filter \/FlateDecode)? >>\nstream\n/)!
+  const start = head.index! + head[0].length
+  const body = Uint8Array.from(pdf.slice(start, start + Number(head[1])), (c) => c.charCodeAt(0))
+  if (!head[2]) return String.fromCharCode(...body)
+  const inflated = new Response(body).body!.pipeThrough(new DecompressionStream('deflate'))
+  return new Response(inflated).text()
 }
 
 // Every xref entry must point at "<n> 0 obj".
@@ -24,7 +34,7 @@ function xrefResolves(pdf: string): boolean {
 
 describe('buildAsciiPdf', () => {
   it('produces a valid PDF blob with resolvable xref offsets', async () => {
-    const blob = buildAsciiPdf(['AB\nCD', 'EF\nGH'], { cols: 2, rows: 2, fps: 10 })
+    const blob = await buildAsciiPdf(['AB\nCD', 'EF\nGH'], { cols: 2, rows: 2, fps: 10 })
     expect(blob.type).toBe('application/pdf')
     const pdf = await readBytes(blob)
     expect(pdf.startsWith('%PDF-1.7')).toBe(true)
@@ -33,7 +43,8 @@ describe('buildAsciiPdf', () => {
   })
 
   it('embeds the glyph alphabet, column count, and a guarded animation loop', async () => {
-    const pdf = await readBytes(buildAsciiPdf(['AB\nCD', 'EF\nGH'], { cols: 2, rows: 2, fps: 10 }))
+    const blob = await buildAsciiPdf(['AB\nCD', 'EF\nGH'], { cols: 2, rows: 2, fps: 10 })
+    const pdf = await bootScript(await readBytes(blob))
     expect(pdf).toContain('var A = "ABCDEFGH"') // distinct glyphs, embedded once
     expect(pdf).toContain('var C = 2') // column count for re-wrapping rows
     expect(pdf).toContain('getField("screen").value')
@@ -43,20 +54,49 @@ describe('buildAsciiPdf', () => {
   })
 
   it('uses a bold monospace field font resolvable via the AcroForm /DR', async () => {
-    const pdf = await readBytes(buildAsciiPdf(['AB\nCD'], { cols: 2, rows: 2, fps: 10 }))
+    const pdf = await readBytes(await buildAsciiPdf(['AB\nCD'], { cols: 2, rows: 2, fps: 10 }))
     expect(pdf).toContain('/BaseFont /Courier-Bold')
     expect(pdf).toContain('/DR << /Font << /F0 5 0 R >> >>')
   })
 
   it('stores a repeated multi-byte glyph once in the alphabet, not per cell', async () => {
-    const pdf = await readBytes(buildAsciiPdf(['██\n██'], { cols: 2, rows: 2, fps: 10 }))
+    const pdf = await bootScript(
+      await readBytes(await buildAsciiPdf(['██\n██'], { cols: 2, rows: 2, fps: 10 }))
+    )
     // full block appears exactly once (in the alphabet), cells reference it by index
     expect(pdf.match(/2588/g)).toHaveLength(1)
   })
 
   it('renders a non-ASCII first frame as ? in the static /V fallback', async () => {
-    const pdf = await readBytes(buildAsciiPdf(['█'], { cols: 1, rows: 1, fps: 12 }))
+    const pdf = await readBytes(await buildAsciiPdf(['█'], { cols: 1, rows: 1, fps: 12 }))
     expect(pdf).toContain('/V (?)')
+  })
+
+  it('Flate-compresses the frame script far below its raw size', async () => {
+    const cols = 80
+    const rows = 40
+    const frames = Array.from({ length: 60 }, (_, f) =>
+      Array.from({ length: rows }, (_, r) =>
+        Array.from({ length: cols }, (_, c) => ' .:-=+*#%@'[(r + c + f) % 10]).join('')
+      ).join('\n')
+    )
+    const pdf = await readBytes(await buildAsciiPdf(frames, { cols, rows, fps: 12 }))
+    expect(pdf).toContain('/Filter /FlateDecode')
+    expect(xrefResolves(pdf)).toBe(true)
+    expect(pdf.length).toBeLessThan((frames.length * cols * rows) / 10)
+    expect(await bootScript(pdf)).toContain(`var C = ${cols}`)
+  })
+
+  describe('without CompressionStream', () => {
+    afterEach(() => vi.unstubAllGlobals())
+
+    it('writes the script stream raw, still a valid PDF', async () => {
+      vi.stubGlobal('CompressionStream', undefined)
+      const pdf = await readBytes(await buildAsciiPdf(['AB\nCD'], { cols: 2, rows: 2, fps: 10 }))
+      expect(pdf).not.toContain('/FlateDecode')
+      expect(xrefResolves(pdf)).toBe(true)
+      expect(pdf).toContain('var A = "ABCD"')
+    })
   })
 
   it('flags ramps Courier cannot draw', () => {
