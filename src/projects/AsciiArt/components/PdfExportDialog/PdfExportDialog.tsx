@@ -37,14 +37,20 @@ export function PdfExportDialog({
   const [fps, setFps] = useState(12)
   const confirmRef = useRef<HTMLButtonElement>(null)
 
+  // The parent re-renders on every playback tick with a fresh onClose. Reading it
+  // through a ref keeps this effect mount-only, so focus isn't pulled off a
+  // slider mid-drag.
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
+
   useEffect(() => {
     confirmRef.current?.focus()
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') onCloseRef.current()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [])
 
   // A rate is feasible when it fits the frame budget at the chosen length. The
   // lowest rate always fits (length is capped to MAX_LENGTH); if the picked rate

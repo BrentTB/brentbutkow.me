@@ -12,7 +12,8 @@
 //
 // Size: each cell is a 1-byte index into a glyph alphabet embedded once, and rows
 // carry no separator (the player re-wraps by column count). A small decoder
-// rebuilds each frame on demand.
+// rebuilds each frame on demand. The script stream is Flate-compressed: frames
+// repeat heavily within and across each other, so deflate removes most of it.
 
 export type AsciiPdfOptions = {
   cols: number
@@ -26,8 +27,9 @@ const LINE_HEIGHT = FONT_SIZE * 1.15
 const CHAR_WIDTH = FONT_SIZE * 0.6 // Courier advance is 600/1000 em
 const MARGIN = 24
 
+import { deflate } from '../../../utils/deflate'
+
 const enc = new TextEncoder()
-const byteLen = (text: string) => enc.encode(text).length
 
 // Single-byte index chars: printable ASCII minus the two that need JS escaping
 // (" and \). 92 slots — comfortably more than any ASCII ramp's distinct glyphs.
@@ -92,7 +94,20 @@ function encodeFrames(frames: string[]): { alphabet: string; encoded: string[] }
   return { alphabet, encoded }
 }
 
-export function buildAsciiPdf(frames: string[], { cols, rows, fps }: AsciiPdfOptions): Blob {
+// The boot script as a stream body: deflated where the platform can, raw otherwise.
+async function scriptStream(code: string): Promise<{ dict: string; data: Uint8Array }> {
+  const raw = enc.encode(code)
+  if (typeof CompressionStream !== 'function') {
+    return { dict: `<< /Length ${raw.length} >>`, data: raw }
+  }
+  const packed = await deflate(raw, 'deflate')
+  return { dict: `<< /Length ${packed.length} /Filter /FlateDecode >>`, data: packed }
+}
+
+export async function buildAsciiPdf(
+  frames: string[],
+  { cols, rows, fps }: AsciiPdfOptions
+): Promise<Blob> {
   const intervalMs = Math.max(1, Math.round(1000 / fps))
   const first = frames[0] ?? ''
   const { alphabet, encoded } = encodeFrames(frames)
@@ -125,49 +140,65 @@ export function buildAsciiPdf(frames: string[], { cols, rows, fps }: AsciiPdfOpt
     `_show();\n` +
     `if (F.length > 1) app.setInterval("i = (i + 1) % F.length; _show();", ${intervalMs});\n`
 
-  const stream = (code: string) => `<< /Length ${byteLen(code)} >>\nstream\n${code}\nendstream`
+  const script = await scriptStream(boot)
 
-  const objs = [
+  // Each object body is a list of chunks, so the binary stream can sit between text.
+  const objs: (string | Uint8Array)[][] = [
     // 1 catalog
-    `<< /Type /Catalog /Pages 2 0 R /AcroForm 6 0 R /Names 7 0 R >>`,
+    [`<< /Type /Catalog /Pages 2 0 R /AcroForm 6 0 R /Names 7 0 R >>`],
     // 2 pages
-    `<< /Type /Pages /Kids [3 0 R] /Count 1 >>`,
+    [`<< /Type /Pages /Kids [3 0 R] /Count 1 >>`],
     // 3 page
-    `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${w} ${h}]` +
-      ` /Resources << /Font << /F0 5 0 R >> >> /Annots [4 0 R] >>`,
+    [
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${w} ${h}]` +
+        ` /Resources << /Font << /F0 5 0 R >> >> /Annots [4 0 R] >>`,
+    ],
     // 4 screen field (multiline + readonly) — the frame buffer
-    `<< /Type /Annot /Subtype /Widget /FT /Tx /Ff 4097 /T (screen)` +
-      ` /Rect [${MARGIN} ${MARGIN} ${w - MARGIN} ${h - MARGIN}]` +
-      ` /DA (/F0 ${FONT_SIZE} Tf 0 g) /Q 0 /P 3 0 R /V (${pdfString(asciiSafe(first))}) >>`,
+    [
+      `<< /Type /Annot /Subtype /Widget /FT /Tx /Ff 4097 /T (screen)` +
+        ` /Rect [${MARGIN} ${MARGIN} ${w - MARGIN} ${h - MARGIN}]` +
+        ` /DA (/F0 ${FONT_SIZE} Tf 0 g) /Q 0 /P 3 0 R /V (${pdfString(asciiSafe(first))}) >>`,
+    ],
     // 5 font — bold reads darker; base-14, no embedding needed
-    `<< /Type /Font /Subtype /Type1 /BaseFont /Courier-Bold /Encoding /WinAnsiEncoding >>`,
+    [`<< /Type /Font /Subtype /Type1 /BaseFont /Courier-Bold /Encoding /WinAnsiEncoding >>`],
     // 6 acroform — /DR names /F0 so the field's /DA resolves to Courier-Bold
-    `<< /Fields [4 0 R] /DA (/F0 ${FONT_SIZE} Tf 0 g)` +
-      ` /DR << /Font << /F0 5 0 R >> >> /NeedAppearances true >>`,
+    [
+      `<< /Fields [4 0 R] /DA (/F0 ${FONT_SIZE} Tf 0 g)` +
+        ` /DR << /Font << /F0 5 0 R >> >> /NeedAppearances true >>`,
+    ],
     // 7 names -> javascript name tree
-    `<< /JavaScript 8 0 R >>`,
+    [`<< /JavaScript 8 0 R >>`],
     // 8 javascript name tree (document-level JS, runs at open)
-    `<< /Names [(aaplay) 9 0 R] >>`,
+    [`<< /Names [(aaplay) 9 0 R] >>`],
     // 9 boot action
-    `<< /S /JavaScript /JS 10 0 R >>`,
-    // 10 boot stream
-    stream(boot),
+    [`<< /S /JavaScript /JS 10 0 R >>`],
+    // 10 boot stream (binary when deflated, so it goes in as bytes)
+    [`${script.dict}\nstream\n`, script.data, `\nendstream`],
   ]
 
-  let pdf = '%PDF-1.7\n%\xE2\xE3\xCF\xD3\n'
+  const parts: Uint8Array[] = []
+  let length = 0
+  const push = (chunk: string | Uint8Array) => {
+    const bytes = typeof chunk === 'string' ? enc.encode(chunk) : chunk
+    parts.push(bytes)
+    length += bytes.length
+  }
+
+  push('%PDF-1.7\n%\xE2\xE3\xCF\xD3\n')
   const offsets: number[] = []
-  for (let i = 0; i < objs.length; i++) {
-    offsets[i] = byteLen(pdf)
-    pdf += `${i + 1} 0 obj\n${objs[i]}\nendobj\n`
-  }
+  objs.forEach((body, i) => {
+    offsets[i] = length
+    push(`${i + 1} 0 obj\n`)
+    body.forEach(push)
+    push('\nendobj\n')
+  })
 
-  const xrefStart = byteLen(pdf)
+  const xrefStart = length
   const size = objs.length + 1
-  pdf += `xref\n0 ${size}\n0000000000 65535 f \n`
-  for (let i = 0; i < objs.length; i++) {
-    pdf += `${String(offsets[i]).padStart(10, '0')} 00000 n \n`
-  }
-  pdf += `trailer\n<< /Size ${size} /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF\n`
+  let tail = `xref\n0 ${size}\n0000000000 65535 f \n`
+  for (const offset of offsets) tail += `${String(offset).padStart(10, '0')} 00000 n \n`
+  tail += `trailer\n<< /Size ${size} /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF\n`
+  push(tail)
 
-  return new Blob([enc.encode(pdf)], { type: 'application/pdf' })
+  return new Blob(parts as BlobPart[], { type: 'application/pdf' })
 }

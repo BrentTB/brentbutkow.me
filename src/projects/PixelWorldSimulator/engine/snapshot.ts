@@ -2,6 +2,7 @@ import { Grid, MaterialId } from '../pixel-world.types'
 import { AMBIENT_TEMPERATURE, SNAPSHOT_MAX_CHARS, TEMPERATURE_LIMITS } from '../data'
 import { MATERIALS } from './materials'
 import { asMaterial, clearGrid, markHotRow, placeMaterial } from './grid'
+import { deflate } from '../../../utils/deflate'
 
 /**
  * Bumped when an old link would read wrong under the new format. A new flag bit that an old link simply
@@ -140,13 +141,6 @@ function streamOf(bytes: Uint8Array<ArrayBuffer>): ReadableStream<BufferSource> 
   })
 }
 
-async function deflate(bytes: Uint8Array<ArrayBuffer>): Promise<Uint8Array> {
-  const packed = await new Response(
-    streamOf(bytes).pipeThrough(new CompressionStream('deflate-raw'))
-  ).arrayBuffer()
-  return new Uint8Array(packed)
-}
-
 /**
  * Unpacks a deflate stream, refusing to hold more than `cap` bytes. The cap is the point: a few kilobytes
  * of hostile base64 can unpack to gigabytes, and the reader has no reason to find that out the hard way.
@@ -228,7 +222,7 @@ async function encodeLayers(grid: Grid, withHeat: boolean, airCurrents: boolean)
     }
   }
 
-  return toBase64Url(await deflate(payload))
+  return toBase64Url(await deflate(payload, 'deflate-raw'))
 }
 
 export type Snapshot = {
