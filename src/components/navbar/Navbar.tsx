@@ -13,6 +13,9 @@ export function Navbar() {
   const { isFunMode, setIsFunMode } = useFunMode()
   const navRoutes = routes.filter((route) => !route.dontShowInNavbar)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  // Menu transitions stay off until the first open, so page load and resizing into the mobile
+  // breakpoint never play the close animation on a menu nobody opened.
+  const [hasOpenedMenu, setHasOpenedMenu] = useState(false)
   const navbarRef = useRef<HTMLElement>(null)
   const toggleRef = useRef<HTMLButtonElement>(null)
   const { navHidden } = useStickyHeader()
@@ -57,7 +60,7 @@ export function Navbar() {
     <>
       <header
         ref={navbarRef}
-        className={`${styles.navbar} ${openStyle} ${retracted ? styles.retracted : ''}`}
+        className={`${styles.navbar} ${openStyle} ${retracted ? styles.retracted : ''} ${hasOpenedMenu ? styles.menuAnimated : ''}`}
       >
         <Link to={routePaths.home} className={styles.brand} onClick={closeMobileMenu}>
           <span className={styles.prompt} aria-hidden="true">
@@ -68,7 +71,10 @@ export function Navbar() {
         <button
           ref={toggleRef}
           className={`${styles.mobileMenuToggle} ${openStyle}`}
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          onClick={() => {
+            setHasOpenedMenu(true)
+            setIsMobileMenuOpen(!isMobileMenuOpen)
+          }}
           aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
           aria-expanded={isMobileMenuOpen}
         >

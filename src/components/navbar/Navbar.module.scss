@@ -365,6 +365,15 @@
     transition-delay: 0ms;
   }
 
+  .navbar:not(.menuAnimated) {
+    transition: transform 0.24s ease;
+  }
+
+  .navbar:not(.menuAnimated) .nav,
+  .navbar:not(.menuAnimated) .links > * {
+    transition: none;
+  }
+
   .link {
     padding: 12px 0;
   }
