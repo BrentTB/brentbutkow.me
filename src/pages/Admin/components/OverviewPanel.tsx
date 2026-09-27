@@ -103,6 +103,8 @@ export function OverviewPanel({ onOpenTab, onInspectFlaggedScores }: OverviewPan
         { label: 'US', value: data.recalls.us },
         { label: 'UK', value: data.recalls.uk },
         { label: 'ZA', value: data.recalls.za },
+        { label: 'CA', value: data.recalls.ca },
+        { label: 'EU', value: data.recalls.eu },
       ],
     },
     {

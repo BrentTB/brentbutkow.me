@@ -63,7 +63,7 @@ export type Overview = {
     fetchedCount: number
     upsertedCount: number
   } | null
-  recalls: { total: number; us: number; uk: number; za: number }
+  recalls: { total: number; us: number; uk: number; za: number; ca: number; eu: number }
   nullspace: { total: number; legit: number; flagged: number }
 }
 
@@ -147,7 +147,7 @@ export function isOverview(value: unknown): value is Overview {
       'paused',
       'unsubscribed',
     ]) &&
-    hasNumbers(value.recalls, ['total', 'us', 'uk', 'za']) &&
+    hasNumbers(value.recalls, ['total', 'us', 'uk', 'za', 'ca', 'eu']) &&
     hasNumbers(value.nullspace, ['total', 'legit', 'flagged'])
   )
 }
