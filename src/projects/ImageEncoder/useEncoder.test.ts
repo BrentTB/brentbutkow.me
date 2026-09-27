@@ -145,6 +145,23 @@ describe('useEncoder', () => {
     expect(decoder.decode(payload?.bytes)).toBe('classified')
   })
 
+  it('preserves the selected preview when encoding again', async () => {
+    const { result } = renderHook(() => useEncoder())
+    await act(async () => result.current.loadImage(file))
+    act(() => result.current.setMessage('meet at noon'))
+    await act(async () => result.current.runEncode())
+
+    act(() => {
+      result.current.setUseKey(true)
+      result.current.setPassphrase('s3cret')
+      result.current.setShowDiff(true)
+    })
+    await act(async () => result.current.runEncode())
+
+    expect(result.current.showDiff).toBe(true)
+    expect(result.current.encoded).not.toBeNull()
+  })
+
   it('tracks capacity for the typed message', async () => {
     const { result } = renderHook(() => useEncoder())
     await act(async () => result.current.loadImage(file))
