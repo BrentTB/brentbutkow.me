@@ -1,7 +1,7 @@
-// Vite build plugin: emits a static index.html per route with that route's title, description,
-// canonical, Open Graph/Twitter tags, robots directive, and JSON-LD. Vercel serves these files
-// before the SPA rewrite kicks in, so crawlers and social scrapers (which don't run JS) see
-// route-specific metadata instead of the home-page shell. The app still hydrates normally.
+// Vite build plugin: emits a static index.html per route with that route's rendered app content,
+// title, description, canonical, Open Graph/Twitter tags, robots directive, and JSON-LD. Vercel
+// serves these files before the SPA rewrite kicks in, so crawlers and social scrapers see the
+// complete route instead of an empty root. The app hydrates normally in the browser.
 //
 // Route metadata comes from src/routes/routes.meta.ts — a pure data module, so importing it
 // here doesn't drag React or SCSS into the build config.
@@ -87,10 +87,17 @@ export function renderRouteHtml(template: string, path: string, meta: RouteMeta)
 }
 
 export function prerenderMeta(): Plugin {
+  let isSsrBuild = false
+
   return {
     name: 'prerender-meta',
     apply: 'build',
+    configResolved(config) {
+      isSsrBuild = !!config.build.ssr
+    },
     closeBundle() {
+      if (isSsrBuild) return
+
       const outDir = 'dist'
       const template = readFileSync(join(outDir, 'index.html'), 'utf8')
       let emitted = 0

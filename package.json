@@ -6,7 +6,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && vite build --ssr scripts/prerender-renderer.tsx --outDir dist/prerender-server && node scripts/prerender-pages.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "check": "tsc -b && eslint . && knip",
