@@ -22,6 +22,16 @@ Add a page = edit one config file. Nav, router, doc-title, 404 all derive.
 - Head/SEO sync (title, description, canonical, OG): [src/routes/useRouteMeta.ts](src/routes/useRouteMeta.ts)
 - Nav reuses config: [src/components/navbar/Navbar.tsx](src/components/navbar/Navbar.tsx) (filters `dontShowInNavbar`)
 
+## Prerendering + hydration
+
+Static routes ship their rendered HTML (crawlers without JS see content and links); the browser hydrates it.
+
+- Build: [scripts/prerender-plugin.ts](scripts/prerender-plugin.ts) (per-route meta + `spa.html` fallback) → [scripts/prerender-renderer.tsx](scripts/prerender-renderer.tsx) (SSR entry) → [scripts/prerender-pages.mjs](scripts/prerender-pages.mjs) (writes content in)
+- HTML composition + lazy-route CSS links: [scripts/prerender-html.ts](scripts/prerender-html.ts)
+- Hydrate vs fresh render: [src/should-hydrate.ts](src/should-hydrate.ts), [src/main.tsx](src/main.tsx)
+- Hydration-safe browser reads: [src/utils/useStoredState.ts](src/utils/useStoredState.ts), [src/components/utils/useMediaQuery.ts](src/components/utils/useMediaQuery.ts), [src/components/footer/useCurrentYear.ts](src/components/footer/useCurrentYear.ts)
+- Guard: [scripts/prerender-hydration.test.tsx](scripts/prerender-hydration.test.tsx)
+
 ## Content/JSX separation
 
 Pages render structure; content lives next to them in `data.ts`, typed centrally.

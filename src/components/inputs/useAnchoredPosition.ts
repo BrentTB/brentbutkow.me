@@ -1,4 +1,5 @@
-import { useLayoutEffect, useState, type RefObject } from 'react'
+import { useState, type RefObject } from 'react'
+import { useIsomorphicLayoutEffect } from '../utils/useIsomorphicLayoutEffect'
 
 type Coords = {
   top: number
@@ -33,7 +34,7 @@ export function useAnchoredPosition(
 ): Coords | null {
   const [coords, setCoords] = useState<Coords | null>(null)
 
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (!open) {
       setCoords(null)
       return

@@ -1,7 +1,7 @@
-// Vite build plugin: emits a static index.html per route with that route's rendered app content,
-// title, description, canonical, Open Graph/Twitter tags, robots directive, and JSON-LD. Vercel
-// serves these files before the SPA rewrite kicks in, so crawlers and social scrapers see the
-// complete route instead of an empty root. The app hydrates normally in the browser.
+// Vite build plugin: emits a static index.html per route with that route's title, description,
+// canonical, Open Graph/Twitter tags, robots directive, and JSON-LD (prerender-pages.mjs then renders
+// the app content into each). Vercel serves these files before the SPA rewrite kicks in, so crawlers
+// and social scrapers see the complete route instead of the home-page shell.
 //
 // Route metadata comes from src/routes/routes.meta.ts — a pure data module, so importing it
 // here doesn't drag React or SCSS into the build config.
@@ -86,6 +86,12 @@ export function renderRouteHtml(template: string, path: string, meta: RouteMeta)
   return html
 }
 
+/**
+ * The unrendered app shell that vercel.json rewrites every non-file URL to (dynamic routes, 404s). The
+ * prerendered home page can't serve that role: its content would flash before the real route renders.
+ */
+export const SPA_FALLBACK_FILE = 'spa.html'
+
 export function prerenderMeta(): Plugin {
   let isSsrBuild = false
 
@@ -100,6 +106,7 @@ export function prerenderMeta(): Plugin {
 
       const outDir = 'dist'
       const template = readFileSync(join(outDir, 'index.html'), 'utf8')
+      writeFileSync(join(outDir, SPA_FALLBACK_FILE), template)
       let emitted = 0
       for (const [path, meta] of Object.entries(routesMeta)) {
         // Dynamic and catch-all routes have no single URL to prerender.

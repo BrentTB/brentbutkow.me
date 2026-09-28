@@ -28,6 +28,15 @@ both providers — it reads `useFunMode` and `useLocation` for its fun-mode page
     `site-invariants` test fails if an indexable route is missing from it. Skip the sitemap only for
     non-indexable routes (`noindex`, the `*`/404 catch-all, and dynamic detail pages like
     `/recall-radar/:source/:recallNumber`). Full runbook: the `new-page` skill.
+- **Pages are prerendered, then hydrated.** `npm run build` renders every static route's HTML
+  ([scripts/prerender-pages.mjs](../scripts/prerender-pages.mjs)); [main.tsx](main.tsx) hydrates it
+  (Fun mode and the empty `spa.html` fallback render fresh — [should-hydrate.ts](should-hydrate.ts)).
+  **The first render must match the server's**, so never read `localStorage`, `matchMedia`, `window`,
+  the clock, or unseeded randomness in a `useState` initializer or during render. Use
+  [useStoredState](utils/useStoredState.ts) (storage), [useMediaQuery](components/utils/useMediaQuery.ts)
+  (media queries), `useIsHydrating` (client-only UI), or an effect.
+  [prerender-hydration.test.tsx](../scripts/prerender-hydration.test.tsx) hydrates every route as a
+  returning visitor on a phone and fails on any mismatch.
 - **State is minimal**: Context for the global Fun-mode flag, `useState` for local UI. No Redux/external store.
 - **Content lives in `data.ts`**, not JSX — typed against [data/data.types.ts](data/data.types.ts).
   Components are presentational, fed via props.

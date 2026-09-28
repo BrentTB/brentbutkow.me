@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useIsomorphicLayoutEffect } from '../../../../components/utils/useIsomorphicLayoutEffect'
 import { cssVars } from '../../../../utils/css-vars'
 import styles from './UnsubscribeSlog.module.scss'
 import { copy, imposedWaitSeconds, longestStatus, MAILINGS, UNSUBSCRIBE_MS } from './data'
@@ -17,7 +18,7 @@ export function UnsubscribeSlog() {
 
   // Finishing one unsubscribe turns its button into a label; carry focus to the next button still
   // standing (or the resubscribe control) so a keyboard user keeps the slog instead of hitting body.
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const finishedOne = gone.length > doneCount.current && pending === null
     doneCount.current = gone.length
     if (!finishedOne) return

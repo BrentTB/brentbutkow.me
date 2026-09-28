@@ -3,6 +3,10 @@ import { StaticRouter } from 'react-router-dom'
 import { Writable } from 'node:stream'
 import { StrictMode } from 'react'
 import { AppShell } from '../src/App'
+import { routesMeta } from '../src/routes/routes.meta'
+import { composePage, stylesheetsFor, type StylesheetIndex } from './prerender-html'
+
+export { buildStylesheetIndex } from './prerender-html'
 
 export function renderRoute(path: string): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -31,4 +35,14 @@ export function renderRoute(path: string): Promise<string> {
       }
     )
   })
+}
+
+/**
+ * The route's finished index.html. Noindex routes keep the empty root: their content depends on a
+ * token in the URL, so prerendering it would only guarantee a hydration mismatch.
+ */
+export async function prerenderPage(template: string, path: string, index: StylesheetIndex) {
+  if (routesMeta[path]?.noindex) return template
+  const content = await renderRoute(path)
+  return composePage(template, content, stylesheetsFor(template, content, index))
 }

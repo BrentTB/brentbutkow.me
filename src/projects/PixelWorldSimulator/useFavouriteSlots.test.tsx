@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { act, renderHook } from '@testing-library/react'
+import { renderToString } from 'react-dom/server'
 import { MaterialId } from './pixel-world.types'
 import { FAVOURITES_KEY, MATERIAL_SLOTS } from './data'
 import { MATERIALS } from './engine/materials'
@@ -12,6 +13,12 @@ describe('useFavouriteSlots', () => {
     const { result } = renderHook(() => useFavouriteSlots())
 
     expect(result.current.slots).toEqual(Array.from({ length: MATERIAL_SLOTS }, () => null))
+  })
+
+  it('prerenders empty slots whatever is saved, so the page hydrates cleanly', () => {
+    localStorage.setItem(FAVOURITES_KEY, JSON.stringify([MaterialId.lava]))
+    const Probe = () => String(useFavouriteSlots().slots[0])
+    expect(renderToString(<Probe />)).toBe('null')
   })
 
   it('fills one slot and leaves the others alone', () => {

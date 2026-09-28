@@ -1,26 +1,25 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useSyncExternalStore } from 'react'
 
-const queryMatches = (query: string): boolean =>
-  typeof window !== 'undefined' &&
-  typeof window.matchMedia === 'function' &&
-  window.matchMedia(query).matches
+const hasMatchMedia = (): boolean =>
+  typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+
+const noop = () => {}
 
 // Tracks whether a CSS media query currently matches, updating live on resize/rotate. For the choices CSS
 // alone can't make: the recall dashboard renders its location scope as a dropdown before the tabs overflow,
 // and the pixel world moves its palette into a sheet on a phone rather than rendering both and hiding one.
-// Returns false where matchMedia is unavailable (SSR / old runtimes).
+// Prerendered HTML and hydration see false (the server snapshot); the live value follows straight after,
+// so a matching query re-renders instead of failing hydration. Also false where matchMedia is unavailable.
 export function useMediaQuery(query: string): boolean {
-  const [matched, setMatched] = useState(() => queryMatches(query))
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
-    const mql = window.matchMedia(query)
-    const onChange = (event: MediaQueryListEvent) => setMatched(event.matches)
-    // Re-sync in case the query changed between render and effect.
-    setMatched(mql.matches)
-    mql.addEventListener('change', onChange)
-    return () => mql.removeEventListener('change', onChange)
-  }, [query])
-
-  return matched
+  const subscribe = useCallback(
+    (notify: () => void) => {
+      if (!hasMatchMedia()) return noop
+      const mql = window.matchMedia(query)
+      mql.addEventListener('change', notify)
+      return () => mql.removeEventListener('change', notify)
+    },
+    [query]
+  )
+  const getSnapshot = () => hasMatchMedia() && window.matchMedia(query).matches
+  return useSyncExternalStore(subscribe, getSnapshot, () => false)
 }

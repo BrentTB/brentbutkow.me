@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useIsomorphicLayoutEffect } from '../utils/useIsomorphicLayoutEffect'
 import { createPortal } from 'react-dom'
 import styles from './MorphTabs.module.scss'
 
@@ -61,7 +62,7 @@ export function MorphTabs<T extends string>({
     setCoords((prev) => (prev && prev.top === top && prev.left === left ? prev : { top, left }))
   }
 
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (open) place()
   }, [open])
 
@@ -83,7 +84,7 @@ export function MorphTabs<T extends string>({
   }, [collapsed])
 
   // Layout effect so the no-transition class is on before the width swap paints.
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (prevValue.current === value) return
     prevValue.current = value
     if (collapsed) setSnap(true)

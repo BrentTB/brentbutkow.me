@@ -1,4 +1,5 @@
-import { useCallback, useState } from 'react'
+import { useCallback } from 'react'
+import { useStoredState } from './useStoredState'
 
 /**
  * A single preference kept in `localStorage`, validated on the way in so a stale or hand-edited value
@@ -21,7 +22,7 @@ export function usePersistedChoice<T extends string>(
     }
   }
 
-  const [choice, setChoice] = useState<T>(read)
+  const [choice, setChoice] = useStoredState<T>(read, fallback)
 
   const choose = useCallback(
     (value: T) => {
@@ -32,7 +33,7 @@ export function usePersistedChoice<T extends string>(
         // A game that plays is worth more than a saved preference.
       }
     },
-    [key]
+    [key, setChoice]
   )
 
   return [choice, choose]

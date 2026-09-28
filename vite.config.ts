@@ -13,6 +13,10 @@ export default defineConfig({
     strictPort: true,
   },
   plugins: [react(), prerenderMeta()],
+  define: {
+    // The footer's prerendered copyright year; see src/components/footer/useCurrentYear.ts.
+    'import.meta.env.VITE_BUILD_YEAR': JSON.stringify(String(new Date().getFullYear())),
+  },
   test: {
     environment: 'jsdom',
     // Installs a working localStorage/sessionStorage. Node 22+ ships an inert native Web Storage global
