@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { renderRouteHtml } from './prerender-plugin'
+import { readFileSync } from 'node:fs'
+import { renderRouteHtml, SPA_FALLBACK_FILE } from './prerender-plugin'
 import { DEFAULT_OG_IMAGE, RouteMeta, SITE_URL } from '../src/routes/routes.meta'
 
 const TEMPLATE = `<!doctype html>
@@ -84,5 +85,15 @@ describe('renderRouteHtml', () => {
   it('throws if the template is missing a tag it must replace', () => {
     const broken = TEMPLATE.replace('<title>placeholder</title>', '')
     expect(() => renderRouteHtml(broken, '/x', baseMeta)).toThrow(/title tag not found/)
+  })
+})
+
+describe('SPA fallback', () => {
+  it('is where vercel.json rewrites every URL without a prerendered file', () => {
+    const vercel = JSON.parse(readFileSync('vercel.json', 'utf8')) as {
+      rewrites: { source: string; destination: string }[]
+    }
+    const catchAll = vercel.rewrites.find((rewrite) => rewrite.source === '/(.*)')
+    expect(catchAll?.destination).toBe(`/${SPA_FALLBACK_FILE}`)
   })
 })

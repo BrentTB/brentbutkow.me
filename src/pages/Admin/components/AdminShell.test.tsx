@@ -10,7 +10,7 @@ const overview: Overview = {
   messages: { total: 3, real: 2, bot: 1, unseen: 1 },
   subscriptions: { total: 5, active: 3, pendingConfirmation: 1, paused: 0, unsubscribed: 1 },
   ingest: null,
-  recalls: { total: 9, us: 5, uk: 3, za: 1 },
+  recalls: { total: 9, us: 5, uk: 3, za: 1, ca: 2, eu: 4 },
   nullspace: { total: 42, legit: 40, flagged: 2 },
 }
 
@@ -54,6 +54,8 @@ describe('AdminShell tab navigation', () => {
     renderShell()
     await waitFor(() => expect(screen.getByRole('button', { name: 'Open Messages' })).toBeTruthy())
     expect(search()).toBe('')
+    expect(screen.getByText('CA').nextElementSibling?.textContent).toBe('2')
+    expect(screen.getByText('EU').nextElementSibling?.textContent).toBe('4')
   })
 
   it('reflects the active tab in the ?tab= query param', () => {

@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useIsomorphicLayoutEffect } from '../../components/utils/useIsomorphicLayoutEffect'
 import { PageLayout } from '../../components/PageFormatting/PageLayout'
 import { PageHeader } from '../../components/PageFormatting/PageHeader'
 import { SafeLink } from '../../components/utils/SafeLink'
@@ -138,7 +139,7 @@ export function RecallRadar() {
   const barRef = useRef<HTMLDivElement>(null)
   // The (non-sticky) content column — a stable anchor for scrolling the data under the pinned strip.
   const contentRef = useRef<HTMLDivElement>(null)
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = barRef.current
     if (!el) return
     const publish = () => {
@@ -161,7 +162,7 @@ export function RecallRadar() {
   // The mobile section rail docks to the bar's bottom edge. The bar's own sticky top shifts with the
   // navbar retract (0 ↔ --site-nav-height), so publish that offset for the rail to add onto
   // --rr-bar-height — without it the two drift apart and page content shows through the seam.
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     document.documentElement.style.setProperty(
       '--rr-nav-offset',
       navHidden ? '0px' : 'var(--site-nav-height, 68px)'

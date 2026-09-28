@@ -1,5 +1,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { renderHook, act, cleanup } from '@testing-library/react'
+import { createElement } from 'react'
+import { renderToString } from 'react-dom/server'
 import { useMediaQuery } from './useMediaQuery'
 
 type Listener = (e: MediaQueryListEvent) => void
@@ -59,5 +61,11 @@ describe('useMediaQuery', () => {
     vi.stubGlobal('matchMedia', undefined)
     const { result } = renderHook(() => useMediaQuery('(max-width: 720px)'))
     expect(result.current).toBe(false)
+  })
+
+  it('renders the server snapshot (false) during prerender, even where the query matches', () => {
+    mockMatchMedia(true)
+    const Probe = () => String(useMediaQuery('(max-width: 720px)'))
+    expect(renderToString(createElement(Probe))).toBe('false')
   })
 })

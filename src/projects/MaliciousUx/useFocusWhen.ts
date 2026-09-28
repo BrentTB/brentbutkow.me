@@ -1,4 +1,5 @@
-import { RefObject, useLayoutEffect, useRef } from 'react'
+import { RefObject, useRef } from 'react'
+import { useIsomorphicLayoutEffect } from '../../components/utils/useIsomorphicLayoutEffect'
 
 /**
  * Focus an element the moment a condition turns true, and only then — never on mount, so a control
@@ -9,7 +10,7 @@ export function useFocusWhen<T extends HTMLElement>(active: boolean): RefObject<
   const ref = useRef<T>(null)
   const was = useRef(active)
 
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (active && !was.current) ref.current?.focus()
     was.current = active
   }, [active])

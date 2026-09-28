@@ -1,4 +1,5 @@
 import { act, renderHook } from '@testing-library/react'
+import { renderToString } from 'react-dom/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { usePersistedChoice } from './usePersistedChoice'
 
@@ -12,6 +13,12 @@ describe('usePersistedChoice', () => {
   it('starts at the fallback when nothing is saved', () => {
     const { result } = renderHook(() => usePersistedChoice(KEY, isColour, 'red'))
     expect(result.current[0]).toBe('red')
+  })
+
+  it('prerenders the fallback whatever is saved, so the page hydrates cleanly', () => {
+    localStorage.setItem(KEY, 'blue')
+    const Probe = () => usePersistedChoice(KEY, isColour, 'red')[0]
+    expect(renderToString(<Probe />)).toBe('red')
   })
 
   it('reads a saved valid value', () => {

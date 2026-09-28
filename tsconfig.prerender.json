@@ -1,0 +1,9 @@
+{
+  // The prerender entry and its tests render the React app, so they need the app's DOM + JSX settings
+  // (and Vite's client types) on top of Node's.
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "types": ["node", "vite/client"]
+  },
+  "include": ["scripts/**/*.tsx", "src/vite-env.d.ts"]
+}

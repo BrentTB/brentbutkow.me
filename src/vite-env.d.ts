@@ -4,4 +4,6 @@
 // so this just adds a typed key without affecting other VITE_* vars.
 interface ImportMetaEnv {
   readonly VITE_API_URL?: string
+  /** Set by vite.config.ts `define` — the year the bundle was built. */
+  readonly VITE_BUILD_YEAR: string
 }

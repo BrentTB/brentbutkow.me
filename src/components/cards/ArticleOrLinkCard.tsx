@@ -21,8 +21,7 @@ export const ArticleOrLinkCard = ({
   internal,
 }: ArticleOrLinkCardProps) => {
   const isLink = !!href
-  const articleOrLinkClass =
-    styles.card + (className ? ` ${className}` : '') + (isLink ? ` ${styles.link}` : '')
+  const articleOrLinkClass = className ? `${styles.card} ${className}` : styles.card
 
   if (isLink) {
     return (

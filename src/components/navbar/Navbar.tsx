@@ -4,7 +4,8 @@ import { routePaths } from '../../routes/routes.paths'
 import styles from './Navbar.module.scss'
 import { ModeToggle } from '../ModeToggle'
 import { useFunMode } from '../../contexts/useFunMode'
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
+import { useIsomorphicLayoutEffect } from '../utils/useIsomorphicLayoutEffect'
 import { useFocusTrap } from './useFocusTrap'
 import { useStickyHeader } from './useStickyHeader'
 import { useDockMagnify } from './useDockMagnify'
@@ -32,7 +33,7 @@ export function Navbar() {
   // to fill the gap when it retracts. Measured after layout, re-measured on resize (the bar's height
   // shifts across breakpoints). offsetHeight is 0 without layout (jsdom), so the guard keeps the CSS
   // fallback in tests.
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const publish = () => {
       const height = navbarRef.current?.offsetHeight
       if (height) document.documentElement.style.setProperty('--site-nav-height', `${height}px`)

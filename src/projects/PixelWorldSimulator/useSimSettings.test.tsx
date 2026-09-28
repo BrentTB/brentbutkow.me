@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { act, renderHook } from '@testing-library/react'
+import { renderToString } from 'react-dom/server'
 import { SimSetting } from './pixel-world.types'
 import { DEFAULT_SETTINGS, SETTINGS_KEY } from './data'
 import { useSimSettings } from './useSimSettings'
@@ -21,6 +22,14 @@ describe('useSimSettings', () => {
     expect(DEFAULT_SETTINGS[SimSetting.tintBlocks]).toBe(true)
     expect(DEFAULT_SETTINGS[SimSetting.tintAir]).toBe(false)
     expect(DEFAULT_SETTINGS[SimSetting.showFlow]).toBe(false)
+  })
+
+  it('prerenders the defaults whatever is saved, so the page hydrates cleanly', () => {
+    const saved = !DEFAULT_SETTINGS[SimSetting.tintAir]
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ [SimSetting.tintAir]: saved }))
+    const Probe = () => String(useSimSettings().settings[SimSetting.tintAir])
+
+    expect(renderToString(<Probe />)).toBe(String(!saved))
   })
 
   it('toggles a setting and leaves the other one alone', () => {

@@ -5,6 +5,7 @@ import { SafeLink } from '../utils/SafeLink'
 import { useFunMode } from '../../contexts/useFunMode'
 import { createShuffledCycle } from '../../utils/shuffled-cycle'
 import { contactPlatforms } from '../../pages/ContactMe/data'
+import { useCurrentYear } from './useCurrentYear'
 
 // Fun-mode sign-off. Each page swap "loads" one of these, then settles on the completed line —
 // a wink at the real work a page does. Round-robin (not random) so it never repeats back-to-back.
@@ -26,7 +27,7 @@ const LOADING_MS = 2400
 const DOT_MS = 300
 
 export function Footer() {
-  const currentYear = new Date().getFullYear()
+  const currentYear = useCurrentYear()
   const { isFunMode } = useFunMode()
   const { pathname } = useLocation()
   // The label being "loaded" (null once it settles) and the animated ellipsis length (0–3).

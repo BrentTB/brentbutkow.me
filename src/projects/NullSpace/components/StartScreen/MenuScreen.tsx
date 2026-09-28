@@ -1,6 +1,7 @@
 import { GAME_NAME } from '../../data'
 import { loadTutorialSeen } from '../../engine/world/persistence'
 import sharedStyles from '../OverlayShared.module.scss'
+import { useStoredState } from '../../../../utils/useStoredState'
 
 type MenuScreenProps = {
   onStart: () => void
@@ -17,6 +18,7 @@ export function MenuScreen({
   onShowLeaderboard,
   onReplayTutorial,
 }: MenuScreenProps) {
+  const [tutorialSeen] = useStoredState(loadTutorialSeen, false)
   return (
     <>
       <h2 className={sharedStyles.title}>{GAME_NAME}</h2>
@@ -39,7 +41,7 @@ export function MenuScreen({
       </button>
       {/* Replay the tutorial — hidden for first-timers, whose Start Game already
           runs it, so it isn't a redundant second entry point. */}
-      {loadTutorialSeen() && (
+      {tutorialSeen && (
         <button className={sharedStyles.secondaryBtn} onClick={onReplayTutorial}>
           How to Play
         </button>

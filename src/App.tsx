@@ -26,19 +26,25 @@ const WaterRippleLayer = () => {
   ) : null
 }
 
+export function AppShell() {
+  return (
+    <FunModeProvider>
+      <div className={styles.shell}>
+        <WaterRippleLayer />
+        <Navbar />
+        <Router />
+      </div>
+      <Footer />
+      {enableVercelAnalytics && <Analytics />}
+      {enableVercelSpeedInsights && <SpeedInsights />}
+    </FunModeProvider>
+  )
+}
+
 export function App() {
   return (
     <BrowserRouter>
-      <FunModeProvider>
-        <div className={styles.shell}>
-          <WaterRippleLayer />
-          <Navbar />
-          <Router />
-        </div>
-        <Footer />
-        {enableVercelAnalytics && <Analytics />}
-        {enableVercelSpeedInsights && <SpeedInsights />}
-      </FunModeProvider>
+      <AppShell />
     </BrowserRouter>
   )
 }

@@ -17,17 +17,22 @@ import { TutorialEntry } from './engine/tutorial/tutorial-machine'
 import { computeHudScale } from './renderer/camera'
 import {
   getVisibleChangelogEntries,
+  DEFAULT_CHANGELOG_FILTERS,
   loadChangelogFilters,
   loadTutorialSeen,
   saveChangelogFilters,
   type ChangelogFilters as ChangelogFiltersState,
 } from './engine/world/persistence'
 import styles from './NullSpace.module.scss'
+import { useIsHydrating, useStoredState } from '../../utils/useStoredState'
 
 // Shows the dev mode console for easier dev testing
 const DEV_MODE = import.meta.env.VITE_NULL_SPACE_DEV_MODE === 'true'
 
 export function NullSpace() {
+  // The dev console shows rng-rolled state, which the prerendered HTML can't match.
+  const hydrating = useIsHydrating()
+  const showDevConsole = DEV_MODE && !hydrating
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const gameContainerRef = useRef<HTMLDivElement>(null)
   const {
@@ -78,14 +83,18 @@ export function NullSpace() {
   const [pseudoFullscreen, setPseudoFullscreen] = useState(false)
   const isFullscreen = isRealFullscreen || pseudoFullscreen
   const [gameSpeed, setGameSpeedState] = useState(1)
-  const [changelogFilters, setChangelogFilters] = useState<ChangelogFiltersState>(() =>
-    loadChangelogFilters()
+  const [changelogFilters, setChangelogFilters] = useStoredState<ChangelogFiltersState>(
+    loadChangelogFilters,
+    DEFAULT_CHANGELOG_FILTERS
   )
 
-  const handleChangelogFiltersChange = useCallback((next: ChangelogFiltersState) => {
-    setChangelogFilters(next)
-    saveChangelogFilters(next)
-  }, [])
+  const handleChangelogFiltersChange = useCallback(
+    (next: ChangelogFiltersState) => {
+      setChangelogFilters(next)
+      saveChangelogFilters(next)
+    },
+    [setChangelogFilters]
+  )
 
   const visibleChangelog = getVisibleChangelogEntries(CHANGELOG, changelogFilters)
 
@@ -215,7 +224,7 @@ export function NullSpace() {
               gameSpeed={gameSpeed}
             />
           </div>
-          {DEV_MODE && (
+          {showDevConsole && (
             <DevConsole
               onPatch={handleDevPatch}
               onJumpToUpgrades={handleDevJumpToUpgrades}

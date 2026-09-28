@@ -107,6 +107,7 @@ import {
 import { TutorialSpotlightKind } from './engine/tutorial/tutorial-script'
 import { drawTutorialFocus } from './renderer/tutorial-overlay'
 import { useCoarsePointer } from './useCoarsePointer'
+import { useStoredState } from '../../utils/useStoredState'
 
 // Build-time literal, same as in NullSpace.tsx
 const DEV_MODE = import.meta.env.VITE_NULL_SPACE_DEV_MODE === 'true'
@@ -279,7 +280,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
   }))
 
   // Whether a resumable save exists on disk (drives the menu's Continue button).
-  const [hasSave, setHasSave] = useState(() => loadGame() !== null)
+  const [hasSave, setHasSave] = useStoredState(() => loadGame() !== null, false)
 
   const cameraRef = useRef<Camera>(createCamera(800, 600))
   const spritesRef = useRef<SpriteCache | null>(null)
@@ -443,7 +444,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
       clearSave()
       setHasSave(false)
     }
-  }, [uiState.phase, uiState.wave])
+  }, [uiState.phase, uiState.wave, setHasSave])
 
   // Snap the camera onto the ship and reseed the starfield — called whenever a
   // fresh sector is laid out (game start, warp).
@@ -462,7 +463,7 @@ export function useNullSpace(canvasRef: React.RefObject<HTMLCanvasElement | null
     setHasSave(false)
     gameStateRef.current = moveToShipSelection(gameStateRef.current)
     syncUI(gameStateRef.current)
-  }, [syncUI])
+  }, [syncUI, setHasSave])
 
   const handleSelectShip = useCallback(
     (kind: ShipKind) => {

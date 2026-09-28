@@ -5,7 +5,7 @@ const validOverview: Overview = {
   messages: { total: 3, real: 2, bot: 1, unseen: 1 },
   subscriptions: { total: 5, active: 3, pendingConfirmation: 1, paused: 0, unsubscribed: 1 },
   ingest: { lastRunAt: '2026-06-30T00:00:00Z', status: 'ok', fetchedCount: 10, upsertedCount: 4 },
-  recalls: { total: 9, us: 5, uk: 3, za: 1 },
+  recalls: { total: 9, us: 5, uk: 3, za: 1, ca: 0, eu: 0 },
   nullspace: { total: 42, legit: 40, flagged: 2 },
 }
 
@@ -21,6 +21,15 @@ describe('isOverview', () => {
   it('rejects shape drift in a nested numeric leaf the panel renders', () => {
     // `recalls.total` missing — the old shallow guard passed this and rendered `undefined`.
     expect(isOverview({ ...validOverview, recalls: { us: 5, uk: 3, za: 1 } })).toBe(false)
+  })
+
+  it('rejects a recalls block missing the Canada or Europe count', () => {
+    expect(
+      isOverview({ ...validOverview, recalls: { ...validOverview.recalls, ca: undefined } })
+    ).toBe(false)
+    expect(
+      isOverview({ ...validOverview, recalls: { ...validOverview.recalls, eu: undefined } })
+    ).toBe(false)
   })
 
   it('rejects a messages block missing the unseen count', () => {

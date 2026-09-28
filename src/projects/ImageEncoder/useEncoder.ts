@@ -74,10 +74,10 @@ export function useEncoder() {
   const secretBytesRef = useRef<Uint8Array | null>(null)
   const encodedBlobRef = useRef<Blob | null>(null)
 
-  const clearResult = useCallback(() => {
+  const clearResult = useCallback((resetView = true) => {
     setEncoded(null)
     setDiffUrl(null)
-    setShowDiff(false)
+    if (resetView) setShowDiff(false)
     encodedBlobRef.current = null
   }, [])
 
@@ -158,7 +158,7 @@ export function useEncoder() {
     const isStale = beginCoverRequest()
     setBusy(true)
     setError(null)
-    clearResult()
+    clearResult(false)
     try {
       let payload = envelope
       let salt: Uint8Array | null = null

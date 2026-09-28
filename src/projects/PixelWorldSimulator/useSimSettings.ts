@@ -1,4 +1,5 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback } from 'react'
+import { useStoredState } from '../../utils/useStoredState'
 import { SimSetting, SimSettings } from './pixel-world.types'
 import { DEFAULT_SETTINGS, SETTINGS_KEY } from './data'
 
@@ -48,25 +49,29 @@ export type SimSettingsControl = {
 
 /** The viewer's picture settings, kept in `localStorage` so a world looks the way they left it. */
 export function useSimSettings(): SimSettingsControl {
-  const [settings, setSettings] = useState<SimSettings>(readSettings)
-  // The saved preferences. Only a deliberate toggle writes here, so a shared world can change the live
-  // settings for one session without ever overwriting what the viewer chose for themselves.
-  const savedRef = useRef(settings)
+  const [settings, setSettings] = useStoredState<SimSettings>(readSettings, DEFAULT_SETTINGS)
 
-  const toggle = useCallback((setting: SimSetting) => {
-    setSettings((current) => {
-      const next = { ...current, [setting]: !current[setting] }
-      savedRef.current = { ...savedRef.current, [setting]: next[setting] }
-      writeSettings(savedRef.current)
-      return next
-    })
-  }, [])
+  // Only a deliberate toggle saves, and it saves just that setting onto what storage holds — so a shared
+  // world can change the live settings for one session without overwriting the viewer's own choices.
+  const toggle = useCallback(
+    (setting: SimSetting) => {
+      setSettings((current) => {
+        const next = { ...current, [setting]: !current[setting] }
+        writeSettings({ ...readSettings(), [setting]: next[setting] })
+        return next
+      })
+    },
+    [setSettings]
+  )
 
-  const apply = useCallback((setting: SimSetting, value: boolean) => {
-    setSettings((current) =>
-      current[setting] === value ? current : { ...current, [setting]: value }
-    )
-  }, [])
+  const apply = useCallback(
+    (setting: SimSetting, value: boolean) => {
+      setSettings((current) =>
+        current[setting] === value ? current : { ...current, [setting]: value }
+      )
+    },
+    [setSettings]
+  )
 
   return { settings, toggle, apply }
 }
