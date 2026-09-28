@@ -70,6 +70,8 @@ html.fun-mode body {
 }
 
 #root {
+  /* Reveals the prerendered page, which index.html hides until this stylesheet applies. */
+  visibility: visible;
   display: flex;
   flex-direction: column;
   flex: 1;

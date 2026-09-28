@@ -201,4 +201,13 @@ describe('site invariants', () => {
     }
     expect(stale, `skill runbooks reference moved/deleted files:\n${stale.join('\n')}`).toEqual([])
   })
+
+  it('index.html hides #root only until index.scss reveals it', () => {
+    // Hiding without the reveal would ship a blank site; revealing without the hide lets the
+    // prerendered page paint unstyled while the stylesheet loads.
+    const html = readFileSync(join(rootDir, 'index.html'), 'utf8')
+    const scss = readFileSync(join(srcDir, 'index.scss'), 'utf8')
+    expect(html).toMatch(/<style>[\s\S]*#root\s*{\s*visibility:\s*hidden;?\s*}[\s\S]*<\/style>/)
+    expect(scss).toMatch(/#root\s*{[^}]*visibility:\s*visible/)
+  })
 })
